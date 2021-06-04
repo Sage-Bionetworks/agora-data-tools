@@ -1,0 +1,9 @@
+- neuropath:
+    id: syn22017882
+    format: csv
+    final_filename: neuropath_corr
+
+- srm_data:
+    id: syn25454540
+    format: csv
+    final_filename: srm_data
