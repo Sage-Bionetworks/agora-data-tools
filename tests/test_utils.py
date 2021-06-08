@@ -11,12 +11,12 @@ def test_yaml():
 
     #tests if a bad file will
     with pytest.raises(SystemExit) as err:
-        utils._get_config(config_path="./tests/bad_config.yaml")
+        utils._get_config(config_path="./tests/test_assets/bad_config.yaml")
     assert err.type == SystemExit
     assert err.value.code == 9
 
     with pytest.raises(SystemExit) as err:
-        utils._get_config(config_path="./tests/bad_config.yam")
+        utils._get_config(config_path="./tests/test_assets/bad_config.yam")
     assert err.type == SystemExit
     assert err.value.code == 2
 
