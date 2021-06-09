@@ -49,8 +49,12 @@ def read_tsv_into_df(tsv_path: str):
 
     return pd.read_csv(tsv_path, sep="\t")
 
-'''Reads a Synapse table into a dataframe'''
-def read_table_into_df(table_id: synapseclient.EntityViewType.TABLE, syn):
+
+def read_table_into_df(table_id: str, syn) -> pd.DataFrame:
+    '''Reads a Synapse table into a dataframe.\n
+    Arguments: the id of a Synapse Table and a Synapse Object
+    Returns: a pandas dataframe
+    '''
 
     query = str("select * from {0}".format(table_id))
 
