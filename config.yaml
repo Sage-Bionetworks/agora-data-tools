@@ -1,11 +1,15 @@
-- destination: syn22017882
+- destination: syn25871921
 - files:
     - id: syn22017882
       format: csv
       final_filename: neuropath_corr
-      provenance: []
-      destination: synid
+      provenance:
+        - syn22017882
+      destination: syn25871921
 
     - id: syn25454540
       format: csv
       final_filename: srm_data
+      provenance:
+        - syn25454540
+      destination: syn25871921

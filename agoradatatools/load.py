@@ -46,7 +46,7 @@ def load(file_path: str, provenance: list[str], destination: str, syn=None):
               "the provenances and the destination are valid")
         return
 
-    return file.id
+    return (file.id, file.versionNumber)
 
 
 
@@ -67,4 +67,14 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
         return None
 
     return temp_json.name
+
+def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
+    try:
+        temp_csv = open("./staging/" + filename, 'w+')
+        df.to_csv(path_or_buf=temp_csv)
+    except AttributeError:
+        print("Invalid dataframe.")
+        return None
+
+    return temp_csv.name
 

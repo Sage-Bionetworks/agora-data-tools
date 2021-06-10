@@ -34,7 +34,7 @@ def test_yaml():
 
 def test_process_single_file():
     result = utils.process_single_file(file_object)
-    assert type(result) is str
+    assert type(result) is tuple
 
 
 if __name__ == "__main__":
