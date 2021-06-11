@@ -2,14 +2,14 @@
 - files:
     - id: syn22017882
       format: csv
-      final_filename: neuropath_corr
+      final_filename: neuropath_corr.json
       provenance:
         - syn22017882
       destination: syn25871921
 
     - id: syn25454540
       format: csv
-      final_filename: srm_data
+      final_filename: srm_data.json
       provenance:
         - syn25454540
       destination: syn25871921

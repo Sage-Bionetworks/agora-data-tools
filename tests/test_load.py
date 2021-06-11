@@ -1,5 +1,4 @@
-import pytest
-from agoradatatools import load
+from agoradatatools.etl import load
 import pandas as pd
 import numpy as np
 
@@ -8,7 +7,6 @@ df = pd.DataFrame(
      'team_name': ['MSN', 'Team 1', 'Team 2'],
      'team_score': ['x', 'y', 'z']})
 
-#what can break: invalid json name
 def test_df_to_json():
     assert load.df_to_json(df, "test.json") == "./staging/test.json"
     assert type(load.df_to_json(1, "test.json")) is type(None)

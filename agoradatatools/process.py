@@ -1,43 +1,9 @@
-import synapseclient
-import yaml
-import errno
+import etl.extract as extract
+import etl.transform as transform
+import etl.load as load
+import etl.utils as utils
 import sys
-
-from agoradatatools import extract
-from agoradatatools import transform
-from agoradatatools import load
-
 from pandas import DataFrame
-
-
-def _login_to_synapse() -> object:
-    syn = synapseclient.Synapse()
-    syn.login()
-    return syn
-
-
-def _get_config(config_path: str = None):
-    if not config_path:
-        config_path = "./config.yaml"
-
-    file = None
-    config = None
-
-    try:
-        file = open(config_path, "r")
-        config = yaml.load(file, Loader=yaml.FullLoader)
-    except FileNotFoundError:
-        print("File not found.  Please provide a valid path.")
-        sys.exit(errno.ENOENT)
-    except yaml.parser.ParserError or yaml.scanner.ScannerError:
-        print("Invalid file.  Please provide a valid YAML file.")
-        sys.exit(errno.EBADF)
-
-    return config
-
-def create_data_manifest(manifest: list[tuple]) -> DataFrame:
-    return DataFrame(manifest, columns=['id', 'version'])
-
 
 def process_single_file(file_obj: dict, syn=None):
     """
@@ -75,15 +41,19 @@ def process_single_file(file_obj: dict, syn=None):
     return syn_obj
 
 
+def create_data_manifest(manifest: list[tuple]) -> DataFrame:
+    return DataFrame(manifest, columns=['id', 'version'])
+
+
 def process_all_files(config_path: str = None):
 
-    syn = _login_to_synapse()
+    syn = utils._login_to_synapse()
     manifest = []
 
     if config_path:
-        config = _get_config(config_path=config_path)
+        config = utils._get_config(config_path=config_path)
     else:
-        config = _get_config()
+        config = utils._get_config()
 
     files = config[1]['files']
 

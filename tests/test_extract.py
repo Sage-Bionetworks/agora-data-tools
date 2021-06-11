@@ -1,6 +1,5 @@
 import pytest
-from agoradatatools import extract
-from agoradatatools import utils
+from agoradatatools.etl import extract, utils
 from pandas import DataFrame
 
 syn = utils._login_to_synapse()
