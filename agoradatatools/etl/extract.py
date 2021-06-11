@@ -1,4 +1,4 @@
-import agoradatatools.utils as utils
+from . import utils
 import pandas as pd
 import synapseclient
 import sys

@@ -1,13 +1,16 @@
 import pandas as pd
 from os import mkdir, rmdir
-from agoradatatools import utils
+from . import utils
 from synapseclient import File, Activity
 
 def create_temp_location():
     """
     Creates a temporary location to store the json files
     """
-    mkdir('./staging')
+    try:
+        mkdir('./staging')
+    except FileExistsError:
+        return
 
 def delete_temp_location():
     """

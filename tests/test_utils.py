@@ -1,7 +1,6 @@
 import pytest
-from agoradatatools import utils
+from agoradatatools.etl import utils
 from synapseclient import Synapse
-from pandas import DataFrame
 
 file_object = {
     "id": "syn25838546",
@@ -30,11 +29,6 @@ def test_yaml():
         utils._get_config(config_path="./tests/test_assets/bad_config.yam")
     assert err.type == SystemExit
     assert err.value.code == 2
-
-
-def test_process_single_file():
-    result = utils.process_single_file(file_object)
-    assert type(result) is tuple
 
 
 if __name__ == "__main__":
