@@ -1,7 +1,7 @@
-import etl.extract as extract
-import etl.transform as transform
-import etl.load as load
-import etl.utils as utils
+import agoradatatools.etl.extract as extract
+import agoradatatools.etl.transform as transform
+import agoradatatools.etl.load as load
+import agoradatatools.etl.utils as utils
 import sys
 from pandas import DataFrame
 

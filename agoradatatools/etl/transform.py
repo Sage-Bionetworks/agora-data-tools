@@ -6,7 +6,7 @@ def standardize_column_names(df: pd.core.frame.DataFrame) -> pd.DataFrame:
     :return: a dataframe
     """
 
-    df.columns = df.columns.str.replace("[#,@,&,*,^,?,(,),%,$,#,!]", "")
+    df.columns = df.columns.str.replace("[#,@,&,*,^,?,(,),%,$,#,!,/]", "")
     df.columns = df.columns.str.replace("[' ', '-', '.']", "_")
     df.columns = map(str.lower, df.columns)
 

@@ -1,10 +1,38 @@
 - destination: syn25871921
 - files:
+    - id: syn25575153
+      format: table
+      final_filename: genetics_scores.json
+      provenance:
+        - syn25575153
+      destination: syn25871921
+
     - id: syn22017882
       format: csv
       final_filename: neuropath_corr.json
       provenance:
         - syn22017882
+      destination: syn25871921
+
+    - id: syn22758536
+      format: table
+      final_filename: omics_scores.json
+      provenance:
+        - syn22758536
+      destination: syn25871921
+
+    - id: syn18689335
+      format: csv
+      final_filename: proteomics.json
+      provenance:
+        - syn18689335
+      destination: syn25871921
+
+    - id: syn24184512
+      format: csv
+      final_filename: target_exp_validation_harmonized.json
+      provenance:
+        - syn24184512
       destination: syn25871921
 
     - id: syn25454540

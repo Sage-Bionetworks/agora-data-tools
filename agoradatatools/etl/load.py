@@ -64,7 +64,7 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
 
     try:
         temp_json = open("./staging/" + filename, 'w+')
-        df.to_json(path_or_buf=temp_json, indent=2)
+        df.to_json(path_or_buf=temp_json, orient='records', indent=2)
     except AttributeError:
         print("Invalid dataframe.")
         return None
