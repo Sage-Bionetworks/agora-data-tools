@@ -32,7 +32,8 @@ def process_single_file(file_obj: dict, syn=None):
 
     try:
         json_path = load.df_to_json(df=df, filename=file_obj['final_filename'])
-        syn_obj = load.load(file_path=json_path, provenance=file_obj['provenance'], destination=file_obj['destination'], syn=syn)
+        syn_obj = load.load(file_path=json_path, provenance=file_obj['provenance'], destination=file_obj['destination'],
+                            syn=syn)
     except Exception as load_error:
         print("There was an error loading " + file_obj['id'])
         print(load_error)
@@ -66,7 +67,7 @@ def process_all_files(config_path: str = None):
 
     # create manifest
     manifest_df = create_data_manifest(manifest=manifest)
-    manifest_path = load.df_to_csv(df=manifest_df, filename="data_manifest")
+    manifest_path = load.df_to_csv(df=manifest_df, filename="data_manifest.csv")
 
     load.load(file_path=manifest_path, provenance=manifest_df['id'].to_list(), destination=config[0]['destination'])
 
