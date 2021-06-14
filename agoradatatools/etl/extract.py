@@ -5,7 +5,13 @@ import sys
 import errno
 
 def get_entity_as_df(syn_id: str, format: str, syn=None):
-
+    """
+    Looks at the format of the file at the source, extracts it,
+    and returns it as a data frame
+    :param syn_id: synapse id of the entity
+    :param format: original format of the file in synapse
+    :return: a data frame
+    """
     if syn is None:
         syn = utils._login_to_synapse()
 
@@ -31,7 +37,6 @@ def get_entity_as_df(syn_id: str, format: str, syn=None):
 
 '''Reads in a csv file into a dataframe'''
 def read_csv_into_df(csv_path: str):
-
     if csv_path.split(".")[-1] != "csv":
         print("Please make sure the format parameter in the configuration for "
               + str(csv_path) + " matches the file extension.")

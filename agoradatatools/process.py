@@ -47,6 +47,11 @@ def create_data_manifest(manifest: list[tuple]) -> DataFrame:
 
 
 def process_all_files(config_path: str = None):
+    """
+    This function will run read through the entire configuration
+    and process each file.
+    :param config_path: the path to the configuration file
+    """
 
     syn = utils._login_to_synapse()
     manifest = []

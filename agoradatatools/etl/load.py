@@ -72,6 +72,12 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
     return temp_json.name
 
 def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
+    """
+    Converts a data frame into a csv file.
+    :param df: a dataframe
+    :param filename: the final file name included in the config file
+    :return: the path of the newly created temporary csv file
+    """
     try:
         temp_csv = open("./staging/" + filename, 'w+')
         df.to_csv(path_or_buf=temp_csv)

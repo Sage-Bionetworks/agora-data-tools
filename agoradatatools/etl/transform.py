@@ -32,3 +32,18 @@ def standardize_values(df: pd.core.frame.DataFrame) -> pd.DataFrame:
     df = df.replace(["NA", "n/a", "N/A", "na", "n/A", "N/a", "Na", "nA"], "")
 
     return df
+
+def rename_columns(df: pd.core.frame.DataFrame, column_map: dict) -> pd.DataFrame:
+    """Takes in a dataframe and renames columns according to the mapping provided
+    :param df: a dataframe
+    :param column_map: a dict with the mappoing for the columns to be renamed
+    :return: a dataframe
+    """
+    try:
+        df = df.rename(columns=column_map)
+    except TypeError:
+        print("Column mapping must be a dictionary")
+        return df
+
+    print(list(df.columns))
+    return df

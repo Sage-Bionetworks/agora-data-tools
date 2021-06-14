@@ -26,6 +26,8 @@
       final_filename: proteomics.json
       provenance:
         - syn18689335
+      column_rename:
+        - gname: gene_name
       destination: syn25871921
 
     - id: syn24184512
