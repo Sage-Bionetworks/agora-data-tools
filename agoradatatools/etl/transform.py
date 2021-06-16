@@ -45,5 +45,22 @@ def rename_columns(df: pd.core.frame.DataFrame, column_map: dict) -> pd.DataFram
         print("Column mapping must be a dictionary")
         return df
 
-    print(list(df.columns))
     return df
+
+
+def subset_columns(df: pd.core.frame.DataFrame, start: int, end: int) -> pd.core.frame.DataFrame:
+    return df[df.columns[start:end]]
+
+
+def apply_additional_transformations(df: pd.core.frame.DataFrame, file_obj: dict):
+
+    additional = file_obj['additional_transformations']
+
+    for transformation in additional:
+        if "subset_columns" in transformation.keys():
+            df = subset_columns(df=df,
+                                start=transformation['subset_columns']['start'],
+                                end=transformation['subset_columns']['end'])
+
+    return df
+

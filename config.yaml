@@ -13,7 +13,8 @@
       provenance:
         - syn22017882
       column_rename:
-        - gname: hgnc_gene_id
+          ensg: ensembl_gene_id
+          gname: hgnc_gene_id
       destination: syn25871921
 
     - id: syn22758536
@@ -29,8 +30,8 @@
       provenance:
         - syn18689335
       column_rename:
-        - gene_name: hgnc_gene_id
-        - ensg: ensemble_gene_id
+          genename: hgnc_gene_id
+          ensg: ensemble_gene_id
       destination: syn25871921
 
     - id: syn24184512
@@ -50,6 +51,8 @@
     - id: syn25575156
       format: table
       final_filename: overall_scores.json
+      column_rename:
+          genename: hgnc_gene_id
       additional_transformations:
         - subset_columns:
             start: 0
