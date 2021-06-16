@@ -12,6 +12,8 @@
       final_filename: neuropath_corr.json
       provenance:
         - syn22017882
+      column_rename:
+        - gname: hgnc_gene_id
       destination: syn25871921
 
     - id: syn22758536
@@ -27,7 +29,8 @@
       provenance:
         - syn18689335
       column_rename:
-        - gname: gene_name
+        - gene_name: hgnc_gene_id
+        - ensg: ensemble_gene_id
       destination: syn25871921
 
     - id: syn24184512
