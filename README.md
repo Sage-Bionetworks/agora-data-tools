@@ -12,7 +12,7 @@ Data Lake" talk given at the Data + AI Summit of 2021.
 
 ## Run
 ```bash
-python ./src/agoradatatools/process.py config.yaml
+python ./agoradatatools/process.py config.yaml
 # The config file can be swapped out
 ```
 

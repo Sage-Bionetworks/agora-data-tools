@@ -46,3 +46,16 @@
       provenance:
         - syn25454540
       destination: syn25871921
+
+    - id: syn25575156
+      format: table
+      final_filename: overall_scores.json
+      additional_transformations:
+        - subset_columns:
+            start: 0
+            end: 6
+      provenance:
+        - syn25575156
+        - syn25575153
+        - syn22758536
+      destination: syn25871921
