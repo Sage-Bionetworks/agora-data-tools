@@ -12,6 +12,9 @@
       final_filename: neuropath_corr.json
       provenance:
         - syn22017882
+      column_rename:
+          ensg: ensembl_gene_id
+          gname: hgnc_gene_id
       destination: syn25871921
 
     - id: syn22758536
@@ -27,7 +30,8 @@
       provenance:
         - syn18689335
       column_rename:
-        - gname: gene_name
+          genename: hgnc_gene_id
+          ensg: ensemble_gene_id
       destination: syn25871921
 
     - id: syn24184512
@@ -42,4 +46,19 @@
       final_filename: srm_data.json
       provenance:
         - syn25454540
+      destination: syn25871921
+
+    - id: syn25575156
+      format: table
+      final_filename: overall_scores.json
+      column_rename:
+          genename: hgnc_gene_id
+      additional_transformations:
+        - subset_columns:
+            start: 0
+            end: 6
+      provenance:
+        - syn25575156
+        - syn25575153
+        - syn22758536
       destination: syn25871921

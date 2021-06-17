@@ -30,6 +30,12 @@ def process_single_file(file_obj: dict, syn=None):
         print(transform_error)
         return
 
+    if "column_rename" in file_obj.keys():
+        df = transform.rename_columns(df=df, column_map=file_obj['column_rename'])
+
+    if "additional_transformations" in file_obj.keys():
+        df = transform.apply_additional_transformations(df=df, file_obj=file_obj)
+
     try:
         json_path = load.df_to_json(df=df, filename=file_obj['final_filename'])
         syn_obj = load.load(file_path=json_path, provenance=file_obj['provenance'], destination=file_obj['destination'],

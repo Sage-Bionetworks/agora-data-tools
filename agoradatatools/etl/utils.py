@@ -2,8 +2,6 @@ import synapseclient
 import yaml
 import errno
 import sys
-from pandas import DataFrame
-
 
 def _login_to_synapse() -> object:
     syn = synapseclient.Synapse()
