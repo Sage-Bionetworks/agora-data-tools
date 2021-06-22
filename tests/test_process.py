@@ -9,6 +9,54 @@ file_object = {
     "destination": "syn25871921"
 }
 
-def test_process_single_file():
-    good_result = process.process_single_file(file_obj=file_object)
+dataset_object_multi = {
+        "team_info": {
+            "files": [
+                {
+                    "syn12615624": "csv"
+                },
+                {
+                    "syn12615633": "csv"
+                }
+            ],
+            "final_format": "json",
+            "additional_transformations": [
+                {
+                    "join_datasets": {
+                        "left": "syn12615624",
+                        "right": "syn12615633",
+                        "how": "left",
+                        "on": "team"
+                    }
+                }
+            ],
+            "provenance": [
+                "syn12615624",
+                "syn12615633"
+            ],
+            "destination": "syn25871921"
+        }
+    }
+
+dataset_object_single = {
+        "neuropath_corr": {
+            "files": [
+                {
+                    "syn22017882": "csv"
+                }
+            ],
+            "final_format": "json",
+            "provenance": [
+                "syn22017882"
+            ],
+            "column_rename": {
+                "ensg": "ensembl_gene_id",
+                "gname": "hgnc_gene_id"
+            },
+            "destination": "syn25871921"
+        }
+    }
+
+def test_process_dataset():
+    good_result = process.process_dataset(dataset_obj=dataset_object_single)
     assert type(good_result) is tuple

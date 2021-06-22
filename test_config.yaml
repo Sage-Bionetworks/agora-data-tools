@@ -1,0 +1,27 @@
+- destination: syn25905764
+- datasets:
+    - team_info:
+        files:
+          - syn12615624: csv
+          - syn12615633: csv
+        final_format: json
+        custom_transformations: 1
+        column_rename:
+          isprimaryinvestigator: is_primary_investigator
+        provenance:
+          - syn12615624
+          - syn12615633
+        destination: syn25905764
+
+    - overall_scores:
+        files:
+          - syn25575156: table
+        final_format: json
+        custom_transformations: 1
+        column_rename:
+          genename: hgnc_gene_id
+        provenance:
+          - syn25575156
+          - syn25575153
+          - syn22758536
+        destination: syn25905764
