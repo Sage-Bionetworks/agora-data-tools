@@ -9,6 +9,8 @@ def process_dataset(dataset_obj: dict, syn=None):
     """
     Takes in a dataset from the configuration file and passes it through the
     ETL process
+    :param dataset_obj: a dataset defined in the configuration file
+    :param syn: synapse object
     """
 
     print(dataset_obj)
@@ -36,7 +38,6 @@ def process_dataset(dataset_obj: dict, syn=None):
 
 
     try:
-        # sys.exit()
         json_path = load.df_to_json(df=df, filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
         syn_obj = load.load(file_path=json_path, provenance=dataset_obj[dataset_name]['provenance'],
                             destination=dataset_obj[dataset_name]['destination'],
@@ -47,50 +48,6 @@ def process_dataset(dataset_obj: dict, syn=None):
         return
 
     return syn_obj
-
-
-# def process_single_file(dataset_obj: dict, syn=None):
-#     """
-#     Puts a single file through the entire ETL process.
-#     If process is successful, it will return a string
-#     with the Synapse id of the newly loaded file
-#     :param dataset_obj: a file object from the configuration
-#     :return: a Synapse id
-#     """
-#
-#     # individual exceptions are defined in each file
-#     try:
-#         df = extract.get_entity_as_df(syn_id=dataset_obj['id'], format=dataset_obj['format'], syn=syn)
-#     except Exception as extract_error:
-#         print("There was an error extracting " + dataset_obj['id'])
-#         print(extract_error)
-#         return
-#
-#     try:
-#         df = transform.standardize_column_names(df=df)
-#         df = transform.standardize_values(df=df)
-#     except Exception as transform_error:
-#         print("There was an error transforming " + dataset_obj['id'])
-#         print(transform_error)
-#         return
-#
-#     if "column_rename" in dataset_obj.keys():
-#         df = transform.rename_columns(df=df, column_map=dataset_obj['column_rename'])
-#
-#     if "additional_transformations" in dataset_obj.keys():
-#         df = transform.apply_additional_transformations(df=df, file_obj=dataset_obj)
-#
-#     try:
-#         json_path = load.df_to_json(df=df, filename=dataset_obj['final_filename'])
-#         syn_obj = load.load(file_path=json_path, provenance=dataset_obj['provenance'], destination=dataset_obj['destination'],
-#                             syn=syn)
-#     except Exception as load_error:
-#         print("There was an error loading " + dataset_obj['id'])
-#         print(load_error)
-#         return
-#
-#     print(syn_obj)
-#     return syn_obj
 
 
 def create_data_manifest(manifest: list[tuple]) -> DataFrame:

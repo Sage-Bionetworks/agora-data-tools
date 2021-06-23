@@ -1,64 +1,93 @@
 - destination: syn25871921
-- files:
-    - id: syn25575153
-      format: table
-      final_filename: genetics_scores.json
+- datasets:
+  - genetics_scores:
+      files:
+        - syn25575153: table
+      final_format: json
       provenance:
         - syn25575153
-      destination: syn25871921
+      column_rename:
+        ensg: ensenbl_gene_id
+        gene_name: hgnc_gene_id
+      destination: syn25905764
 
-    - id: syn22017882
-      format: csv
-      final_filename: neuropath_corr.json
+  - neuropath_corr:
+      files:
+        - syn22017882: csv
+      final_format: json
       provenance:
         - syn22017882
       column_rename:
-          ensg: ensembl_gene_id
-          gname: hgnc_gene_id
-      destination: syn25871921
+        ensg: ensembl_gene_id
+        gname: hgnc_gene_id
+      destination: syn25905764
 
-    - id: syn22758536
-      format: table
-      final_filename: omics_scores.json
+  - omics_scores:
+      files:
+        - syn22758536: table
+      final_format: json
       provenance:
         - syn22758536
-      destination: syn25871921
+      destination: syn25905764
 
-    - id: syn18689335
-      format: csv
-      final_filename: proteomics.json
+  - proteomics:
+      files:
+        - syn18689335: csv
+      final_format: json
       provenance:
         - syn18689335
       column_rename:
-          genename: hgnc_gene_id
-          ensg: ensemble_gene_id
-      destination: syn25871921
+        genename: hgnc_gene_id
+        ensg: ensemble_gene_id
+      destination: syn25905764
 
-    - id: syn24184512
-      format: csv
-      final_filename: target_exp_validation_harmonized.json
+  - target_exp_validation_harmonized:
+      files:
+        - syn24184512: csv
+      final_format: json
       provenance:
         - syn24184512
-      destination: syn25871921
+      destination: syn25905764
 
-    - id: syn25454540
-      format: csv
-      final_filename: srm_data.json
+  - srm_data:
+      files:
+        - syn25454540: csv
+      final_format: json
       provenance:
         - syn25454540
-      destination: syn25871921
+      destination: syn25905764
 
-    - id: syn25575156
-      format: table
-      final_filename: overall_scores.json
+  - neuropath_corr:
+      files:
+        - syn22017882: csv
+      final_format: json
+      provenance:
+        - syn22017882
       column_rename:
-          genename: hgnc_gene_id
-      additional_transformations:
-        - subset_columns:
-            start: 0
-            end: 6
+        ensg: ensembl_gene_id
+        gname: hgnc_gene_id
+      destination: syn25905764
+
+  - team_info:
+      files:
+        - syn12615624: csv
+        - syn12615633: csv
+      final_format: json
+      custom_transformations: 1
+      provenance:
+        - syn12615624
+        - syn12615633
+      destination: syn25905764
+
+  - overall_scores:
+      files:
+        - syn25575156: table
+      final_format: json
+      custom_transformations: 1
+      column_rename:
+        genename: hgnc_gene_id
       provenance:
         - syn25575156
         - syn25575153
         - syn22758536
-      destination: syn25871921
+      destination: syn25905764
