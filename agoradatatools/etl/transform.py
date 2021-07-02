@@ -51,16 +51,32 @@ def rename_columns(df: pd.core.frame.DataFrame, column_map: dict) -> pd.DataFram
 def subset_columns(df: pd.core.frame.DataFrame, start: int, end: int) -> pd.core.frame.DataFrame:
     return df[df.columns[start:end]]
 
+def join_datasets(left: pd.core.frame.DataFrame, right: pd.core.frame.DataFrame, how: str, on: str):
+    return pd.merge(left=left, right=right, how=how, on=on)
 
-def apply_additional_transformations(df: pd.core.frame.DataFrame, file_obj: dict):
+def transform_team_info(datasets: dict):
+    left = datasets['syn12615624'] # team_info
+    right = datasets['syn12615633'] # team_member_info
 
-    additional = file_obj['additional_transformations']
+    right = right.groupby('team')\
+        .apply(lambda x: x[x.columns.difference(['team'])] .fillna('').to_dict(orient='records'))\
+        .reset_index(name="members")
 
-    for transformation in additional:
-        if "subset_columns" in transformation.keys():
-            df = subset_columns(df=df,
-                                start=transformation['subset_columns']['start'],
-                                end=transformation['subset_columns']['end'])
+    return join_datasets(left=left, right=right, how='left', on='team')
 
-    return df
 
+def apply_custom_transformations(datasets: dict, dataset_name: str):
+
+    if type(datasets) is not dict or type(dataset_name) is not str:
+        return None
+
+    print(list(datasets))
+
+    if dataset_name == "overall_scores":
+        df = datasets['syn25575156']
+        return subset_columns(df=df, start=0, end=6)
+    elif dataset_name == "team_info":
+        return transform_team_info(datasets=datasets)
+
+    else:
+        return None
