@@ -5,43 +5,45 @@ import agoradatatools.etl.utils as utils
 import sys
 from pandas import DataFrame
 
-def process_single_file(file_obj: dict, syn=None):
+def process_dataset(dataset_obj: dict, syn=None):
     """
-    Puts a single file through the entire ETL process.
-    If process is successful, it will return a string
-    with the Synapse id of the newly loaded file
-    :param file_obj: a file object from the configuration
-    :return: a Synapse id
+    Takes in a dataset from the configuration file and passes it through the
+    ETL process
+    :param dataset_obj: a dataset defined in the configuration file
+    :param syn: synapse object
     """
 
-    # individual exceptions are defined in each file
-    try:
-        df = extract.get_entity_as_df(syn_id=file_obj['id'], format=file_obj['format'], syn=syn)
-    except Exception as extract_error:
-        print("There was an error extracting " + file_obj['id'])
-        print(extract_error)
-        return
+    print(dataset_obj)
+    dataset_name = list(dataset_obj)[0]
+    entities_as_df = {}
 
-    try:
+    for entity in dataset_obj[dataset_name]['files']:
+        entity_id = list(entity.keys())[0]
+        entity_format = list(entity.values())[0]
+
+        df = extract.get_entity_as_df(syn_id=entity_id, format=entity_format, syn=syn)
         df = transform.standardize_column_names(df=df)
         df = transform.standardize_values(df=df)
-    except Exception as transform_error:
-        print("There was an error transforming " + file_obj['id'])
-        print(transform_error)
-        return
 
-    if "column_rename" in file_obj.keys():
-        df = transform.rename_columns(df=df, column_map=file_obj['column_rename'])
+        # the column rename gets applied to all entities in a dataset
+        if "column_rename" in dataset_obj[dataset_name].keys():
+            df = transform.rename_columns(df=df, column_map=dataset_obj[dataset_name]['column_rename'])
 
-    if "additional_transformations" in file_obj.keys():
-        df = transform.apply_additional_transformations(df=df, file_obj=file_obj)
+        entities_as_df[entity_id] = df
+
+    if "custom_transformations" in dataset_obj[dataset_name].keys():
+        df = transform.apply_custom_transformations(datasets=entities_as_df, dataset_name=dataset_name)
+    else:
+        df = entities_as_df[list(entities_as_df)[0]]
+
 
     try:
-        json_path = load.df_to_json(df=df, filename=file_obj['final_filename'])
-        syn_obj = load.load(file_path=json_path, provenance=file_obj['provenance'], destination=file_obj['destination'],
+        json_path = load.df_to_json(df=df, filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
+        syn_obj = load.load(file_path=json_path, provenance=dataset_obj[dataset_name]['provenance'],
+                            destination=dataset_obj[dataset_name]['destination'],
                             syn=syn)
     except Exception as load_error:
-        print("There was an error loading " + file_obj['id'])
+        print("There was an error loading " + dataset_name)
         print(load_error)
         return
 
@@ -67,13 +69,13 @@ def process_all_files(config_path: str = None):
     else:
         config = utils._get_config()
 
-    files = config[1]['files']
+    datasets = config[1]['datasets']
 
     # create staging location
     load.create_temp_location()
 
-    for file in files:
-        new_syn_tuple = process_single_file(file_obj=file)
+    for dataset in datasets:
+        new_syn_tuple = process_dataset(dataset_obj=dataset, syn=syn)
         manifest.append(new_syn_tuple)
 
     # create manifest

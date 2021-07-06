@@ -2,6 +2,7 @@ import pandas as pd
 from os import mkdir, rmdir
 from . import utils
 from synapseclient import File, Activity
+import json
 
 def create_temp_location():
     """
@@ -64,7 +65,9 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
 
     try:
         temp_json = open("./staging/" + filename, 'w+')
-        df.to_json(path_or_buf=temp_json, orient='records', indent=2)
+        json_str = df.to_json(orient='records', indent=2)
+        json_parsed = json.loads(json_str)
+        json.dump(json_parsed, temp_json, indent=2)
     except AttributeError:
         print("Invalid dataframe.")
         return None
