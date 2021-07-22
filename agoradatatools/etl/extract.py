@@ -4,6 +4,7 @@ import synapseclient
 import sys
 import errno
 
+
 def get_entity_as_df(syn_id: str, format: str, syn=None):
     """
     Looks at the format of the file at the source, extracts it,
@@ -27,6 +28,8 @@ def get_entity_as_df(syn_id: str, format: str, syn=None):
         dataset = read_csv_into_df(csv_path=entity.path)
     elif format == "tsv":
         dataset = read_tsv_into_df(tsv_path=entity.path)
+    elif format == "feather":
+        dataset = read_feather_into_df(feather_path=entity.path)
     else:
         print("File type not supported.")
         sys.exit(errno.EBADF)
@@ -70,3 +73,16 @@ def read_table_into_df(table_id: str, syn) -> pd.DataFrame:
         sys.exit(1)
 
     return query_result.asDataFrame()
+
+
+def read_feather_into_df(feather_path: str):
+    """
+    Reads a feather file from synapse
+    """
+
+    if feather_path.split(".")[-1] != "feather":
+        print("Please make sure the format parameter in the configuration for "
+              + str(feather_path) + " matches the file extension.")
+        sys.exit(errno.EBADF)
+
+    return pd.read_feather(feather_path)

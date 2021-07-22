@@ -32,7 +32,9 @@ def process_dataset(dataset_obj: dict, syn=None):
         entities_as_df[entity_id] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
-        df = transform.apply_custom_transformations(datasets=entities_as_df, dataset_name=dataset_name)
+        df = transform.apply_custom_transformations(datasets=entities_as_df,
+                                                    dataset_name=dataset_name,
+                                                    dataset_obj=dataset_obj[dataset_name])
     else:
         df = entities_as_df[list(entities_as_df)[0]]
 
