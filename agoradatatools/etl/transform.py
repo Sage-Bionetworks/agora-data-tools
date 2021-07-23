@@ -64,19 +64,65 @@ def transform_team_info(datasets: dict):
 
     return join_datasets(left=left, right=right, how='left', on='team')
 
+def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_value_threshold: int):
+    diff_exp_data = datasets['syn14237651']
+    gene_info = datasets['syn25953363']
+    target_list = datasets['syn12540368']
+    eqtl = datasets['syn12514912']
 
-def apply_custom_transformations(datasets: dict, dataset_name: str):
+    eqtl = eqtl[['ensembl_gene_id', 'haseqtl']]
+    gene_info = pd.merge(left=gene_info, right=eqtl, on='ensembl_gene_id', how='left')
+
+    diff_exp_data['tmp'] = diff_exp_data[['model', 'comparison', 'sex']].agg(' '.join, axis=1)
+    diff_exp_data = diff_exp_data[diff_exp_data['tmp'].isin(models_to_keep)]
+
+    diff_exp_data['study'].replace(to_replace={'MAYO': 'MayoRNAseq', 'MSSM': 'MSBB'}, inplace=True)
+    diff_exp_data['sex'].replace(
+        to_replace={'ALL': 'males and females', 'FEMALE': 'females only', 'MALE': 'males only'}, inplace=True)
+    diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True)
+    diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, inplace=True)
+    diff_exp_data['logfc'] = diff_exp_data['logfc'].round(decimals=3)
+    diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
+    diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
+
+    adjusted_diff_exp_data = diff_exp_data.loc[((diff_exp_data['adj_p_val'] <= adjusted_p_value_threshold)
+                                                | (diff_exp_data['ensembl_gene_id'].isin(
+                target_list['ensembl_gene_id'])))
+                                               & (diff_exp_data['ensembl_gene_id'].isin(gene_info['ensembl_gene_id']))
+                                               ]
+
+    adjusted_diff_exp_data = adjusted_diff_exp_data.drop_duplicates(['ensembl_gene_id'])
+    adjusted_diff_exp_data = adjusted_diff_exp_data[['ensembl_gene_id']]
+
+    diff_exp_data = diff_exp_data[diff_exp_data['ensembl_gene_id'].isin(adjusted_diff_exp_data['ensembl_gene_id'])]
+    diff_exp_data = diff_exp_data[['ensembl_gene_id', 'logfc', 'fc', 'ci_l', 'ci_r',
+                                   'adj_p_val', 'tissue', 'study', 'model', 'hgnc_symbol']]
+
+    diff_exp_data = pd.merge(left=diff_exp_data, right=gene_info, on='ensembl_gene_id', how='left')
+
+    diff_exp_data = diff_exp_data[diff_exp_data['hgnc_symbol'].notna()]
+    diff_exp_data = diff_exp_data[
+        ['ensembl_gene_id', 'hgnc_symbol', 'logfc', 'fc', 'ci_l', 'ci_r', 'adj_p_val', 'tissue',
+         'study', 'model']]
+
+    return diff_exp_data
+
+
+def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
 
     if type(datasets) is not dict or type(dataset_name) is not str:
         return None
 
-    print(list(datasets))
+    print(dataset_obj)
 
     if dataset_name == "overall_scores":
         df = datasets['syn25575156']
         return subset_columns(df=df, start=0, end=6)
     elif dataset_name == "team_info":
         return transform_team_info(datasets=datasets)
-
+    elif dataset_name == "rnaseq_differential_expression":
+        return transform_rna_seq_data(datasets=datasets,
+                                      models_to_keep=dataset_obj['custom_transformations']['models_to_keep'],
+                                      adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'])
     else:
         return None
