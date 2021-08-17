@@ -29,7 +29,10 @@ def standardize_values(df: pd.core.frame.DataFrame) -> pd.DataFrame:
         else:
             df[column] = df[column].fillna("")
 
-    df = df.replace(["NA", "n/a", "N/A", "na", "n/A", "N/a", "Na", "nA"], "")
+    try:
+        df = df.replace(["NA", "n/a", "N/A", "na", "n/A", "N/a", "Na", "nA"], "")
+    except TypeError:
+        print("Error comparing types.")
 
     return df
 
