@@ -1,4 +1,4 @@
-- destination: syn25871921
+- destination: syn25905764
 - datasets:
   - genetics_scores:
       files:
@@ -112,4 +112,13 @@
         - syn25953353
         - syn12540368
         - syn12514912
+      destination: syn25905764
+
+  - metabolomics:
+      files:
+        - syn26064497: feather
+      final_format: json
+      provenance:
+        - syn19001410
+        - syn26064497
       destination: syn25905764
