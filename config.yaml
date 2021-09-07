@@ -122,3 +122,15 @@
         - syn19001410
         - syn26064497
       destination: syn25905764
+
+  - network:
+      files:
+        - syn11685347: csv
+        - syn25953363: feather
+      final_format: json
+      custom_transformations: 1
+      provenance:
+        - syn11685347
+        - syn25953363
+        - syn14237651
+      destination: syn25905764
