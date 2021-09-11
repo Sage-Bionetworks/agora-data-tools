@@ -38,11 +38,3 @@ def test_rename_columns():
     partial_good_result_df = transform.rename_columns(df=refresh_df, column_map={"team-Sco@#&": "team_scope"})
     assert list(partial_good_result_df.columns) == ['team id', 'team.Name', 'team_scope']
     assert type(partial_good_result_df) is pd.core.frame.DataFrame
-
-def test_apply_additional_transformations():
-    file_obj = {"additional_transformations": [{
-                "subset_columns": {
-                    "start": 0,
-                    "end": 6}}]}
-
-    assert type(transform.apply_additional_transformations(df=df, file_obj=file_obj)) is pd.core.frame.DataFrame

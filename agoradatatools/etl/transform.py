@@ -110,6 +110,26 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
 
     return diff_exp_data
 
+def transform_network(datasets: dict):
+    gene_info = datasets['syn25953363']
+    networks = datasets['syn11685347']
+
+    gene_info.rename(columns={"symbol": "hgnc_symbol"}, inplace=True)
+    gene_info = gene_info[['ensembl_gene_id', 'hgnc_symbol']]
+    gene_info.drop_duplicates(inplace=True)
+
+    networks = networks[
+        networks['genea_ensembl_gene_id'].isin(gene_info['ensembl_gene_id']) &
+        networks['geneb_ensembl_gene_id'].isin(gene_info['ensembl_gene_id'])]
+
+    merged = pd.merge(left=networks, right=gene_info, left_on='genea_ensembl_gene_id', right_on='ensembl_gene_id',
+                      how='left')
+    merged = pd.merge(left=networks, right=gene_info, left_on='geneb_ensembl_gene_id', right_on='ensembl_gene_id',
+                      how='left')
+    merged = merged[['genea_ensembl_gene_id', 'geneb_ensembl_gene_id',
+           'genea_external_gene_name', 'geneb_external_gene_name', 'brainregion']]
+
+    return merged
 
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
 
@@ -127,5 +147,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
         return transform_rna_seq_data(datasets=datasets,
                                       models_to_keep=dataset_obj['custom_transformations']['models_to_keep'],
                                       adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'])
+    elif dataset_name == "network":
+        return transform_network(datasets=datasets)
     else:
         return None
