@@ -51,8 +51,14 @@ def rename_columns(df: pd.core.frame.DataFrame, column_map: dict) -> pd.DataFram
     return df
 
 
-def subset_columns(df: pd.core.frame.DataFrame, start: int, end: int) -> pd.core.frame.DataFrame:
-    return df[df.columns[start:end]]
+def transform_overall_scores(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
+    interesting_columns = ['ensg', 'genename', 'logsdon', 'geneticsscore', 'omicsscore', 'literaturescore',
+                           'flyneuropathscore']
+
+    df['logsdon'] = df['logsdon'] - df['flyneuropathscore']
+    df.drop(columns=['flyneuropathscore'], inplace=True)
+
+    return df
 
 def join_datasets(left: pd.core.frame.DataFrame, right: pd.core.frame.DataFrame, how: str, on: str):
     return pd.merge(left=left, right=right, how=how, on=on)
@@ -140,7 +146,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
 
     if dataset_name == "overall_scores":
         df = datasets['syn25575156']
-        return subset_columns(df=df, start=0, end=6)
+        return transform_overall_scores(df=df)
     elif dataset_name == "team_info":
         return transform_team_info(datasets=datasets)
     elif dataset_name == "rnaseq_differential_expression":
