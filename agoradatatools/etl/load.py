@@ -4,6 +4,7 @@ from . import utils
 from synapseclient import File, Activity
 import json
 
+
 def create_temp_location():
     """
     Creates a temporary location to store the json files
@@ -13,11 +14,13 @@ def create_temp_location():
     except FileExistsError:
         return
 
+
 def delete_temp_location():
     """
     Deletes the default temporary location
     """
     rmdir('./staging')
+
 
 def load(file_path: str, provenance: list[str], destination: str, syn=None):
     """
@@ -25,7 +28,8 @@ def load(file_path: str, provenance: list[str], destination: str, syn=None):
     :param filename: the name of the file to be loaded into Synapse
     :param provenance: array of files that originate the one being loaded
     :param syn: synapse object
-    :return: synapse id of the file loaded into Synapse.  Returns None if it fails
+    :return: synapse id of the file loaded into Synapse.  Returns None if it
+    fails
     """
 
     if not syn:
@@ -53,8 +57,6 @@ def load(file_path: str, provenance: list[str], destination: str, syn=None):
     return (file.id, file.versionNumber)
 
 
-
-
 def df_to_json(df: pd.core.frame.DataFrame, filename: str):
     """
     Converts a data frame into a json file.
@@ -74,6 +76,7 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
 
     return temp_json.name
 
+
 def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
     """
     Converts a data frame into a csv file.
@@ -89,4 +92,3 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
         return None
 
     return temp_csv.name
-
