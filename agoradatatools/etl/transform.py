@@ -1,4 +1,5 @@
 import pandas as pd
+from numpy import NaN
 
 def standardize_column_names(df: pd.core.frame.DataFrame) -> pd.DataFrame:
     """Takes in a dataframe and performs standard operations on column names
@@ -50,12 +51,25 @@ def rename_columns(df: pd.core.frame.DataFrame, column_map: dict) -> pd.DataFram
 
     return df
 
+def nest_fields(df: pd.core.frame.DataFrame, grouping: str, new_column: str) -> pd.DataFrame:
+    """
+    This will create a dictionary object with the result of the grouping provided
+    :param df: a dataframe
+    :param grouping: a string containing the column to group by
+    :param new_column: a string with the name of the new column that will contain the nested field
+    :return: a dataframe
+    """
+    return (df.groupby(grouping)
+            .apply(lambda row: row.to_dict('records'))
+            .reset_index()
+            .rename(columns={0: new_column}))
+
 
 def transform_overall_scores(df: pd.core.frame.DataFrame) -> pd.core.frame.DataFrame:
-    interesting_columns = ['ensg', 'genename', 'logsdon', 'geneticsscore', 'omicsscore', 'literaturescore',
+    interesting_columns = ['ensg', 'genename', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore',
                            'flyneuropathscore']
 
-    df['logsdon'] = df['logsdon'] - df['flyneuropathscore']
+    df['overall'] = df['overall'] - df['flyneuropathscore']
     df.drop(columns=['flyneuropathscore'], inplace=True)
 
     return df
@@ -137,6 +151,104 @@ def transform_network(datasets: dict):
 
     return merged
 
+
+def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_level_threshold):
+    '''
+    This function will perform transformations and incrementally create a dataset called gene_metadata.
+    Each dataset will be left_joined onto gene_info.
+    '''
+    gene_info = datasets['syn25953363']
+    igap = datasets['syn12514826']
+    eqtl = datasets['syn12514912']
+    proteomics = datasets['syn18689335']
+    brain_expression_change = datasets['syn11914808']
+    rna_change = datasets['syn14237651']
+
+    # remove duplicate ensembl_gene_ids and select columns
+    gene_info = gene_info.groupby('ensembl_gene_id').apply(lambda x: x.nlargest(1, "_version")).reset_index(drop=True)
+    gene_info = gene_info[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias']]
+
+
+    gene_metadata = pd.merge(left=gene_info, right=igap, how='left', on='ensembl_gene_id')
+    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is NaN else True, axis=1)
+    gene_metadata['igap'].fillna(False, inplace=True)
+    gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap']]
+
+    gene_metadata = pd.merge(left=gene_metadata, right=eqtl, how='left', on='ensembl_gene_id')
+    gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap', 'haseqtl']]
+    gene_metadata.rename(columns={'haseqtl': 'eqtl'}, inplace=True)
+    gene_metadata['eqtl'] = gene_metadata['eqtl'].replace({'TRUE': True}).fillna(False)
+
+    rna_change = rna_change[['ensembl_gene_id', 'adj_p_val']]
+    rna_change = rna_change.groupby('ensembl_gene_id')['adj_p_val'].agg('min').reset_index()
+
+    gene_metadata = pd.merge(left=gene_metadata, right=rna_change, how='left', on='ensembl_gene_id')
+    gene_metadata['adj_p_val'] = gene_metadata['adj_p_val'].fillna(-1)
+    gene_metadata['rna_brain_change_studied'] = gene_metadata.apply(
+        lambda row: False if row['adj_p_val'] == -1 else True, axis=1)
+    gene_metadata['rna_in_ad_brain_change'] = gene_metadata.apply(
+        lambda row: True if row['adj_p_val'] <= adjusted_p_value_threshold else False, axis=1)
+
+    gene_metadata = gene_metadata[
+        ['ensembl_gene_id', 'name', 'summary', 'alias', 'igap', 'symbol', 'eqtl', 'rna_in_ad_brain_change',
+         'rna_brain_change_studied']]
+
+
+    proteomics = proteomics.groupby('ensg')['cor_pval'].agg('min').reset_index()
+
+    gene_metadata = pd.merge(left=gene_metadata, right=proteomics, how='left', left_on='ensembl_gene_id',
+                             right_on='ensg')
+    gene_metadata['cor_pval'] = gene_metadata['cor_pval'].fillna(-1)
+    gene_metadata['protein_brain_change_studied'] = gene_metadata.apply(
+        lambda row: False if row['cor_pval'] == -1 else True, axis=1)
+    gene_metadata['protein_in_ad_brain_change'] = gene_metadata.apply(
+        lambda row: True if row['cor_pval'] <= protein_level_threshold else False, axis=1)
+
+    gene_metadata = gene_metadata[
+        ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'igap', 'eqtl', 'rna_in_ad_brain_change',
+         'rna_brain_change_studied', 'protein_in_ad_brain_change', 'protein_brain_change_studied']]
+    gene_metadata.rename(columns={'symbol': 'hgnc_symbol'}, inplace=True)
+
+    return gene_metadata
+
+
+def transform_gene_info(datasets: dict):
+
+    gene_metadata = datasets['syn26868788']
+    target_list = datasets['syn12540368']
+    median_expression = datasets['syn12514804']
+    drugability = datasets['syn13363443']
+
+    # these are the interesting columns of the drugability dataset
+    useful_columns = ['geneid', 'sm_druggability_bucket', 'safety_bucket', 'abability_bucket', 'pharos_class',
+                      'classification', 'safety_bucket_definition', 'abability_bucket_definition']
+    drugability = drugability[useful_columns]
+
+    target_list = nest_fields(df=target_list,
+                              grouping='ensembl_gene_id',
+                              new_column='nominated_target')
+
+    median_expression = nest_fields(df=target_list,
+                              grouping='ensembl_gene_id',
+                              new_column='median_expression')
+
+    drugability = nest_fields(df=target_list,
+                              grouping='ensembl_gene_id',
+                              new_column='drugability')
+
+    # write function to remove inner key from drugability
+
+    drugability['nominations'] = len(drugability['drugability'])
+
+    for dataset in [target_list, median_expression, drugability]:
+        gene_metadata = pd.merge(left=gene_metadata, right=dataset, on='ensembl_gene_id', how='left')
+
+    # here we return gene_metadata because we preserved its fields and added to the dataframe
+    return gene_metadata
+
+    pass
+
+
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
 
     if type(datasets) is not dict or type(dataset_name) is not str:
@@ -155,5 +267,11 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
                                       adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'])
     elif dataset_name == "network":
         return transform_network(datasets=datasets)
+    elif dataset_name == 'gene_metadata':
+        return transform_gene_metadata(datasets=datasets,
+                                       adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'],
+                                       protein_level_threshold=dataset_obj['custom_transformations']['protein_level_threshold'])
+    elif dataset_name == 'gene_info':
+        return transform_gene_info(datasets=datasets)
     else:
         return None
