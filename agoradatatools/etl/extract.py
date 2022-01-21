@@ -30,6 +30,8 @@ def get_entity_as_df(syn_id: str, format: str, syn=None):
         dataset = read_tsv_into_df(tsv_path=entity.path)
     elif format == "feather":
         dataset = read_feather_into_df(feather_path=entity.path)
+    elif format == 'json':
+        dataset = read_json_into_df(json_path=entity.path)
     else:
         print("File type not supported.")
         sys.exit(errno.EBADF)
@@ -86,3 +88,15 @@ def read_feather_into_df(feather_path: str):
         sys.exit(errno.EBADF)
 
     return pd.read_feather(feather_path)
+
+def read_json_into_df(json_path: str):
+    """
+    Reads a json file from synapse into a dataframe
+    """
+
+    if json_path.split(".")[-1] != "json":
+        print("Please make sure the format parameter in the configuration for "
+              + str(json_path) + " matches the file extension.")
+        sys.exit(errno.EBADF)
+
+    return pd.read_json(json_path, orient='records')
