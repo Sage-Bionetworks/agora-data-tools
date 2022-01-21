@@ -86,7 +86,7 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
     """
     try:
         temp_csv = open("./staging/" + filename, 'w+')
-        df.to_csv(path_or_buf=temp_csv)
+        df.to_csv(path_or_buf=temp_csv, index=False)
     except AttributeError:
         print("Invalid dataframe.")
         return None

@@ -236,12 +236,13 @@ def transform_gene_info(datasets: dict):
                               grouping='ensembl_gene_id',
                               new_column='drugability')
 
-    # write function to remove inner key from drugability
-
-    drugability['nominations'] = len(drugability['drugability'])
-
     for dataset in [target_list, median_expression, drugability]:
         gene_metadata = pd.merge(left=gene_metadata, right=dataset, on='ensembl_gene_id', how='left')
+
+
+    # create 'nominations' field
+    gene_metadata['nominations'] = gene_metadata.apply(
+        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else NaN, axis=1)
 
     # here we return gene_metadata because we preserved its fields and added to the dataframe
     return gene_metadata
