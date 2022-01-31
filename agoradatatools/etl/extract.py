@@ -39,9 +39,10 @@ def get_entity_as_df(syn_id: str, format: str, syn=None):
     return dataset
 
 
-
-'''Reads in a csv file into a dataframe'''
 def read_csv_into_df(csv_path: str):
+    '''
+    Reads in a csv file into a dataframe
+    '''
     if csv_path.split(".")[-1] != "csv":
         print("Please make sure the format parameter in the configuration for "
               + f"{str(csv_path)} matches the file extension.")
@@ -49,9 +50,11 @@ def read_csv_into_df(csv_path: str):
 
     return pd.read_csv(csv_path)
 
-'''Reads in a tsv file into a dataframe'''
-def read_tsv_into_df(tsv_path: str):
 
+def read_tsv_into_df(tsv_path: str):
+    '''
+    Reads in a tsv file into a dataframe
+    '''
     if tsv_path.split(".")[-1] != "tsv":
         print("Please make sure the format parameter in the configuration for "
               + f"{str(tsv_path)} matches the file extension.")
@@ -70,7 +73,7 @@ def read_table_into_df(table_id: str, syn) -> pd.DataFrame:
 
     try:
         query_result = syn.tableQuery(query)
-    except:
+    except synapseclient.core.exceptions.SynapseHTTPError:
         print("Please provide a queriable entity.")
         sys.exit(1)
 
@@ -88,6 +91,7 @@ def read_feather_into_df(feather_path: str):
         sys.exit(errno.EBADF)
 
     return pd.read_feather(feather_path)
+
 
 def read_json_into_df(json_path: str):
     """
