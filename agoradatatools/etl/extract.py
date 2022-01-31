@@ -44,7 +44,7 @@ def get_entity_as_df(syn_id: str, format: str, syn=None):
 def read_csv_into_df(csv_path: str):
     if csv_path.split(".")[-1] != "csv":
         print("Please make sure the format parameter in the configuration for "
-              + str(csv_path) + " matches the file extension.")
+              + f"{str(csv_path)} matches the file extension.")
         sys.exit(errno.EBADF)
 
     return pd.read_csv(csv_path)
@@ -54,7 +54,7 @@ def read_tsv_into_df(tsv_path: str):
 
     if tsv_path.split(".")[-1] != "tsv":
         print("Please make sure the format parameter in the configuration for "
-              + str(tsv_path) + " matches the file extension.")
+              + f"{str(tsv_path)} matches the file extension.")
         sys.exit(errno.EBADF)
 
     return pd.read_csv(tsv_path, sep="\t")
@@ -84,7 +84,7 @@ def read_feather_into_df(feather_path: str):
 
     if feather_path.split(".")[-1] != "feather":
         print("Please make sure the format parameter in the configuration for "
-              + str(feather_path) + " matches the file extension.")
+              + f"{str(feather_path)} matches the file extension.")
         sys.exit(errno.EBADF)
 
     return pd.read_feather(feather_path)
@@ -96,7 +96,7 @@ def read_json_into_df(json_path: str):
 
     if json_path.split(".")[-1] != "json":
         print("Please make sure the format parameter in the configuration for "
-              + str(json_path) + " matches the file extension.")
+              + f"{str(json_path)} matches the file extension.")
         sys.exit(errno.EBADF)
 
     return pd.read_json(json_path, orient='records')

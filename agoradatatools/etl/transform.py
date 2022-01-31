@@ -40,7 +40,7 @@ def standardize_values(df: pd.core.frame.DataFrame) -> pd.DataFrame:
 def rename_columns(df: pd.core.frame.DataFrame, column_map: dict) -> pd.DataFrame:
     """Takes in a dataframe and renames columns according to the mapping provided
     :param df: a dataframe
-    :param column_map: a dict with the mappoing for the columns to be renamed
+    :param column_map: a dict with the mapping for the columns to be renamed
     :return: a dataframe
     """
     try:
@@ -217,12 +217,12 @@ def transform_gene_info(datasets: dict):
     gene_metadata = datasets['syn26868788']
     target_list = datasets['syn12540368']
     median_expression = datasets['syn12514804']
-    drugability = datasets['syn13363443']
+    druggability = datasets['syn13363443']
 
-    # these are the interesting columns of the drugability dataset
+    # these are the interesting columns of the druggability dataset
     useful_columns = ['geneid', 'sm_druggability_bucket', 'safety_bucket', 'abability_bucket', 'pharos_class',
                       'classification', 'safety_bucket_definition', 'abability_bucket_definition']
-    drugability = drugability[useful_columns]
+    druggability = druggability[useful_columns]
 
     target_list = nest_fields(df=target_list,
                               grouping='ensembl_gene_id',
@@ -232,11 +232,11 @@ def transform_gene_info(datasets: dict):
                               grouping='ensembl_gene_id',
                               new_column='median_expression')
 
-    drugability = nest_fields(df=target_list,
+    druggability = nest_fields(df=target_list,
                               grouping='ensembl_gene_id',
-                              new_column='drugability')
+                              new_column='druggability')
 
-    for dataset in [target_list, median_expression, drugability]:
+    for dataset in [target_list, median_expression, druggability]:
         gene_metadata = pd.merge(left=gene_metadata, right=dataset, on='ensembl_gene_id', how='left')
 
 
