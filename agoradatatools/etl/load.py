@@ -1,8 +1,8 @@
 import pandas as pd
+import json
 from os import mkdir, rmdir
 from . import utils
 from synapseclient import File, Activity
-import json
 
 
 def create_temp_location():

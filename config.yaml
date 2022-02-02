@@ -6,7 +6,6 @@
         - syn12514826: csv      # igap
         - syn12514912: csv      # eqtl
         - syn18689335: csv      # proteomics
-        - syn11914808: tsv      # brain_expression_change
         - syn14237651: tsv      # rna_expression_change
       final_format: json
       custom_transformations:
