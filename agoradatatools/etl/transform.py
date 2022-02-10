@@ -281,7 +281,7 @@ def transform_gene_info(datasets: dict):
 
     # create 'nominations' field
     gene_metadata['nominations'] = gene_metadata.apply(
-        lambda row: row['nominated_target'] if isinstance(row['nominated_target'], list) else NaN, axis=1)
+        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else NaN, axis=1)
 
     # here we return gene_metadata because we preserved its fields and added to the dataframe
     return gene_metadata
