@@ -1,50 +1,10 @@
 - destination: syn25905764
 - datasets:
-    - team_info:
-        files:
-          - syn12615624: csv
-          - syn12615633: csv
-        final_format: json
-        custom_transformations: 1
-        column_rename:
-          isprimaryinvestigator: is_primary_investigator
-        provenance:
-          - syn12615624
-          - syn12615633
-        destination: syn25905764
-
-    - gene_info:
-        files:
-          - syn26868788: json # gene_metadata
-          - syn12540368: csv # target_list
-          - syn12514804: csv # median_expression
-          - syn13363443: csv # drugability
-        final_format: json
-        custom_transformations: 1
-        provenance:
-          - syn26868788
-          - syn12540368
-          - syn12514804
-          - syn13363443
-        destination: syn25905764
-
-    - gene_metadata:
-        files:
-          - syn25953363: feather  # gene_info
-          - syn12514826: csv      # igap
-          - syn12514912: csv      # eqtl
-          - syn18689335: csv      # proteomics
-          - syn11914808: tsv      # brain_expression_change
-          - syn14237651: tsv      # rna_expression_change
-        final_format: json
-        custom_transformations:
-          adjusted_p_value_threshold: 0.05
-          protein_level_threshold: 0.05
-        provenance:
-          - syn25953363
-          - syn12514826
-          - syn12514912
-          - syn18689335
-          - syn11914808
-          - syn14237651
-        destination: syn25905764
+  - network:
+      files:
+        - syn25905783: json
+      final_format: json
+      custom_transformations: 1
+      provenance:
+        - syn25905783
+      destination: syn26868906
