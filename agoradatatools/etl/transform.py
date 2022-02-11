@@ -1,5 +1,5 @@
 import pandas as pd
-from numpy import NaN
+import numpy
 
 
 def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -196,7 +196,7 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
                              right=igap,
                              how='left',
                              on='ensembl_gene_id')
-    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is NaN else True, axis=1)
+    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is numpy.NaN else True, axis=1)
     gene_metadata['igap'].fillna(False, inplace=True)
     gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap']]
 
@@ -281,7 +281,7 @@ def transform_gene_info(datasets: dict):
 
     # create 'nominations' field
     gene_metadata['nominations'] = gene_metadata.apply(
-        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else NaN, axis=1)
+        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else numpy.NaN, axis=1)
 
     # here we return gene_metadata because we preserved its fields and added to the dataframe
     return gene_metadata
@@ -313,3 +313,4 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
         return transform_gene_info(datasets=datasets)
     else:
         return None
+
