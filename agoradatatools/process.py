@@ -14,7 +14,6 @@ def process_dataset(dataset_obj: dict, syn=None):
     :param syn: synapse object
     """
 
-    print(dataset_obj)
     dataset_name = list(dataset_obj)[0]
     entities_as_df = {}
 
@@ -49,9 +48,8 @@ def process_dataset(dataset_obj: dict, syn=None):
                             provenance=dataset_obj[dataset_name]['provenance'],
                             destination=dataset_obj[dataset_name]['destination'],
                             syn=syn)
-    except Exception as load_error:
-        print("There was an error loading " + dataset_name)
-        print(load_error)
+    except Exception as error:
+        print(error)
         return
 
     return syn_obj

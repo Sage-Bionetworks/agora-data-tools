@@ -19,6 +19,7 @@ def _get_config(config_path: str = None):
 
     try:
         file = open(config_path, "r")
+        print(config_path)
         config = yaml.load(file, Loader=yaml.FullLoader)
     except FileNotFoundError:
         print("File not found.  Please provide a valid path.")

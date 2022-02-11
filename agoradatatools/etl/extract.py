@@ -48,7 +48,7 @@ def read_csv_into_df(csv_path: str):
               + f"{str(csv_path)} matches the file extension.")
         sys.exit(errno.EBADF)
 
-    return pd.read_csv(csv_path)
+    return pd.read_csv(csv_path, float_precision='round_trip')
 
 
 def read_tsv_into_df(tsv_path: str):

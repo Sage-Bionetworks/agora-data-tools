@@ -1,5 +1,5 @@
 import pandas as pd
-from numpy import NaN
+import numpy
 
 
 def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -70,14 +70,13 @@ def nest_fields(df: pd.DataFrame, grouping: str, new_column: str) -> pd.DataFram
 
 
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
-    interesting_columns = ['ensg', 'genename', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore',
-                           'flyneuropathscore']
+    interesting_columns = ['ensg', 'hgnc_gene_id', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
     df['overall'] = df['overall'] - df['flyneuropathscore']
     df.drop(columns=['flyneuropathscore'], inplace=True)
     df['literaturescore'] = pd.to_numeric(df['literaturescore'])
 
-    return df[[interesting_columns]]
+    return df[interesting_columns]
 
 
 def join_datasets(left: pd.DataFrame, right: pd.DataFrame, how: str, on: str):
@@ -197,7 +196,7 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
                              right=igap,
                              how='left',
                              on='ensembl_gene_id')
-    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is NaN else True, axis=1)
+    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is numpy.NaN else True, axis=1)
     gene_metadata['igap'].fillna(False, inplace=True)
     gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap']]
 
@@ -264,13 +263,15 @@ def transform_gene_info(datasets: dict):
                               grouping='ensembl_gene_id',
                               new_column='nominated_target')
 
-    median_expression = nest_fields(df=target_list,
+    median_expression = nest_fields(df=median_expression,
                                     grouping='ensembl_gene_id',
                                     new_column='median_expression')
 
-    druggability = nest_fields(df=target_list,
-                               grouping='ensembl_gene_id',
+
+    druggability = nest_fields(df=druggability,
+                               grouping='geneid',
                                new_column='druggability')
+    druggability.rename(columns={'geneid': 'ensembl_gene_id'}, inplace=True)
 
     for dataset in [target_list, median_expression, druggability]:
         gene_metadata = pd.merge(left=gene_metadata,
@@ -280,7 +281,7 @@ def transform_gene_info(datasets: dict):
 
     # create 'nominations' field
     gene_metadata['nominations'] = gene_metadata.apply(
-        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else NaN, axis=1)
+        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else numpy.NaN, axis=1)
 
     # here we return gene_metadata because we preserved its fields and added to the dataframe
     return gene_metadata
@@ -312,3 +313,4 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
         return transform_gene_info(datasets=datasets)
     else:
         return None
+
