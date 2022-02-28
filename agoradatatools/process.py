@@ -42,8 +42,14 @@ def process_dataset(dataset_obj: dict, syn=None):
         df = entities_as_df[list(entities_as_df)[0]]
 
     try:
-        json_path = load.df_to_json(df=df,
-                                    filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
+
+        if type(df) == dict:
+            json_path = load.dict_to_json(df=df,
+                                          filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
+        else:
+            json_path = load.df_to_json(df=df,
+                                        filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
+
         syn_obj = load.load(file_path=json_path,
                             provenance=dataset_obj[dataset_name]['provenance'],
                             destination=dataset_obj[dataset_name]['destination'],

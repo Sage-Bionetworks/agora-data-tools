@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy
+import numpy as np
 
 
 def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -67,6 +67,32 @@ def nest_fields(df: pd.DataFrame, grouping: str, new_column: str) -> pd.DataFram
             .apply(lambda row: row.to_dict('records'))
             .reset_index()
             .rename(columns={0: new_column}))
+
+
+def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
+    if is_scored is not None:
+        df = df[df[is_scored] == 'Y'] # df does not have the isscored
+    else:
+        df = df[df.isin(['Y']).any(axis=1)]
+
+    if df[col].dtype == object:
+        df[col] = df[col].astype(float)
+
+    obj = {}
+
+    obj["distribution"] = list(pd.cut(df[col], bins=10, precision=3).value_counts())
+    obj["min"] = np.around(df[col].min(), 4)
+    obj["max"] = np.around(df[col].max(), 4)
+    obj["mean"] = np.around(df[col].mean(), 4)
+    discard, obj["bins"] = list(pd.cut(df[col], bins=10, precision=3, retbins=True))
+    obj["bins"] = np.around(obj["bins"].tolist()[1:], 2)
+    base = [0, *obj["bins"][:-1]]
+    obj["bins"] = zip(base, obj["bins"])
+    obj["bins"] = list(obj["bins"])
+    obj["first_quartile"] = np.around(df[col].quantile(q=0.25, interpolation='midpoint'))
+    obj["third_quartile"] = np.around(df[col].quantile(q=0.75, interpolation='midpoint'))
+
+    return obj
 
 
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
@@ -196,7 +222,7 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
                              right=igap,
                              how='left',
                              on='ensembl_gene_id')
-    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is numpy.NaN else True, axis=1)
+    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is np.NaN else True, axis=1)
     gene_metadata['igap'].fillna(False, inplace=True)
     gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap']]
 
@@ -281,10 +307,43 @@ def transform_gene_info(datasets: dict):
 
     # create 'nominations' field
     gene_metadata['nominations'] = gene_metadata.apply(
-        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else numpy.NaN, axis=1)
+        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else np.NaN, axis=1)
 
     # here we return gene_metadata because we preserved its fields and added to the dataframe
     return gene_metadata
+
+
+def transform_distribution_data(datasets: dict):
+
+    overall_scores = datasets['syn25575156']
+
+    # subtract flyneuropath score from over all scores
+    overall_scores['overall'] = overall_scores['overall'] - overall_scores['flyneuropathscore']
+
+    interesting_columns = ['ensg', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
+
+    # create mapping to deal with missing values as they take different shape across the fields
+    scored = ['isscored_genetics', 'isscored_omics', 'isscored_lit']
+    mapping = dict(zip(interesting_columns[2:], scored))
+    mapping['overall'] = None
+
+    overall_scores = overall_scores[interesting_columns + scored]
+
+    neo_matrix = {}
+    for col in interesting_columns[1:]:  # excludes the ENSG
+        neo_matrix[col] = calculate_distribution(overall_scores, col, mapping[col])
+
+    additional_data = [{'name': 'Overall Score', 'syn_id': 'syn25913473', 'wiki_id': '613107'},
+                       {'name': 'Genetics Score', 'syn_id': 'syn25913473', 'wiki_id': '613104'},
+                       {'name': 'Genomics Score', 'syn_id': 'syn25913473', 'wiki_id': '613106'},
+                       {'name': 'Literature Score', 'syn_id': 'syn25913473', 'wiki_id': '613105'}
+                       ]
+    for col, additional in zip(neo_matrix.keys(), additional_data):
+        neo_matrix[col]['name'] = additional['name']
+        neo_matrix[col]['syn_id'] = additional['syn_id']
+        neo_matrix[col]['wiki_id'] = additional['wiki_id']
+
+    return neo_matrix
 
 
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
@@ -297,6 +356,8 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if dataset_name == "overall_scores":
         df = datasets['syn25575156']
         return transform_overall_scores(df=df)
+    if dataset_name == "distribution_data":
+        return transform_distribution_data(datasets=datasets)
     elif dataset_name == "team_info":
         return transform_team_info(datasets=datasets)
     elif dataset_name == "rnaseq_differential_expression":
