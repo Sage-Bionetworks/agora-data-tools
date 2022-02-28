@@ -56,10 +56,12 @@ def load(file_path: str, provenance: list[str], destination: str, syn=None):
     try:
         file = File(file_path, parent=destination)
         file = syn.store(file, activity=activity)
-    except OSError:
+    except OSError as e:
         print("Either the file path (" + file_path +
               ") or the destination(" + destination +
               ") are invalid.")
+
+        print(e)
         return
     except ValueError:
         print("Please make sure that the Synapse id of " +
@@ -78,17 +80,13 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
     """
 
     try:
-        df = df.replace({np.nan: None})
         temp_json = open("./staging/" + filename, 'w+')
-        # json_str = df.
-        # json_str = json.dumps(df.to_dict())
-        # json_parsed = json.loads(json_str)
-        # json.dump(json_parsed, temp_json, indent=2)
-        json.dump(df.to_dict(orient='records'), temp_json,
-                  cls=NumpyEncoder,
-                  indent=2)
-    except AttributeError:
+        json_str = df.to_json(orient='records', indent=2)
+        json_parsed = json.loads(json_str)
+        json.dump(json_parsed, temp_json, indent=2)
+    except AttributeError as e:
         print("Invalid dataframe.")
+        print(e)
         return None
 
     return temp_json.name
@@ -109,3 +107,16 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
         return None
 
     return temp_csv.name
+
+
+def dict_to_json(df: dict, filename = str):
+    try:
+        # df = df.replace({np.nan: None})
+        temp_json = open("./staging/" + filename, 'w+')
+
+        json.dump(df, temp_json, indent=2)
+    except Exception as e:
+        print(e)
+        return None
+
+    return temp_json.name
