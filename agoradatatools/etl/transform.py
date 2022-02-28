@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import warnings
 
 
 def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -98,7 +99,7 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     interesting_columns = ['ensg', 'hgnc_gene_id', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
-    df['overall'] = df['overall'] - df['flyneuropathscore']
+    df['overall'] = df['overall'] - df['flyneuropathscore'].astype(dtype='float64', errors='raise')
     df.drop(columns=['flyneuropathscore'], inplace=True)
     df['literaturescore'] = pd.to_numeric(df['literaturescore'])
 
@@ -333,6 +334,11 @@ def transform_distribution_data(datasets: dict):
     for col in interesting_columns[1:]:  # excludes the ENSG
         neo_matrix[col] = calculate_distribution(overall_scores, col, mapping[col])
 
+    neo_matrix['Logsdon'] = neo_matrix.pop('overall')
+    neo_matrix['GeneticsScore'] = neo_matrix.pop('geneticsscore')
+    neo_matrix['OmicsScore'] = neo_matrix.pop('omicsscore')
+    neo_matrix['LiteratureScore'] = neo_matrix.pop('literaturescore')
+
     additional_data = [{'name': 'Overall Score', 'syn_id': 'syn25913473', 'wiki_id': '613107'},
                        {'name': 'Genetics Score', 'syn_id': 'syn25913473', 'wiki_id': '613104'},
                        {'name': 'Genomics Score', 'syn_id': 'syn25913473', 'wiki_id': '613106'},
@@ -342,6 +348,8 @@ def transform_distribution_data(datasets: dict):
         neo_matrix[col]['name'] = additional['name']
         neo_matrix[col]['syn_id'] = additional['syn_id']
         neo_matrix[col]['wiki_id'] = additional['wiki_id']
+
+
 
     return neo_matrix
 
