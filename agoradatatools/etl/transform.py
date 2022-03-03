@@ -149,9 +149,8 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
     diff_exp_data['sex'].replace(
         to_replace={'ALL': 'males and females', 'FEMALE': 'females only', 'MALE': 'males only'},
         inplace=True)
-    diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True)
-    diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'},
-                                   inplace=True)
+    diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True, inplace=True)
+    diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, inplace=True)
     diff_exp_data['logfc'] = diff_exp_data['logfc'].round(decimals=3)
     diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
