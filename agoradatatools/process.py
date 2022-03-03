@@ -41,6 +41,10 @@ def process_dataset(dataset_obj: dict, syn=None):
     else:
         df = entities_as_df[list(entities_as_df)[0]]
 
+    if "agora_rename" in dataset_obj[dataset_name].keys():
+        df = transform.rename_columns(df=df,
+                                      column_map=dataset_obj[dataset_name]['agora_rename'])
+
     try:
 
         if type(df) == dict:
