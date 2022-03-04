@@ -81,15 +81,28 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
 
     obj = {}
 
-    obj["distribution"] = list(pd.cut(df[col], bins=10, precision=3).value_counts())
-    obj["min"] = np.around(df[col].min(), 4)
-    obj["max"] = np.around(df[col].max(), 4)
-    obj["mean"] = np.around(df[col].mean(), 4)
-    discard, obj["bins"] = list(pd.cut(df[col], bins=10, precision=3, retbins=True))
+    '''
+    In order to smooth out the bins and make sure the entire range from 0
+    to the highest theoretical value has been found, we create a copy of the 
+    column with that value added to it.  We use to calculate distributions 
+    and bins, and subtract the value at the end
+    '''
+
+    upper_bound = np.ceil(df[col].max())
+    distribution = df[col].append(pd.Series([upper_bound]), ignore_index=True)
+
+    obj["distribution"] = list(pd.cut(distribution, bins=10, precision=3, include_lowest=True, right=True).value_counts())
+    obj["distribution"][-1] -= 1 # since this was calculated with the artificial upper_bound, we subtract it
+
+    discard, obj["bins"] = list(pd.cut(distribution, bins=10, precision=3, retbins=True))
     obj["bins"] = np.around(obj["bins"].tolist()[1:], 2)
     base = [0, *obj["bins"][:-1]]
     obj["bins"] = zip(base, obj["bins"])
     obj["bins"] = list(obj["bins"])
+
+    obj["min"] = np.around(df[col].min(), 4)
+    obj["max"] = np.around(df[col].max(), 4)
+    obj["mean"] = np.around(df[col].mean(), 4)
     obj["first_quartile"] = np.around(df[col].quantile(q=0.25, interpolation='midpoint'))
     obj["third_quartile"] = np.around(df[col].quantile(q=0.75, interpolation='midpoint'))
 
@@ -149,9 +162,8 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
     diff_exp_data['sex'].replace(
         to_replace={'ALL': 'males and females', 'FEMALE': 'females only', 'MALE': 'males only'},
         inplace=True)
-    diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True)
-    diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'},
-                                   inplace=True)
+    diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True, inplace=True)
+    diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, inplace=True)
     diff_exp_data['logfc'] = diff_exp_data['logfc'].round(decimals=3)
     diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
