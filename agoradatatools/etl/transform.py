@@ -81,15 +81,36 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
 
     obj = {}
 
-    obj["distribution"] = list(pd.cut(df[col], bins=10, precision=3).value_counts())
+    # bin calculation
+    '''
+    Where
+        upper_bound is the rightmost number in the range
+        lower_bounds is a list with all lower bounds
+        upper_bounds is a list with the upper bounds
+        
+    
+    Because the bins must be non-overlapping there are two different calculations  
+    to be made: one for the bins on display in the portal, and one for the distribution.
+    Non-overlapping bins will drop values that fall exactly on the bounds of the bins.
+    '''
+
+    upper_bound = np.ceil(df[col].max())
+    bin_numbers = [round((i * upper_bound/10), 2) for i in range(0, 11)]
+
+    lower_bounds = [i for i in bin_numbers[:10]]
+    upper_bounds = [i for i in bin_numbers[1:]]
+    upper_bounds = [round(i - 0.01, 2) if i in upper_bounds[:9] else i for i in upper_bounds]
+
+
+    bins = [[bin_numbers[i], bin_numbers[i + 1]] for i in range(0, 10)]
+
+
+    intervals = pd.IntervalIndex.from_arrays(left=lower_bounds, right=upper_bounds)
+    obj["distribution"] = list(pd.cut(df[col], bins=10, precision=3, include_lowest=True, right=True).value_counts())
     obj["min"] = np.around(df[col].min(), 4)
     obj["max"] = np.around(df[col].max(), 4)
     obj["mean"] = np.around(df[col].mean(), 4)
-    discard, obj["bins"] = list(pd.cut(df[col], bins=10, precision=3, retbins=True))
-    obj["bins"] = np.around(obj["bins"].tolist()[1:], 2)
-    base = [0, *obj["bins"][:-1]]
-    obj["bins"] = zip(base, obj["bins"])
-    obj["bins"] = list(obj["bins"])
+    obj["bins"] = bins
     obj["first_quartile"] = np.around(df[col].quantile(q=0.25, interpolation='midpoint'))
     obj["third_quartile"] = np.around(df[col].quantile(q=0.75, interpolation='midpoint'))
 

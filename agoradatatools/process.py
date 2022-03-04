@@ -66,6 +66,9 @@ def process_dataset(dataset_obj: dict, syn=None):
 
 
 def create_data_manifest(manifest: list[tuple]) -> DataFrame:
+    if len(manifest) == 0:
+        print("There was an error processing the files.  Data manifest not created")
+        return None
     return DataFrame(manifest, columns=['id', 'version'])
 
 
