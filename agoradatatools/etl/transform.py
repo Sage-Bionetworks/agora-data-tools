@@ -87,7 +87,6 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
     column with that value added to it.  We use to calculate distributions 
     and bins, and subtract the value at the end
     '''
-
     upper_bound = np.ceil(df[col].max())
     distribution = df[col].append(pd.Series([upper_bound]), ignore_index=True)
 
@@ -158,12 +157,12 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
     diff_exp_data['tmp'] = diff_exp_data[['model', 'comparison', 'sex']].agg(' '.join, axis=1)
     diff_exp_data = diff_exp_data[diff_exp_data['tmp'].isin(models_to_keep)]
 
-    diff_exp_data['study'].replace(to_replace={'MAYO': 'MayoRNAseq', 'MSSM': 'MSBB'}, inplace=True)
+    diff_exp_data['study'].replace(to_replace={'MAYO': 'MayoRNAseq', 'MSSM': 'MSBB'}, regex=True, inplace=True)
     diff_exp_data['sex'].replace(
         to_replace={'ALL': 'males and females', 'FEMALE': 'females only', 'MALE': 'males only'},
-        inplace=True)
+        regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True, inplace=True)
-    diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, inplace=True)
+    diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, regex=True, inplace=True)
     diff_exp_data['logfc'] = diff_exp_data['logfc'].round(decimals=3)
     diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
@@ -172,7 +171,7 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
         ((diff_exp_data['adj_p_val'] <= adjusted_p_value_threshold) | (diff_exp_data['ensembl_gene_id']
                                                                        .isin(target_list['ensembl_gene_id'])))
         & (diff_exp_data['ensembl_gene_id'].isin(gene_info['ensembl_gene_id']))
-                                               ]
+                                                   ]
 
     adjusted_diff_exp_data = adjusted_diff_exp_data.drop_duplicates(['ensembl_gene_id'])
     adjusted_diff_exp_data = adjusted_diff_exp_data[['ensembl_gene_id']]
@@ -180,6 +179,7 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
     diff_exp_data = diff_exp_data[diff_exp_data['ensembl_gene_id'].isin(adjusted_diff_exp_data['ensembl_gene_id'])]
     diff_exp_data = diff_exp_data[['ensembl_gene_id', 'logfc', 'fc', 'ci_l', 'ci_r',
                                    'adj_p_val', 'tissue', 'study', 'model', 'hgnc_symbol']]
+
 
     diff_exp_data = pd.merge(left=diff_exp_data,
                              right=gene_info,
