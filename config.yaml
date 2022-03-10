@@ -1,5 +1,40 @@
-- destination: syn25905764
+- destination: syn26868906
 - datasets:
+  - gene_metadata:
+      files:
+        - syn25953363: feather  # gene_info
+        - syn12514826: csv      # igap
+        - syn12514912: csv      # eqtl
+        - syn18689335: csv      # proteomics
+        - syn14237651: tsv      # rna_expression_change
+      final_format: json
+      custom_transformations:
+        adjusted_p_value_threshold: 0.05
+        protein_level_threshold: 0.05
+      provenance:
+        - syn25953363
+        - syn12514826
+        - syn12514912
+        - syn18689335
+        - syn11914808
+        - syn14237651
+      destination: syn26868906
+
+  - gene_info:
+      files:
+        - syn26868788: json # gene_metadata
+        - syn12540368: csv # target_list
+        - syn12514804: csv # median_expression
+        - syn13363443: csv # drugability
+      final_format: json
+      custom_transformations: 1
+      provenance:
+        - syn26868788
+        - syn12540368
+        - syn12514804
+        - syn13363443
+      destination: syn26868906
+
   - genetics_scores:
       files:
         - syn25575153: table
@@ -9,7 +44,7 @@
       column_rename:
         ensg: ensenbl_gene_id
         gene_name: hgnc_gene_id
-      destination: syn25905764
+      destination: syn26868906
 
   - neuropath_corr:
       files:
@@ -20,7 +55,7 @@
       column_rename:
         ensg: ensembl_gene_id
         gname: hgnc_gene_id
-      destination: syn25905764
+      destination: syn26868906
 
   - omics_scores:
       files:
@@ -28,7 +63,7 @@
       final_format: json
       provenance:
         - syn22758536
-      destination: syn25905764
+      destination: syn26868906
 
   - proteomics:
       files:
@@ -39,7 +74,7 @@
       column_rename:
         genename: hgnc_gene_id
         ensg: ensemble_gene_id
-      destination: syn25905764
+      destination: syn26868906
 
   - target_exp_validation_harmonized:
       files:
@@ -47,7 +82,7 @@
       final_format: json
       provenance:
         - syn24184512
-      destination: syn25905764
+      destination: syn26868906
 
   - srm_data:
       files:
@@ -55,7 +90,7 @@
       final_format: json
       provenance:
         - syn25454540
-      destination: syn25905764
+      destination: syn26868906
 
   - neuropath_corr:
       files:
@@ -66,7 +101,7 @@
       column_rename:
         ensg: ensembl_gene_id
         gname: hgnc_gene_id
-      destination: syn25905764
+      destination: syn26868906
 
   - team_info:
       files:
@@ -77,7 +112,7 @@
       provenance:
         - syn12615624
         - syn12615633
-      destination: syn25905764
+      destination: syn26868906
 
   - overall_scores:
       files:
@@ -90,7 +125,7 @@
         - syn25575156
         - syn25575153
         - syn22758536
-      destination: syn25905764
+      destination: syn26868906
 
   - rnaseq_differential_expression:
       files:
@@ -112,7 +147,7 @@
         - syn25953353
         - syn12540368
         - syn12514912
-      destination: syn25905764
+      destination: syn26868906
 
   - metabolomics:
       files:
@@ -121,7 +156,7 @@
       provenance:
         - syn19001410
         - syn26064497
-      destination: syn25905764
+      destination: syn26868906
 
   - network:
       files:
@@ -133,4 +168,4 @@
         - syn11685347
         - syn25953363
         - syn14237651
-      destination: syn25905764
+      destination: syn26868906

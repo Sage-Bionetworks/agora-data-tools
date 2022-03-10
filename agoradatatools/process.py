@@ -5,6 +5,7 @@ import agoradatatools.etl.utils as utils
 import sys
 from pandas import DataFrame
 
+
 def process_dataset(dataset_obj: dict, syn=None):
     """
     Takes in a dataset from the configuration file and passes it through the
@@ -13,7 +14,6 @@ def process_dataset(dataset_obj: dict, syn=None):
     :param syn: synapse object
     """
 
-    print(dataset_obj)
     dataset_name = list(dataset_obj)[0]
     entities_as_df = {}
 
@@ -21,13 +21,16 @@ def process_dataset(dataset_obj: dict, syn=None):
         entity_id = list(entity.keys())[0]
         entity_format = list(entity.values())[0]
 
-        df = extract.get_entity_as_df(syn_id=entity_id, format=entity_format, syn=syn)
+        df = extract.get_entity_as_df(syn_id=entity_id,
+                                      format=entity_format,
+                                      syn=syn)
         df = transform.standardize_column_names(df=df)
         df = transform.standardize_values(df=df)
 
         # the column rename gets applied to all entities in a dataset
         if "column_rename" in dataset_obj[dataset_name].keys():
-            df = transform.rename_columns(df=df, column_map=dataset_obj[dataset_name]['column_rename'])
+            df = transform.rename_columns(df=df,
+                                          column_map=dataset_obj[dataset_name]['column_rename'])
 
         entities_as_df[entity_id] = df
 
@@ -38,21 +41,34 @@ def process_dataset(dataset_obj: dict, syn=None):
     else:
         df = entities_as_df[list(entities_as_df)[0]]
 
+    if "agora_rename" in dataset_obj[dataset_name].keys():
+        df = transform.rename_columns(df=df,
+                                      column_map=dataset_obj[dataset_name]['agora_rename'])
 
     try:
-        json_path = load.df_to_json(df=df, filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
-        syn_obj = load.load(file_path=json_path, provenance=dataset_obj[dataset_name]['provenance'],
+
+        if type(df) == dict:
+            json_path = load.dict_to_json(df=df,
+                                          filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
+        else:
+            json_path = load.df_to_json(df=df,
+                                        filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
+
+        syn_obj = load.load(file_path=json_path,
+                            provenance=dataset_obj[dataset_name]['provenance'],
                             destination=dataset_obj[dataset_name]['destination'],
                             syn=syn)
-    except Exception as load_error:
-        print("There was an error loading " + dataset_name)
-        print(load_error)
+    except Exception as error:
+        print(error)
         return
 
     return syn_obj
 
 
 def create_data_manifest(manifest: list[tuple]) -> DataFrame:
+    if len(manifest) == 0:
+        print("There was an error processing the files.  Data manifest not created")
+        return None
     return DataFrame(manifest, columns=['id', 'version'])
 
 
@@ -82,12 +98,17 @@ def process_all_files(config_path: str = None):
 
     # create manifest
     manifest_df = create_data_manifest(manifest=manifest)
-    manifest_path = load.df_to_csv(df=manifest_df, filename="data_manifest.csv")
+    manifest_path = load.df_to_csv(df=manifest_df,
+                                   filename="data_manifest.csv")
 
-    load.load(file_path=manifest_path, provenance=manifest_df['id'].to_list(), destination=config[0]['destination'])
+    load.load(file_path=manifest_path,
+              provenance=manifest_df['id'].to_list(),
+              destination=config[0]['destination'])
+
 
 def main():
     process_all_files(config_path=sys.argv[1])
+
 
 if __name__ == "__main__":
     main()

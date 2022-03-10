@@ -1,8 +1,20 @@
 import pandas as pd
+import json
 from os import mkdir, rmdir
 from . import utils
 from synapseclient import File, Activity
-import json
+import numpy as np
+
+class NumpyEncoder(json.JSONEncoder):
+    """ Special json encoder for numpy types """
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 
 def create_temp_location():
@@ -44,10 +56,12 @@ def load(file_path: str, provenance: list[str], destination: str, syn=None):
     try:
         file = File(file_path, parent=destination)
         file = syn.store(file, activity=activity)
-    except OSError:
+    except OSError as e:
         print("Either the file path (" + file_path +
               ") or the destination(" + destination +
               ") are invalid.")
+
+        print(e)
         return
     except ValueError:
         print("Please make sure that the Synapse id of " +
@@ -66,14 +80,17 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
     """
 
     try:
+        df = df.replace({np.nan: None})
         temp_json = open("./staging/" + filename, 'w+')
-        json_str = df.to_json(orient='records', indent=2)
-        json_parsed = json.loads(json_str)
-        json.dump(json_parsed, temp_json, indent=2)
-    except AttributeError:
+        json.dump(df.to_dict(orient='records'), temp_json,
+                 cls=NumpyEncoder,
+                 indent=2)
+    except AttributeError as e:
         print("Invalid dataframe.")
+        temp_json.close()
         return None
 
+    temp_json.close()
     return temp_json.name
 
 
@@ -86,9 +103,26 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
     """
     try:
         temp_csv = open("./staging/" + filename, 'w+')
-        df.to_csv(path_or_buf=temp_csv)
+        df.to_csv(path_or_buf=temp_csv, index=False)
     except AttributeError:
         print("Invalid dataframe.")
+        temp_csv.close()
         return None
 
+    temp_csv.close()
     return temp_csv.name
+
+
+def dict_to_json(df: dict, filename = str):
+    try:
+        temp_json = open("./staging/" + filename, 'w+')
+        json.dump(df, temp_json,
+                  cls=NumpyEncoder,
+                  indent=2)
+    except Exception as e:
+        print(e)
+        temp_json.close()
+        return None
+
+    temp_json.close()
+    return temp_json.name

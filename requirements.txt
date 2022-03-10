@@ -1,0 +1,7 @@
+pandas~=1.2.4
+numpy~=1.21.0
+agoradatatools~=0.1.0
+pytest~=6.2.4
+synapseclient~=2.5.0
+setuptools~=49.2.1
+PyYAML~=5.4.1
