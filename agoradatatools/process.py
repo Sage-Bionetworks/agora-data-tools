@@ -65,11 +65,19 @@ def process_dataset(dataset_obj: dict, syn=None):
     return syn_obj
 
 
-def create_data_manifest(manifest: list[tuple]) -> DataFrame:
-    if len(manifest) == 0:
-        print("There was an error processing the files.  Data manifest not created")
+def create_data_manifest(parent=None, syn=None) -> DataFrame:
+
+    if not parent:
         return None
-    return DataFrame(manifest, columns=['id', 'version'])
+
+    if not syn:
+        syn = utils._login_to_synapse()
+
+    folders = syn.getChildren(parent)
+    folder = [folders]
+    folder = [{'id': folder['id'], 'version': folder['versionNumber']} for folder in folders]
+
+    return DataFrame(folder)
 
 
 def process_all_files(config_path: str = None):
@@ -80,7 +88,6 @@ def process_all_files(config_path: str = None):
     """
 
     syn = utils._login_to_synapse()
-    manifest = []
 
     if config_path:
         config = utils._get_config(config_path=config_path)
@@ -92,12 +99,13 @@ def process_all_files(config_path: str = None):
     # create staging location
     load.create_temp_location()
 
-    for dataset in datasets:
-        new_syn_tuple = process_dataset(dataset_obj=dataset, syn=syn)
-        manifest.append(new_syn_tuple)
+    if datasets:
+        for dataset in datasets:
+            new_syn_tuple = process_dataset(dataset_obj=dataset, syn=syn)
+            # in the future we should log new_syn_tuples that are none
 
     # create manifest
-    manifest_df = create_data_manifest(manifest=manifest)
+    manifest_df = create_data_manifest(parent=config[0]['destination'], syn=syn)
     manifest_path = load.df_to_csv(df=manifest_df,
                                    filename="data_manifest.csv")
 
