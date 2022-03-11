@@ -1,4 +1,4 @@
-- destination: syn17015333
+- destination: syn27406021
 - datasets:
   - distribution_data:
       files:
@@ -7,7 +7,7 @@
       custom_transformations: 1
       provenance:
         - syn25575156
-      destination: syn17015333
+      destination: syn27406021
 
   - gene_metadata:
       files:
@@ -162,7 +162,6 @@
       provenance:
         - syn14237651
         - syn25953363
-        - syn25953353
         - syn12540368
         - syn12514912
       destination: syn17015333
