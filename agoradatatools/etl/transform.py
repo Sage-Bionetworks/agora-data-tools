@@ -373,6 +373,19 @@ def transform_distribution_data(datasets: dict):
     return neo_matrix
 
 
+def transform_rna_distribution_data(datasets: dict):
+    rna_df = datasets['syn12177499']
+    rna_df = rna_df[['tissue', 'model', 'logfc']]
+
+    rna_df = rna_df.groupby(['tissue', 'model']).agg('describe')['logfc'].reset_index()[['model', 'tissue', 'min', 'max', '25%', '50%', '75%']]
+    rna_df.rename(columns={'25%': 'first_quartile', '50%': 'median', '75%': 'third_quartile'}, inplace=True)
+
+    for col in ['min', 'max', 'median', 'first_quartile', 'third_quartile']:
+        rna_df[col] = np.around(rna_df[col], 4)
+
+    return rna_df
+
+
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
 
     if type(datasets) is not dict or type(dataset_name) is not str:
@@ -399,6 +412,8 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
                                        protein_level_threshold=dataset_obj['custom_transformations']['protein_level_threshold'])
     elif dataset_name == 'gene_info':
         return transform_gene_info(datasets=datasets)
+    elif dataset_name == 'rna_distribution_data':
+        return transform_rna_distribution_data(datasets=datasets)
     else:
         return None
 
