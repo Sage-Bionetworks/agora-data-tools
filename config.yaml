@@ -15,7 +15,7 @@
         - syn12514826: csv      # igap
         - syn12514912: csv      # eqtl
         - syn18689335: csv      # proteomics
-        - syn14237651: tsv      # rna_expression_change
+        - syn27211942: tsv      # rna_expression_change
       final_format: json
       custom_transformations:
         adjusted_p_value_threshold: 0.05
@@ -26,21 +26,21 @@
         - syn12514912
         - syn18689335
         - syn11914808
-        - syn14237651
+        - syn27211942
       destination: syn12177492
 
   - gene_info:
       files:
         - syn26868788: json # gene_metadata
         - syn12540368: csv # target_list
-        - syn12514804: csv # median_expression
+        - syn27211878: csv # median_expression
         - syn13363443: csv # drugability
       final_format: json
       custom_transformations: 1
       provenance:
         - syn26868788
         - syn12540368
-        - syn12514804
+        - syn27211878
         - syn13363443
       agora_rename:
         eqtl: haseqtl
@@ -51,16 +51,16 @@
         nominated_target: nominatedtarget
       destination: syn12177492
 
-  - genetics_scores:
-      files:
-        - syn25575153: table
-      final_format: json
-      provenance:
-        - syn25575153
-      column_rename:
-        ensg: ensenbl_gene_id
-        gene_name: hgnc_gene_id
-      destination: syn12177492
+#  - genetics_scores:
+#      files:
+#        - syn25575153: table
+#      final_format: json
+#      provenance:
+#        - syn25575153
+#      column_rename:
+#        ensg: ensenbl_gene_id
+#        gene_name: hgnc_gene_id
+#      destination: syn12177492
 
   - neuropath_corr:
       files:
@@ -76,13 +76,13 @@
         hgnc_gene_id: gname
       destination: syn12177492
 
-  - omics_scores:
-      files:
-        - syn22758536: table
-      final_format: json
-      provenance:
-        - syn22758536
-      destination: syn12177492
+#  - omics_scores:
+#      files:
+#        - syn22758536: table
+#      final_format: json
+#      provenance:
+#        - syn22758536
+#      destination: syn12177492
 
   - proteomics:
       files:
@@ -147,7 +147,7 @@
 
   - rnaseq_differential_expression:
       files:
-        - syn14237651: tsv
+        - syn27211942: tsv
         - syn25953363: feather
         - syn12540368: csv
         - syn12514912: csv
@@ -160,7 +160,7 @@
           - Diagnosis.Sex AD-CONTROL MALE
         adjusted_p_value_threshold: 1
       provenance:
-        - syn14237651
+        - syn27211942
         - syn25953363
         - syn12540368
         - syn12514912
@@ -184,11 +184,23 @@
       provenance:
         - syn11685347
         - syn25953363
-        - syn14237651
+        - syn27211942
       agora_rename:
         genea_ensembl_gene_id: geneA_ensembl_gene_id
         genea_external_gene_name: geneA_external_gene_name
         geneb_ensembl_gene_id: geneB_ensembl_gene_id
         geneb_external_gene_name: geneB_external_gene_name
         brainregion: brainRegion
+      destination: syn12177492
+
+  - rna_distribution_data:
+      files:
+        - syn12177499: json
+      final_format: json
+      custom_transformations: 1
+      provenance:
+        - syn27211942
+        - syn25953363
+        - syn12540368
+        - syn12514912
       destination: syn12177492
