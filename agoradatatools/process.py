@@ -14,12 +14,13 @@ def process_dataset(dataset_obj: dict, syn=None):
     :param syn: synapse object
     """
 
-    dataset_name = list(dataset_obj)[0]
+    dataset_name = list(dataset_obj.keys())[0]
     entities_as_df = {}
 
     for entity in dataset_obj[dataset_name]['files']:
-        entity_id = list(entity.keys())[0]
-        entity_format = list(entity.values())[0]
+        entity_id = entity['id']
+        entity_format = entity['format']
+        entity_name = entity['name']
 
         df = extract.get_entity_as_df(syn_id=entity_id,
                                       format=entity_format,
@@ -32,7 +33,7 @@ def process_dataset(dataset_obj: dict, syn=None):
             df = transform.rename_columns(df=df,
                                           column_map=dataset_obj[dataset_name]['column_rename'])
 
-        entities_as_df[entity_id] = df
+        entities_as_df[entity_name] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         df = transform.apply_custom_transformations(datasets=entities_as_df,
