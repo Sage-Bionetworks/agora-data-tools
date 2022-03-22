@@ -1,5 +1,6 @@
 import pytest
 import agoradatatools.process as process
+import pandas as pd
 
 file_object = {
     "id": "syn25838546",
@@ -60,3 +61,7 @@ dataset_object_single = {
 def test_process_dataset():
     good_result = process.process_dataset(dataset_obj=dataset_object_single)
     assert type(good_result) is tuple
+
+def test_create_data_manifest():
+    assert type(process.create_data_manifest(parent='syn27406021')) == pd.DataFrame
+    assert process.create_data_manifest() is None
