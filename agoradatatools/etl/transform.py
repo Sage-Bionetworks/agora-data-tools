@@ -33,7 +33,7 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
             df[column] = df[column].fillna("")
 
     try:
-        df = df.replace(["NA", "n/a", "N/A", "na", "n/A", "N/a", "Na", "nA"], "", regex=True)
+        df = df.replace(["n/a", "N/A", "n/A", "N/a"], "", regex=True)
     except TypeError:
         print("Error comparing types.")
 
