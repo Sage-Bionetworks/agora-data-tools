@@ -25,15 +25,15 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     :return: a dataframe
     """
 
-    for column in df:
-        dt = df[column].dtype
-        if dt == int or dt == float:
-            df[column] = df[column].fillna(0)
-        else:
-            df[column] = df[column].fillna("")
+    # for column in df:
+    #     dt = df[column].dtype
+    #     if dt == int or dt == float:
+    #         df[column] = df[column].fillna(0)
+    #     else:
+    #         df[column] = df[column].fillna("")
 
     try:
-        df = df.replace(["NA", "n/a", "N/A", "na", "n/A", "N/a", "Na", "nA"], "", regex=True)
+        df = df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True)
     except TypeError:
         print("Error comparing types.")
 
@@ -142,7 +142,7 @@ def transform_team_info(datasets: dict):
     return join_datasets(left=team_info, right=team_member_info, how='left', on='team')
 
 
-def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_value_threshold: int):
+def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
     diff_exp_data = datasets['diff_exp_data']
     gene_info = datasets['gene_info']
     target_list = datasets['target_list']
@@ -154,16 +154,13 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
                          on='ensembl_gene_id',
                          how='left')
 
-    diff_exp_data['tmp'] = diff_exp_data[['model', 'comparison', 'sex']].agg(' '.join, axis=1)
-    diff_exp_data = diff_exp_data[diff_exp_data['tmp'].isin(models_to_keep)]
-
     diff_exp_data['study'].replace(to_replace={'MAYO': 'MayoRNAseq', 'MSSM': 'MSBB'}, regex=True, inplace=True)
     diff_exp_data['sex'].replace(
         to_replace={'ALL': 'males and females', 'FEMALE': 'females only', 'MALE': 'males only'},
         regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, regex=True, inplace=True)
-    diff_exp_data['logfc'] = diff_exp_data['logfc'].round(decimals=3)
+    diff_exp_data['logfc'] = diff_exp_data['logfc']
     diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
 
@@ -272,6 +269,7 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
         ['ensembl_gene_id', 'name', 'summary', 'alias', 'igap', 'symbol', 'eqtl', 'rna_in_ad_brain_change',
          'rna_brain_change_studied']]
 
+    proteomics = proteomics.dropna(subset=['log2_fc', 'cor_pval', 'ci_lwr', 'ci_upr'])
     proteomics = proteomics.groupby('ensg')['cor_pval'].agg('min').reset_index()
 
     gene_metadata = pd.merge(left=gene_metadata,
@@ -368,8 +366,6 @@ def transform_distribution_data(datasets: dict):
         neo_matrix[col]['syn_id'] = additional['syn_id']
         neo_matrix[col]['wiki_id'] = additional['wiki_id']
 
-
-
     return neo_matrix
 
 
@@ -380,8 +376,14 @@ def transform_rna_distribution_data(datasets: dict):
     rna_df = rna_df.groupby(['tissue', 'model']).agg('describe')['logfc'].reset_index()[['model', 'tissue', 'min', 'max', '25%', '50%', '75%']]
     rna_df.rename(columns={'25%': 'first_quartile', '50%': 'median', '75%': 'third_quartile'}, inplace=True)
 
+    rna_df['IQR'] = rna_df['third_quartile'] - rna_df['first_quartile']
+    rna_df['min'] = rna_df['first_quartile'] - (1.5 * rna_df['IQR'])
+    rna_df['max'] = rna_df['third_quartile'] + (1.5 * rna_df['IQR'])
+
     for col in ['min', 'max', 'median', 'first_quartile', 'third_quartile']:
         rna_df[col] = np.around(rna_df[col], 4)
+
+    rna_df.drop('IQR', axis=1, inplace=True)
 
     return rna_df
 
@@ -400,7 +402,6 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
         return transform_team_info(datasets=datasets)
     elif dataset_name == "rnaseq_differential_expression":
         return transform_rna_seq_data(datasets=datasets,
-                                      models_to_keep=dataset_obj['custom_transformations']['models_to_keep'],
                                       adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'])
     elif dataset_name == "network":
         return transform_network(datasets=datasets)
