@@ -9,8 +9,8 @@ def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
     :return: a dataframe
     """
 
-    df.columns = df.columns.str.replace("[#,@,&,*,^,?,(,),%,$,#,!,/]", "")
-    df.columns = df.columns.str.replace("[' ', '-', '.']", "_")
+    df.columns = df.columns.str.replace("[#,@,&,*,^,?,(,),%,$,#,!,/]", "", regex=True)
+    df.columns = df.columns.str.replace("[' ', '-', '.']", "_", regex=True)
     df.columns = map(str.lower, df.columns)
 
     return df
@@ -25,15 +25,15 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     :return: a dataframe
     """
 
-    for column in df:
-        dt = df[column].dtype
-        if dt == int or dt == float:
-            df[column] = df[column].fillna(0)
-        else:
-            df[column] = df[column].fillna("")
+    # for column in df:
+    #     dt = df[column].dtype
+    #     if dt == int or dt == float:
+    #         df[column] = df[column].fillna(0)
+    #     else:
+    #         df[column] = df[column].fillna("")
 
     try:
-        df = df.replace(["NA", "n/a", "N/A", "na", "n/A", "N/a", "Na", "nA"], "")
+        df = df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True)
     except TypeError:
         print("Error comparing types.")
 
@@ -130,23 +130,23 @@ def join_datasets(left: pd.DataFrame, right: pd.DataFrame, how: str, on: str):
 
 
 def transform_team_info(datasets: dict):
-    left = datasets['syn12615624']  # team_info
-    right = datasets['syn12615633']  # team_member_info
+    team_info = datasets['team_info']
+    team_member_info = datasets['team_member_info']
 
-    right = right.groupby('team')\
+    team_member_info = team_member_info.groupby('team')\
         .apply(lambda x: x[x.columns.difference(['team'])]
                .fillna('')
                .to_dict(orient='records'))\
         .reset_index(name="members")
 
-    return join_datasets(left=left, right=right, how='left', on='team')
+    return join_datasets(left=team_info, right=team_member_info, how='left', on='team')
 
 
-def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_value_threshold: int):
-    diff_exp_data = datasets['syn14237651']
-    gene_info = datasets['syn25953363']
-    target_list = datasets['syn12540368']
-    eqtl = datasets['syn12514912']
+def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
+    diff_exp_data = datasets['diff_exp_data']
+    gene_info = datasets['gene_info']
+    target_list = datasets['target_list']
+    eqtl = datasets['eqtl']
 
     eqtl = eqtl[['ensembl_gene_id', 'haseqtl']]
     gene_info = pd.merge(left=gene_info,
@@ -154,16 +154,13 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
                          on='ensembl_gene_id',
                          how='left')
 
-    diff_exp_data['tmp'] = diff_exp_data[['model', 'comparison', 'sex']].agg(' '.join, axis=1)
-    diff_exp_data = diff_exp_data[diff_exp_data['tmp'].isin(models_to_keep)]
-
     diff_exp_data['study'].replace(to_replace={'MAYO': 'MayoRNAseq', 'MSSM': 'MSBB'}, regex=True, inplace=True)
     diff_exp_data['sex'].replace(
         to_replace={'ALL': 'males and females', 'FEMALE': 'females only', 'MALE': 'males only'},
         regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, regex=True, inplace=True)
-    diff_exp_data['logfc'] = diff_exp_data['logfc'].round(decimals=3)
+    diff_exp_data['logfc'] = diff_exp_data['logfc']
     diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
 
@@ -195,8 +192,8 @@ def transform_rna_seq_data(datasets: dict, models_to_keep: list, adjusted_p_valu
 
 
 def transform_network(datasets: dict):
-    gene_info = datasets['syn25953363']
-    networks = datasets['syn11685347']
+    gene_info = datasets['gene_info']
+    networks = datasets['networks']
 
     gene_info.rename(columns={"symbol": "hgnc_symbol"}, inplace=True)
     gene_info = gene_info[['ensembl_gene_id', 'hgnc_symbol']]
@@ -228,11 +225,11 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
     This function will perform transformations and incrementally create a dataset called gene_metadata.
     Each dataset will be left_joined onto gene_info.
     '''
-    gene_info = datasets['syn25953363']
-    igap = datasets['syn12514826']
-    eqtl = datasets['syn12514912']
-    proteomics = datasets['syn18689335']
-    rna_change = datasets['syn14237651']
+    gene_info = datasets['gene_info']
+    igap = datasets['igap']
+    eqtl = datasets['eqtl']
+    proteomics = datasets['proteomics']
+    rna_change = datasets['rna_expression_change']
 
     # remove duplicate ensembl_gene_ids and select columns
     gene_info = gene_info.groupby('ensembl_gene_id').apply(lambda x: x.nlargest(1, "_version")).reset_index(drop=True)
@@ -272,6 +269,7 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
         ['ensembl_gene_id', 'name', 'summary', 'alias', 'igap', 'symbol', 'eqtl', 'rna_in_ad_brain_change',
          'rna_brain_change_studied']]
 
+    proteomics = proteomics.dropna(subset=['log2_fc', 'cor_pval', 'ci_lwr', 'ci_upr'])
     proteomics = proteomics.groupby('ensg')['cor_pval'].agg('min').reset_index()
 
     gene_metadata = pd.merge(left=gene_metadata,
@@ -295,10 +293,10 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
 
 def transform_gene_info(datasets: dict):
 
-    gene_metadata = datasets['syn26868788']
-    target_list = datasets['syn12540368']
-    median_expression = datasets['syn12514804']
-    druggability = datasets['syn13363443']
+    gene_metadata = datasets['gene_metadata']
+    target_list = datasets['target_list']
+    median_expression = datasets['median_expression']
+    druggability = datasets['druggability']
 
     # these are the interesting columns of the druggability dataset
     useful_columns = ['geneid', 'sm_druggability_bucket', 'safety_bucket', 'abability_bucket', 'pharos_class',
@@ -335,7 +333,7 @@ def transform_gene_info(datasets: dict):
 
 def transform_distribution_data(datasets: dict):
 
-    overall_scores = datasets['syn25575156']
+    overall_scores = datasets['overall_scores']
 
     # subtract flyneuropath score from over all scores
     overall_scores['overall'] = overall_scores['overall'] - overall_scores['flyneuropathscore']
@@ -368,9 +366,26 @@ def transform_distribution_data(datasets: dict):
         neo_matrix[col]['syn_id'] = additional['syn_id']
         neo_matrix[col]['wiki_id'] = additional['wiki_id']
 
-
-
     return neo_matrix
+
+
+def transform_rna_distribution_data(datasets: dict):
+    rna_df = datasets['rna']
+    rna_df = rna_df[['tissue', 'model', 'logfc']]
+
+    rna_df = rna_df.groupby(['tissue', 'model']).agg('describe')['logfc'].reset_index()[['model', 'tissue', 'min', 'max', '25%', '50%', '75%']]
+    rna_df.rename(columns={'25%': 'first_quartile', '50%': 'median', '75%': 'third_quartile'}, inplace=True)
+
+    rna_df['IQR'] = rna_df['third_quartile'] - rna_df['first_quartile']
+    rna_df['min'] = rna_df['first_quartile'] - (1.5 * rna_df['IQR'])
+    rna_df['max'] = rna_df['third_quartile'] + (1.5 * rna_df['IQR'])
+
+    for col in ['min', 'max', 'median', 'first_quartile', 'third_quartile']:
+        rna_df[col] = np.around(rna_df[col], 4)
+
+    rna_df.drop('IQR', axis=1, inplace=True)
+
+    return rna_df
 
 
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
@@ -378,18 +393,15 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if type(datasets) is not dict or type(dataset_name) is not str:
         return None
 
-    print(dataset_obj)
-
     if dataset_name == "overall_scores":
-        df = datasets['syn25575156']
+        df = datasets['overall_scores']
         return transform_overall_scores(df=df)
-    if dataset_name == "distribution_data":
+    elif dataset_name == "distribution_data":
         return transform_distribution_data(datasets=datasets)
     elif dataset_name == "team_info":
         return transform_team_info(datasets=datasets)
     elif dataset_name == "rnaseq_differential_expression":
         return transform_rna_seq_data(datasets=datasets,
-                                      models_to_keep=dataset_obj['custom_transformations']['models_to_keep'],
                                       adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'])
     elif dataset_name == "network":
         return transform_network(datasets=datasets)
@@ -399,6 +411,8 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
                                        protein_level_threshold=dataset_obj['custom_transformations']['protein_level_threshold'])
     elif dataset_name == 'gene_info':
         return transform_gene_info(datasets=datasets)
+    elif dataset_name == 'rna_distribution_data':
+        return transform_rna_distribution_data(datasets=datasets)
     else:
         return None
 

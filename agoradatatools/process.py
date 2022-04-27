@@ -14,12 +14,13 @@ def process_dataset(dataset_obj: dict, syn=None):
     :param syn: synapse object
     """
 
-    dataset_name = list(dataset_obj)[0]
+    dataset_name = list(dataset_obj.keys())[0]
     entities_as_df = {}
 
     for entity in dataset_obj[dataset_name]['files']:
-        entity_id = list(entity.keys())[0]
-        entity_format = list(entity.values())[0]
+        entity_id = entity['id']
+        entity_format = entity['format']
+        entity_name = entity['name']
 
         df = extract.get_entity_as_df(syn_id=entity_id,
                                       format=entity_format,
@@ -32,7 +33,7 @@ def process_dataset(dataset_obj: dict, syn=None):
             df = transform.rename_columns(df=df,
                                           column_map=dataset_obj[dataset_name]['column_rename'])
 
-        entities_as_df[entity_id] = df
+        entities_as_df[entity_name] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         df = transform.apply_custom_transformations(datasets=entities_as_df,
@@ -45,8 +46,8 @@ def process_dataset(dataset_obj: dict, syn=None):
         df = transform.rename_columns(df=df,
                                       column_map=dataset_obj[dataset_name]['agora_rename'])
 
-    try:
 
+    try:
         if type(df) == dict:
             json_path = load.dict_to_json(df=df,
                                           filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
@@ -65,11 +66,19 @@ def process_dataset(dataset_obj: dict, syn=None):
     return syn_obj
 
 
-def create_data_manifest(manifest: list[tuple]) -> DataFrame:
-    if len(manifest) == 0:
-        print("There was an error processing the files.  Data manifest not created")
+def create_data_manifest(parent=None, syn=None) -> DataFrame:
+
+    if not parent:
         return None
-    return DataFrame(manifest, columns=['id', 'version'])
+
+    if not syn:
+        syn = utils._login_to_synapse()
+
+    folders = syn.getChildren(parent)
+    folder = [folders]
+    folder = [{'id': folder['id'], 'version': folder['versionNumber']} for folder in folders]
+
+    return DataFrame(folder)
 
 
 def process_all_files(config_path: str = None):
@@ -80,7 +89,6 @@ def process_all_files(config_path: str = None):
     """
 
     syn = utils._login_to_synapse()
-    manifest = []
 
     if config_path:
         config = utils._get_config(config_path=config_path)
@@ -92,12 +100,13 @@ def process_all_files(config_path: str = None):
     # create staging location
     load.create_temp_location()
 
-    for dataset in datasets:
-        new_syn_tuple = process_dataset(dataset_obj=dataset, syn=syn)
-        manifest.append(new_syn_tuple)
+    if datasets:
+        for dataset in datasets:
+            new_syn_tuple = process_dataset(dataset_obj=dataset, syn=syn)
+            # in the future we should log new_syn_tuples that are none
 
     # create manifest
-    manifest_df = create_data_manifest(manifest=manifest)
+    manifest_df = create_data_manifest(parent=config[0]['destination'], syn=syn)
     manifest_path = load.df_to_csv(df=manifest_df,
                                    filename="data_manifest.csv")
 

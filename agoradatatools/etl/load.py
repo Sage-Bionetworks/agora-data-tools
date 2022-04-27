@@ -34,6 +34,38 @@ def delete_temp_location():
     rmdir('./staging')
 
 
+def remove_non_values(d: dict) -> dict:
+    """
+    Given a dictionary, remove all keys whose values are null.
+    Values can be of a few types: a dict, a list, None/NaN, and a regular element - such as str or number;
+    each one of the cases is handled separately, if a key contains a list, the list can contain elements,
+    or nested dicts.  The same goes for dictionaries.
+    """
+    cleaned_dict = {}
+
+    for key, value in d.items():
+        # case 1: dict
+        if isinstance(value, dict):
+            nested_dict = remove_non_values(value)
+            if len(nested_dict.keys()) > 0:
+                cleaned_dict[key] = nested_dict
+        # case 2: list
+        if isinstance(value, list):
+            for elem in value: # value is a list
+                if isinstance(elem, dict):
+                    nested_dict = remove_non_values(elem)
+                else:
+                    cleaned_dict[key] = value
+        # case 3: None/NaN
+        elif pd.isna(value) or value is None:
+            continue
+        #case 4: regular element
+        elif value is not None:
+            cleaned_dict[key] = value
+
+    return cleaned_dict
+
+
 def load(file_path: str, provenance: list[str], destination: str, syn=None):
     """
     Calls df_to_json, add_to_manifest, add_to_report
@@ -81,8 +113,12 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
 
     try:
         df = df.replace({np.nan: None})
+
+        df_as_dict = df.to_dict(orient='records')
+        df_as_dict = [remove_non_values(d) for d in df_as_dict]
+
         temp_json = open("./staging/" + filename, 'w+')
-        json.dump(df.to_dict(orient='records'), temp_json,
+        json.dump(df_as_dict, temp_json,
                  cls=NumpyEncoder,
                  indent=2)
     except AttributeError as e:
@@ -113,10 +149,14 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
     return temp_csv.name
 
 
-def dict_to_json(df: dict, filename = str):
+def dict_to_json(df: dict, filename: str):
     try:
+
+        df_as_dict = df.to_dict(orient='records')
+        df_as_dict = [remove_non_values(d) for d in df_as_dict]
+
         temp_json = open("./staging/" + filename, 'w+')
-        json.dump(df, temp_json,
+        json.dump(df_as_dict, temp_json,
                   cls=NumpyEncoder,
                   indent=2)
     except Exception as e:
