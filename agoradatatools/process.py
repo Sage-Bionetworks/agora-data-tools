@@ -46,8 +46,8 @@ def process_dataset(dataset_obj: dict, syn=None):
         df = transform.rename_columns(df=df,
                                       column_map=dataset_obj[dataset_name]['agora_rename'])
 
-    try:
 
+    try:
         if type(df) == dict:
             json_path = load.dict_to_json(df=df,
                                           filename=dataset_name + "." + dataset_obj[dataset_name]['final_format'])
