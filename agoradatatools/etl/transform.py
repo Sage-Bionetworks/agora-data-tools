@@ -65,7 +65,7 @@ def nest_fields(df: pd.DataFrame, grouping: str, new_column: str) -> pd.DataFram
     :return: a dataframe
     """
     return (df.groupby(grouping)
-            .apply(lambda row: row.to_dict('records'))
+            .apply(lambda row: row.replace({np.nan: None}).to_dict('records'))
             .reset_index()
             .rename(columns={0: new_column}))
 
@@ -307,6 +307,8 @@ def transform_gene_info(datasets: dict):
                               grouping='ensembl_gene_id',
                               new_column='nominated_target')
 
+
+
     median_expression = nest_fields(df=median_expression,
                                     grouping='ensembl_gene_id',
                                     new_column='median_expression')
@@ -322,6 +324,8 @@ def transform_gene_info(datasets: dict):
                                  right=dataset,
                                  on='ensembl_gene_id',
                                  how='left')
+
+
 
     # create 'nominations' field
     gene_metadata['nominations'] = gene_metadata.apply(
