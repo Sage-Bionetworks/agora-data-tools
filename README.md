@@ -1,5 +1,5 @@
 # agora_data_tools
-A place for Agora's ETL and Data Testing
+A place for Agora's ETL, data testing, and data analysis
 
 In this configuration-driven data pipeline, the idea is to use a configuration file - that is easy for 
 engineers, analysts, and project managers to understand- to drive the entire ETL process.  The code in /agoradatatools uses 
@@ -10,14 +10,20 @@ with the minimum amount of transformations, one can simply add a dataset to the 
 *this refactoring of the /agoradatatools was influenced by the "Modern Config Driven ELT Framework for Building a 
 Data Lake" talk given at the Data + AI Summit of 2021.
 
-## Run
+
+
+## Running the pipeline locally
+There are two configuration files:  ```test_config``` places the transformed datasets into Agora's testing data site, 
+```config.yaml``` places them in the live data site.  Running the pipeline does not mean Agora will be updated.  The files 
+still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/).
+
+In order to run the pipeline, run process.py providing the configuration file as an argument.
 ```bash
-python ./agoradatatools/process.py config.yaml
-# The config file can be swapped out
+python ./agoradatatools/process.py test_config.yaml
 ```
 
-## Test
-In order to run tests locally
+## Unit Tests
+Unit tests can be run by calling pytest from the command line.
 ```bash
 python -m pytest
 ```
@@ -25,11 +31,13 @@ python -m pytest
 ## Config
 Parameters:
 - destination: defines a default place for datasets; can be overriden individually
-- files: each individial dataset
-- id: synapse id of the dataset
-- format: format of the dataset at the source
-- final_filename: filename at the end of the pipeline.  Needs to include extension
-- provenance: synapse entities the file comes from. *The Synapse API calls this "Activity"
-- files.destination(optional): overrides the default destination
+- files: source files for each dataset
+    - name: name of the file (this name is the reference the code will use to retrieve a file from the confituration)
+    - id: synapse id of the file
+    - format: the format of the file at the source
+- provenance: synapse entities the dataset comes from. *The Synapse API calls this "Activity"
+- destination(optional): overrides the default destination
 - column_rename: columns to be renamed
+- agora_rename: while the front end doesn't refactor its hardcoded names, we cannot standardize the name of the features.
+  These are the old names.
 - additional_transformations: lists additional transformations for the file to undergo 

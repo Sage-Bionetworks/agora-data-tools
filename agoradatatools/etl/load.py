@@ -115,7 +115,6 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
         df = df.replace({np.nan: None})
 
         df_as_dict = df.to_dict(orient='records')
-        # df_as_dict = [remove_non_values(d) for d in df_as_dict]
 
         temp_json = open("./staging/" + filename, 'w+')
         json.dump(df_as_dict, temp_json,

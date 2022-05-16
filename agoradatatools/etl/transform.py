@@ -24,14 +24,6 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     :param df: a dataframe
     :return: a dataframe
     """
-
-    # for column in df:
-    #     dt = df[column].dtype
-    #     if dt == int or dt == float:
-    #         df[column] = df[column].fillna(0)
-    #     else:
-    #         df[column] = df[column].fillna("")
-
     try:
         df = df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True)
     except TypeError:
