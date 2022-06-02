@@ -384,6 +384,29 @@ def transform_rna_distribution_data(datasets: dict):
     return rna_df
 
 
+def transform_proteomics_distribution_data(datasets: dict, kind: str = 'LFQ'):
+
+    proteomics_df = datasets['proteomics']
+    # in the future, we'll have  a second dataset for this distribution data.  It will be appended at the end of the function
+
+    proteomics_df = proteomics_df.groupby(['tissue']).agg('describe')['log2_fc'].reset_index()[
+        ['tissue', 'min', 'max', '25%', '50%', '75%']]
+
+    proteomics_df.rename(columns={'25%': 'first_quartile', '50%': 'median', '75%': 'third_quartile'}, inplace=True)
+
+    proteomics_df['IQR'] = proteomics_df['third_quartile'] - proteomics_df['first_quartile']
+    proteomics_df['min'] = proteomics_df['first_quartile'] - (1.5 * proteomics_df['IQR'])
+    proteomics_df['max'] = proteomics_df['third_quartile'] + (1.5 * proteomics_df['IQR'])
+
+    for col in ['min', 'max', 'median', 'first_quartile', 'third_quartile']:
+        proteomics_df[col] = np.around(proteomics_df[col], 4)
+
+    proteomics_df.drop('IQR', axis=1, inplace=True)
+    proteomics_df['type'] = kind
+
+    return proteomics_df
+
+
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
 
     if type(datasets) is not dict or type(dataset_name) is not str:
@@ -409,6 +432,8 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
         return transform_gene_info(datasets=datasets)
     elif dataset_name == 'rna_distribution_data':
         return transform_rna_distribution_data(datasets=datasets)
+    elif dataset_name == 'proteomics_distribution_data':
+        return transform_proteomics_distribution_data(datasets=datasets)
     else:
         return None
 

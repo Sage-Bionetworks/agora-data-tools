@@ -235,3 +235,14 @@
           - syn12540368
           - syn12514912
         destination: *dest
+
+    - proteomics_distribution_data:
+        files:
+          - name: proteomics
+            id: syn18689335
+            format: csv
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn18689335
+        destination: *dest
