@@ -150,9 +150,7 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
 
 def dict_to_json(df: dict, filename: str):
     try:
-
-        df_as_dict = df.to_dict(orient='records')
-        df_as_dict = [remove_non_values(d) for d in df_as_dict]
+        df_as_dict = [remove_non_values(v) for d,v in df.items()]
 
         temp_json = open("./staging/" + filename, 'w+')
         json.dump(df_as_dict, temp_json,
