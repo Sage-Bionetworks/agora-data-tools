@@ -16,12 +16,7 @@
             format: csv
         final_format: json
         custom_transformations:
-          models_to_keep:
-            - Diagnosis AD-CONTROL ALL
-            - Diagnosis.AOD AD-CONTROL ALL
-            - Diagnosis.Sex AD-CONTROL FEMALE
-            - Diagnosis.Sex AD-CONTROL MALE
-          adjusted_p_value_threshold: 1
+          adjusted_p_value_threshold: 0.05
         provenance:
           - syn27211942
           - syn25953363
