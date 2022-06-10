@@ -1,6 +1,7 @@
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
+import agoradatatools.etl.test as test
 import agoradatatools.etl.utils as utils
 import sys
 from pandas import DataFrame
@@ -46,6 +47,7 @@ def process_dataset(dataset_obj: dict, syn=None):
         df = transform.rename_columns(df=df,
                                       column_map=dataset_obj[dataset_name]['agora_rename'])
 
+    test.describe_dataset(df)
 
     try:
         if type(df) == dict:
@@ -81,14 +83,15 @@ def create_data_manifest(parent=None, syn=None) -> DataFrame:
     return DataFrame(folder)
 
 
-def process_all_files(config_path: str = None):
+def process_all_files(config_path: str = None, syn=None):
     """
     This function will run read through the entire configuration
     and process each file.
     :param config_path: the path to the configuration file
     """
 
-    syn = utils._login_to_synapse()
+    if not syn:
+        syn = utils._login_to_synapse()
 
     if config_path:
         config = utils._get_config(config_path=config_path)
@@ -116,7 +119,13 @@ def process_all_files(config_path: str = None):
 
 
 def main():
-    process_all_files(config_path=sys.argv[1])
+    #TODO: use kwargs instead
+    try:
+        syn = utils._login_to_synapse(user=sys.argv[2], password=sys.argv[3])
+        process_all_files(config_path=sys.argv[1], syn=syn)
+    except(IndexError):
+        process_all_files(config_path=sys.argv[1])
+
 
 
 if __name__ == "__main__":
