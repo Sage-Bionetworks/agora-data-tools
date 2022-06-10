@@ -1,10 +1,12 @@
-#!/usr/bin/env python
-from setuptools import setup, find_packages
+from setuptools import setup
 
-setup(name="agoradatatools",
-      version="0.1.0",
-      description="Collection of tools to work with agora data",
-      author="Matt Fazza",
-      author_email="matthew.fazza@sagebase.org",
-      packages=find_packages()
-      )
+setup(
+    name='agora-data-tools',
+    version='1.0.0',
+    packages=['tests', 'agoradatatools', 'agoradatatools.etl'],
+    url='',
+    license='',
+    author='mfazza',
+    author_email='accmattfazza@gmail.com',
+    description='A collection of tools that can be used to work with Agora\'s data'
+)

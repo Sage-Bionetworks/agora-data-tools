@@ -4,9 +4,13 @@ import errno
 import sys
 
 
-def _login_to_synapse() -> object:
+def _login_to_synapse(user:str = None, password: str = None) -> object:
     syn = synapseclient.Synapse()
-    syn.login()
+
+    if not user and not password:
+        syn.login()
+    else:
+        syn.login(user, password)
     return syn
 
 
