@@ -26,6 +26,11 @@ There are two configuration files:  ```test_config``` places the transformed dat
 ```config.yaml``` places them in the live data site.  Running the pipeline does not mean Agora will be updated.  The files 
 still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/).
 
+Install the package locally with:
+```bash
+pip install .
+```
+
 In order to run the pipeline, run process.py providing the configuration file as an argument.
 ```bash
 python ./agoradatatools/process.py test_config.yaml
