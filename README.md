@@ -1,4 +1,13 @@
-# agora_data_tools
+# agora-data-tools
+
+- [agora-data-tools](#agora-data-tools)
+  - [Intro](#intro)
+  - [Running the pipeline locally](#running-the-pipeline-locally)
+  - [Testing Github Workflow](#testing-github-workflow)
+  - [Unit Tests](#unit-tests)
+  - [Config](#config)
+
+## Intro
 A place for Agora's ETL, data testing, and data analysis
 
 In this configuration-driven data pipeline, the idea is to use a configuration file - that is easy for 
@@ -21,6 +30,18 @@ In order to run the pipeline, run process.py providing the configuration file as
 ```bash
 python ./agoradatatools/process.py test_config.yaml
 ```
+
+## Testing Github Workflow
+In order to test the workflow locally:
+- install [act](https://github.com/nektos/act) and (docker)[https://github.com/docker/docker-install]
+- create a .secrets file in the root directory of the folder with a SYNAPSE_USER and a SYNAPSE_PASS value*
+
+Then run:
+```bash
+act -v --secret-file .secrets
+```
+
+*the repository is currently using Agora's credentials for Synapse.  Those can be found in LastPass.
 
 ## Unit Tests
 Unit tests can be run by calling pytest from the command line.
