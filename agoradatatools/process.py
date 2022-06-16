@@ -3,11 +3,12 @@ import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
 import agoradatatools.etl.test as test
 import agoradatatools.etl.utils as utils
+import json
 import sys
 from pandas import DataFrame
 
 
-def process_dataset(dataset_obj: dict, syn=None):
+def process_dataset(dataset_obj: dict, results: dict, syn=None):
     """
     Takes in a dataset from the configuration file and passes it through the
     ETL process
@@ -47,7 +48,7 @@ def process_dataset(dataset_obj: dict, syn=None):
         df = transform.rename_columns(df=df,
                                       column_map=dataset_obj[dataset_name]['agora_rename'])
 
-    test.describe_dataset(df)
+    # results[dataset_name] = json.loads(test.describe_dataset(df).to_json(orient='records'))
 
     try:
         if type(df) == dict:
@@ -103,9 +104,11 @@ def process_all_files(config_path: str = None, syn=None):
     # create staging location
     load.create_temp_location()
 
+    results = {}
+
     if datasets:
         for dataset in datasets:
-            new_syn_tuple = process_dataset(dataset_obj=dataset, syn=syn)
+            new_syn_tuple = process_dataset(dataset_obj=dataset, results=results, syn=syn)
             # in the future we should log new_syn_tuples that are none
 
     # create manifest
@@ -117,6 +120,12 @@ def process_all_files(config_path: str = None, syn=None):
               provenance=manifest_df['id'].to_list(),
               destination=config[0]['destination'])
 
+
+    # sage results
+    results_path = load.dict_to_json(df=results, filename='results.json')
+    load.load(file_path=results_path,
+              provenance=[],
+              destination=config[0]['destination'])
 
 def main():
     #TODO: use kwargs instead

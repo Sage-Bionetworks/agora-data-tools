@@ -25,7 +25,7 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     :return: a dataframe
     """
     try:
-        df = df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True)
+        df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True, inplace=True)
     except TypeError:
         print("Error comparing types.")
 
@@ -39,7 +39,7 @@ def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
     :return: a dataframe
     """
     try:
-        df = df.rename(columns=column_map)
+        df.rename(columns=column_map, inplace=True)
     except TypeError:
         print("Column mapping must be a dictionary")
         return df
@@ -223,9 +223,13 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
     proteomics = datasets['proteomics']
     rna_change = datasets['rna_expression_change']
 
-    # remove duplicate ensembl_gene_ids and select columns
-    gene_info = gene_info.groupby('ensembl_gene_id').apply(lambda x: x.nlargest(1, "_version")).reset_index(drop=True)
-    gene_info = gene_info[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias']]
+    gene_info = gene_info[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', '_version']]
+
+    # remove duplicate ensembl_gene_ids by getting the index of all rows whose _version is max, and filtering
+    idx = gene_info.groupby(['ensembl_gene_id'])['_version'].transform(max) == gene_info['_version']
+    gene_info = gene_info[idx].reset_index()
+    gene_info.drop(['_version'], axis=1, inplace=True)
+
 
     gene_metadata = pd.merge(left=gene_info,
                              right=igap,

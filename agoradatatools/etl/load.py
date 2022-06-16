@@ -120,10 +120,11 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
         json.dump(df_as_dict, temp_json,
                  cls=NumpyEncoder,
                  indent=2)
-    except AttributeError as e:
-        print("Invalid dataframe.")
+    except Exception as e:
+        print(e)
         temp_json.close()
         return None
+
 
     temp_json.close()
     return temp_json.name
@@ -150,7 +151,7 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
 
 def dict_to_json(df: dict, filename: str):
     try:
-        df_as_dict = [remove_non_values(v) for d,v in df.items()]
+        df_as_dict = [remove_non_values(v) if isinstance(v, dict) else v for d,v in df.items()]
 
         temp_json = open("./staging/" + filename, 'w+')
         json.dump(df_as_dict, temp_json,
