@@ -3,7 +3,6 @@ import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
 import agoradatatools.etl.test as test
 import agoradatatools.etl.utils as utils
-import json
 import sys
 from pandas import DataFrame
 
@@ -48,7 +47,7 @@ def process_dataset(dataset_obj: dict, results: dict, syn=None):
         df = transform.rename_columns(df=df,
                                       column_map=dataset_obj[dataset_name]['agora_rename'])
 
-    # results[dataset_name] = json.loads(test.describe_dataset(df).to_json(orient='records'))
+    results[dataset_name] = test.describe_dataset(df)
 
     try:
         if type(df) == dict:
