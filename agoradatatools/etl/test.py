@@ -6,7 +6,7 @@ def describe_dataset(df: pd.DataFrame) -> str:
      place holder for a function to describe datasets. We'll add tests and filter results from describe
     '''
     try:
-        result = df.head()
+        result = json.loads(df.head().to_json(orient='records'))
     except AttributeError:
         result = None
 
