@@ -121,7 +121,7 @@
     - gene_info:
         files:
           - name: gene_metadata
-            id: syn27644951
+            id: syn27572743
             format: json
           - name: target_list
             id: syn12540368
