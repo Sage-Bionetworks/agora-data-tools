@@ -99,6 +99,9 @@
           - name: proteomics
             id: syn18689335
             format: csv
+          - name: agora_proteomics_tmt
+            id: syn32188234
+            format: csv
           - name: rna_expression_change
             id: syn27211942
             format: tsv
@@ -118,7 +121,7 @@
     - gene_info:
         files:
           - name: gene_metadata
-            id: syn27572743
+            id: syn27644951
             format: json
           - name: target_list
             id: syn12540368
@@ -140,6 +143,7 @@
           eqtl: haseqtl
           igap: isIGAP
           protein_in_ad_brain_change: isAnyProteinChangedInADBrain
+          tmt_protein_in_ad_brain_change: isAnyTMTProteinChangedInADBrain
           rna_in_ad_brain_change: isAnyRNAChangedInADBrain
           median_expression: medianexpression
           nominated_target: nominatedtarget
