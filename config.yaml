@@ -31,6 +31,28 @@
           ensemble_gene_id: ensembl_gene_id
           hgnc_gene_id: hgnc_symbol
         destination: *dest
+        
+    - proteomics_tmt:
+        files:
+          - name: agora_proteomics_tmt
+            id: syn32188234
+            format: csv
+        final_format: json
+        provenance:
+          - syn32188234
+        column_rename:
+          peptide: uniqid
+          geneid: hgnc_symbol
+          protid: uniprotid
+          ci_l: ci_lwr
+          ci_h: ci_upr
+          ensg: ensemble_gene_id
+          coefficient: log_2fc
+          FDR_PVal: cor_pval
+        agora_rename:
+          ensemble_gene_id: ensembl_gene_id
+          hgnc_gene_id: hgnc_symbol
+        destination: *dest
 
     - target_exp_validation_harmonized:
         files:
