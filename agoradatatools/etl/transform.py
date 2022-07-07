@@ -110,8 +110,8 @@ def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     for field, is_scored in mapping.items():
         df.loc[lambda row: row[is_scored] == 'N', field] = np.nan
 
-    df['overall'] = df['overall'] - df['flyneuropathscore'].astype(dtype='float64', errors='raise')
-    df.drop(columns=['flyneuropathscore'], inplace=True)
+    df['overall'] = df['overall'] - df['neuropathscore'].astype(dtype='float64', errors='raise')
+    df.drop(columns=['neuropathscore'], inplace=True)
     df['literaturescore'] = pd.to_numeric(df['literaturescore'])
 
     return df[interesting_columns]
@@ -335,8 +335,8 @@ def transform_distribution_data(datasets: dict):
 
     overall_scores = datasets['overall_scores']
 
-    # subtract flyneuropath score from over all scores
-    overall_scores['overall'] = overall_scores['overall'] - overall_scores['flyneuropathscore']
+    # subtract neuropath score from over all scores
+    overall_scores['overall'] = overall_scores['overall'] - overall_scores['neuropathscore']
 
     interesting_columns = ['ensg', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 

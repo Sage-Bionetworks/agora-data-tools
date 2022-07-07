@@ -47,6 +47,8 @@
           ci_l: ci_lwr
           ci_h: ci_upr
           ensg: ensemble_gene_id
+          coefficient: log_2fc
+          FDR_PVal: cor_pval
         agora_rename:
           ensemble_gene_id: ensembl_gene_id
           hgnc_gene_id: hgnc_symbol
