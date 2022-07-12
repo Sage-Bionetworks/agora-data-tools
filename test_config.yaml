@@ -47,8 +47,8 @@
           ci_l: ci_lwr
           ci_h: ci_upr
           ensg: ensemble_gene_id
-          coefficient: log_2fc
-          FDR_PVal: cor_pval
+          coefficient: log2_fc
+          fdr_pval: cor_pval
         agora_rename:
           ensemble_gene_id: ensembl_gene_id
           hgnc_gene_id: hgnc_symbol
@@ -267,6 +267,9 @@
           - name: proteomics
             id: syn18689335
             format: csv
+          - name: proteomics_tmt
+            id: syn32210527
+            format: json
         final_format: json
         custom_transformations: 1
         provenance:

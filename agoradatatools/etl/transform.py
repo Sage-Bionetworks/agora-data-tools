@@ -399,10 +399,7 @@ def transform_rna_distribution_data(datasets: dict):
     return rna_df
 
 
-def transform_proteomics_distribution_data(datasets: dict, kind: str = 'LFQ'):
-
-    proteomics_df = datasets['proteomics']
-    # in the future, we'll have  a second dataset for this distribution data.  It will be appended at the end of the function
+def transform_proteomics_distribution_data(proteomics_df: pd.DataFrame, type: str):
 
     proteomics_df = proteomics_df.groupby(['tissue']).agg('describe')['log2_fc'].reset_index()[
         ['tissue', 'min', 'max', '25%', '50%', '75%']]
@@ -417,9 +414,20 @@ def transform_proteomics_distribution_data(datasets: dict, kind: str = 'LFQ'):
         proteomics_df[col] = np.around(proteomics_df[col], 4)
 
     proteomics_df.drop('IQR', axis=1, inplace=True)
-    proteomics_df['type'] = kind
+    proteomics_df['type'] = type
 
     return proteomics_df
+
+def create_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
+
+    transformed = []
+    for name, dataset in datasets.items():
+        if name == 'proteomics':
+            transformed.append(transform_proteomics_distribution_data(proteomics_df=dataset, type='LFQ'))
+        elif name == 'proteomics_tmt':
+            transformed.append(transform_proteomics_distribution_data(proteomics_df=dataset, type='TMT'))
+
+    return pd.concat(transformed)
 
 
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
@@ -448,6 +456,6 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     elif dataset_name == 'rna_distribution_data':
         return transform_rna_distribution_data(datasets=datasets)
     elif dataset_name == 'proteomics_distribution_data':
-        return transform_proteomics_distribution_data(datasets=datasets)
+        return create_proteomics_distribution_data(datasets=datasets)
     else:
         return None
