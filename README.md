@@ -21,7 +21,7 @@ In order to run the pipeline, run process.py providing the configuration file as
 ```bash
 pip install .
 ```
-
+then:
 ```bash
 python ./agoradatatools/process.py test_config.yaml
 ```
