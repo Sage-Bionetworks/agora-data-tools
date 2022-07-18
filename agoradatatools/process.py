@@ -1,10 +1,12 @@
+import argparse
+
+from pandas import DataFrame
+
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
 import agoradatatools.etl.test as test
 import agoradatatools.etl.utils as utils
-import sys
-from pandas import DataFrame
 
 
 def process_dataset(dataset_obj: dict, results: dict, syn=None):
@@ -35,7 +37,7 @@ def process_dataset(dataset_obj: dict, results: dict, syn=None):
                                           column_map=dataset_obj[dataset_name]['column_rename'])
 
         entities_as_df[entity_name] = df
-
+    # print(dataset_name)
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         df = transform.apply_custom_transformations(datasets=entities_as_df,
                                                     dataset_name=dataset_name,
@@ -90,8 +92,8 @@ def process_all_files(config_path: str = None, syn=None):
     :param config_path: the path to the configuration file
     """
 
-    if not syn:
-        syn = utils._login_to_synapse()
+    # if not syn:
+    #     syn = utils._login_to_synapse()
 
     if config_path:
         config = utils._get_config(config_path=config_path)
@@ -126,14 +128,27 @@ def process_all_files(config_path: str = None, syn=None):
               provenance=[],
               destination=config[0]['destination'])
 
-def main():
-    #TODO: use kwargs instead
-    try:
-        syn = utils._login_to_synapse(user=sys.argv[2], password=sys.argv[3])
-        process_all_files(config_path=sys.argv[1], syn=syn)
-    except(IndexError):
-        process_all_files(config_path=sys.argv[1])
 
+def build_parser():
+    """Builds the argument parser and returns the result."""
+    parser = argparse.ArgumentParser(description="Agora data processing")
+    parser.add_argument(
+        "configpath",
+        help="Agora processing yaml configuration",
+    )
+    parser.add_argument(
+        "-a",
+        "--authtoken",
+        help="Synapse PAT",
+    )
+    return parser
+
+
+def main():
+    parser = build_parser()
+    args = parser.parse_args()
+    syn = utils._login_to_synapse(authtoken=args.authtoken)
+    process_all_files(config_path=args.configpath, syn=syn)
 
 
 if __name__ == "__main__":
