@@ -28,10 +28,10 @@ still need to be picked up by [agora-data-manager](https://github.com/Sage-Bione
 
 1. Install the package locally with:
 
-  ```bash
-  pip install .
-  pip install -r requirements.txt
-  ```
+    ```bash
+    pip install .
+    pip install -r requirements.txt
+    ```
 
 1. This is where the [testing files](https://www.synapse.org/#!Synapse:syn17015333) live on Synapse.  For testing purposes, you will need to obtain write permissions to the project and create a test folder within the "Agora Testing Data".  After doing so, you will replace `- destination: &dest syn17015333` with the Synapse id of the new folder.
 
@@ -39,9 +39,9 @@ still need to be picked up by [agora-data-manager](https://github.com/Sage-Bione
 
 1. In order to run the pipeline, run process.py providing the configuration file as an argument.
 
-  ```bash
-  python ./agoradatatools/process.py test_config.yaml
-  ```
+    ```bash
+    python ./agoradatatools/process.py test_config.yaml
+    ```
 
 ## Testing Github Workflow
 In order to test the workflow locally:
