@@ -53,7 +53,7 @@ Then run:
 act -v --secret-file .secrets
 ```
 
-*the repository is currently using Agora's credentials for Synapse.  Those can be found in LastPass.
+*the repository is currently using Agora's credentials for Synapse.  Those can be found in LastPass in the "Shared-Agora" Folder.
 
 ## Unit Tests
 Unit tests can be run by calling pytest from the command line.
