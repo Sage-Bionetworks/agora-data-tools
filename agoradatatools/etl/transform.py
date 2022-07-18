@@ -112,9 +112,9 @@ def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     for field, is_scored in mapping.items():
         df.loc[lambda row: row[is_scored] == 'N', field] = np.nan
 
-
-    df['overall'] = df['overall'] - df['neuropathscore'].astype(dtype='float64', errors='raise')
-    df.drop(columns=['neuropathscore'], inplace=True)
+    # Commenting out for version 9 of table
+    # df['overall'] = df['overall'] - df['neuropathscore'].astype(dtype='float64', errors='raise')
+    # df.drop(columns=['neuropathscore'], inplace=True)
     
     df['literaturescore'] = pd.to_numeric(df['literaturescore'])
 
@@ -399,8 +399,16 @@ def transform_rna_distribution_data(datasets: dict):
     return rna_df
 
 
-def transform_proteomics_distribution_data(proteomics_df: pd.DataFrame, type: str):
+def transform_proteomics_distribution_data(proteomics_df: pd.DataFrame, datatype: str) -> pd.DataFrame:
+    """Transform proteomics data
 
+    Args:
+        proteomics_df (pd.DataFrame): Dataframe
+        datatype (str): Data Type
+
+    Returns:
+        pd.DataFrame: Transformed data
+    """
     proteomics_df = proteomics_df.groupby(['tissue']).agg('describe')['log2_fc'].reset_index()[
         ['tissue', 'min', 'max', '25%', '50%', '75%']]
 
@@ -414,18 +422,19 @@ def transform_proteomics_distribution_data(proteomics_df: pd.DataFrame, type: st
         proteomics_df[col] = np.around(proteomics_df[col], 4)
 
     proteomics_df.drop('IQR', axis=1, inplace=True)
-    proteomics_df['type'] = type
+    proteomics_df['type'] = datatype
 
     return proteomics_df
+
 
 def create_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
 
     transformed = []
     for name, dataset in datasets.items():
         if name == 'proteomics':
-            transformed.append(transform_proteomics_distribution_data(proteomics_df=dataset, type='LFQ'))
+            transformed.append(transform_proteomics_distribution_data(proteomics_df=dataset, datatype='LFQ'))
         elif name == 'proteomics_tmt':
-            transformed.append(transform_proteomics_distribution_data(proteomics_df=dataset, type='TMT'))
+            transformed.append(transform_proteomics_distribution_data(proteomics_df=dataset, datatype='TMT'))
 
     return pd.concat(transformed)
 
