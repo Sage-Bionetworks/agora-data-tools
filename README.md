@@ -24,17 +24,24 @@ Data Lake" talk given at the Data + AI Summit of 2021.
 ## Running the pipeline locally
 There are two configuration files:  ```test_config``` places the transformed datasets into Agora's testing data site, 
 ```config.yaml``` places them in the live data site.  Running the pipeline does not mean Agora will be updated.  The files 
-still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/).
+still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/). Here are the [files](https://www.synapse.org/#!Synapse:syn11850457/files/) for Agora on Synapse.
 
-Install the package locally with:
-```bash
-pip install .
-```
+1. Install the package locally with:
 
-In order to run the pipeline, run process.py providing the configuration file as an argument.
-```bash
-python ./agoradatatools/process.py test_config.yaml
-```
+  ```bash
+  pip install .
+  pip install -r requirements.txt
+  ```
+
+1. This is where the [testing files](https://www.synapse.org/#!Synapse:syn17015333) live on Synapse.  For testing purposes, you will need to obtain write permissions to the project and create a test folder within the "Agora Testing Data".  After doing so, you will replace `- destination: &dest syn17015333` with the Synapse id of the new folder.
+
+1. Prior to executing the code, you will want to accept the terms of use on the AD Knowledge Portal backend [here](https://www.synapse.org/#!Synapse:syn5550378).  If you see a green unlocked lock icon, then you should be good to go.
+
+1. In order to run the pipeline, run process.py providing the configuration file as an argument.
+
+  ```bash
+  python ./agoradatatools/process.py test_config.yaml
+  ```
 
 ## Testing Github Workflow
 In order to test the workflow locally:
