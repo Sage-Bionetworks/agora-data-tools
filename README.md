@@ -26,12 +26,28 @@ There are two configuration files:  ```test_config``` places the transformed dat
 ```config.yaml``` places them in the live data site.  Running the pipeline does not mean Agora will be updated.  The files 
 still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/). Here are the [files](https://www.synapse.org/#!Synapse:syn11850457/files/) for Agora on Synapse.
 
+1. Due to the nature of Python, you will want to set up your python environment with [conda](https://www.anaconda.com/products/distribution) or [pyenv](https://github.com/pyenv/pyenv).  You will want to create a virtual environment to do your work.
+    * conda - please follow instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage environments
+    * pyenv - you will want to use [virtualenv](https://virtualenv.pypa.io/en/latest/) to manage your python environment
+
 1. Install the package locally with:
 
-    ```bash
-    pip install .
-    pip install -r requirements.txt
-    ```
+    * conda
+      ```bash
+      conda create -n agora python=3.9
+      conda activate agora
+      pip install .
+      pip install -r requirements.txt
+      ```
+    * pyenv + virtualenv
+      ```bash
+      pyenv install -v 3.9.13
+      pyenv global 3.9.13
+      python -m venv env
+      source env/bin/activate
+      python3 -m pip install .
+      python3 -m pip -r requirements.txt
+      ```
 
 1. This is where the [testing files](https://www.synapse.org/#!Synapse:syn17015333) live on Synapse.  For testing purposes, you will need to obtain write permissions to the project and create a test folder within the "Agora Testing Data".  After doing so, you will replace `- destination: &dest syn17015333` with the Synapse id of the new folder.
 
