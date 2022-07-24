@@ -76,7 +76,7 @@ def load(file_path: str, provenance: list[str], destination: str, syn=None):
     fails
     """
 
-    if not syn:
+    if syn is None:
         syn = utils._login_to_synapse()
 
     try:
