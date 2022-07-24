@@ -126,7 +126,8 @@ def process_all_files(config_path: str = None, syn=None):
     results_path = load.dict_to_json(df=results, filename='results.json')
     load.load(file_path=results_path,
               provenance=[],
-              destination=config[0]['destination'])
+              destination=config[0]['destination'],
+              syn=syn)
 
 
 def build_parser():
