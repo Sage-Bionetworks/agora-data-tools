@@ -19,9 +19,16 @@ with the minimum amount of transformations, one can simply add a dataset to the 
 *this refactoring of the /agoradatatools was influenced by the "Modern Config Driven ELT Framework for Building a 
 Data Lake" talk given at the Data + AI Summit of 2021.
 
+## Trigger pipeline with gh-actions
 
+For the most part, it would be great if this pipeline can be triggered without installing the pipeline and setting up credentials locally.  To support this, we have added support for gh-actions to trigger the workflow.  The `test_config.yaml` will always be executed to ensure the pipeline runs smoothly, but the production release can be triggered by:
+
+1. Go to "Actions" Tab in this GitHub repository
+1. Click "production_release" on the left
+1. Click "Run workflow" (Beware, this will affect the production release!!!)
 
 ## Running the pipeline locally
+
 There are two configuration files:  ```test_config``` places the transformed datasets into Agora's testing data site, 
 ```config.yaml``` places them in the live data site.  Running the pipeline does not mean Agora will be updated.  The files 
 still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/). Here are the [files](https://www.synapse.org/#!Synapse:syn11850457/files/) for Agora on Synapse.
