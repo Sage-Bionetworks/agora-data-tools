@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import warnings
 
 
 def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
@@ -25,7 +24,7 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     :return: a dataframe
     """
     try:
-        df = df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True)
+        df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True, inplace=True)
     except TypeError:
         print("Error comparing types.")
 
@@ -39,7 +38,7 @@ def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
     :return: a dataframe
     """
     try:
-        df = df.rename(columns=column_map)
+        df.rename(columns=column_map, inplace=True)
     except TypeError:
         print("Column mapping must be a dictionary")
         return df
@@ -64,7 +63,7 @@ def nest_fields(df: pd.DataFrame, grouping: str, new_column: str) -> pd.DataFram
 
 def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
     if is_scored is not None:
-        df = df[df[is_scored] == 'Y'] # df does not have the isscored
+        df = df[df[is_scored] == 'Y']  # df does not have the isscored
     else:
         df = df[df.isin(['Y']).any(axis=1)]
 
@@ -75,15 +74,15 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
 
     '''
     In order to smooth out the bins and make sure the entire range from 0
-    to the highest theoretical value has been found, we create a copy of the 
-    column with that value added to it.  We use to calculate distributions 
+    to the highest theoretical value has been found, we create a copy of the
+    column with that value added to it.  We use to calculate distributions
     and bins, and subtract the value at the end
     '''
     upper_bound = np.ceil(df[col].max())
     distribution = df[col].append(pd.Series([upper_bound]), ignore_index=True)
 
     obj["distribution"] = list(pd.cut(distribution, bins=10, precision=3, include_lowest=True, right=True).value_counts())
-    obj["distribution"][-1] -= 1 # since this was calculated with the artificial upper_bound, we subtract it
+    obj["distribution"][-1] -= 1  # since this was calculated with the artificial upper_bound, we subtract it
 
     discard, obj["bins"] = list(pd.cut(distribution, bins=10, precision=3, retbins=True))
     obj["bins"] = np.around(obj["bins"].tolist()[1:], 2)
@@ -103,6 +102,9 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     interesting_columns = ['ensg', 'hgnc_gene_id', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
+    df['overall'] = df['overall'] - df['flyneuropathscore'].astype(dtype='float64', errors='raise')
+    df.drop(columns=['flyneuropathscore'], inplace=True)
+
     # create mapping to deal with missing values as they take different shape across the fields
     scored = ['isscored_genetics', 'isscored_omics', 'isscored_lit']
     mapping = dict(zip(interesting_columns[3:], scored))
@@ -110,8 +112,10 @@ def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     for field, is_scored in mapping.items():
         df.loc[lambda row: row[is_scored] == 'N', field] = np.nan
 
-    df['overall'] = df['overall'] - df['flyneuropathscore'].astype(dtype='float64', errors='raise')
-    df.drop(columns=['flyneuropathscore'], inplace=True)
+    # Commenting out for version 9 of table
+    # df['overall'] = df['overall'] - df['neuropathscore'].astype(dtype='float64', errors='raise')
+    # df.drop(columns=['neuropathscore'], inplace=True)
+    
     df['literaturescore'] = pd.to_numeric(df['literaturescore'])
 
     return df[interesting_columns]
@@ -169,7 +173,6 @@ def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
     diff_exp_data = diff_exp_data[['ensembl_gene_id', 'logfc', 'fc', 'ci_l', 'ci_r',
                                    'adj_p_val', 'tissue', 'study', 'model', 'hgnc_symbol']]
 
-
     diff_exp_data = pd.merge(left=diff_exp_data,
                              right=gene_info,
                              on='ensembl_gene_id',
@@ -222,10 +225,14 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
     eqtl = datasets['eqtl']
     proteomics = datasets['proteomics']
     rna_change = datasets['rna_expression_change']
+    proteomics_tmt = datasets['agora_proteomics_tmt']
 
-    # remove duplicate ensembl_gene_ids and select columns
-    gene_info = gene_info.groupby('ensembl_gene_id').apply(lambda x: x.nlargest(1, "_version")).reset_index(drop=True)
-    gene_info = gene_info[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias']]
+    gene_info = gene_info[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', '_version']]
+
+    # remove duplicate ensembl_gene_ids by getting the index of all rows whose _version is max, and filtering
+    idx = gene_info.groupby(['ensembl_gene_id'])['_version'].transform(max) == gene_info['_version']
+    gene_info = gene_info[idx].reset_index()
+    gene_info.drop(['_version'], axis=1, inplace=True)
 
     gene_metadata = pd.merge(left=gene_info,
                              right=igap,
@@ -275,6 +282,20 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
     gene_metadata['protein_in_ad_brain_change'] = gene_metadata.apply(
         lambda row: True if row['cor_pval'] <= protein_level_threshold else False, axis=1)
 
+    proteomics_tmt = proteomics_tmt.dropna(subset=['coefficient', 'fdr_pval', 'ci_h', 'ci_l'])
+    proteomics_tmt = proteomics_tmt.groupby('ensg')['fdr_pval'].agg('min').reset_index()
+
+    gene_metadata = pd.merge(left=gene_metadata,
+                             right=proteomics_tmt,
+                             how='left',
+                             left_on='ensembl_gene_id',
+                             right_on='ensg')
+    gene_metadata['fdr_pval'] = gene_metadata['fdr_pval'].fillna(-1)
+    gene_metadata['tmt_protein_brain_change_studied'] = gene_metadata.apply(
+        lambda row: False if row['fdr_pval'] == -1 else True, axis=1)
+    gene_metadata['tmt_protein_in_ad_brain_change'] = gene_metadata.apply(
+        lambda row: True if row['fdr_pval'] <= protein_level_threshold else False, axis=1)
+
     gene_metadata = gene_metadata[
         ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'igap', 'eqtl', 'rna_in_ad_brain_change',
          'rna_brain_change_studied', 'protein_in_ad_brain_change', 'protein_brain_change_studied']]
@@ -299,12 +320,9 @@ def transform_gene_info(datasets: dict):
                               grouping='ensembl_gene_id',
                               new_column='nominated_target')
 
-
-
     median_expression = nest_fields(df=median_expression,
                                     grouping='ensembl_gene_id',
                                     new_column='median_expression')
-
 
     druggability = nest_fields(df=druggability,
                                grouping='geneid',
@@ -316,9 +334,6 @@ def transform_gene_info(datasets: dict):
                                  right=dataset,
                                  on='ensembl_gene_id',
                                  how='left')
-
-
-
     # create 'nominations' field
     gene_metadata['nominations'] = gene_metadata.apply(
         lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else np.NaN, axis=1)
@@ -331,8 +346,8 @@ def transform_distribution_data(datasets: dict):
 
     overall_scores = datasets['overall_scores']
 
-    # subtract flyneuropath score from over all scores
-    overall_scores['overall'] = overall_scores['overall'] - overall_scores['flyneuropathscore']
+    # subtract neuropath score from over all scores
+    overall_scores['overall'] = overall_scores['overall'] - overall_scores['neuropathscore']
 
     interesting_columns = ['ensg', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
@@ -384,11 +399,16 @@ def transform_rna_distribution_data(datasets: dict):
     return rna_df
 
 
-def transform_proteomics_distribution_data(datasets: dict, kind: str = 'LFQ'):
+def transform_proteomics_distribution_data(proteomics_df: pd.DataFrame, datatype: str) -> pd.DataFrame:
+    """Transform proteomics data
 
-    proteomics_df = datasets['proteomics']
-    # in the future, we'll have  a second dataset for this distribution data.  It will be appended at the end of the function
+    Args:
+        proteomics_df (pd.DataFrame): Dataframe
+        datatype (str): Data Type
 
+    Returns:
+        pd.DataFrame: Transformed data
+    """
     proteomics_df = proteomics_df.groupby(['tissue']).agg('describe')['log2_fc'].reset_index()[
         ['tissue', 'min', 'max', '25%', '50%', '75%']]
 
@@ -402,9 +422,21 @@ def transform_proteomics_distribution_data(datasets: dict, kind: str = 'LFQ'):
         proteomics_df[col] = np.around(proteomics_df[col], 4)
 
     proteomics_df.drop('IQR', axis=1, inplace=True)
-    proteomics_df['type'] = kind
+    proteomics_df['type'] = datatype
 
     return proteomics_df
+
+
+def create_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
+
+    transformed = []
+    for name, dataset in datasets.items():
+        if name == 'proteomics':
+            transformed.append(transform_proteomics_distribution_data(proteomics_df=dataset, datatype='LFQ'))
+        elif name == 'proteomics_tmt':
+            transformed.append(transform_proteomics_distribution_data(proteomics_df=dataset, datatype='TMT'))
+
+    return pd.concat(transformed)
 
 
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
@@ -433,7 +465,6 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     elif dataset_name == 'rna_distribution_data':
         return transform_rna_distribution_data(datasets=datasets)
     elif dataset_name == 'proteomics_distribution_data':
-        return transform_proteomics_distribution_data(datasets=datasets)
+        return create_proteomics_distribution_data(datasets=datasets)
     else:
         return None
-

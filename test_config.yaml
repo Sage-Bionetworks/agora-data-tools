@@ -31,6 +31,28 @@
           ensemble_gene_id: ensembl_gene_id
           hgnc_gene_id: hgnc_symbol
         destination: *dest
+        
+    - proteomics_tmt:
+        files:
+          - name: agora_proteomics_tmt
+            id: syn32188234
+            format: csv
+        final_format: json
+        provenance:
+          - syn32188234
+        column_rename:
+          peptide: uniqid
+          geneid: hgnc_symbol
+          protid: uniprotid
+          ci_l: ci_lwr
+          ci_h: ci_upr
+          ensg: ensemble_gene_id
+          coefficient: log2_fc
+          fdr_pval: cor_pval
+        agora_rename:
+          ensemble_gene_id: ensembl_gene_id
+          hgnc_gene_id: hgnc_symbol
+        destination: *dest
 
     - target_exp_validation_harmonized:
         files:
@@ -77,6 +99,9 @@
           - name: proteomics
             id: syn18689335
             format: csv
+          - name: agora_proteomics_tmt
+            id: syn32188234
+            format: csv
           - name: rna_expression_change
             id: syn27211942
             format: tsv
@@ -118,6 +143,7 @@
           eqtl: haseqtl
           igap: isIGAP
           protein_in_ad_brain_change: isAnyProteinChangedInADBrain
+          tmt_protein_in_ad_brain_change: isAnyTMTProteinChangedInADBrain
           rna_in_ad_brain_change: isAnyRNAChangedInADBrain
           median_expression: medianexpression
           nominated_target: nominatedtarget
@@ -141,7 +167,7 @@
     - overall_scores:
         files:
           - name: overall_scores
-            id: syn25575156
+            id: syn25575156.9
             format: table
         final_format: json
         custom_transformations: 1
@@ -241,8 +267,13 @@
           - name: proteomics
             id: syn18689335
             format: csv
+          - name: proteomics_tmt
+            id: syn32210527
+            format: json
         final_format: json
         custom_transformations: 1
         provenance:
           - syn18689335
+        column_rename:
+          log_2fc: log2_fc
         destination: *dest

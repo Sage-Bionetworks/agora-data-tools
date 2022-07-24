@@ -1,12 +1,15 @@
+import argparse
+
+from pandas import DataFrame
+
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
+import agoradatatools.etl.test as test
 import agoradatatools.etl.utils as utils
-import sys
-from pandas import DataFrame
 
 
-def process_dataset(dataset_obj: dict, syn=None):
+def process_dataset(dataset_obj: dict, results: dict, syn=None):
     """
     Takes in a dataset from the configuration file and passes it through the
     ETL process
@@ -34,7 +37,7 @@ def process_dataset(dataset_obj: dict, syn=None):
                                           column_map=dataset_obj[dataset_name]['column_rename'])
 
         entities_as_df[entity_name] = df
-
+    # print(dataset_name)
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         df = transform.apply_custom_transformations(datasets=entities_as_df,
                                                     dataset_name=dataset_name,
@@ -46,6 +49,7 @@ def process_dataset(dataset_obj: dict, syn=None):
         df = transform.rename_columns(df=df,
                                       column_map=dataset_obj[dataset_name]['agora_rename'])
 
+    results[dataset_name] = test.describe_dataset(df)
 
     try:
         if type(df) == dict:
@@ -81,14 +85,15 @@ def create_data_manifest(parent=None, syn=None) -> DataFrame:
     return DataFrame(folder)
 
 
-def process_all_files(config_path: str = None):
+def process_all_files(config_path: str = None, syn=None):
     """
     This function will run read through the entire configuration
     and process each file.
     :param config_path: the path to the configuration file
     """
 
-    syn = utils._login_to_synapse()
+    # if not syn:
+    #     syn = utils._login_to_synapse()
 
     if config_path:
         config = utils._get_config(config_path=config_path)
@@ -100,9 +105,11 @@ def process_all_files(config_path: str = None):
     # create staging location
     load.create_temp_location()
 
+    results = {}
+
     if datasets:
         for dataset in datasets:
-            new_syn_tuple = process_dataset(dataset_obj=dataset, syn=syn)
+            new_syn_tuple = process_dataset(dataset_obj=dataset, results=results, syn=syn)
             # in the future we should log new_syn_tuples that are none
 
     # create manifest
@@ -115,8 +122,33 @@ def process_all_files(config_path: str = None):
               destination=config[0]['destination'])
 
 
+    # sage results
+    results_path = load.dict_to_json(df=results, filename='results.json')
+    load.load(file_path=results_path,
+              provenance=[],
+              destination=config[0]['destination'])
+
+
+def build_parser():
+    """Builds the argument parser and returns the result."""
+    parser = argparse.ArgumentParser(description="Agora data processing")
+    parser.add_argument(
+        "configpath",
+        help="Agora processing yaml configuration",
+    )
+    parser.add_argument(
+        "-a",
+        "--authtoken",
+        help="Synapse PAT",
+    )
+    return parser
+
+
 def main():
-    process_all_files(config_path=sys.argv[1])
+    parser = build_parser()
+    args = parser.parse_args()
+    syn = utils._login_to_synapse(authtoken=args.authtoken)
+    process_all_files(config_path=args.configpath, syn=syn)
 
 
 if __name__ == "__main__":
