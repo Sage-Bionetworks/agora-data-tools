@@ -9,7 +9,7 @@ def _login_to_synapse(authtoken: str = None) -> object:
     if authtoken is None:
         syn.login()
     else:
-        syn.login(authtoken=authtoken)
+        syn.login(authToken=authtoken)
     return syn
 
 
