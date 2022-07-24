@@ -119,14 +119,15 @@ def process_all_files(config_path: str = None, syn=None):
 
     load.load(file_path=manifest_path,
               provenance=manifest_df['id'].to_list(),
-              destination=config[0]['destination'])
-
+              destination=config[0]['destination'],
+              syn=syn)
 
     # sage results
     results_path = load.dict_to_json(df=results, filename='results.json')
     load.load(file_path=results_path,
               provenance=[],
-              destination=config[0]['destination'])
+              destination=config[0]['destination'],
+              syn=syn)
 
 
 def build_parser():
