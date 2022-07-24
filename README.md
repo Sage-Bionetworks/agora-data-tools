@@ -24,17 +24,40 @@ Data Lake" talk given at the Data + AI Summit of 2021.
 ## Running the pipeline locally
 There are two configuration files:  ```test_config``` places the transformed datasets into Agora's testing data site, 
 ```config.yaml``` places them in the live data site.  Running the pipeline does not mean Agora will be updated.  The files 
-still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/).
+still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/). Here are the [files](https://www.synapse.org/#!Synapse:syn11850457/files/) for Agora on Synapse.
 
-Install the package locally with:
-```bash
-pip install .
-```
+1. Due to the nature of Python, you will want to set up your python environment with [conda](https://www.anaconda.com/products/distribution) or [pyenv](https://github.com/pyenv/pyenv).  You will want to create a virtual environment to do your work.
+    * conda - please follow instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage environments
+    * pyenv - you will want to use [virtualenv](https://virtualenv.pypa.io/en/latest/) to manage your python environment
 
-In order to run the pipeline, run process.py providing the configuration file as an argument.
-```bash
-python ./agoradatatools/process.py test_config.yaml
-```
+1. Install the package locally with:
+
+    * conda
+      ```bash
+      conda create -n agora python=3.9
+      conda activate agora
+      pip install .
+      pip install -r requirements.txt
+      ```
+    * pyenv + virtualenv
+      ```bash
+      pyenv install -v 3.9.13
+      pyenv global 3.9.13
+      python -m venv env
+      source env/bin/activate
+      python3 -m pip install .
+      python3 -m pip -r requirements.txt
+      ```
+
+1. This is where the [testing files](https://www.synapse.org/#!Synapse:syn17015333) live on Synapse.  For testing purposes, you will need to obtain write permissions to the project and create a test folder within the "Agora Testing Data".  After doing so, you will replace `- destination: &dest syn17015333` with the Synapse id of the new folder.
+
+1. Prior to executing the code, you will want to accept the terms of use on the AD Knowledge Portal backend [here](https://www.synapse.org/#!Synapse:syn5550378).  If you see a green unlocked lock icon, then you should be good to go.
+
+1. In order to run the pipeline, run process.py providing the configuration file as an argument.
+
+    ```bash
+    python ./agoradatatools/process.py test_config.yaml
+    ```
 
 ## Testing Github Workflow
 In order to test the workflow locally:
@@ -46,7 +69,7 @@ Then run:
 act -v --secret-file .secrets
 ```
 
-*the repository is currently using Agora's credentials for Synapse.  Those can be found in LastPass.
+*the repository is currently using Agora's credentials for Synapse.  Those can be found in LastPass in the "Shared-Agora" Folder.
 
 ## Unit Tests
 Unit tests can be run by calling pytest from the command line.

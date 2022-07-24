@@ -167,7 +167,7 @@
     - overall_scores:
         files:
           - name: overall_scores
-            id: syn25575156
+            id: syn25575156.9
             format: table
         final_format: json
         custom_transformations: 1
@@ -274,4 +274,6 @@
         custom_transformations: 1
         provenance:
           - syn18689335
+        column_rename:
+          log_2fc: log2_fc
         destination: *dest

@@ -17,7 +17,14 @@ def get_entity_as_df(syn_id: str, format: str, syn=None):
         syn = utils._login_to_synapse()
 
     try:
-        entity = syn.get(syn_id)
+        # HACK: Should add a version parameter eventually
+        syn_id_version = syn_id.split(".")
+        synapse_id = syn_id_version[0]
+        if len(syn_id_version) > 1:
+            version = syn_id_version[1]
+        else:
+            version = None
+        entity = syn.get(synapse_id, version=version)
     except synapseclient.core.exceptions.SynapseHTTPError:
         print(str(syn_id) + " is not a valid Synapse id")
         sys.exit(1)
