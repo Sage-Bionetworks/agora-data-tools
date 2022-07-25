@@ -25,7 +25,7 @@ For the most part, it would be great if this pipeline can be triggered without i
 
 1. Go to "Actions" Tab in this GitHub repository
 1. Click "production_release" on the left
-1. Click "Run workflow" (Beware, this will affect the production release!!!)
+1. Click "Run workflow" (Beware, this will update the files and manifest in the Agora Live Data folder!!!)
 
 ## Running the pipeline locally
 
