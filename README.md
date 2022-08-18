@@ -1,25 +1,36 @@
 # agora-data-tools
 
-- [agora-data-tools](#agora-data-tools)
-  - [Intro](#intro)
-  - [Running the pipeline locally](#running-the-pipeline-locally)
-  - [Testing Github Workflow](#testing-github-workflow)
-  - [Unit Tests](#unit-tests)
-  - [Config](#config)
+- [Intro](#intro)
+- [Running the pipeline](#running-the-pipeline)
+  - [GitHub-actions](#github-actions)
+  - [Locally](#locally)
+  - [Docker](#docker)
+- [Testing Github Workflow](#testing-github-workflow)
+- [Unit Tests](#unit-tests)
+- [Config](#config)
 
 ## Intro
 A place for Agora's ETL, data testing, and data analysis
 
-In this configuration-driven data pipeline, the idea is to use a configuration file - that is easy for 
-engineers, analysts, and project managers to understand- to drive the entire ETL process.  The code in /agoradatatools uses 
-parameters defined in the configuration file to determine which kinds of extraction and transformations a particular 
+In this configuration-driven data pipeline, the idea is to use a configuration file - that is easy for
+engineers, analysts, and project managers to understand- to drive the entire ETL process.  The code in /agoradatatools uses
+parameters defined in the configuration file to determine which kinds of extraction and transformations a particular
 dataset needs to go through before being loaded into the data repository for Agora.  In the spirit of importing datasets
 with the minimum amount of transformations, one can simply add a dataset to the config file, and run the scripts. 
 
 *this refactoring of the /agoradatatools was influenced by the "Modern Config Driven ELT Framework for Building a 
 Data Lake" talk given at the Data + AI Summit of 2021.
 
-## Trigger pipeline with gh-actions
+## Running the pipeline
+
+There are two configuration files:  ```test_config``` places the transformed datasets into Agora's testing data site,
+```config.yaml``` places them in the live data site.  Running the pipeline does not mean Agora will be updated.  The files
+still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/). Here are the [files](https://www.synapse.org/#!Synapse:syn11850457/files/) for Agora on Synapse.
+
+Prior to running the pipeline, with the exception of GitHub Actions, you must obtain access to the files above AND also create a Synapse personal access token (PAT). You will need to [set up](https://help.synapse.org/docs/Client-Configuration.1985446156.html) your Synapse Python client locally.  For Github Actions, the repository is currently using Agora's credentials for Synapse.  Those can be found in LastPass in the "Shared-Agora" Folder.
+
+
+### GitHub-actions
 
 For the most part, it would be great if this pipeline can be triggered without installing the pipeline and setting up credentials locally.  To support this, we have added support for gh-actions to trigger the workflow.  The `test_config.yaml` will always be executed to ensure the pipeline runs smoothly, but the production release can be triggered by:
 
@@ -27,11 +38,7 @@ For the most part, it would be great if this pipeline can be triggered without i
 1. Click "production_release" on the left
 1. Click "Run workflow" (Beware, this will update the files and manifest in the Agora Live Data folder!!!)
 
-## Running the pipeline locally
-
-There are two configuration files:  ```test_config``` places the transformed datasets into Agora's testing data site, 
-```config.yaml``` places them in the live data site.  Running the pipeline does not mean Agora will be updated.  The files 
-still need to be picked up by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/). Here are the [files](https://www.synapse.org/#!Synapse:syn11850457/files/) for Agora on Synapse.
+### Locally
 
 1. Due to the nature of Python, you will want to set up your python environment with [conda](https://www.anaconda.com/products/distribution) or [pyenv](https://github.com/pyenv/pyenv).  You will want to create a virtual environment to do your work.
     * conda - please follow instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage environments
@@ -56,6 +63,7 @@ still need to be picked up by [agora-data-manager](https://github.com/Sage-Bione
       python3 -m pip -r requirements.txt
       ```
 
+1. Setup your python client and credentials and make sure you obtain a PAT as stated above.
 1. This is where the [testing files](https://www.synapse.org/#!Synapse:syn17015333) live on Synapse.  For testing purposes, you will need to obtain write permissions to the project and create a test folder within the "Agora Testing Data".  After doing so, you will replace `- destination: &dest syn17015333` with the Synapse id of the new folder.
 
 1. Prior to executing the code, you will want to accept the terms of use on the AD Knowledge Portal backend [here](https://www.synapse.org/#!Synapse:syn5550378).  If you see a green unlocked lock icon, then you should be good to go.
@@ -65,6 +73,16 @@ still need to be picked up by [agora-data-manager](https://github.com/Sage-Bione
     ```bash
     python ./agoradatatools/process.py test_config.yaml
     ```
+
+### Docker
+
+If you don't want to deal with Python paths and depencies, please install [Docker](https://docs.docker.com/get-docker/).  Here are some instructions on how to get started.
+
+```
+# This creates a local docker image
+docker build -t agora-data-pipeline .
+docker run -e SYNAPSE_AUTH_TOKEN=<your PAT> agora-data-pipeline python ./agoradatatools/process.py test_config.yaml
+```
 
 ## Testing Github Workflow
 In order to test the workflow locally:
