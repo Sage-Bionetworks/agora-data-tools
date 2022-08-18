@@ -145,3 +145,4 @@ Parameters:
 - `datasets/<dataset>/column_rename`: Columns to be renamed prior to data transformation
 - `datasets/<dataset>/agora_rename`: Columns to be renamed after data transformation, but prior to json serialization
 - `datasets/<dataset>/custom_transformations`: The list of additional transformations to apply to the dataset; a value of 1 indicates the default transformation
+
