@@ -131,3 +131,7 @@ dmypy.json
 # configuration
 *.iml
 *.xml
+.idea/*
+
+# local generated files
+staging/*
