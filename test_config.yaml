@@ -167,7 +167,7 @@
     - overall_scores:
         files:
           - name: overall_scores
-            id: syn25575156.9
+            id: syn25575156.9 #pinned to an older version of the scores file (see AG-701)
             format: table
         final_format: json
         custom_transformations: 1
@@ -240,7 +240,7 @@
     - distribution_data:
         files:
           - name: overall_scores
-            id: syn25575156
+            id: syn25575156.9 #pinned to an older version of the scores file (see AG-701)
             format: table
         final_format: json
         custom_transformations: 1
