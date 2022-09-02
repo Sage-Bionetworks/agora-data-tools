@@ -102,9 +102,6 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     interesting_columns = ['ensg', 'hgnc_gene_id', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
-    df['overall'] = df['overall'] - df['flyneuropathscore'].astype(dtype='float64', errors='raise')
-    df.drop(columns=['flyneuropathscore'], inplace=True)
-
     # create mapping to deal with missing values as they take different shape across the fields
     scored = ['isscored_genetics', 'isscored_omics', 'isscored_lit']
     mapping = dict(zip(interesting_columns[3:], scored))
@@ -112,13 +109,11 @@ def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     for field, is_scored in mapping.items():
         df.loc[lambda row: row[is_scored] == 'N', field] = np.nan
 
-    # Commenting out for version 9 of table
-    # df['overall'] = df['overall'] - df['neuropathscore'].astype(dtype='float64', errors='raise')
-    # df.drop(columns=['neuropathscore'], inplace=True)
-    
+    # LiteratureScore is a string in the source file, so convert to numeric
     df['literaturescore'] = pd.to_numeric(df['literaturescore'])
 
-    return df[interesting_columns]
+    # Remove identical rows (see AG-826)
+    return df[interesting_columns].drop_duplicates()
 
 
 def join_datasets(left: pd.DataFrame, right: pd.DataFrame, how: str, on: str):

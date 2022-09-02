@@ -164,28 +164,25 @@
           - syn12615633
         destination: *dest
 
-# Disable production processing of this file until AG-701 is addressed
-#    - overall_scores:
-#        files:
-#          - name: overall_scores
-#            id: syn25575156
-#            format: table
-#        final_format: json
-#        custom_transformations: 1
-#        column_rename:
-#          genename: hgnc_gene_id
-#        provenance:
-#          - syn25575156
-#          - syn25575153
-#          - syn22758536
-#        agora_rename:
-#          ensg: ENSG
-#          hgnc_gene_id: GeneName
-#          geneticsscore: GeneticsScore
-#          literaturescore: LiteratureScore
-#          overall: Logsdon
-#          omicsscore: OmicsScore
-#        destination: *dest
+    - overall_scores:
+        files:
+          - name: overall_scores
+            id: syn25575156
+            format: table
+        final_format: json
+        custom_transformations: 1
+        column_rename:
+          genename: hgnc_gene_id
+        provenance:
+          - syn25575156
+        agora_rename:
+          ensg: ENSG
+          hgnc_gene_id: GeneName
+          geneticsscore: GeneticsScore
+          literaturescore: LiteratureScore
+          overall: Logsdon
+          omicsscore: OmicsScore
+        destination: *dest
 
     - network:
         files:
