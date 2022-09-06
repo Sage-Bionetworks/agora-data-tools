@@ -61,7 +61,7 @@ def nest_fields(df: pd.DataFrame, grouping: str, new_column: str) -> pd.DataFram
             .rename(columns={0: new_column}))
 
 
-def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
+def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound):
     if is_scored is not None:
         df = df[df[is_scored] == 'Y']  # df does not have the isscored
     else:
@@ -74,14 +74,14 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored):
 
     '''
     In order to smooth out the bins and make sure the entire range from 0
-    to the highest theoretical value has been found, we create a copy of the
-    column with that value added to it.  We use to calculate distributions
-    and bins, and subtract the value at the end
+    to the theoretical maximum value has been found, we create a copy of the
+    column with that maximum value added to it.  We use the copy to calculate 
+    distributions and bins, and subtract the value at the end
     '''
-    upper_bound = np.ceil(df[col].max())
     distribution = df[col].append(pd.Series([upper_bound]), ignore_index=True)
 
-    obj["distribution"] = list(pd.cut(distribution, bins=10, precision=3, include_lowest=True, right=True).value_counts())
+    obj["distribution"] = list(pd.cut(distribution, bins=10, precision=3, include_lowest=True, right=True)
+                               .value_counts(sort=False))
     obj["distribution"][-1] -= 1  # since this was calculated with the artificial upper_bound, we subtract it
 
     discard, obj["bins"] = list(pd.cut(distribution, bins=10, precision=3, retbins=True))
@@ -342,13 +342,9 @@ def transform_gene_info(datasets: dict):
     return gene_metadata
 
 
-def transform_distribution_data(datasets: dict):
+def transform_distribution_data(datasets: dict, overall_max_score, genetics_max_score, omics_max_score, lit_max_score):
 
     overall_scores = datasets['overall_scores']
-
-    # subtract neuropath score from over all scores
-    overall_scores['overall'] = overall_scores['overall'] - overall_scores['neuropathscore']
-
     interesting_columns = ['ensg', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
     # create mapping to deal with missing values as they take different shape across the fields
@@ -356,11 +352,14 @@ def transform_distribution_data(datasets: dict):
     mapping = dict(zip(interesting_columns[2:], scored))
     mapping['overall'] = None
 
+    # create mapping for max score values from config
+    max_score = dict(zip(interesting_columns[1:], [overall_max_score, genetics_max_score, omics_max_score, lit_max_score]))
+
     overall_scores = overall_scores[interesting_columns + scored]
 
     neo_matrix = {}
     for col in interesting_columns[1:]:  # excludes the ENSG
-        neo_matrix[col] = calculate_distribution(overall_scores, col, mapping[col])
+        neo_matrix[col] = calculate_distribution(overall_scores, col, mapping[col], max_score[col])
 
     neo_matrix['Logsdon'] = neo_matrix.pop('overall')
     neo_matrix['GeneticsScore'] = neo_matrix.pop('geneticsscore')
@@ -448,7 +447,11 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
         df = datasets['overall_scores']
         return transform_overall_scores(df=df)
     elif dataset_name == "distribution_data":
-        return transform_distribution_data(datasets=datasets)
+        return transform_distribution_data(datasets=datasets,
+                                           overall_max_score=dataset_obj['custom_transformations']['overall_max_score'],
+                                           genetics_max_score=dataset_obj['custom_transformations']['genetics_max_score'],
+                                           omics_max_score=dataset_obj['custom_transformations']['omics_max_score'],
+                                           lit_max_score=dataset_obj['custom_transformations']['lit_max_score'])
     elif dataset_name == "team_info":
         return transform_team_info(datasets=datasets)
     elif dataset_name == "rnaseq_differential_expression":
