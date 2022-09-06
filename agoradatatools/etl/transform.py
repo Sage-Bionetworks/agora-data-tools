@@ -75,13 +75,14 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound):
     '''
     In order to smooth out the bins and make sure the entire range from 0
     to the theoretical maximum value has been found, we create a copy of the
-    column with that maximum value added to it.  We use the copy to calculate 
-    distributions and bins, and subtract the value at the end
+    column with both 0 and that maximum value added to it.  We use the copy to calculate 
+    distributions and bins, and subtract the values at the end
     '''
-    distribution = df[col].append(pd.Series([upper_bound]), ignore_index=True)
+    distribution = df[col].append(pd.Series([0, upper_bound]), ignore_index=True)
 
     obj["distribution"] = list(pd.cut(distribution, bins=10, precision=3, include_lowest=True, right=True)
                                .value_counts(sort=False))
+    obj["distribution"][0] -= 1  # since this was calculated with the artificial 0 value, we subtract it
     obj["distribution"][-1] -= 1  # since this was calculated with the artificial upper_bound, we subtract it
 
     discard, obj["bins"] = list(pd.cut(distribution, bins=10, precision=3, retbins=True))
