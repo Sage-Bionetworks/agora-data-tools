@@ -278,6 +278,7 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
     gene_metadata['protein_in_ad_brain_change'] = gene_metadata.apply(
         lambda row: True if row['cor_pval'] <= protein_level_threshold else False, axis=1)
 
+    # drop from here
     proteomics_tmt = proteomics_tmt.dropna(subset=['coefficient', 'fdr_pval', 'ci_h', 'ci_l'])
     proteomics_tmt = proteomics_tmt.groupby('ensg')['fdr_pval'].agg('min').reset_index()
 
@@ -286,11 +287,14 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
                              how='left',
                              left_on='ensembl_gene_id',
                              right_on='ensg')
+
     gene_metadata['fdr_pval'] = gene_metadata['fdr_pval'].fillna(-1)
     gene_metadata['tmt_protein_brain_change_studied'] = gene_metadata.apply(
         lambda row: False if row['fdr_pval'] == -1 else True, axis=1)
     gene_metadata['tmt_protein_in_ad_brain_change'] = gene_metadata.apply(
         lambda row: True if row['fdr_pval'] <= protein_level_threshold else False, axis=1)
+
+    # end drop
 
     gene_metadata = gene_metadata[
         ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'igap', 'eqtl', 'rna_in_ad_brain_change',

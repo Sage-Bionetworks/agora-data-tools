@@ -1,4 +1,4 @@
-- destination: &dest syn17015333
+- destination: &dest syn33017046
 - datasets:
     - neuropath_corr:
         files:
@@ -35,11 +35,11 @@
     - proteomics_tmt:
         files:
           - name: agora_proteomics_tmt
-            id: syn32188234
+            id: syn35221005
             format: csv
         final_format: json
         provenance:
-          - syn32188234
+          - syn35221005
         column_rename:
           peptide: uniqid
           geneid: hgnc_symbol
@@ -100,7 +100,7 @@
             id: syn18689335
             format: csv
           - name: agora_proteomics_tmt
-            id: syn32188234
+            id: syn35221005
             format: csv
           - name: rna_expression_change
             id: syn27211942
@@ -114,7 +114,7 @@
           - syn12514826
           - syn12514912
           - syn18689335
-          - syn11914808
+          - syn35221005
           - syn27211942
         destination: *dest
 
@@ -270,13 +270,13 @@
             id: syn18689335
             format: csv
           - name: proteomics_tmt
-            id: syn32210527
+            id: syn35221005
             format: json
         final_format: json
         custom_transformations: 1
         provenance:
           - syn18689335
-          - syn32210527
+          - syn35221005
         column_rename:
           log_2fc: log2_fc
         destination: *dest
