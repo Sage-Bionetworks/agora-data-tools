@@ -1,4 +1,4 @@
-- destination: &dest syn17015333
+- destination: &dest syn12177492
 - datasets:
     - neuropath_corr:
         files:
@@ -41,15 +41,11 @@
         provenance:
           - syn35221005
         column_rename:
-          peptide: uniqid
-          geneid: hgnc_symbol
           protid: uniprotid
           ci_l: ci_lwr
           ci_h: ci_upr
-          ensg: ensemble_gene_id
           coefficient: log2_fc
           fdr_pval: cor_pval
-          genename: hgnc_symbol
         destination: *dest
 
     - target_exp_validation_harmonized:
@@ -114,14 +110,12 @@
           - syn18689335
           - syn35221005
           - syn27211942
-        # column_rename:
-        #   GeneName: hgnc_gene_id
         destination: *dest
 
     - gene_info:
         files:
           - name: gene_metadata
-            id: syn27572743
+            id: syn27644951
             format: json
           - name: target_list
             id: syn12540368
@@ -277,6 +271,4 @@
         provenance:
           - syn18689335
           - syn35221005
-        column_rename:
-          log_2fc: log2_fc
         destination: *dest

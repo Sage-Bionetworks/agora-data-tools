@@ -41,15 +41,11 @@
         provenance:
           - syn35221005
         column_rename:
-          peptide: uniqid
-          geneid: hgnc_symbol
           protid: uniprotid
           ci_l: ci_lwr
           ci_h: ci_upr
-          ensg: ensemble_gene_id
           coefficient: log2_fc
           fdr_pval: cor_pval
-          genename: hgnc_symbol
         destination: *dest
 
     - target_exp_validation_harmonized:
@@ -114,8 +110,6 @@
           - syn18689335
           - syn35221005
           - syn27211942
-        # column_rename:
-        #   GeneName: hgnc_gene_id
         destination: *dest
 
     - gene_info:
@@ -277,6 +271,4 @@
         provenance:
           - syn18689335
           - syn35221005
-        column_rename:
-          log_2fc: log2_fc
         destination: *dest
