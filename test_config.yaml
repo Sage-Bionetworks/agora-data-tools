@@ -1,4 +1,4 @@
-- destination: &dest syn33017046
+- destination: &dest syn17015333
 - datasets:
     - neuropath_corr:
         files:
@@ -49,9 +49,7 @@
           ensg: ensemble_gene_id
           coefficient: log2_fc
           fdr_pval: cor_pval
-        agora_rename:
-          ensemble_gene_id: ensembl_gene_id
-          hgnc_gene_id: hgnc_symbol
+          genename: hgnc_symbol
         destination: *dest
 
     - target_exp_validation_harmonized:
@@ -116,6 +114,8 @@
           - syn18689335
           - syn35221005
           - syn27211942
+        # column_rename:
+        #   GeneName: hgnc_gene_id
         destination: *dest
 
     - gene_info:
@@ -271,7 +271,7 @@
             format: csv
           - name: proteomics_tmt
             id: syn35221005
-            format: json
+            format: csv
         final_format: json
         custom_transformations: 1
         provenance:
