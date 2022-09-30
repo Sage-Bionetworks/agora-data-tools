@@ -152,25 +152,26 @@
           - syn12615633
         destination: *dest
 
-    - overall_scores:
-        files:
-          - name: overall_scores
-            id: syn25575156
-            format: table
-        final_format: json
-        custom_transformations: 1
-        column_rename:
-          genename: hgnc_gene_id
-        provenance:
-          - syn25575156
-        agora_rename:
-          ensg: ENSG
-          hgnc_gene_id: GeneName
-          geneticsscore: GeneticsScore
-          literaturescore: LiteratureScore
-          overall: Logsdon
-          omicsscore: OmicsScore
-        destination: *dest
+# disable prod processing until we are ready for the new scores (AG-565); release with v5 until then
+#    - overall_scores:
+#        files:
+#          - name: overall_scores
+#            id: syn25575156
+#            format: table
+#        final_format: json
+#        custom_transformations: 1
+#        column_rename:
+#          genename: hgnc_gene_id
+#        provenance:
+#          - syn25575156
+#        agora_rename:
+#          ensg: ENSG
+#          hgnc_gene_id: GeneName
+#          geneticsscore: GeneticsScore
+#          literaturescore: LiteratureScore
+#          overall: Logsdon
+#          omicsscore: OmicsScore
+#        destination: *dest
 
     - network:
         files:
@@ -223,20 +224,21 @@
           - syn12514912
         destination: *dest
 
-    - distribution_data:
-        files:
-          - name: overall_scores
-            id: syn25575156
-            format: table
-        final_format: json
-        custom_transformations:
-          overall_max_score: 5
-          genetics_max_score: 3
-          omics_max_score: 2
-          lit_max_score: 2
-        provenance:
-          - syn25575156
-        destination: *dest
+# disable prod processing until we are ready for the new scores (AG-565); release with v7 until then
+#    - distribution_data:
+#        files:
+#          - name: overall_scores
+#            id: syn25575156
+#            format: table
+#        final_format: json
+#        custom_transformations:
+#          overall_max_score: 5
+#          genetics_max_score: 3
+#          omics_max_score: 2
+#          lit_max_score: 2
+#        provenance:
+#          - syn25575156
+#        destination: *dest
 
     - rna_distribution_data:
         files:
