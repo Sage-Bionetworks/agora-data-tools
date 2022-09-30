@@ -41,11 +41,8 @@
         provenance:
           - syn35221005
         column_rename:
-          protid: uniprotid
-          ci_l: ci_lwr
-          ci_h: ci_upr
-          coefficient: log2_fc
-          fdr_pval: cor_pval
+          genename: hgnc_symbol
+          ensg: ensemble_gene_id
         destination: *dest
 
     - target_exp_validation_harmonized:
