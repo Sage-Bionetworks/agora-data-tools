@@ -25,11 +25,8 @@
         provenance:
           - syn18689335
         column_rename:
-          genename: hgnc_gene_id
-          ensg: ensemble_gene_id
-        agora_rename:
-          ensemble_gene_id: ensembl_gene_id
-          hgnc_gene_id: hgnc_symbol
+          genename: hgnc_symbol
+          ensg: ensembl_gene_id
         destination: *dest
 
     - proteomics_tmt:
@@ -42,7 +39,7 @@
           - syn35221005
         column_rename:
           genename: hgnc_symbol
-          ensg: ensemble_gene_id
+          ensg: ensembl_gene_id
         destination: *dest
 
     - target_exp_validation_harmonized:
