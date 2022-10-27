@@ -1,0 +1,268 @@
+- destination: &dest syn38973163
+- datasets:
+    - neuropath_corr:
+        files:
+          - name: neuropath_regression_results
+            id: syn22017882
+            format: csv
+        final_format: json
+        provenance:
+          - syn22017882
+        column_rename:
+          ensg: ensembl_gene_id
+          gname: hgnc_gene_id
+        agora_rename:
+          ensembl_gene_id: ensg
+          hgnc_gene_id: gname
+        destination: *dest
+
+    - proteomics:
+        files:
+          - name: agora_proteomics
+            id: syn18689335
+            format: csv
+        final_format: json
+        provenance:
+          - syn18689335
+        column_rename:
+          genename: hgnc_symbol
+          ensg: ensembl_gene_id
+        destination: *dest
+
+    - proteomics_tmt:
+        files:
+          - name: agora_proteomics_tmt
+            id: syn35221005
+            format: csv
+        final_format: json
+        provenance:
+          - syn35221005
+        column_rename:
+          genename: hgnc_symbol
+          ensg: ensembl_gene_id
+        destination: *dest
+
+    - target_exp_validation_harmonized:
+        files:
+          - name: target_exp_validation_harmonized
+            id: syn24184512
+            format: csv
+        final_format: json
+        provenance:
+          - syn24184512
+        destination: *dest
+
+    - srm_data:
+        files:
+          - name: srm_data
+            id: syn25454540
+            format: csv
+        final_format: json
+        provenance:
+          - syn25454540
+        destination: *dest
+
+    - metabolomics:
+        files:
+          - name: metabolomics
+            id: syn26064497
+            format: feather
+        final_format: json
+        provenance:
+          - syn19001410
+          - syn26064497
+        destination: *dest
+
+    - gene_metadata:
+        files:
+          - name: gene_info
+            id: syn38973224
+            format: feather
+          - name: igap
+            id: syn12514826
+            format: csv
+          - name: eqtl
+            id: syn12514912
+            format: csv
+          - name: proteomics
+            id: syn18689335
+            format: csv
+          - name: agora_proteomics_tmt
+            id: syn35221005
+            format: csv
+          - name: rna_expression_change
+            id: syn27211942
+            format: tsv
+        final_format: json
+        custom_transformations:
+          adjusted_p_value_threshold: 0.05
+          protein_level_threshold: 0.05
+        provenance:
+          - syn38973224
+          - syn12514826
+          - syn12514912
+          - syn18689335
+          - syn35221005
+          - syn27211942
+        destination: *dest
+
+    - gene_info:
+        files:
+          - name: gene_metadata
+            id: syn27572743
+            format: json
+          - name: target_list
+            id: syn12540368
+            format: csv
+          - name: median_expression
+            id: syn27211878
+            format: csv
+          - name: druggability
+            id: syn13363443
+            format: csv
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn26868788
+          - syn12540368
+          - syn27211878
+          - syn13363443
+        agora_rename:
+          eqtl: haseqtl
+          igap: isIGAP
+          protein_in_ad_brain_change: isAnyProteinChangedInADBrain
+          tmt_protein_in_ad_brain_change: isAnyTMTProteinChangedInADBrain
+          rna_in_ad_brain_change: isAnyRNAChangedInADBrain
+          median_expression: medianexpression
+          nominated_target: nominatedtarget
+        destination: *dest
+
+    - team_info:
+        files:
+          - name: team_info
+            id: syn12615624
+            format: csv
+          - name: team_member_info
+            id: syn12615633
+            format: csv
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn12615624
+          - syn12615633
+        destination: *dest
+
+    - overall_scores:
+        files:
+          - name: overall_scores
+            id: syn25575156
+            format: table
+        final_format: json
+        custom_transformations: 1
+        column_rename:
+          genename: hgnc_gene_id
+        provenance:
+          - syn25575156
+        agora_rename:
+          ensg: ENSG
+          hgnc_gene_id: GeneName
+          geneticsscore: GeneticsScore
+          literaturescore: LiteratureScore
+          overall: Logsdon
+          omicsscore: OmicsScore
+        destination: *dest
+
+    - network:
+        files:
+          - name: networks
+            id: syn11685347
+            format: csv
+          - name: gene_info
+            id: syn38973224
+            format: feather
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn11685347
+          - syn38973224
+          - syn27211942
+        agora_rename:
+          genea_ensembl_gene_id: geneA_ensembl_gene_id
+          genea_external_gene_name: geneA_external_gene_name
+          geneb_ensembl_gene_id: geneB_ensembl_gene_id
+          geneb_external_gene_name: geneB_external_gene_name
+          brainregion: brainRegion
+        destination: *dest
+
+    - rnaseq_differential_expression:
+        files:
+          - name: diff_exp_data
+            id: syn27211942
+            format: tsv
+          - name: gene_info
+            id: syn38973224
+            format: feather
+          - name: target_list
+            id: syn12540368
+            format: csv
+          - name: eqtl
+            id: syn12514912
+            format: csv
+        final_format: json
+        custom_transformations:
+          models_to_keep:
+            - Diagnosis AD-CONTROL ALL
+            - Diagnosis.AOD AD-CONTROL ALL
+            - Diagnosis.Sex AD-CONTROL FEMALE
+            - Diagnosis.Sex AD-CONTROL MALE
+          adjusted_p_value_threshold: 1
+        provenance:
+          - syn27211942
+          - syn38973224
+          - syn12540368
+          - syn12514912
+        destination: *dest
+
+    - distribution_data:
+        files:
+          - name: overall_scores
+            id: syn25575156
+            format: table
+        final_format: json
+        custom_transformations:
+          overall_max_score: 5
+          genetics_max_score: 3
+          omics_max_score: 2
+          lit_max_score: 2
+        provenance:
+          - syn25575156
+        destination: *dest
+
+    - rna_distribution_data:
+        files:
+          - name: rna
+            id: syn12177499
+            format: json
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn27211942
+          - syn38973224
+          - syn12540368
+          - syn12514912
+        destination: *dest
+
+    - proteomics_distribution_data:
+        files:
+          - name: proteomics
+            id: syn18689335
+            format: csv
+          - name: proteomics_tmt
+            id: syn35221005
+            format: csv
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn18689335
+          - syn35221005
+        destination: *dest
