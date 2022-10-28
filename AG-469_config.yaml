@@ -76,7 +76,7 @@
     - gene_info:
         files:
           - name: gene_info
-            id: syn25953363 #syn38973224
+            id: syn38973224
             format: feather
           - name: igap
             id: syn12514826

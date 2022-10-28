@@ -211,6 +211,19 @@ def transform_network(datasets: dict):
     return merged
 
 
+def fix_alias_field(df: pd.DataFrame) -> pd.DataFrame:
+    '''
+    The alias field in gene_info gets populated with NaN as rows are added. 
+    These need to be converted to an emtpy array to be consistent with the
+    rest of the column's values. 
+    '''
+    df['alias'] = df.apply(
+        lambda row: row['alias'] if isinstance(row['alias'], np.ndarray) \
+            else np.ndarray(0, dtype=object), axis = 1)
+        
+    return df
+
+
 def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_level_threshold):
     '''
     This function will perform transformations and incrementally create a dataset called gene_metadata.
@@ -284,10 +297,8 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
                           'adj_p_val': -1,
                           'cor_pval': -1}, inplace = True)
     
-    # fillna doesn't work for creating an empty array
-    gene_metadata['alias'] = gene_metadata.apply(
-        lambda row: row['alias'] if isinstance(row['alias'], np.ndarray) \
-            else np.ndarray(0, dtype=object), axis = 1)
+    # fillna doesn't work for creating an empty array, need this function instead
+    gene_metadata = fix_alias_field(gene_metadata)
 
     gene_metadata['rna_brain_change_studied'] = (gene_metadata['adj_p_val'] != -1)
     gene_metadata['isAnyRNAChangedInADBrain'] = (gene_metadata['adj_p_val'] <= adjusted_p_value_threshold)
@@ -304,6 +315,9 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
         ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'isIGAP', 'haseqtl', 'isAnyRNAChangedInADBrain',
          'rna_brain_change_studied', 'isAnyProteinChangedInADBrain', 'protein_brain_change_studied',
          'nominatedtarget', 'medianexpression', 'druggability', 'nominations']]
+    
+    # Make sure there are no N/A Ensembl IDs
+    gene_metadata = gene_metadata.dropna(subset=['ensembl_gene_id'])
     
     # here we return gene_metadata because we preserved its fields and added to the dataframe
     return gene_metadata
