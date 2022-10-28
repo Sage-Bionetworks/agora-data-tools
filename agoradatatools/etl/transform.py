@@ -223,62 +223,50 @@ def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_
     rna_change = datasets['rna_expression_change']
     proteomics_tmt = datasets['agora_proteomics_tmt']
 
-    gene_info = gene_info[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', '_version']]
-
     # remove duplicate ensembl_gene_ids by getting the index of all rows whose _version is max, and filtering
     idx = gene_info.groupby(['ensembl_gene_id'])['_version'].transform(max) == gene_info['_version']
     gene_info = gene_info[idx].reset_index()
-    gene_info.drop(['_version'], axis=1, inplace=True)
-
-    gene_metadata = pd.merge(left=gene_info,
-                             right=igap,
-                             how='left',
-                             on='ensembl_gene_id')
-    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is np.NaN else True, axis=1)
-    gene_metadata['igap'].fillna(False, inplace=True)
-    gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap']]
-
-    gene_metadata = pd.merge(left=gene_metadata,
-                             right=eqtl,
-                             how='left',
-                             on='ensembl_gene_id')
-    gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap', 'haseqtl']]
-    gene_metadata.rename(columns={'haseqtl': 'eqtl'},
-                         inplace=True)
-    gene_metadata['eqtl'] = gene_metadata['eqtl'].replace({'TRUE': True}).fillna(False)
-
-    rna_change = rna_change[['ensembl_gene_id', 'adj_p_val']]
-    rna_change = rna_change.groupby('ensembl_gene_id')['adj_p_val'].agg('min').reset_index()
-
-    gene_metadata = pd.merge(left=gene_metadata,
-                             right=rna_change,
-                             how='left',
-                             on='ensembl_gene_id')
-    gene_metadata['adj_p_val'] = gene_metadata['adj_p_val'].fillna(-1)
-    gene_metadata['rna_brain_change_studied'] = gene_metadata.apply(
-        lambda row: False if row['adj_p_val'] == -1 else True, axis=1)
-    gene_metadata['rna_in_ad_brain_change'] = gene_metadata.apply(
-        lambda row: True if row['adj_p_val'] <= adjusted_p_value_threshold else False, axis=1)
-
-    gene_metadata = gene_metadata[
-        ['ensembl_gene_id', 'name', 'summary', 'alias', 'igap', 'symbol', 'eqtl', 'rna_in_ad_brain_change',
-         'rna_brain_change_studied']]
-
-    proteomics_concat = pd.concat([proteomics, proteomics_tmt])
     
+    # Modify the data before merging
+    
+    # All genes in this list should have 'igap' = True when added to gene_info
+    igap['igap'] = True 
+    
+    # Get the smallest p-value for each gene, to determine significance
+    rna_change = rna_change.groupby('ensembl_gene_id')['adj_p_val'].agg('min').reset_index()
+    
+    # Get the smallest cor_pval for each protein, to determine significance
+    proteomics_concat = pd.concat([proteomics, proteomics_tmt])
     proteomics_concat = proteomics_concat.dropna(subset=['log2_fc', 'cor_pval', 'ci_lwr', 'ci_upr'])
     proteomics_concat = proteomics_concat.groupby('ensg')['cor_pval'].agg('min').reset_index()
+    proteomics_concat.rename(columns = {'ensg': 'ensembl_gene_id'}, 
+                             inplace = True)
 
-    gene_metadata = pd.merge(left=gene_metadata,
-                             right=proteomics_concat,
-                             how='left',
-                             left_on='ensembl_gene_id',
-                             right_on='ensg')
-    gene_metadata['cor_pval'] = gene_metadata['cor_pval'].fillna(-1)
-    gene_metadata['protein_brain_change_studied'] = gene_metadata.apply(
-        lambda row: False if row['cor_pval'] == -1 else True, axis=1)
-    gene_metadata['protein_in_ad_brain_change'] = gene_metadata.apply(
-        lambda row: True if row['cor_pval'] <= protein_level_threshold else False, axis=1)
+    # Merge all the datasets
+    gene_metadata = gene_info
+    
+    for dataset in [igap, eqtl, rna_change, proteomics_concat]:
+        gene_metadata = pd.merge(left=gene_metadata,
+                                 right=dataset,
+                                 on='ensembl_gene_id',
+                                 how='left')
+                                 #validate = 'one_to_one') # This fails because keys are not unique in gene_metadata. The above duplicate removal does not work. 
+    
+    # Populate values for rows that didn't exist in the individual datasets
+    
+    gene_metadata.rename(columns={'haseqtl': 'eqtl'},
+                         inplace=True)
+    
+    gene_metadata.fillna({'igap': False,
+                          'eqtl': False,
+                          'adj_p_val': -1,
+                          'cor_pval': -1}, inplace = True)
+
+    gene_metadata['rna_brain_change_studied'] = (gene_metadata['adj_p_val'] != -1)
+    gene_metadata['rna_in_ad_brain_change'] = (gene_metadata['adj_p_val'] <= adjusted_p_value_threshold)
+
+    gene_metadata['protein_brain_change_studied'] = (gene_metadata['cor_pval'] != -1)
+    gene_metadata['protein_in_ad_brain_change'] = (gene_metadata['cor_pval'] <= protein_level_threshold)
 
     gene_metadata = gene_metadata[
         ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'igap', 'eqtl', 'rna_in_ad_brain_change',
