@@ -274,7 +274,7 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
         gene_metadata = pd.merge(left=gene_metadata,
                                  right=dataset,
                                  on='ensembl_gene_id',
-                                 how='left',
+                                 how='outer',
                                  validate = 'one_to_one')
     
     # Populate values for rows that didn't exist in the individual datasets
@@ -283,6 +283,11 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
                           'haseqtl': False,
                           'adj_p_val': -1,
                           'cor_pval': -1}, inplace = True)
+    
+    # fillna doesn't work for creating an empty array
+    gene_metadata['alias'] = gene_metadata.apply(
+        lambda row: row['alias'] if isinstance(row['alias'], np.ndarray) \
+            else np.ndarray(0, dtype=object), axis = 1)
 
     gene_metadata['rna_brain_change_studied'] = (gene_metadata['adj_p_val'] != -1)
     gene_metadata['isAnyRNAChangedInADBrain'] = (gene_metadata['adj_p_val'] <= adjusted_p_value_threshold)
