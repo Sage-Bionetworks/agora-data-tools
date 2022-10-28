@@ -225,16 +225,14 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
     target_list = datasets['target_list']
     median_expression = datasets['median_expression']
     druggability = datasets['druggability']
-
-    # remove duplicate ensembl_gene_ids by getting the index of all rows whose _version is max, and filtering
-    idx = gene_info.groupby(['ensembl_gene_id'])['_version'].transform(max) == gene_info['_version']
-    gene_info = gene_info[idx].reset_index()
+    
     # Duplicates in the list typically have the same Ensembl ID but different gene symbols.
     # There's not a good way to reconcile this, so just use the first entry in the list
-    # for each ensembl ID and discard the rest. duplicated() will return true if the
-    # ID is a duplicate and is not the first one to appear the list. 
-    #dupes = gene_info['ensembl_gene_id'].duplicated()
-    #gene_info = gene_info[dupes == False].reset_index()
+    # for each ensembl ID and discard the rest, which is what the Agora front end does.
+    # duplicated() will return true if the ID is a duplicate and is not the 
+    # first one to appear the list. 
+    dupes = gene_info['ensembl_gene_id'].duplicated() | gene_info['notfound'] == True
+    gene_info = gene_info[dupes == False].reset_index()
     
     # Modify the data before merging
     
@@ -276,8 +274,8 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
         gene_metadata = pd.merge(left=gene_metadata,
                                  right=dataset,
                                  on='ensembl_gene_id',
-                                 how='left')
-                                 #validate = 'one_to_one') # This fails because keys are not unique in gene_metadata. The above duplicate removal does not work. 
+                                 how='left',
+                                 validate = 'one_to_one')
     
     # Populate values for rows that didn't exist in the individual datasets
     
