@@ -73,10 +73,10 @@
           - syn26064497
         destination: *dest
 
-    - gene_metadata:
+    - gene_info:
         files:
           - name: gene_info
-            id: syn38973224
+            id: syn25953363 #syn38973224
             format: feather
           - name: igap
             id: syn12514826
@@ -93,6 +93,15 @@
           - name: rna_expression_change
             id: syn27211942
             format: tsv
+          - name: target_list
+            id: syn12540368
+            format: csv
+          - name: median_expression
+            id: syn27211878
+            format: csv
+          - name: druggability
+            id: syn13363443
+            format: csv
         final_format: json
         custom_transformations:
           adjusted_p_value_threshold: 0.05
@@ -104,37 +113,11 @@
           - syn18689335
           - syn35221005
           - syn27211942
-        destination: *dest
-
-    - gene_info:
-        files:
-          - name: gene_metadata
-            id: syn27572743
-            format: json
-          - name: target_list
-            id: syn12540368
-            format: csv
-          - name: median_expression
-            id: syn27211878
-            format: csv
-          - name: druggability
-            id: syn13363443
-            format: csv
-        final_format: json
-        custom_transformations: 1
-        provenance:
-          - syn26868788
           - syn12540368
           - syn27211878
           - syn13363443
         agora_rename:
-          eqtl: haseqtl
-          igap: isIGAP
-          protein_in_ad_brain_change: isAnyProteinChangedInADBrain
-          tmt_protein_in_ad_brain_change: isAnyTMTProteinChangedInADBrain
-          rna_in_ad_brain_change: isAnyRNAChangedInADBrain
-          median_expression: medianexpression
-          nominated_target: nominatedtarget
+          symbol: hgnc_symbol
         destination: *dest
 
     - team_info:
