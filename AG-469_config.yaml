@@ -75,7 +75,7 @@
 
     - gene_info:
         files:
-          - name: gene_info
+          - name: gene_info # TODO RENAME
             id: syn38973224
             format: feather
           - name: igap
@@ -160,7 +160,7 @@
           - name: networks
             id: syn11685347
             format: csv
-          - name: gene_info
+          - name: gene_info # TODO code and rename
             id: syn38973224
             format: feather
         final_format: json
@@ -182,7 +182,7 @@
           - name: diff_exp_data
             id: syn27211942
             format: tsv
-          - name: gene_info
+          - name: gene_info # TODO code and rename
             id: syn38973224
             format: feather
           - name: target_list
