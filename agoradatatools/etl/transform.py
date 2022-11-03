@@ -144,7 +144,6 @@ def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
         regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, regex=True, inplace=True)
-    diff_exp_data['logfc'] = diff_exp_data['logfc']
     diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
 
@@ -181,9 +180,9 @@ def fix_alias_field(df: pd.DataFrame) -> pd.DataFrame:
 def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_level_threshold):
     '''
     This function will perform transformations and incrementally create a dataset called gene_metadata.
-    Each dataset will be left_joined onto gene_info.
+    Each dataset will be left_joined onto gene_metadata.
     '''
-    gene_info = datasets['gene_info']
+    gene_metadata = datasets['gene_metadata']
     igap = datasets['igap']
     eqtl = datasets['eqtl']
     proteomics = datasets['proteomics']
@@ -195,7 +194,7 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
     
     # Modify the data before merging
     
-    # All genes in this list should have 'isIGAP' = True when added to gene_info
+    # All genes in this list should have 'isIGAP' = True when added to gene_metadata
     igap['isIGAP'] = True 
     
     # Get the smallest p-value for each gene, to determine significance
@@ -227,7 +226,6 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
     druggability.rename(columns={'geneid': 'ensembl_gene_id'}, inplace=True)
 
     # Merge all the datasets
-    gene_metadata = gene_info
     
     for dataset in [igap, eqtl, rna_change, proteomics_concat, target_list, median_expression, druggability]:
         gene_metadata = pd.merge(left=gene_metadata,

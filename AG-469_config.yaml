@@ -75,7 +75,7 @@
 
     - gene_info:
         files:
-          - name: gene_info # TODO RENAME
+          - name: gene_metadata
             id: syn38973224
             format: feather
           - name: igap
@@ -180,9 +180,6 @@
           - name: target_list
             id: syn12540368
             format: csv
-          - name: eqtl
-            id: syn12514912
-            format: csv
         final_format: json
         custom_transformations:
           models_to_keep:
@@ -194,7 +191,6 @@
         provenance:
           - syn27211942
           - syn12540368
-          - syn12514912
         destination: *dest
 
     - distribution_data:
