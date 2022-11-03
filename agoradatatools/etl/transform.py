@@ -136,15 +136,7 @@ def transform_team_info(datasets: dict):
 
 def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
     diff_exp_data = datasets['diff_exp_data']
-    gene_info = datasets['gene_info']
     target_list = datasets['target_list']
-    eqtl = datasets['eqtl']
-
-    eqtl = eqtl[['ensembl_gene_id', 'haseqtl']]
-    gene_info = pd.merge(left=gene_info,
-                         right=eqtl,
-                         on='ensembl_gene_id',
-                         how='left')
 
     diff_exp_data['study'].replace(to_replace={'MAYO': 'MayoRNAseq', 'MSSM': 'MSBB'}, regex=True, inplace=True)
     diff_exp_data['sex'].replace(
@@ -157,22 +149,13 @@ def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
 
     adjusted_diff_exp_data = diff_exp_data.loc[
-        ((diff_exp_data['adj_p_val'] <= adjusted_p_value_threshold) | (diff_exp_data['ensembl_gene_id']
-                                                                       .isin(target_list['ensembl_gene_id'])))
-        & (diff_exp_data['ensembl_gene_id'].isin(gene_info['ensembl_gene_id']))
-                                                   ]
+        ((diff_exp_data['adj_p_val'] <= adjusted_p_value_threshold) | 
+         (diff_exp_data['ensembl_gene_id'].isin(target_list['ensembl_gene_id']))) ]
 
     adjusted_diff_exp_data = adjusted_diff_exp_data.drop_duplicates(['ensembl_gene_id'])
     adjusted_diff_exp_data = adjusted_diff_exp_data[['ensembl_gene_id']]
 
     diff_exp_data = diff_exp_data[diff_exp_data['ensembl_gene_id'].isin(adjusted_diff_exp_data['ensembl_gene_id'])]
-    diff_exp_data = diff_exp_data[['ensembl_gene_id', 'logfc', 'fc', 'ci_l', 'ci_r',
-                                   'adj_p_val', 'tissue', 'study', 'model', 'hgnc_symbol']]
-
-    diff_exp_data = pd.merge(left=diff_exp_data,
-                             right=gene_info,
-                             on='ensembl_gene_id',
-                             how='left')
 
     diff_exp_data = diff_exp_data[diff_exp_data['hgnc_symbol'].notna()]
     diff_exp_data = diff_exp_data[
@@ -180,35 +163,6 @@ def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
          'adj_p_val', 'tissue', 'study', 'model']]
 
     return diff_exp_data
-
-
-def transform_network(datasets: dict):
-    gene_info = datasets['gene_info']
-    networks = datasets['networks']
-
-    gene_info.rename(columns={"symbol": "hgnc_symbol"}, inplace=True)
-    gene_info = gene_info[['ensembl_gene_id', 'hgnc_symbol']]
-    gene_info.drop_duplicates(inplace=True)
-
-    networks = networks[
-        networks['genea_ensembl_gene_id'].isin(gene_info['ensembl_gene_id']) &
-        networks['geneb_ensembl_gene_id'].isin(gene_info['ensembl_gene_id'])]
-
-    merged = pd.merge(left=networks,
-                      right=gene_info,
-                      left_on='genea_ensembl_gene_id',
-                      right_on='ensembl_gene_id',
-                      how='left')
-
-    merged = pd.merge(left=networks,
-                      right=gene_info,
-                      left_on='geneb_ensembl_gene_id',
-                      right_on='ensembl_gene_id',
-                      how='left')
-    merged = merged[['genea_ensembl_gene_id', 'geneb_ensembl_gene_id',
-                     'genea_external_gene_name', 'geneb_external_gene_name', 'brainregion']]
-
-    return merged
 
 
 def fix_alias_field(df: pd.DataFrame) -> pd.DataFrame:
@@ -238,14 +192,6 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
     target_list = datasets['target_list']
     median_expression = datasets['median_expression']
     druggability = datasets['druggability']
-    
-    # Duplicates in the list typically have the same Ensembl ID but different gene symbols.
-    # There's not a good way to reconcile this, so just use the first entry in the list
-    # for each ensembl ID and discard the rest, which is what the Agora front end does.
-    # duplicated() will return true if the ID is a duplicate and is not the 
-    # first one to appear the list. 
-    dupes = gene_info['ensembl_gene_id'].duplicated() | gene_info['notfound'] == True
-    gene_info = gene_info[dupes == False].reset_index()
     
     # Modify the data before merging
     
@@ -436,8 +382,6 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     elif dataset_name == "rnaseq_differential_expression":
         return transform_rna_seq_data(datasets=datasets,
                                       adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'])
-    elif dataset_name == "network":
-        return transform_network(datasets=datasets)
     elif dataset_name == 'gene_info':
         return transform_gene_info(datasets=datasets,
                                    adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'],

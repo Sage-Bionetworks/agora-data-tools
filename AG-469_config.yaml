@@ -160,14 +160,9 @@
           - name: networks
             id: syn11685347
             format: csv
-          - name: gene_info # TODO code and rename
-            id: syn38973224
-            format: feather
         final_format: json
-        custom_transformations: 1
         provenance:
           - syn11685347
-          - syn38973224
           - syn27211942
         agora_rename:
           genea_ensembl_gene_id: geneA_ensembl_gene_id
@@ -182,9 +177,6 @@
           - name: diff_exp_data
             id: syn27211942
             format: tsv
-          - name: gene_info # TODO code and rename
-            id: syn38973224
-            format: feather
           - name: target_list
             id: syn12540368
             format: csv
@@ -201,7 +193,6 @@
           adjusted_p_value_threshold: 1
         provenance:
           - syn27211942
-          - syn38973224
           - syn12540368
           - syn12514912
         destination: *dest
