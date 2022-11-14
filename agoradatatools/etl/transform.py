@@ -134,9 +134,8 @@ def transform_team_info(datasets: dict):
     return join_datasets(left=team_info, right=team_member_info, how='left', on='team')
 
 
-def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
+def transform_rna_seq_data(datasets: dict):
     diff_exp_data = datasets['diff_exp_data']
-    target_list = datasets['target_list']
 
     diff_exp_data['study'].replace(to_replace={'MAYO': 'MayoRNAseq', 'MSSM': 'MSBB'}, regex=True, inplace=True)
     diff_exp_data['sex'].replace(
@@ -147,16 +146,6 @@ def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
     diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
 
-    adjusted_diff_exp_data = diff_exp_data.loc[
-        ((diff_exp_data['adj_p_val'] <= adjusted_p_value_threshold) | 
-         (diff_exp_data['ensembl_gene_id'].isin(target_list['ensembl_gene_id']))) ]
-
-    adjusted_diff_exp_data = adjusted_diff_exp_data.drop_duplicates(['ensembl_gene_id'])
-    adjusted_diff_exp_data = adjusted_diff_exp_data[['ensembl_gene_id']]
-
-    diff_exp_data = diff_exp_data[diff_exp_data['ensembl_gene_id'].isin(adjusted_diff_exp_data['ensembl_gene_id'])]
-
-    diff_exp_data = diff_exp_data[diff_exp_data['hgnc_symbol'].notna()]
     diff_exp_data = diff_exp_data[
         ['ensembl_gene_id', 'hgnc_symbol', 'logfc', 'fc', 'ci_l', 'ci_r',
          'adj_p_val', 'tissue', 'study', 'model']]
@@ -378,8 +367,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     elif dataset_name == "team_info":
         return transform_team_info(datasets=datasets)
     elif dataset_name == "rnaseq_differential_expression":
-        return transform_rna_seq_data(datasets=datasets,
-                                      adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'])
+        return transform_rna_seq_data(datasets=datasets)
     elif dataset_name == 'gene_info':
         return transform_gene_info(datasets=datasets,
                                    adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'],

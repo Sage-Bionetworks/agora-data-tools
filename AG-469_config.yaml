@@ -177,9 +177,6 @@
           - name: diff_exp_data
             id: syn27211942
             format: tsv
-          - name: target_list
-            id: syn12540368
-            format: csv
         final_format: json
         custom_transformations:
           models_to_keep:
@@ -187,10 +184,8 @@
             - Diagnosis.AOD AD-CONTROL ALL
             - Diagnosis.Sex AD-CONTROL FEMALE
             - Diagnosis.Sex AD-CONTROL MALE
-          adjusted_p_value_threshold: 1
         provenance:
           - syn27211942
-          - syn12540368
         destination: *dest
 
     - distribution_data:
@@ -217,7 +212,6 @@
         custom_transformations: 1
         provenance:
           - syn27211942
-          - syn12540368
         destination: *dest
 
     - proteomics_distribution_data:
