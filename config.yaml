@@ -73,9 +73,9 @@
           - syn26064497
         destination: *dest
 
-    - gene_metadata:
+    - gene_info:
         files:
-          - name: gene_info
+          - name: gene_metadata
             id: syn25953363
             format: feather
           - name: igap
@@ -93,24 +93,6 @@
           - name: rna_expression_change
             id: syn27211942
             format: tsv
-        final_format: json
-        custom_transformations:
-          adjusted_p_value_threshold: 0.05
-          protein_level_threshold: 0.05
-        provenance:
-          - syn25953363
-          - syn12514826
-          - syn12514912
-          - syn18689335
-          - syn35221005
-          - syn27211942
-        destination: *dest
-
-    - gene_info:
-        files:
-          - name: gene_metadata
-            id: syn27644951
-            format: json
           - name: target_list
             id: syn12540368
             format: csv
@@ -121,17 +103,24 @@
             id: syn13363443
             format: csv
         final_format: json
-        custom_transformations: 1
+        custom_transformations:
+          adjusted_p_value_threshold: 0.05
+          protein_level_threshold: 0.05
+        column_rename:
+          ensg: ensembl_gene_id
         provenance:
-          - syn26868788
+          - syn38973224
+          - syn12514826
+          - syn12514912
+          - syn18689335
+          - syn35221005
+          - syn27211942
           - syn12540368
           - syn27211878
           - syn13363443
         agora_rename:
-          eqtl: haseqtl
-          igap: isIGAP
+          symbol: hgnc_symbol
           protein_in_ad_brain_change: isAnyProteinChangedInADBrain
-          tmt_protein_in_ad_brain_change: isAnyTMTProteinChangedInADBrain
           rna_in_ad_brain_change: isAnyRNAChangedInADBrain
           median_expression: medianexpression
           nominated_target: nominatedtarget
@@ -178,14 +167,9 @@
           - name: networks
             id: syn11685347
             format: csv
-          - name: gene_info
-            id: syn25953363
-            format: feather
         final_format: json
-        custom_transformations: 1
         provenance:
           - syn11685347
-          - syn25953363
           - syn27211942
         agora_rename:
           genea_ensembl_gene_id: geneA_ensembl_gene_id
@@ -200,15 +184,6 @@
           - name: diff_exp_data
             id: syn27211942
             format: tsv
-          - name: gene_info
-            id: syn25953363
-            format: feather
-          - name: target_list
-            id: syn12540368
-            format: csv
-          - name: eqtl
-            id: syn12514912
-            format: csv
         final_format: json
         custom_transformations:
           models_to_keep:
@@ -216,12 +191,8 @@
             - Diagnosis.AOD AD-CONTROL ALL
             - Diagnosis.Sex AD-CONTROL FEMALE
             - Diagnosis.Sex AD-CONTROL MALE
-          adjusted_p_value_threshold: 1
         provenance:
           - syn27211942
-          - syn25953363
-          - syn12540368
-          - syn12514912
         destination: *dest
 
 # disable prod processing until we are ready for the new scores (AG-565); release with v7 until then
@@ -249,9 +220,6 @@
         custom_transformations: 1
         provenance:
           - syn27211942
-          - syn25953363
-          - syn12540368
-          - syn12514912
         destination: *dest
 
     - proteomics_distribution_data:
