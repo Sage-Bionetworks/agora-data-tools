@@ -106,6 +106,8 @@
         custom_transformations:
           adjusted_p_value_threshold: 0.05
           protein_level_threshold: 0.05
+        column_rename:
+          ensg: ensembl_gene_id
         provenance:
           - syn38973224
           - syn12514826
@@ -118,6 +120,10 @@
           - syn13363443
         agora_rename:
           symbol: hgnc_symbol
+          protein_in_ad_brain_change: isAnyProteinChangedInADBrain
+          rna_in_ad_brain_change: isAnyRNAChangedInADBrain
+          median_expression: medianexpression
+          nominated_target: nominatedtarget
         destination: *dest
 
     - team_info:

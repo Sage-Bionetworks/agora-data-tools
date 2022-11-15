@@ -153,19 +153,6 @@ def transform_rna_seq_data(datasets: dict):
     return diff_exp_data
 
 
-def fix_alias_field(df: pd.DataFrame) -> pd.DataFrame:
-    '''
-    The alias field in gene_info gets populated with NaN as rows are added. 
-    These need to be converted to an emtpy array to be consistent with the
-    rest of the column's values. 
-    '''
-    df['alias'] = df.apply(
-        lambda row: row['alias'] if isinstance(row['alias'], np.ndarray) \
-            else np.ndarray(0, dtype=object), axis = 1)
-        
-    return df
-
-
 def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_level_threshold):
     '''
     This function will perform transformations and incrementally create a dataset called gene_metadata.
@@ -183,18 +170,18 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
     
     # Modify the data before merging
     
-    # All genes in this list should have 'isIGAP' = True when added to gene_metadata
+    # All genes in this list should have 'isIGAP' = True when added to gene_metadata.
+    # Creating the column here automatically adds the column in to gene_metadata 
+    # during merge, with True values correctly populated.
     igap['isIGAP'] = True 
     
-    # Get the smallest p-value for each gene, to determine significance
+    # Get the smallest adj_p_val for each gene, to determine significance
     rna_change = rna_change.groupby('ensembl_gene_id')['adj_p_val'].agg('min').reset_index()
     
     # Get the smallest cor_pval for each protein, to determine significance
     proteomics_concat = pd.concat([proteomics, proteomics_tmt])
     proteomics_concat = proteomics_concat.dropna(subset=['log2_fc', 'cor_pval', 'ci_lwr', 'ci_upr'])
-    proteomics_concat = proteomics_concat.groupby('ensg')['cor_pval'].agg('min').reset_index()
-    proteomics_concat.rename(columns = {'ensg': 'ensembl_gene_id'}, 
-                             inplace = True)
+    proteomics_concat = proteomics_concat.groupby('ensembl_gene_id')['cor_pval'].agg('min').reset_index()
     
     # these are the interesting columns of the druggability dataset
     useful_columns = ['geneid', 'sm_druggability_bucket', 'safety_bucket', 'abability_bucket', 'pharos_class',
@@ -203,11 +190,11 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
 
     target_list = nest_fields(df=target_list,
                               grouping='ensembl_gene_id',
-                              new_column='nominatedtarget')
+                              new_column='nominated_target')
 
     median_expression = nest_fields(df=median_expression,
                                     grouping='ensembl_gene_id',
-                                    new_column='medianexpression')
+                                    new_column='median_expression')
 
     druggability = nest_fields(df=druggability,
                                grouping='geneid',
@@ -231,23 +218,25 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
                           'cor_pval': -1}, inplace = True)
     
     # fillna doesn't work for creating an empty array, need this function instead
-    gene_metadata = fix_alias_field(gene_metadata)
+    gene_metadata['alias'] = gene_metadata.apply(
+        lambda row: row['alias'] if isinstance(row['alias'], np.ndarray) \
+            else np.ndarray(0, dtype=object), axis = 1)
 
     gene_metadata['rna_brain_change_studied'] = (gene_metadata['adj_p_val'] != -1)
-    gene_metadata['isAnyRNAChangedInADBrain'] = (gene_metadata['adj_p_val'] <= adjusted_p_value_threshold)
+    gene_metadata['rna_in_ad_brain_change'] = (gene_metadata['adj_p_val'] <= adjusted_p_value_threshold)
 
     gene_metadata['protein_brain_change_studied'] = (gene_metadata['cor_pval'] != -1)
-    gene_metadata['isAnyProteinChangedInADBrain'] = (gene_metadata['cor_pval'] <= protein_level_threshold)
+    gene_metadata['protein_in_ad_brain_change'] = (gene_metadata['cor_pval'] <= protein_level_threshold)
         
     # create 'nominations' field
     gene_metadata['nominations'] = gene_metadata.apply(
-        lambda row: len(row['nominatedtarget']) if isinstance(row['nominatedtarget'], list) else np.NaN, axis=1)
+        lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else np.NaN, axis=1)
 
     # Remove some extra columns that got added during merges
     gene_metadata = gene_metadata[
-        ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'isIGAP', 'haseqtl', 'isAnyRNAChangedInADBrain',
-         'rna_brain_change_studied', 'isAnyProteinChangedInADBrain', 'protein_brain_change_studied',
-         'nominatedtarget', 'medianexpression', 'druggability', 'nominations']]
+        ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'isIGAP', 'haseqtl', 'rna_in_ad_brain_change',
+         'rna_brain_change_studied', 'protein_in_ad_brain_change', 'protein_brain_change_studied',
+         'nominated_target', 'median_expression', 'druggability', 'nominations']]
     
     # Make sure there are no N/A Ensembl IDs
     gene_metadata = gene_metadata.dropna(subset=['ensembl_gene_id'])
