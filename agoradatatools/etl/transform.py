@@ -155,8 +155,8 @@ def transform_rna_seq_data(datasets: dict):
 
 def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_level_threshold):
     '''
-    This function will perform transformations and incrementally create a dataset called gene_metadata.
-    Each dataset will be left_joined onto gene_metadata.
+    This function will perform transformations and incrementally create a dataset called gene_info.
+    Each dataset will be left_joined onto gene_info, starting with gene_metadata.
     '''
     gene_metadata = datasets['gene_metadata']
     igap = datasets['igap']
@@ -170,8 +170,8 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
     
     # Modify the data before merging
     
-    # All genes in this list should have 'isIGAP' = True when added to gene_metadata.
-    # Creating the column here automatically adds the column in to gene_metadata 
+    # All genes in this list should have 'isIGAP' = True when added to gene_info.
+    # Creating the column here automatically adds the column in to gene_info 
     # during merge, with True values correctly populated.
     igap['isIGAP'] = True 
     
@@ -203,46 +203,47 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
 
     # Merge all the datasets
     
+    gene_info = gene_metadata
+    
     for dataset in [igap, eqtl, rna_change, proteomics_concat, target_list, median_expression, druggability]:
-        gene_metadata = pd.merge(left=gene_metadata,
-                                 right=dataset,
-                                 on='ensembl_gene_id',
-                                 how='outer',
-                                 validate = 'one_to_one')
+        gene_info = pd.merge(left=gene_info,
+                             right=dataset,
+                             on='ensembl_gene_id',
+                             how='outer',
+                             validate = 'one_to_one')
     
     # Populate values for rows that didn't exist in the individual datasets
     
-    gene_metadata.fillna({'isIGAP': False,
-                          'haseqtl': False,
-                          'adj_p_val': -1,
-                          'cor_pval': -1}, inplace = True)
+    gene_info.fillna({'isIGAP': False,
+                      'haseqtl': False,
+                      'adj_p_val': -1,
+                      'cor_pval': -1}, inplace = True)
     
     # fillna doesn't work for creating an empty array, need this function instead
-    gene_metadata['alias'] = gene_metadata.apply(
+    gene_info['alias'] = gene_info.apply(
         lambda row: row['alias'] if isinstance(row['alias'], np.ndarray) \
             else np.ndarray(0, dtype=object), axis = 1)
 
-    gene_metadata['rna_brain_change_studied'] = (gene_metadata['adj_p_val'] != -1)
-    gene_metadata['rna_in_ad_brain_change'] = (gene_metadata['adj_p_val'] <= adjusted_p_value_threshold)
+    gene_info['rna_brain_change_studied'] = (gene_info['adj_p_val'] != -1)
+    gene_info['rna_in_ad_brain_change'] = (gene_info['adj_p_val'] <= adjusted_p_value_threshold)
 
-    gene_metadata['protein_brain_change_studied'] = (gene_metadata['cor_pval'] != -1)
-    gene_metadata['protein_in_ad_brain_change'] = (gene_metadata['cor_pval'] <= protein_level_threshold)
+    gene_info['protein_brain_change_studied'] = (gene_info['cor_pval'] != -1)
+    gene_info['protein_in_ad_brain_change'] = (gene_info['cor_pval'] <= protein_level_threshold)
         
     # create 'nominations' field
-    gene_metadata['nominations'] = gene_metadata.apply(
+    gene_info['nominations'] = gene_info.apply(
         lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else np.NaN, axis=1)
 
     # Remove some extra columns that got added during merges
-    gene_metadata = gene_metadata[
+    gene_info = gene_info[
         ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'isIGAP', 'haseqtl', 'rna_in_ad_brain_change',
          'rna_brain_change_studied', 'protein_in_ad_brain_change', 'protein_brain_change_studied',
          'nominated_target', 'median_expression', 'druggability', 'nominations']]
     
     # Make sure there are no N/A Ensembl IDs
-    gene_metadata = gene_metadata.dropna(subset=['ensembl_gene_id'])
+    gene_info = gene_info.dropna(subset=['ensembl_gene_id'])
     
-    # here we return gene_metadata because we preserved its fields and added to the dataframe
-    return gene_metadata
+    return gene_info
 
 
 def transform_distribution_data(datasets: dict, overall_max_score, genetics_max_score, omics_max_score, lit_max_score):
