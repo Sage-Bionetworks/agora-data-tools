@@ -170,10 +170,10 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
     
     # Modify the data before merging
     
-    # All genes in this list should have 'isIGAP' = True when added to gene_info.
+    # All genes in this list should have 'is_igap' = True when added to gene_info.
     # Creating the column here automatically adds the column in to gene_info 
     # during merge, with True values correctly populated.
-    igap['isIGAP'] = True 
+    igap['is_igap'] = True 
     
     # Get the smallest adj_p_val for each gene, to determine significance
     rna_change = rna_change.groupby('ensembl_gene_id')['adj_p_val'].agg('min').reset_index()
@@ -214,8 +214,8 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
     
     # Populate values for rows that didn't exist in the individual datasets
     
-    gene_info.fillna({'isIGAP': False,
-                      'haseqtl': False,
+    gene_info.fillna({'is_igap': False,
+                      'has_eqtl': False,
                       'adj_p_val': -1,
                       'cor_pval': -1}, inplace = True)
     
@@ -236,8 +236,9 @@ def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_leve
 
     # Remove some extra columns that got added during merges
     gene_info = gene_info[
-        ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'isIGAP', 'haseqtl', 'rna_in_ad_brain_change',
-         'rna_brain_change_studied', 'protein_in_ad_brain_change', 'protein_brain_change_studied',
+        ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'is_igap', 
+         'has_eqtl', 'rna_in_ad_brain_change', 'rna_brain_change_studied', 
+         'protein_in_ad_brain_change', 'protein_brain_change_studied',
          'nominated_target', 'median_expression', 'druggability', 'nominations']]
     
     # Make sure there are no N/A Ensembl IDs

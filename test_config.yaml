@@ -108,6 +108,7 @@
           protein_level_threshold: 0.05
         column_rename:
           ensg: ensembl_gene_id
+          haseqtl: has_eqtl
         provenance:
           - syn25953363
           - syn12514826
@@ -119,6 +120,8 @@
           - syn27211878
           - syn13363443
         agora_rename:
+          has_eqtl: haseqtl
+          is_igap: isIGAP
           symbol: hgnc_symbol
           protein_in_ad_brain_change: isAnyProteinChangedInADBrain
           rna_in_ad_brain_change: isAnyRNAChangedInADBrain
