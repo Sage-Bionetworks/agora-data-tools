@@ -33,7 +33,7 @@ Note that running the pipeline does _not_ automatically update the Agora databas
 into the Agora databases is handled by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/).
 
 You can run the pipeline in any of the following ways:
-1. [GitHub Actions](#GitHub Actions) is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synpase PAT, or setting up the Synapse Python client.
+1. [GitHub Actions](#GitHub-Actions) is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synpase PAT, or setting up the Synapse Python client.
 2. [Locally](#Locally) requires installing Python, obtaining the required Synapse permissions, creating a Synpase PAT, and setting up the Synapse Python client.
 3. [Docker](#Docker) requires installing Docker, obtaining the required Synapse permissions, and creating a Synpase PAT.
 
@@ -100,6 +100,8 @@ Once you have completed the setup steps outlined above, execute the pipeline by 
 
 ### Docker
 
+There is a publicly available [DockerHub repository](https://hub.docker.com/r/sagebionetworks/agora-data-tools) automatically build via DockerHub. That said, you may want to develop using Docker locally on a feature branch.
+
 If you don't want to deal with Python paths and dependencies, you can use Docker to run the pipeline. Perform the following one-time steps to set up your docker environment and to obtain the required Synapse permissions:
 1. Install [Docker](https://docs.docker.com/get-docker/).
 2. Obtain download access to all required source files in Synapse, including accepting the terms of use on the AD Knowledge Portal backend [here](https://www.synapse.org/#!Synapse:syn5550378).  If you see a green unlocked lock icon, then you should be good to go.
@@ -110,13 +112,13 @@ Once you have completed the one-time setup steps outlined above, execute the pip
 
 ```
 # This creates a local docker image
-docker build -t agora-data-pipeline .
-docker run -e SYNAPSE_AUTH_TOKEN=<your PAT> agora-data-pipeline python ./agoradatatools/process.py test_config.yaml
+docker build -t agora-data-tools .
+docker run -e SYNAPSE_AUTH_TOKEN=<your PAT> agora-data-tools python ./agoradatatools/process.py test_config.yaml
 ```
 
 ## Testing Github Workflow
 In order to test the GitHub Actions workflow locally:
-- install [act](https://github.com/nektos/act) and (docker)[https://github.com/docker/docker-install]
+- install [act](https://github.com/nektos/act) and [docker](https://github.com/docker/docker-install)
 - create a .secrets file in the root directory of the folder with a SYNAPSE_USER and a SYNAPSE_PASS value*
 
 Then run:
