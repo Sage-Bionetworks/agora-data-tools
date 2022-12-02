@@ -99,7 +99,7 @@
           protein_level_threshold: 0.05
         provenance:
           - syn25953363.2
-          - syn12514826
+          - syn12514826.3
           - syn12514912
           - syn18689335
           - syn35221005
