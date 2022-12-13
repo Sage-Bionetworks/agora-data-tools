@@ -5,29 +5,31 @@ import sys
 import errno
 
 
-def get_entity_as_df(syn_id: str, format: str, syn=None):
+def get_entity_as_df(syn_id: str, format: str, syn=None) -> pd.DataFrame:
     """
-    Looks at the format of the file at the source, extracts it,
-    and returns it as a data frame
-    :param syn_id: synapse id of the entity
-    :param format: original format of the file in synapse
-    :return: a data frame
+    1. Creates and logs into synapseclient session (if not provided)
+    2. Gets synapse entity from id string (and version number if provided)
+    3. Converts data source to pd.Dataframe
+
+    Args:
+        syn_id (str): Synapse ID of entity to be loaded to df
+        format (str): the format of the data to be loaded to df
+        syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
+
+    Returns:
+        pd.DataFrame: data frame generated from data source provided
     """
     if syn is None:
         syn = utils._login_to_synapse()
 
-    try:
-        # HACK: Should add a version parameter eventually
-        syn_id_version = syn_id.split(".")
-        synapse_id = syn_id_version[0]
-        if len(syn_id_version) > 1:
-            version = syn_id_version[1]
-        else:
-            version = None
-        entity = syn.get(synapse_id, version=version)
-    except synapseclient.core.exceptions.SynapseHTTPError:
-        print(str(syn_id) + " is not a valid Synapse id")
-        sys.exit(1)
+    syn_id_version = syn_id.split(".")
+    synapse_id = syn_id_version[0]
+    if len(syn_id_version) > 1:
+        version = syn_id_version[1]
+    else:
+        version = None
+
+    entity = syn.get(synapse_id, version=version)
 
     if format == "table":
         dataset = read_table_into_df(table_id=syn_id, syn=syn)
@@ -37,77 +39,123 @@ def get_entity_as_df(syn_id: str, format: str, syn=None):
         dataset = read_tsv_into_df(tsv_path=entity.path)
     elif format == "feather":
         dataset = read_feather_into_df(feather_path=entity.path)
-    elif format == 'json':
+    elif format == "json":
         dataset = read_json_into_df(json_path=entity.path)
     else:
-        print("File type not supported.")
-        sys.exit(errno.EBADF)
+        raise ValueError("File type not supported.")
 
     return dataset
 
 
-def read_csv_into_df(csv_path: str):
-    '''
-    Reads in a csv file into a dataframe
-    '''
+def read_csv_into_df(csv_path: str) -> pd.DataFrame:
+    """
+    Reads provided csv file into dataframe using file path
+
+    Args:
+        csv_path (str): path to input csv file
+
+    Raises:
+        ValueError: If file format is not .csv, raise error indicating that the
+        configuration does not match the extension of the file provided
+
+    Returns:
+        pd.DataFrame: data frame created from csv file path
+    """
+
     if csv_path.split(".")[-1] != "csv":
-        print("Please make sure the format parameter in the configuration for "
-              + f"{str(csv_path)} matches the file extension.")
-        sys.exit(errno.EBADF)
+        raise ValueError(
+            "Please make sure the format parameter in the configuration for "
+            + f"{str(csv_path)} matches the file extension."
+        )
 
-    return pd.read_csv(csv_path, float_precision='round_trip')
+    return pd.read_csv(csv_path, float_precision="round_trip")
 
 
-def read_tsv_into_df(tsv_path: str):
-    '''
-    Reads in a tsv file into a dataframe
-    '''
+def read_tsv_into_df(tsv_path: str) -> pd.DataFrame:
+    """
+    Reads provided tsv file into dataframe using file path
+
+    Args:
+        tsv_path (str): path to input tsv file
+
+    Raises:
+        ValueError: If file format is not .tsv, raise error indicating that the
+        configuration does not match the extension of the file provided
+
+    Returns:
+        pd.DataFrame: data frame created from tsv file path
+    """
+
     if tsv_path.split(".")[-1] != "tsv":
-        print("Please make sure the format parameter in the configuration for "
-              + f"{str(tsv_path)} matches the file extension.")
-        sys.exit(errno.EBADF)
+        raise ValueError(
+            "Please make sure the format parameter in the configuration for "
+            + f"{str(tsv_path)} matches the file extension."
+        )
 
     return pd.read_csv(tsv_path, sep="\t")
 
 
 def read_table_into_df(table_id: str, syn) -> pd.DataFrame:
-    '''Reads a Synapse table into a dataframe.\n
-    Arguments: the id of a Synapse Table and a Synapse Object
-    Returns: a pandas dataframe
-    '''
+    """
+    Reads a Synapse table into a dataframe.
+
+    Args:
+        table_id (str): Synapse ID for the Synapse table to be queried
+        syn (synapseclient.Synapse): Synapse session object
+
+    Returns:
+        pd.DataFrame: data frame created from the Synaspe table query results
+    """
 
     query = str("select * from {0}".format(table_id))
-
-    try:
-        query_result = syn.tableQuery(query)
-    except synapseclient.core.exceptions.SynapseHTTPError:
-        print("Please provide a queriable entity.")
-        sys.exit(1)
+    query_result = syn.tableQuery(query)
 
     return query_result.asDataFrame()
 
 
-def read_feather_into_df(feather_path: str):
+def read_feather_into_df(feather_path: str) -> pd.DataFrame:
     """
-    Reads a feather file from synapse
+    Reads provided feather file into dataframe using file path
+
+    Args:
+        feather_path (str): path to input feather file
+
+    Raises:
+        ValueError: If file format is not .feather, raise error indicating that the
+        configuration does not match the extension of the file provided
+
+    Returns:
+        pd.DataFrame: data frame created from feather file path
     """
 
     if feather_path.split(".")[-1] != "feather":
-        print("Please make sure the format parameter in the configuration for "
-              + f"{str(feather_path)} matches the file extension.")
-        sys.exit(errno.EBADF)
+        raise ValueError(
+            "Please make sure the format parameter in the configuration for "
+            + f"{str(feather_path)} matches the file extension."
+        )
 
     return pd.read_feather(feather_path)
 
 
-def read_json_into_df(json_path: str):
+def read_json_into_df(json_path: str) -> pd.DataFrame:
     """
-    Reads a json file from synapse into a dataframe
+    Reads provided json file into dataframe using file path
+
+    Args:
+        json_path (str): path to input json file
+
+    Raises:
+        ValueError: If file format is not .json, raise error indicating that the
+        configuration does not match the extension of the file provided
+
+    Returns:
+        pd.DataFrame: data frame created from json file path
     """
 
     if json_path.split(".")[-1] != "json":
-        print("Please make sure the format parameter in the configuration for "
-              + f"{str(json_path)} matches the file extension.")
-        sys.exit(errno.EBADF)
+        raise ValueError(
+            "Please make sure the format parameter in the configuration for "
+            + f"{str(json_path)} matches the file extension."
+        )
 
-    return pd.read_json(json_path, orient='records')
+    return pd.read_json(json_path, orient="records")
