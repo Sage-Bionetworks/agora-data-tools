@@ -94,6 +94,7 @@ def test_get_entity_as_df_syn_is_none(syn):
         patch_login_to_synapse.assert_called_once()
 
 
+# dummy synapse entity needed to supply entity.path to read_csv_into_df for next test
 ENTITY = synapseclient.File("fake/path.csv", parent="syn1111111")
 
 
@@ -110,7 +111,7 @@ def test_get_entity_as_df_with_version(syn, syn_id):
         patch_read_csv_into_df.assert_called_once_with(csv_path="fake/path.csv")
 
 
-# test if format is not supported
+# test raise if format is not supported
 def test_get_entity_as_df_format_not_supported(syn):
     with pytest.raises(ValueError, match="File type not *"):
         extract.get_entity_as_df(syn_id="syn1111111", format="abc", syn=syn)
