@@ -1,8 +1,5 @@
 from . import utils
 import pandas as pd
-import synapseclient
-import sys
-import errno
 
 
 def get_entity_as_df(syn_id: str, format: str, syn=None) -> pd.DataFrame:

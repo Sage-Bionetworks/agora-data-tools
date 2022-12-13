@@ -1,4 +1,3 @@
-from unittest import mock
 from unittest.mock import patch
 
 import pandas as pd
@@ -6,8 +5,6 @@ import pytest
 import synapseclient
 
 from agoradatatools.etl import extract, utils
-
-import logging
 
 
 class MockAsDF:
