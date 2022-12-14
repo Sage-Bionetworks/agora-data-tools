@@ -35,6 +35,3 @@ jobs:
           path: htmlcov
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
-      #Do i need this step for it to display coverage stats in the pull request checks?
-      - name: Comment coverage
-        uses: coroo/pytest-coverage-commentator@v1.0.2
