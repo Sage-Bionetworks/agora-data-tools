@@ -11,21 +11,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    name: checkout and install python
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: "3.9"
-      - run: pip install -U setuptools
-      - run: pip install -r ./requirements.txt
-      - run: pip install .
-      - run: python ./agoradatatools/process.py test_config.yaml --authtoken ${{secrets.SYNAPSE_PAT}}
-
+  # test job includes unit tests and coverage
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -53,3 +39,18 @@ jobs:
           path: htmlcov
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
+  # build job includes integration test
+  build:
+    needs: [test]
+    # The type of runner that the job will run on
+    name: checkout and install python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - run: pip install -U setuptools
+      - run: pip install -r ./requirements.txt
+      - run: pip install .
+      - run: python ./agoradatatools/process.py test_config.yaml --authtoken ${{secrets.SYNAPSE_PAT}}
