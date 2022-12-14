@@ -9,9 +9,9 @@ from agoradatatools.etl import extract, utils
 
 class MockAsDF:
     def asDataFrame(self):
-        database_dict = {"Database": ["centerMapping"], "Id": ["syn123"]}
-        databasetosynid_mappingdf = pd.DataFrame(database_dict)
-        return databasetosynid_mappingdf
+        example_dict = {"Database": ["centerMapping"], "Id": ["syn123"]}
+        df = pd.DataFrame(example_dict)
+        return df
 
 
 def test_read_csv_into_df_if_not_csv():
@@ -94,20 +94,21 @@ def test_get_entity_as_df_syn_is_none(syn):
         patch_login_to_synapse.assert_called_once()
 
 
-# dummy synapse entity needed to supply entity.path to read_csv_into_df for next test
-ENTITY = synapseclient.File("fake/path.csv", parent="syn1111111")
-
-
-@pytest.mark.parametrize("syn_id", [("syn1111111"), ("syn1111111.1")])
+@pytest.mark.parametrize(
+    "syn_id, version", [("syn1111111", None), ("syn1111111.1", "1")]
+)
 # test if synapse entity is retrieved without and with version number
-def test_get_entity_as_df_with_version(syn, syn_id):
+def test_get_entity_as_df_with_version(syn, syn_id, version):
     """
     Tests handling of synapse id with and without version number
     """
-    with patch.object(syn, "get", return_value=ENTITY), patch.object(
+    # dummy synapse entity needed to supply entity.path to read_csv_into_df for next test
+    ENTITY = synapseclient.File("fake/path.csv", parent="syn1111111")
+    with patch.object(syn, "get", return_value=ENTITY) as patch_syn_get, patch.object(
         extract, "read_csv_into_df", return_entity=pd.DataFrame()
     ) as patch_read_csv_into_df:
         extract.get_entity_as_df(syn_id=syn_id, format="csv", syn=syn)
+        patch_syn_get.assert_called_once_with(syn_id.split(".")[0], version=version)
         patch_read_csv_into_df.assert_called_once_with(csv_path="fake/path.csv")
 
 
@@ -118,7 +119,7 @@ def test_get_entity_as_df_format_not_supported(syn):
 
 
 @pytest.mark.parametrize(
-    "format, callable",
+    "source, callable",
     [
         ("table", "read_table_into_df"),
         ("csv", "read_csv_into_df"),
@@ -128,14 +129,10 @@ def test_get_entity_as_df_format_not_supported(syn):
     ],
 )
 # test handling of different formats to df
-def test_get_entity_as_df_supported_formats(syn, format, callable):
+def test_get_entity_as_df_supported_formats(syn, source, callable):
     with patch.object(
         extract, callable, return_value=pd.DataFrame()
     ) as patch_source_to_df:
-        df = extract.get_entity_as_df(syn_id="syn1111111", format=format, syn=syn)
+        df = extract.get_entity_as_df(syn_id="syn1111111", format=source, syn=syn)
         patch_source_to_df.assert_called_once()
         assert isinstance(df, pd.DataFrame)
-
-
-if __name__ == "__main__":
-    pytest.main()

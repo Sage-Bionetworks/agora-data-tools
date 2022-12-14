@@ -2,7 +2,7 @@ from . import utils
 import pandas as pd
 
 
-def get_entity_as_df(syn_id: str, format: str, syn=None) -> pd.DataFrame:
+def get_entity_as_df(syn_id: str, source: str, syn=None) -> pd.DataFrame:
     """
     1. Creates and logs into synapseclient session (if not provided)
     2. Gets synapse entity from id string (and version number if provided)
@@ -10,7 +10,7 @@ def get_entity_as_df(syn_id: str, format: str, syn=None) -> pd.DataFrame:
 
     Args:
         syn_id (str): Synapse ID of entity to be loaded to df
-        format (str): the format of the data to be loaded to df
+        source (str): the source of the data to be loaded to df
         syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
 
     Returns:
@@ -28,15 +28,15 @@ def get_entity_as_df(syn_id: str, format: str, syn=None) -> pd.DataFrame:
 
     entity = syn.get(synapse_id, version=version)
 
-    if format == "table":
+    if source == "table":
         dataset = read_table_into_df(table_id=syn_id, syn=syn)
-    elif format == "csv":
+    elif source == "csv":
         dataset = read_csv_into_df(csv_path=entity.path)
-    elif format == "tsv":
+    elif source == "tsv":
         dataset = read_tsv_into_df(tsv_path=entity.path)
-    elif format == "feather":
+    elif source == "feather":
         dataset = read_feather_into_df(feather_path=entity.path)
-    elif format == "json":
+    elif source == "json":
         dataset = read_json_into_df(json_path=entity.path)
     else:
         raise ValueError("File type not supported.")
@@ -52,7 +52,7 @@ def read_csv_into_df(csv_path: str) -> pd.DataFrame:
         csv_path (str): path to input csv file
 
     Raises:
-        ValueError: If file format is not .csv, raise error indicating that the
+        ValueError: If file source is not .csv, raise error indicating that the
         configuration does not match the extension of the file provided
 
     Returns:
@@ -61,7 +61,7 @@ def read_csv_into_df(csv_path: str) -> pd.DataFrame:
 
     if csv_path.split(".")[-1] != "csv":
         raise ValueError(
-            "Please make sure the format parameter in the configuration for "
+            "Please make sure the source parameter in the configuration for "
             + f"{str(csv_path)} matches the file extension."
         )
 
@@ -76,7 +76,7 @@ def read_tsv_into_df(tsv_path: str) -> pd.DataFrame:
         tsv_path (str): path to input tsv file
 
     Raises:
-        ValueError: If file format is not .tsv, raise error indicating that the
+        ValueError: If file source is not .tsv, raise error indicating that the
         configuration does not match the extension of the file provided
 
     Returns:
@@ -85,7 +85,7 @@ def read_tsv_into_df(tsv_path: str) -> pd.DataFrame:
 
     if tsv_path.split(".")[-1] != "tsv":
         raise ValueError(
-            "Please make sure the format parameter in the configuration for "
+            "Please make sure the source parameter in the configuration for "
             + f"{str(tsv_path)} matches the file extension."
         )
 
@@ -118,7 +118,7 @@ def read_feather_into_df(feather_path: str) -> pd.DataFrame:
         feather_path (str): path to input feather file
 
     Raises:
-        ValueError: If file format is not .feather, raise error indicating that the
+        ValueError: If file source is not .feather, raise error indicating that the
         configuration does not match the extension of the file provided
 
     Returns:
@@ -127,7 +127,7 @@ def read_feather_into_df(feather_path: str) -> pd.DataFrame:
 
     if feather_path.split(".")[-1] != "feather":
         raise ValueError(
-            "Please make sure the format parameter in the configuration for "
+            "Please make sure the source parameter in the configuration for "
             + f"{str(feather_path)} matches the file extension."
         )
 
@@ -142,7 +142,7 @@ def read_json_into_df(json_path: str) -> pd.DataFrame:
         json_path (str): path to input json file
 
     Raises:
-        ValueError: If file format is not .json, raise error indicating that the
+        ValueError: If file source is not .json, raise error indicating that the
         configuration does not match the extension of the file provided
 
     Returns:
@@ -151,7 +151,7 @@ def read_json_into_df(json_path: str) -> pd.DataFrame:
 
     if json_path.split(".")[-1] != "json":
         raise ValueError(
-            "Please make sure the format parameter in the configuration for "
+            "Please make sure the source parameter in the configuration for "
             + f"{str(json_path)} matches the file extension."
         )
 
