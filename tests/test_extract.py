@@ -90,7 +90,7 @@ def test_get_entity_as_df_syn_is_none(syn):
     with patch.object(
         utils, "_login_to_synapse", return_value=syn
     ) as patch_login_to_synapse:
-        extract.get_entity_as_df(syn_id="syn11111111", format="table", syn=None)
+        extract.get_entity_as_df(syn_id="syn11111111", source="table", syn=None)
         patch_login_to_synapse.assert_called_once()
 
 
@@ -107,15 +107,15 @@ def test_get_entity_as_df_with_version(syn, syn_id, version):
     with patch.object(syn, "get", return_value=ENTITY) as patch_syn_get, patch.object(
         extract, "read_csv_into_df", return_entity=pd.DataFrame()
     ) as patch_read_csv_into_df:
-        extract.get_entity_as_df(syn_id=syn_id, format="csv", syn=syn)
+        extract.get_entity_as_df(syn_id=syn_id, source="csv", syn=syn)
         patch_syn_get.assert_called_once_with(syn_id.split(".")[0], version=version)
         patch_read_csv_into_df.assert_called_once_with(csv_path="fake/path.csv")
 
 
-# test raise if format is not supported
-def test_get_entity_as_df_format_not_supported(syn):
+# test raise if  is not supported
+def test_get_entity_as_df__not_supported(syn):
     with pytest.raises(ValueError, match="File type not *"):
-        extract.get_entity_as_df(syn_id="syn1111111", format="abc", syn=syn)
+        extract.get_entity_as_df(syn_id="syn1111111", source="abc", syn=syn)
 
 
 @pytest.mark.parametrize(
@@ -133,6 +133,6 @@ def test_get_entity_as_df_supported_formats(syn, source, callable):
     with patch.object(
         extract, callable, return_value=pd.DataFrame()
     ) as patch_source_to_df:
-        df = extract.get_entity_as_df(syn_id="syn1111111", format=source, syn=syn)
+        df = extract.get_entity_as_df(syn_id="syn1111111", source=source, syn=syn)
         patch_source_to_df.assert_called_once()
         assert isinstance(df, pd.DataFrame)
