@@ -4,7 +4,7 @@ name: CI
 
 on:
   push:
-    branches: ["dev", "IBCDPE-395/adds_ci_pytest"]
+    branches: ["dev"]
   pull_request:
 
   # Allows you to run this workflow manually from the Actions tab
