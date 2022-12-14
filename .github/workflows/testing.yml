@@ -37,3 +37,5 @@ jobs:
           path: htmlcov
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
+      - name: Comment coverage
+        uses: coroo/pytest-coverage-commentator@v1.0.2
