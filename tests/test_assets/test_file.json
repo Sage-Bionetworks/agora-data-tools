@@ -1,0 +1,79 @@
+[
+    {
+        "ROW_ID": 1,
+        "ROW_VERSION": 1,
+        "team_id": 1,
+        "team_name": "Team 1",
+        "target": "FCER1G"
+    },
+    {
+        "ROW_ID": 2,
+        "ROW_VERSION": 1,
+        "team_id": 2,
+        "team_name": "Team 1",
+        "target": "SYK"
+    },
+    {
+        "ROW_ID": 3,
+        "ROW_VERSION": 1,
+        "team_id": 3,
+        "team_name": "Team 1",
+        "target": "GPNMB"
+    },
+    {
+        "ROW_ID": 4,
+        "ROW_VERSION": 1,
+        "team_id": 4,
+        "team_name": "Team 1",
+        "target": "RABEP1"
+    },
+    {
+        "ROW_ID": 5,
+        "ROW_VERSION": 1,
+        "team_id": 5,
+        "team_name": "Team 2",
+        "target": "SFRP1"
+    },
+    {
+        "ROW_ID": 6,
+        "ROW_VERSION": 1,
+        "team_id": 6,
+        "team_name": "Team 2",
+        "target": "MDK"
+    },
+    {
+        "ROW_ID": 7,
+        "ROW_VERSION": 1,
+        "team_id": 7,
+        "team_name": "Team 2",
+        "target": "SDC4"
+    },
+    {
+        "ROW_ID": 8,
+        "ROW_VERSION": 1,
+        "team_id": 8,
+        "team_name": "Team 3",
+        "target": "PRDX1"
+    },
+    {
+        "ROW_ID": 9,
+        "ROW_VERSION": 1,
+        "team_id": 9,
+        "team_name": "Team 3",
+        "target": "PRDX6"
+    },
+    {
+        "ROW_ID": 10,
+        "ROW_VERSION": 1,
+        "team_id": 10,
+        "team_name": "Team 3",
+        "target": "EPHX2"
+    },
+    {
+        "ROW_ID": 11,
+        "ROW_VERSION": 1,
+        "team_id": 11,
+        "team_name": "Team 3",
+        "target": "CAPN2"
+    }
+]
