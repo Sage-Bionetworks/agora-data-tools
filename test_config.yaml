@@ -79,7 +79,7 @@
             id: syn25953363
             format: feather
           - name: igap
-            id: syn12514826
+            id: syn12514826.3
             format: csv
           - name: eqtl
             id: syn12514912
@@ -147,14 +147,14 @@
     - overall_scores:
         files:
           - name: overall_scores
-            id: syn25575156
+            id: syn25575156.9
             format: table
         final_format: json
         custom_transformations: 1
         column_rename:
           genename: hgnc_gene_id
         provenance:
-          - syn25575156
+          - syn25575156.9
         agora_rename:
           ensg: ENSG
           hgnc_gene_id: GeneName
@@ -200,7 +200,7 @@
     - distribution_data:
         files:
           - name: overall_scores
-            id: syn25575156
+            id: syn25575156.9
             format: table
         final_format: json
         custom_transformations:
@@ -209,7 +209,7 @@
           omics_max_score: 2
           lit_max_score: 2
         provenance:
-          - syn25575156
+          - syn25575156.9
         destination: *dest
 
     - rna_distribution_data:
