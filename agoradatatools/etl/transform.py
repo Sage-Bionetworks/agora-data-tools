@@ -134,17 +134,8 @@ def transform_team_info(datasets: dict):
     return join_datasets(left=team_info, right=team_member_info, how='left', on='team')
 
 
-def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
+def transform_rna_seq_data(datasets: dict):
     diff_exp_data = datasets['diff_exp_data']
-    gene_info = datasets['gene_info']
-    target_list = datasets['target_list']
-    eqtl = datasets['eqtl']
-
-    eqtl = eqtl[['ensembl_gene_id', 'haseqtl']]
-    gene_info = pd.merge(left=gene_info,
-                         right=eqtl,
-                         on='ensembl_gene_id',
-                         how='left')
 
     diff_exp_data['study'].replace(to_replace={'MAYO': 'MayoRNAseq', 'MSSM': 'MSBB'}, regex=True, inplace=True)
     diff_exp_data['sex'].replace(
@@ -152,29 +143,9 @@ def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
         regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace='\\.', value=' x ', regex=True, inplace=True)
     diff_exp_data['model'].replace(to_replace={'Diagnosis': 'AD Diagnosis'}, regex=True, inplace=True)
-    diff_exp_data['logfc'] = diff_exp_data['logfc']
     diff_exp_data['fc'] = 2 ** diff_exp_data['logfc']
     diff_exp_data['model'] = diff_exp_data['model'] + " (" + diff_exp_data['sex'] + ")"
 
-    adjusted_diff_exp_data = diff_exp_data.loc[
-        ((diff_exp_data['adj_p_val'] <= adjusted_p_value_threshold) | (diff_exp_data['ensembl_gene_id']
-                                                                       .isin(target_list['ensembl_gene_id'])))
-        & (diff_exp_data['ensembl_gene_id'].isin(gene_info['ensembl_gene_id']))
-                                                   ]
-
-    adjusted_diff_exp_data = adjusted_diff_exp_data.drop_duplicates(['ensembl_gene_id'])
-    adjusted_diff_exp_data = adjusted_diff_exp_data[['ensembl_gene_id']]
-
-    diff_exp_data = diff_exp_data[diff_exp_data['ensembl_gene_id'].isin(adjusted_diff_exp_data['ensembl_gene_id'])]
-    diff_exp_data = diff_exp_data[['ensembl_gene_id', 'logfc', 'fc', 'ci_l', 'ci_r',
-                                   'adj_p_val', 'tissue', 'study', 'model', 'hgnc_symbol']]
-
-    diff_exp_data = pd.merge(left=diff_exp_data,
-                             right=gene_info,
-                             on='ensembl_gene_id',
-                             how='left')
-
-    diff_exp_data = diff_exp_data[diff_exp_data['hgnc_symbol'].notna()]
     diff_exp_data = diff_exp_data[
         ['ensembl_gene_id', 'hgnc_symbol', 'logfc', 'fc', 'ci_l', 'ci_r',
          'adj_p_val', 'tissue', 'study', 'model']]
@@ -182,119 +153,36 @@ def transform_rna_seq_data(datasets: dict, adjusted_p_value_threshold: int):
     return diff_exp_data
 
 
-def transform_network(datasets: dict):
-    gene_info = datasets['gene_info']
-    networks = datasets['networks']
-
-    gene_info.rename(columns={"symbol": "hgnc_symbol"}, inplace=True)
-    gene_info = gene_info[['ensembl_gene_id', 'hgnc_symbol']]
-    gene_info.drop_duplicates(inplace=True)
-
-    networks = networks[
-        networks['genea_ensembl_gene_id'].isin(gene_info['ensembl_gene_id']) &
-        networks['geneb_ensembl_gene_id'].isin(gene_info['ensembl_gene_id'])]
-
-    merged = pd.merge(left=networks,
-                      right=gene_info,
-                      left_on='genea_ensembl_gene_id',
-                      right_on='ensembl_gene_id',
-                      how='left')
-
-    merged = pd.merge(left=networks,
-                      right=gene_info,
-                      left_on='geneb_ensembl_gene_id',
-                      right_on='ensembl_gene_id',
-                      how='left')
-    merged = merged[['genea_ensembl_gene_id', 'geneb_ensembl_gene_id',
-                     'genea_external_gene_name', 'geneb_external_gene_name', 'brainregion']]
-
-    return merged
-
-
-def transform_gene_metadata(datasets: dict, adjusted_p_value_threshold, protein_level_threshold):
+def transform_gene_info(datasets: dict, adjusted_p_value_threshold, protein_level_threshold):
     '''
-    This function will perform transformations and incrementally create a dataset called gene_metadata.
-    Each dataset will be left_joined onto gene_info.
+    This function will perform transformations and incrementally create a dataset called gene_info.
+    Each dataset will be left_joined onto gene_info, starting with gene_metadata.
     '''
-    gene_info = datasets['gene_info']
+    gene_metadata = datasets['gene_metadata']
     igap = datasets['igap']
     eqtl = datasets['eqtl']
     proteomics = datasets['proteomics']
     rna_change = datasets['rna_expression_change']
     proteomics_tmt = datasets['agora_proteomics_tmt']
-
-    gene_info = gene_info[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', '_version']]
-
-    # remove duplicate ensembl_gene_ids by getting the index of all rows whose _version is max, and filtering
-    idx = gene_info.groupby(['ensembl_gene_id'])['_version'].transform(max) == gene_info['_version']
-    gene_info = gene_info[idx].reset_index()
-    gene_info.drop(['_version'], axis=1, inplace=True)
-
-    gene_metadata = pd.merge(left=gene_info,
-                             right=igap,
-                             how='left',
-                             on='ensembl_gene_id')
-    gene_metadata['igap'] = gene_metadata.apply(lambda row: False if row['hgnc_symbol'] is np.NaN else True, axis=1)
-    gene_metadata['igap'].fillna(False, inplace=True)
-    gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap']]
-
-    gene_metadata = pd.merge(left=gene_metadata,
-                             right=eqtl,
-                             how='left',
-                             on='ensembl_gene_id')
-    gene_metadata = gene_metadata[['ensembl_gene_id', 'symbol', 'name', 'summary', 'alias', 'igap', 'haseqtl']]
-    gene_metadata.rename(columns={'haseqtl': 'eqtl'},
-                         inplace=True)
-    gene_metadata['eqtl'] = gene_metadata['eqtl'].replace({'TRUE': True}).fillna(False)
-
-    rna_change = rna_change[['ensembl_gene_id', 'adj_p_val']]
-    rna_change = rna_change.groupby('ensembl_gene_id')['adj_p_val'].agg('min').reset_index()
-
-    gene_metadata = pd.merge(left=gene_metadata,
-                             right=rna_change,
-                             how='left',
-                             on='ensembl_gene_id')
-    gene_metadata['adj_p_val'] = gene_metadata['adj_p_val'].fillna(-1)
-    gene_metadata['rna_brain_change_studied'] = gene_metadata.apply(
-        lambda row: False if row['adj_p_val'] == -1 else True, axis=1)
-    gene_metadata['rna_in_ad_brain_change'] = gene_metadata.apply(
-        lambda row: True if row['adj_p_val'] <= adjusted_p_value_threshold else False, axis=1)
-
-    gene_metadata = gene_metadata[
-        ['ensembl_gene_id', 'name', 'summary', 'alias', 'igap', 'symbol', 'eqtl', 'rna_in_ad_brain_change',
-         'rna_brain_change_studied']]
-
-    proteomics_concat = pd.concat([proteomics, proteomics_tmt])
-    
-    proteomics_concat = proteomics_concat.dropna(subset=['log2_fc', 'cor_pval', 'ci_lwr', 'ci_upr'])
-    proteomics_concat = proteomics_concat.groupby('ensg')['cor_pval'].agg('min').reset_index()
-
-    gene_metadata = pd.merge(left=gene_metadata,
-                             right=proteomics_concat,
-                             how='left',
-                             left_on='ensembl_gene_id',
-                             right_on='ensg')
-    gene_metadata['cor_pval'] = gene_metadata['cor_pval'].fillna(-1)
-    gene_metadata['protein_brain_change_studied'] = gene_metadata.apply(
-        lambda row: False if row['cor_pval'] == -1 else True, axis=1)
-    gene_metadata['protein_in_ad_brain_change'] = gene_metadata.apply(
-        lambda row: True if row['cor_pval'] <= protein_level_threshold else False, axis=1)
-
-    gene_metadata = gene_metadata[
-        ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'igap', 'eqtl', 'rna_in_ad_brain_change',
-         'rna_brain_change_studied', 'protein_in_ad_brain_change', 'protein_brain_change_studied']]
-    gene_metadata.rename(columns={'symbol': 'hgnc_symbol'}, inplace=True)
-
-    return gene_metadata
-
-
-def transform_gene_info(datasets: dict):
-
-    gene_metadata = datasets['gene_metadata']
     target_list = datasets['target_list']
     median_expression = datasets['median_expression']
     druggability = datasets['druggability']
-
+    
+    # Modify the data before merging
+    
+    # All genes in this list should have 'is_igap' = True when added to gene_info.
+    # Creating the column here automatically adds the column in to gene_info 
+    # during merge, with True values correctly populated.
+    igap['is_igap'] = True 
+    
+    # Get the smallest adj_p_val for each gene, to determine significance
+    rna_change = rna_change.groupby('ensembl_gene_id')['adj_p_val'].agg('min').reset_index()
+    
+    # Get the smallest cor_pval for each protein, to determine significance
+    proteomics_concat = pd.concat([proteomics, proteomics_tmt])
+    proteomics_concat = proteomics_concat.dropna(subset=['log2_fc', 'cor_pval', 'ci_lwr', 'ci_upr'])
+    proteomics_concat = proteomics_concat.groupby('ensembl_gene_id')['cor_pval'].agg('min').reset_index()
+    
     # these are the interesting columns of the druggability dataset
     useful_columns = ['geneid', 'sm_druggability_bucket', 'safety_bucket', 'abability_bucket', 'pharos_class',
                       'classification', 'safety_bucket_definition', 'abability_bucket_definition']
@@ -313,17 +201,50 @@ def transform_gene_info(datasets: dict):
                                new_column='druggability')
     druggability.rename(columns={'geneid': 'ensembl_gene_id'}, inplace=True)
 
-    for dataset in [target_list, median_expression, druggability]:
-        gene_metadata = pd.merge(left=gene_metadata,
-                                 right=dataset,
-                                 on='ensembl_gene_id',
-                                 how='left')
+    # Merge all the datasets
+    
+    gene_info = gene_metadata
+    
+    for dataset in [igap, eqtl, rna_change, proteomics_concat, target_list, median_expression, druggability]:
+        gene_info = pd.merge(left=gene_info,
+                             right=dataset,
+                             on='ensembl_gene_id',
+                             how='outer',
+                             validate = 'one_to_one')
+    
+    # Populate values for rows that didn't exist in the individual datasets
+    
+    gene_info.fillna({'is_igap': False,
+                      'has_eqtl': False,
+                      'adj_p_val': -1,
+                      'cor_pval': -1}, inplace = True)
+    
+    # fillna doesn't work for creating an empty array, need this function instead
+    gene_info['alias'] = gene_info.apply(
+        lambda row: row['alias'] if isinstance(row['alias'], np.ndarray) \
+            else np.ndarray(0, dtype=object), axis = 1)
+
+    gene_info['rna_brain_change_studied'] = (gene_info['adj_p_val'] != -1)
+    gene_info['rna_in_ad_brain_change'] = (gene_info['adj_p_val'] <= adjusted_p_value_threshold)
+
+    gene_info['protein_brain_change_studied'] = (gene_info['cor_pval'] != -1)
+    gene_info['protein_in_ad_brain_change'] = (gene_info['cor_pval'] <= protein_level_threshold)
+        
     # create 'nominations' field
-    gene_metadata['nominations'] = gene_metadata.apply(
+    gene_info['nominations'] = gene_info.apply(
         lambda row: len(row['nominated_target']) if isinstance(row['nominated_target'], list) else np.NaN, axis=1)
 
-    # here we return gene_metadata because we preserved its fields and added to the dataframe
-    return gene_metadata
+    # Remove some extra columns that got added during merges
+    gene_info = gene_info[
+        ['ensembl_gene_id', 'name', 'summary', 'symbol', 'alias', 'is_igap', 
+         'has_eqtl', 'rna_in_ad_brain_change', 'rna_brain_change_studied', 
+         'protein_in_ad_brain_change', 'protein_brain_change_studied',
+         'nominated_target', 'median_expression', 'druggability', 'nominations']]
+    
+    # Make sure there are no N/A Ensembl IDs
+    gene_info = gene_info.dropna(subset=['ensembl_gene_id'])
+    
+    return gene_info
 
 
 def transform_distribution_data(datasets: dict, overall_max_score, genetics_max_score, omics_max_score, lit_max_score):
@@ -437,16 +358,11 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     elif dataset_name == "team_info":
         return transform_team_info(datasets=datasets)
     elif dataset_name == "rnaseq_differential_expression":
-        return transform_rna_seq_data(datasets=datasets,
-                                      adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'])
-    elif dataset_name == "network":
-        return transform_network(datasets=datasets)
-    elif dataset_name == 'gene_metadata':
-        return transform_gene_metadata(datasets=datasets,
-                                       adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'],
-                                       protein_level_threshold=dataset_obj['custom_transformations']['protein_level_threshold'])
+        return transform_rna_seq_data(datasets=datasets)
     elif dataset_name == 'gene_info':
-        return transform_gene_info(datasets=datasets)
+        return transform_gene_info(datasets=datasets,
+                                   adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'],
+                                   protein_level_threshold=dataset_obj['custom_transformations']['protein_level_threshold'])
     elif dataset_name == 'rna_distribution_data':
         return transform_rna_distribution_data(datasets=datasets)
     elif dataset_name == 'proteomics_distribution_data':
