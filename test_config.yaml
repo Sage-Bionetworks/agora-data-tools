@@ -3,11 +3,11 @@
     - neuropath_corr:
         files:
           - name: neuropath_regression_results
-            id: syn22017882
+            id: syn22017882.5
             format: csv
         final_format: json
         provenance:
-          - syn22017882
+          - syn22017882.5
         column_rename:
           ensg: ensembl_gene_id
           gname: hgnc_gene_id
@@ -19,11 +19,11 @@
     - proteomics:
         files:
           - name: agora_proteomics
-            id: syn18689335
+            id: syn18689335.3
             format: csv
         final_format: json
         provenance:
-          - syn18689335
+          - syn18689335.3
         column_rename:
           genename: hgnc_symbol
           ensg: ensembl_gene_id
@@ -32,11 +32,11 @@
     - proteomics_tmt:
         files:
           - name: agora_proteomics_tmt
-            id: syn35221005
+            id: syn35221005.2
             format: csv
         final_format: json
         provenance:
-          - syn35221005
+          - syn35221005.2
         column_rename:
           genename: hgnc_symbol
           ensg: ensembl_gene_id
@@ -45,62 +45,51 @@
     - target_exp_validation_harmonized:
         files:
           - name: target_exp_validation_harmonized
-            id: syn24184512
+            id: syn24184512.6
             format: csv
         final_format: json
         provenance:
-          - syn24184512
-        destination: *dest
-
-    - srm_data:
-        files:
-          - name: srm_data
-            id: syn25454540
-            format: csv
-        final_format: json
-        provenance:
-          - syn25454540
+          - syn24184512.6
         destination: *dest
 
     - metabolomics:
         files:
           - name: metabolomics
-            id: syn26064497
+            id: syn26064497.1
             format: feather
         final_format: json
         provenance:
-          - syn19001410
-          - syn26064497
+          - syn26064497.1
         destination: *dest
 
     - gene_info:
         files:
           - name: gene_metadata
-            id: syn25953363
+            id: syn25953363.4
             format: feather
           - name: igap
-            id: syn12514826.3
+            id: syn12514826.4
             format: csv
           - name: eqtl
-            id: syn12514912
+            id: syn12514912.2
             format: csv
           - name: proteomics
-            id: syn18689335
+            id: syn18689335.3
             format: csv
           - name: agora_proteomics_tmt
-            id: syn35221005
+            id: syn35221005.2
             format: csv
           - name: rna_expression_change
-            id: syn27211942
+            id: syn27211942.1
             format: tsv
           - name: target_list
-            id: syn12540368
+            id: syn12540368.36
             format: csv
           - name: median_expression
-            id: syn27211878
+            id: syn27211878.2
             format: csv
           - name: druggability
-            id: syn13363443
+            id: syn13363443.11
             format: csv
         final_format: json
         custom_transformations:
@@ -110,15 +99,15 @@
           ensg: ensembl_gene_id
           haseqtl: has_eqtl
         provenance:
-          - syn25953363
-          - syn12514826
-          - syn12514912
-          - syn18689335
-          - syn35221005
-          - syn27211942
-          - syn12540368
-          - syn27211878
-          - syn13363443
+          - syn25953363.4
+          - syn12514826.4
+          - syn12514912.2
+          - syn18689335.3
+          - syn35221005.2
+          - syn27211942.1
+          - syn12540368.36
+          - syn27211878.2
+          - syn13363443.11
         agora_rename:
           has_eqtl: haseqtl
           is_igap: isIGAP
@@ -132,16 +121,16 @@
     - team_info:
         files:
           - name: team_info
-            id: syn12615624
+            id: syn12615624.13
             format: csv
           - name: team_member_info
-            id: syn12615633
+            id: syn12615633.15
             format: csv
         final_format: json
         custom_transformations: 1
         provenance:
-          - syn12615624
-          - syn12615633
+          - syn12615624.13
+          - syn12615633.15
         destination: *dest
 
     - overall_scores:
@@ -167,12 +156,12 @@
     - network:
         files:
           - name: networks
-            id: syn11685347
+            id: syn11685347.1
             format: csv
         final_format: json
         provenance:
-          - syn11685347
-          - syn27211942
+          - syn11685347.1
+          - syn27211942.1
         agora_rename:
           genea_ensembl_gene_id: geneA_ensembl_gene_id
           genea_external_gene_name: geneA_external_gene_name
@@ -184,7 +173,7 @@
     - rnaseq_differential_expression:
         files:
           - name: diff_exp_data
-            id: syn27211942
+            id: syn27211942.1
             format: tsv
         final_format: json
         custom_transformations:
@@ -194,7 +183,7 @@
             - Diagnosis.Sex AD-CONTROL FEMALE
             - Diagnosis.Sex AD-CONTROL MALE
         provenance:
-          - syn27211942
+          - syn27211942.1
         destination: *dest
 
     - distribution_data:
@@ -215,25 +204,27 @@
     - rna_distribution_data:
         files:
           - name: rna
-            id: syn12177499
+            # use the latest rnaseq JSON file (generated via the current run)
+            id: syn17015360
             format: json
         final_format: json
         custom_transformations: 1
         provenance:
-          - syn27211942
+          # same provenance as rnaseq JSON file (syn17015360)
+          - syn27211942.1
         destination: *dest
 
     - proteomics_distribution_data:
         files:
           - name: proteomics
-            id: syn18689335
+          id: syn18689335.3
             format: csv
           - name: proteomics_tmt
-            id: syn35221005
+            id: syn35221005.2
             format: csv
         final_format: json
         custom_transformations: 1
         provenance:
-          - syn18689335
-          - syn35221005
+          - syn18689335.3
+          - syn35221005.2
         destination: *dest
