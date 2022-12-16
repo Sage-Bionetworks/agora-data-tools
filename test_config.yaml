@@ -193,7 +193,7 @@
             format: table
         final_format: json
         custom_transformations:
-          overall_max_score: 5
+          overall_max_score: 7
           genetics_max_score: 3
           omics_max_score: 2
           lit_max_score: 2
