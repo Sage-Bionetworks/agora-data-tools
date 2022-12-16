@@ -217,7 +217,7 @@
     - proteomics_distribution_data:
         files:
           - name: proteomics
-          id: syn18689335.3
+            id: syn18689335.3
             format: csv
           - name: proteomics_tmt
             id: syn35221005.2
