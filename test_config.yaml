@@ -1,5 +1,19 @@
 - destination: &dest syn17015333
 - datasets:
+    - biodomains:
+        files:
+          - name: biodomains
+            id: syn44151254.1
+            format: csv
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn44151254.1
+        column_rename:
+          ensg: ensembl_gene_id
+          goterm_name: goterms
+        destination: *dest
+
     - neuropath_corr:
         files:
           - name: neuropath_regression_results
