@@ -343,10 +343,11 @@ def create_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
 
 def transform_biodomains(datasets: dict):
     biodomains = datasets['biodomains']
-    interesting_columns = ['ensembl_id', 'biodomain', 'goterms']
+    interesting_columns = ['ensembl_id', 'biodomain', 'go_terms']
     biodomains = biodomains[interesting_columns]
 
-    biodomains = biodomains.groupby(['ensembl_id', 'biodomain'])['goterms'].apply(list).reset_index()
+    # Group rows by ensg and biodomain to produce nested lists of go_terms per ensg/biodomain
+    biodomains = biodomains.groupby(['ensembl_id', 'biodomain'])['go_terms'].apply(list).reset_index()
 
     biodomains = nest_fields(df=biodomains,
                              grouping='ensembl_id',
@@ -365,8 +366,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     elif dataset_name == "distribution_data":
         return transform_distribution_data(datasets=datasets,
                                            overall_max_score=dataset_obj['custom_transformations']['overall_max_score'],
-                                           genetics_max_score=dataset_obj['custom_transformations'][
-                                               'genetics_max_score'],
+                                           genetics_max_score=dataset_obj['custom_transformations']['genetics_max_score'],
                                            omics_max_score=dataset_obj['custom_transformations']['omics_max_score'],
                                            lit_max_score=dataset_obj['custom_transformations']['lit_max_score'])
     elif dataset_name == "team_info":
@@ -375,10 +375,8 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
         return transform_rna_seq_data(datasets=datasets)
     elif dataset_name == 'gene_info':
         return transform_gene_info(datasets=datasets,
-                                   adjusted_p_value_threshold=dataset_obj['custom_transformations'][
-                                       'adjusted_p_value_threshold'],
-                                   protein_level_threshold=dataset_obj['custom_transformations'][
-                                       'protein_level_threshold'])
+                                   adjusted_p_value_threshold=dataset_obj['custom_transformations']['adjusted_p_value_threshold'],
+                                   protein_level_threshold=dataset_obj['custom_transformations']['protein_level_threshold'])
     elif dataset_name == 'rna_distribution_data':
         return transform_rna_distribution_data(datasets=datasets)
     elif dataset_name == 'proteomics_distribution_data':

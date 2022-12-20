@@ -11,7 +11,7 @@
             - syn44151254.1
           column_rename:
             ensg: ensembl_gene_id
-            goterm_name: goterms
+            goterm_name: go_terms
           destination: *dest
 
     - neuropath_corr:
