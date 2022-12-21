@@ -103,6 +103,11 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound):
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     interesting_columns = ['ensg', 'hgnc_gene_id', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
+    # # fly_neuropath subtraction is required for v9 source; remove when we go to v13 source
+    df['overall'] = df['overall'] - df['flyneuropathscore'].astype(dtype='float64', errors='raise')
+    df.drop(columns=['flyneuropathscore'], inplace=True)
+    # end
+
     # create mapping to deal with missing values as they take different shape across the fields
     scored = ['isscored_genetics', 'isscored_omics', 'isscored_lit']
     mapping = dict(zip(interesting_columns[3:], scored))
@@ -113,7 +118,7 @@ def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     # LiteratureScore is a string in the source file, so convert to numeric
     df['literaturescore'] = pd.to_numeric(df['literaturescore'])
 
-    # Remove identical rows (see AG-826)
+    # Remove identical rows (see AG-826) - may not be required with v13 source
     return df[interesting_columns].drop_duplicates()
 
 
@@ -251,6 +256,11 @@ def transform_distribution_data(datasets: dict, overall_max_score, genetics_max_
 
     overall_scores = datasets['overall_scores']
     interesting_columns = ['ensg', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
+
+    # fly_neuropath subtraction is required for v9 source; remove when we go to v13 source
+    overall_scores['overall'] = overall_scores['overall'] - overall_scores['flyneuropathscore'].astype(dtype='float64', errors='raise')
+    overall_scores.drop(columns=['flyneuropathscore'], inplace=True)
+    # end
 
     # create mapping to deal with missing values as they take different shape across the fields
     scored = ['isscored_genetics', 'isscored_omics', 'isscored_lit']
