@@ -65,10 +65,10 @@
     - gene_info:
         files:
           - name: gene_metadata
-            id: syn25953363.2
+            id: syn25953363.4
             format: feather
           - name: igap
-            id: syn12514826.2
+            id: syn12514826.4
             format: csv
           - name: eqtl
             id: syn12514912.2
@@ -99,8 +99,8 @@
           ensg: ensembl_gene_id
           haseqtl: has_eqtl
         provenance:
-          - syn25953363.2
-          - syn12514826.2
+          - syn25953363.4
+          - syn12514826.4
           - syn12514912.2
           - syn18689335.3
           - syn35221005.2
