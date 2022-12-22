@@ -103,11 +103,6 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound):
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     interesting_columns = ['ensg', 'hgnc_gene_id', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
-    # # fly_neuropath subtraction is required for v9 source; remove when we go to v13 source
-    df['overall'] = df['overall'] - df['flyneuropathscore'].astype(dtype='float64', errors='raise')
-    df.drop(columns=['flyneuropathscore'], inplace=True)
-    # end
-
     # create mapping to deal with missing values as they take different shape across the fields
     scored = ['isscored_genetics', 'isscored_omics', 'isscored_lit']
     mapping = dict(zip(interesting_columns[3:], scored))
@@ -118,7 +113,7 @@ def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     # LiteratureScore is a string in the source file, so convert to numeric
     df['literaturescore'] = pd.to_numeric(df['literaturescore'])
 
-    # Remove identical rows (see AG-826) - may not be required with v13 source
+    # Remove identical rows (see AG-826)
     return df[interesting_columns].drop_duplicates()
 
 
@@ -257,11 +252,6 @@ def transform_distribution_data(datasets: dict, overall_max_score, genetics_max_
     overall_scores = datasets['overall_scores']
     interesting_columns = ['ensg', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
 
-    # fly_neuropath subtraction is required for v9 source; remove when we go to v13 source
-    overall_scores['overall'] = overall_scores['overall'] - overall_scores['flyneuropathscore'].astype(dtype='float64', errors='raise')
-    overall_scores.drop(columns=['flyneuropathscore'], inplace=True)
-    # end
-
     # create mapping to deal with missing values as they take different shape across the fields
     scored = ['isscored_genetics', 'isscored_omics', 'isscored_lit']
     mapping = dict(zip(interesting_columns[2:], scored))
@@ -276,14 +266,14 @@ def transform_distribution_data(datasets: dict, overall_max_score, genetics_max_
     for col in interesting_columns[1:]:  # excludes the ENSG
         neo_matrix[col] = calculate_distribution(overall_scores, col, mapping[col], max_score[col])
 
-    neo_matrix['Logsdon'] = neo_matrix.pop('overall')
-    neo_matrix['GeneticsScore'] = neo_matrix.pop('geneticsscore')
-    neo_matrix['OmicsScore'] = neo_matrix.pop('omicsscore')
-    neo_matrix['LiteratureScore'] = neo_matrix.pop('literaturescore')
+    neo_matrix['target_risk_score'] = neo_matrix.pop('overall')
+    neo_matrix['genetics_score'] = neo_matrix.pop('geneticsscore')
+    neo_matrix['multi_omics_score'] = neo_matrix.pop('omicsscore')
+    neo_matrix['literature_score'] = neo_matrix.pop('literaturescore')
 
-    additional_data = [{'name': 'Overall Score', 'syn_id': 'syn25913473', 'wiki_id': '613107'},
-                       {'name': 'Genetics Score', 'syn_id': 'syn25913473', 'wiki_id': '613104'},
-                       {'name': 'Genomics Score', 'syn_id': 'syn25913473', 'wiki_id': '613106'},
+    additional_data = [{'name': 'Target Risk Score', 'syn_id': 'syn25913473', 'wiki_id': '613107'},
+                       {'name': 'Genetic Risk Score', 'syn_id': 'syn25913473', 'wiki_id': '613104'},
+                       {'name': 'Multi-omic Risk Score', 'syn_id': 'syn25913473', 'wiki_id': '613106'},
                        {'name': 'Literature Score', 'syn_id': 'syn25913473', 'wiki_id': '613105'}
                        ]
     for col, additional in zip(neo_matrix.keys(), additional_data):
