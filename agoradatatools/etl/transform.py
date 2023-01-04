@@ -354,7 +354,8 @@ def transform_biodomains(datasets: dict):
 
     biodomains = nest_fields(df=biodomains,
                              grouping='ensembl_id',
-                             new_column='gene_biodomains')
+                             new_column='gene_biodomains',
+                             drop_columns='ensembl_id')
 
     return biodomains
 

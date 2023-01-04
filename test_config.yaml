@@ -10,8 +10,9 @@
         provenance:
           - syn44151254.1
         column_rename:
-          ensg: ensembl_gene_id
           goterm_name: go_terms
+        agora_rename:
+          ensembl_id: ensembl_gene_id
         destination: *dest
 
     - neuropath_corr:
@@ -242,3 +243,4 @@
           - syn18689335.3
           - syn35221005.2
         destination: *dest
+
