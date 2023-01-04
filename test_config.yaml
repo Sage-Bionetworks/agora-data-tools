@@ -1,4 +1,4 @@
-- destination: &dest syn33017043
+- destination: &dest syn17015333
 - datasets:
     - biodomains:
         files:
