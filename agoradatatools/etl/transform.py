@@ -53,6 +53,8 @@ def nest_fields(df: pd.DataFrame, grouping: str, new_column: str, drop_columns: 
     :param grouping: a string containing the column to group by
     :param new_column: a string with the name of the new column that will contain
     the nested field
+    :param drop_columns: a list of column names to drop (remove) from the 
+    nested dictionary. Optional argument, defaults to empty list.
     :return: a dataframe
     """
     return (df.groupby(grouping)
