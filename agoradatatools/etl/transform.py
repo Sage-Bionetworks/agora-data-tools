@@ -46,7 +46,7 @@ def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
     return df
 
 
-def nest_fields(df: pd.DataFrame, grouping: str, new_column: str) -> pd.DataFrame:
+def nest_fields(df: pd.DataFrame, grouping: str, new_column: str, drop_columns: list = []) -> pd.DataFrame:
     """
     This will create a dictionary object with the result of the grouping provided
     :param df: a dataframe
@@ -56,7 +56,8 @@ def nest_fields(df: pd.DataFrame, grouping: str, new_column: str) -> pd.DataFram
     :return: a dataframe
     """
     return (df.groupby(grouping)
-            .apply(lambda row: row.replace({np.nan: None}).to_dict('records'))
+            .apply(lambda row: row.replace({np.nan: None})
+                   .drop(columns = drop_columns).to_dict('records'))
             .reset_index()
             .rename(columns={0: new_column}))
 
