@@ -104,16 +104,16 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound):
 
 def transform_biodomains(datasets: dict):
     biodomains = datasets['biodomains']
-    interesting_columns = ['ensembl_id', 'biodomain', 'go_terms']
+    interesting_columns = ['ensembl_gene_id', 'biodomain', 'go_terms']
     biodomains = biodomains[interesting_columns]
 
     # Group rows by ensg and biodomain to produce nested lists of go_terms per ensg/biodomain
-    biodomains = biodomains.groupby(['ensembl_id', 'biodomain'])['go_terms'].apply(list).reset_index()
+    biodomains = biodomains.groupby(['ensembl_gene_id', 'biodomain'])['go_terms'].apply(list).reset_index()
 
     biodomains = nest_fields(df=biodomains,
-                             grouping='ensembl_id',
+                             grouping='ensembl_gene_id',
                              new_column='gene_biodomains',
-                             drop_columns='ensembl_id')
+                             drop_columns='ensembl_gene_id')
 
     return biodomains
 
