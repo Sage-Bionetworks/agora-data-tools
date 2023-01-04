@@ -137,21 +137,21 @@
     - overall_scores:
         files:
           - name: overall_scores
-            id: syn25575156.9
+            id: syn25575156.13
             format: table
         final_format: json
         custom_transformations: 1
         column_rename:
           genename: hgnc_gene_id
         provenance:
-          - syn25575156.9
+          - syn25575156.13
         agora_rename:
-          ensg: ENSG
-          hgnc_gene_id: GeneName
-          geneticsscore: GeneticsScore
-          literaturescore: LiteratureScore
-          overall: Logsdon
-          omicsscore: OmicsScore
+          ensg: ensembl_gene_id
+          hgnc_gene_id: hgnc_symbol
+          geneticsscore: genetics_score
+          literaturescore: literature_score
+          overall: target_risk_score
+          omicsscore: multi_omics_score
         destination: *dest
 
     - network:
@@ -190,16 +190,16 @@
     - distribution_data:
         files:
           - name: overall_scores
-            id: syn25575156.9
+            id: syn25575156.13
             format: table
         final_format: json
         custom_transformations:
-          overall_max_score: 7
+          overall_max_score: 5
           genetics_max_score: 3
           omics_max_score: 2
           lit_max_score: 2
         provenance:
-          - syn25575156.9
+          - syn25575156.13
         destination: *dest
 
     - rna_distribution_data:
