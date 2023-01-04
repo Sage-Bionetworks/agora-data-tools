@@ -33,22 +33,16 @@ def _get_config(config_path: str = None):
 
 
 def _find_config_by_name(config: list, name: str):
-    """
-    Iterates through the list to find a dictionary with a key matching 'name'
+    """Iterates through the list to find a dictionary with a key matching 'name'
 
-    Parameters
-    ----------
-    config : list
-        A list of dicts, each of which usually contain a single key. These
-        come from the config yaml file. 
-    name : str
-        The name of that key.
+    Args:
+        config: A list of dicts, each of which usually contain a single key.
+            These come from the config yaml file.
+        name: The name of that key.
 
-    Returns
-    -------
-    object
-        If a dictionary is found, returns the contents of dict[name]. Otherwise 
-        returns None. 
+    Returns:
+        object: If a dictionary is found, returns the contents of dict[name].
+            Otherwise returns None.
 
     """
     for item in config:
