@@ -102,6 +102,20 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound):
 
     return obj
 
+def transform_biodomains(datasets: dict):
+    biodomains = datasets['biodomains']
+    interesting_columns = ['ensembl_id', 'biodomain', 'go_terms']
+    biodomains = biodomains[interesting_columns]
+
+    # Group rows by ensg and biodomain to produce nested lists of go_terms per ensg/biodomain
+    biodomains = biodomains.groupby(['ensembl_id', 'biodomain'])['go_terms'].apply(list).reset_index()
+
+    biodomains = nest_fields(df=biodomains,
+                             grouping='ensembl_id',
+                             new_column='gene_biodomains',
+                             drop_columns='ensembl_id')
+
+    return biodomains
 
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
     interesting_columns = ['ensg', 'hgnc_gene_id', 'overall', 'geneticsscore', 'omicsscore', 'literaturescore']
@@ -349,6 +363,8 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if type(datasets) is not dict or type(dataset_name) is not str:
         return None
 
+    elif dataset_name == 'biodomains':
+        return transform_biodomains(datasets=datasets)
     if dataset_name == "overall_scores":
         df = datasets['overall_scores']
         return transform_overall_scores(df=df)
