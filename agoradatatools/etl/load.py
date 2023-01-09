@@ -5,8 +5,10 @@ from . import utils
 from synapseclient import File, Activity
 import numpy as np
 
+
 class NumpyEncoder(json.JSONEncoder):
-    """ Special json encoder for numpy types """
+    """Special json encoder for numpy types"""
+
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -22,7 +24,7 @@ def create_temp_location():
     Creates a temporary location to store the json files
     """
     try:
-        mkdir('./staging')
+        mkdir("./staging")
     except FileExistsError:
         return
 
@@ -31,7 +33,7 @@ def delete_temp_location():
     """
     Deletes the default temporary location
     """
-    rmdir('./staging')
+    rmdir("./staging")
 
 
 def remove_non_values(d: dict) -> dict:
@@ -51,7 +53,7 @@ def remove_non_values(d: dict) -> dict:
                 cleaned_dict[key] = nested_dict
         # case 2: list
         if isinstance(value, list):
-            for elem in value: # value is a list
+            for elem in value:  # value is a list
                 if isinstance(elem, dict):
                     nested_dict = remove_non_values(elem)
                 else:
@@ -59,14 +61,14 @@ def remove_non_values(d: dict) -> dict:
         # case 3: None/NaN
         elif pd.isna(value) or value is None:
             continue
-        #case 4: regular element
+        # case 4: regular element
         elif value is not None:
             cleaned_dict[key] = value
 
     return cleaned_dict
 
 
-def load(file_path: str, provenance: list[str], destination: str, syn=None):
+def load(file_path: str, provenance: list, destination: str, syn=None):
     """
     Calls df_to_json, add_to_manifest, add_to_report
     :param filename: the name of the file to be loaded into Synapse
@@ -89,15 +91,21 @@ def load(file_path: str, provenance: list[str], destination: str, syn=None):
         file = File(file_path, parent=destination)
         file = syn.store(file, activity=activity)
     except OSError as e:
-        print("Either the file path (" + file_path +
-              ") or the destination(" + destination +
-              ") are invalid.")
+        print(
+            "Either the file path ("
+            + file_path
+            + ") or the destination("
+            + destination
+            + ") are invalid."
+        )
 
         print(e)
         return
     except ValueError:
-        print("Please make sure that the Synapse id of " +
-              "the provenances and the destination are valid")
+        print(
+            "Please make sure that the Synapse id of "
+            + "the provenances and the destination are valid"
+        )
         return
 
     return (file.id, file.versionNumber)
@@ -114,17 +122,14 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
     try:
         df = df.replace({np.nan: None})
 
-        df_as_dict = df.to_dict(orient='records')
+        df_as_dict = df.to_dict(orient="records")
 
-        temp_json = open("./staging/" + filename, 'w+')
-        json.dump(df_as_dict, temp_json,
-                 cls=NumpyEncoder,
-                 indent=2)
+        temp_json = open("./staging/" + filename, "w+")
+        json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
         temp_json.close()
         return None
-
 
     temp_json.close()
     return temp_json.name
@@ -138,7 +143,7 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
     :return: the path of the newly created temporary csv file
     """
     try:
-        temp_csv = open("./staging/" + filename, 'w+')
+        temp_csv = open("./staging/" + filename, "w+")
         df.to_csv(path_or_buf=temp_csv, index=False)
     except AttributeError:
         print("Invalid dataframe.")
@@ -151,12 +156,15 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
 
 def dict_to_json(df: dict, filename: str):
     try:
-        df_as_dict = [{d: remove_non_values(v) if isinstance(v, dict) else v for d,v in df.items()}]
+        df_as_dict = [
+            {
+                d: remove_non_values(v) if isinstance(v, dict) else v
+                for d, v in df.items()
+            }
+        ]
 
-        temp_json = open("./staging/" + filename, 'w+')
-        json.dump(df_as_dict, temp_json,
-                  cls=NumpyEncoder,
-                  indent=2)
+        temp_json = open("./staging/" + filename, "w+")
+        json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
         temp_json.close()
