@@ -124,7 +124,7 @@ def test_process_dataset_type_dict():
     ), patch.object(
         transform,
         "standardize_values",
-        return_value=dict(),  # test if it is a dictionary later - not sure if this is appropriate way to do it
+        return_value=dict(),  # test if it is a dictionary later
     ), patch.object(
         load, "dict_to_json", return_value="path/to/json"
     ) as patch_dict_to_json, patch.object(

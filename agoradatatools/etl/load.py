@@ -92,11 +92,7 @@ def load(file_path: str, provenance: list, destination: str, syn=None):
         file = syn.store(file, activity=activity)
     except OSError as e:
         print(
-            "Either the file path ("
-            + file_path
-            + ") or the destination("
-            + destination
-            + ") are invalid."
+            f"Either the file path ({file_path}) or the destination ({destination}) are invalid."
         )
 
         print(e)
@@ -124,7 +120,9 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
 
         df_as_dict = df.to_dict(orient="records")
 
-        temp_json = open("./staging/" + filename, "w+")
+        temp_json = open(
+            "./staging/" + filename, "w+"
+        )  # TODO yse the with open() context manager
         json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
@@ -156,7 +154,7 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
 
 def dict_to_json(df: dict, filename: str):
     try:
-        df_as_dict = [
+        df_as_dict = [  # TODO explore the df.to_dict() function for this case
             {
                 d: remove_non_values(v) if isinstance(v, dict) else v
                 for d, v in df.items()
