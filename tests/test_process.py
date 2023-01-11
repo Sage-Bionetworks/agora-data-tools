@@ -140,17 +140,14 @@ class TestCreateDataManifest:
         self.patch_syn_login.stop()
         self.patch_get_children.stop()
 
-    @pytest.fixture(scope="function", autouse=True)
     def test_create_data_manifest_parent_none(self, syn):
         assert process.create_data_manifest(parent=None, syn=syn) is None
         self.patch_syn_login.assert_not_called()
 
-    @pytest.fixture(scope="function", autouse=True)
     def test_create_data_manifest_syn_none(self):
         process.create_data_manifest(parent="syn1111111", syn=None)
         self.patch_syn_login.assert_called_once()
 
-    @pytest.fixture(scope="function", autouse=True)
     def test_create_data_manifest_no_none(self, syn):
         df = process.create_data_manifest(parent="syn1111111", syn=syn)
         self.patch_get_children.assert_called_once_with("syn1111111")
@@ -159,8 +156,9 @@ class TestCreateDataManifest:
 
 
 class TestProcessAllFiles:
+    @pytest.fixture(scope="function", autouse=True)
     def setup_method(self):
-        self.get_config = patch.object(
+        self.patch_get_config = patch.object(
             utils,
             "_get_config",
             return_value=[
@@ -174,41 +172,37 @@ class TestProcessAllFiles:
         self.patch_process_dataset = patch.object(
             process, "process_dataset", return_value=tuple()
         ).start()
-        self.patch_create_data_manifest = (
-            patch.object(
-                process,
-                "create_data_manifest",
-                return_value=pd.DataFrame({"id": ["a", "b", "c"]}),
-            ).start(),
-        )
-
+        self.patch_create_data_manifest = patch.object(
+            process,
+            "create_data_manifest",
+            return_value=pd.DataFrame({"id": ["a", "b", "c"]}),
+        ).start()
         self.patch_df_to_csv = patch.object(
             load, "df_to_csv", return_value="path/to/csv"
         ).start()
         self.patch_load = patch.object(load, "load", return_value=None).start()
 
     def teardown_method(self):
-        self.get_config.stop()
+        self.patch_get_config.stop()
         self.patch_create_temp_location.stop()
         self.patch_process_dataset.stop()
         self.patch_create_data_manifest.stop()
         self.patch_df_to_csv.stop()
         self.patch_load.stop()
 
-    @pytest.fixture(scope="function", autouse=True)
     def test_process_all_files_config_path(self, syn):
         process.process_all_files(config_path="path/to/config", syn=syn)
         self.patch_get_config.assert_called_once_with(config_path="path/to/config")
 
-    @pytest.fixture(scope="function", autouse=True)
     def test_process_all_files_no_config_path(self, syn):
         process.process_all_files(config_path=None, syn=syn)
         self.patch_get_config.assert_called_once_with()
 
-    @pytest.fixture(scope="function", autouse=True)
     def test_process_all_files_full(self, syn):
         process.process_all_files(config_path=None, syn=syn)
-        self.patch_process_dataset.assert_called_once_with(dataset_obj="a", syn=syn)
+        self.patch_process_dataset.assert_any_call(dataset_obj="a", syn=syn)
+        self.patch_process_dataset.assert_any_call(dataset_obj="b", syn=syn)
+        self.patch_process_dataset.assert_any_call(dataset_obj="c", syn=syn)
         self.patch_create_data_manifest.assert_called_once_with(
             parent="destination", syn=syn
         )
