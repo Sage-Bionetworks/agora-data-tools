@@ -1,67 +1,238 @@
-# import pytest
-# import agoradatatools.process as process
-# import pandas as pd
+import pandas as pd
+from unittest.mock import patch
+import argparse
+import pytest
 
-# file_object = {
-#     "id": "syn25838546",
-#     "format": "table",
-#     "final_filename": "teams.json",
-#     "provenance": ['syn25838546'],
-#     "destination": "syn25871921"
-# }
+from agoradatatools.etl import extract, transform, load, utils
+from agoradatatools import process
 
-# dataset_object_multi = {
-#         "team_info": {
-#             "files": [
-#                 {
-#                     "syn12615624": "csv"
-#                 },
-#                 {
-#                     "syn12615633": "csv"
-#                 }
-#             ],
-#             "final_format": "json",
-#             "additional_transformations": [
-#                 {
-#                     "join_datasets": {
-#                         "left": "syn12615624",
-#                         "right": "syn12615633",
-#                         "how": "left",
-#                         "on": "team"
-#                     }
-#                 }
-#             ],
-#             "provenance": [
-#                 "syn12615624",
-#                 "syn12615633"
-#             ],
-#             "destination": "syn25871921"
-#         }
-#     }
 
-# dataset_object_single = {
-#         "neuropath_corr": {
-#             "files": [
-#                 {
-#                     "syn22017882": "csv"
-#                 }
-#             ],
-#             "final_format": "json",
-#             "provenance": [
-#                 "syn22017882"
-#             ],
-#             "column_rename": {
-#                 "ensg": "ensembl_gene_id",
-#                 "gname": "hgnc_gene_id"
-#             },
-#             "destination": "syn25871921"
-#         }
-#     }
+class TestProcessDataset:
+    dataset_object = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn1111111"],
+            "destination": "syn1111113",
+        }
+    }
 
-# def test_process_dataset():
-#     good_result = process.process_dataset(dataset_obj=dataset_object_single)
-#     assert type(good_result) is tuple
+    dataset_object_col_rename = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn1111111"],
+            "destination": "syn1111113",
+            "column_rename": {"col_1": "new_col_1", "col_2": "new_col_2"},
+        }
+    }
 
-# def test_create_data_manifest():
-#     assert type(process.create_data_manifest(parent='syn27406021')) == pd.DataFrame
-#     assert process.create_data_manifest() is None
+    dataset_object_custom_transform = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn1111111"],
+            "destination": "syn1111113",
+            "custom_transformations": "test_transformation",
+        }
+    }
+
+    dataset_object_agora_rename = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn1111111"],
+            "destination": "syn1111113",
+            "agora_rename": {"col_1": "new_col_1", "col_2": "new_col_2"},
+        }
+    }
+
+    def setup_method(self):
+        self.patch_get_entity_as_df = patch.object(
+            extract, "get_entity_as_df", return_value=pd.DataFrame
+        ).start()
+        self.patch_standardize_column_names = patch.object(
+            transform, "standardize_column_names", return_value=pd.DataFrame
+        ).start()
+        self.patch_standardize_values = patch.object(
+            transform, "standardize_values", return_value=pd.DataFrame
+        ).start()
+        self.patch_rename_columns = patch.object(
+            transform, "rename_columns", return_value=pd.DataFrame
+        ).start()
+        self.patch_df_to_json = patch.object(
+            load, "df_to_json", return_value="path/to/json"
+        ).start()
+        self.patch_load = patch.object(load, "load", return_value=None).start()
+        self.patch_custom_transform = patch.object(
+            transform, "apply_custom_transformations", return_value=pd.DataFrame
+        ).start()
+        self.patch_dict_to_json = patch.object(
+            load, "dict_to_json", return_value="path/to/json"
+        ).start()
+
+    def teardown_method(self):
+        self.patch_get_entity_as_df.stop()
+        self.patch_standardize_column_names.stop()
+        self.patch_standardize_values.stop()
+        self.patch_rename_columns.stop()
+        self.patch_df_to_json.stop()
+        self.patch_load.stop()
+        self.patch_custom_transform.stop()
+        self.patch_dict_to_json.stop()
+
+    def test_process_dataset_with_column_rename(self):
+        process.process_dataset(
+            dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
+        )
+        self.patch_rename_columns.assert_called_once_with(
+            df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
+        )
+        self.patch_custom_transform.assert_not_called()
+        self.patch_dict_to_json.assert_not_called()
+
+    def test_process_dataset_custom_transformations(self):
+        process.process_dataset(
+            dataset_obj=self.dataset_object_custom_transform, staging_path="./staging"
+        )
+        self.patch_custom_transform.assert_called_once_with(
+            datasets={"test_file_1": pd.DataFrame},
+            dataset_name="neuropath_corr",
+            dataset_obj={
+                "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+                "final_format": "json",
+                "provenance": ["syn1111111"],
+                "destination": "syn1111113",
+                "custom_transformations": "test_transformation",
+            },
+        )
+        self.patch_rename_columns.assert_not_called()
+        self.patch_dict_to_json.assert_not_called()
+
+    def test_process_dataset_with_agora_rename(self):
+        process.process_dataset(
+            dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
+        )
+        self.patch_rename_columns.assert_called_once_with(
+            df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
+        )
+        self.patch_custom_transform.assert_not_called()
+        self.patch_dict_to_json.assert_not_called()
+
+    def test_process_dataset_type_dict(self):
+        self.patch_standardize_values.return_value = (
+            dict()
+        )  # test if it is a dictionary later
+        process.process_dataset(
+            dataset_obj=self.dataset_object, staging_path="./staging"
+        )
+        self.patch_dict_to_json.assert_called_once_with(
+            df={}, staging_path="./staging", filename="neuropath_corr.json"
+        )
+        self.patch_rename_columns.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
+
+
+class TestCreateDataManifest:
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_method(self, syn):
+        self.patch_syn_login = patch.object(
+            utils, "_login_to_synapse", return_value=syn
+        ).start()
+        self.patch_get_children = patch.object(
+            syn, "getChildren", return_value=[{"id": "123", "versionNumber": 1}]
+        ).start()
+
+    def teardown_method(self):
+        self.patch_syn_login.stop()
+        self.patch_get_children.stop()
+
+    def test_create_data_manifest_parent_none(self, syn):
+        assert process.create_data_manifest(parent=None, syn=syn) is None
+        self.patch_syn_login.assert_not_called()
+
+    def test_create_data_manifest_syn_none(self):
+        process.create_data_manifest(parent="syn1111111", syn=None)
+        self.patch_syn_login.assert_called_once()
+
+    def test_create_data_manifest_no_none(self, syn):
+        df = process.create_data_manifest(parent="syn1111111", syn=syn)
+        self.patch_get_children.assert_called_once_with("syn1111111")
+        self.patch_syn_login.assert_not_called()
+        assert isinstance(df, pd.DataFrame)
+
+
+class TestProcessAllFiles:
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_method(self):
+        self.patch_get_config = patch.object(
+            utils,
+            "_get_config",
+            return_value=[
+                {"destination": "destination"},
+                {"datasets": ["a", "b", "c"]},
+            ],
+        ).start()
+        self.patch_create_temp_location = patch.object(
+            load, "create_temp_location", return_value=None
+        ).start()
+        self.patch_process_dataset = patch.object(
+            process, "process_dataset", return_value=tuple()
+        ).start()
+        self.patch_create_data_manifest = patch.object(
+            process,
+            "create_data_manifest",
+            return_value=pd.DataFrame({"id": ["a", "b", "c"]}),
+        ).start()
+        self.patch_df_to_csv = patch.object(
+            load, "df_to_csv", return_value="path/to/csv"
+        ).start()
+        self.patch_load = patch.object(load, "load", return_value=None).start()
+
+    def teardown_method(self):
+        self.patch_get_config.stop()
+        self.patch_create_temp_location.stop()
+        self.patch_process_dataset.stop()
+        self.patch_create_data_manifest.stop()
+        self.patch_df_to_csv.stop()
+        self.patch_load.stop()
+
+    def test_process_all_files_config_path(self, syn):
+        process.process_all_files(config_path="path/to/config", syn=syn)
+        self.patch_get_config.assert_called_once_with(config_path="path/to/config")
+
+    def test_process_all_files_no_config_path(self, syn):
+        process.process_all_files(config_path=None, syn=syn)
+        self.patch_get_config.assert_called_once_with()
+
+    def test_process_all_files_full(self, syn):
+        process.process_all_files(config_path=None, syn=syn)
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj="a", staging_path="./staging", syn=syn
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj="b", staging_path="./staging", syn=syn
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj="c", staging_path="./staging", syn=syn
+        )
+        self.patch_create_data_manifest.assert_called_once_with(
+            parent="destination", syn=syn
+        )
+        self.patch_df_to_csv.assert_called_once_with(
+            df=self.patch_create_data_manifest.return_value,
+            staging_path="./staging",
+            filename="data_manifest.csv",
+        )
+
+
+def test_build_parser():
+    with patch.object(
+        argparse,
+        "ArgumentParser",
+        return_value=argparse.ArgumentParser(),
+    ) as patch_build_parser:
+        parser = process.build_parser()
+        patch_build_parser.assert_called_once_with(description="Agora data processing")
+        assert parser == argparse.ArgumentParser()

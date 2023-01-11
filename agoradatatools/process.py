@@ -1,4 +1,5 @@
 import argparse
+from typing import Union
 
 from pandas import DataFrame
 
@@ -8,12 +9,17 @@ import agoradatatools.etl.load as load
 import agoradatatools.etl.utils as utils
 
 
-def process_dataset(dataset_obj: dict, staging_path: str, syn=None):
-    """
-    Takes in a dataset from the configuration file and passes it through the
-    ETL process
-    :param dataset_obj: a dataset defined in the configuration file
-    :param syn: synapse object
+def process_dataset(dataset_obj: dict, staging_path: str, syn=None) -> Union[tuple, None]:
+    """Takes in a dataset from the configuration file and passes it through the ETL process
+
+    Args:
+        dataset_obj (dict): A dataset defined in the configuration file
+        staging_path (str): Staging path
+        syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
+
+    Returns:
+        Union[tuple, None]: Tuple containing the id and version number of the uploaded file if successful,
+        returns None if not successful
     """
 
     dataset_name = list(dataset_obj.keys())[0]
@@ -78,6 +84,15 @@ def process_dataset(dataset_obj: dict, staging_path: str, syn=None):
 
 
 def create_data_manifest(parent=None, syn=None) -> DataFrame:
+    """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse folders
+
+    Args:
+        parent (synapseclient.Folder/str, optional): synapse folder or synapse id pointing to parent synapse folder. Defaults to None.
+        syn (synapseclient.Synapse, optional): Synapse client session. Defaults to None.
+
+    Returns:
+        DataFrame: Dataframe containing IDs and version numbers of folders within the parent directory
+    """
 
     if not parent:
         return None
@@ -95,10 +110,11 @@ def create_data_manifest(parent=None, syn=None) -> DataFrame:
 
 
 def process_all_files(config_path: str = None, syn=None):
-    """
-    This function will run read through the entire configuration
-    and process each file.
-    :param config_path: the path to the configuration file
+    """This function will read through the entire configuration and process each file listed.
+
+    Args:
+        config_path (str, optional): path to configuration file. Defaults to None.
+        syn (synapseclient.Session, optional): Synapse client session. Defaults to None.
     """
 
     # if not syn:
@@ -144,7 +160,11 @@ def process_all_files(config_path: str = None, syn=None):
 
 
 def build_parser():
-    """Builds the argument parser and returns the result."""
+    """Builds the argument parser and returns the result.
+
+    Returns:
+        argparse.ArgumentParser: argument parser for agora data processing
+    """
     parser = argparse.ArgumentParser(description="Agora data processing")
     parser.add_argument(
         "configpath",
