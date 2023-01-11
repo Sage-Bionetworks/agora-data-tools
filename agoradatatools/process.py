@@ -8,7 +8,7 @@ import agoradatatools.etl.load as load
 import agoradatatools.etl.utils as utils
 
 
-def process_dataset(dataset_obj: dict, syn=None):
+def process_dataset(dataset_obj: dict, staging_path: str, syn=None):
     """
     Takes in a dataset from the configuration file and passes it through the
     ETL process
@@ -54,11 +54,13 @@ def process_dataset(dataset_obj: dict, syn=None):
         if type(df) == dict:
             json_path = load.dict_to_json(
                 df=df,
+                staging_path=staging_path,
                 filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
             )
         else:
             json_path = load.df_to_json(
                 df=df,
+                staging_path=staging_path,
                 filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
             )
 
@@ -107,26 +109,36 @@ def process_all_files(config_path: str = None, syn=None):
     else:
         config = utils._get_config()
 
-    datasets = config[1]["datasets"]
-
+    datasets = utils._find_config_by_name(config, "datasets")
+    
     # create staging location
-    load.create_temp_location()
-
+    staging_path = utils._find_config_by_name(config, "staging_path")
+    if staging_path is None: 
+        staging_path = "./staging"
+        
+    load.create_temp_location(staging_path)
+    
     if datasets:
         for dataset in datasets:
             new_syn_tuple = process_dataset(
-                dataset_obj=dataset, syn=syn
+                dataset_obj=dataset, staging_path=staging_path, syn=syn
             )
             # in the future we should log new_syn_tuples that are none
 
+    destination = utils._find_config_by_name(config, "destination")
+    
     # create manifest
-    manifest_df = create_data_manifest(parent=config[0]["destination"], syn=syn)
-    manifest_path = load.df_to_csv(df=manifest_df, filename="data_manifest.csv")
+    manifest_df = create_data_manifest(parent=destination, syn=syn)
+    manifest_path = load.df_to_csv(
+        df=manifest_df, 
+        staging_path=staging_path, 
+        filename="data_manifest.csv"
+    )
 
     load.load(
         file_path=manifest_path,
         provenance=manifest_df["id"].to_list(),
-        destination=config[0]["destination"],
+        destination=destination,
         syn=syn,
     )
 
