@@ -82,7 +82,9 @@ class TestProcessDataset:
         self.patch_dict_to_json.stop()
 
     def test_process_dataset_with_column_rename(self):
-        process.process_dataset(dataset_obj=self.dataset_object_col_rename)
+        process.process_dataset(
+            dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
+        )
         self.patch_rename_columns.assert_called_once_with(
             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
         )
@@ -90,7 +92,9 @@ class TestProcessDataset:
         self.patch_dict_to_json.assert_not_called()
 
     def test_process_dataset_custom_transformations(self):
-        process.process_dataset(dataset_obj=self.dataset_object_custom_transform)
+        process.process_dataset(
+            dataset_obj=self.dataset_object_custom_transform, staging_path="./staging"
+        )
         self.patch_custom_transform.assert_called_once_with(
             datasets={"test_file_1": pd.DataFrame},
             dataset_name="neuropath_corr",
@@ -106,7 +110,9 @@ class TestProcessDataset:
         self.patch_dict_to_json.assert_not_called()
 
     def test_process_dataset_with_agora_rename(self):
-        process.process_dataset(dataset_obj=self.dataset_object_col_rename)
+        process.process_dataset(
+            dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
+        )
         self.patch_rename_columns.assert_called_once_with(
             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
         )
@@ -117,9 +123,11 @@ class TestProcessDataset:
         self.patch_standardize_values.return_value = (
             dict()
         )  # test if it is a dictionary later
-        process.process_dataset(dataset_obj=self.dataset_object)
+        process.process_dataset(
+            dataset_obj=self.dataset_object, staging_path="./staging"
+        )
         self.patch_dict_to_json.assert_called_once_with(
-            df={}, filename="neuropath_corr.json"
+            df={}, staging_path="./staging", filename="neuropath_corr.json"
         )
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
@@ -200,14 +208,21 @@ class TestProcessAllFiles:
 
     def test_process_all_files_full(self, syn):
         process.process_all_files(config_path=None, syn=syn)
-        self.patch_process_dataset.assert_any_call(dataset_obj="a", syn=syn)
-        self.patch_process_dataset.assert_any_call(dataset_obj="b", syn=syn)
-        self.patch_process_dataset.assert_any_call(dataset_obj="c", syn=syn)
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj="a", staging_path="./staging", syn=syn
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj="b", staging_path="./staging", syn=syn
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj="c", staging_path="./staging", syn=syn
+        )
         self.patch_create_data_manifest.assert_called_once_with(
             parent="destination", syn=syn
         )
         self.patch_df_to_csv.assert_called_once_with(
             df=self.patch_create_data_manifest.return_value,
+            staging_path="./staging",
             filename="data_manifest.csv",
         )
 

@@ -9,11 +9,12 @@ import agoradatatools.etl.load as load
 import agoradatatools.etl.utils as utils
 
 
-def process_dataset(dataset_obj: dict, syn=None) -> Union[tuple, None]:
+def process_dataset(dataset_obj: dict, staging_path: str, syn=None) -> Union[tuple, None]:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
         dataset_obj (dict): A dataset defined in the configuration file
+        staging_path (str): Staging path
         syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
 
     Returns:
