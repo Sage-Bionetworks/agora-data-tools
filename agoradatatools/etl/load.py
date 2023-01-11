@@ -1,6 +1,6 @@
 import pandas as pd
 import json
-from os import mkdir, rmdir
+from os import mkdir, rmdir, path
 from . import utils
 from synapseclient import File, Activity
 import numpy as np
@@ -19,21 +19,21 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def create_temp_location():
+def create_temp_location(staging_path: str):
     """
     Creates a temporary location to store the json files
     """
     try:
-        mkdir("./staging")
+        mkdir(staging_path)
     except FileExistsError:
         return
 
 
-def delete_temp_location():
+def delete_temp_location(staging_path: str):
     """
     Deletes the default temporary location
     """
-    rmdir("./staging")
+    rmdir(staging_path)
 
 
 def remove_non_values(d: dict) -> dict:
@@ -107,7 +107,7 @@ def load(file_path: str, provenance: list, destination: str, syn=None):
     return (file.id, file.versionNumber)
 
 
-def df_to_json(df: pd.core.frame.DataFrame, filename: str):
+def df_to_json(df: pd.DataFrame, staging_path: str, filename: str):
     """
     Converts a data frame into a json file.
     :param df: a dataframe
@@ -120,10 +120,10 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
 
         df_as_dict = df.to_dict(orient="records")
 
-        temp_json = open(
-            "./staging/" + filename, "w+"
-        )  # TODO yse the with open() context manager
-        json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
+        temp_json = open(path.join(staging_path, filename), 'w+')
+        json.dump(df_as_dict, temp_json,
+                  cls=NumpyEncoder,
+                  indent=2)
     except Exception as e:
         print(e)
         temp_json.close()
@@ -133,7 +133,7 @@ def df_to_json(df: pd.core.frame.DataFrame, filename: str):
     return temp_json.name
 
 
-def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
+def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str):
     """
     Converts a data frame into a csv file.
     :param df: a dataframe
@@ -141,7 +141,7 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
     :return: the path of the newly created temporary csv file
     """
     try:
-        temp_csv = open("./staging/" + filename, "w+")
+        temp_csv = open(path.join(staging_path, filename), 'w+')
         df.to_csv(path_or_buf=temp_csv, index=False)
     except AttributeError:
         print("Invalid dataframe.")
@@ -152,7 +152,7 @@ def df_to_csv(df: pd.core.frame.DataFrame, filename: str):
     return temp_csv.name
 
 
-def dict_to_json(df: dict, filename: str):
+def dict_to_json(df: dict, staging_path: str, filename: str):
     try:
         df_as_dict = [  # TODO explore the df.to_dict() function for this case
             {
@@ -160,9 +160,10 @@ def dict_to_json(df: dict, filename: str):
                 for d, v in df.items()
             }
         ]
-
-        temp_json = open("./staging/" + filename, "w+")
-        json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
+        temp_json = open(path.join(staging_path, filename), 'w+')
+        json.dump(df_as_dict, temp_json,
+                  cls=NumpyEncoder,
+                  indent=2)
     except Exception as e:
         print(e)
         temp_json.close()

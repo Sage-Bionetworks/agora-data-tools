@@ -1,4 +1,5 @@
 - destination: &dest syn12177492
+- staging_path: ./staging
 - datasets:
     - neuropath_corr:
         files:
