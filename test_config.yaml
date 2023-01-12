@@ -1,6 +1,20 @@
 - destination: &dest syn17015333
 - staging_path: ./staging
 - datasets:
+    - biodomains:
+        files:
+          - name: biodomains
+            id: syn44151254.1
+            format: csv
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn44151254.1
+        column_rename:
+          ensembl_id: ensembl_gene_id
+          goterm_name: go_terms
+        destination: *dest
+
     - neuropath_corr:
         files:
           - name: neuropath_regression_results
