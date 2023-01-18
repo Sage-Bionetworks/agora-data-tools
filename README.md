@@ -33,7 +33,7 @@ Note that running the pipeline does _not_ automatically update the Agora databas
 into the Agora databases is handled by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/).
 
 You can run the pipeline in any of the following ways:
-1. [GitHub Actions](#GitHub-Actions) is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synpase PAT, or setting up the Synapse Python client.
+1. [Nextflow Tower](#GitHub-Actions) is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synpase PAT, or setting up the Synapse Python client.
 2. [Locally](#Locally) requires installing Python, obtaining the required Synapse permissions, creating a Synpase PAT, and setting up the Synapse Python client.
 3. [Docker](#Docker) requires installing Docker, obtaining the required Synapse permissions, and creating a Synpase PAT.
 
@@ -45,21 +45,10 @@ Note that files in the Agora Live Data folder are not automatically released, so
 You may also create a custom config file to use locally to target specific dataset(s) or transforms of interest, and/or to write the generated json files to a different Synapse 
 location. See the [config file](#Config) section for additional information.
 
-### GitHub Actions
-This pipeline can be executed without any local installation, permissions, or credentials; the repository is configured to use Agora's Synapse credentials, which can be found in LastPass in the "Shared-Agora" Folder. 
+### Nextflow Tower
+This pipeline can be executed without any local installation, permissions, or credentials; the Sage Bionetworks Nextflow Tower workspace is configured to use Agora's Synapse credentials, which can be found in LastPass in the "Shared-Agora" Folder.
 
-Use one of the following GitHub Actions to trigger the workflow:  
-* The `CI` GitHub Action is automatically run any time that code is merged to the dev branch; this pipeline uses `test_config.yaml` so the generated json files are written to [Agora Testing Data](https://www.synapse.org/#!Synapse:syn17015333). This pipeline can also be manually triggered (for example, when a new source file version is available but there are no associated code changes to merge) by performing the following steps:
-
-  1. Go to "Actions" Tab in this GitHub repository
-  2. Click "CI" on the left
-  3. Click "Run workflow" to update the files and manifest in the **_Agora Testing Data_** folder
-
-
-* The `production-release` GitHub Action must be manually triggered; this pipeline uses ```config.yaml``` so the generated json files are written to [Agora Live Data](https://www.synapse.org/#!Synapse:syn12177492). To manually trigger the `production-release` pipeline perform the following steps:
-  1. Go to "Actions" Tab in this GitHub repository
-  2. Click "production_release" on the left
-  3. Click "Run workflow" to update the files and manifest in the **_Agora Live Data_** folder
+The instructions to trigger the workflow can be found at [Sage-Bionetworks-Workflows/nf-agora](https://github.com/Sage-Bionetworks-Workflows/nf-agora)
 
 ### Locally
 Perform the following one-time steps to set up your local environment and to obtain the required Synapse permissions:
@@ -147,4 +136,3 @@ Parameters:
 - `datasets/<dataset>/column_rename`: Columns to be renamed prior to data transformation
 - `datasets/<dataset>/agora_rename`: Columns to be renamed after data transformation, but prior to json serialization
 - `datasets/<dataset>/custom_transformations`: The list of additional transformations to apply to the dataset; a value of 1 indicates the default transformation
-
