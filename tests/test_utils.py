@@ -2,14 +2,9 @@ import pytest
 from agoradatatools.etl import utils
 from unittest.mock import patch
 import synapseclient
-
-# file_object = {
-#     "id": "syn25838546",
-#     "format": "table",
-#     "final_filename": "teams",
-#     "provenance": [],
-#     "destination": "syn25871921",
-# }
+import yaml
+import io
+import builtins
 
 
 class TestLoginToSynapse:
@@ -33,17 +28,53 @@ class TestLoginToSynapse:
         self.patch_syn_login.assert_called_once_with()
 
 
-# class TestGetConfig:
-#     @pytest.fixture(scope="function", autouse=True)
-#     def setup_method(self, syn):
-#         self.patch_synapseclient = patch.object(
-#             synapseclient, "Synapse", return_value=syn
-#         ).start()
-#         self.patch_syn_login = patch.object(syn, "login", return_value=syn).start()
+def test_get_config_with_invalid_file_path():
+    with pytest.raises(FileNotFoundError, match="File not found. *"):
+        utils._get_config(config_path="this/is/a/bad/path")
 
-#     def teardown_method(self):
-#         self.patch_synapseclient.stop()
-#         self.patch_syn_login.stop()
+
+def test_get_config_with_parser_error():
+    with pytest.raises(
+        yaml.parser.ParserError, match="YAML file unable to be parsed. *"
+    ):
+        utils._get_config(config_path="./tests/test_assets/bad_config_parsing.yaml")
+
+
+def test_get_config_with_scanner_error():
+    with pytest.raises(
+        yaml.scanner.ScannerError, match="YAML file unable to be scanned. *"
+    ):
+        utils._get_config(config_path="./tests/test_assets/bad_config_scanning.yaml")
+
+
+class TestGetConfig:
+    def setup_method(self, syn):
+        self.patch_open = patch.object(
+            builtins, "open", return_value=io.TextIOWrapper
+        ).start()
+        self.patch_yaml_load = patch.object(
+            yaml, "load", return_value=[{"a": "b"}, {"c", "d"}]
+        ).start()
+
+    def teardown_method(self):
+        self.patch_open.stop()
+        self.patch_yaml_load.stop()
+
+    def test_get_config_with_no_config_path(self):
+        config = utils._get_config(config_path=None)
+        self.patch_open.assert_called_once_with("./config.yaml", "r")
+        self.patch_yaml_load.assert_called_once_with(
+            io.TextIOWrapper, Loader=yaml.FullLoader
+        )
+        assert config == self.patch_yaml_load.return_value
+
+    def test_get_config_with_config_path(self):
+        config = utils._get_config(config_path="this/is/a/good/path")
+        self.patch_open.assert_called_once_with("this/is/a/good/path", "r")
+        self.patch_yaml_load.assert_called_once_with(
+            io.TextIOWrapper, Loader=yaml.FullLoader
+        )
+        assert config == self.patch_yaml_load.return_value
 
 
 def test_find_config_by_name_where_name_in_config():
@@ -56,19 +87,3 @@ def test_find_config_by_name_where_name_not_in_config():
     config = [{"a": "b"}, {"c": "d"}]
     returned_object = utils._find_config_by_name(config=config, name="z")
     assert returned_object is None
-
-
-# def test_yaml():
-#     # tests if a valid file renders a list
-#     assert type(utils._get_config()) is list
-
-#     # tests if a bad file will
-#     with pytest.raises(SystemExit) as err:
-#         utils._get_config(config_path="./tests/test_assets/bad_config.yaml")
-#     assert err.type == SystemExit
-#     assert err.value.code == 9
-
-#     with pytest.raises(SystemExit) as err:
-#         utils._get_config(config_path="./tests/test_assets/bad_config.yam")
-#     assert err.type == SystemExit
-#     assert err.value.code == 2

@@ -21,7 +21,7 @@ def _login_to_synapse(authtoken: str = None) -> synapseclient.Synapse:
     return syn
 
 
-def _get_config(config_path: str = None) -> dict:
+def _get_config(config_path: str = None) -> list:
     """Takes config_path and opens yaml file path points to, loads configuration from file.
     If no config_path is supplied, defaults to "./config.yaml"
 
@@ -29,7 +29,7 @@ def _get_config(config_path: str = None) -> dict:
         config_path (str, optional): Path to config file. Defaults to None.
 
     Returns:
-        dict: dictionary containing configuration information for run.
+        list: list of dictionaries containing configuration information for run.
     """
     if not config_path:
         config_path = "./config.yaml"
@@ -41,11 +41,16 @@ def _get_config(config_path: str = None) -> dict:
         file = open(config_path, "r")
         config = yaml.load(file, Loader=yaml.FullLoader)
     except FileNotFoundError:
-        print("File not found.  Please provide a valid path.")
-        sys.exit(errno.ENOENT)
-    except yaml.parser.ParserError or yaml.scanner.ScannerError:
-        print("Invalid file.  Please provide a valid YAML file.")
-        sys.exit(errno.EBADF)
+        raise FileNotFoundError("File not found.  Please provide a valid path.")
+    except yaml.parser.ParserError:
+        raise yaml.parser.ParserError(
+            "YAML file unable to be parsed.  Please provide a valid YAML file."
+        )
+    except yaml.scanner.ScannerError:
+        raise yaml.scanner.ScannerError(
+            "YAML file unable to be scanned.  Please provide a valid YAML file."
+        )
+
     return config
 
 
