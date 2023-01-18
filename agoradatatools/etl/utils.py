@@ -1,7 +1,5 @@
 import synapseclient
 import yaml
-import errno
-import sys
 
 
 def _login_to_synapse(authtoken: str = None) -> synapseclient.Synapse:
