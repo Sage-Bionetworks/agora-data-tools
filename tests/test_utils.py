@@ -47,8 +47,8 @@ def test_get_config_with_scanner_error():
         utils._get_config(config_path="./tests/test_assets/bad_config_scanning.yaml")
 
 
-class TestGetConfig:
-    def setup_method(self, syn):
+class TestGetConfigWithAndWithoutPath:
+    def setup_method(self):
         self.patch_open = patch.object(
             builtins, "open", return_value=io.TextIOWrapper
         ).start()
