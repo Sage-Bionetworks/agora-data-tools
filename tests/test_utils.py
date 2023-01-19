@@ -9,27 +9,49 @@ import yaml
 from agoradatatools.etl import utils
 
 
-class TestLoginToSynapse:
-    @pytest.fixture(scope="function", autouse=True)
-    def setup_method(self, syn):
-        self.patch_synapseclient = patch.object(
-            synapseclient, "Synapse", return_value=syn
-        ).start()
-        self.patch_syn_login = patch.object(syn, "login", return_value=syn).start()
+# class TestLoginToSynapse:
+#     @pytest.fixture(scope="function", autouse=True)
+#     def setup_method(self, syn):
+#         self.patch_synapseclient = patch.object(
+#             synapseclient, "Synapse", return_value=syn
+#         ).start()
+#         self.patch_syn_login = patch.object(syn, "login", return_value=syn).start()
 
-    def teardown_method(self):
-        self.patch_synapseclient.stop()
-        self.patch_syn_login.stop()
+#     def teardown_method(self):
+#         self.patch_synapseclient.stop()
+#         self.patch_syn_login.stop()
 
-    def test_login_with_token(self):
+#     def test_login_with_token(self):
+#         utils._login_to_synapse(token="my_auth_token")
+#         self.patch_synapseclient.assert_called_once()
+#         self.patch_syn_login.assert_called_once_with(authToken="my_auth_token")
+
+#     def test_login_no_token(self):
+#         utils._login_to_synapse(token=None)
+#         self.patch_synapseclient.assert_called_once()
+#         self.patch_syn_login.assert_called_once_with()
+
+
+def test_login_with_token(syn):
+    with patch.object(
+        synapseclient, "Synapse", return_value=syn
+    ) as patch_synapseclient, patch.object(
+        syn, "login", return_value=syn
+    ) as patch_syn_login:
         utils._login_to_synapse(token="my_auth_token")
-        self.patch_synapseclient.assert_called_once()
-        self.patch_syn_login.assert_called_once_with(authToken="my_auth_token")
+        patch_synapseclient.assert_called_once()
+        patch_syn_login.assert_called_once_with(authToken="my_auth_token")
 
-    def test_login_no_token(self):
+
+def test_login_no_token(syn):
+    with patch.object(
+        synapseclient, "Synapse", return_value=syn
+    ) as patch_synapseclient, patch.object(
+        syn, "login", return_value=syn
+    ) as patch_syn_login:
         utils._login_to_synapse(token=None)
-        self.patch_synapseclient.assert_called_once()
-        self.patch_syn_login.assert_called_once_with()
+        patch_synapseclient.assert_called_once()
+        patch_syn_login.assert_called_once_with()
 
 
 # def test_get_config_with_invalid_file_path():
