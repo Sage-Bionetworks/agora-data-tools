@@ -2,7 +2,7 @@ import synapseclient
 import yaml
 
 
-def _login_to_synapse(authtoken: str = None) -> synapseclient.Synapse:
+def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     """Logs into Synapse python client, returns authenticated Synapse session.
 
     Args:
@@ -12,10 +12,10 @@ def _login_to_synapse(authtoken: str = None) -> synapseclient.Synapse:
         synapseclient.Synapse: authenticated Synapse client session
     """
     syn = synapseclient.Synapse()
-    if authtoken is None:
+    if token is None:
         syn.login()
     else:
-        syn.login(authToken=authtoken)
+        syn.login(authToken=token)
     return syn
 
 

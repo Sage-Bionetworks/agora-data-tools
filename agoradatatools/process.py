@@ -9,7 +9,9 @@ import agoradatatools.etl.load as load
 import agoradatatools.etl.utils as utils
 
 
-def process_dataset(dataset_obj: dict, staging_path: str, syn=None) -> Union[tuple, None]:
+def process_dataset(
+    dataset_obj: dict, staging_path: str, syn=None
+) -> Union[tuple, None]:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
@@ -126,14 +128,14 @@ def process_all_files(config_path: str = None, syn=None):
         config = utils._get_config()
 
     datasets = utils._find_config_by_name(config, "datasets")
-    
+
     # create staging location
     staging_path = utils._find_config_by_name(config, "staging_path")
-    if staging_path is None: 
+    if staging_path is None:
         staging_path = "./staging"
-        
+
     load.create_temp_location(staging_path)
-    
+
     if datasets:
         for dataset in datasets:
             new_syn_tuple = process_dataset(
@@ -142,13 +144,11 @@ def process_all_files(config_path: str = None, syn=None):
             # in the future we should log new_syn_tuples that are none
 
     destination = utils._find_config_by_name(config, "destination")
-    
+
     # create manifest
     manifest_df = create_data_manifest(parent=destination, syn=syn)
     manifest_path = load.df_to_csv(
-        df=manifest_df, 
-        staging_path=staging_path, 
-        filename="data_manifest.csv"
+        df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
     )
 
     load.load(
@@ -181,7 +181,7 @@ def build_parser():
 def main():
     parser = build_parser()
     args = parser.parse_args()
-    syn = utils._login_to_synapse(authtoken=args.authtoken)
+    syn = utils._login_to_synapse(token=args.authtoken)
     process_all_files(config_path=args.configpath, syn=syn)
 
 
