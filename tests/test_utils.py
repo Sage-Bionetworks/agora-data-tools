@@ -23,10 +23,12 @@ class TestLoginToSynapse:
 
     def test_login_with_token(self):
         utils._login_to_synapse(token="my_auth_token")
+        self.patch_synapseclient.assert_called_once()
         self.patch_syn_login.assert_called_once_with(authToken="my_auth_token")
 
     def test_login_no_token(self):
         utils._login_to_synapse(token=None)
+        self.patch_synapseclient.assert_called_once()
         self.patch_syn_login.assert_called_once_with()
 
 
