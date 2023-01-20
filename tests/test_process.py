@@ -1,10 +1,12 @@
-import pandas as pd
-from unittest.mock import patch
 import argparse
+from unittest import mock
+from unittest.mock import patch
+
+import pandas as pd
 import pytest
 
-from agoradatatools.etl import extract, transform, load, utils
 from agoradatatools import process
+from agoradatatools.etl import extract, load, transform, utils
 
 
 class TestProcessDataset:
@@ -145,8 +147,7 @@ class TestCreateDataManifest:
         ).start()
 
     def teardown_method(self):
-        self.patch_syn_login.stop()
-        self.patch_get_children.stop()
+        mock.patch.stopall()
 
     def test_create_data_manifest_parent_none(self, syn):
         assert process.create_data_manifest(parent=None, syn=syn) is None
@@ -191,12 +192,7 @@ class TestProcessAllFiles:
         self.patch_load = patch.object(load, "load", return_value=None).start()
 
     def teardown_method(self):
-        self.patch_get_config.stop()
-        self.patch_create_temp_location.stop()
-        self.patch_process_dataset.stop()
-        self.patch_create_data_manifest.stop()
-        self.patch_df_to_csv.stop()
-        self.patch_load.stop()
+        mock.patch.stopall()
 
     def test_process_all_files_config_path(self, syn):
         process.process_all_files(config_path="path/to/config", syn=syn)
