@@ -17,7 +17,21 @@ def test_delete_temp_location():
     assert not os.path.exists("./test_staging_dir")
 
 
-# def test_remove_non_values_dict():
+def test_remove_non_values():
+    example_dict = {
+        "a": {"b": "c"},  # is dictionary
+        "d": {"e": "f", "g": None},  # is dictinoary with nested none
+        "h": ["i", "j", "k"],  # is list
+        "l": None,  # is none
+        "m": "n",  # is anything else
+    }
+    cleaned_dict = load.remove_non_values(example_dict)
+    assert isinstance(cleaned_dict, dict)
+    assert cleaned_dict["a"] == example_dict["a"]
+    assert cleaned_dict["d"] == {"e": "f"}
+    assert cleaned_dict["h"] == example_dict["h"]
+    assert cleaned_dict["m"] == example_dict["m"]
+    assert cleaned_dict.get("l") is None
 
 
 # def test_remove_non_values_list():

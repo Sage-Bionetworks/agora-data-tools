@@ -42,11 +42,16 @@ def delete_temp_location(staging_path: str):
 
 
 def remove_non_values(d: dict) -> dict:
-    """
-    Given a dictionary, remove all keys whose values are null.
+    """Given a dictionary, remove all keys whose values are null.
     Values can be of a few types: a dict, a list, None/NaN, and a regular element - such as str or number;
     each one of the cases is handled separately, if a key contains a list, the list can contain elements,
     or nested dicts.  The same goes for dictionaries.
+
+    Args:
+        d (dict): input dictionary to be cleaned
+
+    Returns:
+        dict: final cleaned dictionary which has had null values removed
     """
     cleaned_dict = {}
 
@@ -57,12 +62,15 @@ def remove_non_values(d: dict) -> dict:
             if len(nested_dict.keys()) > 0:
                 cleaned_dict[key] = nested_dict
         # case 2: list
-        if isinstance(value, list):
-            for elem in value:  # value is a list
+        elif isinstance(
+            value, list
+        ):  # was missing elif before - was just if and was breaking the recursion
+            for i, elem in enumerate(value):  # value is a list
                 if isinstance(elem, dict):
-                    nested_dict = remove_non_values(elem)
-                else:
-                    cleaned_dict[key] = value
+                    value[i] = remove_non_values(elem)
+                    if value[i] == {}:
+                        value.pop(i)
+                cleaned_dict[key] = value
         # case 3: None/NaN
         elif pd.isna(value) or value is None:
             continue
