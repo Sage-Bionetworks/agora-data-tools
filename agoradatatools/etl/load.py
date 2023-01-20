@@ -20,8 +20,11 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 def create_temp_location(staging_path: str):
-    """
-    Creates a temporary location to store the json files
+    """Creates a temporary location to store the json files.
+        Does nothing if directory already exists.
+
+    Args:
+        staging_path (str): path to directory to be created
     """
     try:
         mkdir(staging_path)
@@ -30,8 +33,10 @@ def create_temp_location(staging_path: str):
 
 
 def delete_temp_location(staging_path: str):
-    """
-    Deletes the default temporary location
+    """Deletes the default temporary location
+
+    Args:
+        staging_path (str): path to temporary directory to be deleted
     """
     rmdir(staging_path)
 
@@ -120,10 +125,8 @@ def df_to_json(df: pd.DataFrame, staging_path: str, filename: str):
 
         df_as_dict = df.to_dict(orient="records")
 
-        temp_json = open(path.join(staging_path, filename), 'w+')
-        json.dump(df_as_dict, temp_json,
-                  cls=NumpyEncoder,
-                  indent=2)
+        temp_json = open(path.join(staging_path, filename), "w+")
+        json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
         temp_json.close()
@@ -141,7 +144,7 @@ def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str):
     :return: the path of the newly created temporary csv file
     """
     try:
-        temp_csv = open(path.join(staging_path, filename), 'w+')
+        temp_csv = open(path.join(staging_path, filename), "w+")
         df.to_csv(path_or_buf=temp_csv, index=False)
     except AttributeError:
         print("Invalid dataframe.")
@@ -160,10 +163,8 @@ def dict_to_json(df: dict, staging_path: str, filename: str):
                 for d, v in df.items()
             }
         ]
-        temp_json = open(path.join(staging_path, filename), 'w+')
-        json.dump(df_as_dict, temp_json,
-                  cls=NumpyEncoder,
-                  indent=2)
+        temp_json = open(path.join(staging_path, filename), "w+")
+        json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
         temp_json.close()

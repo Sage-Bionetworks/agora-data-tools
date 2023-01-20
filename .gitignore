@@ -138,3 +138,6 @@ dmypy.json
 
 # local generated files
 staging/*
+
+#test staging location
+test_staging_dir/
