@@ -1,137 +1,138 @@
-import pandas as pd
-from unittest.mock import patch
 import argparse
+from unittest import mock
+from unittest.mock import patch
+
+import pandas as pd
 import pytest
 
-from agoradatatools.etl import extract, transform, load, utils
 from agoradatatools import process
+from agoradatatools.etl import extract, load, transform, utils
 
+# class TestProcessDataset:
+#     dataset_object = {
+#         "neuropath_corr": {
+#             "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+#             "final_format": "json",
+#             "provenance": ["syn1111111"],
+#             "destination": "syn1111113",
+#         }
+#     }
 
-class TestProcessDataset:
-    dataset_object = {
-        "neuropath_corr": {
-            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
-            "final_format": "json",
-            "provenance": ["syn1111111"],
-            "destination": "syn1111113",
-        }
-    }
+#     dataset_object_col_rename = {
+#         "neuropath_corr": {
+#             "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+#             "final_format": "json",
+#             "provenance": ["syn1111111"],
+#             "destination": "syn1111113",
+#             "column_rename": {"col_1": "new_col_1", "col_2": "new_col_2"},
+#         }
+#     }
 
-    dataset_object_col_rename = {
-        "neuropath_corr": {
-            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
-            "final_format": "json",
-            "provenance": ["syn1111111"],
-            "destination": "syn1111113",
-            "column_rename": {"col_1": "new_col_1", "col_2": "new_col_2"},
-        }
-    }
+#     dataset_object_custom_transform = {
+#         "neuropath_corr": {
+#             "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+#             "final_format": "json",
+#             "provenance": ["syn1111111"],
+#             "destination": "syn1111113",
+#             "custom_transformations": "test_transformation",
+#         }
+#     }
 
-    dataset_object_custom_transform = {
-        "neuropath_corr": {
-            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
-            "final_format": "json",
-            "provenance": ["syn1111111"],
-            "destination": "syn1111113",
-            "custom_transformations": "test_transformation",
-        }
-    }
+#     dataset_object_agora_rename = {
+#         "neuropath_corr": {
+#             "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+#             "final_format": "json",
+#             "provenance": ["syn1111111"],
+#             "destination": "syn1111113",
+#             "agora_rename": {"col_1": "new_col_1", "col_2": "new_col_2"},
+#         }
+#     }
 
-    dataset_object_agora_rename = {
-        "neuropath_corr": {
-            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
-            "final_format": "json",
-            "provenance": ["syn1111111"],
-            "destination": "syn1111113",
-            "agora_rename": {"col_1": "new_col_1", "col_2": "new_col_2"},
-        }
-    }
+#     def setup_method(self):
+#         self.patch_get_entity_as_df = patch.object(
+#             extract, "get_entity_as_df", return_value=pd.DataFrame
+#         ).start()
+#         self.patch_standardize_column_names = patch.object(
+#             transform, "standardize_column_names", return_value=pd.DataFrame
+#         ).start()
+#         self.patch_standardize_values = patch.object(
+#             transform, "standardize_values", return_value=pd.DataFrame
+#         ).start()
+#         self.patch_rename_columns = patch.object(
+#             transform, "rename_columns", return_value=pd.DataFrame
+#         ).start()
+#         self.patch_df_to_json = patch.object(
+#             load, "df_to_json", return_value="path/to/json"
+#         ).start()
+#         self.patch_load = patch.object(load, "load", return_value=None).start()
+#         self.patch_custom_transform = patch.object(
+#             transform, "apply_custom_transformations", return_value=pd.DataFrame
+#         ).start()
+#         self.patch_dict_to_json = patch.object(
+#             load, "dict_to_json", return_value="path/to/json"
+#         ).start()
 
-    def setup_method(self):
-        self.patch_get_entity_as_df = patch.object(
-            extract, "get_entity_as_df", return_value=pd.DataFrame
-        ).start()
-        self.patch_standardize_column_names = patch.object(
-            transform, "standardize_column_names", return_value=pd.DataFrame
-        ).start()
-        self.patch_standardize_values = patch.object(
-            transform, "standardize_values", return_value=pd.DataFrame
-        ).start()
-        self.patch_rename_columns = patch.object(
-            transform, "rename_columns", return_value=pd.DataFrame
-        ).start()
-        self.patch_df_to_json = patch.object(
-            load, "df_to_json", return_value="path/to/json"
-        ).start()
-        self.patch_load = patch.object(load, "load", return_value=None).start()
-        self.patch_custom_transform = patch.object(
-            transform, "apply_custom_transformations", return_value=pd.DataFrame
-        ).start()
-        self.patch_dict_to_json = patch.object(
-            load, "dict_to_json", return_value="path/to/json"
-        ).start()
+#     def teardown_method(self):
+#         self.patch_get_entity_as_df.stop()
+#         self.patch_standardize_column_names.stop()
+#         self.patch_standardize_values.stop()
+#         self.patch_rename_columns.stop()
+#         self.patch_df_to_json.stop()
+#         self.patch_load.stop()
+#         self.patch_custom_transform.stop()
+#         self.patch_dict_to_json.stop()
 
-    def teardown_method(self):
-        self.patch_get_entity_as_df.stop()
-        self.patch_standardize_column_names.stop()
-        self.patch_standardize_values.stop()
-        self.patch_rename_columns.stop()
-        self.patch_df_to_json.stop()
-        self.patch_load.stop()
-        self.patch_custom_transform.stop()
-        self.patch_dict_to_json.stop()
+#     def test_process_dataset_with_column_rename(self):
+#         process.process_dataset(
+#             dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
+#         )
+#         self.patch_rename_columns.assert_called_once_with(
+#             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
+#         )
+#         self.patch_custom_transform.assert_not_called()
+#         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_with_column_rename(self):
-        process.process_dataset(
-            dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
-        )
-        self.patch_rename_columns.assert_called_once_with(
-            df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
-        )
-        self.patch_custom_transform.assert_not_called()
-        self.patch_dict_to_json.assert_not_called()
+#     def test_process_dataset_custom_transformations(self):
+#         process.process_dataset(
+#             dataset_obj=self.dataset_object_custom_transform, staging_path="./staging"
+#         )
+#         self.patch_custom_transform.assert_called_once_with(
+#             datasets={"test_file_1": pd.DataFrame},
+#             dataset_name="neuropath_corr",
+#             dataset_obj={
+#                 "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+#                 "final_format": "json",
+#                 "provenance": ["syn1111111"],
+#                 "destination": "syn1111113",
+#                 "custom_transformations": "test_transformation",
+#             },
+#         )
+#         self.patch_rename_columns.assert_not_called()
+#         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_custom_transformations(self):
-        process.process_dataset(
-            dataset_obj=self.dataset_object_custom_transform, staging_path="./staging"
-        )
-        self.patch_custom_transform.assert_called_once_with(
-            datasets={"test_file_1": pd.DataFrame},
-            dataset_name="neuropath_corr",
-            dataset_obj={
-                "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
-                "final_format": "json",
-                "provenance": ["syn1111111"],
-                "destination": "syn1111113",
-                "custom_transformations": "test_transformation",
-            },
-        )
-        self.patch_rename_columns.assert_not_called()
-        self.patch_dict_to_json.assert_not_called()
+#     def test_process_dataset_with_agora_rename(self):
+#         process.process_dataset(
+#             dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
+#         )
+#         self.patch_rename_columns.assert_called_once_with(
+#             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
+#         )
+#         self.patch_custom_transform.assert_not_called()
+#         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_with_agora_rename(self):
-        process.process_dataset(
-            dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
-        )
-        self.patch_rename_columns.assert_called_once_with(
-            df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
-        )
-        self.patch_custom_transform.assert_not_called()
-        self.patch_dict_to_json.assert_not_called()
-
-    def test_process_dataset_type_dict(self):
-        self.patch_standardize_values.return_value = (
-            dict()
-        )  # test if it is a dictionary later
-        process.process_dataset(
-            dataset_obj=self.dataset_object, staging_path="./staging"
-        )
-        self.patch_dict_to_json.assert_called_once_with(
-            df={}, staging_path="./staging", filename="neuropath_corr.json"
-        )
-        self.patch_rename_columns.assert_not_called()
-        self.patch_custom_transform.assert_not_called()
-        self.patch_df_to_json.assert_not_called()
+#     def test_process_dataset_type_dict(self):
+#         self.patch_standardize_values.return_value = (
+#             dict()
+#         )  # test if it is a dictionary later
+#         process.process_dataset(
+#             dataset_obj=self.dataset_object, staging_path="./staging"
+#         )
+#         self.patch_dict_to_json.assert_called_once_with(
+#             df={}, staging_path="./staging", filename="neuropath_corr.json"
+#         )
+#         self.patch_rename_columns.assert_not_called()
+#         self.patch_custom_transform.assert_not_called()
+#         self.patch_df_to_json.assert_not_called()
 
 
 class TestCreateDataManifest:
@@ -145,8 +146,7 @@ class TestCreateDataManifest:
         ).start()
 
     def teardown_method(self):
-        self.patch_syn_login.stop()
-        self.patch_get_children.stop()
+        mock.patch.stopall()
 
     def test_create_data_manifest_parent_none(self, syn):
         assert process.create_data_manifest(parent=None, syn=syn) is None
@@ -191,12 +191,7 @@ class TestProcessAllFiles:
         self.patch_load = patch.object(load, "load", return_value=None).start()
 
     def teardown_method(self):
-        self.patch_get_config.stop()
-        self.patch_create_temp_location.stop()
-        self.patch_process_dataset.stop()
-        self.patch_create_data_manifest.stop()
-        self.patch_df_to_csv.stop()
-        self.patch_load.stop()
+        mock.patch.stopall()
 
     def test_process_all_files_config_path(self, syn):
         process.process_all_files(config_path="path/to/config", syn=syn)

@@ -29,7 +29,7 @@ def _get_config(config_path: str = None) -> list:
     Returns:
         list: list of dictionaries containing configuration information for run.
     """
-    if not config_path:
+    if config_path is None:
         config_path = "./config.yaml"
 
     file = None
