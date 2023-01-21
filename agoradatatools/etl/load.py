@@ -1,9 +1,12 @@
-import pandas as pd
 import json
-from os import mkdir, rmdir, path
-from . import utils
-from synapseclient import File, Activity
+from os import mkdir, path, rmdir
+from typing import Union
+
 import numpy as np
+import pandas as pd
+from synapseclient import Activity, File
+
+from . import utils
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -82,6 +85,7 @@ def remove_non_values(d: dict) -> dict:
 
 
 def load(file_path: str, provenance: list, destination: str, syn=None):
+
     """
     Calls df_to_json, add_to_manifest, add_to_report
     :param filename: the name of the file to be loaded into Synapse
@@ -120,12 +124,16 @@ def load(file_path: str, provenance: list, destination: str, syn=None):
     return (file.id, file.versionNumber)
 
 
-def df_to_json(df: pd.DataFrame, staging_path: str, filename: str):
-    """
-    Converts a data frame into a json file.
-    :param df: a dataframe
-    :param filename: the final file name included in the config file
-    :return: the path of the newly created temporary json file
+def df_to_json(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None, str]:
+    """Converts a data frame into a json file.
+
+    Args:
+        df (pd.DataFrame): DataFrame to be converted to JSON
+        staging_path (str): Path to staging directory
+        filename (str): name of JSON file to be created
+
+    Returns:
+        Union[None, str]: can return None (if the first `try` fails), or a string containing the name of the new JSON file if the function succeeds
     """
 
     try:
@@ -137,7 +145,10 @@ def df_to_json(df: pd.DataFrame, staging_path: str, filename: str):
         json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
-        temp_json.close()
+        try:  # this was failing if the `try` above fails before creating `temp_json`
+            temp_json.close()
+        except:
+            return None
         return None
 
     temp_json.close()

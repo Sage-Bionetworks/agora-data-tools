@@ -1,8 +1,14 @@
 import os
+from os import path
+from unittest import mock
+from unittest.mock import patch, ANY
 
+import numpy as np
 import pytest
+import pandas as pd
+import json
 
-from agoradatatools.etl import load
+from agoradatatools.etl import load, utils
 
 
 def test_create_temp_location_success():
@@ -34,25 +40,69 @@ def test_remove_non_values():
     assert cleaned_dict.get("l") is None
 
 
-# def test_remove_non_values_list():
+# class TestLoad:
+#     @pytest.fixture(scope="function", autouse=True)
+#     def setup_method(self, syn):
+#         self.patch_syn_login = patch.object(
+#             utils, "_login_to_synapse", return_value=syn
+#         ).start()
+#         # self.patch_syn_store = patch.object(
+#         #     syn, "store", return_value =
+#         # )
 
-# def test_remove_non_values_None():
+#     def teardown_method(self):
+#         mock.patch.stopall()
 
-# def test_remove_non_values_elif_not_None():
+#     def test_load_syn_is_none(self):
+#         test_tuple = load.load(
+#             file_path="path/to/file",
+#             provenance=["syn1111111", "syn1111112"],
+#             destination="synsyn1111113",
+#             syn=None,
+#         )
+#         self.patch_syn_login.assert_called_once()
+#         assert test_tuple == (1, 2)
 
 
-# df = pd.DataFrame(
-#     {
-#         "team_id": [0, 1, np.nan],
-#         "team_name": ["MSN", "Team 1", "Team 2"],
-#         "team_score": ["x", "y", "z"],
-#     }
-# )
+class TestDFToJSON:
+    def setup_method(self):
+        self.patch_replace = patch.object(
+            pd.DataFrame, "replace", return_value=pd.DataFrame()
+        ).start()
+        self.patch_to_dict = patch.object(
+            pd.DataFrame, "to_dict", return_value=dict()
+        ).start()
+        self.patch_json_dump = patch.object(json, "dump", return_value=None).start()
+        self.patch_NumpyEncoder = patch.object(load, "NumpyEncoder").start()
+
+    def teardown_method(self):
+        mock.patch.stopall()
+
+    def test_df_to_json_success(self):
+        json_name = load.df_to_json(
+            df=pd.DataFrame(), staging_path="./staging", filename="test.json"
+        )
+        self.patch_replace.assert_called_once_with({np.nan: None})
+        self.patch_to_dict.assert_called_once_with(orient="records")
+        self.patch_json_dump.assert_called_once_with(
+            self.patch_to_dict.return_value,
+            ANY,  # without mocking open() I was unable to get anything equating to `temp_json` to go here, it was failing even when the 'Expected call' and the 'Actual call' appeared to match perfectly
+            cls=self.patch_NumpyEncoder,
+            indent=2,
+        )
+        assert json_name == "./staging/test.json"
+
+    def test_df_to_json_failure(self):
+        json_name = load.df_to_json(
+            df=pd.DataFrame(), staging_path=1, filename="test.json"
+        )
+        self.patch_replace.assert_called_once_with({np.nan: None})
+        self.patch_to_dict.assert_called_once_with(orient="records")
+        self.patch_json_dump.assert_not_called()  # should fail at the open() step
+        assert json_name is None
 
 
-# def test_df_to_json():
-#     assert load.df_to_json(df, "test.json") == "./staging/test.json"
-#     assert type(load.df_to_json(1, "test.json")) is type(None)
+# assert type(load.df_to_json(1, "test.json")) is type(None)
 
 
 # def test_load():
