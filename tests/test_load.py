@@ -102,6 +102,33 @@ class TestDFToJSON:
         assert json_name is None
 
 
+class TestDFToCSV:
+    def setup_method(self):
+        self.patch_to_csv = patch.object(
+            pd.DataFrame, "to_csv", return_value=dict()
+        ).start()
+
+    def teardown_method(self):
+        mock.patch.stopall()
+
+    def test_df_to_csv_success(self):
+        csv_name = load.df_to_csv(
+            df=pd.DataFrame(), staging_path="./staging", filename="test.json"
+        )
+        self.patch_to_csv.assert_called_once_with(
+            path_or_buf=ANY,  # without mocking open() I was unable to get anything equating to `temp_json` to go here
+            index=False,
+        )
+        assert csv_name == "./staging/test.json"
+
+    def test_df_to_csv_failure(self):
+        json_name = load.df_to_csv(
+            df="bad_df", staging_path="./staging", filename="test.json"
+        )
+        self.patch_to_csv.assert_not_called()  # invalid dataframe causes this not to be called and produces the AttributeError which is handled, but not raised
+        assert json_name is None
+
+
 # assert type(load.df_to_json(1, "test.json")) is type(None)
 
 

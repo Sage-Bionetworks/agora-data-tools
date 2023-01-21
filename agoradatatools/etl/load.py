@@ -155,12 +155,16 @@ def df_to_json(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None
     return temp_json.name
 
 
-def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str):
-    """
-    Converts a data frame into a csv file.
-    :param df: a dataframe
-    :param filename: the final file name included in the config file
-    :return: the path of the newly created temporary csv file
+def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None, str]:
+    """Converts a data frame into a csv file.
+
+    Args:
+        df (pd.DataFrame): DataFrame to be converted to a csv file
+        staging_path (str): Path to staging directory
+        filename (str): name of JSON file to be created
+
+    Returns:
+        Union[None, str]: can return None (if the first `try` fails), or a string containing the name of the new csv file if the function succeeds
     """
     try:
         temp_csv = open(path.join(staging_path, filename), "w+")
