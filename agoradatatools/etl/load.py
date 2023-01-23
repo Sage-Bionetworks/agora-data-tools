@@ -161,7 +161,7 @@ def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None,
     Args:
         df (pd.DataFrame): DataFrame to be converted to a csv file
         staging_path (str): Path to staging directory
-        filename (str): name of JSON file to be created
+        filename (str): name of csv file to be created
 
     Returns:
         Union[None, str]: can return None (if the first `try` fails), or a string containing the name of the new csv file if the function succeeds
@@ -178,7 +178,17 @@ def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None,
     return temp_csv.name
 
 
-def dict_to_json(df: dict, staging_path: str, filename: str):
+def dict_to_json(df: dict, staging_path: str, filename: str) -> Union[None, str]:
+    """Converts a data dictionary into a JSON file.
+
+    Args:
+        df (dict): Dictionary to be converted to a JSON file
+        staging_path (str): Path to staging directory
+        filename (str): name of JSON file to be created
+
+    Returns:
+        Union[None, str]: can return None (if the first `try` fails), or a string containing the name of the new JSON file if the function succeeds
+    """
     try:
         df_as_dict = [  # TODO explore the df.to_dict() function for this case
             {
@@ -190,7 +200,10 @@ def dict_to_json(df: dict, staging_path: str, filename: str):
         json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
-        temp_json.close()
+        try:  # handle case where `try` fails before temp_json is created
+            temp_json.close()
+        except:
+            return None
         return None
 
     temp_json.close()

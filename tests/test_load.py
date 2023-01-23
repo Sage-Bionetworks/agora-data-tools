@@ -129,6 +129,41 @@ class TestDFToCSV:
         assert json_name is None
 
 
+class TestDictToJSON:
+    df_dict = {"a": "b", "c": {"d": "e"}}
+
+    def setup_method(self):
+        self.patch_remove_non_values = patch.object(
+            load, "remove_non_values", return_value=dict()
+        ).start()
+        self.patch_json_dump = patch.object(json, "dump", return_value=None).start()
+        self.patch_NumpyEncoder = patch.object(load, "NumpyEncoder").start()
+
+    def teardown_method(self):
+        mock.patch.stopall()
+
+    def test_dict_to_json_success(self):
+        json_name = load.dict_to_json(
+            df=self.df_dict, staging_path="./staging", filename="test.json"
+        )
+        self.patch_remove_non_values.assert_called_once_with({"d": "e"})
+        self.patch_json_dump.assert_called_once_with(
+            [{"a": "b", "c": {}}],
+            ANY,  # without mocking open() I was unable to get anything equating to `temp_json` to go here
+            cls=self.patch_NumpyEncoder,
+            indent=2,
+        )
+        assert json_name == "./staging/test.json"
+
+    def test_dict_to_json_failure(self):
+        json_name = load.dict_to_json(
+            df=self.df_dict, staging_path=1, filename="test.json"
+        )
+        self.patch_remove_non_values.assert_called_once_with({"d": "e"})
+        self.patch_json_dump.assert_not_called()  # `try` fails on open() call now, no json.dump called
+        assert json_name is None
+
+
 # assert type(load.df_to_json(1, "test.json")) is type(None)
 
 
