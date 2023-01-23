@@ -30,16 +30,18 @@ def test_remove_non_values():
         "a": {"b": "c"},  # is dictionary
         "d": {"e": "f", "g": None},  # is dictinoary with nested none
         "h": ["i", "j", "k"],  # is list
-        "l": None,  # is none
-        "m": "n",  # is anything else
+        "l": ["m", "n", {"o": None}],  # is list with nested dict
+        "q": None,  # is none
+        "r": "s",  # is anything else
     }
     cleaned_dict = load.remove_non_values(example_dict)
     assert isinstance(cleaned_dict, dict)
     assert cleaned_dict["a"] == example_dict["a"]
     assert cleaned_dict["d"] == {"e": "f"}
     assert cleaned_dict["h"] == example_dict["h"]
-    assert cleaned_dict["m"] == example_dict["m"]
-    assert cleaned_dict.get("l") is None
+    assert cleaned_dict["l"] == ["m", "n"]
+    assert "q" not in cleaned_dict.keys()
+    assert cleaned_dict["r"] == example_dict["r"]
 
 
 class TestLoad:
