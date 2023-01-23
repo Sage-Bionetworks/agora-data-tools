@@ -1,12 +1,14 @@
+import json
 import os
-from os import path
+import sys
+from io import StringIO
 from unittest import mock
-from unittest.mock import patch, ANY
+from unittest.mock import ANY, patch
 
 import numpy as np
-import pytest
 import pandas as pd
-import json
+import pytest
+from synapseclient import File
 
 from agoradatatools.etl import load, utils
 
@@ -40,28 +42,87 @@ def test_remove_non_values():
     assert cleaned_dict.get("l") is None
 
 
-# class TestLoad:
-#     @pytest.fixture(scope="function", autouse=True)
-#     def setup_method(self, syn):
-#         self.patch_syn_login = patch.object(
-#             utils, "_login_to_synapse", return_value=syn
-#         ).start()
-#         # self.patch_syn_store = patch.object(
-#         #     syn, "store", return_value =
-#         # )
+class TestLoad:
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_method(self, syn):
+        self.patch_syn_login = patch.object(
+            utils, "_login_to_synapse", return_value=syn
+        ).start()
+        self.patch_syn_store = patch.object(
+            syn,
+            "store",
+            return_value=File(
+                "fake/path/to/fake/file",
+                parent="syn1111113",
+                id="syn1111114",
+                versionNumber=1,
+            ),
+        ).start()
 
-#     def teardown_method(self):
-#         mock.patch.stopall()
+    def teardown_method(self):
+        mock.patch.stopall()
 
-#     def test_load_syn_is_none(self):
-#         test_tuple = load.load(
-#             file_path="path/to/file",
-#             provenance=["syn1111111", "syn1111112"],
-#             destination="synsyn1111113",
-#             syn=None,
-#         )
-#         self.patch_syn_login.assert_called_once()
-#         assert test_tuple == (1, 2)
+    def test_load_syn_is_none(self):
+        test_tuple = load.load(
+            file_path="fake/path/to/fake/file",
+            provenance=["syn1111111", "syn1111112"],
+            destination="syn1111113",
+            syn=None,
+        )
+        self.patch_syn_login.assert_called_once()
+        assert test_tuple == ("syn1111114", 1)
+
+    def test_load_syn_is_not_none(self, syn):
+        test_tuple = load.load(
+            file_path="fake/path/to/fake/file",
+            provenance=["syn1111111", "syn1111112"],
+            destination="syn1111113",
+            syn=syn,
+        )
+        self.patch_syn_login.assert_not_called()
+        assert test_tuple == ("syn1111114", 1)
+
+    def test_load_activity_fails_ValueError(self):
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        test_tuple = load.load(
+            file_path="fake/path/to/fake/file",
+            provenance=["not a syn id", "also not a syn id"],
+            destination="syn1111113",
+            syn=None,
+        )
+        self.patch_syn_login.assert_called_once()
+        assert "one or more invalid syn ids" in captured_output.getvalue()
+        self.patch_syn_store.assert_not_called()
+        assert test_tuple is None
+
+    def test_load_syn_store_fails_OSError(self):
+        self.patch_syn_store.side_effect = OSError  # can't induce failure in mocked object with arguments, so do manually
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        test_tuple = load.load(
+            file_path="fake/path/to/fake/file",
+            provenance=["syn1111111", "syn1111112"],
+            destination="syn1111113",
+            syn=None,
+        )
+        self.patch_syn_login.assert_called_once()
+        assert "Either the file path" in captured_output.getvalue()
+        assert test_tuple is None
+
+    def test_load_syn_store_fails_ValueError(self):
+        self.patch_syn_store.side_effect = ValueError  # can't induce failure in mocked object with arguments, so do manually
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        test_tuple = load.load(
+            file_path="fake/path/to/fake/file",
+            provenance=["syn1111111", "syn1111112"],
+            destination="syn1111113",
+            syn=None,
+        )
+        self.patch_syn_login.assert_called_once()
+        assert "Please make sure that the Synapse id of" in captured_output.getvalue()
+        assert test_tuple is None
 
 
 class TestDFToJSON:
@@ -162,34 +223,3 @@ class TestDictToJSON:
         self.patch_remove_non_values.assert_called_once_with({"d": "e"})
         self.patch_json_dump.assert_not_called()  # `try` fails on open() call now, no json.dump called
         assert json_name is None
-
-
-# assert type(load.df_to_json(1, "test.json")) is type(None)
-
-
-# def test_load():
-#     path = "./tests/test_assets/test.json"
-#     bad_path = "./tests/test_assets/invalid_path.json"
-#     bad_used = ["", "xxx"]
-#     used = ["syn25721515", "syn25721521"]
-#     destination = "syn25871921"
-#     bad_destination = "s923484y23"
-
-#     # good_result = load.load(file_path=path, provenance=used, destination=destination)
-#     # assert type(good_result) is tuple
-#     # assert good_result[0] == 'syn25871925'
-
-#     bad_path_result = load.load(
-#         file_path=bad_path, provenance=used, destination=destination
-#     )
-#     assert type(bad_path_result) is type(None)
-
-#     bad_used_result = load.load(
-#         file_path=path, provenance=bad_used, destination=destination
-#     )
-#     assert type(bad_used_result) is type(None)
-
-#     bad_destination = load.load(
-#         file_path=path, provenance=used, destination=bad_destination
-#     )
-#     assert type(bad_used_result) is type(None)

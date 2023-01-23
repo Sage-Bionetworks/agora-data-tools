@@ -4,7 +4,7 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-from synapseclient import Activity, File
+from synapseclient import Activity, File, Synapse
 
 from . import utils
 
@@ -84,15 +84,23 @@ def remove_non_values(d: dict) -> dict:
     return cleaned_dict
 
 
-def load(file_path: str, provenance: list, destination: str, syn=None):
-
-    """
-    Calls df_to_json, add_to_manifest, add_to_report
-    :param filename: the name of the file to be loaded into Synapse
-    :param provenance: array of files that originate the one being loaded
+def load(
+    file_path: str, provenance: list, destination: str, syn: Synapse = None
+) -> Union[tuple, None]:
+    """Reads file to be loaded into Synapse
     :param syn: synapse object
     :return: synapse id of the file loaded into Synapse.  Returns None if it
     fails
+
+    Args:
+        file_path (str): Path of the file to be loaded into Synapse
+        provenance (list): Array of files that originate the one being loaded
+        destination (str): Location where the file should be loaded in Synapse
+        syn (synapseclient.Synapse, optional): synapseclient session. Defaults to None.
+
+    Returns:
+        Union[tuple, None]: On success, returns a tuple of the name fo the file and the version number.
+                            On fail returns None.
     """
 
     if syn is None:
@@ -102,7 +110,9 @@ def load(file_path: str, provenance: list, destination: str, syn=None):
         activity = Activity(used=provenance)
     except ValueError:
         print(str(provenance) + " has one or more invalid syn ids")
-        return
+        return (
+            None  # added to be more explicit and consistent with the rest of the script
+        )
 
     try:
         file = File(file_path, parent=destination)
@@ -113,13 +123,13 @@ def load(file_path: str, provenance: list, destination: str, syn=None):
         )
 
         print(e)
-        return
+        return None
     except ValueError:
         print(
             "Please make sure that the Synapse id of "
             + "the provenances and the destination are valid"
         )
-        return
+        return None
 
     return (file.id, file.versionNumber)
 
