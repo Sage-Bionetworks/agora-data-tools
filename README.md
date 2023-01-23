@@ -2,7 +2,7 @@
 
 - [Intro](#intro)
 - [Running the pipeline](#running-the-pipeline)
-  - [GitHub-actions](#github-actions)
+  - [Nextflow Tower](#nextflow-tower)
   - [Locally](#locally)
   - [Docker](#docker)
 - [Testing Github Workflow](#testing-github-workflow)
