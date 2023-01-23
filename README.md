@@ -33,9 +33,9 @@ Note that running the pipeline does _not_ automatically update the Agora databas
 into the Agora databases is handled by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/).
 
 You can run the pipeline in any of the following ways:
-1. [Nextflow Tower](#Nextflow-Tower) is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synapse PAT, or setting up the Synapse Python client.
-2. [Locally](#Locally) requires installing Python, obtaining the required Synapse permissions, creating a Synpase PAT, and setting up the Synapse Python client.
-3. [Docker](#Docker) requires installing Docker, obtaining the required Synapse permissions, and creating a Synpase PAT.
+1. [Nextflow Tower](#nextflow-tower) is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synapse PAT, or setting up the Synapse Python client.
+2. [Locally](#locally) requires installing Python, obtaining the required Synapse permissions, creating a Synpase PAT, and setting up the Synapse Python client.
+3. [Docker](#docker) requires installing Docker, obtaining the required Synapse permissions, and creating a Synpase PAT.
 
 When running the pipeline, you must specify the config file that will be used. There are two config files that are checked into this repo:  
 * ```test_config.yaml``` places the transformed datasets in the [Agora Testing Data](https://www.synapse.org/#!Synapse:syn17015333) folder in synapse; write files to this folder to perform data validation.
