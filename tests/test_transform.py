@@ -86,6 +86,34 @@ def test_standardize_values_TypeError():
         assert standard_df.equals(df)
 
 
+class TestRenameColumns:
+    df = pd.DataFrame(
+        {
+            "a": ["test_value"],
+            "b": ["test_value"],
+            "c": ["test_value"],
+            "d": ["test_value"],
+        }
+    )
+    good_column_map = {"a": "e", "b": "f", "c": "g", "d": "h"}
+    bad_column_map = []
+
+    def test_rename_columns_success(self):
+        renamed_df = transform.rename_columns(
+            df=self.df.copy(), column_map=self.good_column_map
+        )
+        assert list(renamed_df.columns) == list(self.good_column_map.values())
+
+    def test_rename_columns_TypeError(self):
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        bad_renamed_df = transform.rename_columns(
+            df=self.df.copy(), column_map=self.bad_column_map
+        )
+        assert "Column mapping must be a dictionary" in captured_output.getvalue()
+        assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
+
+
 # df = pd.DataFrame(
 #     {'team id': [np.nan, 0, 1, 2],
 #      'team.Name': ['MSN', 'Team 1', 'Team 2', np.nan],
