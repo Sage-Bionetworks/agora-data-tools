@@ -54,7 +54,7 @@ def test_standardize_column_names():
     ]
 
 
-def test_standardize_values_success():
+class TestStandardizeValues:
     df = pd.DataFrame(
         {
             "a": ["n/a"],
@@ -63,27 +63,20 @@ def test_standardize_values_success():
             "d": ["N/a"],
         }
     )
-    standard_df = transform.standardize_values(df=df)
-    for value in standard_df.iloc[0].tolist():
-        assert np.isnan(value)
 
+    def test_standardize_values_success(self):
+        standard_df = transform.standardize_values(df=self.df.copy())
+        for value in standard_df.iloc[0].tolist():
+            assert np.isnan(value)
 
-def test_standardize_values_TypeError():
-    with patch.object(pd.DataFrame, "replace") as patch_replace:
-        patch_replace.side_effect = TypeError
-        df = pd.DataFrame(
-            {
-                "a": ["n/a"],
-                "b": ["N/A"],
-                "c": ["n/A"],
-                "d": ["N/a"],
-            }
-        )
-        captured_output = StringIO()
-        sys.stdout = captured_output
-        standard_df = transform.standardize_values(df=df)
-        assert "Error comparing types." in captured_output.getvalue()
-        assert standard_df.equals(df)
+    def test_standardize_values_TypeError(self):
+        with patch.object(pd.DataFrame, "replace") as patch_replace:
+            patch_replace.side_effect = TypeError
+            captured_output = StringIO()
+            sys.stdout = captured_output
+            standard_df = transform.standardize_values(df=self.df.copy())
+            assert "Error comparing types." in captured_output.getvalue()
+            assert standard_df.equals(self.df)
 
 
 class TestRenameColumns:
