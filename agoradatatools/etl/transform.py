@@ -43,9 +43,13 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
 
 def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
     """Takes in a dataframe and renames columns according to the mapping provided
-    :param df: a dataframe
-    :param column_map: a dict with the mapping for the columns to be renamed
-    :return: a dataframe
+
+    Args:
+        df (pd.DataFrame): DataFrame with columns to be renamed
+        column_map (dict): Dictionary mapping original column names to new columns
+
+    Returns:
+        pd.DataFrame: DataFrame with new columns names
     """
     try:
         df.rename(columns=column_map, inplace=True)
