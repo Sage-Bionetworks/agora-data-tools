@@ -59,10 +59,6 @@ def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
 
     return df
 
-
-def nest_fields(
-    df: pd.DataFrame, grouping: str, new_column: str, drop_columns: list = []
-) -> pd.DataFrame:
     """
     This will create a dictionary object with the result of the grouping provided
     :param df: a dataframe
@@ -72,6 +68,24 @@ def nest_fields(
     :param drop_columns: a list of column names to drop (remove) from the
     nested dictionary. Optional argument, defaults to empty list.
     :return: a dataframe
+    """
+
+
+def nest_fields(
+    df: pd.DataFrame, grouping: str, new_column: str, drop_columns: list = []
+) -> pd.DataFrame:
+    """Collapses the provided DataFrame into 2 columns:
+    1. The grouping column
+    2. A column containing a nested dictionary with the data from the rest of the DataFrame
+
+    Args:
+        df (pd.DataFrame): DataFrame to be collapsed
+        grouping (str): The column that you want to group by
+        new_column (str): the new column created to contain the nested dictionaries created
+        drop_columns (list, optional): List of columns to leave out of the new nested dictionary. Defaults to [].
+
+    Returns:
+        pd.DataFrame: New 2 column DataFrame with group and nested dictionaries
     """
     return (
         df.groupby(grouping)
@@ -85,7 +99,7 @@ def nest_fields(
     )
 
 
-def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound):
+def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -> dict:
     if is_scored is not None:
         df = df[df[is_scored] == "Y"]  # df does not have the isscored
     else:

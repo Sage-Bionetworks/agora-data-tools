@@ -107,6 +107,27 @@ class TestRenameColumns:
         assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
 
 
+def test_nest_fields():
+    df = pd.DataFrame(
+        {
+            "a": ["group_1", "group_1", "group_2", "group_2", "group_3", "group_3"],
+            "b": ["1", "1", "1", "1", "1", "1"],
+            "c": ["1", "1", "1", "1", "1", "1"],
+            "d": ["1", "1", "1", "1", "1", "1"],
+        }
+    )
+    expected_column_e = [
+        [{"a": "group_1", "b": "1", "c": "1"}, {"a": "group_1", "b": "1", "c": "1"}],
+        [{"a": "group_2", "b": "1", "c": "1"}, {"a": "group_2", "b": "1", "c": "1"}],
+        [{"a": "group_3", "b": "1", "c": "1"}, {"a": "group_3", "b": "1", "c": "1"}],
+    ]
+
+    nested_df = transform.nest_fields(
+        df=df, grouping="a", new_column="e", drop_columns=["d"]
+    )
+    assert list(nested_df["e"]) == expected_column_e
+
+
 # df = pd.DataFrame(
 #     {'team id': [np.nan, 0, 1, 2],
 #      'team.Name': ['MSN', 'Team 1', 'Team 2', np.nan],
