@@ -23,16 +23,19 @@ def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Finds non-compliant values and corrects them
+    """Finds non-compliant values and corrects them
     *if more data cleaning options need to be added to this,
     this needs to be refactored to another function
-    :param df: a dataframe
-    :return: a dataframe
+
+    Args:
+        df (pd.DataFrame): DataFrame with values to be standardized
+
+    Returns:
+        pd.DataFrame: Resulting DataFrame with standardized values
     """
     try:
         df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True, inplace=True)
-    except TypeError:
+    except TypeError:  # I could not get this to trigger without mocking replace
         print("Error comparing types.")
 
     return df
