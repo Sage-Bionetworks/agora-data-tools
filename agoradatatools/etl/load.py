@@ -1,5 +1,5 @@
 import json
-from os import mkdir, path, rmdir
+import os
 from typing import Union
 
 import numpy as np
@@ -30,7 +30,7 @@ def create_temp_location(staging_path: str):
         staging_path (str): path to directory to be created
     """
     try:
-        mkdir(staging_path)
+        os.mkdir(staging_path)
     except FileExistsError:
         return
 
@@ -41,7 +41,7 @@ def delete_temp_location(staging_path: str):
     Args:
         staging_path (str): path to temporary directory to be deleted
     """
-    rmdir(staging_path)
+    os.rmdir(staging_path)
 
 
 def remove_non_values(d: dict) -> dict:
@@ -151,7 +151,7 @@ def df_to_json(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None
 
         df_as_dict = df.to_dict(orient="records")
 
-        temp_json = open(path.join(staging_path, filename), "w+")
+        temp_json = open(os.path.join(staging_path, filename), "w+")
         json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
@@ -177,7 +177,7 @@ def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None,
         Union[None, str]: can return None (if the first `try` fails), or a string containing the name of the new csv file if the function succeeds
     """
     try:
-        temp_csv = open(path.join(staging_path, filename), "w+")
+        temp_csv = open(os.path.join(staging_path, filename), "w+")
         df.to_csv(path_or_buf=temp_csv, index=False)
     except AttributeError:
         print("Invalid dataframe.")
@@ -206,7 +206,7 @@ def dict_to_json(df: dict, staging_path: str, filename: str) -> Union[None, str]
                 for d, v in df.items()
             }
         ]
-        temp_json = open(path.join(staging_path, filename), "w+")
+        temp_json = open(os.path.join(staging_path, filename), "w+")
         json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     except Exception as e:
         print(e)
