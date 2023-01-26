@@ -128,6 +128,25 @@ def test_nest_fields():
     assert list(nested_df["e"]) == expected_column_e
 
 
+def test_transform_biodomains():
+    test_datasets = {
+        "biodomains": pd.DataFrame(
+            {
+                "ensembl_gene_id": ["1", "1", "2", "2", "3", "3"],
+                "biodomain": ["a", "b", "c", "d", "e", "f"],
+                "go_terms": ["a", "b", "c", "d", "e", "f"],
+            }
+        )
+    }
+    expected_gene_biodomains_col = [
+        [{"biodomain": "a", "go_terms": ["a"]}, {"biodomain": "b", "go_terms": ["b"]}],
+        [{"biodomain": "c", "go_terms": ["c"]}, {"biodomain": "d", "go_terms": ["d"]}],
+        [{"biodomain": "e", "go_terms": ["e"]}, {"biodomain": "f", "go_terms": ["f"]}],
+    ]
+    test_biodomains = transform.transform_biodomains(datasets=test_datasets)
+    assert list(test_biodomains["gene_biodomains"]) == expected_gene_biodomains_col
+
+
 # df = pd.DataFrame(
 #     {'team id': [np.nan, 0, 1, 2],
 #      'team.Name': ['MSN', 'Team 1', 'Team 2', np.nan],

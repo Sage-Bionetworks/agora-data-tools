@@ -100,7 +100,7 @@ def nest_fields(
 
 
 def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -> dict:
-    if is_scored is not None:
+    if is_scored:
         df = df[df[is_scored] == "Y"]  # df does not have the isscored
     else:
         df = df[df.isin(["Y"]).any(axis=1)]
@@ -151,7 +151,18 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
     return obj
 
 
-def transform_biodomains(datasets: dict):
+def transform_biodomains(datasets: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Takes dictionary of dataset DataFrames, extracts biodomains DataFrame, perfomes nest_fields on
+    interesting_columns resulting in a 2 column DataFrame grouped by "ensembl_gene_id" and including a
+    collapsed nested dictionary field gene_biodomains
+
+    Args:
+        datasets (dict[str, pd.DataFrame]): dictionary of dataset names mapped to their DataFrame
+
+    Returns:
+        pd.DataFrame: 2 column DataFrame grouped by "ensembl_gene_id" and including a
+    collapsed nested dictionary field gene_biodomains
+    """
     biodomains = datasets["biodomains"]
     interesting_columns = ["ensembl_gene_id", "biodomain", "go_terms"]
     biodomains = biodomains[interesting_columns]
