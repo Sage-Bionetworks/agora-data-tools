@@ -1,7 +1,5 @@
 import sys
 from io import StringIO
-
-from unittest import mock
 from unittest.mock import patch
 
 import numpy as np
