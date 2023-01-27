@@ -151,7 +151,7 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
     return obj
 
 
-def transform_biodomains(datasets: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def transform_biodomains(datasets: dict) -> pd.DataFrame:
     """Takes dictionary of dataset DataFrames, extracts biodomains DataFrame, perfomes nest_fields on
     interesting_columns resulting in a 2 column DataFrame grouped by "ensembl_gene_id" and including a
     collapsed nested dictionary field gene_biodomains
