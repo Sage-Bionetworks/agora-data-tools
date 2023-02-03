@@ -151,8 +151,8 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
     return obj
 
 
-def transform_biodomains(datasets: dict) -> pd.DataFrame:
-    """Takes dictionary of dataset DataFrames, extracts biodomains DataFrame, perfomes nest_fields on
+def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
+    """Takes dictionary of dataset DataFrames, extracts genes_biodomains DataFrame, performs nest_fields on
     interesting_columns resulting in a 2 column DataFrame grouped by "ensembl_gene_id" and including a
     collapsed nested dictionary field gene_biodomains
 
@@ -163,25 +163,25 @@ def transform_biodomains(datasets: dict) -> pd.DataFrame:
         pd.DataFrame: 2 column DataFrame grouped by "ensembl_gene_id" and including a
     collapsed nested dictionary field gene_biodomains
     """
-    biodomains = datasets["biodomains"]
+    genes_biodomains = datasets["genes_biodomains"]
     interesting_columns = ["ensembl_gene_id", "biodomain", "go_terms"]
-    biodomains = biodomains[interesting_columns]
+    genes_biodomains = genes_biodomains[interesting_columns]
 
     # Group rows by ensg and biodomain to produce nested lists of go_terms per ensg/biodomain
-    biodomains = (
-        biodomains.groupby(["ensembl_gene_id", "biodomain"])["go_terms"]
+    genes_biodomains = (
+        genes_biodomains.groupby(["ensembl_gene_id", "biodomain"])["go_terms"]
         .apply(list)
         .reset_index()
     )
 
-    biodomains = nest_fields(
-        df=biodomains,
+    genes_biodomains = nest_fields(
+        df=genes_biodomains,
         grouping="ensembl_gene_id",
         new_column="gene_biodomains",
         drop_columns="ensembl_gene_id",
     )
 
-    return biodomains
+    return genes_biodomains
 
 
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
@@ -566,8 +566,8 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if type(datasets) is not dict or type(dataset_name) is not str:
         return None
 
-    elif dataset_name == "biodomains":
-        return transform_biodomains(datasets=datasets)
+    elif dataset_name == "genes_biodomains":
+        return transform_genes_biodomains(datasets=datasets)
     if dataset_name == "overall_scores":
         df = datasets["overall_scores"]
         return transform_overall_scores(df=df)
