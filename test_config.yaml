@@ -1,9 +1,9 @@
 - destination: &dest syn17015333
 - staging_path: ./staging
 - datasets:
-    - genes_biodomains:
+    - biodomains:
         files:
-          - name: genes_biodomains
+          - name: biodomains
             id: syn44151254.1
             format: csv
         final_format: json
