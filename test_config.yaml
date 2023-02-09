@@ -191,12 +191,7 @@
             id: syn27211942.1
             format: tsv
         final_format: json
-        custom_transformations:
-          models_to_keep:
-            - Diagnosis AD-CONTROL ALL
-            - Diagnosis.AOD AD-CONTROL ALL
-            - Diagnosis.Sex AD-CONTROL FEMALE
-            - Diagnosis.Sex AD-CONTROL MALE
+        custom_transformations: 1
         provenance:
           - syn27211942.1
         destination: *dest
