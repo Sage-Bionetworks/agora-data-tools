@@ -476,7 +476,9 @@ def transform_distribution_data(
 
 
 def transform_rna_distribution_data(datasets: dict):
-    rna_df = datasets["rna"]
+    # "datasets" contains the unprocessed RNA-seq data, which needs to go
+    # through the same processing as before in order to use it here. 
+    rna_df = transform_rna_seq_data(datasets)
     rna_df = rna_df[["tissue", "model", "logfc"]]
 
     rna_df = (

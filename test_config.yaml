@@ -191,12 +191,7 @@
             id: syn27211942.1
             format: tsv
         final_format: json
-        custom_transformations:
-          models_to_keep:
-            - Diagnosis AD-CONTROL ALL
-            - Diagnosis.AOD AD-CONTROL ALL
-            - Diagnosis.Sex AD-CONTROL FEMALE
-            - Diagnosis.Sex AD-CONTROL MALE
+        custom_transformations: 1
         provenance:
           - syn27211942.1
         destination: *dest
@@ -218,14 +213,12 @@
 
     - rna_distribution_data:
         files:
-          - name: rna
-            # use the latest rnaseq JSON file (generated via the current run)
-            id: syn17015360
-            format: json
+          - name: diff_exp_data
+            id: syn27211942.1
+            format: tsv
         final_format: json
         custom_transformations: 1
         provenance:
-          # same provenance as rnaseq JSON file (syn17015360)
           - syn27211942.1
         destination: *dest
 
