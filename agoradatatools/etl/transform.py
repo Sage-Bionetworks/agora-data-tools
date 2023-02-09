@@ -375,12 +375,14 @@ def transform_gene_info(
 
     gene_info["rna_brain_change_studied"] = gene_info["adj_p_val"] != -1
     gene_info["rna_in_ad_brain_change"] = (
-        gene_info["adj_p_val"] <= adjusted_p_value_threshold
+        (gene_info["adj_p_val"] <= adjusted_p_value_threshold) &
+        gene_info["rna_brain_change_studied"]
     )
 
     gene_info["protein_brain_change_studied"] = gene_info["cor_pval"] != -1
     gene_info["protein_in_ad_brain_change"] = (
-        gene_info["cor_pval"] <= protein_level_threshold
+        (gene_info["cor_pval"] <= protein_level_threshold) &
+        gene_info["protein_brain_change_studied"]
     )
 
     # create 'nominations' field
