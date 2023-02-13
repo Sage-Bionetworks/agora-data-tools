@@ -165,7 +165,14 @@ def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
     """
     genes_biodomains = datasets["genes_biodomains"]
     interesting_columns = ["ensembl_gene_id", "biodomain", "go_terms"]
-    genes_biodomains = genes_biodomains[interesting_columns]
+    genes_biodomains = genes_biodomains[interesting_columns].dropna()
+
+    # Count the number of go_terms associated with each biodomain
+    totals = (
+        genes_biodomains.groupby("biodomain")["go_terms"]
+        .nunique().reset_index()
+        .rename(columns={"go_terms": "n_go_terms"})
+    )
 
     # Group rows by ensg and biodomain to produce nested lists of go_terms per ensg/biodomain
     genes_biodomains = (
@@ -173,6 +180,18 @@ def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
         .apply(list)
         .reset_index()
     )
+
+    # Count the number of go_terms associated with each gene
+    genes_biodomains["n_terms"] = genes_biodomains["go_terms"].apply(len)
+
+    # Calculate percent enrichment: merge the list of n_go_terms to match with
+    # each biodomain and then divide n_terms / n_go_terms
+    genes_biodomains = genes_biodomains.merge(totals, on="biodomain", how="left")
+    genes_biodomains["enrichment_pct"] = \
+        genes_biodomains["n_terms"] / genes_biodomains["n_go_terms"] * 100
+
+    # Remove n_go_terms from the data frame
+    genes_biodomains = genes_biodomains.drop(columns="n_go_terms")
 
     genes_biodomains = nest_fields(
         df=genes_biodomains,
