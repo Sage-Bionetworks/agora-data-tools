@@ -116,7 +116,7 @@ def load(
 
     try:
         file = File(file_path, parent=destination)
-        file = syn.store(file, activity=activity)
+        file = syn.store(file, activity=activity, forceVersion=False)
     except OSError as e:
         print(
             f"Either the file path ({file_path}) or the destination ({destination}) are invalid."
