@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -110,7 +109,7 @@ def load(
     return (file.id, file.versionNumber)
 
 
-def df_to_json(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None, str]:
+def df_to_json(df: pd.DataFrame, staging_path: str, filename: str) -> str:
     """Converts a data frame into a json file.
 
     Args:
@@ -119,29 +118,18 @@ def df_to_json(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None
         filename (str): name of JSON file to be created
 
     Returns:
-        Union[None, str]: can return None (if the first `try` fails), or a string containing the name of the new JSON file if the function succeeds
+       str: Returns a string containing the name of the new JSON file
     """
 
-    try:
-        df = df.replace({np.nan: None})
-
-        df_as_dict = df.to_dict(orient="records")
-
-        temp_json = open(os.path.join(staging_path, filename), "w+")
-        json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
-    except Exception as e:
-        print(e)
-        try:  # this was failing if the `try` above fails before creating `temp_json`
-            temp_json.close()
-        except:
-            return None
-        return None
-
+    df = df.replace({np.nan: None})
+    df_as_dict = df.to_dict(orient="records")
+    temp_json = open(os.path.join(staging_path, filename), "w+")
+    json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     temp_json.close()
     return temp_json.name
 
 
-def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None, str]:
+def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> str:
     """Converts a data frame into a csv file.
 
     Args:
@@ -150,21 +138,16 @@ def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> Union[None,
         filename (str): name of csv file to be created
 
     Returns:
-        Union[None, str]: can return None (if the first `try` fails), or a string containing the name of the new csv file if the function succeeds
+        str: Returns a string containing the name of the new CSV file
     """
-    try:
-        temp_csv = open(os.path.join(staging_path, filename), "w+")
-        df.to_csv(path_or_buf=temp_csv, index=False)
-    except AttributeError:
-        print("Invalid dataframe.")
-        temp_csv.close()
-        return None
 
+    temp_csv = open(os.path.join(staging_path, filename), "w+")
+    df.to_csv(path_or_buf=temp_csv, index=False)
     temp_csv.close()
     return temp_csv.name
 
 
-def dict_to_json(df: dict, staging_path: str, filename: str) -> Union[None, str]:
+def dict_to_json(df: dict, staging_path: str, filename: str) -> str:
     """Converts a data dictionary into a JSON file.
 
     Args:
@@ -173,24 +156,13 @@ def dict_to_json(df: dict, staging_path: str, filename: str) -> Union[None, str]
         filename (str): name of JSON file to be created
 
     Returns:
-        Union[None, str]: can return None (if the first `try` fails), or a string containing the name of the new JSON file if the function succeeds
+        str: Returns a string containing the name of the new JSON file
     """
-    try:
-        df_as_dict = [  # TODO explore the df.to_dict() function for this case
-            {
-                d: remove_non_values(v) if isinstance(v, dict) else v
-                for d, v in df.items()
-            }
-        ]
-        temp_json = open(os.path.join(staging_path, filename), "w+")
-        json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
-    except Exception as e:
-        print(e)
-        try:  # handle case where `try` fails before temp_json is created
-            temp_json.close()
-        except:
-            return None
-        return None
 
+    df_as_dict = [  # TODO explore the df.to_dict() function for this case
+        {d: remove_non_values(v) if isinstance(v, dict) else v for d, v in df.items()}
+    ]
+    temp_json = open(os.path.join(staging_path, filename), "w+")
+    json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     temp_json.close()
     return temp_json.name
