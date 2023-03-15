@@ -123,13 +123,13 @@ def load(
         )
 
         print(e)
-        return None
+        return {"OSError": {"file_path": file_path, "destination": destination}}
     except ValueError:
         print(
             "Please make sure that the Synapse id of "
             + "the provenances and the destination are valid"
         )
-        return None
+        return {"ValueError": {"provenance": provenance, "destination": destination}}
 
     return (file.id, file.versionNumber)
 
