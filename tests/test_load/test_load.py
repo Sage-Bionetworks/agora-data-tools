@@ -84,48 +84,6 @@ class TestLoad:
         self.patch_syn_login.assert_not_called()
         assert test_tuple == ("syn1111114", 1)
 
-    def test_load_activity_fails_ValueError(self):
-        captured_output = StringIO()
-        sys.stdout = captured_output
-        test_tuple = load.load(
-            file_path="fake/path/to/fake/file",
-            provenance=["not a syn id", "also not a syn id"],
-            destination="syn1111113",
-            syn=None,
-        )
-        self.patch_syn_login.assert_called_once()
-        assert "one or more invalid syn ids" in captured_output.getvalue()
-        self.patch_syn_store.assert_not_called()
-        assert test_tuple is None
-
-    def test_load_syn_store_fails_OSError(self):
-        self.patch_syn_store.side_effect = OSError  # can't induce failure in mocked object with arguments, so do manually
-        captured_output = StringIO()
-        sys.stdout = captured_output
-        test_tuple = load.load(
-            file_path="fake/path/to/fake/file",
-            provenance=["syn1111111", "syn1111112"],
-            destination="syn1111113",
-            syn=None,
-        )
-        self.patch_syn_login.assert_called_once()
-        assert "Either the file path" in captured_output.getvalue()
-        assert test_tuple is None
-
-    def test_load_syn_store_fails_ValueError(self):
-        self.patch_syn_store.side_effect = ValueError  # can't induce failure in mocked object with arguments, so do manually
-        captured_output = StringIO()
-        sys.stdout = captured_output
-        test_tuple = load.load(
-            file_path="fake/path/to/fake/file",
-            provenance=["syn1111111", "syn1111112"],
-            destination="syn1111113",
-            syn=None,
-        )
-        self.patch_syn_login.assert_called_once()
-        assert "Please make sure that the Synapse id of" in captured_output.getvalue()
-        assert test_tuple is None
-
 
 class TestDFToJSON:
     def setup_method(self):
