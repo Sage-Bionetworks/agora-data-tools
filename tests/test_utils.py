@@ -54,10 +54,9 @@ def test_get_config_with_no_config_path():
     assert list(config)[0] == {"destination": "syn12177492"}
 
 
-# commented out while testing with bad config
-# def test_get_config_with_config_path():
-#     config = utils._get_config(config_path="./test_config.yaml")
-#     assert list(config)[0] == {"destination": "syn17015333"}
+def test_get_config_with_config_path():
+    config = utils._get_config(config_path="./test_config.yaml")
+    assert list(config)[0] == {"destination": "syn17015333"}
 
 
 def test_find_config_by_name_where_name_in_config():
