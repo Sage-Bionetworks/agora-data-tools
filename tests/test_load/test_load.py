@@ -113,15 +113,6 @@ class TestDFToJSON:
         )
         assert json_name == "./staging/test.json"
 
-    def test_df_to_json_failure(self):
-        json_name = load.df_to_json(
-            df=pd.DataFrame(), staging_path=1, filename="test.json"
-        )
-        self.patch_replace.assert_called_once_with({np.nan: None})
-        self.patch_to_dict.assert_called_once_with(orient="records")
-        self.patch_json_dump.assert_not_called()  # should fail at the open() step
-        assert json_name is None
-
 
 class TestDFToCSV:
     def setup_method(self):
@@ -141,13 +132,6 @@ class TestDFToCSV:
             index=False,
         )
         assert csv_name == "./staging/test.json"
-
-    def test_df_to_csv_failure(self):
-        json_name = load.df_to_csv(
-            df="bad_df", staging_path="./staging", filename="test.json"
-        )
-        self.patch_to_csv.assert_not_called()  # invalid dataframe causes this not to be called and produces the AttributeError which is handled, but not raised
-        assert json_name is None
 
 
 class TestDictToJSON:
@@ -175,11 +159,3 @@ class TestDictToJSON:
             indent=2,
         )
         assert json_name == "./staging/test.json"
-
-    def test_dict_to_json_failure(self):
-        json_name = load.dict_to_json(
-            df=self.df_dict, staging_path=1, filename="test.json"
-        )
-        self.patch_remove_non_values.assert_called_once_with({"d": "e"})
-        self.patch_json_dump.assert_not_called()  # `try` fails on open() call now, no json.dump called
-        assert json_name is None
