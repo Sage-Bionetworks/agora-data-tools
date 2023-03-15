@@ -102,7 +102,7 @@ class TestLoad:
         self.patch_syn_store.side_effect = OSError  # can't induce failure in mocked object with arguments, so do manually
         captured_output = StringIO()
         sys.stdout = captured_output
-        test_tuple = load.load(
+        error_dict = load.load(
             file_path="fake/path/to/fake/file",
             provenance=["syn1111111", "syn1111112"],
             destination="syn1111113",
@@ -110,13 +110,18 @@ class TestLoad:
         )
         self.patch_syn_login.assert_called_once()
         assert "Either the file path" in captured_output.getvalue()
-        assert test_tuple is None
+        assert error_dict == {
+            "OSError": {
+                "file_path": "fake/path/to/fake/file",
+                "destination": "syn1111113",
+            }
+        }
 
     def test_load_syn_store_fails_ValueError(self):
         self.patch_syn_store.side_effect = ValueError  # can't induce failure in mocked object with arguments, so do manually
         captured_output = StringIO()
         sys.stdout = captured_output
-        test_tuple = load.load(
+        error_dict = load.load(
             file_path="fake/path/to/fake/file",
             provenance=["syn1111111", "syn1111112"],
             destination="syn1111113",
@@ -124,7 +129,12 @@ class TestLoad:
         )
         self.patch_syn_login.assert_called_once()
         assert "Please make sure that the Synapse id of" in captured_output.getvalue()
-        assert test_tuple is None
+        assert error_dict == {
+            "ValueError": {
+                "provenance": ["syn1111111", "syn1111112"],
+                "destination": "syn1111113",
+            }
+        }
 
 
 class TestDFToJSON:
