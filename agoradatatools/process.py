@@ -22,8 +22,8 @@ def process_dataset(
         syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
 
     Returns:
-        Union[tuple, None]: Tuple containing the id and version number of the uploaded file if successful,
-        returns None if not successful
+        Union[tuple, dict]: Tuple containing the id and version number of the uploaded file if successful,
+        returns dict containing error information if not
     """
 
     dataset_name = list(dataset_obj.keys())[0]
