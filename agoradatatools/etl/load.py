@@ -105,32 +105,9 @@ def load(
 
     if syn is None:
         syn = utils._login_to_synapse()
-
-    try:
-        activity = Activity(used=provenance)
-    except ValueError:
-        print(str(provenance) + " has one or more invalid syn ids")
-        return (
-            None  # added to be more explicit and consistent with the rest of the script
-        )
-
-    try:
-        file = File(file_path, parent=destination)
-        file = syn.store(file, activity=activity, forceVersion=False)
-    except OSError as e:
-        print(
-            f"Either the file path ({file_path}) or the destination ({destination}) are invalid."
-        )
-
-        print(e)
-        return None
-    except ValueError:
-        print(
-            "Please make sure that the Synapse id of "
-            + "the provenances and the destination are valid"
-        )
-        return None
-
+    activity = Activity(used=provenance)
+    file = File(file_path, parent=destination)
+    file = syn.store(file, activity=activity, forceVersion=False)
     return (file.id, file.versionNumber)
 
 
