@@ -167,8 +167,10 @@ def process_all_files(config_path: str = None, syn=None):
             syn=syn,
         )
     else:
-        print(error_list)
-        raise ADTDataProcessingError
+        raise ADTDataProcessingError(
+            "Data Processing has failed for one or more data sources. Refer to the list of errors below to address issues:"
+            + str(error_list)
+        )
 
 
 def build_parser():
