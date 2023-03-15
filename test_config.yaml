@@ -1,4 +1,4 @@
-- destination: &dest syn9999999999
+- destination: &dest syn17015333
 - staging_path: ./staging
 - datasets:
     - genes_biodomains:
