@@ -8,6 +8,8 @@ import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
 import agoradatatools.etl.utils as utils
 
+from agoradatatools.errors import ADTDataProcessingError
+
 
 def process_dataset(
     dataset_obj: dict, staging_path: str, syn=None
@@ -72,7 +74,7 @@ def process_dataset(
                 filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
             )
 
-        syn_obj = load.load(
+        load_obj = load.load(
             file_path=json_path,
             provenance=dataset_obj[dataset_name]["provenance"],
             destination=dataset_obj[dataset_name]["destination"],
@@ -82,7 +84,7 @@ def process_dataset(
         print(error)
         return
 
-    return syn_obj
+    return load_obj
 
 
 def create_data_manifest(parent=None, syn=None) -> DataFrame:
@@ -136,27 +138,37 @@ def process_all_files(config_path: str = None, syn=None):
 
     load.create_temp_location(staging_path)
 
+    syn_tuple_list = []
+    error_list = []
     if datasets:
         for dataset in datasets:
-            new_syn_tuple = process_dataset(
+            load_obj = process_dataset(
                 dataset_obj=dataset, staging_path=staging_path, syn=syn
             )
-            # in the future we should log new_syn_tuples that are none
+            # TODO we should log new_syn_tuples that are none
+            if isinstance(load_obj, tuple):
+                syn_tuple_list.append(load_obj)
+            else:
+                error_list.append(load_obj)
 
     destination = utils._find_config_by_name(config, "destination")
 
-    # create manifest
-    manifest_df = create_data_manifest(parent=destination, syn=syn)
-    manifest_path = load.df_to_csv(
-        df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
-    )
+    # create manifest if no errors
+    if error_list == []:
+        manifest_df = create_data_manifest(parent=destination, syn=syn)
+        manifest_path = load.df_to_csv(
+            df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
+        )
 
-    load.load(
-        file_path=manifest_path,
-        provenance=manifest_df["id"].to_list(),
-        destination=destination,
-        syn=syn,
-    )
+        load.load(
+            file_path=manifest_path,
+            provenance=manifest_df["id"].to_list(),
+            destination=destination,
+            syn=syn,
+        )
+    else:
+        print(error_list)
+        raise ADTDataProcessingError
 
 
 def build_parser():
