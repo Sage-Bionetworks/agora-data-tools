@@ -86,7 +86,7 @@ def remove_non_values(d: dict) -> dict:
 
 def load(
     file_path: str, provenance: list, destination: str, syn: Synapse = None
-) -> Union[tuple, None]:
+) -> tuple:
     """Reads file to be loaded into Synapse
     :param syn: synapse object
     :return: synapse id of the file loaded into Synapse.  Returns None if it
@@ -99,8 +99,7 @@ def load(
         syn (synapseclient.Synapse, optional): synapseclient session. Defaults to None.
 
     Returns:
-        Union[tuple, None]: On success, returns a tuple of the name fo the file and the version number.
-                            On fail returns None.
+        tuple: Returns a tuple of the name fo the file and the version number.
     """
 
     if syn is None:
