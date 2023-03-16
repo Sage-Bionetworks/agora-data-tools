@@ -7,6 +7,7 @@ import pytest
 
 from agoradatatools import process
 from agoradatatools.etl import extract, load, transform, utils
+from agoradatatools.errors import ADTDataProcessingError
 
 
 class TestProcessDataset:
@@ -83,9 +84,11 @@ class TestProcessDataset:
         self.patch_custom_transform.stop()
         self.patch_dict_to_json.stop()
 
-    def test_process_dataset_with_column_rename(self):
+    def test_process_dataset_with_column_rename(self, syn):
         process.process_dataset(
-            dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
+            dataset_obj=self.dataset_object_col_rename,
+            staging_path="./staging",
+            syn=syn,
         )
         self.patch_rename_columns.assert_called_once_with(
             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
@@ -93,9 +96,11 @@ class TestProcessDataset:
         self.patch_custom_transform.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_custom_transformations(self):
+    def test_process_dataset_custom_transformations(self, syn):
         process.process_dataset(
-            dataset_obj=self.dataset_object_custom_transform, staging_path="./staging"
+            dataset_obj=self.dataset_object_custom_transform,
+            staging_path="./staging",
+            syn=syn,
         )
         self.patch_custom_transform.assert_called_once_with(
             datasets={"test_file_1": pd.DataFrame},
@@ -111,9 +116,11 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_with_agora_rename(self):
+    def test_process_dataset_with_agora_rename(self, syn):
         process.process_dataset(
-            dataset_obj=self.dataset_object_col_rename, staging_path="./staging"
+            dataset_obj=self.dataset_object_col_rename,
+            staging_path="./staging",
+            syn=syn,
         )
         self.patch_rename_columns.assert_called_once_with(
             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
@@ -121,12 +128,12 @@ class TestProcessDataset:
         self.patch_custom_transform.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_type_dict(self):
+    def test_process_dataset_type_dict(self, syn):
         self.patch_standardize_values.return_value = (
             dict()
         )  # test if it is a dictionary later
         process.process_dataset(
-            dataset_obj=self.dataset_object, staging_path="./staging"
+            dataset_obj=self.dataset_object, staging_path="./staging", syn=syn
         )
         self.patch_dict_to_json.assert_called_once_with(
             df={}, staging_path="./staging", filename="neuropath_corr.json"
@@ -172,7 +179,7 @@ class TestProcessAllFiles:
             "_get_config",
             return_value=[
                 {"destination": "destination"},
-                {"datasets": ["a", "b", "c"]},
+                {"datasets": [{"a": {"b": "c"}}, {"d": {"e": "f"}}, {"g": {"h": "i"}}]},
             ],
         ).start()
         self.patch_create_temp_location = patch.object(
@@ -202,16 +209,22 @@ class TestProcessAllFiles:
         process.process_all_files(config_path=None, syn=syn)
         self.patch_get_config.assert_called_once_with()
 
+    def test_process_all_files_process_dataset_fails(self, syn):
+        with pytest.raises(ADTDataProcessingError):
+            self.patch_process_dataset.side_effect = Exception
+            process.process_all_files(config_path="path/to/config", syn=syn)
+            self.patch_create_data_manifest.assert_not_called()
+
     def test_process_all_files_full(self, syn):
         process.process_all_files(config_path=None, syn=syn)
         self.patch_process_dataset.assert_any_call(
-            dataset_obj="a", staging_path="./staging", syn=syn
+            dataset_obj={"a": {"b": "c"}}, staging_path="./staging", syn=syn
         )
         self.patch_process_dataset.assert_any_call(
-            dataset_obj="b", staging_path="./staging", syn=syn
+            dataset_obj={"d": {"e": "f"}}, staging_path="./staging", syn=syn
         )
         self.patch_process_dataset.assert_any_call(
-            dataset_obj="c", staging_path="./staging", syn=syn
+            dataset_obj={"g": {"h": "i"}}, staging_path="./staging", syn=syn
         )
         self.patch_create_data_manifest.assert_called_once_with(
             parent="destination", syn=syn
