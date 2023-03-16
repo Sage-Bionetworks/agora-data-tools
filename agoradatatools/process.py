@@ -1,5 +1,4 @@
 import argparse
-from typing import Union
 
 from pandas import DataFrame
 
@@ -11,9 +10,7 @@ import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
 
 
-def process_dataset(
-    dataset_obj: dict, staging_path: str, syn=None
-) -> Union[tuple, None]:
+def process_dataset(dataset_obj: dict, staging_path: str, syn=None) -> tuple:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
@@ -22,8 +19,7 @@ def process_dataset(
         syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
 
     Returns:
-        Union[tuple, None]: Tuple containing the id and version number of the uploaded file if successful,
-        returns None if not successful
+        syn_obj (tuple): Tuple containing the id and version number of the uploaded file.
     """
 
     dataset_name = list(dataset_obj.keys())[0]
