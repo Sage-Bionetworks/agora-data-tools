@@ -1,5 +1,5 @@
 # - destination: &dest syn17015333
- - destination: &dest syn999999999
+- destination: &dest syn999999999
 - staging_path: ./staging
 - datasets:
     - genes_biodomains:
