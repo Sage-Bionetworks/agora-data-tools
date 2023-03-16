@@ -60,7 +60,7 @@ def process_dataset(
             df=df, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
-    if type(df) == dict:
+    if isinstance(df, dict):
         json_path = load.dict_to_json(
             df=df,
             staging_path=staging_path,
@@ -148,7 +148,7 @@ def process_all_files(config_path: str = None, syn=None):
 
     destination = utils._find_config_by_name(config, "destination")
 
-    if error_list == []:
+    if not error_list:
         # create manifest if no errors
         manifest_df = create_data_manifest(parent=destination, syn=syn)
         manifest_path = load.df_to_csv(
