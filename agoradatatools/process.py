@@ -137,10 +137,7 @@ def process_all_files(config_path: str = None, syn=None):
     if datasets:
         for dataset in datasets:
             try:
-                new_syn_tuple = process_dataset(
-                    dataset_obj=dataset, staging_path=staging_path, syn=syn
-                )
-                # TODO in the future we should log new_syn_tuples that are none
+                process_dataset(dataset_obj=dataset, staging_path=staging_path, syn=syn)
             except Exception as e:
                 print(e)
                 error_list.append({list(dataset.keys())[0]: e})
@@ -148,7 +145,7 @@ def process_all_files(config_path: str = None, syn=None):
     destination = utils._find_config_by_name(config, "destination")
 
     if not error_list:
-        # create manifest if no errors
+        # create manifest if there are no errors
         manifest_df = create_data_manifest(parent=destination, syn=syn)
         manifest_path = load.df_to_csv(
             df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
