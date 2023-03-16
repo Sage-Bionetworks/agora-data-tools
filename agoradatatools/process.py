@@ -160,7 +160,7 @@ def process_all_files(config_path: str = None, syn=None):
         )
     else:
         raise ADTDataProcessingError(
-            "\nData Processing has failed for one or more data sources.\n Refer to the list of errors below to address issues:\n"
+            "\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
             + "\n".join(error_list)
         )
 
