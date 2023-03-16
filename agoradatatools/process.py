@@ -1,6 +1,7 @@
 import argparse
 
 from pandas import DataFrame
+import synapseclient
 
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.transform as transform
@@ -10,13 +11,15 @@ import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
 
 
-def process_dataset(dataset_obj: dict, staging_path: str, syn=None) -> tuple:
+def process_dataset(
+    dataset_obj: dict, staging_path: str, syn: synapseclient.Synapse
+) -> tuple:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
         dataset_obj (dict): A dataset defined in the configuration file
         staging_path (str): Staging path
-        syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
+        syn (synapseclient.Synapse): synapseclient.Synapse session.
 
     Returns:
         syn_obj (tuple): Tuple containing the id and version number of the uploaded file.
@@ -41,7 +44,7 @@ def process_dataset(dataset_obj: dict, staging_path: str, syn=None) -> tuple:
             )
 
         entities_as_df[entity_name] = df
-    # print(dataset_name)
+
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         df = transform.apply_custom_transformations(
             datasets=entities_as_df,
