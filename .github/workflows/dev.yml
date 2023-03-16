@@ -33,7 +33,7 @@ jobs:
         run: |
           pytest tests/ --cov=agoradatatools --cov-report=html
       - name: Upload pytest test results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: pytest-results-${{ matrix.python-version }}
           path: htmlcov
@@ -46,8 +46,8 @@ jobs:
     name: test data processing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.9"
       - run: pip install -U setuptools
