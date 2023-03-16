@@ -139,8 +139,9 @@ def process_all_files(config_path: str = None, syn=None):
             try:
                 process_dataset(dataset_obj=dataset, staging_path=staging_path, syn=syn)
             except Exception as e:
-                print(e)
-                error_list.append({list(dataset.keys())[0]: e})
+                error_list.append(
+                    f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
+                )
 
     destination = utils._find_config_by_name(config, "destination")
 
@@ -159,8 +160,8 @@ def process_all_files(config_path: str = None, syn=None):
         )
     else:
         raise ADTDataProcessingError(
-            "Data Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
-            + str(error_list)
+            "\nData Processing has failed for one or more data sources.\n Refer to the list of errors below to address issues:\n"
+            + "\n".join(error_list)
         )
 
 
