@@ -1,27 +1,28 @@
 import argparse
-from typing import Union
 
 from pandas import DataFrame
+import synapseclient
 
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
 import agoradatatools.etl.utils as utils
 
+from agoradatatools.errors import ADTDataProcessingError
+
 
 def process_dataset(
-    dataset_obj: dict, staging_path: str, syn=None
-) -> Union[tuple, None]:
+    dataset_obj: dict, staging_path: str, syn: synapseclient.Synapse
+) -> tuple:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
         dataset_obj (dict): A dataset defined in the configuration file
         staging_path (str): Staging path
-        syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
+        syn (synapseclient.Synapse): synapseclient.Synapse session.
 
     Returns:
-        Union[tuple, None]: Tuple containing the id and version number of the uploaded file if successful,
-        returns None if not successful
+        syn_obj (tuple): Tuple containing the id and version number of the uploaded file.
     """
 
     dataset_name = list(dataset_obj.keys())[0]
@@ -43,7 +44,7 @@ def process_dataset(
             )
 
         entities_as_df[entity_name] = df
-    # print(dataset_name)
+
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         df = transform.apply_custom_transformations(
             datasets=entities_as_df,
@@ -58,29 +59,25 @@ def process_dataset(
             df=df, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
-    try:
-        if type(df) == dict:
-            json_path = load.dict_to_json(
-                df=df,
-                staging_path=staging_path,
-                filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
-            )
-        else:
-            json_path = load.df_to_json(
-                df=df,
-                staging_path=staging_path,
-                filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
-            )
-
-        syn_obj = load.load(
-            file_path=json_path,
-            provenance=dataset_obj[dataset_name]["provenance"],
-            destination=dataset_obj[dataset_name]["destination"],
-            syn=syn,
+    if isinstance(df, dict):
+        json_path = load.dict_to_json(
+            df=df,
+            staging_path=staging_path,
+            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
-    except Exception as error:
-        print(error)
-        return
+    else:
+        json_path = load.df_to_json(
+            df=df,
+            staging_path=staging_path,
+            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+        )
+
+    syn_obj = load.load(
+        file_path=json_path,
+        provenance=dataset_obj[dataset_name]["provenance"],
+        destination=dataset_obj[dataset_name]["destination"],
+        syn=syn,
+    )
 
     return syn_obj
 
@@ -136,27 +133,36 @@ def process_all_files(config_path: str = None, syn=None):
 
     load.create_temp_location(staging_path)
 
+    error_list = []
     if datasets:
         for dataset in datasets:
-            new_syn_tuple = process_dataset(
-                dataset_obj=dataset, staging_path=staging_path, syn=syn
-            )
-            # in the future we should log new_syn_tuples that are none
+            try:
+                process_dataset(dataset_obj=dataset, staging_path=staging_path, syn=syn)
+            except Exception as e:
+                error_list.append(
+                    f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
+                )
 
     destination = utils._find_config_by_name(config, "destination")
 
-    # create manifest
-    manifest_df = create_data_manifest(parent=destination, syn=syn)
-    manifest_path = load.df_to_csv(
-        df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
-    )
+    if not error_list:
+        # create manifest if there are no errors
+        manifest_df = create_data_manifest(parent=destination, syn=syn)
+        manifest_path = load.df_to_csv(
+            df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
+        )
 
-    load.load(
-        file_path=manifest_path,
-        provenance=manifest_df["id"].to_list(),
-        destination=destination,
-        syn=syn,
-    )
+        load.load(
+            file_path=manifest_path,
+            provenance=manifest_df["id"].to_list(),
+            destination=destination,
+            syn=syn,
+        )
+    else:
+        raise ADTDataProcessingError(
+            "\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
+            + "\n".join(error_list)
+        )
 
 
 def build_parser():
