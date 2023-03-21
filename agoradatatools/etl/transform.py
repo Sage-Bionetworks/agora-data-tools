@@ -532,9 +532,9 @@ def transform_distribution_data(
     neo_matrix["literature_score"] = neo_matrix.pop("literaturescore")
 
     additional_data = [
-        {"name": "Target Risk Score", "syn_id": "syn25913473", "wiki_id": "613107"},
-        {"name": "Genetic Risk Score", "syn_id": "syn25913473", "wiki_id": "613104"},
-        {"name": "Multi-omic Risk Score", "syn_id": "syn25913473", "wiki_id": "613106"},
+        {"name": "Target Risk Score", "syn_id": "syn25913473", "wiki_id": "621071"},
+        {"name": "Genetic Risk Score", "syn_id": "syn25913473", "wiki_id": "621069"},
+        {"name": "Multi-omic Risk Score", "syn_id": "syn25913473", "wiki_id": "621070"},
         {"name": "Literature Score", "syn_id": "syn25913473", "wiki_id": "613105"},
     ]
     for col, additional in zip(neo_matrix.keys(), additional_data):
