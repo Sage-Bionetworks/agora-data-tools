@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+agoradatatools = {editable = true, path = ".", extras = ["all"]}
+
+[dev-packages]
+agoradatatools = {editable = true, path = ".", extras = ["testing", "dev"]}
+
+[requires]
+python_version = "3.9.13"
+
+[pipenv]
+allow_prereleases = true
