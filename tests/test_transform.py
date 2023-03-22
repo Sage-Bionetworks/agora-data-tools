@@ -5,7 +5,7 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl import transform
+from src.agoradatatools.etl import transform
 
 
 def test_standardize_column_names():
@@ -126,27 +126,29 @@ def test_nest_fields():
     assert list(nested_df["e"]) == expected_column_e
 
 
-class TestCountGroupedTotal():
+class TestCountGroupedTotal:
     df = pd.DataFrame(
         {
             "col_1": ["a", "a", "a", "b", "c", "c", "c"],  # 3 'Ensembl IDs'
             "col_2": ["x", "y", "z", "x", "y", "z", "z"],  # 3 'biodomains'
             "col_3": ["1", "1", "2", "3", "2", "1", "3"],  # 3 'go_terms'
-            "col_4": ["m", "m", "n", "n", "o", "o", "o"]   # An extra column that should get ignored
+            "col_4": [
+                "m",
+                "m",
+                "n",
+                "n",
+                "o",
+                "o",
+                "o",
+            ],  # An extra column that should get ignored
         }
     )
 
     # How many unique "col_2"'s per unique "col_1" value?
     def test_count_grouped_total_one_group(self):
-        expected_df = pd.DataFrame(
-            {
-                "col_1":  ["a", "b", "c"],
-                "output": [3, 1, 2]
-            }
-        )
+        expected_df = pd.DataFrame({"col_1": ["a", "b", "c"], "output": [3, 1, 2]})
         counted = transform.count_grouped_total(
-            df=self.df, grouping="col_1",
-            input_colname="col_2", output_colname="output"
+            df=self.df, grouping="col_1", input_colname="col_2", output_colname="output"
         )
         assert counted.equals(expected_df)
 
@@ -156,16 +158,17 @@ class TestCountGroupedTotal():
             {
                 "col_1": ["a", "a", "a", "b", "c", "c"],
                 "col_2": ["x", "y", "z", "x", "y", "z"],
-                "output": [1, 1, 1, 1, 1, 2]
+                "output": [1, 1, 1, 1, 1, 2],
             }
         )
 
         counted = transform.count_grouped_total(
-            df=self.df, grouping=["col_1", "col_2"],
-            input_colname="col_3", output_colname="output"
+            df=self.df,
+            grouping=["col_1", "col_2"],
+            input_colname="col_3",
+            output_colname="output",
         )
         assert counted.equals(expected_df)
-
 
 
 # def test_transform_biodomains():
