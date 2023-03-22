@@ -2,6 +2,7 @@ import argparse
 
 from pandas import DataFrame
 import synapseclient
+from typer import Typer
 
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.transform as transform
@@ -184,12 +185,24 @@ def build_parser():
     return parser
 
 
-def main():
+app = Typer()
+
+
+@app.command()
+def process(config_path: str = "config.yaml"):
     parser = build_parser()
     args = parser.parse_args()
     syn = utils._login_to_synapse(token=args.authtoken)
-    process_all_files(config_path=args.configpath, syn=syn)
+    process_all_files(config_path=config_path, syn=syn)
+
+
+@app.command()
+def process_test(config_path: str = "test_config.yaml"):
+    parser = build_parser()
+    args = parser.parse_args()
+    syn = utils._login_to_synapse(token=args.authtoken)
+    process_all_files(config_path=config_path, syn=syn)
 
 
 if __name__ == "__main__":
-    main()
+    app()
