@@ -1,3 +1,7 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
-setup()
+setup(
+    name="agoradatatools",
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+)
