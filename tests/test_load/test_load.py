@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from synapseclient import File
 
-from agoradatatools.etl import load, utils
+from src.agoradatatools.etl import load, utils
 
 
 def test_create_temp_location_success():
