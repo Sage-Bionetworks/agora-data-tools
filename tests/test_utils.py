@@ -5,7 +5,7 @@ import pytest
 import synapseclient
 import yaml
 
-from src.agoradatatools.etl import utils
+from agoradatatools.etl import utils
 
 
 class TestLoginToSynapse:

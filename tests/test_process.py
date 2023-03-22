@@ -5,9 +5,9 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from src.agoradatatools import process
-from src.agoradatatools.etl import extract, load, transform, utils
-from src.agoradatatools.errors import ADTDataProcessingError
+from agoradatatools import process
+from agoradatatools.etl import extract, load, transform, utils
+from agoradatatools.errors import ADTDataProcessingError
 
 
 class TestProcessDataset:

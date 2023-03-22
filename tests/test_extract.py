@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import synapseclient
 
-from src.agoradatatools.etl import extract, utils
+from agoradatatools.etl import extract, utils
 
 
 class MockAsDF:

@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import json
 
-from src.agoradatatools.etl.load import NumpyEncoder
+from agoradatatools.etl.load import NumpyEncoder
 
 
 class TestNumpyEncoder(unittest.TestCase):
