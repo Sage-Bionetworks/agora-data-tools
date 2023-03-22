@@ -5,3 +5,4 @@ synapseclient~=2.7.0
 setuptools~=49.2.1
 PyYAML~=5.4.1
 pyarrow~=3.0.0
+typer~=0.7.0
