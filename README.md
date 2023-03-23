@@ -34,7 +34,7 @@ into the Agora databases is handled by [agora-data-manager](https://github.com/S
 
 You can run the pipeline in any of the following ways:
 1. [Nextflow Tower](#nextflow-tower) is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synapse PAT, or setting up the Synapse Python client.
-2. [Locally](#locally) requires installing Python, obtaining the required Synapse permissions, creating a Synpase PAT, and setting up the Synapse Python client.
+2. [Locally](#locally) requires installing Python and Pipenv, obtaining the required Synapse permissions, creating a Synpase PAT, and setting up the Synapse Python client.
 3. [Docker](#docker) requires installing Docker, obtaining the required Synapse permissions, and creating a Synpase PAT.
 
 When running the pipeline, you must specify the config file that will be used. There are two config files that are checked into this repo:  
@@ -57,14 +57,13 @@ Perform the following one-time steps to set up your local environment and to obt
     * conda - please follow instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) to manage environments
     * pyenv - you will want to use [virtualenv](https://virtualenv.pypa.io/en/latest/) to manage your python environment
 
-2. Install the package locally using conda or pyenv, depending on which you chose:
+2. After navigating to the `agora-data-tools` directory, install the package locally using conda, pyenv or pipenv:
 
     * conda
       ```bash
       conda create -n agora python=3.9
       conda activate agora
       pip install .
-      pip install -r requirements.txt
       ```
     * pyenv + virtualenv
       ```bash
@@ -73,7 +72,12 @@ Perform the following one-time steps to set up your local environment and to obt
       python -m venv env
       source env/bin/activate
       python3 -m pip install .
-      python3 -m pip -r requirements.txt
+      ```
+    * pipenv
+      ```bash
+      pip install pipenv
+      pipenv install
+      pipenv shell
       ```
 
 3. Obtain download access to all required source files in Synapse, including accepting the terms of use on the AD Knowledge Portal backend [here](https://www.synapse.org/#!Synapse:syn5550378).  If you see a green unlocked lock icon, then you should be good to go.
@@ -81,10 +85,10 @@ Perform the following one-time steps to set up your local environment and to obt
 5. Create a Synapse personal access token (PAT)
 6. [Set up](https://help.synapse.org/docs/Client-Configuration.1985446156.html) your Synapse Python client locally
 
-Once you have completed the setup steps outlined above, execute the pipeline by running `process.py` and providing the desired [config file](#config) as an argument. The following example command will execute the pipeline using ```test_config.yaml```:
+Once you have completed the setup steps outlined above, execute the pipeline by running `adt` and providing the desired [config file](#config) as an argument. The following example command will execute the pipeline using ```test_config.yaml```:
 
     ```bash
-    python ./agoradatatools/process.py test_config.yaml
+    adt test_config.yaml
     ```
 
 ### Docker
