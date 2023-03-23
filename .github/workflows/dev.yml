@@ -4,7 +4,7 @@ name: CI
 
 on:
   push:
-    branches: ["dev", "bwmac/IBCDPE-409/implement_cli_2"]
+    branches: ["dev"]
   pull_request:
 
   # Allows you to run this workflow manually from the Actions tab
