@@ -51,4 +51,4 @@ jobs:
           python-version: "3.9"
       - run: pip install -U setuptools
       - run: pip install .
-      - run: adt test_config.yaml ${{secrets.SYNAPSE_PAT}}
+      - run: adt test_config.yaml -at ${{secrets.SYNAPSE_PAT}}

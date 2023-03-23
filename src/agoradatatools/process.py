@@ -1,6 +1,8 @@
+import os
+
 import synapseclient
 from pandas import DataFrame
-from typer import Argument, Typer
+from typer import Argument, Option, Typer
 
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.load as load
@@ -167,13 +169,19 @@ app = Typer()
 
 
 input_path_arg = Argument(..., help="Path to configuration file for processing run")
-synapse_auth_arg = Argument(..., help="Synapse authentication token")
+synapse_auth_opt = Option(
+    os.environ.get("SYNAPSE_AUTH_TOKEN"),
+    "--auth-token",
+    "-at",
+    help="Synapse authentication token. Defaults to environment variabe $SYNAPSE_AUTH_TOKEN",
+    show_default=False,
+)
 
 
 @app.command()
 def process(
     config_path: str = input_path_arg,
-    auth_token: str = synapse_auth_arg,
+    auth_token: str = synapse_auth_opt,
 ):
     syn = utils._login_to_synapse(token=auth_token)
     process_all_files(config_path=config_path, syn=syn)
