@@ -28,7 +28,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install .
           pip install pytest pytest-cov
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Test with pytest
         run: |
           pytest tests/ --cov=agoradatatools --cov-report=html
@@ -51,6 +50,5 @@ jobs:
         with:
           python-version: "3.9"
       - run: pip install -U setuptools
-      - run: pip install -r ./requirements.txt
       - run: pip install .
-      - run: python ./agoradatatools/process.py test_config.yaml --authtoken ${{secrets.SYNAPSE_PAT}}
+      - run: adt test_config.yaml ${{secrets.SYNAPSE_PAT}}
