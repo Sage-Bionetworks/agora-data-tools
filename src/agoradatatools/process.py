@@ -170,10 +170,10 @@ app = Typer()
 
 input_path_arg = Argument(..., help="Path to configuration file for processing run")
 synapse_auth_opt = Option(
-    os.environ.get("SYNAPSE_AUTH_TOKEN"),
+    None,
     "--auth-token",
     "-at",
-    help="Synapse authentication token. Defaults to environment variabe $SYNAPSE_AUTH_TOKEN",
+    help="Synapse authentication token. Defaults to environment variable $SYNAPSE_AUTH_TOKEN via syn.login() functionality",
     show_default=False,
 )
 
