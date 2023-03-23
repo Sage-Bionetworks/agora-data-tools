@@ -1,14 +1,11 @@
-import argparse
-
-from pandas import DataFrame
 import synapseclient
-from typer import Typer, Argument
+from pandas import DataFrame
+from typer import Argument, Typer
 
 import agoradatatools.etl.extract as extract
-import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
+import agoradatatools.etl.transform as transform
 import agoradatatools.etl.utils as utils
-
 from agoradatatools.errors import ADTDataProcessingError
 
 
@@ -166,36 +163,19 @@ def process_all_files(config_path: str = None, syn=None):
         )
 
 
-def build_parser():
-    """Builds the argument parser and returns the result.
-
-    Returns:
-        argparse.ArgumentParser: argument parser for agora data processing
-    """
-    parser = argparse.ArgumentParser(description="Agora data processing")
-    parser.add_argument(
-        "configpath",
-        help="Agora processing yaml configuration",
-    )
-    parser.add_argument(
-        "-a",
-        "--authtoken",
-        help="Synapse PAT",
-    )
-    return parser
-
-
 app = Typer()
 
 
 input_path_arg = Argument(..., help="Path to configuration file for processing run")
+synapse_auth_arg = Argument(..., help="Synapse authentication token")
 
 
 @app.command()
-def process(config_path: str = input_path_arg):
-    parser = build_parser()
-    args = parser.parse_args()
-    syn = utils._login_to_synapse(token=args.authtoken)
+def process(
+    config_path: str = input_path_arg,
+    auth_token: str = synapse_auth_arg,
+):
+    syn = utils._login_to_synapse(token=auth_token)
     process_all_files(config_path=config_path, syn=syn)
 
 

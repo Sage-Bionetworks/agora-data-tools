@@ -234,14 +234,3 @@ class TestProcessAllFiles:
             staging_path="./staging",
             filename="data_manifest.csv",
         )
-
-
-def test_build_parser():
-    with patch.object(
-        argparse,
-        "ArgumentParser",
-        return_value=argparse.ArgumentParser(),
-    ) as patch_build_parser:
-        parser = process.build_parser()
-        patch_build_parser.assert_called_once_with(description="Agora data processing")
-        assert parser == argparse.ArgumentParser()
