@@ -106,6 +106,7 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
         df = df[df.isin(["Y"]).any(axis=1)]
 
     if df[col].dtype == object:
+        df = df.copy() # Necessary to prevent SettingWithCopy warning
         df[col] = df[col].astype(float)
 
     obj = {}
@@ -116,19 +117,15 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
     column with both 0 and that maximum value added to it.  We use the copy to calculate 
     distributions and bins, and subtract the values at the end
     """
-    distribution = df[col].append(pd.Series([0, upper_bound]), ignore_index=True)
+    distribution = pd.concat([df[col], pd.Series([0, upper_bound])], ignore_index=True)
 
     obj["distribution"] = list(
         pd.cut(
             distribution, bins=10, precision=3, include_lowest=True, right=True
         ).value_counts(sort=False)
     )
-    obj["distribution"][
-        0
-    ] -= 1  # since this was calculated with the artificial 0 value, we subtract it
-    obj["distribution"][
-        -1
-    ] -= 1  # since this was calculated with the artificial upper_bound, we subtract it
+    obj["distribution"][0] -= 1  # since this was calculated with the artificial 0 value, we subtract it
+    obj["distribution"][-1] -= 1  # since this was calculated with the artificial upper_bound, we subtract it
 
     discard, obj["bins"] = list(
         pd.cut(distribution, bins=10, precision=3, retbins=True)
