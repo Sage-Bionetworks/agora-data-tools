@@ -62,7 +62,7 @@ Your configured Synapse credentials can be used to run this package both locally
 ### Locally
 Perform the following one-time steps to set up your local environment and to obtain the required Synapse permissions:
 
-1. If you have not already, [install](https://cloud.google.com/python/docs/setup) a supported version of Python and. Versions supported by this package are all versions >3.7 and <3.11. Make sure that Python and `pip` are installed correctly and have been added to your PATH by running `python3 --version` and `pip3 --version`. If your installation was successful, your terminal will return the versions of Python and `pip` that you installed.
+1. If you have not already, [install](https://cloud.google.com/python/docs/setup) a supported version of Python. Versions supported by this package are all versions >3.7 and <3.11. Make sure that Python and `pip` are installed correctly and have been added to your PATH by running `python3 --version` and `pip3 --version`. If your installation was successful, your terminal will return the versions of Python and `pip` that you installed.
 
 2. Install `pipenv` by running `pip install pipenv`.
 
