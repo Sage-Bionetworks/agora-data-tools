@@ -16,7 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        python-version:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -26,9 +30,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov
           pip install .
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-cov
       - name: Test with pytest
         run: |
           pytest tests/ --cov=agoradatatools --cov-report=html
@@ -51,6 +54,5 @@ jobs:
         with:
           python-version: "3.9"
       - run: pip install -U setuptools
-      - run: pip install -r ./requirements.txt
       - run: pip install .
-      - run: python ./agoradatatools/process.py test_config.yaml --authtoken ${{secrets.SYNAPSE_PAT}}
+      - run: adt test_config.yaml -t ${{secrets.SYNAPSE_PAT}}

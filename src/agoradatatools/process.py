@@ -1,13 +1,13 @@
-import argparse
+import os
 
-from pandas import DataFrame
 import synapseclient
+from pandas import DataFrame
+from typer import Argument, Option, Typer
 
 import agoradatatools.etl.extract as extract
-import agoradatatools.etl.transform as transform
 import agoradatatools.etl.load as load
+import agoradatatools.etl.transform as transform
 import agoradatatools.etl.utils as utils
-
 from agoradatatools.errors import ADTDataProcessingError
 
 
@@ -165,31 +165,27 @@ def process_all_files(config_path: str = None, syn=None):
         )
 
 
-def build_parser():
-    """Builds the argument parser and returns the result.
-
-    Returns:
-        argparse.ArgumentParser: argument parser for agora data processing
-    """
-    parser = argparse.ArgumentParser(description="Agora data processing")
-    parser.add_argument(
-        "configpath",
-        help="Agora processing yaml configuration",
-    )
-    parser.add_argument(
-        "-a",
-        "--authtoken",
-        help="Synapse PAT",
-    )
-    return parser
+app = Typer()
 
 
-def main():
-    parser = build_parser()
-    args = parser.parse_args()
-    syn = utils._login_to_synapse(token=args.authtoken)
-    process_all_files(config_path=args.configpath, syn=syn)
+input_path_arg = Argument(..., help="Path to configuration file for processing run")
+synapse_auth_opt = Option(
+    None,
+    "--token",
+    "-t",
+    help="Synapse authentication token. Defaults to environment variable $SYNAPSE_AUTH_TOKEN via syn.login() functionality",
+    show_default=False,
+)
+
+
+@app.command()
+def process(
+    config_path: str = input_path_arg,
+    auth_token: str = synapse_auth_opt,
+):
+    syn = utils._login_to_synapse(token=auth_token)
+    process_all_files(config_path=config_path, syn=syn)
 
 
 if __name__ == "__main__":
-    main()
+    app()
