@@ -1,5 +1,20 @@
 - destination: &dest syn12177492
+- staging_path: ./staging
 - datasets:
+    - genes_biodomains:
+        files:
+          - name: genes_biodomains
+            id: syn44151254.1
+            format: csv
+        final_format: json
+        custom_transformations: 1
+        provenance:
+          - syn44151254.1
+        column_rename:
+          ensembl_id: ensembl_gene_id
+          goterm_name: go_terms
+        destination: *dest
+
     - neuropath_corr:
         files:
           - name: neuropath_regression_results
@@ -71,7 +86,7 @@
             id: syn12514826.4
             format: csv
           - name: eqtl
-            id: syn12514912.2
+            id: syn12514912.3
             format: csv
           - name: proteomics
             id: syn18689335.3
@@ -101,7 +116,7 @@
         provenance:
           - syn25953363.4
           - syn12514826.4
-          - syn12514912.2
+          - syn12514912.3
           - syn18689335.3
           - syn35221005.2
           - syn27211942.1
@@ -136,21 +151,21 @@
     - overall_scores:
         files:
           - name: overall_scores
-            id: syn25575156.9
+            id: syn25575156.13
             format: table
         final_format: json
         custom_transformations: 1
         column_rename:
           genename: hgnc_gene_id
         provenance:
-          - syn25575156.9
+          - syn25575156.13
         agora_rename:
-          ensg: ENSG
-          hgnc_gene_id: GeneName
-          geneticsscore: GeneticsScore
-          literaturescore: LiteratureScore
-          overall: Logsdon
-          omicsscore: OmicsScore
+          ensg: ensembl_gene_id
+          hgnc_gene_id: hgnc_symbol
+          geneticsscore: genetics_score
+          literaturescore: literature_score
+          overall: target_risk_score
+          omicsscore: multi_omics_score
         destination: *dest
 
     - network:
@@ -176,12 +191,7 @@
             id: syn27211942.1
             format: tsv
         final_format: json
-        custom_transformations:
-          models_to_keep:
-            - Diagnosis AD-CONTROL ALL
-            - Diagnosis.AOD AD-CONTROL ALL
-            - Diagnosis.Sex AD-CONTROL FEMALE
-            - Diagnosis.Sex AD-CONTROL MALE
+        custom_transformations: 1
         provenance:
           - syn27211942.1
         destination: *dest
@@ -189,28 +199,26 @@
     - distribution_data:
         files:
           - name: overall_scores
-            id: syn25575156.9
+            id: syn25575156.13
             format: table
         final_format: json
         custom_transformations:
-          overall_max_score: 7
+          overall_max_score: 5
           genetics_max_score: 3
           omics_max_score: 2
           lit_max_score: 2
         provenance:
-          - syn25575156.9
+          - syn25575156.13
         destination: *dest
 
     - rna_distribution_data:
         files:
-          - name: rna
-            # use the latest rnaseq JSON file (generated via the current run)
-            id: syn12177499
-            format: json
+          - name: diff_exp_data
+            id: syn27211942.1
+            format: tsv
         final_format: json
         custom_transformations: 1
         provenance:
-          # same provenance as rnaseq JSON file (syn12177499)
           - syn27211942.1
         destination: *dest
 
