@@ -80,7 +80,7 @@
     - gene_info:
         files:
           - name: gene_metadata
-            id: syn25953363.4
+            id: syn25953363.6
             format: feather
           - name: igap
             id: syn12514826.4
@@ -113,7 +113,7 @@
         column_rename:
           ensg: ensembl_gene_id
         provenance:
-          - syn25953363.4
+          - syn25953363.6
           - syn12514826.4
           - syn12514912.3
           - syn18689335.3
