@@ -6,7 +6,8 @@ from typer import Argument, Option, Typer
 
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.load as load
-import agoradatatools.etl.transform as transform
+import agoradatatools.etl.transform.transform as transform
+from agoradatatools.etl.transform.utils import *
 import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
 

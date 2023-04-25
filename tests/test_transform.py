@@ -5,7 +5,7 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl import transform
+from agoradatatools.etl.transform import utils
 
 
 def test_standardize_column_names():
@@ -30,7 +30,7 @@ def test_standardize_column_names():
             "AAA": ["test_value"],
         }
     )
-    standard_df = transform.standardize_column_names(df=df)
+    standard_df = utils.standardize_column_names(df=df)
     assert list(standard_df.columns) == [
         "a",
         "b",
@@ -63,7 +63,7 @@ class TestStandardizeValues:
     )
 
     def test_standardize_values_success(self):
-        standard_df = transform.standardize_values(df=self.df.copy())
+        standard_df = utils.standardize_values(df=self.df.copy())
         for value in standard_df.iloc[0].tolist():
             assert np.isnan(value)
 
@@ -72,7 +72,7 @@ class TestStandardizeValues:
             patch_replace.side_effect = TypeError
             captured_output = StringIO()
             sys.stdout = captured_output
-            standard_df = transform.standardize_values(df=self.df.copy())
+            standard_df = utils.standardize_values(df=self.df.copy())
             assert "Error comparing types." in captured_output.getvalue()
             assert standard_df.equals(self.df)
 
@@ -90,7 +90,7 @@ class TestRenameColumns:
     bad_column_map = []
 
     def test_rename_columns_success(self):
-        renamed_df = transform.rename_columns(
+        renamed_df = utils.rename_columns(
             df=self.df.copy(), column_map=self.good_column_map
         )
         assert list(renamed_df.columns) == list(self.good_column_map.values())
@@ -98,7 +98,7 @@ class TestRenameColumns:
     def test_rename_columns_TypeError(self):
         captured_output = StringIO()
         sys.stdout = captured_output
-        bad_renamed_df = transform.rename_columns(
+        bad_renamed_df = utils.rename_columns(
             df=self.df.copy(), column_map=self.bad_column_map
         )
         assert "Column mapping must be a dictionary" in captured_output.getvalue()
@@ -120,33 +120,35 @@ def test_nest_fields():
         [{"a": "group_3", "b": "1", "c": "1"}, {"a": "group_3", "b": "1", "c": "1"}],
     ]
 
-    nested_df = transform.nest_fields(
+    nested_df = utils.nest_fields(
         df=df, grouping="a", new_column="e", drop_columns=["d"]
     )
     assert list(nested_df["e"]) == expected_column_e
 
 
-class TestCountGroupedTotal():
+class TestCountGroupedTotal:
     df = pd.DataFrame(
         {
             "col_1": ["a", "a", "a", "b", "c", "c", "c"],  # 3 'Ensembl IDs'
             "col_2": ["x", "y", "z", "x", "y", "z", "z"],  # 3 'biodomains'
             "col_3": ["1", "1", "2", "3", "2", "1", "3"],  # 3 'go_terms'
-            "col_4": ["m", "m", "n", "n", "o", "o", "o"]   # An extra column that should get ignored
+            "col_4": [
+                "m",
+                "m",
+                "n",
+                "n",
+                "o",
+                "o",
+                "o",
+            ],  # An extra column that should get ignored
         }
     )
 
     # How many unique "col_2"'s per unique "col_1" value?
     def test_count_grouped_total_one_group(self):
-        expected_df = pd.DataFrame(
-            {
-                "col_1":  ["a", "b", "c"],
-                "output": [3, 1, 2]
-            }
-        )
-        counted = transform.count_grouped_total(
-            df=self.df, grouping="col_1",
-            input_colname="col_2", output_colname="output"
+        expected_df = pd.DataFrame({"col_1": ["a", "b", "c"], "output": [3, 1, 2]})
+        counted = utils.count_grouped_total(
+            df=self.df, grouping="col_1", input_colname="col_2", output_colname="output"
         )
         assert counted.equals(expected_df)
 
@@ -156,16 +158,17 @@ class TestCountGroupedTotal():
             {
                 "col_1": ["a", "a", "a", "b", "c", "c"],
                 "col_2": ["x", "y", "z", "x", "y", "z"],
-                "output": [1, 1, 1, 1, 1, 2]
+                "output": [1, 1, 1, 1, 1, 2],
             }
         )
 
-        counted = transform.count_grouped_total(
-            df=self.df, grouping=["col_1", "col_2"],
-            input_colname="col_3", output_colname="output"
+        counted = utils.count_grouped_total(
+            df=self.df,
+            grouping=["col_1", "col_2"],
+            input_colname="col_3",
+            output_colname="output",
         )
         assert counted.equals(expected_df)
-
 
 
 # def test_transform_biodomains():
