@@ -132,15 +132,7 @@ class TestCountGroupedTotal:
             "col_1": ["a", "a", "a", "b", "c", "c", "c"],  # 3 'Ensembl IDs'
             "col_2": ["x", "y", "z", "x", "y", "z", "z"],  # 3 'biodomains'
             "col_3": ["1", "1", "2", "3", "2", "1", "3"],  # 3 'go_terms'
-            "col_4": [
-                "m",
-                "m",
-                "n",
-                "n",
-                "o",
-                "o",
-                "o",
-            ],  # An extra column that should get ignored
+            "col_4": ["m", "m", "n", "n", "o", "o", "o"],  # An ignored column
         }
     )
 
