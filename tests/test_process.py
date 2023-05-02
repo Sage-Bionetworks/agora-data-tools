@@ -2,7 +2,7 @@ from unittest import mock
 from unittest.mock import patch
 
 import pandas as pd
-from agoradatatools.etl.transform import apply_transform
+from agoradatatools.etl.transform import apply
 import pytest
 
 from agoradatatools import process
@@ -55,20 +55,20 @@ class TestProcessDataset:
             extract, "get_entity_as_df", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_column_names = patch.object(
-            apply_transform, "standardize_column_names", return_value=pd.DataFrame
+            apply, "standardize_column_names", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_values = patch.object(
-            apply_transform, "standardize_values", return_value=pd.DataFrame
+            apply, "standardize_values", return_value=pd.DataFrame
         ).start()
         self.patch_rename_columns = patch.object(
-            apply_transform, "rename_columns", return_value=pd.DataFrame
+            apply, "rename_columns", return_value=pd.DataFrame
         ).start()
         self.patch_df_to_json = patch.object(
             load, "df_to_json", return_value="path/to/json"
         ).start()
         self.patch_load = patch.object(load, "load", return_value=None).start()
         self.patch_custom_transform = patch.object(
-            apply_transform, "apply_custom_transformations", return_value=pd.DataFrame
+            apply, "apply_custom_transformations", return_value=pd.DataFrame
         ).start()
         self.patch_dict_to_json = patch.object(
             load, "dict_to_json", return_value="path/to/json"
