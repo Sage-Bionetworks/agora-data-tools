@@ -1,8 +1,6 @@
-from unittest.mock import patch
-
 import pandas as pd
 
-from agoradatatools.etl.transform.custom.genes_biodomains import *
+from agoradatatools.etl.transform.custom.genes_biodomains import count_grouped_total
 
 
 class TestCountGroupedTotal:
