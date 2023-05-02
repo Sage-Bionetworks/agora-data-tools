@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.transform.utils import *
 from agoradatatools.etl.transform.custom import *
 
 
