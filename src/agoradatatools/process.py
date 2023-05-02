@@ -6,8 +6,8 @@ from typer import Argument, Option, Typer
 
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.load as load
-import agoradatatools.etl.transform.apply_transform as apply_transform
-from agoradatatools.etl.transform.utils import *
+from agoradatatools.etl.transform.apply import apply_custom_transformations
+from agoradatatools.etl.transform import utils as transform_utils
 import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
 
@@ -35,19 +35,19 @@ def process_dataset(
         entity_name = entity["name"]
 
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
-        df = apply_transform.standardize_column_names(df=df)
-        df = apply_transform.standardize_values(df=df)
+        df = transform_utils.standardize_column_names(df=df)
+        df = transform_utils.standardize_values(df=df)
 
         # the column rename gets applied to all entities in a dataset
         if "column_rename" in dataset_obj[dataset_name].keys():
-            df = apply_transform.rename_columns(
+            df = transform_utils.rename_columns(
                 df=df, column_map=dataset_obj[dataset_name]["column_rename"]
             )
 
         entities_as_df[entity_name] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
-        df = apply_transform.apply_custom_transformations(
+        df = apply_custom_transformations(
             datasets=entities_as_df,
             dataset_name=dataset_name,
             dataset_obj=dataset_obj[dataset_name],
@@ -56,7 +56,7 @@ def process_dataset(
         df = entities_as_df[list(entities_as_df)[0]]
 
     if "agora_rename" in dataset_obj[dataset_name].keys():
-        df = apply_transform.rename_columns(
+        df = transform_utils.rename_columns(
             df=df, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
