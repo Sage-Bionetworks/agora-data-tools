@@ -1,5 +1,3 @@
-import os
-
 import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
@@ -7,9 +5,9 @@ from typer import Argument, Option, Typer
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.load as load
 import agoradatatools.etl.transform.apply as apply
-from agoradatatools.etl.transform import utils as transform_utils
 import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
+from agoradatatools.etl.transform import utils as transform_utils
 
 
 def process_dataset(
