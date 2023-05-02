@@ -6,7 +6,7 @@ from typer import Argument, Option, Typer
 
 import agoradatatools.etl.extract as extract
 import agoradatatools.etl.load as load
-from agoradatatools.etl.transform.apply import apply_custom_transformations
+import agoradatatools.etl.transform.apply as apply
 from agoradatatools.etl.transform import utils as transform_utils
 import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
@@ -47,7 +47,7 @@ def process_dataset(
         entities_as_df[entity_name] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
-        df = apply_custom_transformations(
+        df = apply.apply_custom_transformations(
             datasets=entities_as_df,
             dataset_name=dataset_name,
             dataset_obj=dataset_obj[dataset_name],
