@@ -1,4 +1,7 @@
 import os
+import time
+import logging
+import sys
 
 import synapseclient
 from pandas import DataFrame
@@ -11,6 +14,52 @@ import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
 
 
+def log_time_process_dataset():
+    def log(func):
+        # 'wrap' this puppy up if needed
+        def wrapped(*args, **kwargs):
+            # start timing
+            start_time = time.monotonic()
+            func(*args, **kwargs)
+            # Record the end time
+            end_time = time.monotonic()
+            # Calculate the elapsed time
+            elapsed_time = round(end_time - start_time, 2)
+            logger = logging.getLogger()
+            logging.basicConfig(
+                stream=sys.stdout, level=logging.INFO, format="INFO: %(message)s"
+            )
+            dataset = next(iter(kwargs["dataset_obj"]))
+            logger.info(f"Elapsed time: {elapsed_time} seconds for {dataset} dataset")
+
+        return wrapped
+
+    return log
+
+
+def log_time_process_all_files():
+    def log(func):
+        # 'wrap' this puppy up if needed
+        def wrapped(*args, **kwargs):
+            # start timing
+            start_time = time.monotonic()
+            func(*args, **kwargs)
+            # Record the end time
+            end_time = time.monotonic()
+            # Calculate the elapsed time
+            elapsed_time = round(end_time - start_time, 2)
+            logger = logging.getLogger()
+            logging.basicConfig(
+                stream=sys.stdout, level=logging.INFO, format="INFO: %(message)s"
+            )
+            logger.info(f"Elapsed time: {elapsed_time} seconds for All Uploads")
+
+        return wrapped
+
+    return log
+
+
+@log_time_process_dataset()
 def process_dataset(
     dataset_obj: dict, staging_path: str, syn: synapseclient.Synapse
 ) -> tuple:
@@ -108,6 +157,7 @@ def create_data_manifest(parent=None, syn=None) -> DataFrame:
     return DataFrame(folder)
 
 
+@log_time_process_all_files()
 def process_all_files(config_path: str = None, syn=None):
     """This function will read through the entire configuration and process each file listed.
 
