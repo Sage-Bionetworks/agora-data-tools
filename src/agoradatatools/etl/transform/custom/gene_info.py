@@ -1,33 +1,7 @@
 import pandas as pd
 import numpy as np
 
-
-def nest_fields(
-    df: pd.DataFrame, grouping: str, new_column: str, drop_columns: list = []
-) -> pd.DataFrame:
-    """Collapses the provided DataFrame into 2 columns:
-    1. The grouping column
-    2. A column containing a nested dictionary with the data from the rest of the DataFrame
-
-    Args:
-        df (pd.DataFrame): DataFrame to be collapsed
-        grouping (str): The column that you want to group by
-        new_column (str): the new column created to contain the nested dictionaries created
-        drop_columns (list, optional): List of columns to leave out of the new nested dictionary. Defaults to [].
-
-    Returns:
-        pd.DataFrame: New 2 column DataFrame with group and nested dictionaries
-    """
-    return (
-        df.groupby(grouping)
-        .apply(
-            lambda row: row.replace({np.nan: None})
-            .drop(columns=drop_columns)
-            .to_dict("records")
-        )
-        .reset_index()
-        .rename(columns={0: new_column})
-    )
+from agoradatatools.etl.transform.utils import nest_fields
 
 
 def transform_gene_info(
