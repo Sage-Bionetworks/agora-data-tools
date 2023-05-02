@@ -1,6 +1,38 @@
 import pandas as pd
 
-from agoradatatools.etl.transform.utils import *
+from typing import Union
+
+
+def count_grouped_total(
+    df: pd.DataFrame,
+    grouping: Union[str, list],
+    input_colname: str,
+    output_colname: str,
+) -> pd.DataFrame:
+    """For each unique item/combination in the column(s) specified by grouping,
+    counts the number of unique items in the column [input_colname] that
+    correspond to that grouping. The calculated counts are put in a new
+    column and named with [output_colname].
+    Args:
+        df (pd.DataFrame): contains columns listed in grouping and
+                           input_colname. May contain other columns as well, but
+                           these will be dropped from the returned data frame.
+        grouping (str or list): a string with a single column name, or a list of
+                                strings for multiple column names
+        input_colname (str): the name of the column to count
+        output_colname (str): the name of the new column with calculated counts
+    Returns:
+        pd.DataFrame: a data frame containing the grouping column(s) and a
+                      new column for output_colname, which contains the count of
+                      unique items in input_colname for each grouping item.
+    """
+    df = (
+        df.groupby(grouping)[input_colname]
+        .nunique()
+        .reset_index()
+        .rename(columns={input_colname: output_colname})
+    )
+    return df
 
 
 def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
