@@ -4,15 +4,16 @@ import pandas as pd
 from agoradatatools.etl.transform.custom import *
 
 
+# TODO refactor to avoid so many if's - maybe some sort of mapping to callables
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
-    if type(datasets) is not dict or type(dataset_name) is not str:
+    if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
         return None
-    elif dataset_name == "genes_biodomains":
+    if dataset_name == "genes_biodomains":
         return transform_genes_biodomains(datasets=datasets)
     if dataset_name == "overall_scores":
         df = datasets["overall_scores"]
         return transform_overall_scores(df=df)
-    elif dataset_name == "distribution_data":
+    if dataset_name == "distribution_data":
         return transform_distribution_data(
             datasets=datasets,
             overall_max_score=dataset_obj["custom_transformations"][
@@ -24,11 +25,11 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
             omics_max_score=dataset_obj["custom_transformations"]["omics_max_score"],
             lit_max_score=dataset_obj["custom_transformations"]["lit_max_score"],
         )
-    elif dataset_name == "team_info":
+    if dataset_name == "team_info":
         return transform_team_info(datasets=datasets)
-    elif dataset_name == "rnaseq_differential_expression":
+    if dataset_name == "rnaseq_differential_expression":
         return transform_rna_seq_data(datasets=datasets)
-    elif dataset_name == "gene_info":
+    if dataset_name == "gene_info":
         return transform_gene_info(
             datasets=datasets,
             adjusted_p_value_threshold=dataset_obj["custom_transformations"][
@@ -38,9 +39,9 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
                 "protein_level_threshold"
             ],
         )
-    elif dataset_name == "rna_distribution_data":
+    if dataset_name == "rna_distribution_data":
         return transform_rna_distribution_data(datasets=datasets)
-    elif dataset_name == "proteomics_distribution_data":
+    if dataset_name == "proteomics_distribution_data":
         return create_proteomics_distribution_data(datasets=datasets)
     else:
         return None
