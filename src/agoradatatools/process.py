@@ -7,7 +7,7 @@ import agoradatatools.etl.load as load
 import agoradatatools.etl.transform as transform
 import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
-from agoradatatools.logging import log_time
+from agoradatatools.logs import log_time
 
 
 @log_time(config="process_dataset")

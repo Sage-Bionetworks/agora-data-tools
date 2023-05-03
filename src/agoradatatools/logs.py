@@ -1,6 +1,6 @@
-import time
 import logging
 import sys
+import time
 
 
 def format_seconds(seconds):
