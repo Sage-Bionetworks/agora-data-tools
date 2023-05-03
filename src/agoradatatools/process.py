@@ -2,12 +2,8 @@ import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
 
-import agoradatatools.etl.extract as extract
-import agoradatatools.etl.load as load
-import agoradatatools.etl.utils as utils
+from agoradatatools.etl import extract, load, utils, transform
 from agoradatatools.errors import ADTDataProcessingError
-
-from agoradatatools.etl.transform import *
 
 
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
@@ -15,12 +11,12 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
         return None
     if dataset_name == "genes_biodomains":
-        return transform_genes_biodomains(datasets=datasets)
+        return transform.transform_genes_biodomains(datasets=datasets)
     if dataset_name == "overall_scores":
         df = datasets["overall_scores"]
-        return transform_overall_scores(df=df)
+        return transform.transform_overall_scores(df=df)
     if dataset_name == "distribution_data":
-        return transform_distribution_data(
+        return transform.transform_distribution_data(
             datasets=datasets,
             overall_max_score=dataset_obj["custom_transformations"][
                 "overall_max_score"
@@ -32,11 +28,11 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
             lit_max_score=dataset_obj["custom_transformations"]["lit_max_score"],
         )
     if dataset_name == "team_info":
-        return transform_team_info(datasets=datasets)
+        return transform.transform_team_info(datasets=datasets)
     if dataset_name == "rnaseq_differential_expression":
-        return transform_rna_seq_data(datasets=datasets)
+        return transform.transform_rna_seq_data(datasets=datasets)
     if dataset_name == "gene_info":
-        return transform_gene_info(
+        return transform.transform_gene_info(
             datasets=datasets,
             adjusted_p_value_threshold=dataset_obj["custom_transformations"][
                 "adjusted_p_value_threshold"
@@ -46,9 +42,9 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
             ],
         )
     if dataset_name == "rna_distribution_data":
-        return transform_rna_distribution_data(datasets=datasets)
+        return transform.transform_rna_distribution_data(datasets=datasets)
     if dataset_name == "proteomics_distribution_data":
-        return create_proteomics_distribution_data(datasets=datasets)
+        return transform.create_proteomics_distribution_data(datasets=datasets)
     else:
         return None
 
