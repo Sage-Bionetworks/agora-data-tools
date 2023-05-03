@@ -36,7 +36,6 @@ def log_time(config: str):
         raise ValueError(f"configuration {config} not supported for log_time wrapper.")
 
     def log(func):
-        # 'wrap' this puppy up if needed
         def wrapped(*args, **kwargs):
             # start timing
             start_time = time.monotonic()
