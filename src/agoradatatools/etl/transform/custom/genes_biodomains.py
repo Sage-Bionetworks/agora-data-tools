@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Union
 
-from agoradatatools.etl.transform.utils import nest_fields
+from agoradatatools.etl.utils import nest_fields
 
 
 def count_grouped_total(

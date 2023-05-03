@@ -7,7 +7,6 @@ import agoradatatools.etl.load as load
 import agoradatatools.etl.transform.apply as apply
 import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
-from agoradatatools.etl.transform import utils as transform_utils
 
 
 def process_dataset(
@@ -33,12 +32,12 @@ def process_dataset(
         entity_name = entity["name"]
 
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
-        df = transform_utils.standardize_column_names(df=df)
-        df = transform_utils.standardize_values(df=df)
+        df = utils.standardize_column_names(df=df)
+        df = utils.standardize_values(df=df)
 
         # the column rename gets applied to all entities in a dataset
         if "column_rename" in dataset_obj[dataset_name].keys():
-            df = transform_utils.rename_columns(
+            df = utils.rename_columns(
                 df=df, column_map=dataset_obj[dataset_name]["column_rename"]
             )
 
@@ -54,7 +53,7 @@ def process_dataset(
         df = entities_as_df[list(entities_as_df)[0]]
 
     if "agora_rename" in dataset_obj[dataset_name].keys():
-        df = transform_utils.rename_columns(
+        df = utils.rename_columns(
             df=df, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 

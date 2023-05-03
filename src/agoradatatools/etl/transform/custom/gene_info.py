@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from agoradatatools.etl.transform.utils import nest_fields
+from agoradatatools.etl.utils import nest_fields
 
 
 def transform_gene_info(
