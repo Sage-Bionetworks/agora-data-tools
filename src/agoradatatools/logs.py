@@ -10,6 +10,15 @@ def format_seconds(seconds):
     return f"{hours:02}:{minutes:02}:{seconds:02}"
 
 
+def create_logger():
+    """Creates basic logger."""
+    logger = logging.getLogger()
+    logging.basicConfig(
+        stream=sys.stdout, level=logging.INFO, format="INFO: %(message)s"
+    )
+    return logger
+
+
 def log_time(config: str):
     """Wrapper that calculates how long it takes for a function to run and then logs that time.
 
@@ -37,21 +46,17 @@ def log_time(config: str):
             # Calculate the elapsed time
             elapsed_time = round(end_time - start_time, 2)
             elapse_time_formatted = format_seconds(elapsed_time)
-            logger = logging.getLogger()
-            logging.basicConfig(
-                stream=sys.stdout, level=logging.INFO, format="INFO: %(message)s"
-            )
+            logger = create_logger()
             if config == "process_dataset":
                 dataset = next(iter(kwargs["dataset_obj"]))
-                logger.info(
-                    "Elapsed time: %s for %s dataset",
-                    elapse_time_formatted,
-                    dataset,
-                )
+                string_list = [elapse_time_formatted, dataset]
+                message = "Elapsed time: %s for %s dataset"
+
             if config == "process_all_files":
-                logger.info(
-                    "Elapsed time: %s for all data processing", elapse_time_formatted
-                )
+                string_list = [elapse_time_formatted]
+                message = "Elapsed time: %s for all data processing"
+
+            logger.info(message, *string_list)
 
         return wrapped
 
