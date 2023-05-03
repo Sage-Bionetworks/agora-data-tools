@@ -1,6 +1,6 @@
-import logging
-import sys
 import time
+
+from . import logger
 
 
 def format_seconds(seconds):
@@ -8,15 +8,6 @@ def format_seconds(seconds):
     minutes, seconds = divmod(int(seconds), 60)
     hours, minutes = divmod(minutes, 60)
     return f"{hours:02}:{minutes:02}:{seconds:02}"
-
-
-def create_logger():
-    """Creates basic logger."""
-    logger = logging.getLogger()
-    logging.basicConfig(
-        stream=sys.stdout, level=logging.INFO, format="INFO: %(message)s"
-    )
-    return logger
 
 
 def log_time(config: str):
@@ -45,7 +36,7 @@ def log_time(config: str):
             # Calculate the elapsed time
             elapsed_time = round(end_time - start_time, 2)
             elapse_time_formatted = format_seconds(elapsed_time)
-            logger = create_logger()
+            # logger = create_logger()
             if config == "process_dataset":
                 dataset = next(iter(kwargs["dataset_obj"]))
                 string_list = [elapse_time_formatted, dataset]
