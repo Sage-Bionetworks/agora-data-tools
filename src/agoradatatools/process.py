@@ -7,7 +7,7 @@ import agoradatatools.etl.load as load
 import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
 
-from agoradatatools.etl.transform.custom import *
+from agoradatatools.etl.transform import *
 
 
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
