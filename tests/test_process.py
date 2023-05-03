@@ -8,8 +8,6 @@ from typing import Any
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError
 from agoradatatools.etl import extract, load, utils
-from agoradatatools.etl.transform import apply
-from agoradatatools.etl.transform import utils as transform_utils
 
 
 class TestProcessDataset:
@@ -57,20 +55,20 @@ class TestProcessDataset:
             extract, "get_entity_as_df", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_column_names = patch.object(
-            transform_utils, "standardize_column_names", return_value=pd.DataFrame
+            utils, "standardize_column_names", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_values = patch.object(
-            transform_utils, "standardize_values", return_value=pd.DataFrame
+            utils, "standardize_values", return_value=pd.DataFrame
         ).start()
         self.patch_rename_columns = patch.object(
-            transform_utils, "rename_columns", return_value=pd.DataFrame
+            utils, "rename_columns", return_value=pd.DataFrame
         ).start()
         self.patch_df_to_json = patch.object(
             load, "df_to_json", return_value="path/to/json"
         ).start()
         self.patch_load = patch.object(load, "load", return_value=None).start()
         self.patch_custom_transform = patch.object(
-            apply, "apply_custom_transformations", return_value=pd.DataFrame
+            process, "apply_custom_transformations", return_value=pd.DataFrame
         ).start()
         self.patch_dict_to_json = patch.object(
             load, "dict_to_json", return_value="path/to/json"

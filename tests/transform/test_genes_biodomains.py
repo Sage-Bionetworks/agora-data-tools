@@ -1,6 +1,6 @@
 import pandas as pd
 
-from agoradatatools.etl.transform.custom.genes_biodomains import count_grouped_total
+from agoradatatools.etl.transform.genes_biodomains import count_grouped_total
 
 
 class TestCountGroupedTotal:
