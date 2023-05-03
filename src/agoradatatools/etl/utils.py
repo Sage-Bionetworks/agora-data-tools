@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 
-# TODO these utils functions are not protected... refactor removing "_"
+# TODO remove "_" - these utils functions are not only used internally
 def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     """Logs into Synapse python client, returns authenticated Synapse session.
 
