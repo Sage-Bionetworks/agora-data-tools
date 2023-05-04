@@ -4,6 +4,6 @@ import logging
 logging.basicConfig(
     stream=sys.stdout,
     level=logging.INFO,
-    format="INFO | %(asctime)s | %(message)s",
+    format="%(levelname)s: %(asctime)s | %(name)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
