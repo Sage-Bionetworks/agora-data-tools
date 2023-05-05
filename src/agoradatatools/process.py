@@ -1,5 +1,4 @@
-import os
-
+import logging
 import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
@@ -9,8 +8,12 @@ import agoradatatools.etl.load as load
 import agoradatatools.etl.transform as transform
 import agoradatatools.etl.utils as utils
 from agoradatatools.errors import ADTDataProcessingError
+from agoradatatools.logs import log_time
+
+logger = logging.getLogger(__name__)
 
 
+@log_time(func_name="process_dataset", logger=logger)
 def process_dataset(
     dataset_obj: dict, staging_path: str, syn: synapseclient.Synapse
 ) -> tuple:
@@ -108,6 +111,7 @@ def create_data_manifest(parent=None, syn=None) -> DataFrame:
     return DataFrame(folder)
 
 
+@log_time(func_name="process_all_files", logger=logger)
 def process_all_files(config_path: str = None, syn=None):
     """This function will read through the entire configuration and process each file listed.
 
