@@ -1,13 +1,13 @@
-import argparse
 from unittest import mock
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from typing import Any
 
 from agoradatatools import process
-from agoradatatools.etl import extract, load, transform, utils
 from agoradatatools.errors import ADTDataProcessingError
+from agoradatatools.etl import extract, load, utils
 
 
 class TestProcessDataset:
@@ -55,20 +55,20 @@ class TestProcessDataset:
             extract, "get_entity_as_df", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_column_names = patch.object(
-            transform, "standardize_column_names", return_value=pd.DataFrame
+            utils, "standardize_column_names", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_values = patch.object(
-            transform, "standardize_values", return_value=pd.DataFrame
+            utils, "standardize_values", return_value=pd.DataFrame
         ).start()
         self.patch_rename_columns = patch.object(
-            transform, "rename_columns", return_value=pd.DataFrame
+            utils, "rename_columns", return_value=pd.DataFrame
         ).start()
         self.patch_df_to_json = patch.object(
             load, "df_to_json", return_value="path/to/json"
         ).start()
         self.patch_load = patch.object(load, "load", return_value=None).start()
         self.patch_custom_transform = patch.object(
-            transform, "apply_custom_transformations", return_value=pd.DataFrame
+            process, "apply_custom_transformations", return_value=pd.DataFrame
         ).start()
         self.patch_dict_to_json = patch.object(
             load, "dict_to_json", return_value="path/to/json"
@@ -84,7 +84,7 @@ class TestProcessDataset:
         self.patch_custom_transform.stop()
         self.patch_dict_to_json.stop()
 
-    def test_process_dataset_with_column_rename(self, syn):
+    def test_process_dataset_with_column_rename(self, syn: Any):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
             staging_path="./staging",
@@ -96,7 +96,7 @@ class TestProcessDataset:
         self.patch_custom_transform.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_custom_transformations(self, syn):
+    def test_process_dataset_custom_transformations(self, syn: Any):
         process.process_dataset(
             dataset_obj=self.dataset_object_custom_transform,
             staging_path="./staging",
@@ -116,7 +116,7 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_with_agora_rename(self, syn):
+    def test_process_dataset_with_agora_rename(self, syn: Any):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
             staging_path="./staging",
@@ -128,7 +128,7 @@ class TestProcessDataset:
         self.patch_custom_transform.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
 
-    def test_process_dataset_type_dict(self, syn):
+    def test_process_dataset_type_dict(self, syn: Any):
         self.patch_standardize_values.return_value = (
             dict()
         )  # test if it is a dictionary later
@@ -145,7 +145,7 @@ class TestProcessDataset:
 
 class TestCreateDataManifest:
     @pytest.fixture(scope="function", autouse=True)
-    def setup_method(self, syn):
+    def setup_method(self, syn: Any):
         self.patch_syn_login = patch.object(
             utils, "_login_to_synapse", return_value=syn
         ).start()
@@ -156,7 +156,7 @@ class TestCreateDataManifest:
     def teardown_method(self):
         mock.patch.stopall()
 
-    def test_create_data_manifest_parent_none(self, syn):
+    def test_create_data_manifest_parent_none(self, syn: Any):
         assert process.create_data_manifest(parent=None, syn=syn) is None
         self.patch_syn_login.assert_not_called()
 
@@ -164,7 +164,7 @@ class TestCreateDataManifest:
         process.create_data_manifest(parent="syn1111111", syn=None)
         self.patch_syn_login.assert_called_once()
 
-    def test_create_data_manifest_no_none(self, syn):
+    def test_create_data_manifest_no_none(self, syn: Any):
         df = process.create_data_manifest(parent="syn1111111", syn=syn)
         self.patch_get_children.assert_called_once_with("syn1111111")
         self.patch_syn_login.assert_not_called()
@@ -201,21 +201,21 @@ class TestProcessAllFiles:
     def teardown_method(self):
         mock.patch.stopall()
 
-    def test_process_all_files_config_path(self, syn):
+    def test_process_all_files_config_path(self, syn: Any):
         process.process_all_files(config_path="path/to/config", syn=syn)
         self.patch_get_config.assert_called_once_with(config_path="path/to/config")
 
-    def test_process_all_files_no_config_path(self, syn):
+    def test_process_all_files_no_config_path(self, syn: Any):
         process.process_all_files(config_path=None, syn=syn)
         self.patch_get_config.assert_called_once_with()
 
-    def test_process_all_files_process_dataset_fails(self, syn):
+    def test_process_all_files_process_dataset_fails(self, syn: Any):
         with pytest.raises(ADTDataProcessingError):
             self.patch_process_dataset.side_effect = Exception
             process.process_all_files(config_path="path/to/config", syn=syn)
             self.patch_create_data_manifest.assert_not_called()
 
-    def test_process_all_files_full(self, syn):
+    def test_process_all_files_full(self, syn: Any):
         process.process_all_files(config_path=None, syn=syn)
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"a": {"b": "c"}}, staging_path="./staging", syn=syn

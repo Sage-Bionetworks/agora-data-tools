@@ -3,14 +3,54 @@ import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
 
-import agoradatatools.etl.extract as extract
-import agoradatatools.etl.load as load
-import agoradatatools.etl.transform as transform
-import agoradatatools.etl.utils as utils
+from agoradatatools.etl import extract, load, utils, transform
 from agoradatatools.errors import ADTDataProcessingError
 from agoradatatools.logs import log_time
 
 logger = logging.getLogger(__name__)
+
+
+# TODO refactor to avoid so many if's - maybe some sort of mapping to callables
+def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
+    if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
+        return None
+    if dataset_name == "genes_biodomains":
+        return transform.transform_genes_biodomains(datasets=datasets)
+    if dataset_name == "overall_scores":
+        df = datasets["overall_scores"]
+        return transform.transform_overall_scores(df=df)
+    if dataset_name == "distribution_data":
+        return transform.transform_distribution_data(
+            datasets=datasets,
+            overall_max_score=dataset_obj["custom_transformations"][
+                "overall_max_score"
+            ],
+            genetics_max_score=dataset_obj["custom_transformations"][
+                "genetics_max_score"
+            ],
+            omics_max_score=dataset_obj["custom_transformations"]["omics_max_score"],
+            lit_max_score=dataset_obj["custom_transformations"]["lit_max_score"],
+        )
+    if dataset_name == "team_info":
+        return transform.transform_team_info(datasets=datasets)
+    if dataset_name == "rnaseq_differential_expression":
+        return transform.transform_rna_seq_data(datasets=datasets)
+    if dataset_name == "gene_info":
+        return transform.transform_gene_info(
+            datasets=datasets,
+            adjusted_p_value_threshold=dataset_obj["custom_transformations"][
+                "adjusted_p_value_threshold"
+            ],
+            protein_level_threshold=dataset_obj["custom_transformations"][
+                "protein_level_threshold"
+            ],
+        )
+    if dataset_name == "rna_distribution_data":
+        return transform.transform_rna_distribution_data(datasets=datasets)
+    if dataset_name == "proteomics_distribution_data":
+        return transform.create_proteomics_distribution_data(datasets=datasets)
+    else:
+        return None
 
 
 @log_time(func_name="process_dataset", logger=logger)
@@ -37,19 +77,19 @@ def process_dataset(
         entity_name = entity["name"]
 
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
-        df = transform.standardize_column_names(df=df)
-        df = transform.standardize_values(df=df)
+        df = utils.standardize_column_names(df=df)
+        df = utils.standardize_values(df=df)
 
         # the column rename gets applied to all entities in a dataset
         if "column_rename" in dataset_obj[dataset_name].keys():
-            df = transform.rename_columns(
+            df = utils.rename_columns(
                 df=df, column_map=dataset_obj[dataset_name]["column_rename"]
             )
 
         entities_as_df[entity_name] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
-        df = transform.apply_custom_transformations(
+        df = apply_custom_transformations(
             datasets=entities_as_df,
             dataset_name=dataset_name,
             dataset_obj=dataset_obj[dataset_name],
@@ -58,7 +98,7 @@ def process_dataset(
         df = entities_as_df[list(entities_as_df)[0]]
 
     if "agora_rename" in dataset_obj[dataset_name].keys():
-        df = transform.rename_columns(
+        df = utils.rename_columns(
             df=df, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
