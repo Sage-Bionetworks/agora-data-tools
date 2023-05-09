@@ -112,7 +112,6 @@
           protein_level_threshold: 0.05
         column_rename:
           ensg: ensembl_gene_id
-          haseqtl: has_eqtl
         provenance:
           - syn25953363.6
           - syn12514826.4
