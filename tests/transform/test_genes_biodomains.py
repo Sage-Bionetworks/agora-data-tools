@@ -49,13 +49,21 @@ class TestCountGroupedTotal:
 class TestTransformBiodomains:
     data_files_path = "tests/test_assets/data_files"
     test_data = [
-        ("biodomains_test_input.csv", "genes_biodomains.json", True),
         (
+            "biodomains_test_input.csv",
+            "genes_biodomains.json",
+            True,
+        ),  # pass with good data
+        (  # pass with imperfect, but handled data
             "biodomains_test_input_bad_but_should_pass.csv",
             "genes_biodomains_bad_output_but_should_pass.json",
             True,
         ),
-        ("biodomains_test_input_bad_should_fail.csv", None, False),
+        (
+            "biodomains_test_input_bad_should_fail.csv",
+            None,
+            False,
+        ),  # fail with bad data
     ]
 
     @pytest.mark.parametrize("input_file, expected_output_file, expect_pass", test_data)
