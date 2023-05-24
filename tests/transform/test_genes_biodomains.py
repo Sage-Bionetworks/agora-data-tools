@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 import pytest
-import logging
 
 from agoradatatools.etl.transform import genes_biodomains
 
