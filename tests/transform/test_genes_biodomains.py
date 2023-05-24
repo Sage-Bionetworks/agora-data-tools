@@ -43,7 +43,7 @@ class TestCountGroupedTotal:
         assert counted.equals(expected_df)
 
 
-class TestTransformBiodomains:
+class TestTransformGenesBiodomains:
     data_files_path = "tests/test_assets/data_files"
     pass_test_data = [
         (  # pass with good data
@@ -69,7 +69,9 @@ class TestTransformBiodomains:
     @pytest.mark.parametrize(
         "input_file, expected_output_file", pass_test_data, ids=pass_test_ids
     )
-    def test_transform_biodomains_should_pass(self, input_file, expected_output_file):
+    def test_transform_genes_biodomains_should_pass(
+        self, input_file, expected_output_file
+    ):
         input_df = pd.read_csv(os.path.join(self.data_files_path, "input", input_file))
         output_df = genes_biodomains.transform_genes_biodomains(
             datasets={"genes_biodomains": input_df}
@@ -80,7 +82,7 @@ class TestTransformBiodomains:
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     @pytest.mark.parametrize("input_file", fail_test_data, ids=fail_test_ids)
-    def test_transform_biodomains_should_fail(self, input_file):
+    def test_transform_genes_biodomains_should_fail(self, input_file):
         with pytest.raises(KeyError):
             input_df = pd.read_csv(
                 os.path.join(self.data_files_path, "input", input_file)
