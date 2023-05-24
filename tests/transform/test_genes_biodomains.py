@@ -6,8 +6,6 @@ import logging
 
 from agoradatatools.etl.transform import genes_biodomains
 
-logger = logging.getLogger(__name__)
-
 
 class TestCountGroupedTotal:
     df = pd.DataFrame(
