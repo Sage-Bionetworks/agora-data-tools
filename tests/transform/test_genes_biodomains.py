@@ -48,49 +48,46 @@ class TestCountGroupedTotal:
 
 class TestTransformBiodomains:
     data_files_path = "tests/test_assets/data_files"
-    test_data = [
-        (
+    pass_test_data = [
+        (  # pass with good data
             "biodomains_test_input.csv",
             "genes_biodomains.json",
-            True,
-        ),  # pass with good data
-        (  # pass with imperfect, but handled data
+        ),
+        (  # pass with imperfect data
             "biodomains_test_input_bad_but_should_pass.csv",
             "genes_biodomains_bad_output_but_should_pass.json",
-            True,
         ),
-        (
-            "biodomains_test_input_bad_should_fail.csv",
-            None,
-            False,
-        ),  # fail with bad data
+    ]
+    pass_test_ids = [
+        "Pass with good data",
+        "Pass with imperfect data",
+    ]
+    fail_test_data = [
+        "biodomains_test_input_bad_should_fail.csv",  # fail with bad data
+    ]
+    fail_test_ids = [
+        "Fail with bad data",
     ]
 
-    @pytest.mark.parametrize("input_file, expected_output_file, expect_pass", test_data)
-    def test_transform_biodomains(self, input_file, expected_output_file, expect_pass):
-        if expect_pass:
+    @pytest.mark.parametrize(
+        "input_file, expected_output_file", pass_test_data, ids=pass_test_ids
+    )
+    def test_transform_biodomains_should_pass(self, input_file, expected_output_file):
+        input_df = pd.read_csv(os.path.join(self.data_files_path, "input", input_file))
+        output_df = genes_biodomains.transform_genes_biodomains(
+            datasets={"genes_biodomains": input_df}
+        )
+        expected_df = pd.read_json(
+            os.path.join(self.data_files_path, "output", expected_output_file),
+        )
+        pd.testing.assert_frame_equal(output_df, expected_df)
+
+    @pytest.mark.parametrize("input_file", fail_test_data, ids=fail_test_ids)
+    def test_transform_biodomains_should_fail(self, input_file):
+        with pytest.raises(KeyError):
             input_df = pd.read_csv(
                 os.path.join(self.data_files_path, "input", input_file)
             )
-            output_df = genes_biodomains.transform_genes_biodomains(
+            genes_biodomains.transform_genes_biodomains(
                 datasets={"genes_biodomains": input_df}
             )
-            expected_df = pd.read_json(
-                os.path.join(self.data_files_path, "output", expected_output_file),
-            )
-            pd.testing.assert_frame_equal(output_df, expected_df)
-            message = f"Execution on {input_file} was successful and matches the expected output."
-            logger.info(message)
-        else:
-            try:
-                input_df = pd.read_csv(
-                    os.path.join(self.data_files_path, "input", input_file)
-                )
-                genes_biodomains.transform_genes_biodomains(
-                    datasets={"genes_biodomains": input_df}
-                )
-            except KeyError as e:
-                message = (
-                    f"Execution on {input_file} results in KeyError {e} as expected."
-                )
-                logger.info(message)
