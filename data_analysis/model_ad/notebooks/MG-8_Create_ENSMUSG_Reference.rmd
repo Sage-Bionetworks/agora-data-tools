@@ -1,6 +1,6 @@
 # Create ENSMUSG Reference
 
-This notebook downloads all data files listed in [data_sources.csv](https://github.com/Sage-Bionetworks/magora/blob/main/data-raw/gene_expressions/data_sources.csv), gets a list of all the Ensembl gene IDs used across all the files, and maps them to gene symbols and aliases. The file is later uploaded to Synapse here: [syn51615422](https://www.synapse.org/#!Synapse:syn51615422).
+This notebook downloads all data files listed in [data_sources.csv](https://github.com/Sage-Bionetworks/magora/blob/main/data-raw/gene_expressions/data_sources.csv), gets a list of all the Ensembl gene IDs used across all the files, and maps them to gene symbols and aliases. The file is then uploaded to Synapse here: [syn51615422](https://www.synapse.org/#!Synapse:syn51615422).
 
 Required packages (will automatically be installed if necessary):
 
@@ -107,7 +107,17 @@ genes_df <- genes %>% group_by(ensembl_gene_id, external_gene_name) %>%
 
 output_dir <- file.path("..", "output")
 dir.create(output_dir, showWarnings = FALSE)
-write_json(genes_df, file.path(output_dir, "mouse_gene_metadata.json"))
+write_json(genes_df, file.path(output_dir, "mouse_gene_metadata.json"), pretty = TRUE)
 
 print(head(genes_df))
+```
+
+## Upload JSON file to Synapse
+
+```{r}
+syn_file <- File(file.path(output_dir, "mouse_gene_metadata.json"), 
+                 description = "Ensembl IDs, gene symbols, and alias symbols for each gene used in the Model AD Explorer.",
+                 parent = "syn51498054")
+synStore(syn_file, forceVersion = FALSE, 
+         used = paste(data_sources$id, data_sources$version, sep = "."))
 ```
