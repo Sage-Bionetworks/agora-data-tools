@@ -118,6 +118,9 @@ print(head(genes_df))
 syn_file <- File(file.path(output_dir, "mouse_gene_metadata.json"), 
                  description = "Ensembl IDs, gene symbols, and alias symbols for each gene used in the Model AD Explorer.",
                  parent = "syn51498054")
-synStore(syn_file, forceVersion = FALSE, 
-         used = paste(data_sources$id, data_sources$version, sep = "."))
+res <- synStore(syn_file, forceVersion = FALSE, 
+                used = paste(data_sources$id, data_sources$version, sep = "."),
+                executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-8_Create_ENSMUSG_Reference.rmd")
+
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 ```
