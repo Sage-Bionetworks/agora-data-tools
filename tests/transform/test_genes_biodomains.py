@@ -44,7 +44,7 @@ class TestCountGroupedTotal:
 
 
 class TestTransformGenesBiodomains:
-    data_files_path = "tests/test_assets/data_files"
+    data_files_path = "tests/test_assets/genes_biodomains"
     pass_test_data = [
         (  # pass with good data
             "biodomains_test_input.csv",
