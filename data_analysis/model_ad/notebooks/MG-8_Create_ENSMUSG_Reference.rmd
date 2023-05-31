@@ -1,0 +1,113 @@
+# Create ENSMUSG Reference
+
+This notebook downloads all data files listed in [data_sources.csv](https://github.com/Sage-Bionetworks/magora/blob/main/data-raw/gene_expressions/data_sources.csv), gets a list of all the Ensembl gene IDs used across all the files, and maps them to gene symbols and aliases. The file is later uploaded to Synapse here: [syn51615422](https://www.synapse.org/#!Synapse:syn51615422).
+
+Required packages (will automatically be installed if necessary):
+
+-   synapser (also requires a Synapse account with an auth token)
+-   BiocManager
+-   biomaRt
+-   dplyr
+-   jsonlite
+
+## Library setup
+
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org", 
+                                         "http://cran.fhcrc.org"))
+}
+
+if (!require("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+
+if (!require("biomaRt", quietly = TRUE)) {
+  BiocManager::install("biomaRt")
+}
+
+if (!require("dplyr", quietly = TRUE)) {
+  install.packages("dplyr")
+}
+
+if (!require("jsonlite", quietly = TRUE)) {
+  install.packages("jsonlite")
+}
+
+library(synapser)
+library(biomaRt)
+library(dplyr)
+library(arrow)
+library(jsonlite)
+```
+
+## Download the data sources file
+
+```{r}
+input_dir <- file.path("..", "input")
+dir.create(input_dir, showWarnings = FALSE)
+
+data_sources_url <- "https://raw.githubusercontent.com/Sage-Bionetworks/magora/d4f21caf94694fee7659fc7d30748b7e64e08488/data-raw/gene_expressions/data_sources.csv"
+
+data_sources_file <- file.path(input_dir, "data_sources.csv")
+download.file(data_sources_url, data_sources_file, method = "wget")
+
+```
+
+## Download the data files from synapse
+
+Note: if this is your first time logging into Synapse from R, you will need to change `synLogin()` to `synLogin(authToken=<your_token_string>)`.
+
+```{r}
+synLogin()
+data_sources <- read.csv(data_sources_file)
+
+files <- lapply(1:nrow(data_sources), function(row) {
+  syn_file <- synGet(entity = data_sources$id[row], 
+                     version = data_sources$version[row],
+                     downloadLocation = input_dir)
+  return(syn_file$path)
+})
+```
+
+## Get all Ensembl IDs from all files
+
+```{r}
+ens <- lapply(files, function(F) {
+  data <- read.csv(F)
+  return(data$GeneID)
+})
+
+ens <- unique(unlist(ens))
+
+print(length(ens))
+```
+
+## Get gene symbols and aliases from Ensembl
+
+```{r}
+mart <- useMart(biomart = "ensembl", dataset = "mmusculus_gene_ensembl")
+
+genes <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "external_synonym"), 
+               filters = "ensembl_gene_id", 
+               values = ens,
+               mart = mart)
+
+print(dim(genes))
+print(head(genes))
+```
+
+## Re-format results for Model AD Explorer
+
+```{r}
+genes_df <- genes %>% group_by(ensembl_gene_id, external_gene_name) %>%
+              summarise(alias = list(unique(external_synonym))) %>%
+              rename(gene_symbol = external_gene_name) %>% 
+              arrange(ensembl_gene_id)
+
+output_dir <- file.path("..", "output")
+dir.create(output_dir, showWarnings = FALSE)
+write_json(genes_df, file.path(output_dir, "mouse_gene_metadata.json"))
+
+print(head(genes_df))
+```
