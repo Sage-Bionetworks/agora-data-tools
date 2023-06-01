@@ -131,7 +131,15 @@ This package has a `src/agoradatatools/etl/transform` submodule.  This folder ho
 1. Create new script in transform submodule that matches the dataset name and name the function `transform_...`
 1. Register the new transform function in `src/agoradatatools/etl/transform/__init__.py`. Look in that file for examples.
 1. Modify the `apply_custom_transformations` in `src/agoradatatools/process.py` to include your new transform.
-1. Write a test for the transform (TBD).
+1. Write a test for the transform:
+    - For transform tests, we are using a [Data-Driven Testing](https://www.develer.com/en/blog/data-driven-testing-with-python/)       strategy
+    - To contribute new tests, assets in the form of input and output data files are needed.
+        - The input file is loaded to serve as the data fed into the transform function, while the output file is loaded in to               check the funciton output against.  
+    - These tests should include multiple ways of evaluating the transform function, including one test that should pass                (good input data) and at least one that should fail (bad input data).
+    - For some functions, it may be appropriate to include multiple passing datasets (e.g. for functions that are written to             handle imperfect data) and/or multiple failing datasets (e.g. for transforms operating on datasets that can be unclean in         multiple distinct ways).
+    - Each transform function should have its own folder in `test_assets` to hold its input and output data files. Inputs should         be in CSV form and outputs in JSON form.
+    - Use `pytest.mark.parameterize` to loop through multiple datasets in a single test.
+    - The class `TestTransformGenesBiodomains` can be used as an example for future tests contibuted.
 
 ### DockerHub
 
