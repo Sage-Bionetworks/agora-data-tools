@@ -1,6 +1,9 @@
-import pandas as pd
+import os
 
-from agoradatatools.etl.transform.genes_biodomains import count_grouped_total
+import pandas as pd
+import pytest
+
+from agoradatatools.etl.transform import genes_biodomains
 
 
 class TestCountGroupedTotal:
@@ -16,7 +19,7 @@ class TestCountGroupedTotal:
     # How many unique "col_2"'s per unique "col_1" value?
     def test_count_grouped_total_one_group(self):
         expected_df = pd.DataFrame({"col_1": ["a", "b", "c"], "output": [3, 1, 2]})
-        counted = count_grouped_total(
+        counted = genes_biodomains.count_grouped_total(
             df=self.df, grouping="col_1", input_colname="col_2", output_colname="output"
         )
         assert counted.equals(expected_df)
@@ -31,7 +34,7 @@ class TestCountGroupedTotal:
             }
         )
 
-        counted = count_grouped_total(
+        counted = genes_biodomains.count_grouped_total(
             df=self.df,
             grouping=["col_1", "col_2"],
             input_colname="col_3",
@@ -40,57 +43,50 @@ class TestCountGroupedTotal:
         assert counted.equals(expected_df)
 
 
-# def test_transform_biodomains():
-#     test_datasets = {
-#         "biodomains": pd.DataFrame(
-#             {
-#                 "ensembl_gene_id": ["1", "1", "2", "2", "3", "3"],
-#                 "biodomain": ["a", "b", "c", "d", "e", "f"],
-#                 "go_terms": ["a", "b", "c", "d", "e", "f"],
-#             }
-#         )
-#     }
-#     expected_gene_biodomains_col = [
-#         [{"biodomain": "a", "go_terms": ["a"]}, {"biodomain": "b", "go_terms": ["b"]}],
-#         [{"biodomain": "c", "go_terms": ["c"]}, {"biodomain": "d", "go_terms": ["d"]}],
-#         [{"biodomain": "e", "go_terms": ["e"]}, {"biodomain": "f", "go_terms": ["f"]}],
-#     ]
-#     test_biodomains = transform.transform_biodomains(datasets=test_datasets)
-#     assert list(test_biodomains["gene_biodomains"]) == expected_gene_biodomains_col
+class TestTransformGenesBiodomains:
+    data_files_path = "tests/test_assets/genes_biodomains"
+    pass_test_data = [
+        (  # pass with good data
+            "biodomains_test_input.csv",
+            "genes_biodomains.json",
+        ),
+        (  # pass with imperfect data
+            "biodomains_test_input_bad_but_should_pass.csv",
+            "genes_biodomains_bad_output_but_should_pass.json",
+        ),
+    ]
+    pass_test_ids = [
+        "Pass with good data",
+        "Pass with imperfect data",
+    ]
+    fail_test_data = [
+        "biodomains_test_input_bad_should_fail.csv",  # fail with bad data
+    ]
+    fail_test_ids = [
+        "Fail with bad data",
+    ]
 
+    @pytest.mark.parametrize(
+        "input_file, expected_output_file", pass_test_data, ids=pass_test_ids
+    )
+    def test_transform_genes_biodomains_should_pass(
+        self, input_file, expected_output_file
+    ):
+        input_df = pd.read_csv(os.path.join(self.data_files_path, "input", input_file))
+        output_df = genes_biodomains.transform_genes_biodomains(
+            datasets={"genes_biodomains": input_df}
+        )
+        expected_df = pd.read_json(
+            os.path.join(self.data_files_path, "output", expected_output_file),
+        )
+        pd.testing.assert_frame_equal(output_df, expected_df)
 
-# df = pd.DataFrame(
-#     {'team id': [np.nan, 0, 1, 2],
-#      'team.Name': ['MSN', 'Team 1', 'Team 2', np.nan],
-#      'team-Sco@#&': ['x', 'y', 'z', "na"]})
-
-# def test_standardize_column_names():
-
-#     result_df = transform.standardize_column_names(df)
-#     assert type(result_df) is pd.core.frame.DataFrame
-#     assert list(result_df.columns) == ['team_id', 'team_name', 'team-sco']
-
-
-# def test_standardize_values():
-
-#     assert df.isna().sum().sum() == 2
-
-#     result_df = transform.standardize_values(df)
-
-#     assert type(result_df) is pd.core.frame.DataFrame
-#     assert result_df.isna().sum().sum() == 0
-#     assert result_df.shape == (4, 3)
-
-# def test_rename_columns():
-#     refresh_df = pd.DataFrame(
-#         {'team id': [np.nan, 0, 1, 2],
-#          'team.Name': ['MSN', 'Team 1', 'Team 2', np.nan],
-#          'team-Sco@#&': ['x', 'y', 'z', "na"]})
-
-#     bad_result_df = transform.rename_columns(df=refresh_df, column_map={"team-Sco@#&"})
-#     assert type(bad_result_df) is pd.core.frame.DataFrame
-#     assert list(bad_result_df.columns) == ["team id", "team.Name", "team-Sco@#&"]
-
-#     partial_good_result_df = transform.rename_columns(df=refresh_df, column_map={"team-Sco@#&": "team_scope"})
-#     assert list(partial_good_result_df.columns) == ['team id', 'team.Name', 'team_scope']
-#     assert type(partial_good_result_df) is pd.core.frame.DataFrame
+    @pytest.mark.parametrize("input_file", fail_test_data, ids=fail_test_ids)
+    def test_transform_genes_biodomains_should_fail(self, input_file):
+        with pytest.raises(KeyError):
+            input_df = pd.read_csv(
+                os.path.join(self.data_files_path, "input", input_file)
+            )
+            genes_biodomains.transform_genes_biodomains(
+                datasets={"genes_biodomains": input_df}
+            )
