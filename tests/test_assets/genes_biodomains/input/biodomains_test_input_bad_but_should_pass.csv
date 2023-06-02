@@ -1,0 +1,8 @@
+biodomain,abbr,label,color,go_id,go_terms,ensembl_gene_id
+,Au,Autophagy [Au],#9931fd,GO:0006914,autophagy,ENSG00000161011
+Autophagy,,Autophagy [Au],#9931fd,GO:0016236,macroautophagy,ENSG00000161011
+Autophagy,Au,,#9931fd,GO:0000422,autophagy of mitochondrion,ENSG00000161011
+Autophagy,Au,Autophagy [Au],,GO:0000423,mitophagy,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,,aggrephagy,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0038096,,ENSG00000000938
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0050764,regulation of phagocytosis,

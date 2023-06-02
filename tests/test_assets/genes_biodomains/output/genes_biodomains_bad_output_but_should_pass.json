@@ -1,0 +1,19 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000161011",
+    "gene_biodomains": [
+      {
+        "biodomain": "Autophagy",
+        "go_terms": [
+          "macroautophagy",
+          "autophagy of mitochondrion",
+          "mitophagy",
+          "aggrephagy"
+        ],
+        "n_biodomain_terms": 4,
+        "n_gene_biodomain_terms": 4,
+        "pct_linking_terms": 100.0
+      }
+    ]
+  }
+]

@@ -1,0 +1,146 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000000938",
+    "gene_biodomains": [
+      {
+        "biodomain": "Autophagy",
+        "go_terms": [
+          "Fc-gamma receptor signaling pathway involved in phagocytosis",
+          "regulation of phagocytosis"
+        ],
+        "n_biodomain_terms": 10,
+        "n_gene_biodomain_terms": 2,
+        "pct_linking_terms": 28.57
+      },
+      {
+        "biodomain": "Mitochondrial Metabolism",
+        "go_terms": [
+          "mitochondrial inner membrane",
+          "mitochondrial intermembrane space",
+          "mitochondrion"
+        ],
+        "n_biodomain_terms": 7,
+        "n_gene_biodomain_terms": 3,
+        "pct_linking_terms": 42.86
+      },
+      {
+        "biodomain": "Proteostasis",
+        "go_terms": [
+          "aggresome"
+        ],
+        "n_biodomain_terms": 8,
+        "n_gene_biodomain_terms": 1,
+        "pct_linking_terms": 14.29
+      },
+      {
+        "biodomain": "Synapse",
+        "go_terms": [
+          "signaling receptor binding"
+        ],
+        "n_biodomain_terms": 9,
+        "n_gene_biodomain_terms": 1,
+        "pct_linking_terms": 14.29
+      }
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSG00000161011",
+    "gene_biodomains": [
+      {
+        "biodomain": "Autophagy",
+        "go_terms": [
+          "autophagy",
+          "macroautophagy",
+          "autophagy of mitochondrion",
+          "mitophagy",
+          "aggrephagy",
+          "selective autophagy",
+          "autophagosome",
+          "phagophore assembly site"
+        ],
+        "n_biodomain_terms": 10,
+        "n_gene_biodomain_terms": 8,
+        "pct_linking_terms": 47.06
+      },
+      {
+        "biodomain": "Mitochondrial Metabolism",
+        "go_terms": [
+          "response to mitochondrial depolarisation",
+          "mitochondrion",
+          "autophagy of mitochondrion",
+          "regulation of mitochondrion organization",
+          "mitophagy"
+        ],
+        "n_biodomain_terms": 7,
+        "n_gene_biodomain_terms": 5,
+        "pct_linking_terms": 29.41
+      },
+      {
+        "biodomain": "Proteostasis",
+        "go_terms": [
+          "endoplasmic reticulum",
+          "ubiquitin protein ligase binding",
+          "ubiquitin binding",
+          "aggresome"
+        ],
+        "n_biodomain_terms": 8,
+        "n_gene_biodomain_terms": 4,
+        "pct_linking_terms": 23.53
+      },
+      {
+        "biodomain": "Synapse",
+        "go_terms": [
+          "positive regulation of long-term synaptic potentiation",
+          "ionotropic glutamate receptor binding"
+        ],
+        "n_biodomain_terms": 9,
+        "n_gene_biodomain_terms": 2,
+        "pct_linking_terms": 11.76
+      }
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSG00000188157",
+    "gene_biodomains": [
+      {
+        "biodomain": "Proteostasis",
+        "go_terms": [
+          "Golgi lumen"
+        ],
+        "n_biodomain_terms": 8,
+        "n_gene_biodomain_terms": 1,
+        "pct_linking_terms": 14.29
+      },
+      {
+        "biodomain": "Synapse",
+        "go_terms": [
+          "synapse",
+          "synapse organization",
+          "positive regulation of synaptic growth at neuromuscular junction",
+          "G protein-coupled acetylcholine receptor signaling pathway",
+          "neuromuscular junction development",
+          "positive regulation of synaptic assembly at neuromuscular junction"
+        ],
+        "n_biodomain_terms": 9,
+        "n_gene_biodomain_terms": 6,
+        "pct_linking_terms": 85.71
+      }
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSG00000290146",
+    "gene_biodomains": [
+      {
+        "biodomain": "Proteostasis",
+        "go_terms": [
+          "ribosome biogenesis",
+          "rRNA base methylation",
+          "rRNA (pseudouridine) methyltransferase activity"
+        ],
+        "n_biodomain_terms": 8,
+        "n_gene_biodomain_terms": 3,
+        "pct_linking_terms": 100.0
+      }
+    ]
+  }
+]
