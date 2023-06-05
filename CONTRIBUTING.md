@@ -1,7 +1,7 @@
 
 ## Contributing
 
-We welcome all contributions!  That said, this is a Sage Bionetworks owned project, and we use JIRA ([AG](https://sagebionetworks.jira.com/jira/software/c/projects/AG/boards/91)/[IBCDPE](https://sagebionetworks.jira.com/jira/software/c/projects/IBCDPE/boards/189)) to track any bug/feature requests. If you are a Sage Bio employee, make sure to assign yourself the JIRA ticket if you decide to work on it.
+We welcome all contributions!  That said, this is a Sage Bionetworks owned project, and we use JIRA ([AG](https://sagebionetworks.jira.com/jira/software/c/projects/AG/boards/91)/[IBCDPE](https://sagebionetworks.jira.com/jira/software/c/projects/IBCDPE/boards/189)) to track any bug/feature requests. This guide will be more focussed on a Sage Bio employee's development workflow.  If you are a Sage Bio employee, make sure to assign yourself the JIRA ticket if you decide to work on it.
 
 ## Coding Style
 
@@ -9,6 +9,7 @@ The code in this package is also automatically formatted by `black` for consiste
 
 ## The Development Life Cycle
 
+<!--
 ### Fork and clone this repository
 
 1. See the [Github docs](https://help.github.com/articles/fork-a-repo/) for how to make a copy (a fork) of a repository to your own Github account.
@@ -19,7 +20,7 @@ The code in this package is also automatically formatted by `black` for consiste
     ```shell
     git checkout develop
     git pull upstream develop
-    ```
+    ``` -->
 
 ### Install development dependencies
 
@@ -30,25 +31,18 @@ Please follow the [README.md](README.md) to install the package for development 
 The agora-data-tools project follows the standard [trunk based development](https://trunkbaseddevelopment.com/) development strategy.
 > To ensure the most fluid development, do not push to your `dev`
 
-1. Access
-    1. (Assuming you have followed all 4 steps above in the "fork and clone this repository" section). Navigate to your cloned repository on your computer/server. 
-    1. If you are Sage Bio employee working directly on this project, please ask for write permissions to contribute to the repository.
+1. Please ask for write permissions to contribute directly to this repository.
 1. Make sure you are always creating feature branches from the `dev` branch.
 
     ```shell
-    # On a fork
-    cd {your-github-username}/Genie
-    git checkout develop
-    git pull upstream develop
-    # Write access
-    git checkout develop
+    git checkout dev
     git pull
     ```
 
-1. Create a feature branch which off the `dev` branch. If there is JIRA issue that you are addressing, name the branch after the issue with some more detail (like `{user}/{GH|JIRA}-123/add-some-new-feature`).
+1. Create a feature branch from the `dev` branch. Use the Id of the JIRA issue that you are addressing and name the branch after the issue with some more detail like `{user}/{JIRA}-123/add-some-new-feature`.
 
     ```shell
-    git checkout develop
+    git checkout dev
     git checkout -b tyu/JIRA-123/some-new-feature
     ```
 
@@ -68,7 +62,7 @@ The agora-data-tools project follows the standard [trunk based development](http
 1. (Make sure you have follow instructions in "Install development dependencies") Once you have made your additions or changes, make sure you write tests and run the test suite.  More information on testing below.
 
     ```shell
-    pytest ./test
+    pytest -vs tests/
     ```
 
 1. (Make sure you have follow instructions in "Install development dependencies") Make sure to run the auto python code formatter, black.
@@ -126,9 +120,9 @@ Follow gitflow best practices as linked above.
 
 ### Transforms
 
-This package has a `src/agoradatatools/etl/transform` submodule.  This folder houses all the individual transform modules required for the package.  Here are the steps to add more transforms
+This package has a `src/agoradatatools/etl/transform` submodule.  This folder houses all the individual transform modules required for the package.  Here are the steps to add more transforms:
 
-1. Create new script in transform submodule that matches the dataset name and name the function `transform_...`
+1. Create new script in the transform submodule that matches the dataset name and name the function `transform_...`.  For example, if you have a dataset named `genome_variants`, your new script would be `src/agoradatatools/etl/transform/transform_genome_variants.py`.
 1. Register the new transform function in `src/agoradatatools/etl/transform/__init__.py`. Look in that file for examples.
 1. Modify the `apply_custom_transformations` in `src/agoradatatools/process.py` to include your new transform.
 1. Write a test for the transform (TBD).
