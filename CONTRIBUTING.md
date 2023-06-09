@@ -79,7 +79,7 @@ The agora-data-tools project follows the standard [trunk based development](http
 
 > *A code maintainer must review and accept your pull request.* Most code reviews can be done asyncronously.  For more complex code updates, an "in-person" or zoom code review can happen between the reviewer(s) and contributor.
 
-This package uses [semantic versioning](https://semver.org/) for releasing new versions. A github release should occur at least once a quarter to capture the changes between releases.
+This package uses [semantic versioning](https://semver.org/) for releasing new versions. A github release should occur at least once a quarter to capture the changes between releases.  Currently releases are minted by admins of this repo, but there is no formal process of when releases are minted except for more freqeunt releases leading to smaller changelogs.
 
 <!-- This package uses [semantic versioning](https://semver.org/) for releasing new versions. The version should be updated on the `dev` branch as changes are reviewed and merged in by a code maintainer. The version for the package is maintained in the [agoradatatools/__init__.py](agoradatatools/__init__.py) file.  A github release should also occur every time `dev` is pushed into `main` and it should match the version for the package. -->
 
