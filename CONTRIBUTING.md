@@ -24,7 +24,11 @@ The code in this package is also automatically formatted by `black` for consiste
 
 ### Install development dependencies
 
-Please follow the [README.md](README.md) to install the package for development purposes.
+Please follow the [README.md](README.md) to install the package for development purposes.  Be sure you run this:
+
+```
+pipenv install --dev
+```
 
 ### Developing at Sage Bio
 
