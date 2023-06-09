@@ -29,10 +29,10 @@ Please follow the [README.md](README.md) to install the package for development 
 ### Developing at Sage Bio
 
 The agora-data-tools project follows the standard [trunk based development](https://trunkbaseddevelopment.com/) development strategy.
-> To ensure the most fluid development, do not push to your `dev`
+> To ensure the most fluid development, do not push to `dev`!
 
 1. Please ask for write permissions to contribute directly to this repository.
-1. Make sure you are always creating feature branches from the `dev` branch.
+1. Make sure you are always creating feature branches from the `dev` branch. We use branches instead of forks, because CI/CD cannot access secrets across Github forks.
 
     ```shell
     git checkout dev
@@ -59,13 +59,13 @@ The agora-data-tools project follows the standard [trunk based development](http
     git push
     ```
 
-1. (Make sure you have follow instructions in "Install development dependencies") Once you have made your additions or changes, make sure you write tests and run the test suite.  More information on testing below.
+1. Once you have made your additions or changes, make sure you write tests and run the test suite.  More information on testing below.
 
     ```shell
     pytest -vs tests/
     ```
 
-1. (Make sure you have follow instructions in "Install development dependencies") Make sure to run the auto python code formatter, black.
+1. Make sure to run the auto python code formatter, black.
 
     ```shell
     black ./
@@ -73,7 +73,7 @@ The agora-data-tools project follows the standard [trunk based development](http
 
 1. Once you have completed all the steps above, create a pull request from the feature branch to the `dev` branch of the Sage-Bionetworks/agora-data-tools repo.
 
-> *A code maintainer must review and accept your pull request.* A code review ideally happens with both the contributor and the reviewer present, but is not strictly required for contributing. This can be performed remotely (e.g., Zoom, Hangout, or other video or phone conference).  Most code reviews are done asyncronously.
+> *A code maintainer must review and accept your pull request.* Most code reviews can be done asyncronously.  For more complex code updates, an "in-person" or zoom code review can happen between the reviewer(s) and contributor.
 
 This package uses [semantic versioning](https://semver.org/) for releasing new versions. A github release should occur at least once a quarter to capture the changes between releases.
 
@@ -137,4 +137,4 @@ This package has a `src/agoradatatools/etl/transform` submodule.  This folder ho
 
 ### DockerHub
 
-This repository does not use github actions to push docker images.  By adding the `sagebiodockerhub` github user as an Admin to this GitHub repository, we can configure an automated build in DockerHub.  You can view the repo [here](https://hub.docker.com/r/sagebionetworks/agora-data-tools).
+Rather than using GitHub actions to build and push Docker images to DockerHub, the Docker images are automatically built in DockerHub. This requires the `sagebiodockerhub` GitHub user to be an Admin of this repo. You can view the docker build [here](https://hub.docker.com/r/sagebionetworks/agora-data-tools).
