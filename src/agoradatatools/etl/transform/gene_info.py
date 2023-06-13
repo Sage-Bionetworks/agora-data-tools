@@ -20,6 +20,7 @@ def transform_gene_info(
     target_list = datasets["target_list"]
     median_expression = datasets["median_expression"]
     druggability = datasets["druggability"]
+    biodomains = datasets["genes_biodomains"]
 
     # Modify the data before merging
 
@@ -69,6 +70,14 @@ def transform_gene_info(
         df=druggability, grouping="geneid", new_column="druggability"
     )
     druggability.rename(columns={"geneid": "ensembl_gene_id"}, inplace=True)
+    
+    biodomains = (
+        biodomains.groupby("ensembl_gene_id")["biodomain"]
+        .apply(set) # ensure unique biodomain names
+        .apply(list)
+        .reset_index()
+        .rename(columns={"biodomain": "biodomains"})
+    )
 
     # Merge all the datasets
 
@@ -82,6 +91,7 @@ def transform_gene_info(
         target_list,
         median_expression,
         druggability,
+        biodomains
     ]:
         gene_info = pd.merge(
             left=gene_info,
@@ -142,6 +152,7 @@ def transform_gene_info(
             "median_expression",
             "druggability",
             "nominations",
+            "biodomains"
         ]
     ]
 

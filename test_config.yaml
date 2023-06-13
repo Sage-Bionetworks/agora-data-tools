@@ -106,12 +106,16 @@
           - name: druggability
             id: syn13363443.11
             format: csv
+          - name: genes_biodomains
+            id: syn44151254.1
+            format: csv
         final_format: json
         custom_transformations:
           adjusted_p_value_threshold: 0.05
           protein_level_threshold: 0.05
         column_rename:
           ensg: ensembl_gene_id
+          ensembl_id: ensembl_gene_id
         provenance:
           - syn25953363.6
           - syn12514826.4
@@ -122,6 +126,7 @@
           - syn12540368.36
           - syn27211878.2
           - syn13363443.11
+          - syn44151254.1
         agora_rename:
           has_eqtl: haseqtl
           is_igap: isIGAP
