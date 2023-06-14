@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
     if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
         return None
+    if dataset_name == "biodomain_info":
+        return transform.transform_biodomain_info(datasets=datasets)
     if dataset_name == "genes_biodomains":
         return transform.transform_genes_biodomains(datasets=datasets)
     if dataset_name == "overall_scores":
