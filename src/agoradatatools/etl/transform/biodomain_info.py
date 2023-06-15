@@ -14,12 +14,11 @@ def transform_biodomain_info(datasets: dict) -> pd.DataFrame:
     """
     genes_biodomains = datasets["genes_biodomains"]
     biodomain_info = (
-        genes_biodomains["biodomain"]
+        genes_biodomains["name"]
         .dropna()
         .drop_duplicates()
         .reset_index()
         .drop(columns="index")
-        .rename(columns={"biodomain": "name"})
         .sort_values(by="name", ignore_index=True)
     )
 

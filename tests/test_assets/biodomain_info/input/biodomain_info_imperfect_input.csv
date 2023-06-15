@@ -1,4 +1,4 @@
-﻿biodomain,abbr,label,color,go_id,goterm_name,ensembl_id
+﻿name,abbr,label,color,go_id,goterm_name,ensembl_id
 ,Pr,Proteostasis [Pr],#c8b269,GO:0048199,"vesicle targeting, to, from or within Golgi",ENSG00000170348
 Proteostasis,,Proteostasis [Pr],#c8b269,GO:0007030,Golgi organization,ENSG00000243414
 Immune Response,IR,,#9ccdcc,GO:0006955,immune response,
