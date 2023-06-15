@@ -20,7 +20,7 @@ def transform_biodomain_info(datasets: dict) -> pd.DataFrame:
         .reset_index()
         .drop(columns="index")
         .rename(columns={"biodomain": "name"})
-        .sort_values(by="name")
+        .sort_values(by="name", ignore_index=True)
     )
 
     return biodomain_info
