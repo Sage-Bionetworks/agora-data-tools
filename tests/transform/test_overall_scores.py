@@ -45,9 +45,9 @@ class TestTransformOverallScores:
         output_df = overall_scores.transform_overall_scores(df=scores_df)
         
         # We have to call reset_index() because the JSON file is read in and assigned indices from
-        # 0..N, and assert_frame_equal() will fail if the two dataframes have indices. Even if we
-        # were to let the input have indices from 0..N, removing duplicates causes the numbers to 
-        # not be sequential, which is also an issue for assert_frame_equal(). 
+        # 0..N, and assert_frame_equal() will fail if the two dataframes have different indices. 
+        # Even if we were to let the input have indices from 0..N, removing duplicates causes the 
+        # numbers to not be sequential, which is also an issue for assert_frame_equal(). 
         output_df = output_df.reset_index(drop=True)
         
         expected_df = pd.read_json(
