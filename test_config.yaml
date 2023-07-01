@@ -180,7 +180,6 @@
           ensg: ensembl_gene_id
           hgnc_gene_id: hgnc_symbol
           geneticsscore: genetics_score
-          literaturescore: literature_score
           overall: target_risk_score
           omicsscore: multi_omics_score
         destination: *dest
