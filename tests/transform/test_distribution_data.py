@@ -12,13 +12,11 @@ class TestTransformDistributionData:
         "overall_max_score": 5,
         "genetics_max_score": 3,
         "omics_max_score": 2,
-        "lit_max_score": 2,
     }
     param_set_2 = {
         "overall_max_score": 8,
         "genetics_max_score": 6,
         "omics_max_score": 5,
-        "lit_max_score": 5,
     }
 
     pass_test_data = [
@@ -83,7 +81,6 @@ class TestTransformDistributionData:
             overall_max_score=param_set["overall_max_score"],
             genetics_max_score=param_set["genetics_max_score"],
             omics_max_score=param_set["omics_max_score"],
-            lit_max_score=param_set["lit_max_score"],
         )
 
         # Writing to JSON changes "bins" from tuples to lists, so output_dict and expected_dict
@@ -114,5 +111,4 @@ class TestTransformDistributionData:
                 overall_max_score=param_set["overall_max_score"],
                 genetics_max_score=param_set["genetics_max_score"],
                 omics_max_score=param_set["omics_max_score"],
-                lit_max_score=param_set["lit_max_score"],
             )

@@ -223,7 +223,6 @@
           overall_max_score: 5
           genetics_max_score: 3
           omics_max_score: 2
-          lit_max_score: 2
         provenance:
           - syn25575156.13
         destination: *dest

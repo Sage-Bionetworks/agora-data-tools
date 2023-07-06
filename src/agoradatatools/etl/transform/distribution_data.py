@@ -62,7 +62,6 @@ def transform_distribution_data(
     overall_max_score,
     genetics_max_score,
     omics_max_score,
-    lit_max_score,
 ):
     overall_scores = datasets["overall_scores"]
     interesting_columns = [
@@ -70,11 +69,10 @@ def transform_distribution_data(
         "overall",
         "geneticsscore",
         "omicsscore",
-        "literaturescore",
     ]
 
     # create mapping to deal with missing values as they take different shape across the fields
-    scored = ["isscored_genetics", "isscored_omics", "isscored_lit"]
+    scored = ["isscored_genetics", "isscored_omics"]
     mapping = dict(zip(interesting_columns[2:], scored))
     mapping["overall"] = None
 
@@ -82,7 +80,7 @@ def transform_distribution_data(
     max_score = dict(
         zip(
             interesting_columns[1:],
-            [overall_max_score, genetics_max_score, omics_max_score, lit_max_score],
+            [overall_max_score, genetics_max_score, omics_max_score],
         )
     )
 
@@ -97,13 +95,11 @@ def transform_distribution_data(
     neo_matrix["target_risk_score"] = neo_matrix.pop("overall")
     neo_matrix["genetics_score"] = neo_matrix.pop("geneticsscore")
     neo_matrix["multi_omics_score"] = neo_matrix.pop("omicsscore")
-    neo_matrix["literature_score"] = neo_matrix.pop("literaturescore")
 
     additional_data = [
         {"name": "Target Risk Score", "syn_id": "syn25913473", "wiki_id": "621071"},
         {"name": "Genetic Risk Score", "syn_id": "syn25913473", "wiki_id": "621069"},
         {"name": "Multi-omic Risk Score", "syn_id": "syn25913473", "wiki_id": "621070"},
-        {"name": "Literature Score", "syn_id": "syn25913473", "wiki_id": "613105"},
     ]
     for col, additional in zip(neo_matrix.keys(), additional_data):
         neo_matrix[col]["name"] = additional["name"]

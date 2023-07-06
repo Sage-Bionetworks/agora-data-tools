@@ -5,7 +5,7 @@
         0,
         2,
         4,
-        7,
+        6,
         3,
         1,
         5,
@@ -57,7 +57,7 @@
       ],
       "min": 0.6101,
       "max": 4.0941,
-      "mean": 2.2932,
+      "mean": 2.3072,
       "first_quartile": 2.0,
       "third_quartile": 3.0,
       "name": "Target Risk Score",
@@ -191,70 +191,6 @@
       "name": "Multi-omic Risk Score",
       "syn_id": "syn25913473",
       "wiki_id": "621070"
-    },
-    "literature_score": {
-      "distribution": [
-        4,
-        0,
-        0,
-        2,
-        1,
-        0,
-        6,
-        1,
-        0,
-        0
-      ],
-      "bins": [
-        [
-          0,
-          0.2
-        ],
-        [
-          0.2,
-          0.4
-        ],
-        [
-          0.4,
-          0.6
-        ],
-        [
-          0.6,
-          0.8
-        ],
-        [
-          0.8,
-          1.0
-        ],
-        [
-          1.0,
-          1.2
-        ],
-        [
-          1.2,
-          1.4
-        ],
-        [
-          1.4,
-          1.6
-        ],
-        [
-          1.6,
-          1.8
-        ],
-        [
-          1.8,
-          2.0
-        ]
-      ],
-      "min": 0.0,
-      "max": 1.53,
-      "mean": 0.8379,
-      "first_quartile": 0.0,
-      "third_quartile": 1.0,
-      "name": "Literature Score",
-      "syn_id": "syn25913473",
-      "wiki_id": "613105"
     }
   }
 ]
