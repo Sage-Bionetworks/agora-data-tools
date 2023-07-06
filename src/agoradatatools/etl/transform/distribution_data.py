@@ -4,7 +4,8 @@ import numpy as np
 
 def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -> dict:
     if is_scored:
-        df = df[df[is_scored] == "Y"]  # df does not have the isscored
+        df = df[df[is_scored] == "Y"]
+    # If isscored is blank/NaN, take all rows with at least one "Y" in any isscored column
     else:
         df = df[df.isin(["Y"]).any(axis=1)]
 
@@ -26,12 +27,14 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
             distribution, bins=10, precision=3, include_lowest=True, right=True
         ).value_counts(sort=False)
     )
-    obj["distribution"][
-        0
-    ] -= 1  # since this was calculated with the artificial 0 value, we subtract it
-    obj["distribution"][
-        -1
-    ] -= 1  # since this was calculated with the artificial upper_bound, we subtract it
+
+    # obj["distribution"][0] is for the lowest bin, which includes values of 0. Since this was
+    # calculated with an extra artificial 0 value, we subtract 1 to get the real count.
+    obj["distribution"][0] -= 1
+
+    # obj["distribution"][-1] (end of the list) is for the highest bin, which includes the upper
+    # bound. Since this was calculated with an extra artificial upper_bound, we subtract 1 as above.
+    obj["distribution"][-1] -= 1
 
     discard, obj["bins"] = list(
         pd.cut(distribution, bins=10, precision=3, retbins=True)
