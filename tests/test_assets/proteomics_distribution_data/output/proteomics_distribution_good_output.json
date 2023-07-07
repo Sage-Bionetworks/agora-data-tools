@@ -1,0 +1,47 @@
+[
+  {
+    "tissue": "AntPFC",
+    "min": -0.1806,
+    "max": 0.1514,
+    "first_quartile": -0.0561,
+    "median": -0.011,
+    "third_quartile": 0.0269,
+    "type": "LFQ"
+  },
+  {
+    "tissue": "DLPFC",
+    "min": -0.1472,
+    "max": 0.146,
+    "first_quartile": -0.0373,
+    "median": 0.018,
+    "third_quartile": 0.036,
+    "type": "LFQ"
+  },
+  {
+    "tissue": "MFG",
+    "min": -0.0979,
+    "max": 0.0192,
+    "first_quartile": -0.054,
+    "median": -0.0339,
+    "third_quartile": -0.0247,
+    "type": "LFQ"
+  },
+  {
+    "tissue": "TCX",
+    "min": -0.3847,
+    "max": 0.3455,
+    "first_quartile": -0.1109,
+    "median": -0.0953,
+    "third_quartile": 0.0717,
+    "type": "LFQ"
+  },
+  {
+    "tissue": "DLPFC",
+    "min": -0.4097,
+    "max": 0.5676,
+    "first_quartile": -0.0432,
+    "median": 0.1132,
+    "third_quartile": 0.2011,
+    "type": "TMT"
+  }
+]
