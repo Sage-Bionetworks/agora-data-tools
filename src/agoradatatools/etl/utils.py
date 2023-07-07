@@ -2,6 +2,7 @@ import synapseclient
 import yaml
 import pandas as pd
 import numpy as np
+from typing import Union
 
 
 # TODO remove "_" - these utils functions are not only used internally
@@ -157,3 +158,44 @@ def nest_fields(
         .reset_index()
         .rename(columns={0: new_column})
     )
+
+
+def calculate_distribution(
+    df: pd.DataFrame, grouping: Union[str, list], distribution_column: str
+) -> pd.DataFrame:
+    """Takes a pandas DataFrame and calculates the distribution of a specific column, grouped by
+    a column or set of columns.
+
+    Args:
+        df (pd.DataFrame): the DataFrame to calculate distribution for
+        grouping (str or list of str): the column(s) to group the data frame on (example: "tissue" or ["tissue", "model"])
+        distribution_column (str): the name of the column to calculate distribution on (example: "logfc")
+
+    Returns:
+        pd.DataFrame: a Dataframe containing columns <grouping>, "min", "max", "first_quartile",
+                      "median", and "third_quartile", with the statistics calculated on
+                      distribution_column. The "min" and "max" values are not the true min/max,
+                      but are instead adjusted to be:
+                        min = first_quartile - 1.5*IQR and
+                        max = third_quartile + 1.5*IQR, where 
+                        IQR = third_quartile - first_quartile.
+    """
+    df = df.groupby(grouping).agg("describe")[distribution_column].reset_index()
+
+    df = df[[grouping, "min", "max", "25%", "50%", "75%"]]
+
+    df.rename(
+        columns={"25%": "first_quartile", "50%": "median", "75%": "third_quartile"},
+        inplace=True,
+    )
+
+    df["IQR"] = df["third_quartile"] - df["first_quartile"]
+    df["min"] = df["first_quartile"] - (1.5 * df["IQR"])
+    df["max"] = df["third_quartile"] + (1.5 * df["IQR"])
+
+    for col in ["min", "max", "median", "first_quartile", "third_quartile"]:
+        df[col] = np.around(df[col], 4)
+
+    df.drop("IQR", axis=1, inplace=True)
+
+    return df

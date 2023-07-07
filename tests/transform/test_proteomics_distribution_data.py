@@ -53,7 +53,7 @@ class TestTransformProteomicsDistributionData:
             os.path.join(self.data_files_path, "input", input_file_tmt)
         )
 
-        output_df = proteomics_distribution.create_proteomics_distribution_data(
+        output_df = proteomics_distribution.transform_proteomics_distribution_data(
             datasets={"proteomics": input_df_lfq, "proteomics_tmt": input_df_tmt}
         )
         output_df = output_df.reset_index(drop=True) # Necessary so indexes match
@@ -76,6 +76,6 @@ class TestTransformProteomicsDistributionData:
             input_df_tmt = pd.read_csv(
                 os.path.join(self.data_files_path, "input", input_file_tmt)
             )
-            proteomics_distribution.create_proteomics_distribution_data(
+            proteomics_distribution.transform_proteomics_distribution_data(
                 datasets={"proteomics": input_df_lfq, "proteomics_tmt": input_df_tmt}
             )
