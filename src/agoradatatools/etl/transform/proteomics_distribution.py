@@ -18,13 +18,15 @@ def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
     """
     transformed = []
     for name, dataset in datasets.items():
+        df = utils.calculate_distribution(
+            df=dataset, grouping="tissue", distribution_column="log2_fc"
+        )
+
         if name == "proteomics":
-            df = utils.calculate_distribution(dataset, "tissue", "log2_fc")
             df["type"] = "LFQ"
-            transformed.append(df)
         elif name == "proteomics_tmt":
-            df = utils.calculate_distribution(dataset, "tissue", "log2_fc")
             df["type"] = "TMT"
-            transformed.append(df)
+
+        transformed.append(df)
 
     return pd.concat(transformed)

@@ -177,12 +177,16 @@ def calculate_distribution(
                       distribution_column. The "min" and "max" values are not the true min/max,
                       but are instead adjusted to be:
                         min = first_quartile - 1.5*IQR and
-                        max = third_quartile + 1.5*IQR, where 
+                        max = third_quartile + 1.5*IQR, where
                         IQR = third_quartile - first_quartile.
     """
     df = df.groupby(grouping).agg("describe")[distribution_column].reset_index()
 
-    df = df[[grouping, "min", "max", "25%", "50%", "75%"]]
+    if isinstance(grouping, str):
+        grouping = [grouping]
+    columns_keep = grouping + ["min", "max", "25%", "50%", "75%"]
+
+    df = df[columns_keep]
 
     df.rename(
         columns={"25%": "first_quartile", "50%": "median", "75%": "third_quartile"},
