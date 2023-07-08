@@ -1,5 +1,5 @@
 import numpy as np
-
+from agoradatatools.etl import utils
 
 def transform_rna_seq_data(datasets: dict):
     diff_exp_data = datasets["diff_exp_data"]
@@ -48,24 +48,13 @@ def transform_rna_distribution_data(datasets: dict):
     # through the same processing as before in order to use it here.
     rna_df = transform_rna_seq_data(datasets)
     rna_df = rna_df[["tissue", "model", "logfc"]]
-
-    rna_df = (
-        rna_df.groupby(["tissue", "model"])
-        .agg("describe")["logfc"]
-        .reset_index()[["model", "tissue", "min", "max", "25%", "50%", "75%"]]
-    )
-    rna_df.rename(
-        columns={"25%": "first_quartile", "50%": "median", "75%": "third_quartile"},
-        inplace=True,
-    )
-
-    rna_df["IQR"] = rna_df["third_quartile"] - rna_df["first_quartile"]
-    rna_df["min"] = rna_df["first_quartile"] - (1.5 * rna_df["IQR"])
-    rna_df["max"] = rna_df["third_quartile"] + (1.5 * rna_df["IQR"])
-
-    for col in ["min", "max", "median", "first_quartile", "third_quartile"]:
-        rna_df[col] = np.around(rna_df[col], 4)
-
-    rna_df.drop("IQR", axis=1, inplace=True)
+    
+    rna_df = utils.calculate_distribution(
+        df=rna_df,
+        grouping=["tissue", "model"],
+        distribution_column="logfc")
+    
+    # Columns must be in this order
+    rna_df = rna_df[["model", "tissue", "min", "max", "first_quartile", "median", "third_quartile"]]
 
     return rna_df
