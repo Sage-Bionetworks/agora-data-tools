@@ -197,12 +197,8 @@ def test_nest_fields():
 
 class TestCalculateDistribution:
     # NOTE: pd.describe() calls np.quantile() with interpolation when quantiles fall between values.
-    # The equation np uses for interpolating the quartiles is:
-    #   index = (q*(n-1)+1)
-    #   a = data[floor(index)]
-    #   b = data[ceil(index)]
-    #   quartile = a + (b - a) * (index-floor(index))
-    # We use this formula to manually calculate the quartiles for this test, for the expected data frames.
+    # We calculate the expected quartile values on this data by calling np.quantile() on manually-
+    # broken out groups. Then the min/max values are calculated as <quartile> +/- 1.5*IQR.
     df = pd.DataFrame(
         {
             "col_1": ["a", "a", "a", "a", "a", "b", "c", "c", "c", "c", "c", "c"],  # 3 main groups
