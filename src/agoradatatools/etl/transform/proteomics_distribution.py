@@ -26,6 +26,8 @@ def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
             df["type"] = "LFQ"
         elif name == "proteomics_tmt":
             df["type"] = "TMT"
+        else:
+            raise ValueError(f"Proteomics data type '{name}' not supported.")
 
         transformed.append(df)
 
