@@ -225,6 +225,10 @@
           omics_max_score: 2
         provenance:
           - syn25575156.13
+        column_rename:
+          overall: target_risk_score
+          geneticsscore: genetics_score
+          omicsscore: multi_omics_score
         destination: *dest
 
     - rna_distribution_data:

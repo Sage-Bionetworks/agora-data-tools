@@ -37,7 +37,7 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
     obj["distribution"][-1] -= 1
 
     discard, obj["bins"] = list(
-        pd.cut(distribution, bins=10, precision=3, retbins=True)
+        pd.cut(distribution, bins=10, precision=3, include_lowest=True, right=True, retbins=True)
     )
     obj["bins"] = np.around(obj["bins"].tolist()[1:], 2)
     base = [0, *obj["bins"][:-1]]
@@ -66,15 +66,15 @@ def transform_distribution_data(
     overall_scores = datasets["overall_scores"]
     interesting_columns = [
         "ensg",
-        "overall",
-        "geneticsscore",
-        "omicsscore",
+        "target_risk_score",
+        "genetics_score",
+        "multi_omics_score",
     ]
 
     # create mapping to deal with missing values as they take different shape across the fields
     scored = ["isscored_genetics", "isscored_omics"]
     mapping = dict(zip(interesting_columns[2:], scored))
-    mapping["overall"] = None
+    mapping["target_risk_score"] = None
 
     # create mapping for max score values from config
     max_score = dict(
@@ -91,10 +91,6 @@ def transform_distribution_data(
         neo_matrix[col] = calculate_distribution(
             overall_scores, col, mapping[col], max_score[col]
         )
-
-    neo_matrix["target_risk_score"] = neo_matrix.pop("overall")
-    neo_matrix["genetics_score"] = neo_matrix.pop("geneticsscore")
-    neo_matrix["multi_omics_score"] = neo_matrix.pop("omicsscore")
 
     additional_data = [
         {"name": "Target Risk Score", "syn_id": "syn25913473", "wiki_id": "621071"},
