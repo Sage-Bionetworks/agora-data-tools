@@ -48,10 +48,10 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
     obj["max"] = np.around(df[col].max(), 4)
     obj["mean"] = np.around(df[col].mean(), 4)
     obj["first_quartile"] = np.around(
-        df[col].quantile(q=0.25, interpolation="midpoint")
+        df[col].quantile(q=0.25, interpolation="midpoint"), 4
     )
     obj["third_quartile"] = np.around(
-        df[col].quantile(q=0.75, interpolation="midpoint")
+        df[col].quantile(q=0.75, interpolation="midpoint"), 4
     )
 
     return obj
@@ -84,7 +84,7 @@ def transform_distribution_data(
         )
     )
 
-    overall_scores = overall_scores[interesting_columns + scored]
+    overall_scores = overall_scores[interesting_columns + scored].drop_duplicates()
 
     neo_matrix = {}
     for col in interesting_columns[1:]:  # excludes the ENSG

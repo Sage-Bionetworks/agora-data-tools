@@ -58,8 +58,8 @@
       "min": 0.6101,
       "max": 4.0941,
       "mean": 2.3072,
-      "first_quartile": 2.0,
-      "third_quartile": 3.0,
+      "first_quartile": 1.6304,
+      "third_quartile": 3.1851,
       "name": "Target Risk Score",
       "syn_id": "syn25913473",
       "wiki_id": "621071"
@@ -122,8 +122,8 @@
       "min": 0.5012,
       "max": 2.7275,
       "mean": 1.2585,
-      "first_quartile": 1.0,
-      "third_quartile": 2.0,
+      "first_quartile": 0.6964,
+      "third_quartile": 1.735,
       "name": "Genetic Risk Score",
       "syn_id": "syn25913473",
       "wiki_id": "621069"
@@ -186,8 +186,8 @@
       "min": 0.0,
       "max": 1.9765,
       "mean": 1.0039,
-      "first_quartile": 1.0,
-      "third_quartile": 1.0,
+      "first_quartile": 0.6021,
+      "third_quartile": 1.4762,
       "name": "Multi-omic Risk Score",
       "syn_id": "syn25913473",
       "wiki_id": "621070"
