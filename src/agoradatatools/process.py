@@ -30,8 +30,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
             genetics_max_score=dataset_obj["custom_transformations"][
                 "genetics_max_score"
             ],
-            omics_max_score=dataset_obj["custom_transformations"]["omics_max_score"],
-            lit_max_score=dataset_obj["custom_transformations"]["lit_max_score"],
+            omics_max_score=dataset_obj["custom_transformations"]["omics_max_score"]
         )
     if dataset_name == "team_info":
         return transform.transform_team_info(datasets=datasets)

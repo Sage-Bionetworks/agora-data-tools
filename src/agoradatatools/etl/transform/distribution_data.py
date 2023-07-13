@@ -4,7 +4,8 @@ import numpy as np
 
 def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -> dict:
     if is_scored:
-        df = df[df[is_scored] == "Y"]  # df does not have the isscored
+        df = df[df[is_scored] == "Y"]
+    # If isscored is blank/NaN, take all rows with at least one "Y" in any isscored column
     else:
         df = df[df.isin(["Y"]).any(axis=1)]
 
@@ -26,15 +27,17 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
             distribution, bins=10, precision=3, include_lowest=True, right=True
         ).value_counts(sort=False)
     )
-    obj["distribution"][
-        0
-    ] -= 1  # since this was calculated with the artificial 0 value, we subtract it
-    obj["distribution"][
-        -1
-    ] -= 1  # since this was calculated with the artificial upper_bound, we subtract it
+
+    # obj["distribution"][0] is for the lowest bin, which includes values of 0. Since this was
+    # calculated with an extra artificial 0 value, we subtract 1 to get the real count.
+    obj["distribution"][0] -= 1
+
+    # obj["distribution"][-1] (end of the list) is for the highest bin, which includes the upper
+    # bound. Since this was calculated with an extra artificial upper_bound, we subtract 1 as above.
+    obj["distribution"][-1] -= 1
 
     discard, obj["bins"] = list(
-        pd.cut(distribution, bins=10, precision=3, retbins=True)
+        pd.cut(distribution, bins=10, precision=3, include_lowest=True, right=True, retbins=True)
     )
     obj["bins"] = np.around(obj["bins"].tolist()[1:], 2)
     base = [0, *obj["bins"][:-1]]
@@ -45,10 +48,10 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
     obj["max"] = np.around(df[col].max(), 4)
     obj["mean"] = np.around(df[col].mean(), 4)
     obj["first_quartile"] = np.around(
-        df[col].quantile(q=0.25, interpolation="midpoint")
+        df[col].quantile(q=0.25, interpolation="midpoint"), 4
     )
     obj["third_quartile"] = np.around(
-        df[col].quantile(q=0.75, interpolation="midpoint")
+        df[col].quantile(q=0.75, interpolation="midpoint"), 4
     )
 
     return obj
@@ -59,31 +62,29 @@ def transform_distribution_data(
     overall_max_score,
     genetics_max_score,
     omics_max_score,
-    lit_max_score,
 ):
     overall_scores = datasets["overall_scores"]
     interesting_columns = [
         "ensg",
-        "overall",
-        "geneticsscore",
-        "omicsscore",
-        "literaturescore",
+        "target_risk_score",
+        "genetics_score",
+        "multi_omics_score",
     ]
 
     # create mapping to deal with missing values as they take different shape across the fields
-    scored = ["isscored_genetics", "isscored_omics", "isscored_lit"]
+    scored = ["isscored_genetics", "isscored_omics"]
     mapping = dict(zip(interesting_columns[2:], scored))
-    mapping["overall"] = None
+    mapping["target_risk_score"] = None
 
     # create mapping for max score values from config
     max_score = dict(
         zip(
             interesting_columns[1:],
-            [overall_max_score, genetics_max_score, omics_max_score, lit_max_score],
+            [overall_max_score, genetics_max_score, omics_max_score],
         )
     )
 
-    overall_scores = overall_scores[interesting_columns + scored]
+    overall_scores = overall_scores[interesting_columns + scored].drop_duplicates()
 
     neo_matrix = {}
     for col in interesting_columns[1:]:  # excludes the ENSG
@@ -91,16 +92,10 @@ def transform_distribution_data(
             overall_scores, col, mapping[col], max_score[col]
         )
 
-    neo_matrix["target_risk_score"] = neo_matrix.pop("overall")
-    neo_matrix["genetics_score"] = neo_matrix.pop("geneticsscore")
-    neo_matrix["multi_omics_score"] = neo_matrix.pop("omicsscore")
-    neo_matrix["literature_score"] = neo_matrix.pop("literaturescore")
-
     additional_data = [
         {"name": "Target Risk Score", "syn_id": "syn25913473", "wiki_id": "621071"},
         {"name": "Genetic Risk Score", "syn_id": "syn25913473", "wiki_id": "621069"},
         {"name": "Multi-omic Risk Score", "syn_id": "syn25913473", "wiki_id": "621070"},
-        {"name": "Literature Score", "syn_id": "syn25913473", "wiki_id": "613105"},
     ]
     for col, additional in zip(neo_matrix.keys(), additional_data):
         neo_matrix[col]["name"] = additional["name"]
