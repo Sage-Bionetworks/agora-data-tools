@@ -35,7 +35,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if dataset_name == "team_info":
         return transform.transform_team_info(datasets=datasets)
     if dataset_name == "rnaseq_differential_expression":
-        return transform.transform_rna_seq_data(datasets=datasets)
+        return transform.transform_rnaseq_differential_expression(datasets=datasets)
     if dataset_name == "gene_info":
         return transform.transform_gene_info(
             datasets=datasets,

@@ -1,0 +1,2 @@
+model,tissue,comparison,ensembl_gene_id,logfc,ci_l,ci_r,aveexpr,t,p_value,adj_p_val,gene_biotype,chromosome_name,direction,hgnc_symbol,percentage_gc_content,gene_length,sex,study
+Diagnosis,CBE,AD-CONTROL,ENSG00000228521,No change,1.219378549,2.074052279,-2.452298708,7.544599094,2.21E-13,2.26E-10,lncRNA,7,UP,AC099552.3,60.6903164,1043,ALL,MAYO
