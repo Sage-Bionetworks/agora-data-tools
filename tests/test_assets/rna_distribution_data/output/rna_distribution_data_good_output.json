@@ -1,0 +1,74 @@
+[
+  {
+    "model": "AD Diagnosis (males and females)",
+    "tissue": "ACC",
+    "min": -0.2437,
+    "max": 0.065,
+    "first_quartile": -0.1279,
+    "median": -0.0742,
+    "third_quartile": -0.0507
+  },
+  {
+    "model": "AD Diagnosis x AOD (males and females)",
+    "tissue": "ACC",
+    "min": -0.0933,
+    "max": -0.0933,
+    "first_quartile": -0.0933,
+    "median": -0.0933,
+    "third_quartile": -0.0933
+  },
+  {
+    "model": "AD Diagnosis (males and females)",
+    "tissue": "CBE",
+    "min": -0.7993,
+    "max": 1.2349,
+    "first_quartile": -0.0365,
+    "median": 0.0462,
+    "third_quartile": 0.4721
+  },
+  {
+    "model": "AD Diagnosis x AOD (males and females)",
+    "tissue": "CBE",
+    "min": -0.0492,
+    "max": 0.1158,
+    "first_quartile": 0.0127,
+    "median": 0.0338,
+    "third_quartile": 0.0539
+  },
+  {
+    "model": "AD Diagnosis x Sex (females only)",
+    "tissue": "CBE",
+    "min": -0.0821,
+    "max": 0.3348,
+    "first_quartile": 0.0742,
+    "median": 0.1117,
+    "third_quartile": 0.1785
+  },
+  {
+    "model": "AD Diagnosis x Sex (males only)",
+    "tissue": "CBE",
+    "min": -0.4734,
+    "max": 0.5175,
+    "first_quartile": -0.1018,
+    "median": -0.0558,
+    "third_quartile": 0.1459
+  },
+  {
+    "model": "AD Diagnosis (males and females)",
+    "tissue": "FP",
+    "min": -0.326,
+    "max": 0.2629,
+    "first_quartile": -0.1052,
+    "median": -0.0203,
+    "third_quartile": 0.042
+  },
+  {
+    "model": "AD Diagnosis x Sex (males only)",
+    "tissue": "FP",
+    "min": -0.6259,
+    "max": 0.4424,
+    "first_quartile": -0.2253,
+    "median": -0.0632,
+    "third_quartile": 0.0418
+  }
+]

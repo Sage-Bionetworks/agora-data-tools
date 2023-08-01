@@ -1,0 +1,62 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000228521",
+    "hgnc_symbol": "AC099552.3",
+    "logfc": 1.646715414,
+    "fc": 3.1311994637476914,
+    "ci_l": 1.219378549,
+    "ci_r": 2.074052279,
+    "adj_p_val": 2.26e-10,
+    "tissue": "CBE",
+    "study": "MayoRNAseq",
+    "model": "AD Diagnosis (males and females)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000122965",
+    "hgnc_symbol": "RBM19",
+    "logfc": 0.016130744,
+    "fc": 1.0112437204941171,
+    "ci_l": -0.00786889,
+    "ci_r": 0.040130378,
+    "adj_p_val": 0.264418818,
+    "tissue": "TCX",
+    "study": "MayoRNAseq",
+    "model": null
+  },
+  {
+    "ensembl_gene_id": "ENSG00000117505",
+    "hgnc_symbol": "DR1",
+    "logfc": -0.100739949,
+    "fc": 0.9325545676220417,
+    "ci_l": -0.227581707,
+    "ci_r": 0.026101809,
+    "adj_p_val": 0.221713628,
+    "tissue": "TCX",
+    "study": null,
+    "model": "AD Diagnosis x Sex (males only)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000117395",
+    "hgnc_symbol": "EBNA1BP2",
+    "logfc": -0.096808478,
+    "fc": 0.9350993266915271,
+    "ci_l": -0.133253512,
+    "ci_r": -0.060363443,
+    "adj_p_val": 2.15e-06,
+    "tissue": "PHG",
+    "study": "MSBB",
+    "model": null
+  },
+  {
+    "ensembl_gene_id": "ENSG00000171115",
+    "hgnc_symbol": "GIMAP8",
+    "logfc": null,
+    "fc": null,
+    "ci_l": 0.060772347,
+    "ci_r": 0.119510999,
+    "adj_p_val": 2.63e-08,
+    "tissue": "ACC",
+    "study": "ROSMAP",
+    "model": "AD Diagnosis x AOD (females only)"
+  }
+]
