@@ -21,6 +21,7 @@ def transform_gene_info(
     median_expression = datasets["median_expression"]
     druggability = datasets["druggability"]
     biodomains = datasets["genes_biodomains"]
+    tep_info = datasets["tep_adi_info"]
 
     # Modify the data before merging
 
@@ -70,13 +71,27 @@ def transform_gene_info(
         df=druggability, grouping="geneid", new_column="druggability"
     )
     druggability.rename(columns={"geneid": "ensembl_gene_id"}, inplace=True)
-    
+
     biodomains = (
         biodomains.groupby("ensembl_gene_id")["biodomain"]
         .apply(set) # ensure unique biodomain names
         .apply(list)
         .reset_index()
         .rename(columns={"biodomain": "biodomains"})
+    )
+
+    # For genes with either is_adi or is_tep set to True, create a resource URL that opens
+    # the portal page to the specific gene. This must be done using the hgnc_symbol from the
+    # tep_info file and not the symbol in gene_info, because there are some mismatches
+    # between the two and the hgnc_symbol from tep_info is the correct one to use here.
+    # resource_url should be NA if both is_adi and is_tep are false. 
+    resource_url_prefix = "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
+    resource_url_suffix = "%22%5D%7D%5D%7D"
+    tep_info["resource_url"] = tep_info.apply(
+        lambda row: resource_url_prefix + row["hgnc_symbol"] + resource_url_suffix
+        if (row["is_adi"] == True) | (row["is_tep"] == True)
+        else np.NaN,
+        axis=1,
     )
 
     # Merge all the datasets
@@ -91,7 +106,8 @@ def transform_gene_info(
         target_list,
         median_expression,
         druggability,
-        biodomains
+        biodomains,
+        tep_info,
     ]:
         gene_info = pd.merge(
             left=gene_info,
@@ -104,7 +120,14 @@ def transform_gene_info(
     # Populate values for rows that didn't exist in the individual datasets
 
     gene_info.fillna(
-        {"is_igap": False, "has_eqtl": False, "adj_p_val": -1, "cor_pval": -1},
+        {
+            "is_igap": False,
+            "has_eqtl": False,
+            "adj_p_val": -1,
+            "cor_pval": -1,
+            "is_adi": False,
+            "is_tep": False,
+        },
         inplace=True,
     )
 
@@ -152,7 +175,10 @@ def transform_gene_info(
             "median_expression",
             "druggability",
             "nominations",
-            "biodomains"
+            "biodomains",
+            "is_adi",
+            "is_tep",
+            "resource_url",
         ]
     ]
 
