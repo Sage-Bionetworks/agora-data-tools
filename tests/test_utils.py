@@ -193,3 +193,53 @@ def test_nest_fields():
         df=df, grouping="a", new_column="e", drop_columns=["d"]
     )
     assert list(nested_df["e"]) == expected_column_e
+
+
+class TestCalculateDistribution:
+    # NOTE: pd.describe() calls np.quantile() with interpolation when quantiles fall between values.
+    # We calculate the expected quartile values on this data by calling np.quantile() on manually-
+    # broken out groups. Then the min/max values are calculated as <quartile> +/- 1.5*IQR.
+    df = pd.DataFrame(
+        {
+            "col_1": ["a", "a", "a", "a", "a", "b", "c", "c", "c", "c", "c", "c"],  # 3 main groups
+            "col_2": ["x", "x", "y", "y", "y", "x", "x", "x", "x", "y", "y", "y"],  # 2 subgroups
+            "col_3": [1, 5, 10, 12, 14, 2, 6, 7, 9, 16, 17, 19],  # Values of interest
+            "col_4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], # Ignored column of values
+            "col_5": ["m", "m", "n", "n", "o", "o", "o", "p", "p", "p", "q", "q"],  # an ignored column of strings
+        }
+    )
+
+    # Stats on "col_3", grouped by "col_1" only
+    def test_calculate_distribution_one_group(self):
+        expected_df = pd.DataFrame(
+            {
+                "col_1": ["a", "b", "c"],
+                "min": [-5.5, 2.0, -6.375],
+                "max": [22.5, 2.0, 30.625],
+                "first_quartile": [5.0, 2.0, 7.5],
+                "median": [10.0, 2.0, 12.5],
+                "third_quartile": [12.0, 2.0, 16.75]
+            }
+        )
+        output_df = utils.calculate_distribution(
+            df=self.df, grouping="col_1", distribution_column="col_3"
+        )
+        assert output_df.equals(expected_df)
+
+    # Stats on "col_3", grouped by "col_1" and "col_2"
+    def test_calculate_distribution_two_groups(self):
+        expected_df = pd.DataFrame(
+            {
+                "col_1": ["a", "a", "b", "c", "c"],
+                "col_2": ["x", "y", "x", "x", "y"],
+                "min": [-1.0, 8.0, 2.0, 4.25, 14.25],
+                "max": [7.0, 16.0, 2.0, 10.25, 20.25],
+                "first_quartile": [2.0, 11.0, 2.0, 6.5, 16.5],
+                "median": [3.0, 12.0, 2.0, 7.0, 17.0],
+                "third_quartile": [4.0, 13.0, 2.0, 8.0, 18.0]
+            }
+        )
+        output_df = utils.calculate_distribution(
+            df=self.df, grouping=["col_1", "col_2"], distribution_column="col_3"
+        )
+        assert output_df.equals(expected_df)

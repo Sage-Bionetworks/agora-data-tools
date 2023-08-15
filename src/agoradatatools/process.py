@@ -49,7 +49,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if dataset_name == "rna_distribution_data":
         return transform.transform_rna_distribution_data(datasets=datasets)
     if dataset_name == "proteomics_distribution_data":
-        return transform.create_proteomics_distribution_data(datasets=datasets)
+        return transform.transform_proteomics_distribution_data(datasets=datasets)
     else:
         return None
 

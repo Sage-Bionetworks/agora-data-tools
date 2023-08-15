@@ -14,7 +14,7 @@ from agoradatatools.etl.transform.overall_scores import (
     transform_overall_scores,
 )
 from agoradatatools.etl.transform.proteomics_distribution import (
-    create_proteomics_distribution_data,
+    transform_proteomics_distribution_data,
 )
 from agoradatatools.etl.transform.rnaseq_differential_expression import (
     transform_rnaseq_differential_expression,
@@ -30,7 +30,7 @@ __all__ = [
     "transform_biodomain_info",
     "transform_genes_biodomains",
     "transform_overall_scores",
-    "create_proteomics_distribution_data",
+    "transform_proteomics_distribution_data",
     "transform_rna_distribution_data",
     "transform_rnaseq_differential_expression",
     "transform_team_info",
