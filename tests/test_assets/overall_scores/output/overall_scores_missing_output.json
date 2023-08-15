@@ -1,0 +1,58 @@
+[
+  {
+    "ensg": "ENSG00000010818",
+    "hgnc_gene_id": "HIVEP2",
+    "overall": 3.185141534,
+    "geneticsscore": 1.744062244,
+    "omicsscore": 1.441079289
+  },
+  {
+    "ensg": "ENSG00000069849",
+    "hgnc_gene_id": "ATP1B3",
+    "overall": 1.63040118,
+    "geneticsscore": 1.63040118,
+    "omicsscore": 0.0
+  },
+  {
+    "ensg": "ENSG00000116096",
+    "hgnc_gene_id": "SPR",
+    "overall": 3.663454319,
+    "geneticsscore": null,
+    "omicsscore": null
+  },
+  {
+    "ensg": "ENSG00000271743",
+    "hgnc_gene_id": null,
+    "overall": 2.016073569,
+    "geneticsscore": null,
+    "omicsscore": null
+  },
+  {
+    "ensg": "ENSG00000166979",
+    "hgnc_gene_id": "EVA1C",
+    "overall": 1.942294708,
+    "geneticsscore": null,
+    "omicsscore": null
+  },
+  {
+    "ensg": "ENSG00000010818",
+    "hgnc_gene_id": "HIVEP2",
+    "overall": 3.185141534,
+    "geneticsscore": null,
+    "omicsscore": 1.441079289
+  },
+  {
+    "ensg": "ENSG00000166979",
+    "hgnc_gene_id": "EVA1C",
+    "overall": 1.942294708,
+    "geneticsscore": 0.850712097,
+    "omicsscore": null
+  },
+  {
+    "ensg": "ENSG00000166979",
+    "hgnc_gene_id": "EVA1C",
+    "overall": 1.942294708,
+    "geneticsscore": 0.850712097,
+    "omicsscore": 1.091582611
+  }
+]
