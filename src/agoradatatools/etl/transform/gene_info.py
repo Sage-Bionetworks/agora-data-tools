@@ -80,6 +80,9 @@ def transform_gene_info(
         .rename(columns={"biodomain": "biodomains"})
     )
 
+    # sort biodomains list alphabetically
+    biodomains['biodomains'] = biodomains['biodomains'].apply(sorted)
+
     # For genes with either is_adi or is_tep set to True, create a resource URL that opens
     # the portal page to the specific gene. This must be done using the hgnc_symbol from the
     # tep_info file and not the symbol in gene_info, because there are some mismatches
@@ -95,7 +98,6 @@ def transform_gene_info(
     )
 
     # Merge all the datasets
-
     gene_info = gene_metadata
 
     for dataset in [
