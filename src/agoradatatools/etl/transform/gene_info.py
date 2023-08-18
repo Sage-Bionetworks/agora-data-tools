@@ -79,8 +79,10 @@ def transform_gene_info(
         .rename(columns={"biodomain": "biodomains"})
     )
 
-    # Merge all the datasets
+    # sort biodomains list alphabetically
+    biodomains['biodomains'] = biodomains['biodomains'].apply(sorted)
 
+    # Merge all the datasets
     gene_info = gene_metadata
 
     for dataset in [
