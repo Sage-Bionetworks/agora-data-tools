@@ -123,7 +123,7 @@
             id: syn44151254.1
             format: csv
           - name: tep_adi_info
-            id: syn51942280.1
+            id: syn51942280.2
             format: csv
         final_format: json
         custom_transformations:
