@@ -132,6 +132,14 @@
         column_rename:
           ensg: ensembl_gene_id
           ensembl_id: ensembl_gene_id
+          geneid: ensembl_gene_id
+          has_eqtl: is_eqtl
+          minimumlogcpm: min
+          quartile1logcpm: first_quartile
+          medianlogcpm: median
+          meanlogcpm: mean
+          quartile3logcpm: third_quartile
+          maximumlogcpm: max
         provenance:
           - syn25953363.6
           - syn12514826.4
@@ -145,13 +153,7 @@
           - syn44151254.1
           - syn51942280.2
         agora_rename:
-          has_eqtl: haseqtl
-          is_igap: isIGAP
           symbol: hgnc_symbol
-          protein_in_ad_brain_change: isAnyProteinChangedInADBrain
-          rna_in_ad_brain_change: isAnyRNAChangedInADBrain
-          median_expression: medianexpression
-          nominated_target: nominatedtarget
         destination: *dest
 
     - team_info:

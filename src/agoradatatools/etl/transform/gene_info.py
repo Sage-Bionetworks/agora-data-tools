@@ -48,7 +48,7 @@ def transform_gene_info(
 
     # these are the interesting columns of the druggability dataset
     useful_columns = [
-        "geneid",
+        "ensembl_gene_id",
         "sm_druggability_bucket",
         "safety_bucket",
         "abability_bucket",
@@ -60,17 +60,16 @@ def transform_gene_info(
     druggability = druggability[useful_columns]
 
     target_list = nest_fields(
-        df=target_list, grouping="ensembl_gene_id", new_column="nominated_target"
+        df=target_list, grouping="ensembl_gene_id", new_column="target_nominations", drop_columns=["ensembl_gene_id"]
     )
 
     median_expression = nest_fields(
-        df=median_expression, grouping="ensembl_gene_id", new_column="median_expression"
+        df=median_expression, grouping="ensembl_gene_id", new_column="median_expression", drop_columns=["ensembl_gene_id"]
     )
 
     druggability = nest_fields(
-        df=druggability, grouping="geneid", new_column="druggability"
+        df=druggability, grouping="ensembl_gene_id", new_column="druggability", drop_columns=["ensembl_gene_id"]
     )
-    druggability.rename(columns={"geneid": "ensembl_gene_id"}, inplace=True)
 
     biodomains = (
         biodomains.groupby("ensembl_gene_id")["biodomain"]
@@ -124,7 +123,7 @@ def transform_gene_info(
     gene_info.fillna(
         {
             "is_igap": False,
-            "has_eqtl": False,
+            "is_eqtl": False,
             "adj_p_val": -1,
             "cor_pval": -1,
             "is_adi": False,
@@ -142,19 +141,19 @@ def transform_gene_info(
     )
 
     gene_info["rna_brain_change_studied"] = gene_info["adj_p_val"] != -1
-    gene_info["rna_in_ad_brain_change"] = (
+    gene_info["is_any_rna_changed_in_ad_brain"] = (
         gene_info["adj_p_val"] <= adjusted_p_value_threshold
     ) & gene_info["rna_brain_change_studied"]
 
     gene_info["protein_brain_change_studied"] = gene_info["cor_pval"] != -1
-    gene_info["protein_in_ad_brain_change"] = (
+    gene_info["is_any_protein_changed_in_ad_brain"] = (
         gene_info["cor_pval"] <= protein_level_threshold
     ) & gene_info["protein_brain_change_studied"]
 
-    # create 'nominations' field
-    gene_info["nominations"] = gene_info.apply(
-        lambda row: len(row["nominated_target"])
-        if isinstance(row["nominated_target"], list)
+    # create 'total_nominations' field
+    gene_info["total_nominations"] = gene_info.apply(
+        lambda row: len(row["target_nominations"])
+        if isinstance(row["target_nominations"], list)
         else np.NaN,
         axis=1,
     )
@@ -168,15 +167,15 @@ def transform_gene_info(
             "symbol",
             "alias",
             "is_igap",
-            "has_eqtl",
-            "rna_in_ad_brain_change",
+            "is_eqtl",
+            "is_any_rna_changed_in_ad_brain",
             "rna_brain_change_studied",
-            "protein_in_ad_brain_change",
+            "is_any_protein_changed_in_ad_brain",
             "protein_brain_change_studied",
-            "nominated_target",
+            "target_nominations",
             "median_expression",
             "druggability",
-            "nominations",
+            "total_nominations",
             "biodomains",
             "is_adi",
             "is_tep",
