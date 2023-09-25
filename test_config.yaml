@@ -111,7 +111,7 @@
             id: syn27211942.1
             format: tsv
           - name: target_list
-            id: syn12540368.36
+            id: syn12540368.39
             format: csv
           - name: median_expression
             id: syn27211878.2
@@ -147,7 +147,7 @@
           - syn18689335.3
           - syn35221005.2
           - syn27211942.1
-          - syn12540368.36
+          - syn12540368.39
           - syn27211878.2
           - syn13363443.11
           - syn44151254.1
@@ -159,16 +159,16 @@
     - team_info:
         files:
           - name: team_info
-            id: syn12615624.13
+            id: syn12615624.14
             format: csv
           - name: team_member_info
-            id: syn12615633.15
+            id: syn12615633.16
             format: csv
         final_format: json
         custom_transformations: 1
         provenance:
-          - syn12615624.13
-          - syn12615633.15
+          - syn12615624.14
+          - syn12615633.16
         destination: *dest
 
     - overall_scores:
