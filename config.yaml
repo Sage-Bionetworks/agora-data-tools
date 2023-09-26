@@ -111,7 +111,7 @@
             id: syn27211942.1
             format: tsv
           - name: target_list
-            id: syn12540368.40
+            id: syn12540368.41
             format: csv
           - name: median_expression
             id: syn27211878.2
@@ -147,7 +147,7 @@
           - syn18689335.3
           - syn35221005.2
           - syn27211942.1
-          - syn12540368.40
+          - syn12540368.41
           - syn27211878.2
           - syn13363443.11
           - syn44151254.1
