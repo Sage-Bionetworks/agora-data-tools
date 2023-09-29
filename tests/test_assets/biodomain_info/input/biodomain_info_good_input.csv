@@ -1,0 +1,7 @@
+﻿name,abbr,label,color,go_id,goterm_name,ensembl_id
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0048199,"vesicle targeting, to, from or within Golgi",ENSG00000170348
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0007030,Golgi organization,ENSG00000243414
+Immune Response,IR,Immune Response [IR],#9ccdcc,GO:0006955,immune response,ENSG00000115008
+Immune Response,IR,Immune Response [IR],#9ccdcc,GO:0006955,immune response,ENSG00000278006
+Immune Response,IR,Immune Response [IR],#9ccdcc,GO:0006955,immune response,ENSG00000275313
+Tau Homeostasis,TH,Tau Homeostasis [TH],#cb97cb,GO:1902988,neurofibrillary tangle assembly,ENSG00000186868

@@ -1,0 +1,110 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000228521",
+    "hgnc_symbol": "AC099552.3",
+    "logfc": 1.64671541373435,
+    "fc": 3.1311994631711295,
+    "ci_l": 1.21937854853272,
+    "ci_r": 2.07405227893598,
+    "adj_p_val": 2.26170424459412e-10,
+    "tissue": "CBE",
+    "study": "MayoRNAseq",
+    "model": "AD Diagnosis (males and females)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000122965",
+    "hgnc_symbol": "RBM19",
+    "logfc": 0.0161307443150122,
+    "fc": 1.011243720714922,
+    "ci_l": -0.0078688895717805,
+    "ci_r": 0.0401303782018049,
+    "adj_p_val": 0.264418817515348,
+    "tissue": "TCX",
+    "study": "MayoRNAseq",
+    "model": "AD Diagnosis x AOD (males and females)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000117505",
+    "hgnc_symbol": "DR1",
+    "logfc": -0.100739949027997,
+    "fc": 0.9325545676039445,
+    "ci_l": -0.227581706924239,
+    "ci_r": 0.026101808868246,
+    "adj_p_val": 0.221713627957082,
+    "tissue": "TCX",
+    "study": "MayoRNAseq",
+    "model": "AD Diagnosis x Sex (males only)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000205500",
+    "hgnc_symbol": "AC013472.1",
+    "logfc": 0.0002476496605992,
+    "fc": 1.0001716723980307,
+    "ci_l": -0.11363752717897,
+    "ci_r": 0.114132826500169,
+    "adj_p_val": 0.997692467509696,
+    "tissue": "PHG",
+    "study": "MSBB",
+    "model": "AD Diagnosis (males and females)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000117395",
+    "hgnc_symbol": "EBNA1BP2",
+    "logfc": -0.0968084778973198,
+    "fc": 0.9350993267580804,
+    "ci_l": -0.133253512461975,
+    "ci_r": -0.0603634433326643,
+    "adj_p_val": 2.15192980822548e-06,
+    "tissue": "PHG",
+    "study": "MSBB",
+    "model": "AD Diagnosis x AOD (males and females)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000265148",
+    "hgnc_symbol": "TSPOAP1-AS1",
+    "logfc": -0.0802457967097812,
+    "fc": 0.9458964774956181,
+    "ci_l": -0.279006952050323,
+    "ci_r": 0.11851535863076,
+    "adj_p_val": 0.651561104581782,
+    "tissue": "IFG",
+    "study": "MSBB",
+    "model": "AD Diagnosis x Sex (females only)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000196296",
+    "hgnc_symbol": "ATP2A1",
+    "logfc": -0.156662145003257,
+    "fc": 0.89709822043115,
+    "ci_l": -0.275874831245501,
+    "ci_r": -0.0374494587610133,
+    "adj_p_val": 0.0362218271087407,
+    "tissue": "DLPFC",
+    "study": "ROSMAP",
+    "model": "AD Diagnosis (males and females)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000171115",
+    "hgnc_symbol": "GIMAP8",
+    "logfc": 0.0901416730208155,
+    "fc": 1.0644747090088102,
+    "ci_l": 0.0607723473670167,
+    "ci_r": 0.119510998674614,
+    "adj_p_val": 2.63101445252297e-08,
+    "tissue": "ACC",
+    "study": "ROSMAP",
+    "model": "AD Diagnosis x AOD (males and females)"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000240889",
+    "hgnc_symbol": "NDUFB2-AS1",
+    "logfc": -0.297125272991841,
+    "fc": 0.8138725113186905,
+    "ci_l": -0.526509712833402,
+    "ci_r": -0.0677408331502798,
+    "adj_p_val": 0.120844742424367,
+    "tissue": "ACC",
+    "study": "ROSMAP",
+    "model": "AD Diagnosis x Sex (males only)"
+  }
+]

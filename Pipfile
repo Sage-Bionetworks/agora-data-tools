@@ -7,7 +7,7 @@ name = "pypi"
 agoradatatools = {editable = true, path = "."}
 
 [dev-packages]
-agoradatatools = {editable = true, path = "."}
+agoradatatools = {editable = true, extras = ["dev"], path = "."}
 
 [requires]
 python_version = "3.9.13"

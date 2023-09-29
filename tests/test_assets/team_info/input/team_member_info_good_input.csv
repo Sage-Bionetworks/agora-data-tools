@@ -1,0 +1,8 @@
+team,name,isprimaryinvestigator,url
+Team A,A. Scientist,TRUE,http://www.fake-url.edu/a-scientist
+Team A,P-I Jones,TRUE,
+Team A,Jane Doe,FALSE,http://www.fake-url.edu/citations?user=janedoe;year=2020
+Team B,John Smith,FALSE,
+Team B,Bea Scientist,TRUE,
+Team-C,P-I Smythe,TRUE,http://www.fake-url.edu/#profile/lab=team%20c
+Team-C,J. O'Brian,FALSE,

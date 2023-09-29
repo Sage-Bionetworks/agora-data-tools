@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
     if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
         return None
+    if dataset_name == "biodomain_info":
+        return transform.transform_biodomain_info(datasets=datasets)
     if dataset_name == "genes_biodomains":
         return transform.transform_genes_biodomains(datasets=datasets)
     if dataset_name == "overall_scores":
@@ -28,13 +30,12 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
             genetics_max_score=dataset_obj["custom_transformations"][
                 "genetics_max_score"
             ],
-            omics_max_score=dataset_obj["custom_transformations"]["omics_max_score"],
-            lit_max_score=dataset_obj["custom_transformations"]["lit_max_score"],
+            omics_max_score=dataset_obj["custom_transformations"]["omics_max_score"]
         )
     if dataset_name == "team_info":
         return transform.transform_team_info(datasets=datasets)
     if dataset_name == "rnaseq_differential_expression":
-        return transform.transform_rna_seq_data(datasets=datasets)
+        return transform.transform_rnaseq_differential_expression(datasets=datasets)
     if dataset_name == "gene_info":
         return transform.transform_gene_info(
             datasets=datasets,
@@ -48,7 +49,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if dataset_name == "rna_distribution_data":
         return transform.transform_rna_distribution_data(datasets=datasets)
     if dataset_name == "proteomics_distribution_data":
-        return transform.create_proteomics_distribution_data(datasets=datasets)
+        return transform.transform_proteomics_distribution_data(datasets=datasets)
     else:
         return None
 

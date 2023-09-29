@@ -1,0 +1,56 @@
+[
+  {
+    "team": "Team A",
+    "team_full": "Team A University",
+    "program": "AMP-AD",
+    "description": "Description of team A's research.",
+    "members": [
+      {
+        "isprimaryinvestigator": true,
+        "name": "A. Scientist",
+        "url": "http://www.fake-url.edu/a-scientist"
+      },
+      {
+        "isprimaryinvestigator": false,
+        "name": "Jane Doe",
+        "url": "http://www.fake-url.edu/citations?user=janedoe;year=2020"
+      }
+    ]
+  },
+  {
+    "team": "Team B",
+    "team_full": "Team B University",
+    "program": "AMP-AD",
+    "description": "Team B does 'omics research. ",
+    "members": [
+      {
+        "isprimaryinvestigator": false,
+        "name": "",
+        "url": ""
+      },
+      {
+        "isprimaryinvestigator": true,
+        "name": "Bea Scientist",
+        "url": ""
+      }
+    ]
+  },
+  {
+    "team": "Team-C",
+    "team_full": "Team C Lab - Team C University / Biotech Corp",
+    "program": "Community Contributed",
+    "description": "Description of Team-C's research, which involves imaging.",
+    "members": [
+      {
+        "isprimaryinvestigator": "",
+        "name": "P-I Smythe",
+        "url": "http://www.fake-url.edu/#profile/lab=team%20c"
+      },
+      {
+        "isprimaryinvestigator": false,
+        "name": "J. O'Brian",
+        "url": ""
+      }
+    ]
+  }
+]

@@ -1,0 +1,2 @@
+model,tissue,comparison,ensembl_gene_id,logfc,ci_l,ci_r,aveexpr,t,p_value,adj_p_val,gene_biotype,chromosome_name,direction,hgnc_symbol,percentage_gc_content,gene_length,sex,study
+Diagnosis.AOD,TCX,AD-CONTROL,ENSG00000122965,No change,-0.00786889,0.040130378,5.039925164,1.326614942,0.185257779,0.264418818,protein_coding,12,NONE,RBM19,50.4271733,149588,ALL,MAYO

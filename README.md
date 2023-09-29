@@ -75,6 +75,8 @@ Perform the following one-time steps to set up your local environment and to obt
     * pipenv
       ```bash
       pipenv install
+      # To develop locally you want to add --dev
+      # pipenv install --dev
       pipenv shell
       ```
 
