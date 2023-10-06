@@ -159,7 +159,7 @@
     - team_info:
         files:
           - name: team_info
-            id: syn12615624.15
+            id: syn12615624.16
             format: csv
           - name: team_member_info
             id: syn12615633.16
@@ -167,7 +167,7 @@
         final_format: json
         custom_transformations: 1
         provenance:
-          - syn12615624.15
+          - syn12615624.16
           - syn12615633.16
         destination: *dest
 
