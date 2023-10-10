@@ -5,7 +5,8 @@ name: CI
 on:
   push:
     branches: ["dev"]
-    tags: ['v[0-9]*', '[0-9]+.[0-9]+*']  # Match tags that resemble a version
+    # Match tags that resemble a version
+    tags: ['v[0-9]*', '[0-9]+.[0-9]+*']
   pull_request:
 
   # Allows you to run this workflow manually from the Actions tab
