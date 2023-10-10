@@ -58,7 +58,7 @@ jobs:
       - run: pip install .
       - run: adt test_config.yaml -t ${{secrets.SYNAPSE_PAT}}
 
-  docker-publish:
+  ghcr-publish:
     needs: [build, test]
     runs-on: ubuntu-latest
     steps:
