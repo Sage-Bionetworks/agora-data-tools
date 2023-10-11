@@ -60,9 +60,9 @@ The instructions to trigger the workflow can be found at [Sage-Bionetworks-Workf
 Your configured Synapse credentials can be used to run this package both locally and using Docker, as outlined below.
 
 ### Locally
-Perform the following one-time steps to set up your local environment and to obtain the required Synapse permissions:
+Perform the following one-time steps to set up your local environment and obtain the required Synapse permissions:
 
-1. This package uses Python, if you have not already, please install [pyenv](https://github.com/pyenv/pyenv#installation) to manage your Python versions. Versions supported by this package are all versions >=3.7 and <3.11. If you do not install pyenv make sure that Python and `pip` are installed correctly and have been added to your PATH by running `python3 --version` and `pip3 --version`. If your installation was successful, your terminal will return the versions of Python and `pip` that you installed.  **Note**: If you have `pyenv` it will install a specific version of Python for you.
+1. This package uses Python, if you have not already, please install [pyenv](https://github.com/pyenv/pyenv#installation) to manage your Python versions. Versions supported by this package are all versions >=3.7 and <3.11. If you do not install `pyenv` make sure that Python and `pip` are installed correctly and have been added to your PATH by running `python3 --version` and `pip3 --version`. If your installation was successful, your terminal will return the versions of Python and `pip` that you installed.  **Note**: If you have `pyenv` it will install a specific version of Python for you.
 
 2. Install `pipenv` by running `pip install pipenv`.
 
@@ -88,22 +88,22 @@ Perform the following one-time steps to set up your local environment and to obt
 
 ### Docker
 
-There is a publicly available [DockerHub repository](https://hub.docker.com/r/sagebionetworks/agora-data-tools) automatically built via DockerHub. That said, you may want to develop using Docker locally on a feature branch.
+There is a publicly available [GHCR repository]([https://hub.docker.com/r/sagebionetworks/agora-data-tools](https://github.com/Sage-Bionetworks/agora-data-tools/pkgs/container/agora-data-tools)) automatically built via GitHub Actions. That said, you may want to develop using Docker locally on a feature branch.
 
-If you don't want to deal with Python paths and dependencies, you can use Docker to run the pipeline. Perform the following one-time step to set up your docker environment and to obtain the required Synapse permissions:
+If you don't want to deal with Python paths and dependencies, you can use Docker to run the pipeline. Perform the following one-time step to set up your Docker environment and obtain the required Synapse permissions:
 1. Install [Docker](https://docs.docker.com/get-docker/).
 
 Once you have completed the one-time setup step outlined above, execute the pipeline by running the following command and providing your PAT and the desired [config file](#config) as an argument. The following example command will execute the pipeline in Docker using ```test_config.yaml```:
 
 ```
-# This creates a local docker image
+# This creates a local Docker image
 docker build -t agora-data-tools .
 docker run -e SYNAPSE_AUTH_TOKEN=<your PAT> agora-data-tools adt test_config.yaml
 ```
 
 ## Testing Github Workflow
 In order to test the GitHub Actions workflow locally:
-- install [act](https://github.com/nektos/act) and [docker](https://github.com/docker/docker-install)
+- install [act](https://github.com/nektos/act) and [Docker](https://github.com/docker/docker-install)
 - create a .secrets file in the root directory of the folder with a SYNAPSE_USER and a SYNAPSE_PASS value*
 
 Then run:
