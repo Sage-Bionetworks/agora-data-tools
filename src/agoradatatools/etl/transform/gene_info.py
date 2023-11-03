@@ -17,6 +17,7 @@ def transform_gene_info(
     proteomics = datasets["proteomics"]
     rna_change = datasets["rna_expression_change"]
     proteomics_tmt = datasets["agora_proteomics_tmt"]
+    proteomics_srm = datasets["agora_proteomics_srm"]
     target_list = datasets["target_list"]
     median_expression = datasets["median_expression"]
     druggability = datasets["druggability"]
@@ -36,7 +37,7 @@ def transform_gene_info(
     )
 
     # Get the smallest cor_pval for each protein, to determine significance
-    proteomics_concat = pd.concat([proteomics, proteomics_tmt])
+    proteomics_concat = pd.concat([proteomics, proteomics_tmt, proteomics_srm])
     proteomics_concat = proteomics_concat.dropna(
         subset=["log2_fc", "cor_pval", "ci_lwr", "ci_upr"]
     )

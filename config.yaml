@@ -70,6 +70,19 @@
           ensg: ensembl_gene_id
         destination: *dest
 
+    - proteomics_srm:
+        files:
+          - name: agora_proteomics_srm
+            id: syn52579640.3
+            format: csv
+        final_format: json
+        provenance:
+          - syn52579640.3
+        column_rename:
+          genename: hgnc_symbol
+          ensg: ensembl_gene_id
+        destination: *dest
+
     - target_exp_validation_harmonized:
         files:
           - name: target_exp_validation_harmonized
@@ -106,6 +119,9 @@
             format: csv
           - name: agora_proteomics_tmt
             id: syn35221005.2
+            format: csv
+          - name: agora_proteomics_srm
+            id: syn52579640.3
             format: csv
           - name: rna_expression_change
             id: syn27211942.1
@@ -146,6 +162,7 @@
           - syn12514912.3
           - syn18689335.3
           - syn35221005.2
+          - syn52579640.3
           - syn27211942.1
           - syn12540368.41
           - syn27211878.2
@@ -255,9 +272,13 @@
           - name: proteomics_tmt
             id: syn35221005.2
             format: csv
+          - name: proteomics_srm
+            id: syn52579640.3
+            format: csv
         final_format: json
         custom_transformations: 1
         provenance:
           - syn18689335.3
           - syn35221005.2
+          - syn52579640.3
         destination: *dest

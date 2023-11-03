@@ -43,5 +43,14 @@
     "median": 0.1104,
     "third_quartile": 0.2545,
     "type": "TMT"
+  },
+  {
+    "tissue": "DLPFC",
+    "min": -0.0782,
+    "max": 0.0546,
+    "first_quartile": -0.0284,
+    "median": -0.0063,
+    "third_quartile": 0.0048,
+    "type": "SRM"
   }
 ]

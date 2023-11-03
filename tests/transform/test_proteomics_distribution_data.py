@@ -18,6 +18,7 @@ class TestTransformProteomicsDistributionData:
             {
                 "proteomics": "test_proteomics_distribution_lfq_good_input.csv",
                 "proteomics_tmt": "test_proteomics_distribution_tmt_good_input.csv",
+                "proteomics_srm": "test_proteomics_distribution_srm_good_input.csv"
             },
             "proteomics_distribution_good_output.json",
         ),
@@ -25,19 +26,29 @@ class TestTransformProteomicsDistributionData:
             {
                 "proteomics": "test_proteomics_distribution_lfq_missing_input.csv",
                 "proteomics_tmt": "test_proteomics_distribution_tmt_missing_input.csv",
+                "proteomics_srm": "test_proteomics_distribution_srm_missing_input.csv"
             },
             "proteomics_distribution_missing_output.json",
         ),
+        ( # pass with only two of the three proteomics types
+            {
+                "proteomics": "test_proteomics_distribution_lfq_good_input.csv",
+                "proteomics_tmt": "test_proteomics_distribution_tmt_good_input.csv",
+            },
+            "proteomics_distribution_good_output_two_types.json",
+        )
     ]
     pass_test_ids = [
-        "Pass with good data (LFQ and TMT)",
+        "Pass with good data",
         "Pass with missing data",
+        "Pass with only two out of three proteomics types (LFQ, TMT)"
     ]
     fail_test_data = [
         (  # fail with bad data type
             {
                 "proteomics": "test_proteomics_distribution_lfq_wrong_data_type.csv",
                 "proteomics_tmt": "test_proteomics_distribution_tmt_good_input.csv",
+                "proteomics_srm": "test_proteomics_distribution_srm_good_input.csv",
             },
             KeyError,
         ),
@@ -45,6 +56,7 @@ class TestTransformProteomicsDistributionData:
             {
                 "proteomics": "test_proteomics_distribution_lfq_good_input.csv",
                 "proteomics_tmt": "test_proteomics_distribution_tmt_bad_input.csv",
+                "proteomics_srm": "test_proteomics_distribution_srm_good_input.csv",
             },
             KeyError,
         ),
@@ -52,6 +64,7 @@ class TestTransformProteomicsDistributionData:
             {
                 "bad_name": "test_proteomics_distribution_lfq_good_input.csv",
                 "proteomics_tmt": "test_proteomics_distribution_tmt_good_input.csv",
+                "proteomics_srm": "test_proteomics_distribution_srm_good_input.csv",
             },
             ValueError,
         ),
