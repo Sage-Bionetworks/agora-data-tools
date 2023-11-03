@@ -61,33 +61,42 @@ def transform_gene_info(
     druggability = druggability[useful_columns]
 
     target_list = nest_fields(
-        df=target_list, grouping="ensembl_gene_id", new_column="target_nominations", drop_columns=["ensembl_gene_id"]
+        df=target_list,
+        grouping="ensembl_gene_id",
+        new_column="target_nominations",
+        drop_columns=["ensembl_gene_id"],
     )
 
     median_expression = nest_fields(
-        df=median_expression, grouping="ensembl_gene_id", new_column="median_expression", drop_columns=["ensembl_gene_id"]
+        df=median_expression,
+        grouping="ensembl_gene_id",
+        new_column="median_expression",
+        drop_columns=["ensembl_gene_id"],
     )
 
     druggability = nest_fields(
-        df=druggability, grouping="ensembl_gene_id", new_column="druggability", drop_columns=["ensembl_gene_id"]
+        df=druggability,
+        grouping="ensembl_gene_id",
+        new_column="druggability",
+        drop_columns=["ensembl_gene_id"],
     )
 
     biodomains = (
         biodomains.groupby("ensembl_gene_id")["biodomain"]
-        .apply(set) # ensure unique biodomain names
+        .apply(set)  # ensure unique biodomain names
         .apply(list)
         .reset_index()
         .rename(columns={"biodomain": "biodomains"})
     )
 
     # sort biodomains list alphabetically
-    biodomains['biodomains'] = biodomains['biodomains'].apply(sorted)
+    biodomains["biodomains"] = biodomains["biodomains"].apply(sorted)
 
     # For genes with either is_adi or is_tep set to True, create a resource URL that opens
     # the portal page to the specific gene. This must be done using the hgnc_symbol from the
     # tep_info file and not the symbol in gene_info, because there are some mismatches
     # between the two and the hgnc_symbol from tep_info is the correct one to use here.
-    # resource_url should be NA if both is_adi and is_tep are false. 
+    # resource_url should be NA if both is_adi and is_tep are false.
     resource_url_prefix = "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
     resource_url_suffix = "%22%5D%7D%5D%7D"
     tep_info["resource_url"] = tep_info.apply(
@@ -95,6 +104,21 @@ def transform_gene_info(
         if (row["is_adi"] == True) | (row["is_tep"] == True)
         else np.NaN,
         axis=1,
+    )
+
+    ensembl_info = gene_metadata[
+        [
+            "ensembl_gene_id",
+            "ensembl_release",
+            "ensembl_possible_replacements",
+            "ensembl_permalink",
+        ]
+    ]
+    ensembl_info = nest_fields(
+        df=ensembl_info,
+        grouping="ensembl_gene_id",
+        new_column="ensembl_info",
+        drop_columns=["ensembl_gene_id"],
     )
 
     # Merge all the datasets
@@ -110,6 +134,7 @@ def transform_gene_info(
         druggability,
         biodomains,
         tep_info,
+        ensembl_info,
     ]:
         gene_info = pd.merge(
             left=gene_info,
@@ -181,6 +206,7 @@ def transform_gene_info(
             "is_adi",
             "is_tep",
             "resource_url",
+            "ensembl_info",
         ]
     ]
 
