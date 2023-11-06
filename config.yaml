@@ -156,6 +156,8 @@
           meanlogcpm: mean
           quartile3logcpm: third_quartile
           maximumlogcpm: max
+          possible_replacement: ensembl_possible_replacements
+          permalink: ensembl_permalink
         provenance:
           - syn25953363.6
           - syn12514826.4
