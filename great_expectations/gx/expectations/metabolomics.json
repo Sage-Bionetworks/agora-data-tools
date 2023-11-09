@@ -26,6 +26,14 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "ad_diagnosis_p_value",
+        "member_type": "float"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "associated_gene_name",
@@ -44,8 +52,8 @@
       "expectation_type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "associated_gene_name",
-        "max_value": 25,
-        "min_value": 1
+        "max_value": 100,
+        "min_value": 2
       },
       "meta": {}
     },
@@ -101,6 +109,25 @@
       "kwargs": {
         "column": "boxplot_group_names",
         "list_length": 2
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members",
+      "kwargs": {
+        "column": "boxplot_group_names",
+        "list_members": [
+          "CN",
+          "AD"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "boxplot_group_names",
+        "member_type": "str"
       },
       "meta": {}
     },
@@ -185,8 +212,8 @@
       "expectation_type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "metabolite_full_name",
-        "max_value": 25,
-        "min_value": 1
+        "max_value": 100,
+        "min_value": 2
       },
       "meta": {}
     },
@@ -217,8 +244,8 @@
       "expectation_type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "metabolite_id",
-        "max_value": 15,
-        "min_value": 1
+        "max_value": 100,
+        "min_value": 2
       },
       "meta": {}
     },
@@ -254,6 +281,14 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "n_per_group",
+        "member_type": "int"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "transposed_boxplot_stats",
@@ -273,6 +308,14 @@
       "kwargs": {
         "column": "transposed_boxplot_stats",
         "list_length": 2
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "transposed_boxplot_stats",
+        "member_type": "list"
       },
       "meta": {}
     }
