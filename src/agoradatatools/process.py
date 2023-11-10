@@ -117,14 +117,9 @@ def process_dataset(
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
 
-    # run great expectations on dataset
+    # run great expectations on dataset if expectation suite exists
     gx_runner = GreatExpectationsRunner(syn=syn, dataset_path=json_path)
-    logger.info(f"Running data validation on {gx_runner.expectation_suite_name}")
-    if not gx_runner.check_if_expectation_suite_exists():
-        logger.info(
-            f"Expectation suite for {gx_runner.expectation_suite_name} does not exist. Data validation will not be performed."
-        )
-    else:
+    if gx_runner.check_if_expectation_suite_exists():
         gx_runner.run()
 
     syn_obj = load.load(

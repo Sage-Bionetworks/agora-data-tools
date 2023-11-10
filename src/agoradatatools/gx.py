@@ -32,9 +32,14 @@ class GreatExpectationsRunner:
 
     def check_if_expectation_suite_exists(self):
         """Checks if the expectation suite exists in the great_expectations workspace"""
-        return (
+        exists = (
             self.expectation_suite_name in self.context.list_expectation_suite_names()
         )
+        if not exists:
+            logger.info(
+                f"Expectation suite for {self.expectation_suite_name} does not exist. Data validation will not be performed."
+            )
+        return exists
 
     def _get_results_path(self):
         """Gets the path to the results file, copies it to a Synapse-API friendly name, and returns the new path"""
@@ -64,7 +69,7 @@ class GreatExpectationsRunner:
 
     def run(self):
         """Run great expectations on a dataset and upload the results to Synapse"""
-
+        logger.info(f"Running data validation on {self.expectation_suite_name}")
         validator = self.context.sources.pandas_default.read_json(
             self.dataset_path,
         )
