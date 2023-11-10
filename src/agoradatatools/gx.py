@@ -28,9 +28,10 @@ class GreatExpectationsRunner:
         self.dataset_path = dataset_path
         self.expectation_suite_name = dataset_path.split("/")[-1].split(".")[0]
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
-        self.validations_relative_path = os.path.join(
-            self.gx_project_dir, "/gx/uncommitted/data_docs/local_site/validations"
+        self.validations_relative_path = (
+            self.gx_project_dir + "/gx/uncommitted/data_docs/local_site/validations"
         )
+        print(self.validations_relative_path)
         from expectations.expect_column_values_to_have_list_length import (
             ExpectColumnValuesToHaveListLength,
         )
