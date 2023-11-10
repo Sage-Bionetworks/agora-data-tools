@@ -12,14 +12,25 @@ logging.getLogger("great_expectations").setLevel(logging.WARNING)
 
 
 class GreatExpectationsRunner:
-    """Class to run great expectations on a dataset and upload the results to Synapse"""
+    """Class to run great expectations on a dataset and upload the HTML report to Synapse"""
+
+    gx_project_dir = "./great_expectations"
+
+    # Dictionary mapping expectation suite names to Synapse report upload folders
+    # TODO: Move this to the config files?
+    synapse_folder_dict = {
+        "metabolomics": "syn52928363",
+    }
 
     def __init__(self, syn: Synapse, dataset_path: str):
         """Initialize the class"""
         self.syn = syn
         self.dataset_path = dataset_path
         self.expectation_suite_name = dataset_path.split("/")[-1].split(".")[0]
-        self.context = gx.get_context(project_root_dir="./great_expectations")
+        self.context = gx.get_context(project_root_dir=self.gx_project_dir)
+        self.validations_relative_path = os.path.join(
+            self.gx_project_dir, "/gx/uncommitted/data_docs/local_site/validations"
+        )
         from expectations.expect_column_values_to_have_list_length import (
             ExpectColumnValuesToHaveListLength,
         )
@@ -42,20 +53,21 @@ class GreatExpectationsRunner:
         return exists
 
     def _get_results_path(self) -> str:
-        """Gets the path to the results file, copies it to a Synapse-API friendly name, and returns the new path"""
-        results_path_items = list(
+        """Gets the path to the most recent HTML report, copies it to a Synapse-API friendly name, and returns the new path"""
+        original_results_path_items = list(
             self.checkpoint_result.list_validation_result_identifiers()[0].to_tuple()
         )
-        results_path_items[-1] = results_path_items[-1] + ".html"
+        original_results_path_items[-1] = original_results_path_items[-1] + ".html"
         original_results_path = os.path.join(
-            "./great_expectations/gx/uncommitted/data_docs/local_site/validations",
-            *results_path_items,
+            self.validations_relative_path,
+            *original_results_path_items,
         )
-        timestamp_file_name = results_path_items[-2] + ".html"
-        new_results_path_items = results_path_items
+
+        timestamp_file_name = original_results_path_items[-2] + ".html"
+        new_results_path_items = original_results_path_items
         new_results_path_items[-1] = timestamp_file_name
         new_results_path = os.path.join(
-            "./great_expectations/gx/uncommitted/data_docs/local_site/validations",
+            self.validations_relative_path,
             *new_results_path_items,
         )
 
@@ -65,7 +77,12 @@ class GreatExpectationsRunner:
     def _upload_results_file_to_synapse(self) -> None:
         """Uploads the results file to Synapse"""
         results_path = self._get_results_path()
-        self.syn.store(File(results_path, parentId="syn52928363"))
+        self.syn.store(
+            File(
+                results_path,
+                parentId=self.synapse_folder_dict[self.expectation_suite_name],
+            )
+        )
 
     def run(self) -> None:
         """Run great expectations on a dataset and upload the results to Synapse"""
