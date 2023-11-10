@@ -5,6 +5,7 @@ import shutil
 from synapseclient import File, Synapse
 
 import great_expectations as gx
+from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
 
 logger = logging.getLogger(__name__)
 # Disable GX INFO logging
@@ -31,7 +32,6 @@ class GreatExpectationsRunner:
         self.validations_relative_path = (
             self.gx_project_dir + "/gx/uncommitted/data_docs/local_site/validations"
         )
-        print(self.validations_relative_path)
         from expectations.expect_column_values_to_have_list_length import (
             ExpectColumnValuesToHaveListLength,
         )
@@ -53,10 +53,10 @@ class GreatExpectationsRunner:
             )
         return exists
 
-    def _get_results_path(self) -> str:
-        """Gets the path to the most recent HTML report, copies it to a Synapse-API friendly name, and returns the new path"""
+    def _get_results_path(self, checkpoint_result: CheckpointResult) -> str:
+        """Gets the path to the most recent HTML report for a checkpoint, copies it to a Synapse-API friendly name, and returns the new path"""
         original_results_path_items = list(
-            self.checkpoint_result.list_validation_result_identifiers()[0].to_tuple()
+            checkpoint_result.list_validation_result_identifiers()[0].to_tuple()
         )
         original_results_path_items[-1] = original_results_path_items[-1] + ".html"
         original_results_path = os.path.join(
@@ -75,9 +75,8 @@ class GreatExpectationsRunner:
         shutil.copy(original_results_path, new_results_path)
         return new_results_path
 
-    def _upload_results_file_to_synapse(self) -> None:
-        """Uploads the results file to Synapse"""
-        results_path = self._get_results_path()
+    def _upload_results_file_to_synapse(self, results_path: str) -> None:
+        """Uploads a results file to Synapse"""
         self.syn.store(
             File(
                 results_path,
@@ -100,8 +99,9 @@ class GreatExpectationsRunner:
             name=self.expectation_suite_name,
             validator=validator,
         )
-        self.checkpoint_result = checkpoint.run()
+        checkpoint_result = checkpoint.run()
         logger.info(
             f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
         )
-        self._upload_results_file_to_synapse()
+        latest_reults_path = self._get_results_path(checkpoint_result)
+        self._upload_results_file_to_synapse(latest_reults_path)
