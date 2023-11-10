@@ -30,7 +30,7 @@ class GreatExpectationsRunner:
             ExpectColumnValuesToHaveListMembersOfType,
         )
 
-    def check_if_expectation_suite_exists(self):
+    def check_if_expectation_suite_exists(self) -> bool:
         """Checks if the expectation suite exists in the great_expectations workspace"""
         exists = (
             self.expectation_suite_name in self.context.list_expectation_suite_names()
@@ -41,7 +41,7 @@ class GreatExpectationsRunner:
             )
         return exists
 
-    def _get_results_path(self):
+    def _get_results_path(self) -> str:
         """Gets the path to the results file, copies it to a Synapse-API friendly name, and returns the new path"""
         results_path_items = list(
             self.checkpoint_result.list_validation_result_identifiers()[0].to_tuple()
@@ -62,12 +62,12 @@ class GreatExpectationsRunner:
         shutil.copy(original_results_path, new_results_path)
         return new_results_path
 
-    def _upload_results_file_to_synapse(self):
+    def _upload_results_file_to_synapse(self) -> None:
         """Uploads the results file to Synapse"""
         results_path = self._get_results_path()
         self.syn.store(File(results_path, parentId="syn52928363"))
 
-    def run(self):
+    def run(self) -> None:
         """Run great expectations on a dataset and upload the results to Synapse"""
         logger.info(f"Running data validation on {self.expectation_suite_name}")
         validator = self.context.sources.pandas_default.read_json(
