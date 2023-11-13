@@ -1,7 +1,15 @@
+from unittest import mock
 from unittest.mock import patch
 
+import shutil
+import os
 
 from great_expectations.data_context import FileDataContext
+from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
+from great_expectations.data_context.types.resource_identifiers import (
+    ValidationResultIdentifier,
+)
+
 from synapseclient import File
 
 from agoradatatools.gx import GreatExpectationsRunner
@@ -38,7 +46,33 @@ def test_check_if_expectation_suite_exists_returns_true_when_the_expectation_sui
 
 
 def test_get_results_path(syn):
-    ...
+    expected = "./great_expectations/gx/uncommitted/data_docs/local_site/validations/test/path/to/to.html"
+    test_runner = GreatExpectationsRunner(syn=syn, dataset_path=good_dataset_path)
+    mocked_checkpoint_result = mock.create_autospec(CheckpointResult)
+    mocked_validation_result_identifier = mock.create_autospec(
+        ValidationResultIdentifier(
+            expectation_suite_identifier="test_expectation_suite_identifier",
+            run_id="test_run_id",
+            batch_identifier="test_batch_identifier",
+        )
+    )
+    mocked_checkpoint_result.list_validation_result_identifiers.return_value = [
+        mocked_validation_result_identifier
+    ]
+    with patch.object(
+        mocked_validation_result_identifier,
+        "to_tuple",
+        return_value=("test", "path", "to", "file"),
+    ) as patch_list_validation_result_identifiers, patch.object(
+        shutil, "copy"
+    ) as patch_copy:
+        result = test_runner._get_results_path(mocked_checkpoint_result)
+        patch_list_validation_result_identifiers.assert_called_once()
+        patch_copy.assert_called_once_with(
+            test_runner.validations_relative_path + "/test/path/to/file.html",
+            test_runner.validations_relative_path + "/test/path/to/to.html",
+        )
+        assert result == expected
 
 
 def test_upload_results_file_to_synapse(syn):
