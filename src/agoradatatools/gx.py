@@ -53,9 +53,9 @@ class GreatExpectationsRunner:
     def _get_results_path(self, checkpoint_result: CheckpointResult) -> str:
         """Gets the path to the most recent HTML report for a checkpoint, copies it to a Synapse-API friendly name, and returns the new path"""
         validation_results = checkpoint_result.list_validation_result_identifiers()
-        validation_result = validation_results[0]
+        latest_validation_result = validation_results[0]
 
-        original_results_path_items = list(validation_result.to_tuple())
+        original_results_path_items = list(latest_validation_result.to_tuple())
         original_results_path_items[-1] = original_results_path_items[-1] + ".html"
         original_results_path = os.path.join(
             self.validations_relative_path,
