@@ -17,17 +17,14 @@ class GreatExpectationsRunner:
 
     gx_project_dir = "./great_expectations"
 
-    # Dictionary mapping expectation suite names to Synapse report upload folders
-    # TODO: Move this to the config files?
-    synapse_folder_dict = {
-        "metabolomics": "syn52928363",
-    }
-
-    def __init__(self, syn: Synapse, dataset_path: str):
+    def __init__(
+        self, syn: Synapse, dataset_path: str, dataset_name: str, upload_folder: str
+    ):
         """Initialize the class"""
         self.syn = syn
         self.dataset_path = dataset_path
-        self.expectation_suite_name = dataset_path.split("/")[-1].split(".")[0]
+        self.expectation_suite_name = dataset_name
+        self.upload_folder = upload_folder
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
         self.validations_relative_path = (
             self.gx_project_dir + "/gx/uncommitted/data_docs/local_site/validations"
@@ -42,14 +39,14 @@ class GreatExpectationsRunner:
             ExpectColumnValuesToHaveListMembersOfType,
         )
 
-    def check_if_expectation_suite_exists(self) -> bool:
+    def _check_if_expectation_suite_exists(self) -> bool:
         """Checks if the expectation suite exists in the great_expectations workspace"""
         exists = (
             self.expectation_suite_name in self.context.list_expectation_suite_names()
         )
         if not exists:
             logger.info(
-                f"Expectation suite for {self.expectation_suite_name} does not exist. Data validation will not be performed."
+                f"Expectation suite {self.expectation_suite_name} does not exist. Data validation will not be performed."
             )
         return exists
 
@@ -81,12 +78,14 @@ class GreatExpectationsRunner:
         self.syn.store(
             File(
                 results_path,
-                parentId=self.synapse_folder_dict[self.expectation_suite_name],
+                parentId=self.upload_folder,
             )
         )
 
     def run(self) -> None:
         """Run great expectations on a dataset and upload the results to Synapse"""
+        if not self._check_if_expectation_suite_exists():
+            return
         logger.info(f"Running data validation on {self.expectation_suite_name}")
         validator = self.context.sources.pandas_default.read_json(
             self.dataset_path,
