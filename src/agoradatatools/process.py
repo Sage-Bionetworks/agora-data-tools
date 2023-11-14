@@ -118,8 +118,13 @@ def process_dataset(
         )
 
     # run great expectations on dataset if expectation suite exists
-    gx_runner = GreatExpectationsRunner(syn=syn, dataset_path=json_path)
-    if gx_runner.check_if_expectation_suite_exists():
+    if "gx_folder" in dataset_obj[dataset_name].keys():
+        gx_runner = GreatExpectationsRunner(
+            syn=syn,
+            dataset_path=json_path,
+            dataset_name=dataset_name,
+            upload_folder=dataset_obj[dataset_name]["gx_folder"],
+        )
         gx_runner.run()
 
     syn_obj = load.load(
