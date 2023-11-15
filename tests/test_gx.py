@@ -8,7 +8,7 @@ from great_expectations.data_context import FileDataContext
 from great_expectations.data_context.types.resource_identifiers import (
     ValidationResultIdentifier,
 )
-from synapseclient import File
+from synapseclient import Activity, File
 
 from agoradatatools.gx import GreatExpectationsRunner
 
@@ -85,7 +85,11 @@ class TestGreatExpectationsRunner:
         with patch.object(self.good_runner.syn, "store") as patch_syn_store:
             self.good_runner._upload_results_file_to_synapse("test_path")
             patch_syn_store.assert_called_once_with(
-                File(path="test_path", parent=self.good_runner.upload_folder)
+                File(path="test_path", parent=self.good_runner.upload_folder),
+                activity=Activity(
+                    name=f"Great Expectations {self.good_runner.expectation_suite_name} results",
+                    executed="https://github.com/Sage-Bionetworks/agora-data-tools",
+                ),
             )
 
     def test_that_run_completes_successfully_when_check_if_expectation_suite_exists_is_true(

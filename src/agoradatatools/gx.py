@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 
-from synapseclient import File, Synapse
+from synapseclient import Activity, File, Synapse
 
 import great_expectations as gx
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
@@ -79,7 +79,11 @@ class GreatExpectationsRunner:
             File(
                 results_path,
                 parentId=self.upload_folder,
-            )
+            ),
+            activity=Activity(
+                name=f"Great Expectations {self.expectation_suite_name} results",
+                executed="https://github.com/Sage-Bionetworks/agora-data-tools",
+            ),
         )
 
     def run(self) -> None:
