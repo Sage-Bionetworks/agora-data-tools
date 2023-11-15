@@ -1,3 +1,4 @@
+import os
 import shutil
 from unittest import mock
 from unittest.mock import patch
@@ -30,7 +31,10 @@ class TestGreatExpectationsRunner:
         )
 
     def test_that_an_initialized_runner_has_the_attributes_it_should(self, syn):
-        assert self.good_runner.gx_project_dir == "./great_expectations"
+        assert (
+            self.good_runner.gx_project_dir
+            == self.good_runner._get_data_context_location()
+        )
         assert self.good_runner.syn == syn
         assert (
             self.good_runner.dataset_path == "./tests/test_assets/gx/metabolomics.json"
@@ -39,8 +43,16 @@ class TestGreatExpectationsRunner:
         assert self.good_runner.upload_folder == "test_folder"
         assert isinstance(self.good_runner.context, FileDataContext)
         assert (
-            self.good_runner.validations_relative_path
-            == "./great_expectations/gx/uncommitted/data_docs/local_site/validations"
+            self.good_runner.validations_path
+            == self.good_runner.gx_project_dir
+            + "/gx/uncommitted/data_docs/local_site/validations"
+        )
+
+    def test_that_get_data_context_location_returns_the_absolute_path_to_the_gx_directory(
+        self,
+    ):
+        assert self.good_runner._get_data_context_location() == os.path.join(
+            os.getcwd(), "great_expectations"
         )
 
     def test_check_if_expectation_suite_exists_returns_false_when_the_expectation_suite_does_not_exist(
@@ -54,7 +66,7 @@ class TestGreatExpectationsRunner:
         assert self.good_runner._check_if_expectation_suite_exists() is True
 
     def test_get_results_path(self):
-        expected = "./great_expectations/gx/uncommitted/data_docs/local_site/validations/test/path/to/to.html"
+        expected = self.good_runner.validations_path + "/test/path/to/to.html"
         mocked_checkpoint_result = mock.create_autospec(CheckpointResult)
         mocked_validation_result_identifier = mock.create_autospec(
             ValidationResultIdentifier(
@@ -76,8 +88,8 @@ class TestGreatExpectationsRunner:
             result = self.good_runner._get_results_path(mocked_checkpoint_result)
             patch_list_validation_result_identifiers.assert_called_once()
             patch_copy.assert_called_once_with(
-                self.good_runner.validations_relative_path + "/test/path/to/file.html",
-                self.good_runner.validations_relative_path + "/test/path/to/to.html",
+                self.good_runner.validations_path + "/test/path/to/file.html",
+                self.good_runner.validations_path + "/test/path/to/to.html",
             )
             assert result == expected
 

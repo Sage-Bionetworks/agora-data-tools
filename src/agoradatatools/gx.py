@@ -15,8 +15,6 @@ logging.getLogger("great_expectations").setLevel(logging.WARNING)
 class GreatExpectationsRunner:
     """Class to run great expectations on a dataset and upload the HTML report to Synapse"""
 
-    gx_project_dir = "./great_expectations"
-
     def __init__(
         self, syn: Synapse, dataset_path: str, dataset_name: str, upload_folder: str
     ):
@@ -25,8 +23,9 @@ class GreatExpectationsRunner:
         self.dataset_path = dataset_path
         self.expectation_suite_name = dataset_name
         self.upload_folder = upload_folder
+        self.gx_project_dir = self._get_data_context_location()
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
-        self.validations_relative_path = (
+        self.validations_path = (
             self.gx_project_dir + "/gx/uncommitted/data_docs/local_site/validations"
         )
         from expectations.expect_column_values_to_have_list_length import (
@@ -38,6 +37,14 @@ class GreatExpectationsRunner:
         from expectations.expect_column_values_to_have_list_members_of_type import (
             ExpectColumnValuesToHaveListMembersOfType,
         )
+
+    def _get_data_context_location(self) -> str:
+        """Gets the absolute path to the great_expectations directory"""
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        parent_dir = os.path.dirname(script_dir)
+        project_dir = os.path.dirname(parent_dir)
+        gx_directory = os.path.join(project_dir, "great_expectations")
+        return gx_directory
 
     def _check_if_expectation_suite_exists(self) -> bool:
         """Checks if the expectation suite exists in the great_expectations workspace"""
@@ -58,7 +65,7 @@ class GreatExpectationsRunner:
         original_results_path_items = list(latest_validation_result.to_tuple())
         original_results_path_items[-1] = original_results_path_items[-1] + ".html"
         original_results_path = os.path.join(
-            self.validations_relative_path,
+            self.validations_path,
             *original_results_path_items,
         )
 
@@ -66,7 +73,7 @@ class GreatExpectationsRunner:
         new_results_path_items = original_results_path_items
         new_results_path_items[-1] = timestamp_file_name
         new_results_path = os.path.join(
-            self.validations_relative_path,
+            self.validations_path,
             *new_results_path_items,
         )
 
