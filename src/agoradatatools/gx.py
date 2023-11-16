@@ -26,7 +26,7 @@ class GreatExpectationsRunner:
         self.gx_project_dir = self._get_data_context_location()
 
         print("-------------------------------------")
-        print(self.good_runner.gx_project_dir)
+        print(self.gx_project_dir)
         print("-------------------------------------")
 
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
