@@ -51,7 +51,7 @@ class TestGreatExpectationsRunner:
     def test_that_get_data_context_location_returns_the_path_to_the_gx_directory(
         self,
     ):
-        expected_end = os.path.join("src", "agoradatatools", "great_expectations")
+        expected_end = os.path.join("agoradatatools", "great_expectations")
         result = self.good_runner._get_data_context_location()
         assert result.endswith(expected_end)
 
