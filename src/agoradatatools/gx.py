@@ -30,8 +30,8 @@ class GreatExpectationsRunner:
         print("-------------------------------------")
 
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
-        self.validations_path = (
-            self.gx_project_dir + "/gx/uncommitted/data_docs/local_site/validations"
+        self.validations_path = os.path.join(
+            self.gx_project_dir, "gx/uncommitted/data_docs/local_site/validations"
         )
         from expectations.expect_column_values_to_have_list_length import (
             ExpectColumnValuesToHaveListLength,
