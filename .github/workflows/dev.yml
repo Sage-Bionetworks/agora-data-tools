@@ -38,6 +38,7 @@ jobs:
           pip install pytest pytest-cov
       - name: Test with pytest
         run: |
+          ls -a
           pytest tests/ -s --cov=agoradatatools --cov-report=html
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
