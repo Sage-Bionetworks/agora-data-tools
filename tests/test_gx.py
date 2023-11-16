@@ -48,12 +48,14 @@ class TestGreatExpectationsRunner:
             + "/gx/uncommitted/data_docs/local_site/validations"
         )
 
-    def test_that_get_data_context_location_returns_the_absolute_path_to_the_gx_directory(
+    def test_that_get_data_context_location_returns_the_path_to_the_gx_directory(
         self,
     ):
-        assert self.good_runner._get_data_context_location() == os.path.join(
-            os.getcwd(), "great_expectations"
+        expected = os.path.join(
+            os.getcwd(), "src", "agoradatatools", "../..", "great_expectations"
         )
+        result = self.good_runner._get_data_context_location()
+        assert result == expected
 
     def test_check_if_expectation_suite_exists_returns_false_when_the_expectation_suite_does_not_exist(
         self,
