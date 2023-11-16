@@ -46,7 +46,7 @@ class GreatExpectationsRunner:
     def _get_data_context_location(self) -> str:
         """Gets the path to the great_expectations directory"""
         script_dir = os.path.dirname(os.path.realpath(__file__))
-        gx_directory = os.path.join(script_dir, "../../great_expectations")
+        gx_directory = os.path.join(script_dir, "../great_expectations")
         return gx_directory
 
     def _check_if_expectation_suite_exists(self) -> bool:
