@@ -485,11 +485,11 @@
         },
         "importlib-metadata": {
             "hashes": [
-                "sha256:8a8a81bcf996e74fee46f0d16bd3eaa382a7eb20fd82445c3ad11f4090334116",
-                "sha256:dd0173e8f150d6815e098fd354f6414b0f079af4644ddfe90c71e2fc6174346d"
+                "sha256:3ebb78df84a805d7698245025b975d9d67053cd94c79245ba4b3eb694abe68bb",
+                "sha256:dbace7892d8c0c4ac1ad096662232f831d4e64f4c4545bd53016a3e9d4654743"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==4.13.0"
+            "markers": "python_version >= '3.8'",
+            "version": "==6.8.0"
         },
         "ipykernel": {
             "hashes": [
@@ -1606,11 +1606,11 @@
         },
         "synapseclient": {
             "hashes": [
-                "sha256:dc5a61f9f495109a0c89aa7d42b641b6ff278280d7961fb450dd5015704fe15b",
-                "sha256:dd8b1a1b4667d08311bb651469431f43fe2eeab83c0ef1fe5a03c2929aeb26cd"
+                "sha256:ab78a1202725d22c21f92798191c1862e779b2b31c01ff06f59789bb05fa1174",
+                "sha256:d9b732b450ee5c69a8d6875058af6739e0e076eb214fa0d05e7ebb21a0106846"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==2.7.2"
+            "markers": "python_version >= '3.8'",
+            "version": "==3.1.1"
         },
         "terminado": {
             "hashes": [
@@ -2338,11 +2338,11 @@
         },
         "importlib-metadata": {
             "hashes": [
-                "sha256:8a8a81bcf996e74fee46f0d16bd3eaa382a7eb20fd82445c3ad11f4090334116",
-                "sha256:dd0173e8f150d6815e098fd354f6414b0f079af4644ddfe90c71e2fc6174346d"
+                "sha256:3ebb78df84a805d7698245025b975d9d67053cd94c79245ba4b3eb694abe68bb",
+                "sha256:dbace7892d8c0c4ac1ad096662232f831d4e64f4c4545bd53016a3e9d4654743"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==4.13.0"
+            "markers": "python_version >= '3.8'",
+            "version": "==6.8.0"
         },
         "iniconfig": {
             "hashes": [
@@ -3498,11 +3498,11 @@
         },
         "synapseclient": {
             "hashes": [
-                "sha256:dc5a61f9f495109a0c89aa7d42b641b6ff278280d7961fb450dd5015704fe15b",
-                "sha256:dd8b1a1b4667d08311bb651469431f43fe2eeab83c0ef1fe5a03c2929aeb26cd"
+                "sha256:ab78a1202725d22c21f92798191c1862e779b2b31c01ff06f59789bb05fa1174",
+                "sha256:d9b732b450ee5c69a8d6875058af6739e0e076eb214fa0d05e7ebb21a0106846"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==2.7.2"
+            "markers": "python_version >= '3.8'",
+            "version": "==3.1.1"
         },
         "terminado": {
             "hashes": [
