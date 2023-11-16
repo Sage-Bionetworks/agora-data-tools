@@ -25,10 +25,6 @@ class GreatExpectationsRunner:
         self.upload_folder = upload_folder
         self.gx_project_dir = self._get_data_context_location()
 
-        print("-------------------------------------")
-        print(self.gx_project_dir)
-        print("-------------------------------------")
-
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
         self.validations_path = os.path.join(
             self.gx_project_dir, "gx/uncommitted/data_docs/local_site/validations"
