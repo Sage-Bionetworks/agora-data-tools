@@ -1,1 +1,2 @@
+# Ensure that /great_expectations and all of its contents are included when the package is installed
 graft src/agoradatatools/great_expectations/
