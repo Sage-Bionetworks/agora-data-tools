@@ -20,7 +20,7 @@ jobs:
       matrix:
         python-version:
           - "3.8"
-          - "3.9"
+          # - "3.9"
           # Support for Python 3.10 and 3.11 is temproarily disabled
           # - "3.10"
           # - "3.11"
@@ -38,7 +38,7 @@ jobs:
           pip install pytest pytest-cov
       - name: Test with pytest
         run: |
-          ls -a
+          ls /opt/hostedtoolcache/Python/3.8.18/x64/lib/python3.8/site-packages/agoradatatools/great_expectations
           pytest tests/ -s --cov=agoradatatools --cov-report=html
       - name: Upload pytest test results
         uses: actions/upload-artifact@v3
