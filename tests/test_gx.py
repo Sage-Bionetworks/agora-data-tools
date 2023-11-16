@@ -52,7 +52,7 @@ class TestGreatExpectationsRunner:
         self,
     ):
         expected = os.path.join(
-            os.getcwd(), "src", "agoradatatools", "../", "great_expectations"
+            os.getcwd(), "src", "agoradatatools", "great_expectations"
         )
         result = self.good_runner._get_data_context_location()
         assert result == expected
