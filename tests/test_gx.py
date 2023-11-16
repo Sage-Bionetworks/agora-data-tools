@@ -31,6 +31,10 @@ class TestGreatExpectationsRunner:
         )
 
     def test_that_an_initialized_runner_has_the_attributes_it_should(self, syn):
+        print("-------------------------------------")
+        print(self.good_runner.gx_project_dir)
+        print("-------------------------------------")
+
         assert (
             self.good_runner.gx_project_dir
             == self.good_runner._get_data_context_location()
