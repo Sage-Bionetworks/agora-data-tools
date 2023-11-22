@@ -139,6 +139,25 @@ This package has a `src/agoradatatools/etl/transform` submodule.  This folder ho
     - Use `pytest.mark.parameterize` to loop through multiple datasets in a single test.
     - The class `TestTransformGenesBiodomains` can be used as an example for future tests contibuted.
 
+### Great Expectations
+
+This package uses [Great Expectations](https://greatexpectations.io/) to validate output data.  The `src/agoradatatools/great_expectations` folder houses our file system data context and Great Expectations-specific configuration files. Eventually, our goal is for each `agora-data-tools` output dataset to be convered by an expectation suite. To add data validation for more datasets, follow these steps:
+
+1. Create a new expectation suite by defining the expectations for the new dataset in a Jupyter Notebook inside the `gx_suite_definitions` folder. Use `metabolomics.ipynb` as an example. You can find a catalog of existing expectations [here](https://greatexpectations.io/expectations/).
+1. Run the notebook to generate the new expectation suite. It should populate as a JSON file in the `/great_expectations/expectations` folder.
+1. Add support for running Great Expectations on a dataset by adding the `gx_folder` key to the configuration for the datatset in both `test_config.yaml` and `config.yaml`. The `gx_folder` should be the Synapse ID pointing of a folder where generated HTML reports from Great Expectations for that dataset should be uploaded. If a folder specific to your dataset does not yet exist in the proper locations ([Prod](https://www.synapse.org/#!Synapse:syn52948668), [Testing](https://www.synapse.org/#!Synapse:syn52948670)), create folders with the same name as the dataset itself and copy the new folders' Synapse IDs to the config files.
+1. Test data processing by running `adt test_config.yaml` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
+
+#### Custom Expectations
+
+This repository is currently home to three custom expectations that were created for use on `agora-data-tools` datasets:
+
+1. `ExpectColumnValuesToHaveListLength`: checks to see if the lists in a particular column are the length that we expect.
+1. `ExpectColumnValuesToHaveListMembers`: checks to see if the lists in a particular column contain only values that we expect.
+1. `ExpectColumnValuesToHaveListMembersOfType`: checks to see if the lists in a particular column contain members of the type we expect.
+
+These expectations are defined in the `/great_expectations/gx/plugins/expectations` folder. To add more custom expectations, follow the instructions [here](https://docs.greatexpectations.io/docs/guides/expectations/custom_expectations_lp).
+
 ### DockerHub
 
 Rather than using GitHub actions to build and push Docker images to DockerHub, the Docker images are automatically built in DockerHub. This requires the `sagebiodockerhub` GitHub user to be an Admin of this repo. You can view the docker build [here](https://hub.docker.com/r/sagebionetworks/agora-data-tools).

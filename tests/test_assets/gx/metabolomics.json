@@ -1,0 +1,177 @@
+[
+  {
+    "associated_gene_name": "Gene_A",
+    "ensembl_gene_id": "ENSG000000001",
+    "metabolite_id": "SM..OH..C22.1",
+    "metabolite_full_name": "SM (OH) C22:1",
+    "association_p": 1.234567e-05,
+    "gene_wide_p_threshold_1kgp": 3.456789e-05,
+    "n_per_group": [
+      150,
+      200
+    ],
+    "boxplot_group_names": [
+      "Control",
+      "Treatment"
+    ],
+    "ad_diagnosis_p_value": [
+      0.345
+    ],
+    "transposed_boxplot_stats": [
+      [
+        -2.0,
+        -0.5,
+        0.0,
+        0.5,
+        2.0
+      ],
+      [
+        -1.5,
+        -0.2,
+        0.1,
+        0.8,
+        1.5
+      ]
+    ]
+  },
+  {
+    "associated_gene_name": "Gene_B",
+    "ensembl_gene_id": "ENSG000000002",
+    "metabolite_id": "SM..OH..C22.2",
+    "metabolite_full_name": "SM (OH) C22:2",
+    "association_p": 2.345678e-05,
+    "gene_wide_p_threshold_1kgp": 4.567890e-05,
+    "n_per_group": [
+      180,
+      220
+    ],
+    "boxplot_group_names": [
+      "Group_A",
+      "Group_B"
+    ],
+    "ad_diagnosis_p_value": [
+      0.456
+    ],
+    "transposed_boxplot_stats": [
+      [
+        -1.8,
+        -0.4,
+        0.2,
+        0.7,
+        1.8
+      ],
+      [
+        -1.6,
+        -0.3,
+        0.0,
+        0.5,
+        1.6
+      ]
+    ]
+  },
+  {
+    "associated_gene_name": "Gene_C",
+    "ensembl_gene_id": "ENSG000000003",
+    "metabolite_id": "SM..OH..C22.3",
+    "metabolite_full_name": "SM (OH) C22:3",
+    "association_p": 3.456789e-05,
+    "gene_wide_p_threshold_1kgp": 5.678901e-05,
+    "n_per_group": [
+      200,
+      250
+    ],
+    "boxplot_group_names": [
+      "Group_X",
+      "Group_Y"
+    ],
+    "ad_diagnosis_p_value": [
+      0.567
+    ],
+    "transposed_boxplot_stats": [
+      [
+        -2.2,
+        -0.7,
+        0.1,
+        0.6,
+        2.2
+      ],
+      [
+        -2.0,
+        -0.5,
+        0.0,
+        0.5,
+        2.0
+      ]
+    ]
+  },
+  {
+    "associated_gene_name": "Gene_D",
+    "ensembl_gene_id": "ENSG000000004",
+    "metabolite_id": "SM..OH..C22.4",
+    "metabolite_full_name": "SM (OH) C22:4",
+    "association_p": 4.567890e-05,
+    "gene_wide_p_threshold_1kgp": 6.789012e-05,
+    "n_per_group": [
+      220,
+      270
+    ],
+    "boxplot_group_names": [
+      "Group_P",
+      "Group_Q"
+    ],
+    "ad_diagnosis_p_value": [
+      0.678
+    ],
+    "transposed_boxplot_stats": [
+      [
+        -2.4,
+        -0.8,
+        0.0,
+        0.8,
+        2.4
+      ],
+      [
+        -2.2,
+        -0.7,
+        0.1,
+        0.6,
+        2.2
+      ]
+    ]
+  },
+  {
+    "associated_gene_name": "Gene_E",
+    "ensembl_gene_id": "ENSG000000005",
+    "metabolite_id": "SM..OH..C22.5",
+    "metabolite_full_name": "SM (OH) C22:5",
+    "association_p": 5.678901e-05,
+    "gene_wide_p_threshold_1kgp": 7.890123e-05,
+    "n_per_group": [
+      250,
+      300
+    ],
+    "boxplot_group_names": [
+      "Group_M",
+      "Group_N"
+    ],
+    "ad_diagnosis_p_value": [
+      0.789
+    ],
+    "transposed_boxplot_stats": [
+      [
+        -2.6,
+        -1.0,
+        -0.2,
+        0.6,
+        2.6
+      ],
+      [
+        -2.4,
+        -0.8,
+        0.0,
+        0.8,
+        2.4
+      ]
+    ]
+  }
+]

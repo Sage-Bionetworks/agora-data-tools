@@ -102,6 +102,7 @@
         provenance:
           - syn26064497.1
         destination: *dest
+        gx_folder: syn52948671
 
     - gene_info:
         files:

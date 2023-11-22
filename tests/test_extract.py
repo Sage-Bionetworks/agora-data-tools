@@ -85,15 +85,6 @@ def test_read_json_into_df():
         assert isinstance(df, pd.DataFrame)
 
 
-# test if utils._login_to_synapse is called when syn=None
-def test_get_entity_as_df_syn_is_none(syn):
-    with patch.object(
-        utils, "_login_to_synapse", return_value=syn
-    ) as patch_login_to_synapse:
-        extract.get_entity_as_df(syn_id="syn11111111", source="table", syn=None)
-        patch_login_to_synapse.assert_called_once()
-
-
 @pytest.mark.parametrize(
     "syn_id, version", [("syn1111111", None), ("syn1111111.1", "1")]
 )
@@ -113,7 +104,7 @@ def test_get_entity_as_df_with_version(syn, syn_id, version):
 
 
 # test raise if  is not supported
-def test_get_entity_as_df__not_supported(syn):
+def test_get_entity_as_df_not_supported(syn):
     with pytest.raises(ValueError, match="File type not *"):
         extract.get_entity_as_df(syn_id="syn1111111", source="abc", syn=syn)
 

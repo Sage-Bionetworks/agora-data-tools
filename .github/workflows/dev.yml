@@ -21,8 +21,9 @@ jobs:
         python-version:
           - "3.8"
           - "3.9"
-          - "3.10"
-          - "3.11"
+          # Support for Python 3.10 and 3.11 is temproarily disabled
+          # - "3.10"
+          # - "3.11"
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}

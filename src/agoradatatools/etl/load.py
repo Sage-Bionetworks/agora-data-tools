@@ -5,8 +5,6 @@ import numpy as np
 import pandas as pd
 from synapseclient import Activity, File, Synapse
 
-from . import utils
-
 
 class NumpyEncoder(json.JSONEncoder):
     """Special json encoder for numpy types"""
@@ -83,9 +81,7 @@ def remove_non_values(d: dict) -> dict:
     return cleaned_dict
 
 
-def load(
-    file_path: str, provenance: list, destination: str, syn: Synapse = None
-) -> tuple:
+def load(file_path: str, provenance: list, destination: str, syn: Synapse) -> tuple:
     """Reads file to be loaded into Synapse
     :param syn: synapse object
     :return: synapse id of the file loaded into Synapse.  Returns None if it
@@ -95,14 +91,12 @@ def load(
         file_path (str): Path of the file to be loaded into Synapse
         provenance (list): Array of files that originate the one being loaded
         destination (str): Location where the file should be loaded in Synapse
-        syn (synapseclient.Synapse, optional): synapseclient session. Defaults to None.
+        syn (synapseclient.Synapse): synapseclient session.
 
     Returns:
         tuple: Returns a tuple of the name fo the file and the version number.
     """
 
-    if syn is None:
-        syn = utils._login_to_synapse()
     activity = Activity(used=provenance)
     file = File(file_path, parent=destination)
     file = syn.store(file, activity=activity, forceVersion=False)

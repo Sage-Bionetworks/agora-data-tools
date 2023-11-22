@@ -1,8 +1,11 @@
-from . import utils
 import pandas as pd
 
+import synapseclient
 
-def get_entity_as_df(syn_id: str, source: str, syn=None) -> pd.DataFrame:
+
+def get_entity_as_df(
+    syn_id: str, source: str, syn: synapseclient.Synapse
+) -> pd.DataFrame:
     """
     1. Creates and logs into synapseclient session (if not provided)
     2. Gets synapse entity from id string (and version number if provided)
@@ -11,13 +14,11 @@ def get_entity_as_df(syn_id: str, source: str, syn=None) -> pd.DataFrame:
     Args:
         syn_id (str): Synapse ID of entity to be loaded to df
         source (str): the source of the data to be loaded to df
-        syn (synapseclient.Synapse, optional): synapseclient.Synapse session. Defaults to None.
+        syn (synapseclient.Synapse): synapseclient.Synapse session object.
 
     Returns:
         pd.DataFrame: data frame generated from data source provided
     """
-    if syn is None:
-        syn = utils._login_to_synapse()
 
     syn_id_version = syn_id.split(".")
     synapse_id = syn_id_version[0]
@@ -92,7 +93,7 @@ def read_tsv_into_df(tsv_path: str) -> pd.DataFrame:
     return pd.read_csv(tsv_path, sep="\t")
 
 
-def read_table_into_df(table_id: str, syn) -> pd.DataFrame:
+def read_table_into_df(table_id: str, syn: synapseclient.Synapse) -> pd.DataFrame:
     """
     Reads a Synapse table into a dataframe.
 

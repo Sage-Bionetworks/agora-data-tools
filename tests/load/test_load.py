@@ -64,17 +64,7 @@ class TestLoad:
     def teardown_method(self):
         mock.patch.stopall()
 
-    def test_load_syn_is_none(self):
-        test_tuple = load.load(
-            file_path="fake/path/to/fake/file",
-            provenance=["syn1111111", "syn1111112"],
-            destination="syn1111113",
-            syn=None,
-        )
-        self.patch_syn_login.assert_called_once()
-        assert test_tuple == ("syn1111114", 1)
-
-    def test_load_syn_is_not_none(self, syn):
+    def test_load(self, syn):
         test_tuple = load.load(
             file_path="fake/path/to/fake/file",
             provenance=["syn1111111", "syn1111112"],
