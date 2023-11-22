@@ -137,7 +137,9 @@ def process_dataset(
     return syn_obj
 
 
-def create_data_manifest(parent=None, syn=None) -> DataFrame:
+def create_data_manifest(
+    syn: synapseclient.Synapse, parent: synapseclient.Folder = None
+) -> DataFrame:
     """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse folders
 
     Args:
@@ -151,9 +153,6 @@ def create_data_manifest(parent=None, syn=None) -> DataFrame:
     if not parent:
         return None
 
-    if not syn:
-        syn = utils._login_to_synapse()
-
     folders = syn.getChildren(parent)
     folder = [folders]
     folder = [
@@ -164,16 +163,16 @@ def create_data_manifest(parent=None, syn=None) -> DataFrame:
 
 
 @log_time(func_name="process_all_files", logger=logger)
-def process_all_files(config_path: str = None, syn=None):
+def process_all_files(
+    syn: synapseclient.Synapse,
+    config_path: str = None,
+):
     """This function will read through the entire configuration and process each file listed.
 
     Args:
+        syn (synapseclient.Session, optional): Synapse client session
         config_path (str, optional): path to configuration file. Defaults to None.
-        syn (synapseclient.Session, optional): Synapse client session. Defaults to None.
     """
-
-    # if not syn:
-    #     syn = utils._login_to_synapse()
 
     if config_path:
         config = utils._get_config(config_path=config_path)
@@ -203,7 +202,7 @@ def process_all_files(config_path: str = None, syn=None):
 
     if not error_list:
         # create manifest if there are no errors
-        manifest_df = create_data_manifest(parent=destination, syn=syn)
+        manifest_df = create_data_manifest(syn=syn, parent=destination)
         manifest_path = load.df_to_csv(
             df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
         )
@@ -240,7 +239,7 @@ def process(
     auth_token: str = synapse_auth_opt,
 ):
     syn = utils._login_to_synapse(token=auth_token)
-    process_all_files(config_path=config_path, syn=syn)
+    process_all_files(syn=syn, config_path=config_path)
 
 
 if __name__ == "__main__":
