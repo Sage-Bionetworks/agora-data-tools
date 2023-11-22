@@ -143,8 +143,8 @@ def create_data_manifest(
     """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse folders
 
     Args:
+        syn (synapseclient.Synapse): Synapse client session. Defaults to None.
         parent (synapseclient.Folder/str, optional): synapse folder or synapse id pointing to parent synapse folder. Defaults to None.
-        syn (synapseclient.Synapse, optional): Synapse client session. Defaults to None.
 
     Returns:
         DataFrame: Dataframe containing IDs and version numbers of folders within the parent directory
