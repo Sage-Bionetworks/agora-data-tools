@@ -157,15 +157,11 @@ class TestCreateDataManifest:
         mock.patch.stopall()
 
     def test_create_data_manifest_parent_none(self, syn: Any):
-        assert process.create_data_manifest(parent=None, syn=syn) is None
+        assert process.create_data_manifest(syn=syn, parent=None) is None
         self.patch_syn_login.assert_not_called()
 
-    def test_create_data_manifest_syn_none(self):
-        process.create_data_manifest(parent="syn1111111", syn=None)
-        self.patch_syn_login.assert_called_once()
-
     def test_create_data_manifest_no_none(self, syn: Any):
-        df = process.create_data_manifest(parent="syn1111111", syn=syn)
+        df = process.create_data_manifest(syn=syn, parent="syn1111111")
         self.patch_get_children.assert_called_once_with("syn1111111")
         self.patch_syn_login.assert_not_called()
         assert isinstance(df, pd.DataFrame)
@@ -202,21 +198,21 @@ class TestProcessAllFiles:
         mock.patch.stopall()
 
     def test_process_all_files_config_path(self, syn: Any):
-        process.process_all_files(config_path="path/to/config", syn=syn)
+        process.process_all_files(syn=syn, config_path="path/to/config")
         self.patch_get_config.assert_called_once_with(config_path="path/to/config")
 
     def test_process_all_files_no_config_path(self, syn: Any):
-        process.process_all_files(config_path=None, syn=syn)
+        process.process_all_files(syn=syn, config_path=None)
         self.patch_get_config.assert_called_once_with()
 
     def test_process_all_files_process_dataset_fails(self, syn: Any):
         with pytest.raises(ADTDataProcessingError):
             self.patch_process_dataset.side_effect = Exception
-            process.process_all_files(config_path="path/to/config", syn=syn)
+            process.process_all_files(syn=syn, config_path="path/to/config")
             self.patch_create_data_manifest.assert_not_called()
 
     def test_process_all_files_full(self, syn: Any):
-        process.process_all_files(config_path=None, syn=syn)
+        process.process_all_files(syn=syn, config_path=None)
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"a": {"b": "c"}}, staging_path="./staging", syn=syn
         )
