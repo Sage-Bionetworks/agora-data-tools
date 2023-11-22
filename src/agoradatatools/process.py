@@ -170,7 +170,7 @@ def process_all_files(
     """This function will read through the entire configuration and process each file listed.
 
     Args:
-        syn (synapseclient.Session, optional): Synapse client session
+        syn (synapseclient.Session): Synapse client session
         config_path (str, optional): path to configuration file. Defaults to None.
     """
 
