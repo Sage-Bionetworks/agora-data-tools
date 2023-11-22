@@ -85,7 +85,7 @@
       "kwargs": {
         "column": "association_p",
         "max_value": 1,
-        "min_value": 0
+        "strict_min_value": 0
       },
       "meta": {}
     },
@@ -189,7 +189,7 @@
       "kwargs": {
         "column": "gene_wide_p_threshold_1kgp",
         "max_value": 0.05,
-        "min_value": 0
+        "strict_min_value": 0
       },
       "meta": {}
     },
