@@ -189,63 +189,11 @@ class TestCalculateDistribution:
     # broken out groups. Then the min/max values are calculated as <quartile> +/- 1.5*IQR.
     df = pd.DataFrame(
         {
-            "col_1": [
-                "a",
-                "a",
-                "a",
-                "a",
-                "a",
-                "b",
-                "c",
-                "c",
-                "c",
-                "c",
-                "c",
-                "c",
-            ],  # 3 main groups
-            "col_2": [
-                "x",
-                "x",
-                "y",
-                "y",
-                "y",
-                "x",
-                "x",
-                "x",
-                "x",
-                "y",
-                "y",
-                "y",
-            ],  # 2 subgroups
+            "col_1": ["a", "a", "a", "a", "a", "b", "c", "c", "c", "c", "c", "c"],  # 3 main groups
+            "col_2": ["x", "x", "y", "y", "y", "x", "x", "x", "x", "y", "y", "y"],  # 2 subgroups
             "col_3": [1, 5, 10, 12, 14, 2, 6, 7, 9, 16, 17, 19],  # Values of interest
-            "col_4": [
-                1,
-                2,
-                3,
-                4,
-                5,
-                6,
-                7,
-                8,
-                9,
-                10,
-                11,
-                12,
-            ],  # Ignored column of values
-            "col_5": [
-                "m",
-                "m",
-                "n",
-                "n",
-                "o",
-                "o",
-                "o",
-                "p",
-                "p",
-                "p",
-                "q",
-                "q",
-            ],  # an ignored column of strings
+            "col_4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],  # Ignored column of values
+            "col_5": ["m", "m", "n", "n", "o", "o", "o", "p", "p", "p", "q", "q"],  # an ignored column of strings
         }
     )
 
