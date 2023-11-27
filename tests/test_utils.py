@@ -65,18 +65,6 @@ def test_get_config_with_config_path():
     assert list(config)[0] == {"destination": "syn17015333"}
 
 
-def test_find_config_by_name_where_name_in_config():
-    config = [{"a": "b"}, {"c", "d"}]
-    returned_object = utils._find_config_by_name(config=config, name="a")
-    assert returned_object is not None
-
-
-def test_find_config_by_name_where_name_not_in_config():
-    config = [{"a": "b"}, {"c": "d"}]
-    returned_object = utils._find_config_by_name(config=config, name="z")
-    assert returned_object is None
-
-
 def test_standardize_column_names():
     df = pd.DataFrame(
         {
@@ -201,11 +189,63 @@ class TestCalculateDistribution:
     # broken out groups. Then the min/max values are calculated as <quartile> +/- 1.5*IQR.
     df = pd.DataFrame(
         {
-            "col_1": ["a", "a", "a", "a", "a", "b", "c", "c", "c", "c", "c", "c"],  # 3 main groups
-            "col_2": ["x", "x", "y", "y", "y", "x", "x", "x", "x", "y", "y", "y"],  # 2 subgroups
+            "col_1": [
+                "a",
+                "a",
+                "a",
+                "a",
+                "a",
+                "b",
+                "c",
+                "c",
+                "c",
+                "c",
+                "c",
+                "c",
+            ],  # 3 main groups
+            "col_2": [
+                "x",
+                "x",
+                "y",
+                "y",
+                "y",
+                "x",
+                "x",
+                "x",
+                "x",
+                "y",
+                "y",
+                "y",
+            ],  # 2 subgroups
             "col_3": [1, 5, 10, 12, 14, 2, 6, 7, 9, 16, 17, 19],  # Values of interest
-            "col_4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], # Ignored column of values
-            "col_5": ["m", "m", "n", "n", "o", "o", "o", "p", "p", "p", "q", "q"],  # an ignored column of strings
+            "col_4": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+            ],  # Ignored column of values
+            "col_5": [
+                "m",
+                "m",
+                "n",
+                "n",
+                "o",
+                "o",
+                "o",
+                "p",
+                "p",
+                "p",
+                "q",
+                "q",
+            ],  # an ignored column of strings
         }
     )
 
@@ -218,7 +258,7 @@ class TestCalculateDistribution:
                 "max": [22.5, 2.0, 30.625],
                 "first_quartile": [5.0, 2.0, 7.5],
                 "median": [10.0, 2.0, 12.5],
-                "third_quartile": [12.0, 2.0, 16.75]
+                "third_quartile": [12.0, 2.0, 16.75],
             }
         )
         output_df = utils.calculate_distribution(
@@ -236,7 +276,7 @@ class TestCalculateDistribution:
                 "max": [7.0, 16.0, 2.0, 10.25, 20.25],
                 "first_quartile": [2.0, 11.0, 2.0, 6.5, 16.5],
                 "median": [3.0, 12.0, 2.0, 7.0, 17.0],
-                "third_quartile": [4.0, 13.0, 2.0, 8.0, 18.0]
+                "third_quartile": [4.0, 13.0, 2.0, 8.0, 18.0],
             }
         )
         output_df = utils.calculate_distribution(
