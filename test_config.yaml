@@ -24,14 +24,14 @@ sources:
       - syn18689335.3
   - agora_proteomics_tmt:
     agora_proteomics_tmt_files: &agora_proteomics_tmt_files
-      - name: agora_proteomics_tmt
+      - name: proteomics_tmt
         id: syn35221005.2
         format: csv
     agora_proteomics_tmt_provenance: &agora_proteomics_tmt_provenance
       - syn35221005.2
   - agora_proteomics_srm:
     agora_proteomics_srm_files: &agora_proteomics_srm_files
-      - name: agora_proteomics_srm
+      - name: proteomics_srm
         id: syn52579640.3
         format: csv
     agora_proteomics_srm_provenance: &agora_proteomics_srm_provenance
@@ -141,9 +141,7 @@ datasets:
         - <<: *agora_proteomics_files
         - <<: *agora_proteomics_tmt_files
         - <<: *agora_proteomics_srm_files
-        - name: rna_expression_change
-          id: syn27211942.1
-          format: tsv
+        - <<: *rna_distribution_data_files
         - name: target_list
           id: syn12540368.41
           format: csv
