@@ -192,7 +192,7 @@ class TestCalculateDistribution:
             "col_1": ["a", "a", "a", "a", "a", "b", "c", "c", "c", "c", "c", "c"],  # 3 main groups
             "col_2": ["x", "x", "y", "y", "y", "x", "x", "x", "x", "y", "y", "y"],  # 2 subgroups
             "col_3": [1, 5, 10, 12, 14, 2, 6, 7, 9, 16, 17, 19],  # Values of interest
-            "col_4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],  # Ignored column of values
+            "col_4": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], # Ignored column of values
             "col_5": ["m", "m", "n", "n", "o", "o", "o", "p", "p", "p", "q", "q"],  # an ignored column of strings
         }
     )
@@ -206,7 +206,7 @@ class TestCalculateDistribution:
                 "max": [22.5, 2.0, 30.625],
                 "first_quartile": [5.0, 2.0, 7.5],
                 "median": [10.0, 2.0, 12.5],
-                "third_quartile": [12.0, 2.0, 16.75],
+                "third_quartile": [12.0, 2.0, 16.75]
             }
         )
         output_df = utils.calculate_distribution(
@@ -224,7 +224,7 @@ class TestCalculateDistribution:
                 "max": [7.0, 16.0, 2.0, 10.25, 20.25],
                 "first_quartile": [2.0, 11.0, 2.0, 6.5, 16.5],
                 "median": [3.0, 12.0, 2.0, 7.0, 17.0],
-                "third_quartile": [4.0, 13.0, 2.0, 8.0, 18.0],
+                "third_quartile": [4.0, 13.0, 2.0, 8.0, 18.0]
             }
         )
         output_df = utils.calculate_distribution(
