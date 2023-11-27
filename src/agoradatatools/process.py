@@ -74,6 +74,7 @@ def process_dataset(
     entities_as_df = {}
 
     for entity in dataset_obj[dataset_name]["files"]:
+        print(entity)
         entity_id = entity["id"]
         entity_format = entity["format"]
         entity_name = entity["name"]
@@ -188,12 +189,12 @@ def process_all_files(
     error_list = []
     if datasets:
         for dataset in datasets:
-            try:
-                process_dataset(dataset_obj=dataset, staging_path=staging_path, syn=syn)
-            except Exception as e:
-                error_list.append(
-                    f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
-                )
+            # try:
+            process_dataset(dataset_obj=dataset, staging_path=staging_path, syn=syn)
+            # except Exception as e:
+            #     error_list.append(
+            #         f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
+            #     )
 
     destination = config["destination"]
 
