@@ -36,12 +36,12 @@ sources:
         format: csv
     agora_proteomics_srm_provenance: &agora_proteomics_srm_provenance
       - syn52579640.3
-  - rna_distribution_data:
-    rna_distribution_data_files: &rna_distribution_data_files
+  - rna_diff_expr_data:
+    rna_diff_expr_data_files: &rna_diff_expr_data_files
       - name: diff_exp_data
         id: syn27211942.1
         format: tsv
-    rna_distribution_data_provenance: &rna_distribution_data_provenance
+    rna_diff_expr_data_provenance: &rna_diff_expr_data_provenance
       - syn27211942.1
 datasets:
   - biodomain_info:
@@ -141,7 +141,7 @@ datasets:
         - <<: *agora_proteomics_files
         - <<: *agora_proteomics_tmt_files
         - <<: *agora_proteomics_srm_files
-        - <<: *rna_distribution_data_files
+        - <<: *rna_diff_expr_data_files
         - name: target_list
           id: syn12540368.41
           format: csv
@@ -179,7 +179,7 @@ datasets:
         - *agora_proteomics_provenance
         - *agora_proteomics_tmt_provenance
         - *agora_proteomics_srm_provenance
-        - *rna_distribution_data_provenance
+        - *rna_diff_expr_data_provenance
         - syn12540368.41
         - syn27211878.2
         - syn13363443.11
@@ -237,10 +237,10 @@ datasets:
       destination: *dest
 
   - rnaseq_differential_expression:
-      files: *rna_distribution_data_files
+      files: *rna_diff_expr_data_files
       final_format: json
       custom_transformations: 1
-      provenance: *rna_distribution_data_provenance
+      provenance: *rna_diff_expr_data_provenance
       destination: *dest
 
   - distribution_data:
@@ -258,10 +258,10 @@ datasets:
       destination: *dest
 
   - rna_distribution_data:
-      files: *rna_distribution_data_files
+      files: *rna_diff_expr_data_files
       final_format: json
       custom_transformations: 1
-      provenance: *rna_distribution_data_provenance
+      provenance: *rna_diff_expr_data_provenance
       destination: *dest
 
   - proteomics_distribution_data:
