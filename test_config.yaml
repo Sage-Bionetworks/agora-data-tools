@@ -107,7 +107,7 @@
     - gene_info:
         files:
           - name: gene_metadata
-            id: syn25953363.6
+            id: syn25953363.7
             format: feather
           - name: igap
             id: syn12514826.5
@@ -160,7 +160,7 @@
           possible_replacement: ensembl_possible_replacements
           permalink: ensembl_permalink
         provenance:
-          - syn25953363.6
+          - syn25953363.7
           - syn12514826.5
           - syn12514912.3
           - syn18689335.3
