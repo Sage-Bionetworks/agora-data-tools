@@ -1,28 +1,63 @@
 destination: &dest syn12177492
 staging_path: ./staging
+sources:
+  - genes_biodomains:
+    genes_biodomains_files: &genes_biodomains_files
+      - name: genes_biodomains
+        id: syn44151254.1
+        format: csv
+    genes_biodomains_provenance: &genes_biodomains_provenance
+      - syn44151254.1
+  - overall_scores:
+    overall_scores_files: &overall_scores_files
+      - name: overall_scores
+        id: syn25575156.13
+        format: table
+    overall_scores_provenance: &overall_scores_provenance
+      - syn25575156.13
+  - agora_proteomics:
+    agora_proteomics_files: &agora_proteomics_files
+      - name: proteomics
+        id: syn18689335.3
+        format: csv
+    agora_proteomics_provenance: &agora_proteomics_provenance
+      - syn18689335.3
+  - agora_proteomics_tmt:
+    agora_proteomics_tmt_files: &agora_proteomics_tmt_files
+      - name: proteomics_tmt
+        id: syn35221005.2
+        format: csv
+    agora_proteomics_tmt_provenance: &agora_proteomics_tmt_provenance
+      - syn35221005.2
+  - agora_proteomics_srm:
+    agora_proteomics_srm_files: &agora_proteomics_srm_files
+      - name: proteomics_srm
+        id: syn52579640.3
+        format: csv
+    agora_proteomics_srm_provenance: &agora_proteomics_srm_provenance
+      - syn52579640.3
+  - rna_diff_expr_data:
+    rna_diff_expr_data_files: &rna_diff_expr_data_files
+      - name: diff_exp_data
+        id: syn27211942.1
+        format: tsv
+    rna_diff_expr_data_provenance: &rna_diff_expr_data_provenance
+      - syn27211942.1
 datasets:
   - biodomain_info:
-      files:
-        - name: genes_biodomains
-          id: syn44151254.1
-          format: csv
+      files: *genes_biodomains_files
       final_format: json
       custom_transformations: 1
-      provenance:
-        - syn44151254.1
+      provenance: *genes_biodomains_provenance
       column_rename:
         biodomain: name
       destination: *dest
 
   - genes_biodomains:
-      files:
-        - name: genes_biodomains
-          id: syn44151254.1
-          format: csv
+      files: *genes_biodomains_files
       final_format: json
       custom_transformations: 1
-      provenance:
-        - syn44151254.1
+      provenance: *genes_biodomains_provenance
       column_rename:
         ensembl_id: ensembl_gene_id
         goterm_name: go_terms
@@ -45,39 +80,27 @@ datasets:
       destination: *dest
 
   - proteomics:
-      files:
-        - name: agora_proteomics
-          id: syn18689335.3
-          format: csv
+      files: *agora_proteomics_files
       final_format: json
-      provenance:
-        - syn18689335.3
+      provenance: *agora_proteomics_provenance
       column_rename:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
       destination: *dest
 
   - proteomics_tmt:
-      files:
-        - name: agora_proteomics_tmt
-          id: syn35221005.2
-          format: csv
+      files: *agora_proteomics_tmt_files
       final_format: json
-      provenance:
-        - syn35221005.2
+      provenance: *agora_proteomics_tmt_provenance
       column_rename:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
       destination: *dest
 
   - proteomics_srm:
-      files:
-        - name: agora_proteomics_srm
-          id: syn52579640.3
-          format: csv
+      files: *agora_proteomics_srm_files
       final_format: json
-      provenance:
-        - syn52579640.3
+      provenance: *agora_proteomics_srm_provenance
       column_rename:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
@@ -115,18 +138,10 @@ datasets:
         - name: eqtl
           id: syn12514912.3
           format: csv
-        - name: proteomics
-          id: syn18689335.3
-          format: csv
-        - name: agora_proteomics_tmt
-          id: syn35221005.2
-          format: csv
-        - name: agora_proteomics_srm
-          id: syn52579640.3
-          format: csv
-        - name: rna_expression_change
-          id: syn27211942.1
-          format: tsv
+        - <<: *agora_proteomics_files
+        - <<: *agora_proteomics_tmt_files
+        - <<: *agora_proteomics_srm_files
+        - <<: *rna_diff_expr_data_files
         - name: target_list
           id: syn12540368.41
           format: csv
@@ -136,9 +151,7 @@ datasets:
         - name: druggability
           id: syn13363443.11
           format: csv
-        - name: genes_biodomains
-          id: syn44151254.1
-          format: csv
+        - <<: *genes_biodomains_files
         - name: tep_adi_info
           id: syn51942280.2
           format: csv
@@ -163,14 +176,14 @@ datasets:
         - syn25953363.6
         - syn12514826.4
         - syn12514912.3
-        - syn18689335.3
-        - syn35221005.2
-        - syn52579640.3
-        - syn27211942.1
+        - *agora_proteomics_provenance
+        - *agora_proteomics_tmt_provenance
+        - *agora_proteomics_srm_provenance
+        - *rna_diff_expr_data_provenance
         - syn12540368.41
         - syn27211878.2
         - syn13363443.11
-        - syn44151254.1
+        - *genes_biodomains_provenance
         - syn51942280.2
       agora_rename:
         symbol: hgnc_symbol
@@ -192,16 +205,12 @@ datasets:
       destination: *dest
 
   - overall_scores:
-      files:
-        - name: overall_scores
-          id: syn25575156.13
-          format: table
+      files: *overall_scores_files
       final_format: json
       custom_transformations: 1
       column_rename:
         genename: hgnc_gene_id
-      provenance:
-        - syn25575156.13
+      provenance: *overall_scores_provenance
       agora_rename:
         ensg: ensembl_gene_id
         hgnc_gene_id: hgnc_symbol
@@ -228,28 +237,20 @@ datasets:
       destination: *dest
 
   - rnaseq_differential_expression:
-      files:
-        - name: diff_exp_data
-          id: syn27211942.1
-          format: tsv
+      files: *rna_diff_expr_data_files
       final_format: json
       custom_transformations: 1
-      provenance:
-        - syn27211942.1
+      provenance: *rna_diff_expr_data_provenance
       destination: *dest
 
   - distribution_data:
-      files:
-        - name: overall_scores
-          id: syn25575156.13
-          format: table
+      files: *overall_scores_files
       final_format: json
       custom_transformations:
         overall_max_score: 5
         genetics_max_score: 3
         omics_max_score: 2
-      provenance:
-        - syn25575156.13
+      provenance: *overall_scores_provenance
       column_rename:
         overall: target_risk_score
         geneticsscore: genetics_score
@@ -257,31 +258,21 @@ datasets:
       destination: *dest
 
   - rna_distribution_data:
-      files:
-        - name: diff_exp_data
-          id: syn27211942.1
-          format: tsv
+      files: *rna_diff_expr_data_files
       final_format: json
       custom_transformations: 1
-      provenance:
-        - syn27211942.1
+      provenance: *rna_diff_expr_data_provenance
       destination: *dest
 
   - proteomics_distribution_data:
       files:
-        - name: proteomics
-          id: syn18689335.3
-          format: csv
-        - name: proteomics_tmt
-          id: syn35221005.2
-          format: csv
-        - name: proteomics_srm
-          id: syn52579640.3
-          format: csv
+        - <<: *agora_proteomics_files
+        - <<: *agora_proteomics_tmt_files
+        - <<: *agora_proteomics_srm_files
       final_format: json
       custom_transformations: 1
       provenance:
-        - syn18689335.3
-        - syn35221005.2
-        - syn52579640.3
+        - *agora_proteomics_provenance
+        - *agora_proteomics_tmt_provenance
+        - *agora_proteomics_srm_provenance
       destination: *dest
