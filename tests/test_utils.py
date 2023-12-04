@@ -57,24 +57,12 @@ def test_get_config_with_scanner_error():
 
 def test_get_config_with_no_config_path():
     config = utils._get_config(config_path=None)
-    assert list(config)[0] == {"destination": "syn12177492"}
+    assert config["destination"] == "syn12177492"
 
 
 def test_get_config_with_config_path():
     config = utils._get_config(config_path="./test_config.yaml")
-    assert list(config)[0] == {"destination": "syn17015333"}
-
-
-def test_find_config_by_name_where_name_in_config():
-    config = [{"a": "b"}, {"c", "d"}]
-    returned_object = utils._find_config_by_name(config=config, name="a")
-    assert returned_object is not None
-
-
-def test_find_config_by_name_where_name_not_in_config():
-    config = [{"a": "b"}, {"c": "d"}]
-    returned_object = utils._find_config_by_name(config=config, name="z")
-    assert returned_object is None
+    assert config["destination"] == "syn17015333"
 
 
 def test_standardize_column_names():

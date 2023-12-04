@@ -173,10 +173,10 @@ class TestProcessAllFiles:
         self.patch_get_config = patch.object(
             utils,
             "_get_config",
-            return_value=[
-                {"destination": "destination"},
-                {"datasets": [{"a": {"b": "c"}}, {"d": {"e": "f"}}, {"g": {"h": "i"}}]},
-            ],
+            return_value={
+                "destination": "destination",
+                "datasets": [{"a": {"b": "c"}}, {"d": {"e": "f"}}, {"g": {"h": "i"}}],
+            },
         ).start()
         self.patch_create_temp_location = patch.object(
             load, "create_temp_location", return_value=None
@@ -203,7 +203,7 @@ class TestProcessAllFiles:
 
     def test_process_all_files_no_config_path(self, syn: Any):
         process.process_all_files(syn=syn, config_path=None)
-        self.patch_get_config.assert_called_once_with()
+        self.patch_get_config.assert_called_once_with(config_path=None)
 
     def test_process_all_files_process_dataset_fails(self, syn: Any):
         with pytest.raises(ADTDataProcessingError):

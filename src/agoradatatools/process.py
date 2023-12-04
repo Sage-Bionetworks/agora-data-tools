@@ -174,15 +174,12 @@ def process_all_files(
         config_path (str, optional): path to configuration file. Defaults to None.
     """
 
-    if config_path:
-        config = utils._get_config(config_path=config_path)
-    else:
-        config = utils._get_config()
+    config = utils._get_config(config_path=config_path)
 
-    datasets = utils._find_config_by_name(config, "datasets")
+    datasets = config["datasets"]
 
     # create staging location
-    staging_path = utils._find_config_by_name(config, "staging_path")
+    staging_path = config.get("staging_path", None)
     if staging_path is None:
         staging_path = "./staging"
 
@@ -198,7 +195,7 @@ def process_all_files(
                     f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
                 )
 
-    destination = utils._find_config_by_name(config, "destination")
+    destination = config["destination"]
 
     if not error_list:
         # create manifest if there are no errors
