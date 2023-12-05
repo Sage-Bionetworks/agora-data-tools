@@ -130,10 +130,10 @@ datasets:
   - gene_info:
       files:
         - name: gene_metadata
-          id: syn25953363.6
+          id: syn25953363.7
           format: feather
         - name: igap
-          id: syn12514826.4
+          id: syn12514826.5
           format: csv
         - name: eqtl
           id: syn12514912.3
@@ -173,8 +173,8 @@ datasets:
         possible_replacement: ensembl_possible_replacements
         permalink: ensembl_permalink
       provenance:
-        - syn25953363.6
-        - syn12514826.4
+        - syn25953363.7
+        - syn12514826.5
         - syn12514912.3
         - *agora_proteomics_provenance
         - *agora_proteomics_tmt_provenance
