@@ -40,7 +40,7 @@ class ColumnValuesListOfDictWithExpectedValues(ColumnMapMetricProvider):
 
     @staticmethod
     def _check_list_of_dict_has_expected_values(
-        cell: Any, list_dict_values: dict[str, list]
+        cell: Any, list_dict_values: dict
     ) -> bool:
         """Check if a cell is a list, and if it has the expected length.
 
