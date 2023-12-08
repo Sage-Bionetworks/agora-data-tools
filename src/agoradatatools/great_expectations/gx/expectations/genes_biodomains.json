@@ -60,7 +60,7 @@
       "kwargs": {
         "column": "gene_biodomains",
         "list_length_range": [
-          0,
+          1,
           19
         ]
       },
