@@ -62,6 +62,7 @@ datasets:
         ensembl_id: ensembl_gene_id
         goterm_name: go_terms
       destination: *dest
+      gx_folder: syn53127956
 
   - neuropath_corr:
       files:

@@ -1,0 +1,113 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "genes_biodomains",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "ensembl_gene_id",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "ensembl_gene_id"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_value_lengths_to_equal",
+      "kwargs": {
+        "column": "ensembl_gene_id",
+        "value": 15
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "ensembl_gene_id",
+        "regex": "^ENSG\\d{11}$"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "ensembl_gene_id"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "gene_biodomains",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "gene_biodomains"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "gene_biodomains",
+        "list_length_range": [
+          1,
+          19
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "gene_biodomains",
+        "member_type": "dict"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_of_dict_with_expected_values",
+      "kwargs": {
+        "column": "gene_biodomains",
+        "list_dict_values": {
+          "key": "biodomain",
+          "values": [
+            "Apoptosis",
+            "Vasculature",
+            "Lipid Metabolism",
+            "Proteostasis",
+            "Immune Response",
+            "Autophagy",
+            "Mitochondrial Metabolism",
+            "Structural Stabilization",
+            "Synapse",
+            "Endolysosome",
+            "Metal Binding and Homeostasis",
+            "Oxidative Stress",
+            "Epigenetic",
+            "APP Metabolism",
+            "Cell Cycle",
+            "DNA Repair",
+            "RNA Spliceosome",
+            "Tau Homeostasis",
+            "Myelination"
+          ]
+        }
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}
