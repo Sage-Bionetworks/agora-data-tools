@@ -110,7 +110,7 @@ datasets:
   - target_exp_validation_harmonized:
       files:
         - name: target_exp_validation_harmonized
-          id: syn24184512.7
+          id: syn24184512.8
           format: csv
       final_format: json
       provenance:
@@ -144,7 +144,7 @@ datasets:
         - <<: *agora_proteomics_srm_files
         - <<: *rna_diff_expr_data_files
         - name: target_list
-          id: syn12540368.42
+          id: syn12540368.43
           format: csv
         - name: median_expression
           id: syn27211878.2
