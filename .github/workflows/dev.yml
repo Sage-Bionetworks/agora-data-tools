@@ -24,6 +24,7 @@ jobs:
       - name: Run static analysis and format checkers
         run: pre-commit run --all-files --show-diff-on-failure
   test:
+    needs: [pre-commit]
     runs-on: ubuntu-latest
     strategy:
       matrix:
