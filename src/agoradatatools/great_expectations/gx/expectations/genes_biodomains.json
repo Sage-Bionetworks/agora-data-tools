@@ -41,6 +41,14 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "gene_biodomains",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "gene_biodomains"
@@ -52,7 +60,7 @@
       "kwargs": {
         "column": "gene_biodomains",
         "json_schema": {
-          "$id": "http://example.com/example.json",
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/genes_biodomains/gene_biodomains_schema.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "default": [],
           "items": {
@@ -81,7 +89,6 @@
                   "Tau Homeostasis",
                   "Myelination"
                 ],
-                "title": "The biodomain Schema",
                 "type": "string"
               },
               "go_terms": {
@@ -92,22 +99,18 @@
                   "minItems": 1,
                   "type": "string"
                 },
-                "title": "The go_terms Schema",
                 "type": "array"
               },
               "n_biodomain_terms": {
                 "default": 0,
-                "title": "The n_biodomain_terms Schema",
                 "type": "integer"
               },
               "n_gene_biodomain_terms": {
                 "default": 0,
-                "title": "The n_gene_biodomain_terms Schema",
                 "type": "integer"
               },
               "pct_linking_terms": {
                 "default": 0.0,
-                "title": "The pct_linking_terms Schema",
                 "type": "number"
               }
             },
@@ -118,10 +121,9 @@
               "n_gene_biodomain_terms",
               "pct_linking_terms"
             ],
-            "title": "A Schema",
             "type": "object"
           },
-          "title": "Root Schema",
+          "title": "Gene Biodomains",
           "type": "array"
         }
       },
