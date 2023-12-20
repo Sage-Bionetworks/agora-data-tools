@@ -112,11 +112,11 @@ datasets:
   - target_exp_validation_harmonized:
       files:
         - name: target_exp_validation_harmonized
-          id: syn24184512.6
+          id: syn24184512.8
           format: csv
       final_format: json
       provenance:
-        - syn24184512.6
+        - syn24184512.8
       destination: *dest
 
   - metabolomics:
@@ -146,7 +146,7 @@ datasets:
         - <<: *agora_proteomics_srm_files
         - <<: *rna_diff_expr_data_files
         - name: target_list
-          id: syn12540368.41
+          id: syn12540368.47
           format: csv
         - name: median_expression
           id: syn27211878.2
@@ -183,7 +183,7 @@ datasets:
         - *agora_proteomics_tmt_provenance
         - *agora_proteomics_srm_provenance
         - *rna_diff_expr_data_provenance
-        - syn12540368.41
+        - syn12540368.47
         - syn27211878.2
         - syn13363443.11
         - *genes_biodomains_provenance
@@ -195,16 +195,16 @@ datasets:
   - team_info:
       files:
         - name: team_info
-          id: syn12615624.16
+          id: syn12615624.18
           format: csv
         - name: team_member_info
-          id: syn12615633.16
+          id: syn12615633.18
           format: csv
       final_format: json
       custom_transformations: 1
       provenance:
-        - syn12615624.16
-        - syn12615633.16
+        - syn12615624.18
+        - syn12615633.18
       destination: *dest
 
   - overall_scores:
