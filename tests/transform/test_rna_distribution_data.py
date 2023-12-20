@@ -33,7 +33,7 @@ class TestTransformRnaDistributionData:
         ),
     ]
     fail_test_ids = [
-        "Fail with bad data type", 
+        "Fail with bad data type",
         "Fail with too many missing values",
     ]
 

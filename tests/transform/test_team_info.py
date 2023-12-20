@@ -13,8 +13,8 @@ class TestTransformTeamInfo:
             "team_info_good_test_output.json",
         ),
         # For the following 3 cases, we do NOT expect to ever have missing data
-        # in any column except for "url", because this data is hand-curated. 
-        # We are testing this scenario anyway, just in case. 
+        # in any column except for "url", because this data is hand-curated.
+        # We are testing this scenario anyway, just in case.
         (  # Pass with missing values in team_info file
             "team_info_missing_input.csv",
             "team_member_info_good_input.csv",
