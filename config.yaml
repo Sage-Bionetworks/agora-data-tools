@@ -63,6 +63,8 @@ datasets:
         goterm_name: go_terms
       destination: *dest
       gx_folder: syn53127958
+      gx_nested_columns:
+        - gene_biodomains
 
   - neuropath_corr:
       files:
