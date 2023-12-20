@@ -1,7 +1,5 @@
 import json
 import os
-import sys
-from io import StringIO
 from unittest import mock
 from unittest.mock import ANY, patch
 
