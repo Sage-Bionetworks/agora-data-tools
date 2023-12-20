@@ -14,6 +14,13 @@ on:
 
 jobs:
   # test job includes unit tests and coverage
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v4
+        with: {python-version: "3.9"}
+      - name: Run static analysis and format checkers
+        run: pipx run pre-commit run --all-files --show-diff-on-failure
   test:
     runs-on: ubuntu-latest
     strategy:
