@@ -124,6 +124,9 @@ def process_dataset(
             dataset_path=json_path,
             dataset_name=dataset_name,
             upload_folder=dataset_obj[dataset_name]["gx_folder"],
+            nested_columns=dataset_obj[dataset_name]["gx_nested_columns"]
+            if "gx_nested_columns" in dataset_obj[dataset_name].keys()
+            else [],
         )
         gx_runner.run()
 
