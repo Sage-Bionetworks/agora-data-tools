@@ -22,7 +22,7 @@ jobs:
       - name: Install pre-commit
         run: pip install pre-commit
       - name: Run static analysis and format checkers
-        run: pipx pre-commit run --all-files --show-diff-on-failure
+        run: pre-commit run --all-files --show-diff-on-failure
   test:
     runs-on: ubuntu-latest
     strategy:
