@@ -41,14 +41,6 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "gene_biodomains",
-        "type_": "list"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "gene_biodomains"
@@ -56,51 +48,81 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "gene_biodomains",
-        "list_length_range": [
-          1,
-          19
-        ]
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_have_list_members_of_type",
-      "kwargs": {
-        "column": "gene_biodomains",
-        "member_type": "dict"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_have_list_of_dict_with_expected_values",
-      "kwargs": {
-        "column": "gene_biodomains",
-        "list_dict_values": {
-          "key": "biodomain",
-          "values": [
-            "Apoptosis",
-            "Vasculature",
-            "Lipid Metabolism",
-            "Proteostasis",
-            "Immune Response",
-            "Autophagy",
-            "Mitochondrial Metabolism",
-            "Structural Stabilization",
-            "Synapse",
-            "Endolysosome",
-            "Metal Binding and Homeostasis",
-            "Oxidative Stress",
-            "Epigenetic",
-            "APP Metabolism",
-            "Cell Cycle",
-            "DNA Repair",
-            "RNA Spliceosome",
-            "Tau Homeostasis",
-            "Myelination"
-          ]
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": [],
+          "items": {
+            "default": {},
+            "properties": {
+              "biodomain": {
+                "default": "",
+                "enum": [
+                  "Apoptosis",
+                  "Vasculature",
+                  "Lipid Metabolism",
+                  "Proteostasis",
+                  "Immune Response",
+                  "Autophagy",
+                  "Mitochondrial Metabolism",
+                  "Structural Stabilization",
+                  "Synapse",
+                  "Endolysosome",
+                  "Metal Binding and Homeostasis",
+                  "Oxidative Stress",
+                  "Epigenetic",
+                  "APP Metabolism",
+                  "Cell Cycle",
+                  "DNA Repair",
+                  "RNA Spliceosome",
+                  "Tau Homeostasis",
+                  "Myelination"
+                ],
+                "title": "The biodomain Schema",
+                "type": "string"
+              },
+              "go_terms": {
+                "default": [],
+                "items": {
+                  "UniqueItems": true,
+                  "maxItems": 2,
+                  "minItems": 1,
+                  "type": "string"
+                },
+                "title": "The go_terms Schema",
+                "type": "array"
+              },
+              "n_biodomain_terms": {
+                "default": 0,
+                "title": "The n_biodomain_terms Schema",
+                "type": "integer"
+              },
+              "n_gene_biodomain_terms": {
+                "default": 0,
+                "title": "The n_gene_biodomain_terms Schema",
+                "type": "integer"
+              },
+              "pct_linking_terms": {
+                "default": 0.0,
+                "title": "The pct_linking_terms Schema",
+                "type": "number"
+              }
+            },
+            "required": [
+              "biodomain",
+              "go_terms",
+              "n_biodomain_terms",
+              "n_gene_biodomain_terms",
+              "pct_linking_terms"
+            ],
+            "title": "A Schema",
+            "type": "object"
+          },
+          "title": "Root Schema",
+          "type": "array"
         }
       },
       "meta": {}
