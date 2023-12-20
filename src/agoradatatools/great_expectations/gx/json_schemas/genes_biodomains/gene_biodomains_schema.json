@@ -1,0 +1,67 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/genes_biodomains/gene_biodomains_schema.json",
+    "type": "array",
+    "default": [],
+    "title": "Gene Biodomains",
+    "items": {
+        "type": "object",
+        "default": {},
+        "required": [
+            "biodomain",
+            "go_terms",
+            "n_biodomain_terms",
+            "n_gene_biodomain_terms",
+            "pct_linking_terms"
+        ],
+        "properties": {
+            "biodomain": {
+                "type": "string",
+                "default": "",
+                "enum": [
+                    "Apoptosis",
+                    "Vasculature",
+                    "Lipid Metabolism",
+                    "Proteostasis",
+                    "Immune Response",
+                    "Autophagy",
+                    "Mitochondrial Metabolism",
+                    "Structural Stabilization",
+                    "Synapse",
+                    "Endolysosome",
+                    "Metal Binding and Homeostasis",
+                    "Oxidative Stress",
+                    "Epigenetic",
+                    "APP Metabolism",
+                    "Cell Cycle",
+                    "DNA Repair",
+                    "RNA Spliceosome",
+                    "Tau Homeostasis",
+                    "Myelination"
+                ]
+            },
+            "go_terms": {
+                "type": "array",
+                "default": [],
+                "items": {
+                    "type": "string",
+                    "minItems": 1,
+                    "maxItems": 2,
+                    "UniqueItems": true
+                }
+            },
+            "n_biodomain_terms": {
+                "type": "integer",
+                "default": 0
+            },
+            "n_gene_biodomain_terms": {
+                "type": "integer",
+                "default": 0
+            },
+            "pct_linking_terms": {
+                "type": "number",
+                "default": 0.0
+            }
+        }
+    }
+}
