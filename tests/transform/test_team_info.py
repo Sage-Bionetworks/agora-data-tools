@@ -1,8 +1,10 @@
 import os
+
 import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform import team_info
+
 
 class TestTransformTeamInfo:
     data_files_path = "tests/test_assets/team_info"

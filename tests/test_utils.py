@@ -1,15 +1,13 @@
+import sys
+from io import StringIO
 from unittest import mock
 from unittest.mock import patch
 
-import pytest
-import synapseclient
-import sys
-import yaml
-
 import numpy as np
 import pandas as pd
-
-from io import StringIO
+import pytest
+import synapseclient
+import yaml
 
 from agoradatatools.etl import utils
 

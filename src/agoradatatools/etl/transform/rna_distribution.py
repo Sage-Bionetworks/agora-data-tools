@@ -1,5 +1,7 @@
 import numpy as np
+
 from agoradatatools.etl import transform, utils
+
 
 def transform_rna_distribution_data(datasets: dict):
     # "datasets" contains the unprocessed RNA-seq data, which needs to go

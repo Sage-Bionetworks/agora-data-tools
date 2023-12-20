@@ -1,8 +1,10 @@
-import unittest
-import numpy as np
 import json
+import unittest
+
+import numpy as np
 
 from agoradatatools.etl.load import NumpyEncoder
+
 
 class TestNumpyEncoder(unittest.TestCase):
     def setUp(self):

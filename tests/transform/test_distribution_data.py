@@ -1,6 +1,7 @@
-import os
-import pandas as pd
 import json
+import os
+
+import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform import distribution_data

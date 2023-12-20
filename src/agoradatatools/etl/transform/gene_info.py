@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from agoradatatools.etl.utils import nest_fields
 

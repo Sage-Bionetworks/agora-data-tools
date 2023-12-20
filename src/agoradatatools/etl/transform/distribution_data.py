@@ -1,5 +1,5 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -> dict:

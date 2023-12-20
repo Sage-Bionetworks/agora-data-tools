@@ -1,12 +1,13 @@
 import logging
+
 import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
 
-from agoradatatools.etl import extract, load, utils, transform
 from agoradatatools.errors import ADTDataProcessingError
-from agoradatatools.logs import log_time
+from agoradatatools.etl import extract, load, transform, utils
 from agoradatatools.gx import GreatExpectationsRunner
+from agoradatatools.logs import log_time
 
 logger = logging.getLogger(__name__)
 

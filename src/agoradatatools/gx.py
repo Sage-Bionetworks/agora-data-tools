@@ -2,10 +2,9 @@ import logging
 import os
 import shutil
 
-from synapseclient import Activity, File, Synapse
-
 import great_expectations as gx
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
+from synapseclient import Activity, File, Synapse
 
 logger = logging.getLogger(__name__)
 # Disable GX INFO logging
@@ -32,11 +31,11 @@ class GreatExpectationsRunner:
         from expectations.expect_column_values_to_have_list_length import (
             ExpectColumnValuesToHaveListLength,
         )
-        from expectations.expect_column_values_to_have_list_members import (
-            ExpectColumnValuesToHaveListMembers,
-        )
         from expectations.expect_column_values_to_have_list_length_in_range import (
             ExpectColumnValuesToHaveListLengthInRange,
+        )
+        from expectations.expect_column_values_to_have_list_members import (
+            ExpectColumnValuesToHaveListMembers,
         )
         from expectations.expect_column_values_to_have_list_members_of_type import (
             ExpectColumnValuesToHaveListMembersOfType,
