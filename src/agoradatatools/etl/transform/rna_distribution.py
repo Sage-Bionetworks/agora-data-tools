@@ -10,11 +10,12 @@ def transform_rna_distribution_data(datasets: dict):
     rna_df = rna_df[["tissue", "model", "logfc"]]
 
     rna_df = utils.calculate_distribution(
-        df=rna_df,
-        grouping=["tissue", "model"],
-        distribution_column="logfc")
+        df=rna_df, grouping=["tissue", "model"], distribution_column="logfc"
+    )
 
     # Columns must be in this order
-    rna_df = rna_df[["model", "tissue", "min", "max", "first_quartile", "median", "third_quartile"]]
+    rna_df = rna_df[
+        ["model", "tissue", "min", "max", "first_quartile", "median", "third_quartile"]
+    ]
 
     return rna_df

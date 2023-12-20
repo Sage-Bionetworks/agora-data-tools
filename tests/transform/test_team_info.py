@@ -31,13 +31,13 @@ class TestTransformTeamInfo:
             "team_info_missing_input.csv",
             "team_member_info_missing_input.csv",
             "team_info_missing_both_test_output.json",
-        )
+        ),
     ]
     pass_test_ids = [
         "Pass with good data",
         "Pass with missing values in team_info file",
         "Pass with missing values in team_member_info file",
-        "Pass with missing values in both input files"
+        "Pass with missing values in both input files",
     ]
     fail_test_data = [
         # No failure cases for this transform
@@ -47,13 +47,19 @@ class TestTransformTeamInfo:
     ]
 
     @pytest.mark.parametrize(
-        "team_info_file, team_member_file, expected_output_file", pass_test_data, ids=pass_test_ids
+        "team_info_file, team_member_file, expected_output_file",
+        pass_test_data,
+        ids=pass_test_ids,
     )
     def test_transform_team_info_should_pass(
         self, team_info_file, team_member_file, expected_output_file
     ):
-        team_info_df = pd.read_csv(os.path.join(self.data_files_path, "input", team_info_file))
-        team_member_df = pd.read_csv(os.path.join(self.data_files_path, "input", team_member_file))
+        team_info_df = pd.read_csv(
+            os.path.join(self.data_files_path, "input", team_info_file)
+        )
+        team_member_df = pd.read_csv(
+            os.path.join(self.data_files_path, "input", team_member_file)
+        )
         output_df = team_info.transform_team_info(
             datasets={"team_info": team_info_df, "team_member_info": team_member_df}
         )
@@ -61,7 +67,6 @@ class TestTransformTeamInfo:
             os.path.join(self.data_files_path, "output", expected_output_file),
         )
         pd.testing.assert_frame_equal(output_df, expected_df)
-
 
     """
     # Leaving code stub for failure case, in case we want to add this in the future

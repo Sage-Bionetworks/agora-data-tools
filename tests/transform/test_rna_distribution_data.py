@@ -52,7 +52,9 @@ class TestTransformRnaDistributionData:
         )
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    @pytest.mark.parametrize("input_file, error_type", fail_test_data, ids=fail_test_ids)
+    @pytest.mark.parametrize(
+        "input_file, error_type", fail_test_data, ids=fail_test_ids
+    )
     def test_transform_rna_distribution_data_should_fail(self, input_file, error_type):
         with pytest.raises(error_type):
             input_df = pd.read_csv(

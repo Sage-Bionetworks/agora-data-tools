@@ -37,7 +37,14 @@ def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -
     obj["distribution"][-1] -= 1
 
     discard, obj["bins"] = list(
-        pd.cut(distribution, bins=10, precision=3, include_lowest=True, right=True, retbins=True)
+        pd.cut(
+            distribution,
+            bins=10,
+            precision=3,
+            include_lowest=True,
+            right=True,
+            retbins=True,
+        )
     )
     obj["bins"] = np.around(obj["bins"].tolist()[1:], 2)
     base = [0, *obj["bins"][:-1]]
