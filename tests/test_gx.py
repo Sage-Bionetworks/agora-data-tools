@@ -25,14 +25,14 @@ class TestGreatExpectationsRunner:
             dataset_path="./tests/test_assets/gx/metabolomics.json",
             dataset_name="metabolomics",
             upload_folder="test_folder",
-            nested_columns=[],
+            nested_columns=None,
         )
         self.bad_runner = GreatExpectationsRunner(
             syn=syn,
             dataset_path="./tests/test_assets/gx/not_supported_dataset.json",
             dataset_name="not_supported_dataset",
             upload_folder="test_folder",
-            nested_columns=[],
+            nested_columns=None,
         )
 
     def test_that_an_initialized_runner_has_the_attributes_it_should(self, syn):
@@ -123,7 +123,32 @@ class TestGreatExpectationsRunner:
         result = self.good_runner.convert_nested_columns_to_json(df, [])
         pd.testing.assert_frame_equal(result, df)
 
-    def test_that_run_completes_successfully_when_check_if_expectation_suite_exists_is_true(
+    def test_that_run_completes_successfully_when_check_if_expectation_suite_exists_is_true_with_nested_columns(
+        self,
+    ):
+        with patch.object(
+            self.good_runner, "_check_if_expectation_suite_exists", return_value=True
+        ), patch.object(
+            pd, "read_json", return_value=pd.DataFrame()
+        ) as patch_read_json, patch.object(
+            self.good_runner,
+            "convert_nested_columns_to_json",
+            return_value=pd.DataFrame(),
+        ) as patch_convert_nested_columns_to_json, patch.object(
+            self.good_runner, "_get_results_path", return_value="test_path"
+        ) as patch_get_results_path, patch.object(
+            self.good_runner, "_upload_results_file_to_synapse", return_value=None
+        ) as patch_upload_results_file_to_synapse:
+            self.good_runner.nested_columns = ["a"]
+            self.good_runner.run()
+            patch_read_json.assert_called_once_with(
+                self.good_runner.dataset_path,
+            )
+            patch_convert_nested_columns_to_json.assert_called_once()
+            patch_get_results_path.assert_called_once()
+            patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
+
+    def test_that_run_completes_successfully_when_check_if_expectation_suite_exists_is_true_with_no_nested_columns(
         self,
     ):
         with patch.object(
@@ -143,7 +168,7 @@ class TestGreatExpectationsRunner:
             patch_read_json.assert_called_once_with(
                 self.good_runner.dataset_path,
             )
-            patch_convert_nested_columns_to_json.assert_called_once()
+            patch_convert_nested_columns_to_json.assert_not_called()
             patch_get_results_path.assert_called_once()
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
 
