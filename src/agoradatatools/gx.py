@@ -24,7 +24,7 @@ class GreatExpectationsRunner:
         dataset_path: str,
         dataset_name: str,
         upload_folder: str,
-        nested_columns: list = None,
+        nested_columns: list[str] = None,
     ):
         """Initialize the class"""
         self.syn = syn
