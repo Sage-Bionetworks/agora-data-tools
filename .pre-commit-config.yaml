@@ -23,7 +23,7 @@ repos:
     rev: v0.1.8
     hooks:
       - id: ruff
-        args: [--fix]
+        args: ["--fix", "--exclude", "src/agoradatatools/gx.py"]
 
   - repo: https://github.com/psf/black
     rev: 22.12.0
