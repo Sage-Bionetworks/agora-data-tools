@@ -24,7 +24,7 @@ class GreatExpectationsRunner:
         dataset_path: str,
         dataset_name: str,
         upload_folder: str,
-        nested_columns: list = [],
+        nested_columns: list = None,
     ):
         """Initialize the class"""
         self.syn = syn
@@ -124,9 +124,10 @@ class GreatExpectationsRunner:
         logger.info(f"Running data validation on {self.expectation_suite_name}")
 
         gx_df = pd.read_json(self.dataset_path)
-        gx_df = self.convert_nested_columns_to_json(
-            df=gx_df, nested_columns=self.nested_columns
-        )
+        if self.nested_columns:
+            gx_df = self.convert_nested_columns_to_json(
+                df=gx_df, nested_columns=self.nested_columns
+            )
 
         validator = self.context.sources.pandas_default.read_dataframe(gx_df)
         expectation_suite = self.context.get_expectation_suite(

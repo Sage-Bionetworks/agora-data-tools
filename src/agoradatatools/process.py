@@ -126,7 +126,7 @@ def process_dataset(
             upload_folder=dataset_obj[dataset_name]["gx_folder"],
             nested_columns=dataset_obj[dataset_name]["gx_nested_columns"]
             if "gx_nested_columns" in dataset_obj[dataset_name].keys()
-            else [],
+            else None,
         )
         gx_runner.run()
 
