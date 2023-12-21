@@ -1,5 +1,3 @@
-import numpy as np
-
 from agoradatatools.etl import transform, utils
 
 

@@ -28,21 +28,6 @@ class GreatExpectationsRunner:
         self.validations_path = os.path.join(
             self.gx_project_dir, "gx/uncommitted/data_docs/local_site/validations"
         )
-        from expectations.expect_column_values_to_have_list_length import (
-            ExpectColumnValuesToHaveListLength,
-        )
-        from expectations.expect_column_values_to_have_list_length_in_range import (
-            ExpectColumnValuesToHaveListLengthInRange,
-        )
-        from expectations.expect_column_values_to_have_list_members import (
-            ExpectColumnValuesToHaveListMembers,
-        )
-        from expectations.expect_column_values_to_have_list_members_of_type import (
-            ExpectColumnValuesToHaveListMembersOfType,
-        )
-        from expectations.expect_column_values_to_have_list_of_dict_with_expected_values import (
-            ExpectColumnValuesToHaveListOfDictWithExpectedValues,
-        )
 
     def _get_data_context_location(self) -> str:
         """Gets the path to the great_expectations directory"""
