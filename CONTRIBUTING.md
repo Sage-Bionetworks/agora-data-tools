@@ -85,10 +85,12 @@ This package uses [semantic versioning](https://semver.org/) for releasing new v
 
 ### Pre-Commit Hooks
 
-This repository uses a number of `pre-commit` hooks to enforce our standard formatting. Before committing changes, make sure to run the following:
+This repository uses a number of `pre-commit` hooks to enforce our formatting standards. Before committing changes, make sure to run the following (assuming development dependencies are already installed):
+
 ```
 pre-commit run --all-files
 ```
+
 Some needed changes will be done automatically by the pre-commit hooks. In other cases, you may need to make changes manually. Ensure that all `pre-commit`` hooks pass locally. Our GitHub Actions CI pipeline will run these hooks automatically and Pull Requests will not be able to be merged unless all hooks pass.
 
 ### Testing
