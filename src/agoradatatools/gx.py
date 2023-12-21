@@ -109,7 +109,7 @@ class GreatExpectationsRunner:
 
     @staticmethod
     def convert_nested_columns_to_json(
-        df: pd.DataFrame, nested_columns: list
+        df: pd.DataFrame, nested_columns: list[str]
     ) -> pd.DataFrame:
         """Converts nested columns in a DataFrame to JSON-parseable strings"""
         for column in nested_columns:
