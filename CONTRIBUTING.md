@@ -91,7 +91,7 @@ This repository uses a number of `pre-commit` hooks to enforce our formatting st
 pre-commit run --all-files
 ```
 
-Some needed changes will be done automatically by the pre-commit hooks. In other cases, you may need to make changes manually. Ensure that all `pre-commit`` hooks pass locally. Our GitHub Actions CI pipeline will run these hooks automatically and Pull Requests will not be able to be merged unless all hooks pass.
+Some needed changes will be done automatically by the pre-commit hooks. In other cases, you may need to make changes manually. Make any manual changes and rerun `pre-commit`. Ensure that all `pre-commit` hooks pass locally. Our GitHub Actions CI pipeline will run these hooks automatically and Pull Requests will not be able to be merged unless all hooks pass.
 
 ### Testing
 
