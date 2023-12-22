@@ -2,6 +2,7 @@ import logging
 import os
 import shutil
 import json
+import typing
 
 import pandas as pd
 
@@ -24,7 +25,7 @@ class GreatExpectationsRunner:
         dataset_path: str,
         dataset_name: str,
         upload_folder: str,
-        nested_columns: list = None,
+        nested_columns: typing.List[str] = None,
     ):
         """Initialize the class"""
         self.syn = syn
@@ -109,7 +110,7 @@ class GreatExpectationsRunner:
 
     @staticmethod
     def convert_nested_columns_to_json(
-        df: pd.DataFrame, nested_columns: list
+        df: pd.DataFrame, nested_columns: typing.List[str]
     ) -> pd.DataFrame:
         """Converts nested columns in a DataFrame to JSON-parseable strings"""
         for column in nested_columns:
