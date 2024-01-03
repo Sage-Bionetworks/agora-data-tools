@@ -1,8 +1,9 @@
+from typing import Union
+
+import numpy as np
+import pandas as pd
 import synapseclient
 import yaml
-import pandas as pd
-import numpy as np
-from typing import Union
 
 
 # TODO remove "_" - these utils functions are not only used internally
