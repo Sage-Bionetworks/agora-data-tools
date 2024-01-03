@@ -1,0 +1,69 @@
+exclude: "^data_analysis/|^tests/test_assets/"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: check-ast
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ["--fix=auto"] # replace 'auto' with 'lf' to enforce Linux/Mac line endings or 'crlf' for Windows
+
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.0.0
+    hooks:
+      - id: autoflake
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.8
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exclude", "src/agoradatatools/gx.py"]
+
+  - repo: https://github.com/psf/black
+    rev: 22.12.0
+    hooks:
+      - id: black
+        language_version: python3
+
+  # - repo: https://github.com/PyCQA/flake8
+  #   rev: 6.0.0
+  #   hooks:
+  #     - id: flake8
+  #       additional_dependencies: [flake8-bugbear, flake8-pyproject]
+
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: "v1.0.1"
+  #   hooks:
+  #     - id: mypy
+  #       additional_dependencies: [pydantic~=1.10]
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: "0.6.1"
+    hooks:
+      - id: nbstripout
+
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.5.0
+    hooks:
+      - id: interrogate
+        exclude: ^(setup.py|tests|data_analysis|gx_suite_definitions)
+        args: [--config=pyproject.toml]
+
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: "v2.7"
+    hooks:
+      - id: vulture
+        args:
+          [
+            "--min-confidence",
+            "70",
+            "src/agoradatatools",
+            "--exclude",
+            "src/agoradatatools/gx.py",
+          ]

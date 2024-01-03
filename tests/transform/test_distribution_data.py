@@ -1,6 +1,7 @@
-import os
-import pandas as pd
 import json
+import os
+
+import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform import distribution_data
@@ -83,8 +84,8 @@ class TestTransformDistributionData:
             omics_max_score=param_set["omics_max_score"],
         )
 
-        # Writing to JSON changes the "bins" entry in this dict from tuples to lists, so 
-        # output_dict and expected_dict would not be equal since expected_dict is read from JSON. 
+        # Writing to JSON changes the "bins" entry in this dict from tuples to lists, so
+        # output_dict and expected_dict would not be equal since expected_dict is read from JSON.
         # We solve this by turning output_dict into a JSON string and reading back into a dict.
         output_dict = json.loads(json.dumps(output_dict))
 

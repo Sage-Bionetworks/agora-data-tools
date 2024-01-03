@@ -14,7 +14,7 @@ Required packages (will automatically be installed if necessary):
 
 ```{r}
 if (!require("synapser", quietly = TRUE)) {
-  install.packages("synapser", repos = c("http://ran.synapse.org", 
+  install.packages("synapser", repos = c("http://ran.synapse.org",
                                          "http://cran.fhcrc.org"))
 }
 
@@ -63,7 +63,7 @@ synLogin()
 data_sources <- read.csv(data_sources_file)
 
 files <- lapply(1:nrow(data_sources), function(row) {
-  syn_file <- synGet(entity = data_sources$id[row], 
+  syn_file <- synGet(entity = data_sources$id[row],
                      version = data_sources$version[row],
                      downloadLocation = input_dir)
   return(syn_file$path)
@@ -88,8 +88,8 @@ print(length(ens))
 ```{r}
 mart <- useMart(biomart = "ensembl", dataset = "mmusculus_gene_ensembl")
 
-genes <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "external_synonym"), 
-               filters = "ensembl_gene_id", 
+genes <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "external_synonym"),
+               filters = "ensembl_gene_id",
                values = ens,
                mart = mart)
 
@@ -102,7 +102,7 @@ print(head(genes))
 ```{r}
 genes_df <- genes %>% group_by(ensembl_gene_id, external_gene_name) %>%
               summarise(alias = list(unique(external_synonym))) %>%
-              rename(gene_symbol = external_gene_name) %>% 
+              rename(gene_symbol = external_gene_name) %>%
               arrange(ensembl_gene_id)
 
 output_dir <- file.path("..", "output")
@@ -115,10 +115,10 @@ print(head(genes_df))
 ## Upload JSON file to Synapse
 
 ```{r}
-syn_file <- File(file.path(output_dir, "mouse_gene_metadata.json"), 
+syn_file <- File(file.path(output_dir, "mouse_gene_metadata.json"),
                  description = "Ensembl IDs, gene symbols, and alias symbols for each gene used in the Model AD Explorer.",
                  parent = "syn51498054")
-res <- synStore(syn_file, forceVersion = FALSE, 
+res <- synStore(syn_file, forceVersion = FALSE,
                 used = paste(data_sources$id, data_sources$version, sep = "."),
                 executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-8_Create_ENSMUSG_Reference.rmd")
 

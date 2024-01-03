@@ -1,8 +1,10 @@
-import unittest
-import numpy as np
 import json
+import unittest
+
+import numpy as np
 
 from agoradatatools.etl.load import NumpyEncoder
+
 
 class TestNumpyEncoder(unittest.TestCase):
     def setUp(self):
@@ -21,16 +23,16 @@ class TestNumpyEncoder(unittest.TestCase):
         self.assertEqual(result, 0.00000003)
 
     def test_array(self):
-        result = self.encoder.default(np.array([1,2,3]))
-        self.assertEqual(result, [1,2,3])
+        result = self.encoder.default(np.array([1, 2, 3]))
+        self.assertEqual(result, [1, 2, 3])
 
     def test_in_json_dumps(self):
         test_data = {
-            'a': np.int64(1),
-            'b': np.float64(1.0),
-            'c': np.float64(0.00000003),
-            'd': np.array([1,2,3]),
-            'e': str(1), #test handling of type handled by json.JSONEncoder
+            "a": np.int64(1),
+            "b": np.float64(1.0),
+            "c": np.float64(0.00000003),
+            "d": np.array([1, 2, 3]),
+            "e": str(1),  # test handling of type handled by json.JSONEncoder
         }
         expected = '{"a": 1, "b": 1.0, "c": 3e-08, "d": [1, 2, 3], "e": "1"}'
         result = json.dumps(test_data, cls=NumpyEncoder)

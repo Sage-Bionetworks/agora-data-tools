@@ -1,9 +1,9 @@
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
-from typing import Any
 
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError

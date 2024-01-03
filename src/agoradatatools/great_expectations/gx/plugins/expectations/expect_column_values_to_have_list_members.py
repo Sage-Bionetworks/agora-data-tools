@@ -1,6 +1,6 @@
-import pandas as pd
-from typing import Optional, Any
+from typing import Any, Optional
 
+import pandas as pd
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
 from great_expectations.execution_engine import PandasExecutionEngine
 from great_expectations.expectations.expectation import ColumnMapExpectation

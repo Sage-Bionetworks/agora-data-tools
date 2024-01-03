@@ -83,6 +83,16 @@ This package uses [semantic versioning](https://semver.org/) for releasing new v
 
 <!-- This package uses [semantic versioning](https://semver.org/) for releasing new versions. The version should be updated on the `dev` branch as changes are reviewed and merged in by a code maintainer. The version for the package is maintained in the [agoradatatools/__init__.py](agoradatatools/__init__.py) file.  A github release should also occur every time `dev` is pushed into `main` and it should match the version for the package. -->
 
+### Pre-Commit Hooks
+
+This repository uses a number of `pre-commit` hooks to enforce our formatting standards. Before committing changes, make sure to run the following (assuming development dependencies are already installed):
+
+```
+pre-commit run --all-files
+```
+
+Some needed changes will be done automatically by the pre-commit hooks. In other cases, you may need to make changes manually. Make any manual changes and rerun `pre-commit`. Ensure that all `pre-commit` hooks pass locally. Our GitHub Actions CI pipeline will run these hooks automatically and Pull Requests will not be able to be merged unless all hooks pass.
+
 ### Testing
 
 #### Running tests

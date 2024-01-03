@@ -2,10 +2,9 @@ import logging
 import os
 import shutil
 
-from synapseclient import Activity, File, Synapse
-
 import great_expectations as gx
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
+from synapseclient import Activity, File, Synapse
 
 logger = logging.getLogger(__name__)
 # Disable GX INFO logging
