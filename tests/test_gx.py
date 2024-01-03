@@ -123,7 +123,7 @@ class TestGreatExpectationsRunner:
         result = self.good_runner.convert_nested_columns_to_json(df, [])
         pd.testing.assert_frame_equal(result, df)
 
-    def test_that_run_completes_successfully_when_check_if_expectation_suite_exists_is_true_with_nested_columns(
+    def test_that_run_completes_successfully_when_expectation_suite_exists_and_nested_columns(
         self,
     ):
         with patch.object(
@@ -148,7 +148,7 @@ class TestGreatExpectationsRunner:
             patch_get_results_path.assert_called_once()
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
 
-    def test_that_run_completes_successfully_when_check_if_expectation_suite_exists_is_true_with_no_nested_columns(
+    def test_that_run_completes_successfully_when_expectation_suite_exists_and_no_nested_columns(
         self,
     ):
         with patch.object(
