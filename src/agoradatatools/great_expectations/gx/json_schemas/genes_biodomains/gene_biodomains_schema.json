@@ -43,10 +43,10 @@
             "go_terms": {
                 "type": "array",
                 "default": [],
+                "minItems": 1,
+                "maxItems": 100,
                 "items": {
                     "type": "string",
-                    "minItems": 1,
-                    "maxItems": 2,
                     "UniqueItems": true
                 }
             },
@@ -60,7 +60,8 @@
             },
             "pct_linking_terms": {
                 "type": "number",
-                "default": 0.0
+                "minimum": 0,
+                "maximum": 100
             }
         }
     }

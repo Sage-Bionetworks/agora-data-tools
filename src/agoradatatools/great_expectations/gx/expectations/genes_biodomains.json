@@ -95,10 +95,10 @@
                 "default": [],
                 "items": {
                   "UniqueItems": true,
-                  "maxItems": 2,
-                  "minItems": 1,
                   "type": "string"
                 },
+                "maxItems": 100,
+                "minItems": 1,
                 "type": "array"
               },
               "n_biodomain_terms": {
@@ -110,7 +110,8 @@
                 "type": "integer"
               },
               "pct_linking_terms": {
-                "default": 0.0,
+                "maximum": 100,
+                "minimum": 0,
                 "type": "number"
               }
             },
