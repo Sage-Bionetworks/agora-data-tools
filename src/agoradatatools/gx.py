@@ -1,6 +1,10 @@
 import logging
 import os
 import shutil
+import json
+import typing
+
+import pandas as pd
 
 import great_expectations as gx
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
@@ -15,13 +19,19 @@ class GreatExpectationsRunner:
     """Class to run great expectations on a dataset and upload the HTML report to Synapse"""
 
     def __init__(
-        self, syn: Synapse, dataset_path: str, dataset_name: str, upload_folder: str
+        self,
+        syn: Synapse,
+        dataset_path: str,
+        dataset_name: str,
+        upload_folder: str,
+        nested_columns: typing.List[str] = None,
     ):
         """Initialize the class"""
         self.syn = syn
         self.dataset_path = dataset_path
         self.expectation_suite_name = dataset_name
         self.upload_folder = upload_folder
+        self.nested_columns = nested_columns
         self.gx_project_dir = self._get_data_context_location()
 
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
@@ -97,14 +107,29 @@ class GreatExpectationsRunner:
             ),
         )
 
+    @staticmethod
+    def convert_nested_columns_to_json(
+        df: pd.DataFrame, nested_columns: typing.List[str]
+    ) -> pd.DataFrame:
+        """Converts nested columns in a DataFrame to JSON-parseable strings"""
+        for column in nested_columns:
+            df[column] = df[column].apply(json.dumps)
+        return df
+
     def run(self) -> None:
         """Run great expectations on a dataset and upload the results to Synapse"""
         if not self._check_if_expectation_suite_exists():
             return
+
         logger.info(f"Running data validation on {self.expectation_suite_name}")
-        validator = self.context.sources.pandas_default.read_json(
-            self.dataset_path,
-        )
+
+        gx_df = pd.read_json(self.dataset_path)
+        if self.nested_columns:
+            gx_df = self.convert_nested_columns_to_json(
+                df=gx_df, nested_columns=self.nested_columns
+            )
+
+        validator = self.context.sources.pandas_default.read_dataframe(gx_df)
         expectation_suite = self.context.get_expectation_suite(
             self.expectation_suite_name
         )

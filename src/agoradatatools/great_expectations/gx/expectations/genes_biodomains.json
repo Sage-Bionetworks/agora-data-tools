@@ -44,7 +44,7 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "gene_biodomains",
-        "type_": "list"
+        "type_": "str"
       },
       "meta": {}
     },
@@ -56,51 +56,76 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "gene_biodomains",
-        "list_length_range": [
-          1,
-          19
-        ]
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_have_list_members_of_type",
-      "kwargs": {
-        "column": "gene_biodomains",
-        "member_type": "dict"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_have_list_of_dict_with_expected_values",
-      "kwargs": {
-        "column": "gene_biodomains",
-        "list_dict_values": {
-          "key": "biodomain",
-          "values": [
-            "Apoptosis",
-            "Vasculature",
-            "Lipid Metabolism",
-            "Proteostasis",
-            "Immune Response",
-            "Autophagy",
-            "Mitochondrial Metabolism",
-            "Structural Stabilization",
-            "Synapse",
-            "Endolysosome",
-            "Metal Binding and Homeostasis",
-            "Oxidative Stress",
-            "Epigenetic",
-            "APP Metabolism",
-            "Cell Cycle",
-            "DNA Repair",
-            "RNA Spliceosome",
-            "Tau Homeostasis",
-            "Myelination"
-          ]
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/genes_biodomains/gene_biodomains_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": [],
+          "items": {
+            "default": {},
+            "properties": {
+              "biodomain": {
+                "default": "",
+                "enum": [
+                  "Apoptosis",
+                  "Vasculature",
+                  "Lipid Metabolism",
+                  "Proteostasis",
+                  "Immune Response",
+                  "Autophagy",
+                  "Mitochondrial Metabolism",
+                  "Structural Stabilization",
+                  "Synapse",
+                  "Endolysosome",
+                  "Metal Binding and Homeostasis",
+                  "Oxidative Stress",
+                  "Epigenetic",
+                  "APP Metabolism",
+                  "Cell Cycle",
+                  "DNA Repair",
+                  "RNA Spliceosome",
+                  "Tau Homeostasis",
+                  "Myelination"
+                ],
+                "type": "string"
+              },
+              "go_terms": {
+                "default": [],
+                "items": {
+                  "UniqueItems": true,
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "type": "array"
+              },
+              "n_biodomain_terms": {
+                "default": 0,
+                "type": "integer"
+              },
+              "n_gene_biodomain_terms": {
+                "default": 0,
+                "type": "integer"
+              },
+              "pct_linking_terms": {
+                "maximum": 100,
+                "minimum": 0,
+                "type": "number"
+              }
+            },
+            "required": [
+              "biodomain",
+              "go_terms",
+              "n_biodomain_terms",
+              "n_gene_biodomain_terms",
+              "pct_linking_terms"
+            ],
+            "type": "object"
+          },
+          "title": "Gene Biodomains",
+          "type": "array"
         }
       },
       "meta": {}
