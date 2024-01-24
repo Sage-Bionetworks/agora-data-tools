@@ -21,8 +21,10 @@ def manual_query_biomart(attributes: list[str], filters: dict) -> pd.DataFrame:
                                the attributes list and rows contain results that match the filter
                                values.
     """
-    query = '<Query  virtualSchemaName = "default" formatter = "TSV" header = "1" uniqueRows = "0"' + \
-            'count = "" datasetConfigVersion = "0.6" >'
+    query = (
+        '<Query  virtualSchemaName = "default" formatter = "TSV" header = "1" uniqueRows = "0"'
+        + ' count = "" datasetConfigVersion = "0.6" >'
+    )
     query = query + '<Dataset name = "hsapiens_gene_ensembl" interface = "default" >'
 
     for name, value in filters.items():
@@ -37,7 +39,7 @@ def manual_query_biomart(attributes: list[str], filters: dict) -> pd.DataFrame:
     query = query + "</Query>"
 
     response = requests.get(
-        url="http://www.ensembl.org/biomart/martservice", params={"query": query}
+        url="https://www.ensembl.org/biomart/martservice", params={"query": query}
     )
 
     result = pd.read_csv(StringIO(response.text), sep="\t")
@@ -62,11 +64,11 @@ def filter_HASGs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
         df_filt (pd.DataFrame): a copy of the input data frame with rows corresponding to HASGs
                                 removed.
     """
-    regex = re.compile("^[0-9|X|Y|MT]")
+    regex = re.compile("^[0-9]|X|Y|MT")
     keep = df[chromosome_name_column].apply(
         # Keep rows if they have a numerical chromosome name, or have X, Y, or MT
         lambda row: re.match(regex, row) is not None
-        if type(row) == str
+        if isinstance(row, str)
         else True  # Always true for numbers
     )
 
