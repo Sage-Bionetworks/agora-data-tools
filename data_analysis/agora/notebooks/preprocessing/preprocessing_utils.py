@@ -11,8 +11,8 @@ def manual_query_biomart(attributes: list[str], filters: dict) -> pd.DataFrame:
     R in the notebook is cumbersome.
 
     Args:
-        attributes (list): a list of attributes that Biomart should return as columns. Common
-                           options are ['ensembl_gene_id', 'external_gene_name', 'chromosome_name']
+        attributes (list[str]): a list of attributes that Biomart should return as columns. Common
+                                options are ['ensembl_gene_id', 'external_gene_name', 'chromosome_name']
         filters (dict): a dict where the keys are the attribute to filter on, and the values are a
                         list of valid items. Example: {'external_gene_name': set(list_of_symbols)}
 
@@ -64,7 +64,7 @@ def filter_HASGs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
         df_filt (pd.DataFrame): a copy of the input data frame with rows corresponding to HASGs
                                 removed.
     """
-    regex = re.compile("^[0-9]|X|Y|MT")
+    regex = re.compile("^(\d|X|Y|MT)")
     keep = df[chromosome_name_column].apply(
         # Keep rows if they have a numerical chromosome name, or have X, Y, or MT
         lambda row: re.match(regex, row) is not None
