@@ -2,9 +2,12 @@ import pandas as pd
 import requests
 import re
 from io import StringIO
+from typing import Union
 
 
-def manual_query_biomart(attributes: list[str], filters: dict) -> pd.DataFrame:
+def manual_query_biomart(
+    attributes: list[str], filters: dict[Union[list, set]]
+) -> pd.DataFrame:
     """Performs a GET request to the Biomart web service and returns the response. There is no
     canonical Python library to query Biomart and no Python library at all to query on
     'external_gene_name', so this function is necessary for those cases where importing and using
@@ -13,8 +16,8 @@ def manual_query_biomart(attributes: list[str], filters: dict) -> pd.DataFrame:
     Args:
         attributes (list[str]): a list of attributes that Biomart should return as columns. Common
                                 options are ['ensembl_gene_id', 'external_gene_name', 'chromosome_name']
-        filters (dict): a dict where the keys are the attribute to filter on, and the values are a
-                        list of valid items. Example: {'external_gene_name': set(list_of_symbols)}
+        filters (dict[list,set]): a dict where the keys are the attribute to filter on, and the values are a
+                                list or set of valid items. Example: {'external_gene_name': set(list_of_symbols)}
 
     Returns:
         result (pd.DataFrame): Biomart's response in DataFrame format, where columns should match
@@ -46,7 +49,7 @@ def manual_query_biomart(attributes: list[str], filters: dict) -> pd.DataFrame:
     return result
 
 
-def filter_HASGs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
+def filter_hasgs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
     """Filters human alternative sequence genes (HASGs) from a data frame by using a regex to
     identify them for removal. Valid genes will either have a numerical chromosome name or have
     "X", "Y", or "MT" as the chromosome name. All other chromosome name formats correspond to
