@@ -161,6 +161,9 @@ class TestRenameColumns:
 
 
 class TestNestFields:
+    """Tests the nest_fields function using a dataframe that has multiple rows per group and
+    one that only has one row per group.
+    """
     df_multirow = pd.DataFrame(
         {
             "a": ["group_1", "group_1", "group_2", "group_2", "group_3", "group_3"],
