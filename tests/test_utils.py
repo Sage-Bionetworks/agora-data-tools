@@ -160,8 +160,8 @@ class TestRenameColumns:
         assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
 
 
-def test_nest_fields():
-    df = pd.DataFrame(
+class TestNestFields:
+    df_multirow = pd.DataFrame(
         {
             "a": ["group_1", "group_1", "group_2", "group_2", "group_3", "group_3"],
             "b": ["1", "1", "1", "1", "1", "1"],
@@ -169,16 +169,101 @@ def test_nest_fields():
             "d": ["1", "1", "1", "1", "1", "1"],
         }
     )
-    expected_column_e = [
-        [{"a": "group_1", "b": "1", "c": "1"}, {"a": "group_1", "b": "1", "c": "1"}],
-        [{"a": "group_2", "b": "1", "c": "1"}, {"a": "group_2", "b": "1", "c": "1"}],
-        [{"a": "group_3", "b": "1", "c": "1"}, {"a": "group_3", "b": "1", "c": "1"}],
-    ]
-
-    nested_df = utils.nest_fields(
-        df=df, grouping="a", new_column="e", drop_columns=["d"]
+    df_singlerow = pd.DataFrame(
+        {
+            "a": ["group_1", "group_2", "group_3"],
+            "b": ["1", "1", "1"],
+            "c": ["1", "1", "1"],
+            "d": ["1", "1", "1"],
+        }
     )
-    assert list(nested_df["e"]) == expected_column_e
+
+    def test_nest_fields_with_dropped_column(self):
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_multirow, grouping="a", new_column="e", drop_columns=["d"]
+        )
+        assert list(nested_df["e"]) == expected_column_e
+
+    def test_nest_fields_with_dropped_column_list(self):
+        expected_column_e = [
+            [
+                {"a": "group_1", "c": "1"},
+                {"a": "group_1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "c": "1"},
+                {"a": "group_2", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "c": "1"},
+                {"a": "group_3", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_multirow, grouping="a", new_column="e", drop_columns=["b", "d"]
+        )
+        assert list(nested_df["e"]) == expected_column_e
+
+    def test_nest_fields_no_drop_column(self):
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1", "d": "1"},
+                {"a": "group_1", "b": "1", "c": "1", "d": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1", "d": "1"},
+                {"a": "group_2", "b": "1", "c": "1", "d": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1", "d": "1"},
+                {"a": "group_3", "b": "1", "c": "1", "d": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(df=self.df_multirow, grouping="a", new_column="e")
+        assert list(nested_df["e"]) == expected_column_e
+
+    def test_nest_fields_multirow_ValueError(self):
+        with pytest.raises(ValueError, match="nested_field_is_list *"):
+            utils.nest_fields(
+                df=self.df_multirow,
+                grouping="a",
+                new_column="e",
+                drop_columns=["d"],
+                nested_field_is_list=False,
+            )
+
+    def test_nest_fields_singlerow_nested_list_false(self):
+        expected_column_e = [
+            {"a": "group_1", "b": "1", "c": "1"},
+            {"a": "group_2", "b": "1", "c": "1"},
+            {"a": "group_3", "b": "1", "c": "1"},
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_singlerow,
+            grouping="a",
+            new_column="e",
+            drop_columns=["d"],
+            nested_field_is_list=False,
+        )
+        assert list(nested_df["e"]) == expected_column_e
 
 
 class TestCalculateDistribution:
