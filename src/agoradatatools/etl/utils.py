@@ -119,7 +119,7 @@ def nest_fields(
     df: pd.DataFrame,
     grouping: str,
     new_column: str,
-    drop_columns: list[str] = [],
+    drop_columns: list = [],
     nested_field_is_list: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame into 2 columns:
