@@ -116,22 +116,37 @@ def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
 
 
 def nest_fields(
-    df: pd.DataFrame, grouping: str, new_column: str, drop_columns: list = []
+    df: pd.DataFrame,
+    grouping: str,
+    new_column: str,
+    drop_columns: list = [],
+    nested_field_is_list: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame into 2 columns:
     1. The grouping column
-    2. A column containing a nested dictionary with the data from the rest of the DataFrame
+    2. A column containing a nested dictionary with the data from the rest of the DataFrame. This works as follows:
+        The data frame is grouped by <grouping> (for example, by Ensembl ID). For all rows belonging to each group,
+        each row is turned into a dictionary where the keys are column names and values are the values in that row.
+        The dictionaries are then put into a list and the list becomes a single entry in this new data frame. If there
+        is only one dictionary for every grouping (rather than multiple possible rows per group), this function
+        provides the option to put the dict in this column instead of a list with the single dict in it. See
+        the nested_field_is_list arg.
 
     Args:
         df (pd.DataFrame): DataFrame to be collapsed
         grouping (str): The column that you want to group by
         new_column (str): the new column created to contain the nested dictionaries created
         drop_columns (list, optional): List of columns to leave out of the new nested dictionary. Defaults to [].
+        nested_field_is_list (bool, optional): if True (default), each nested field will be a list of dicts. This
+                        applies to data sets where there may be multiple rows to collapse, e.g. multiple biodomain
+                        rows for a single Ensembl ID. If False, each nested field will be a single dict. This applies
+                        to data sets where there is only one row to collapse, e.g. one row of Ensembl info for one
+                        Ensembl ID.
 
     Returns:
         pd.DataFrame: New 2 column DataFrame with group and nested dictionaries
     """
-    return (
+    nested = (
         df.groupby(grouping)
         .apply(
             lambda row: row.replace({np.nan: None})
@@ -141,6 +156,20 @@ def nest_fields(
         .reset_index()
         .rename(columns={0: new_column})
     )
+
+    if nested_field_is_list:
+        return nested
+
+    # nested_field_is_list == False
+    lengths = nested[new_column].apply(len)
+    if all(lengths == 1):
+        nested[new_column] = nested[new_column].apply(lambda row: row[0])
+        return nested
+    else:
+        raise ValueError(
+            "nested_field_is_list cannot be False when there are multiple rows to nest per "
+            + grouping
+        )
 
 
 def calculate_distribution(
