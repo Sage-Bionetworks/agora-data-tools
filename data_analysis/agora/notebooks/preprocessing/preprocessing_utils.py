@@ -53,14 +53,11 @@ def filter_hasgs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
     """Filters human alternative sequence genes (HASGs) from a data frame by using a regex to
     identify them for removal. Valid genes will either have a numerical chromosome name or have
     "X", "Y", or "MT" as the chromosome name. All other chromosome name formats correspond to
-    HASGs, pathches, and other genes that should be removed from the list.
+    HASGs, patches, and other genes that should be removed from the list.
 
     Args:
         df (pd.DataFrame): a data frame as returned from a Biomart query, that must have a column
-                           containing chromosome names. Biomart already returns chromosome names
-                           that fit the above regex pattern, but any manual creation of chromosome
-                           names should be formatted properly so the regex works before using this
-                           function.
+                           containing chromosome names.
         chromosome_name_column (str): the name of the column that contains chromosome names
 
     Returns:
