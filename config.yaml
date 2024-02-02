@@ -32,10 +32,10 @@ sources:
   - agora_proteomics_srm:
     agora_proteomics_srm_files: &agora_proteomics_srm_files
       - name: proteomics_srm
-        id: syn52579640.3
+        id: syn52579640.4
         format: csv
     agora_proteomics_srm_provenance: &agora_proteomics_srm_provenance
-      - syn52579640.3
+      - syn52579640.4
   - rna_diff_expr_data:
     rna_diff_expr_data_files: &rna_diff_expr_data_files
       - name: diff_exp_data
@@ -133,7 +133,7 @@ datasets:
   - gene_info:
       files:
         - name: gene_metadata
-          id: syn25953363.7
+          id: syn25953363.10
           format: feather
         - name: igap
           id: syn12514826.5
@@ -176,7 +176,7 @@ datasets:
         possible_replacement: ensembl_possible_replacements
         permalink: ensembl_permalink
       provenance:
-        - syn25953363.7
+        - syn25953363.10
         - syn12514826.5
         - syn12514912.3
         - *agora_proteomics_provenance
