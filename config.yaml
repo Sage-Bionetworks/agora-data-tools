@@ -281,3 +281,4 @@ datasets:
         - *agora_proteomics_tmt_provenance
         - *agora_proteomics_srm_provenance
       destination: *dest
+      gx_folder: syn53463345
