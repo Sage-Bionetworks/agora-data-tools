@@ -81,6 +81,7 @@ datasets:
         ensembl_gene_id: ensg
         hgnc_gene_id: gname
       destination: *dest
+      gx_folder: syn53461511
 
   - proteomics:
       files: *agora_proteomics_files
