@@ -18,40 +18,29 @@ class TestTransformGeneInfo:
         "protein_level_threshold": 1,
     }
 
+    core_files = {
+        "gene_metadata": "gene_metadata_good_input.feather",
+        "igap": "igap_good_input.csv",
+        "eqtl": "eqtl_good_input.csv",
+        "proteomics": "proteomics_good_input.csv",
+        "diff_exp_data": "diff_exp_data_good_input.csv",
+        "proteomics_tmt": "proteomics_tmt_good_input.csv",
+        "proteomics_srm": "proteomics_srm_good_input.csv",
+        "target_list": "target_list_good_input.csv",
+        "median_expression": "median_expression_good_input.csv",
+        "druggability": "druggability_good_input.csv",
+        "genes_biodomains": "genes_biodomains_good_input.csv",
+        "tep_adi_info": "tep_adi_info_good_input.csv",
+    }
+
     pass_test_data = [
         (  # Pass with good data on param set 1
-            {
-                "gene_metadata": "gene_metadata_good_input.feather",
-                "igap": "igap_good_input.csv",
-                "eqtl": "eqtl_good_input.csv",
-                "proteomics": "proteomics_good_input.csv",
-                "diff_exp_data": "diff_exp_data_good_input.csv",
-                "proteomics_tmt": "proteomics_tmt_good_input.csv",
-                "proteomics_srm": "proteomics_srm_good_input.csv",
-                "target_list": "target_list_good_input.csv",
-                "median_expression": "median_expression_good_input.csv",
-                "druggability": "druggability_good_input.csv",
-                "genes_biodomains": "genes_biodomains_good_input.csv",
-                "tep_adi_info": "tep_adi_info_good_input.csv",
-            },
+            core_files,
             "gene_info_good_output_1.json",
             param_set_1,
         ),
         (  # Pass with good data on param set 2
-            {
-                "gene_metadata": "gene_metadata_good_input.feather",
-                "igap": "igap_good_input.csv",
-                "eqtl": "eqtl_good_input.csv",
-                "proteomics": "proteomics_good_input.csv",
-                "diff_exp_data": "diff_exp_data_good_input.csv",
-                "proteomics_tmt": "proteomics_tmt_good_input.csv",
-                "proteomics_srm": "proteomics_srm_good_input.csv",
-                "target_list": "target_list_good_input.csv",
-                "median_expression": "median_expression_good_input.csv",
-                "druggability": "druggability_good_input.csv",
-                "genes_biodomains": "genes_biodomains_good_input.csv",
-                "tep_adi_info": "tep_adi_info_good_input.csv",
-            },
+            core_files,
             "gene_info_good_output_2.json",
             param_set_2,
         ),
@@ -61,14 +50,43 @@ class TestTransformGeneInfo:
         "Pass with good data on parameter set 2",
     ]
     fail_test_data = [
-        (  # Bad data type
-            "??",
+        (  # Bad data type in diff_exp_data
+            core_files,
+            {"diff_exp_data": "diff_exp_data_type_error.csv"},
             param_set_1,
-            ValueError,
+            TypeError,
+        ),
+        (  # Bad data type in proteomics
+            core_files,
+            {"proteomics": "proteomics_type_error.csv"},
+            param_set_1,
+            TypeError,
+        ),
+        (  # Bad data type in proteomics_tmt
+            core_files,
+            {"proteomics_tmt": "proteomics_tmt_type_error.csv"},
+            param_set_1,
+            TypeError,
+        ),
+        (  # Bad data type in proteomics_srm
+            core_files,
+            {"proteomics_srm": "proteomics_srm_type_error.csv"},
+            param_set_1,
+            TypeError,
+        ),
+        (  # Missing HGNC in tep_adi_info
+            core_files,
+            {"tep_adi_info": "tep_adi_info_type_error.csv"},
+            param_set_1,
+            TypeError,
         ),
     ]
     fail_test_ids = [
-        "Fail with bad data type in ?? column",
+        "Fail with bad data type in diff_exp_data's adj_p_val column",
+        "Fail with bad data type in proteomics's cor_pval column",
+        "Fail with bad data type in proteomics_tmt's cor_pval column",
+        "Fail with bad data type in proteomics_srm's cor_pval column",
+        "Fail with missing hgnc_symbol in tep_adi_info",
     ]
 
     def read_input_files_dict(self, input_files_dict):
@@ -114,13 +132,17 @@ class TestTransformGeneInfo:
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     @pytest.mark.parametrize(
-        "input_files_dict, param_set, error_type",
+        "input_files_dict, failure_case_files_dict, param_set, error_type",
         fail_test_data,
         ids=fail_test_ids,
     )
     def test_transform_gene_info_should_fail(
-        self, input_files_dict, param_set, error_type
+        self, input_files_dict, failure_case_files_dict, param_set, error_type
     ):
+        # Any files specified in 'failure_case_files_dict' will replace their default "good" files in input_files_dict
+        for key, value in failure_case_files_dict.items():
+            input_files_dict[key] = value
+
         with pytest.raises(error_type):
             datasets = self.read_input_files_dict(input_files_dict)
 
