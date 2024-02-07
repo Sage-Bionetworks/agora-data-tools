@@ -152,7 +152,7 @@
     ],
     "is_adi": false,
     "is_tep": false,
-    "resource_url": "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22DPM1%22%5D%7D%5D%7D",
+    "resource_url": null,
     "ensembl_info": {
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
@@ -811,7 +811,7 @@
     "biodomains": null,
     "is_adi": false,
     "is_tep": false,
-    "resource_url": "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22ABCD%22%5D%7D%5D%7D",
+    "resource_url": null,
     "ensembl_info": {
       "ensembl_release": "100",
       "ensembl_possible_replacements": [
