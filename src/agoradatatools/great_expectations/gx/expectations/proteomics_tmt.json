@@ -60,6 +60,13 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "hgnc_symbol"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "uniprotid",
@@ -86,6 +93,13 @@
     },
     {
       "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "uniprotid"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "uniprotid"
       },
