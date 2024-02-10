@@ -4,3 +4,4 @@ Proteostasis,Pr,Proteostasis [Pr],#c8b269,,endopeptidase activity,73.0,TNMD,ENSG
 Apoptosis,Ap,Apoptosis [Ap],,GO:0006915,apoptotic process,577.0,DPM1,ENSG00000000419
 Structural Stabilization,,,#ff9a9a,GO:0030863,cortical cytoskeleton,21.0,SCYL3,ENSG00000000457
 Synapse,Sy,Synapse [Sy],#329a33,GO:0034704,,,TNMD,ENSG00000000005
+,Sy,Synapse [Sy],#329a33,GO:0034704,,,TNMD,ENSG00000000005
