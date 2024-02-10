@@ -113,7 +113,7 @@ def transform_gene_info(
     tep_info["resource_url"] = tep_info.apply(
         lambda row: (
             resource_url_prefix + row["hgnc_symbol"] + resource_url_suffix
-            if row["is_adi"] == True or row["is_tep"] == True
+            if row["is_adi"] is True or row["is_tep"] is True
             else np.NaN
         ),
         axis=1,
