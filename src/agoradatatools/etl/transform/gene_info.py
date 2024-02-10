@@ -81,6 +81,7 @@ def transform_gene_info(
         drop_columns=["ensembl_gene_id"],
     )
 
+    biodomains = biodomains.dropna(subset=["biodomain", "ensembl_gene_id"])
     biodomains = (
         biodomains.groupby("ensembl_gene_id")["biodomain"]
         .apply(set)  # ensure unique biodomain names
@@ -92,6 +93,15 @@ def transform_gene_info(
     # sort biodomains list alphabetically
     biodomains["biodomains"] = biodomains["biodomains"].apply(sorted)
 
+    # Type-check the 'is_adi' and 'is_tep' columns of tep_info to make sure they are booleans and not strings.
+    # Explicitly make NaN is_adi and is_tep values "False" to avoid having to check for boolean and NaN in the
+    # check below.
+    tep_info = tep_info.fillna({"is_adi": False, "is_tep": False})
+    if tep_info["is_adi"].dtype != bool:
+        raise TypeError("wrong data type in 'is_adi' column")
+    if tep_info["is_tep"].dtype != bool:
+        raise TypeError("wrong data type in 'is_tep' column")
+
     # For genes with either is_adi or is_tep set to True, create a resource URL that opens
     # the portal page to the specific gene. This must be done using the hgnc_symbol from the
     # tep_info file and not the symbol in gene_info, because there are some mismatches
@@ -99,10 +109,13 @@ def transform_gene_info(
     # resource_url should be NA if both is_adi and is_tep are false.
     resource_url_prefix = "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
     resource_url_suffix = "%22%5D%7D%5D%7D"
+
     tep_info["resource_url"] = tep_info.apply(
-        lambda row: resource_url_prefix + row["hgnc_symbol"] + resource_url_suffix
-        if row["is_adi"]==True or row["is_tep"]==True
-        else np.NaN,
+        lambda row: (
+            resource_url_prefix + row["hgnc_symbol"] + resource_url_suffix
+            if row["is_adi"] == True or row["is_tep"] == True
+            else np.NaN
+        ),
         axis=1,
     )
 
@@ -161,11 +174,21 @@ def transform_gene_info(
 
     # fillna doesn't work for creating an empty array, need this function instead
     gene_info["alias"] = gene_info.apply(
-        lambda row: row["alias"]
-        if isinstance(row["alias"], np.ndarray)
-        else np.ndarray(0, dtype=object),
+        lambda row: (
+            row["alias"]
+            if isinstance(row["alias"], np.ndarray)
+            else np.ndarray(0, dtype=object)
+        ),
         axis=1,
     )
+
+    # fillna doesn't work for creating dictionaries, need this function instead
+    if gene_info["ensembl_info"].hasnans:
+        gene_info.loc[gene_info["ensembl_info"].isnull(), "ensembl_info"] = {
+            "ensembl_release": np.NaN,
+            "ensembl_possible_replacements": [],
+            "ensembl_permalink": np.NaN,
+        }
 
     gene_info["rna_brain_change_studied"] = gene_info["adj_p_val"] != -1
     gene_info["is_any_rna_changed_in_ad_brain"] = (
@@ -179,9 +202,11 @@ def transform_gene_info(
 
     # create 'total_nominations' field
     gene_info["total_nominations"] = gene_info.apply(
-        lambda row: len(row["target_nominations"])
-        if isinstance(row["target_nominations"], list)
-        else np.NaN,
+        lambda row: (
+            len(row["target_nominations"])
+            if isinstance(row["target_nominations"], list)
+            else np.NaN
+        ),
         axis=1,
     )
 

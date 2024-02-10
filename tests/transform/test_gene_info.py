@@ -55,30 +55,49 @@ class TestTransformGeneInfo:
             {"diff_exp_data": "diff_exp_data_type_error.csv"},
             param_set_1,
             TypeError,
+            "'<=' not supported",
         ),
         (  # Bad data type in proteomics
             core_files,
             {"proteomics": "proteomics_type_error.csv"},
             param_set_1,
             TypeError,
+            "'<=' not supported",
         ),
         (  # Bad data type in proteomics_tmt
             core_files,
             {"proteomics_tmt": "proteomics_tmt_type_error.csv"},
             param_set_1,
             TypeError,
+            "'<=' not supported",
         ),
         (  # Bad data type in proteomics_srm
             core_files,
             {"proteomics_srm": "proteomics_srm_type_error.csv"},
             param_set_1,
             TypeError,
+            "'<=' not supported",
         ),
         (  # Missing HGNC in tep_adi_info
             core_files,
-            {"tep_adi_info": "tep_adi_info_type_error.csv"},
+            {"tep_adi_info": "tep_adi_info_type_error_1.csv"},
             param_set_1,
             TypeError,
+            "can only concatenate str",
+        ),
+        (  # is_adi is a string
+            core_files,
+            {"tep_adi_info": "tep_adi_info_type_error_2.csv"},
+            param_set_1,
+            TypeError,
+            "wrong data type in 'is_adi' column",
+        ),
+        (  # is_tep is a string
+            core_files,
+            {"tep_adi_info": "tep_adi_info_type_error_3.csv"},
+            param_set_1,
+            TypeError,
+            "wrong data type in 'is_tep' column",
         ),
     ]
     fail_test_ids = [
@@ -87,6 +106,8 @@ class TestTransformGeneInfo:
         "Fail with bad data type in proteomics_tmt's cor_pval column",
         "Fail with bad data type in proteomics_srm's cor_pval column",
         "Fail with missing hgnc_symbol in tep_adi_info",
+        "Fail with bad data type in tep_adi_info's is_adi column",
+        "Fail with bad data type in tep_adi_info's is_tep column",
     ]
 
     def read_input_files_dict(self, input_files_dict):
@@ -132,18 +153,18 @@ class TestTransformGeneInfo:
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     @pytest.mark.parametrize(
-        "input_files_dict, failure_case_files_dict, param_set, error_type",
+        "input_files_dict, failure_case_files_dict, param_set, error_type, error_match_string",
         fail_test_data,
         ids=fail_test_ids,
     )
     def test_transform_gene_info_should_fail(
-        self, input_files_dict, failure_case_files_dict, param_set, error_type
+        self, input_files_dict, failure_case_files_dict, param_set, error_type, error_match_string
     ):
         # Any files specified in 'failure_case_files_dict' will replace their default "good" files in input_files_dict
         for key, value in failure_case_files_dict.items():
             input_files_dict[key] = value
 
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=error_match_string):
             datasets = self.read_input_files_dict(input_files_dict)
 
             gene_info.transform_gene_info(
