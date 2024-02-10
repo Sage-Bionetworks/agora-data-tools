@@ -103,7 +103,7 @@ def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
         df=genes_biodomains,
         grouping="ensembl_gene_id",
         new_column="gene_biodomains",
-        drop_columns="ensembl_gene_id",
+        drop_columns=["ensembl_gene_id"],
     )
 
     return genes_biodomains
