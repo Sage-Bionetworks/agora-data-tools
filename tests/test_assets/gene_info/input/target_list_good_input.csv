@@ -1,6 +1,6 @@
 source,team,rank,ensembl_gene_id,hgnc_symbol,target_choice_justification,predicted_therapeutic_direction,data_used_to_support_target_selection,data_synapseid,study,input_data,validation_study_details,initial_nomination
-Source_1,Team_1,17-100,ENSG00000000005,TNMD,"Based on a network of genomic and epigenomic elements in the region of this gene, in combination with phenotypes, we've determined it is most likely that the gene causally affects tau tangle counts in the ROSMAP cohort (see www.molecular.network).",Antagonism predicted to reduce disease progression.,"genotype, RNAseq, tau tangle counts",syn12345,Study_1,"Genetics, RNA, Protein, Clinical",,2018.0
-Source_1,Team_2,,ENSG00000000419,DPM1,Genes are upregulated in AD based on single cell analysis of microglia subtypes,Antagonism predicted to reduce disease progression.,scRNAseq and snRNAseq in microglia,,Study_1,,Not prioritized for experimental validation ,2023.0
-Source_2,Team_3,12,ENSG00000000419,DPM1,"By applying the algorithm and process developed in https://doi.org/10.1038/s41598-020-79740-x, we identified frequently co-expressed gene modules",,AD and normal brain transcriptomic datasets,,Study_2,RNA,not prioritized for experimental validation,2022.0
-Source_3,Team_4,1-10,ENSG00000000419,DPM1,,Agonism predicted to reduce disease progression.,TMT proteomics (partial dataset),syn56789,Study_3,"Protein, Clinical",not prioritized for experimental validation,2018.0
-Source_4,Team_5,,ENSG00000000457,SCYL3,Genes are downregulated in AD based on single cell analysis of microglia subtypes,Agonism predicted to reduce disease progression.,,,Study_3,RNA,Not prioritized for experimental validation ,
+Source_1,Team_1,17-100,ENSG00000000005,TNMD,Justification 1,Prediction 1,Support 1,syn12345,Study_1,"Genetics, RNA, Protein, Clinical",,2018.0
+Source_1,Team_2,,ENSG00000000419,DPM1,Justification 2,Prediction 2,Support 2,,Study_1,,Validation 2,2023.0
+Source_2,Team_3,12,ENSG00000000419,DPM1,Justification 3,,Support 3,,Study_2,RNA,Validation 3,2022.0
+Source_3,Team_4,1-10,ENSG00000000419,DPM1,,Prediction 4,Support 4,syn56789,Study_3,"Protein, Clinical",Validation 4,2018.0
+Source_4,Team_5,,ENSG00000000457,SCYL3,Justification 5,Prediction 5,,,Study_3,RNA,Validation 5,

@@ -119,22 +119,6 @@ def transform_gene_info(
         axis=1,
     )
 
-    ensembl_info = gene_metadata[
-        [
-            "ensembl_gene_id",
-            "ensembl_release",
-            "ensembl_possible_replacements",
-            "ensembl_permalink",
-        ]
-    ]
-    ensembl_info = nest_fields(
-        df=ensembl_info,
-        grouping="ensembl_gene_id",
-        new_column="ensembl_info",
-        drop_columns=["ensembl_gene_id"],
-        nested_field_is_list=False,
-    )
-
     # Merge all the datasets
     gene_info = gene_metadata
 
@@ -148,7 +132,6 @@ def transform_gene_info(
         druggability,
         biodomains,
         tep_info,
-        ensembl_info,
     ]:
         gene_info = pd.merge(
             left=gene_info,
@@ -172,23 +155,42 @@ def transform_gene_info(
         inplace=True,
     )
 
-    # fillna doesn't work for creating an empty array, need this function instead
-    gene_info["alias"] = gene_info.apply(
-        lambda row: (
-            row["alias"]
-            if isinstance(row["alias"], np.ndarray)
-            else np.ndarray(0, dtype=object)
-        ),
-        axis=1,
+    # fillna doesn't work for creating an empty array, need this function instead for alias and possible replacements
+    gene_info["alias"] = gene_info["alias"].apply(
+        lambda row: row if isinstance(row, np.ndarray) else np.ndarray(0, dtype=object)
     )
 
-    # fillna doesn't work for creating dictionaries, need this function instead
-    if gene_info["ensembl_info"].hasnans:
-        gene_info.loc[gene_info["ensembl_info"].isnull(), "ensembl_info"] = {
-            "ensembl_release": np.NaN,
-            "ensembl_possible_replacements": [],
-            "ensembl_permalink": np.NaN,
-        }
+    gene_info["ensembl_possible_replacements"] = gene_info[
+        "ensembl_possible_replacements"
+    ].apply(
+        lambda row: row if isinstance(row, np.ndarray) else np.ndarray(0, dtype=object)
+    )
+
+    # Add ensembl_info as a nested field. This is done after merging all other data sets so it applies to
+    # all possible Ensembl IDs in all data sets.
+    ensembl_info = gene_info[
+        [
+            "ensembl_gene_id",
+            "ensembl_release",
+            "ensembl_possible_replacements",
+            "ensembl_permalink",
+        ]
+    ]
+    ensembl_info = nest_fields(
+        df=ensembl_info,
+        grouping="ensembl_gene_id",
+        new_column="ensembl_info",
+        drop_columns=["ensembl_gene_id"],
+        nested_field_is_list=False,
+    )
+
+    gene_info = pd.merge(
+        left=gene_info,
+        right=ensembl_info,
+        on="ensembl_gene_id",
+        how="outer",
+        validate="one_to_one",
+    )
 
     gene_info["rna_brain_change_studied"] = gene_info["adj_p_val"] != -1
     gene_info["is_any_rna_changed_in_ad_brain"] = (
