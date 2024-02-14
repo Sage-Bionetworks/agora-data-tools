@@ -83,7 +83,9 @@ class TestTransformGenesBiodomains:
 
     @pytest.mark.parametrize("input_file", fail_test_data, ids=fail_test_ids)
     def test_transform_genes_biodomains_should_fail(self, input_file):
-        with pytest.raises(KeyError):
+        with pytest.raises(
+            ValueError, match="cannot insert ensembl_gene_id, already exists"
+        ):
             input_df = pd.read_csv(
                 os.path.join(self.data_files_path, "input", input_file)
             )
