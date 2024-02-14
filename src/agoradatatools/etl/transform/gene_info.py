@@ -98,9 +98,13 @@ def transform_gene_info(
     # check below.
     tep_info = tep_info.fillna({"is_adi": False, "is_tep": False})
     if tep_info["is_adi"].dtype != bool:
-        raise TypeError("wrong data type in 'is_adi' column")
+        raise TypeError(
+            f"'is_adi' column must be 'bool', current type is {tep_info['is_adi'].dtype}"
+        )
     if tep_info["is_tep"].dtype != bool:
-        raise TypeError("wrong data type in 'is_tep' column")
+        raise TypeError(
+            f"'is_tep' column must be 'bool', current type is {tep_info['is_tep'].dtype}"
+        )
 
     # For genes with either is_adi or is_tep set to True, create a resource URL that opens
     # the portal page to the specific gene. This must be done using the hgnc_symbol from the

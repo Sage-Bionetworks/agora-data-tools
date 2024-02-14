@@ -205,14 +205,14 @@ class TestTransformGeneInfo:
             {"tep_adi_info": "tep_adi_info_type_error_2.csv"},
             param_set_1,
             TypeError,
-            "wrong data type in 'is_adi' column",
+            "'is_adi' column must be 'bool'",
         ),
         (  # is_tep is a string
             core_files,
             {"tep_adi_info": "tep_adi_info_type_error_3.csv"},
             param_set_1,
             TypeError,
-            "wrong data type in 'is_tep' column",
+            "'is_tep' column must be 'bool'",
         ),
     ]
     fail_test_ids = [
