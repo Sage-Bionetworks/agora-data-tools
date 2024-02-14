@@ -100,6 +100,7 @@ datasets:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
       destination: *dest
+      gx_folder: syn53469659
 
   - proteomics_srm:
       files: *agora_proteomics_srm_files
@@ -281,3 +282,4 @@ datasets:
         - *agora_proteomics_tmt_provenance
         - *agora_proteomics_srm_provenance
       destination: *dest
+      gx_folder: syn53463344
