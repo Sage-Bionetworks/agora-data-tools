@@ -233,11 +233,11 @@ class TestTransformGeneInfo:
         gene_info are in csv format, but the 'gene_metadata' file is in feather format and needs special casing.
 
         Args:
-            input_files_dict - a dictionary where keys are the names of the datasets, as expected by
+            input_files_dict: a dictionary where keys are the names of the datasets, as expected by
                                transform_gene_info, and values are the filenames to load
 
         Returns:
-            datasets - a dictionary where the keys are the names of the datasets, as expected by
+            datasets: a dictionary where the keys are the names of the datasets, as expected by
                        transform_gene_info, and the values are data frames
         """
         datasets = {}
