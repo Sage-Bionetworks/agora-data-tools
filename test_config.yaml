@@ -208,6 +208,9 @@ datasets:
         - syn12615624.18
         - syn12615633.18
       destination: *dest
+      gx_folder: syn53616774
+      gx_nested_columns:
+        - members
 
   - overall_scores:
       files: *overall_scores_files
