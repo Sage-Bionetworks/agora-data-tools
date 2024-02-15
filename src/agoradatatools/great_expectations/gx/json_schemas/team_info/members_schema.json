@@ -13,11 +13,7 @@
         ],
         "properties": {
             "isprimaryinvestigator": {
-                "type": "boolean",
-                "examples": [
-                    true,
-                    false
-                ]
+                "type": "boolean"
             },
             "name": {
                 "type": "string"
