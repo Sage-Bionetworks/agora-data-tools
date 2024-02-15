@@ -1,0 +1,31 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/team_info/members_schema.json",
+    "type": "array",
+    "default": [],
+    "title": "Root Schema",
+    "items": {
+        "type": "object",
+        "required": [
+            "isprimaryinvestigator",
+            "name",
+            "url"
+        ],
+        "properties": {
+            "isprimaryinvestigator": {
+                "type": "boolean",
+                "examples": [
+                    true,
+                    false
+                ]
+            },
+            "name": {
+                "type": "string"
+            },
+            "url": {
+                "type": "string",
+                "format": "uri"
+            }
+        }
+    }
+}
