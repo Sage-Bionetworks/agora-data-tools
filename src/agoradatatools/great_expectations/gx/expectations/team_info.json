@@ -31,22 +31,22 @@
       "kwargs": {
         "column": "team",
         "value_set": [
-          "MSSM - Zhang Lab",
-          "MSSM - Roussos Lab",
-          "Longo Lab",
-          "Duke",
-          "Columbia-Rush",
-          "JAX-VUMC-UW Resilience",
-          "Emory",
-          "Harvard-MIT",
-          "Duke BARU",
           "ASU",
-          "Emory-Sage-SGC",
-          "Sage Bionetworks",
+          "Harvard-MIT",
           "Chang Lab",
-          "Mayo",
+          "MSSM - Roussos Lab",
+          "Sage Bionetworks",
           "IUSM-Purdue",
-          "Mayo-UFL-ISB"
+          "Longo Lab",
+          "Emory-Sage-SGC",
+          "Emory",
+          "JAX-VUMC-UW Resilience",
+          "Duke",
+          "Duke BARU",
+          "Mayo-UFL-ISB",
+          "Columbia-Rush",
+          "Mayo",
+          "MSSM - Zhang Lab"
         ]
       },
       "meta": {}
@@ -110,11 +110,11 @@
       "kwargs": {
         "column": "program",
         "value_set": [
-          null,
           "AMP-AD",
-          "Resilience-AD",
+          null,
+          "TREAT-AD",
           "Community Contributed",
-          "TREAT-AD"
+          "Resilience-AD"
         ]
       },
       "meta": {}
@@ -177,10 +177,6 @@
           "items": {
             "properties": {
               "isprimaryinvestigator": {
-                "examples": [
-                  true,
-                  false
-                ],
                 "type": "boolean"
               },
               "name": {
