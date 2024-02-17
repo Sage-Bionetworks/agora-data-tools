@@ -43,6 +43,26 @@ class TestCountGroupedTotal:
         assert counted.equals(expected_df)
 
 
+def test_split_ensembl_ids():
+    input_df = pd.DataFrame(
+        {
+            "ensembl_gene_id": ["a", "a;d", "b;", "b;c;d;e;f"],  # 'Ensembl IDs'
+            "col_2": ["x", "y", "z", "x"],  # 3 'biodomains'
+            "col_3": ["1", "2", "3", "4"],  # 4 'go_terms'
+        }
+    )
+    expected_df = pd.DataFrame(
+        {
+            "ensembl_gene_id": ["a", "a", "b", "b", "d", "c", "d", "e", "f"],
+            "col_2": ["x", "y", "z", "x", "y", "x", "x", "x", "x"],
+            "col_3": ["1", "2", "3", "4", "2", "4", "4", "4", "4"],
+        }
+    )
+    output = genes_biodomains.split_ensembl_ids(genes_biodomains=input_df)
+    output = output.reset_index(drop=True)  # reset needed so indices match
+    assert output.equals(expected_df)
+
+
 class TestTransformGenesBiodomains:
     data_files_path = "tests/test_assets/genes_biodomains"
     pass_test_data = [

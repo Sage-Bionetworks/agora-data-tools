@@ -6,11 +6,12 @@
         "biodomain": "Autophagy",
         "go_terms": [
           "Fc-gamma receptor signaling pathway involved in phagocytosis",
-          "regulation of phagocytosis"
+          "regulation of phagocytosis",
+          "mitophagy"
         ],
         "n_biodomain_terms": 10,
-        "n_gene_biodomain_terms": 2,
-        "pct_linking_terms": 28.57
+        "n_gene_biodomain_terms": 3,
+        "pct_linking_terms": 37.50
       },
       {
         "biodomain": "Mitochondrial Metabolism",
@@ -21,7 +22,7 @@
         ],
         "n_biodomain_terms": 7,
         "n_gene_biodomain_terms": 3,
-        "pct_linking_terms": 42.86
+        "pct_linking_terms": 37.50
       },
       {
         "biodomain": "Proteostasis",
@@ -30,7 +31,7 @@
         ],
         "n_biodomain_terms": 8,
         "n_gene_biodomain_terms": 1,
-        "pct_linking_terms": 14.29
+        "pct_linking_terms": 12.50
       },
       {
         "biodomain": "Synapse",
@@ -39,7 +40,7 @@
         ],
         "n_biodomain_terms": 9,
         "n_gene_biodomain_terms": 1,
-        "pct_linking_terms": 14.29
+        "pct_linking_terms": 12.50
       }
     ]
   },
@@ -105,11 +106,12 @@
       {
         "biodomain": "Proteostasis",
         "go_terms": [
-          "Golgi lumen"
+          "Golgi lumen",
+          "aggresome"
         ],
         "n_biodomain_terms": 8,
-        "n_gene_biodomain_terms": 1,
-        "pct_linking_terms": 14.29
+        "n_gene_biodomain_terms": 2,
+        "pct_linking_terms": 25.00
       },
       {
         "biodomain": "Synapse",
@@ -123,7 +125,7 @@
         ],
         "n_biodomain_terms": 9,
         "n_gene_biodomain_terms": 6,
-        "pct_linking_terms": 85.71
+        "pct_linking_terms": 75.00
       }
     ]
   },
@@ -135,10 +137,11 @@
         "go_terms": [
           "ribosome biogenesis",
           "rRNA base methylation",
-          "rRNA (pseudouridine) methyltransferase activity"
+          "rRNA (pseudouridine) methyltransferase activity",
+          "aggresome"
         ],
         "n_biodomain_terms": 8,
-        "n_gene_biodomain_terms": 3,
+        "n_gene_biodomain_terms": 4,
         "pct_linking_terms": 100.0
       }
     ]

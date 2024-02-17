@@ -4,10 +4,10 @@ sources:
   - genes_biodomains:
     genes_biodomains_files: &genes_biodomains_files
       - name: genes_biodomains
-        id: syn44151254.1
+        id: syn44151254.4
         format: csv
     genes_biodomains_provenance: &genes_biodomains_provenance
-      - syn44151254.1
+      - syn44151254.4
   - overall_scores:
     overall_scores_files: &overall_scores_files
       - name: overall_scores
