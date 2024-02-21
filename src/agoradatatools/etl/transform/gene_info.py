@@ -82,16 +82,16 @@ def transform_gene_info(
     )
 
     biodomains = biodomains.dropna(subset=["biodomain", "ensembl_gene_id"])
+    biodomains = split_delimited_field_to_multiple_rows(
+        df=biodomains, split_field="ensembl_gene_id", delim=";"
+    )
+
     biodomains = (
         biodomains.groupby("ensembl_gene_id")["biodomain"]
         .apply(set)  # ensure unique biodomain names
         .apply(list)
         .reset_index()
         .rename(columns={"biodomain": "biodomains"})
-    )
-
-    biodomains = split_delimited_field_to_multiple_rows(
-        df=biodomains, split_field="ensembl_gene_id", delim=";"
     )
 
     # sort biodomains list alphabetically
