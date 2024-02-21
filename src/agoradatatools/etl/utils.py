@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Pattern
 
 import numpy as np
 import pandas as pd
@@ -110,7 +110,6 @@ def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
         df.rename(columns=column_map, inplace=True)
     except TypeError:
         print("Column mapping must be a dictionary")
-        return df
 
     return df
 
@@ -180,7 +179,7 @@ def calculate_distribution(
 
     Args:
         df (pd.DataFrame): the DataFrame to calculate distribution for
-        grouping (str or list of str): the column(s) to group the data frame on (example: "tissue" or ["tissue", "model"])
+        grouping (str or list[str]): the column(s) to group the data frame on (example: "tissue" or ["tissue", "model"])
         distribution_column (str): the name of the column to calculate distribution on (example: "logfc")
 
     Returns:
@@ -215,3 +214,63 @@ def calculate_distribution(
     df.drop("IQR", axis=1, inplace=True)
 
     return df
+
+
+def split_delimited_field_to_multiple_rows(
+    df: pd.DataFrame, split_field: str, delim: Union[str, Pattern]
+) -> pd.DataFrame:
+    """This function takes a dataframe with a column that contains delimiter-separated strings in some or all rows
+    (instead of a single value), splits those strings on the delimiter, and expands the dataframe so that each item in
+    the resulting list has its own row. For each row containing a delimiter-separated string in the target column, this
+    function creates duplicate rows for each item in that list, with identical data in the other columns. Then the
+    target column for these duplicate rows (plus the original row) is assigned a single value from the list, resulting
+    in one row per item in the former list.
+    An example of where this function is needed: the genes_biodomains dataset has some semicolon-separated Ensembl IDs
+    in its ensembl_gene_id field, in addition to rows with a single Ensembl ID in the field. For rows with a list of
+    Ensembl IDs, the field is split on ";" and the function creates duplicate rows for each Ensembl ID in the list. Then
+    the ensembl_gene_id field for these duplicates is re-assigned so that there is one Ensembl ID per row.
+
+    Args:
+        df (pd.DataFrame): the DataFrame containing a column with delimiter-separated strings. The column can contain a
+                           combination of rows with single values and rows with delimited strings. Every row in the
+                           column should be a string, not a Python list.
+        split_field (str): the name of the column with the strings to split up
+        delim (str or Pattern): the delimiter to split the column values on. This may be a string with a single
+                                character (e.g. ","), a string of multiple characters (e.g. ", "), or a compiled regex
+                                (e.g. re.compile("[,;-_]"))
+
+    Returns:
+        pd.DataFrame: a DataFrame with the same columns as the input but with additional rows added, plus the
+                      split_field column only has one value per row.
+    """
+
+    # Split the whole column on the delimiter. Rows that don't need to be split will have a list of length of 1, while
+    # rows that do need to be split will have 2 or more in the list.
+    split_lists = df[split_field].str.split(pat=delim)
+    needs_split = split_lists.apply(len) > 1
+
+    # Edit the rows where needs_split is True, referencing by the DataFrame index
+    for df_ind in needs_split.index[needs_split]:
+        split_items = split_lists[df_ind]
+
+        # Guard against extra delimiters or ending the string with a delimiter, which will both result in a blank
+        # character as a list item
+        split_items = [x for x in split_items if x != ""]
+
+        # If there is still more than one item in the list after removing '', add as many new rows as there are
+        # (items - 1), since there is already 1 row in the data frame for this group of items
+        if len(split_items) > 1:
+            row_dupe = df.loc[df_ind].copy().to_frame().T
+
+            df = pd.concat([df] + [row_dupe] * (len(split_items) - 1))
+
+            # The added rows plus the original row all have the same index, so this sets all rows with that index at
+            # once.
+            df.at[df_ind, split_field] = split_items
+
+        # Otherwise change the value in split_field to the only item left in the list, which will erase the extra
+        # delimiters
+        else:
+            df.at[df_ind, split_field] = split_items[0]
+
+    return df.reset_index(drop=True)

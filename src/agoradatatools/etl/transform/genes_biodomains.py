@@ -2,7 +2,7 @@ from typing import Union
 
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl.utils import nest_fields, split_delimited_field_to_multiple_rows
 
 
 def count_grouped_total(
@@ -11,22 +11,19 @@ def count_grouped_total(
     input_colname: str,
     output_colname: str,
 ) -> pd.DataFrame:
-    """For each unique item/combination in the column(s) specified by grouping,
-    counts the number of unique items in the column [input_colname] that
-    correspond to that grouping. The calculated counts are put in a new
-    column and named with [output_colname].
+    """For each unique item/combination in the column(s) specified by grouping, counts the number of unique items in the
+    column [input_colname] that correspond to that grouping. The calculated counts are put in a new column and named
+    with [output_colname].
+
     Args:
-        df (pd.DataFrame): contains columns listed in grouping and
-                           input_colname. May contain other columns as well, but
+        df (pd.DataFrame): contains columns listed in grouping and input_colname. May contain other columns as well, but
                            these will be dropped from the returned data frame.
-        grouping (str or list): a string with a single column name, or a list of
-                                strings for multiple column names
+        grouping (str or list): a string with a single column name, or a list of strings for multiple column names
         input_colname (str): the name of the column to count
         output_colname (str): the name of the new column with calculated counts
     Returns:
-        pd.DataFrame: a data frame containing the grouping column(s) and a
-                      new column for output_colname, which contains the count of
-                      unique items in input_colname for each grouping item.
+        pd.DataFrame: a data frame containing the grouping column(s) and a new column for output_colname, which contains
+                      the count of unique items in input_colname for each grouping item.
     """
     df = (
         df.groupby(grouping)[input_colname]
@@ -37,71 +34,25 @@ def count_grouped_total(
     return df
 
 
-def split_ensembl_ids(genes_biodomains: pd.DataFrame) -> pd.DataFrame:
-    """The "ensembl_gene_id" column in the genes_biodomains data frame has some single Ensembl IDs and some rows with a
-    semicolon-separated list of Ensembl IDs. This function finds the rows with semicolons, adds rows to the
-    genes_biodomains dataframe such that there is one row per Ensembl ID in that list, and assigns a single Ensembl ID
-    to each row.
-
-    Args:
-        genes_biodomains (pd.DataFrame): DataFrame containing a column named "ensembl_gene_id"
-
-    Returns:
-        pd.DataFrame: a DataFrame with the same columns as the input but with additional rows added, plus the
-                      "ensembl_gene_id" column only has one Ensembl ID per row.
-    """
-
-    # Split the whole column on ";". Rows that don't need to be split will have a length of 1, while rows that do need
-    # to be split will have 2 or more in the list.
-    ens_lists = genes_biodomains["ensembl_gene_id"].str.split(pat=";")
-    needs_split = ens_lists.apply(len) > 1
-
-    # Edit the rows where needs_split is True, referencing by the DataFrame index
-    for df_ind in needs_split.index[needs_split]:
-        ensembl_ids = ens_lists[df_ind]
-
-        # Guard against extra semicolons or ending the string with a semicolon, which will both result in a blank
-        # character as an Ensembl ID
-        ensembl_ids = [x for x in ensembl_ids if x != ""]
-
-        # If there is still more than one Ensembl ID in the list after removing '', add as many new rows as there are
-        # (Ensembl IDs - 1), since there is already 1 row in the data frame for this group of IDs
-        if len(ensembl_ids) > 1:
-            row_dupe = genes_biodomains.loc[df_ind].copy().to_frame().T
-
-            genes_biodomains = pd.concat(
-                [genes_biodomains] + [row_dupe] * (len(ensembl_ids) - 1)
-            )
-
-            # The added rows plus the original row all have the same index, so this sets all rows with that index at once.
-            genes_biodomains.at[df_ind, "ensembl_gene_id"] = ensembl_ids
-
-        else:
-            genes_biodomains.at[df_ind, "ensembl_gene_id"] = ensembl_ids[0]
-
-    return genes_biodomains
-
-
 def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
-    """Takes dictionary of dataset DataFrames, extracts the genes_biodomains
-    DataFrame, calculates some metrics on GO terms per gene / biodomain, and
-    performs nest_fields on the final DataFrame. This results in a 2 column
-    DataFrame grouped by "ensembl_gene_id" and includes a collapsed nested
-    dictionary field "gene_biodomains"
+    """Takes dictionary of dataset DataFrames, extracts the genes_biodomains DataFrame, calculates some metrics on GO
+    terms per gene / biodomain, and performs nest_fields on the final DataFrame. This results in a 2 column DataFrame
+    grouped by "ensembl_gene_id" and includes a collapsed nested dictionary field "gene_biodomains"
 
     Args:
         datasets (dict[str, pd.DataFrame]): dictionary of dataset names mapped to their DataFrame
 
     Returns:
-        pd.DataFrame: 2 column DataFrame grouped by "ensembl_gene_id" including
-                      a collapsed nested dictionary field "gene_biodomains"
+        pd.DataFrame: 2 column DataFrame grouped by "ensembl_gene_id" including a collapsed nested dictionary field
+                      "gene_biodomains"
     """
     genes_biodomains = datasets["genes_biodomains"]
     interesting_columns = ["ensembl_gene_id", "biodomain", "go_terms"]
     genes_biodomains = genes_biodomains[interesting_columns].dropna()
 
-    genes_biodomains = split_ensembl_ids(genes_biodomains)
-    genes_biodomains = genes_biodomains.reset_index(drop=True)
+    genes_biodomains = split_delimited_field_to_multiple_rows(
+        df=genes_biodomains, split_field="ensembl_gene_id", delim=";"
+    )
 
     # Count the number of go_terms associated with each biodomain
     n_biodomain_terms = count_grouped_total(
@@ -151,7 +102,7 @@ def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
         df=genes_biodomains,
         grouping="ensembl_gene_id",
         new_column="gene_biodomains",
-        drop_columns="ensembl_gene_id",
+        drop_columns=["ensembl_gene_id"],
     )
 
     return genes_biodomains

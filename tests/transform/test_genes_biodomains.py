@@ -1,3 +1,4 @@
+""" Integration tests for the genes_biodomains transform """
 import os
 
 import pandas as pd
@@ -7,6 +8,8 @@ from agoradatatools.etl.transform import genes_biodomains
 
 
 class TestCountGroupedTotal:
+    """Tests the count_grouped_total method two ways: grouping by one column only, and grouping by two columns."""
+
     df = pd.DataFrame(
         {
             "col_1": ["a", "a", "a", "b", "c", "c", "c"],  # 3 'Ensembl IDs'
@@ -17,7 +20,7 @@ class TestCountGroupedTotal:
     )
 
     # How many unique "col_2"'s per unique "col_1" value?
-    def test_count_grouped_total_one_group(self):
+    def test_count_grouped_total_one_group(self) -> None:
         expected_df = pd.DataFrame({"col_1": ["a", "b", "c"], "output": [3, 1, 2]})
         counted = genes_biodomains.count_grouped_total(
             df=self.df, grouping="col_1", input_colname="col_2", output_colname="output"
@@ -25,7 +28,7 @@ class TestCountGroupedTotal:
         assert counted.equals(expected_df)
 
     # How many unique "col_3"'s per unique combination of "col_1" + "col_2"?
-    def test_count_grouped_total_two_groups(self):
+    def test_count_grouped_total_two_groups(self) -> None:
         expected_df = pd.DataFrame(
             {
                 "col_1": ["a", "a", "a", "b", "c", "c"],
@@ -43,27 +46,10 @@ class TestCountGroupedTotal:
         assert counted.equals(expected_df)
 
 
-def test_split_ensembl_ids():
-    input_df = pd.DataFrame(
-        {
-            "ensembl_gene_id": ["a", "a;d", "b;", "b;c;d;e;f"],  # 'Ensembl IDs'
-            "col_2": ["x", "y", "z", "x"],  # 3 'biodomains'
-            "col_3": ["1", "2", "3", "4"],  # 4 'go_terms'
-        }
-    )
-    expected_df = pd.DataFrame(
-        {
-            "ensembl_gene_id": ["a", "a", "b", "b", "d", "c", "d", "e", "f"],
-            "col_2": ["x", "y", "z", "x", "y", "x", "x", "x", "x"],
-            "col_3": ["1", "2", "3", "4", "2", "4", "4", "4", "4"],
-        }
-    )
-    output = genes_biodomains.split_ensembl_ids(genes_biodomains=input_df)
-    output = output.reset_index(drop=True)  # reset needed so indices match
-    assert output.equals(expected_df)
-
-
 class TestTransformGenesBiodomains:
+    """Tests the genes_biodomains custom transform with 'perfect' input, input with missing data, and data that results
+    in all rows being dropped from the data frame (which causes a failure)."""
+
     data_files_path = "tests/test_assets/genes_biodomains"
     pass_test_data = [
         (  # pass with good data
@@ -90,8 +76,8 @@ class TestTransformGenesBiodomains:
         "input_file, expected_output_file", pass_test_data, ids=pass_test_ids
     )
     def test_transform_genes_biodomains_should_pass(
-        self, input_file, expected_output_file
-    ):
+        self, input_file: str, expected_output_file: str
+    ) -> None:
         input_df = pd.read_csv(os.path.join(self.data_files_path, "input", input_file))
         output_df = genes_biodomains.transform_genes_biodomains(
             datasets={"genes_biodomains": input_df}
@@ -102,7 +88,7 @@ class TestTransformGenesBiodomains:
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     @pytest.mark.parametrize("input_file", fail_test_data, ids=fail_test_ids)
-    def test_transform_genes_biodomains_should_fail(self, input_file):
+    def test_transform_genes_biodomains_should_fail(self, input_file: str) -> None:
         with pytest.raises(
             ValueError, match="cannot insert ensembl_gene_id, already exists"
         ):

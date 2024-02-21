@@ -1,12 +1,12 @@
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl.utils import nest_fields, split_delimited_field_to_multiple_rows
 
 
 def transform_gene_info(
-    datasets: dict, adjusted_p_value_threshold, protein_level_threshold
-):
+    datasets: dict, adjusted_p_value_threshold: float, protein_level_threshold: float
+) -> pd.DataFrame:
     """
     This function will perform transformations and incrementally create a dataset called gene_info.
     Each dataset will be left_joined onto gene_info, starting with gene_metadata.
@@ -81,12 +81,17 @@ def transform_gene_info(
         drop_columns=["ensembl_gene_id"],
     )
 
+    biodomains = biodomains.dropna(subset=["biodomain", "ensembl_gene_id"])
     biodomains = (
         biodomains.groupby("ensembl_gene_id")["biodomain"]
         .apply(set)  # ensure unique biodomain names
         .apply(list)
         .reset_index()
         .rename(columns={"biodomain": "biodomains"})
+    )
+
+    biodomains = split_delimited_field_to_multiple_rows(
+        df=biodomains, split_field="ensembl_gene_id", delim=";"
     )
 
     # sort biodomains list alphabetically
@@ -97,12 +102,19 @@ def transform_gene_info(
     # tep_info file and not the symbol in gene_info, because there are some mismatches
     # between the two and the hgnc_symbol from tep_info is the correct one to use here.
     # resource_url should be NA if both is_adi and is_tep are false.
-    resource_url_prefix = "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
+    resource_url_prefix = (
+        "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22"
+        + "select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22"
+        + "%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table."
+        + "FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
+    )
     resource_url_suffix = "%22%5D%7D%5D%7D"
     tep_info["resource_url"] = tep_info.apply(
-        lambda row: resource_url_prefix + row["hgnc_symbol"] + resource_url_suffix
-        if row["is_adi"] or row["is_tep"]
-        else np.NaN,
+        lambda row: (
+            resource_url_prefix + row["hgnc_symbol"] + resource_url_suffix
+            if row["is_adi"] or row["is_tep"]
+            else np.NaN
+        ),
         axis=1,
     )
 
@@ -161,9 +173,11 @@ def transform_gene_info(
 
     # fillna doesn't work for creating an empty array, need this function instead
     gene_info["alias"] = gene_info.apply(
-        lambda row: row["alias"]
-        if isinstance(row["alias"], np.ndarray)
-        else np.ndarray(0, dtype=object),
+        lambda row: (
+            row["alias"]
+            if isinstance(row["alias"], np.ndarray)
+            else np.ndarray(0, dtype=object)
+        ),
         axis=1,
     )
 
@@ -179,9 +193,11 @@ def transform_gene_info(
 
     # create 'total_nominations' field
     gene_info["total_nominations"] = gene_info.apply(
-        lambda row: len(row["target_nominations"])
-        if isinstance(row["target_nominations"], list)
-        else np.NaN,
+        lambda row: (
+            len(row["target_nominations"])
+            if isinstance(row["target_nominations"], list)
+            else np.NaN
+        ),
         axis=1,
     )
 
