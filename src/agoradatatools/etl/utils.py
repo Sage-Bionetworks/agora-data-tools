@@ -225,10 +225,16 @@ def split_delimited_field_to_multiple_rows(
     function creates duplicate rows for each item in that list, with identical data in the other columns. Then the
     target column for these duplicate rows (plus the original row) is assigned a single value from the list, resulting
     in one row per item in the former list.
-    An example of where this function is needed: the genes_biodomains dataset has some semicolon-separated Ensembl IDs
-    in its ensembl_gene_id field, in addition to rows with a single Ensembl ID in the field. For rows with a list of
-    Ensembl IDs, the field is split on ";" and the function creates duplicate rows for each Ensembl ID in the list. Then
-    the ensembl_gene_id field for these duplicates is re-assigned so that there is one Ensembl ID per row.
+    For example, an input data frame that looks like this:
+        biodomain   go_term     ensembl_id
+        Apoptosis   GO:123      ENSG0001
+        Synapse     GO:456      ENSG0002;ENSG0003;ENSG0004
+    will come out looking like this:
+        biodomain   go_term     ensembl_id
+        Apoptosis   GO:123      ENSG0001
+        Synapse     GO:456      ENSG0002
+        Synapse     GO:456      ENSG0003
+        Synapse     GO:456      ENSG0004
 
     Args:
         df (pd.DataFrame): the DataFrame containing a column with delimiter-separated strings. The column can contain a
