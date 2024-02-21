@@ -434,9 +434,22 @@ class TestSplitDelimitedFieldToMultipleRows:
         assert output.equals(self.expected_df)
 
     def test_split_delimited_field_to_multiple_rows_with_no_split(self) -> None:
-        input_df = self.expected_df.copy()
+        input_df = self.expected_df.copy(deep=True)
         output = utils.split_delimited_field_to_multiple_rows(
             df=input_df, split_field="col_1", delim=";"
         )
 
         assert output.equals(self.expected_df)
+
+    def test_split_delimited_field_to_multiple_rows_type_error(self) -> None:
+        input_df = pd.DataFrame(
+            {
+                "col_1": ["a", None],
+                "col_2": ["x", "y"],
+                "col_3": ["1", "2"],
+            }
+        )
+        with pytest.raises(TypeError, match="has no len()"):
+            utils.split_delimited_field_to_multiple_rows(
+                df=input_df, split_field="col_1", delim=";"
+            )
