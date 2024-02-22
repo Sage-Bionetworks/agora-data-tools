@@ -5,8 +5,8 @@ from agoradatatools.etl.utils import nest_fields
 
 
 def transform_gene_info(
-    datasets: dict, adjusted_p_value_threshold, protein_level_threshold
-):
+    datasets: dict, adjusted_p_value_threshold: float, protein_level_threshold: float
+) -> pd.DataFrame:
     """
     This function will perform transformations and incrementally create a dataset called gene_info.
     Each dataset will be left_joined onto gene_info, starting with gene_metadata.
@@ -111,12 +111,17 @@ def transform_gene_info(
     # tep_info file and not the symbol in gene_info, because there are some mismatches
     # between the two and the hgnc_symbol from tep_info is the correct one to use here.
     # resource_url should be NA if both is_adi and is_tep are false.
-    resource_url_prefix = "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
-    resource_url_suffix = "%22%5D%7D%5D%7D"
+    RESOURCE_URL_PREFIX = (
+        "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22"
+        + "select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22"
+        + "%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table."
+        + "FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
+    )
+    RESOURCE_URL_SUFFIX = "%22%5D%7D%5D%7D"
 
     tep_info["resource_url"] = tep_info.apply(
         lambda row: (
-            resource_url_prefix + row["hgnc_symbol"] + resource_url_suffix
+            RESOURCE_URL_PREFIX + row["hgnc_symbol"] + RESOURCE_URL_SUFFIX
             if row["is_adi"] is True or row["is_tep"] is True
             else np.NaN
         ),
