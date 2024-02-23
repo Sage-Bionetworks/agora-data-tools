@@ -4,10 +4,10 @@ sources:
   - genes_biodomains:
     genes_biodomains_files: &genes_biodomains_files
       - name: genes_biodomains
-        id: syn44151254.1
+        id: syn44151254.5
         format: csv
     genes_biodomains_provenance: &genes_biodomains_provenance
-      - syn44151254.1
+      - syn44151254.5
   - overall_scores:
     overall_scores_files: &overall_scores_files
       - name: overall_scores
@@ -135,7 +135,7 @@ datasets:
   - gene_info:
       files:
         - name: gene_metadata
-          id: syn25953363.10
+          id: syn25953363.12
           format: feather
         - name: igap
           id: syn12514826.5
@@ -178,7 +178,7 @@ datasets:
         possible_replacement: ensembl_possible_replacements
         permalink: ensembl_permalink
       provenance:
-        - syn25953363.10
+        - syn25953363.12
         - syn12514826.5
         - syn12514912.3
         - *agora_proteomics_provenance
