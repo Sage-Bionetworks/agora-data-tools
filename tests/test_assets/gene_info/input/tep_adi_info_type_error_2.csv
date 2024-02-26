@@ -1,0 +1,3 @@
+ensembl_gene_id,hgnc_symbol,is_adi,is_tep
+ENSG00000000005,TNMD,string_value,True
+ENSG00000000419,DPM1,,False

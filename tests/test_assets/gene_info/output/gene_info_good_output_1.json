@@ -1,0 +1,851 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000000005",
+    "name": "tenomodulin...",
+    "summary": "Summary 1",
+    "symbol": "TNMD",
+    "alias": [
+      "BRICD4",
+      "CHM1L",
+      "TEM"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": true,
+    "target_nominations": [
+      {
+        "source": "Source_1",
+        "team": "Team_1",
+        "rank": "17-100",
+        "hgnc_symbol": "TNMD",
+        "target_choice_justification": "Justification 1",
+        "predicted_therapeutic_direction": "Prediction 1",
+        "data_used_to_support_target_selection": "Support 1",
+        "data_synapseid": "syn12345",
+        "study": "Study_1",
+        "input_data": "Genetics, RNA, Protein, Clinical",
+        "validation_study_details": null,
+        "initial_nomination": 2018.0
+      }
+    ],
+    "median_expression": null,
+    "druggability": [
+      {
+        "sm_druggability_bucket": 7,
+        "safety_bucket": 4,
+        "abability_bucket": 3,
+        "pharos_class": "Tbio",
+        "classification": null,
+        "safety_bucket_definition": "Safety definition 1",
+        "abability_bucket_definition": "Abability definition 1"
+      }
+    ],
+    "total_nominations": 1.0,
+    "biodomains": [
+      "Proteostasis",
+      "Synapse"
+    ],
+    "is_adi": true,
+    "is_tep": true,
+    "resource_url": "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22TNMD%22%5D%7D%5D%7D",
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000005"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000419",
+    "name": "dolichyl-phosphate m...",
+    "summary": "Summary 2",
+    "symbol": "DPM1",
+    "alias": [
+      "MPDS",
+      "CDGIE"
+    ],
+    "is_igap": true,
+    "is_eqtl": true,
+    "is_any_rna_changed_in_ad_brain": true,
+    "rna_brain_change_studied": true,
+    "is_any_protein_changed_in_ad_brain": true,
+    "protein_brain_change_studied": true,
+    "target_nominations": [
+      {
+        "source": "Source_1",
+        "team": "Team_2",
+        "rank": null,
+        "hgnc_symbol": "DPM1",
+        "target_choice_justification": "Justification 2",
+        "predicted_therapeutic_direction": "Prediction 2",
+        "data_used_to_support_target_selection": "Support 2",
+        "data_synapseid": null,
+        "study": "Study_1",
+        "input_data": null,
+        "validation_study_details": "Validation 2",
+        "initial_nomination": 2023.0
+      },
+      {
+        "source": "Source_2",
+        "team": "Team_3",
+        "rank": "12",
+        "hgnc_symbol": "DPM1",
+        "target_choice_justification": "Justification 3",
+        "predicted_therapeutic_direction": null,
+        "data_used_to_support_target_selection": "Support 3",
+        "data_synapseid": null,
+        "study": "Study_2",
+        "input_data": "RNA",
+        "validation_study_details": "Validation 3",
+        "initial_nomination": 2022.0
+      },
+      {
+        "source": "Source_3",
+        "team": "Team_4",
+        "rank": "1-10",
+        "hgnc_symbol": "DPM1",
+        "target_choice_justification": null,
+        "predicted_therapeutic_direction": "Prediction 4",
+        "data_used_to_support_target_selection": "Support 4",
+        "data_synapseid": "syn56789",
+        "study": "Study_3",
+        "input_data": "Protein, Clinical",
+        "validation_study_details": "Validation 4",
+        "initial_nomination": 2018.0
+      }
+    ],
+    "median_expression": [
+      {
+        "min": 4.14,
+        "first_quartile": 4.82,
+        "median": 4.99,
+        "mean": 4.98,
+        "third_quartile": 5.12,
+        "max": 5.47,
+        "tissue": "TCX"
+      },
+      {
+        "min": 2.46,
+        "first_quartile": 3.81,
+        "median": 4.11,
+        "mean": 4.11,
+        "third_quartile": 4.4,
+        "max": 5.85,
+        "tissue": "DLPFC"
+      },
+      {
+        "min": 2.43,
+        "first_quartile": 3.82,
+        "median": 4.17,
+        "mean": 4.13,
+        "third_quartile": 4.5,
+        "max": 5.35,
+        "tissue": "IFG"
+      }
+    ],
+    "druggability": null,
+    "total_nominations": 3.0,
+    "biodomains": [
+      "Apoptosis"
+    ],
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000419"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000457",
+    "name": "SCY1 like pseudokina...",
+    "summary": "Summary 3",
+    "symbol": "SCYL3",
+    "alias": [
+      "PACE-1",
+      "PACE1"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": [
+      {
+        "source": "Source_4",
+        "team": "Team_5",
+        "rank": null,
+        "hgnc_symbol": "SCYL3",
+        "target_choice_justification": "Justification 5",
+        "predicted_therapeutic_direction": "Prediction 5",
+        "data_used_to_support_target_selection": null,
+        "data_synapseid": null,
+        "study": "Study_3",
+        "input_data": "RNA",
+        "validation_study_details": "Validation 5",
+        "initial_nomination": null
+      }
+    ],
+    "median_expression": [
+      {
+        "min": 1.87,
+        "first_quartile": 3.31,
+        "median": 3.56,
+        "mean": 3.53,
+        "third_quartile": 3.79,
+        "max": 4.29,
+        "tissue": "TCX"
+      }
+    ],
+    "druggability": null,
+    "total_nominations": 1.0,
+    "biodomains": [
+      "Structural Stabilization"
+    ],
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": null,
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000457"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000460",
+    "name": "FIGNL1 interacting r...",
+    "summary": null,
+    "symbol": "FIRRM",
+    "alias": [
+      "FLIP",
+      "MEICA1",
+      "C1orf112",
+      "Apolo1"
+    ],
+    "is_igap": true,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": [
+      {
+        "sm_druggability_bucket": 13,
+        "safety_bucket": 3,
+        "abability_bucket": 3,
+        "pharos_class": "Tdark",
+        "classification": "Classification 3",
+        "safety_bucket_definition": "Safety definition 3",
+        "abability_bucket_definition": null
+      }
+    ],
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000460"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000938",
+    "name": "FGR proto-oncogene, ...",
+    "summary": "Summary 5",
+    "symbol": "FGR",
+    "alias": [
+      "c-fgr",
+      "SRC2",
+      "p55c-fgr",
+      "p58-Fgr",
+      "p55-Fgr",
+      "p58c-fgr",
+      "c-src2"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000938"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000971",
+    "name": null,
+    "summary": "Summary 6",
+    "symbol": "CFH",
+    "alias": [],
+    "is_igap": true,
+    "is_eqtl": true,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": true,
+    "target_nominations": null,
+    "median_expression": [
+      {
+        "min": 2.38,
+        "first_quartile": 3.78,
+        "median": 4.78,
+        "mean": 4.66,
+        "third_quartile": 5.42,
+        "max": 7.48,
+        "tissue": null
+      },
+      {
+        "min": 1.75,
+        "first_quartile": 3.69,
+        "median": 4.33,
+        "mean": 4.38,
+        "third_quartile": 4.99,
+        "max": 8.17,
+        "tissue": "DLPFC"
+      }
+    ],
+    "druggability": [
+      {
+        "sm_druggability_bucket": 3,
+        "safety_bucket": 4,
+        "abability_bucket": 1,
+        "pharos_class": "Tbio",
+        "classification": "Classification 4",
+        "safety_bucket_definition": "Safety definition 4",
+        "abability_bucket_definition": "Abability definition 4"
+      }
+    ],
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000971"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001036",
+    "name": "alpha-L-fucosidase 2...",
+    "summary": "Summary 7",
+    "symbol": "FUCA2",
+    "alias": [
+      "dJ20N2.5"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": true,
+    "target_nominations": null,
+    "median_expression": [
+      {
+        "min": 2.55,
+        "first_quartile": 3.42,
+        "median": 3.69,
+        "mean": 3.67,
+        "third_quartile": 3.9,
+        "max": 4.69,
+        "tissue": "TCX"
+      },
+      {
+        "min": 2.04,
+        "first_quartile": 3.44,
+        "median": 3.64,
+        "mean": 3.63,
+        "third_quartile": 3.86,
+        "max": 4.8,
+        "tissue": "IFG"
+      }
+    ],
+    "druggability": [
+      {
+        "sm_druggability_bucket": 1,
+        "safety_bucket": 3,
+        "abability_bucket": 1,
+        "pharos_class": "Tchem",
+        "classification": "Classification 2",
+        "safety_bucket_definition": null,
+        "abability_bucket_definition": "Abability definition 2"
+      }
+    ],
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001036"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001084",
+    "name": "glutamate-cysteine l...",
+    "summary": "Summary 8",
+    "symbol": "GCLC",
+    "alias": [
+      "GLCL",
+      "GCL",
+      "GLCLC",
+      "GCS"
+    ],
+    "is_igap": true,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": true,
+    "protein_brain_change_studied": true,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": [
+      {
+        "sm_druggability_bucket": 1,
+        "safety_bucket": 5,
+        "abability_bucket": 3,
+        "pharos_class": null,
+        "classification": "Classification 5",
+        "safety_bucket_definition": "Safety definition 5",
+        "abability_bucket_definition": "Abability definition 5"
+      }
+    ],
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": true,
+    "resource_url": "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22GCLC%22%5D%7D%5D%7D",
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": null
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001167",
+    "name": "nuclear transcriptio...",
+    "summary": "Summary 9",
+    "symbol": "NFYA",
+    "alias": [
+      "CBF-B",
+      "NF-YA",
+      "HAP2",
+      "CBF-A"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001167"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001460",
+    "name": "sperm tail PG-rich r...",
+    "summary": "Summary 10",
+    "symbol": "STPG1",
+    "alias": [
+      "C1orf201",
+      "MAPO2"
+    ],
+    "is_igap": true,
+    "is_eqtl": true,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": true,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001460"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001461",
+    "name": "NIPA like domain con...",
+    "summary": "Summary 11",
+    "symbol": null,
+    "alias": [
+      "DJ462O23.2",
+      "SLC57A5",
+      "NPAL3"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001461"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001497",
+    "name": "LAS1 like ribosome b...",
+    "summary": "Summary 12",
+    "symbol": "LAS1L",
+    "alias": [
+      "Las1-like",
+      "Las1",
+      "dJ475B7.2",
+      "MRXSWTS",
+      "WTS"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": true,
+    "is_tep": false,
+    "resource_url": "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22LAS1L%22%5D%7D%5D%7D",
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001497"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001561",
+    "name": "ectonucleotide pyrop...",
+    "summary": "Summary 13",
+    "symbol": "ENPP4",
+    "alias": [
+      "NPP4"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001561"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001617",
+    "name": "semaphorin 3F...",
+    "summary": "Summary 14",
+    "symbol": "SEMA3F",
+    "alias": [
+      "SEMA4",
+      "SEMA-IV",
+      "SEMAK"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001617"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001626",
+    "name": "CF transmembrane con...",
+    "summary": "Summary 15",
+    "symbol": "CFTR",
+    "alias": [
+      "ABCC7",
+      "MRP7",
+      "CFTR/MRP",
+      "dJ760C5.1",
+      "TNR-CFTR",
+      "ABC35",
+      "CF"
+    ],
+    "is_igap": false,
+    "is_eqtl": true,
+    "is_any_rna_changed_in_ad_brain": true,
+    "rna_brain_change_studied": true,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001626"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001629",
+    "name": "ankyrin repeat and I...",
+    "summary": "Summary 16",
+    "symbol": "ANKIB1",
+    "alias": [],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": true,
+    "rna_brain_change_studied": true,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": true,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001629"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001630",
+    "name": "cytochrome P450 fami...",
+    "summary": "Summary 17",
+    "symbol": "CYP51A1",
+    "alias": [
+      "P450L1",
+      "P450-14DM",
+      "LDM",
+      "CP51",
+      "CYPL1",
+      "CYP51"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": true,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001630"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001631",
+    "name": "KRIT1 ankyrin repeat...",
+    "summary": "Summary 18",
+    "symbol": "KRIT1",
+    "alias": [
+      "CAM",
+      "CCM1"
+    ],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": true,
+    "rna_brain_change_studied": true,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": true,
+    "target_nominations": null,
+    "median_expression": [
+      {
+        "min": 2.39,
+        "first_quartile": 3.43,
+        "median": 3.58,
+        "mean": 3.56,
+        "third_quartile": 3.71,
+        "max": 4.0,
+        "tissue": "TCX"
+      },
+      {
+        "min": 3.07,
+        "first_quartile": 3.75,
+        "median": 3.88,
+        "mean": 3.88,
+        "third_quartile": 4.01,
+        "max": 4.42,
+        "tissue": "IFG"
+      }
+    ],
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "111",
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001631"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000161149",
+    "name": null,
+    "summary": null,
+    "symbol": null,
+    "alias": [],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "107",
+      "ensembl_possible_replacements": [
+        "ENSG00000284130"
+      ],
+      "ensembl_permalink": "https://jul2022.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000161149"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000183791",
+    "name": null,
+    "summary": null,
+    "symbol": null,
+    "alias": [],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": "100",
+      "ensembl_possible_replacements": [
+        "ENSG00000288631",
+        "ENSG00000288616",
+        "ENSG00000288607"
+      ],
+      "ensembl_permalink": "https://apr2020.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000183791"
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001517",
+    "name": null,
+    "summary": null,
+    "symbol": null,
+    "alias": [],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": null,
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": null
+    }
+  }
+]

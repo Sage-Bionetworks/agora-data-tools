@@ -5,8 +5,8 @@ from agoradatatools.etl.utils import nest_fields
 
 
 def transform_gene_info(
-    datasets: dict, adjusted_p_value_threshold, protein_level_threshold
-):
+    datasets: dict, adjusted_p_value_threshold: float, protein_level_threshold: float
+) -> pd.DataFrame:
     """
     This function will perform transformations and incrementally create a dataset called gene_info.
     Each dataset will be left_joined onto gene_info, starting with gene_metadata.
@@ -81,6 +81,7 @@ def transform_gene_info(
         drop_columns=["ensembl_gene_id"],
     )
 
+    biodomains = biodomains.dropna(subset=["biodomain", "ensembl_gene_id"])
     biodomains = (
         biodomains.groupby("ensembl_gene_id")["biodomain"]
         .apply(set)  # ensure unique biodomain names
@@ -92,34 +93,39 @@ def transform_gene_info(
     # sort biodomains list alphabetically
     biodomains["biodomains"] = biodomains["biodomains"].apply(sorted)
 
+    # Type-check the 'is_adi' and 'is_tep' columns of tep_info to make sure they are booleans and not strings.
+    # Explicitly make NaN is_adi and is_tep values "False" to avoid having to check for boolean and NaN in the
+    # check below.
+    tep_info = tep_info.fillna({"is_adi": False, "is_tep": False})
+    if tep_info["is_adi"].dtype != bool:
+        raise TypeError(
+            f"'is_adi' column must be 'bool', current type is {tep_info['is_adi'].dtype}"
+        )
+    if tep_info["is_tep"].dtype != bool:
+        raise TypeError(
+            f"'is_tep' column must be 'bool', current type is {tep_info['is_tep'].dtype}"
+        )
+
     # For genes with either is_adi or is_tep set to True, create a resource URL that opens
     # the portal page to the specific gene. This must be done using the hgnc_symbol from the
     # tep_info file and not the symbol in gene_info, because there are some mismatches
     # between the two and the hgnc_symbol from tep_info is the correct one to use here.
     # resource_url should be NA if both is_adi and is_tep are false.
-    resource_url_prefix = "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table.FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
-    resource_url_suffix = "%22%5D%7D%5D%7D"
-    tep_info["resource_url"] = tep_info.apply(
-        lambda row: resource_url_prefix + row["hgnc_symbol"] + resource_url_suffix
-        if row["is_adi"] or row["is_tep"]
-        else np.NaN,
-        axis=1,
+    RESOURCE_URL_PREFIX = (
+        "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22"
+        + "select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22"
+        + "%3A0%2C%22selectedFacets%22%3A%5B%7B%22concreteType%22%3A%22org.sagebionetworks.repo.model.table."
+        + "FacetColumnValuesRequest%22%2C%22columnName%22%3A%22target%22%2C%22facetValues%22%3A%5B%22"
     )
+    RESOURCE_URL_SUFFIX = "%22%5D%7D%5D%7D"
 
-    ensembl_info = gene_metadata[
-        [
-            "ensembl_gene_id",
-            "ensembl_release",
-            "ensembl_possible_replacements",
-            "ensembl_permalink",
-        ]
-    ]
-    ensembl_info = nest_fields(
-        df=ensembl_info,
-        grouping="ensembl_gene_id",
-        new_column="ensembl_info",
-        drop_columns=["ensembl_gene_id"],
-        nested_field_is_list=False,
+    tep_info["resource_url"] = tep_info.apply(
+        lambda row: (
+            RESOURCE_URL_PREFIX + row["hgnc_symbol"] + RESOURCE_URL_SUFFIX
+            if row["is_adi"] is True or row["is_tep"] is True
+            else np.NaN
+        ),
+        axis=1,
     )
 
     # Merge all the datasets
@@ -135,7 +141,6 @@ def transform_gene_info(
         druggability,
         biodomains,
         tep_info,
-        ensembl_info,
     ]:
         gene_info = pd.merge(
             left=gene_info,
@@ -159,12 +164,41 @@ def transform_gene_info(
         inplace=True,
     )
 
-    # fillna doesn't work for creating an empty array, need this function instead
-    gene_info["alias"] = gene_info.apply(
-        lambda row: row["alias"]
-        if isinstance(row["alias"], np.ndarray)
-        else np.ndarray(0, dtype=object),
-        axis=1,
+    # fillna doesn't work for creating an empty array, need this function instead for alias and possible replacements
+    gene_info["alias"] = gene_info["alias"].apply(
+        lambda row: row if isinstance(row, np.ndarray) else np.ndarray(0, dtype=object)
+    )
+
+    gene_info["ensembl_possible_replacements"] = gene_info[
+        "ensembl_possible_replacements"
+    ].apply(
+        lambda row: row if isinstance(row, np.ndarray) else np.ndarray(0, dtype=object)
+    )
+
+    # Add ensembl_info as a nested field. This is done after merging all other data sets so it applies to
+    # all possible Ensembl IDs in all data sets.
+    ensembl_info = gene_info[
+        [
+            "ensembl_gene_id",
+            "ensembl_release",
+            "ensembl_possible_replacements",
+            "ensembl_permalink",
+        ]
+    ]
+    ensembl_info = nest_fields(
+        df=ensembl_info,
+        grouping="ensembl_gene_id",
+        new_column="ensembl_info",
+        drop_columns=["ensembl_gene_id"],
+        nested_field_is_list=False,
+    )
+
+    gene_info = pd.merge(
+        left=gene_info,
+        right=ensembl_info,
+        on="ensembl_gene_id",
+        how="outer",
+        validate="one_to_one",
     )
 
     gene_info["rna_brain_change_studied"] = gene_info["adj_p_val"] != -1
@@ -179,9 +213,11 @@ def transform_gene_info(
 
     # create 'total_nominations' field
     gene_info["total_nominations"] = gene_info.apply(
-        lambda row: len(row["target_nominations"])
-        if isinstance(row["target_nominations"], list)
-        else np.NaN,
+        lambda row: (
+            len(row["target_nominations"])
+            if isinstance(row["target_nominations"], list)
+            else np.NaN
+        ),
         axis=1,
     )
 
