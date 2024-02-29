@@ -1,10 +1,6 @@
-biodomain,abbr,label,color,go_id,go_terms,ensembl_gene_id
-,Au,Autophagy [Au],#9931fd,GO:0006914,autophagy,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0016236,,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0000422,autophagy of mitochondrion,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
-,,,,,,
+biodomain,abbr,label,color,go_id,go_terms,n_symbol,symbol,ensembl_gene_id
+,Au,Autophagy [Au],#9931fd,GO:0006914,autophagy,152,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0016236,,71,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0000422,autophagy of mitochondrion,,,
+,,,,,,,,
+,,,,,,,,

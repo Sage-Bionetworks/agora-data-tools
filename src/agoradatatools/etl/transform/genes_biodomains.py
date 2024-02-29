@@ -53,7 +53,7 @@ def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
     """
     genes_biodomains = datasets["genes_biodomains"]
     interesting_columns = ["ensembl_gene_id", "biodomain", "go_terms"]
-    genes_biodomains = genes_biodomains[interesting_columns].dropna()
+    genes_biodomains = genes_biodomains[interesting_columns].dropna().drop_duplicates()
 
     # Count the number of go_terms associated with each biodomain
     n_biodomain_terms = count_grouped_total(
