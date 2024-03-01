@@ -114,11 +114,11 @@ datasets:
   - target_exp_validation_harmonized:
       files:
         - name: target_exp_validation_harmonized
-          id: syn24184512.8
+          id: syn24184512.9
           format: csv
       final_format: json
       provenance:
-        - syn24184512.8
+        - syn24184512.9
       destination: *dest
 
   - metabolomics:
