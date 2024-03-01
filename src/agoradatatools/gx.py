@@ -107,6 +107,32 @@ class GreatExpectationsRunner:
             ),
         )
 
+    def get_failed_expectations(
+        self, checkpoint_result: CheckpointResult
+    ) -> typing.Dict[str, list]:
+        """Gets the failed expectations from a CheckpointResult
+
+        Args:
+            checkpoint_result (CheckpointResult): CheckpointResult object
+
+        Returns:
+            fail_dict: Dictionary with information on which fields and expectations failed
+        """
+        fail_dict = {self.expectation_suite_name: {}}
+        run_name = list(checkpoint_result["run_results"].keys())[0]
+        for result in checkpoint_result["run_results"][run_name]["validation_result"][
+            "results"
+        ]:
+            if not result["success"]:
+                column = result["expectation_config"]["kwargs"]["column"]
+                failed_expectation = result["expectation_config"]["expectation_type"]
+                if not fail_dict[self.expectation_suite_name].get(column, None):
+                    fail_dict[self.expectation_suite_name][column] = []
+                fail_dict[self.expectation_suite_name][column].append(
+                    failed_expectation
+                )
+        return fail_dict
+
     @staticmethod
     def convert_nested_columns_to_json(
         df: pd.DataFrame, nested_columns: typing.List[str]
@@ -116,7 +142,7 @@ class GreatExpectationsRunner:
             df[column] = df[column].apply(json.dumps)
         return df
 
-    def run(self) -> None:
+    def run(self) -> typing.Union[typing.Dict[str, list], None]:
         """Run great expectations on a dataset and upload the results to Synapse"""
         if not self._check_if_expectation_suite_exists():
             return
@@ -145,3 +171,9 @@ class GreatExpectationsRunner:
         )
         latest_reults_path = self._get_results_path(checkpoint_result)
         self._upload_results_file_to_synapse(latest_reults_path)
+
+        if not checkpoint_result.success:
+            fail_dict = self.get_failed_expectations(checkpoint_result)
+            return fail_dict
+
+        return None

@@ -11,3 +11,7 @@ class ADTDataProcessingError(ADTError):
     def __init__(self, message):
         super().__init__(message)
         self.message = message
+
+
+class ADTDataValidationError(ADTDataProcessingError):
+    """Error to be raised when Data Validation runs fail."""

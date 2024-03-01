@@ -4,7 +4,7 @@ import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
 
-from agoradatatools.errors import ADTDataProcessingError
+from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
 from agoradatatools.etl import extract, load, transform, utils
 from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
@@ -58,7 +58,10 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
 
 @log_time(func_name="process_dataset", logger=logger)
 def process_dataset(
-    dataset_obj: dict, staging_path: str, syn: synapseclient.Synapse
+    dataset_obj: dict,
+    staging_path: str,
+    syn: synapseclient.Synapse,
+    data_validation_error_list: list,
 ) -> tuple:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
@@ -125,20 +128,25 @@ def process_dataset(
             dataset_path=json_path,
             dataset_name=dataset_name,
             upload_folder=dataset_obj[dataset_name]["gx_folder"],
-            nested_columns=dataset_obj[dataset_name]["gx_nested_columns"]
-            if "gx_nested_columns" in dataset_obj[dataset_name].keys()
-            else None,
+            nested_columns=(
+                dataset_obj[dataset_name]["gx_nested_columns"]
+                if "gx_nested_columns" in dataset_obj[dataset_name].keys()
+                else None
+            ),
         )
-        gx_runner.run()
+        result = gx_runner.run()
 
-    syn_obj = load.load(
-        file_path=json_path,
-        provenance=dataset_obj[dataset_name]["provenance"],
-        destination=dataset_obj[dataset_name]["destination"],
-        syn=syn,
-    )
+        if result:
+            data_validation_error_list.append(result)
 
-    return syn_obj
+    # syn_obj = load.load(
+    #     file_path=json_path,
+    #     provenance=dataset_obj[dataset_name]["provenance"],
+    #     destination=dataset_obj[dataset_name]["destination"],
+    #     syn=syn,
+    # )
+
+    # return syn_obj
 
 
 def create_data_manifest(
@@ -189,36 +197,61 @@ def process_all_files(
 
     load.create_temp_location(staging_path)
 
-    error_list = []
+    code_error_list = []
+    data_validation_error_list = []
     if datasets:
         for dataset in datasets:
             try:
-                process_dataset(dataset_obj=dataset, staging_path=staging_path, syn=syn)
+                process_dataset(
+                    dataset_obj=dataset,
+                    staging_path=staging_path,
+                    syn=syn,
+                    data_validation_error_list=data_validation_error_list,
+                )
             except Exception as e:
-                error_list.append(
+                code_error_list.append(
                     f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
                 )
 
     destination = config["destination"]
 
-    if not error_list:
-        # create manifest if there are no errors
-        manifest_df = create_data_manifest(syn=syn, parent=destination)
-        manifest_path = load.df_to_csv(
-            df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
-        )
-
-        load.load(
-            file_path=manifest_path,
-            provenance=manifest_df["id"].to_list(),
-            destination=destination,
-            syn=syn,
-        )
-    else:
+    if code_error_list:
         raise ADTDataProcessingError(
             "\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
-            + "\n".join(error_list)
+            + "\n".join(code_error_list)
         )
+
+    if data_validation_error_list:
+        print(data_validation_error_list)
+        breakpoint()
+        string_error_list = []
+        for error_dict in data_validation_error_list:
+            dataset_error_list = []
+            for dataset, errors in error_dict.items():
+                column = list(errors.keys())[0]
+                expectations = ", ".join(list(errors.values()))
+                dataset_error_string = f"Dataset {dataset} failed validation on column {column} with expectations {expectations}"
+                dataset_error_list.append(dataset_error_string)
+            string_error_list.extend(dataset_error_list)
+        print(string_error_list)
+        breakpoint()
+
+        raise ADTDataValidationError(
+            "\nData Validation has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
+            + "\n".join(data_validation_error_list)
+        )
+
+    manifest_df = create_data_manifest(syn=syn, parent=destination)
+    manifest_path = load.df_to_csv(
+        df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
+    )
+
+    load.load(
+        file_path=manifest_path,
+        provenance=manifest_df["id"].to_list(),
+        destination=destination,
+        syn=syn,
+    )
 
 
 app = Typer()
