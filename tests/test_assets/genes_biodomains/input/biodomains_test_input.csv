@@ -1,37 +1,37 @@
-biodomain,abbr,label,color,go_id,go_terms,ensembl_gene_id
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0006914,autophagy,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0016236,macroautophagy,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0000422,autophagy of mitochondrion,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0000423,mitophagy,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0035973,aggrephagy,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0038096,Fc-gamma receptor signaling pathway involved in phagocytosis,ENSG00000000938
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0050764,regulation of phagocytosis,ENSG00000000938
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0061912,selective autophagy,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0005776,autophagosome,ENSG00000161011
-Autophagy,Au,Autophagy [Au],#9931fd,GO:0000407,phagophore assembly site,ENSG00000161011
-Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0005743,mitochondrial inner membrane,ENSG00000000938
-Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0005758,mitochondrial intermembrane space,ENSG00000000938
-Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0098780,response to mitochondrial depolarisation,ENSG00000161011
-Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0005739,mitochondrion,ENSG00000161011
-Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0005739,mitochondrion,ENSG00000000938
-Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0000422,autophagy of mitochondrion,ENSG00000161011
-Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0010821,regulation of mitochondrion organization,ENSG00000161011
-Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0000423,mitophagy,ENSG00000161011
-Synapse,Sy,Synapse [Sy],#329a33,GO:0045202,synapse,ENSG00000188157
-Synapse,Sy,Synapse [Sy],#329a33,GO:0050808,synapse organization,ENSG00000188157
-Synapse,Sy,Synapse [Sy],#329a33,GO:0045887,positive regulation of synaptic growth at neuromuscular junction,ENSG00000188157
-Synapse,Sy,Synapse [Sy],#329a33,GO:1900273,positive regulation of long-term synaptic potentiation,ENSG00000161011
-Synapse,Sy,Synapse [Sy],#329a33,GO:0005102,signaling receptor binding,ENSG00000000938
-Synapse,Sy,Synapse [Sy],#329a33,GO:0007213,G protein-coupled acetylcholine receptor signaling pathway,ENSG00000188157
-Synapse,Sy,Synapse [Sy],#329a33,GO:0007528,neuromuscular junction development,ENSG00000188157
-Synapse,Sy,Synapse [Sy],#329a33,GO:0045887,positive regulation of synaptic assembly at neuromuscular junction,ENSG00000188157
-Synapse,Sy,Synapse [Sy],#329a33,GO:0035255,ionotropic glutamate receptor binding,ENSG00000161011
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0005783,endoplasmic reticulum,ENSG00000161011
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0005796,Golgi lumen,ENSG00000188157
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0042254,ribosome biogenesis,ENSG00000290146
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0070475,rRNA base methylation,ENSG00000290146
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0070037,rRNA (pseudouridine) methyltransferase activity,ENSG00000290146
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0031625,ubiquitin protein ligase binding,ENSG00000161011
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0043130,ubiquitin binding,ENSG00000161011
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0016235,aggresome,ENSG00000161011
-Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0016235,aggresome,ENSG00000000938
+biodomain,abbr,label,color,go_id,go_terms,n_symbol,symbol,ensembl_gene_id
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0006914,autophagy,152,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0016236,macroautophagy,71,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0000422,autophagy of mitochondrion,43,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0000423,mitophagy,20,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0035973,aggrephagy,6,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0038096,Fc-gamma receptor signaling pathway involved in phagocytosis,21,FGR,ENSG00000000938
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0050764,regulation of phagocytosis,10,FGR,ENSG00000000938
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0061912,selective autophagy,14,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0005776,autophagosome,73,SQSTM1,ENSG00000161011
+Autophagy,Au,Autophagy [Au],#9931fd,GO:0000407,phagophore assembly site,31,SQSTM1,ENSG00000161011
+Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0005743,mitochondrial inner membrane,484,FGR,ENSG00000000938
+Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0005758,mitochondrial intermembrane space,84,FGR,ENSG00000000938
+Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0098780,response to mitochondrial depolarisation,6,SQSTM1,ENSG00000161011
+Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0005739,mitochondrion,1380,SQSTM1,ENSG00000161011
+Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0005739,mitochondrion,1380,FGR,ENSG00000000938
+Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0000422,autophagy of mitochondrion,43,SQSTM1,ENSG00000161011
+Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0010821,regulation of mitochondrion organization,22,SQSTM1,ENSG00000161011
+Mitochondrial Metabolism,MM,Mitochondrial Metabolism [MM],#97cb98,GO:0000423,mitophagy,20,SQSTM1,ENSG00000161011
+Synapse,Sy,Synapse [Sy],#329a33,GO:0045202,synapse,475,AGRN,ENSG00000188157
+Synapse,Sy,Synapse [Sy],#329a33,GO:0050808,synapse organization,57,AGRN,ENSG00000188157
+Synapse,Sy,Synapse [Sy],#329a33,GO:0045887,positive regulation of synaptic growth at neuromuscular junction,1,AGRN,ENSG00000188157
+Synapse,Sy,Synapse [Sy],#329a33,GO:1900273,positive regulation of long-term synaptic potentiation,22,SQSTM1,ENSG00000161011
+Synapse,Sy,Synapse [Sy],#329a33,GO:0005102,signaling receptor binding,362,FGR,ENSG00000000938
+Synapse,Sy,Synapse [Sy],#329a33,GO:0007213,G protein-coupled acetylcholine receptor signaling pathway,15,AGRN,ENSG00000188157
+Synapse,Sy,Synapse [Sy],#329a33,GO:0007528,neuromuscular junction development,36,AGRN,ENSG00000188157
+Synapse,Sy,Synapse [Sy],#329a33,GO:0045887,positive regulation of synaptic assembly at neuromuscular junction,1,AGRN,ENSG00000188157
+Synapse,Sy,Synapse [Sy],#329a33,GO:0035255,ionotropic glutamate receptor binding,23,SQSTM1,ENSG00000161011
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0005783,endoplasmic reticulum,1111,SQSTM1,ENSG00000161011
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0005796,Golgi lumen,104,AGRN,ENSG00000188157
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0042254,ribosome biogenesis,1,EMG1-C1S,ENSG00000290146
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0070475,rRNA base methylation,1,EMG1-C1S,ENSG00000290146
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0070037,rRNA (pseudouridine) methyltransferase activity,1,EMG1-C1S,ENSG00000290146
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0031625,ubiquitin protein ligase binding,310,SQSTM1,ENSG00000161011
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0043130,ubiquitin binding,97,SQSTM1,ENSG00000161011
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0016235,aggresome,35,SQSTM1,ENSG00000161011
+Proteostasis,Pr,Proteostasis [Pr],#c8b269,GO:0016235,aggresome,35,FGR,ENSG00000000938
