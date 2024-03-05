@@ -69,7 +69,7 @@ datasets:
   - neuropath_corr:
       files:
         - name: neuropath_regression_results
-          id: syn22017882.5
+          id: syn53771485
           format: csv
       final_format: json
       provenance:
