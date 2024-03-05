@@ -6,6 +6,8 @@ import typing
 
 import pandas as pd
 
+from agoradatatools.errors import ADTDataValidationError
+
 import great_expectations as gx
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
 from synapseclient import Activity, File, Synapse
@@ -107,16 +109,14 @@ class GreatExpectationsRunner:
             ),
         )
 
-    def get_failed_expectations(
-        self, checkpoint_result: CheckpointResult
-    ) -> typing.Dict[str, list]:
-        """Gets the failed expectations from a CheckpointResult
+    def get_failed_expectations(self, checkpoint_result: CheckpointResult) -> str:
+        """Gets the failed expectations from a CheckpointResult and returns them as a formatted string
 
         Args:
             checkpoint_result (CheckpointResult): CheckpointResult object
 
         Returns:
-            fail_dict: Dictionary with information on which fields and expectations failed
+            fail_message: String with information on which fields and expectations failed
         """
         fail_dict = {self.expectation_suite_name: {}}
         run_name = list(checkpoint_result["run_results"].keys())[0]
@@ -131,7 +131,18 @@ class GreatExpectationsRunner:
                 fail_dict[self.expectation_suite_name][column].append(
                     failed_expectation
                 )
-        return fail_dict
+        messages = []
+        for _, fields_dict in fail_dict.items():
+            for field, failed_expectations in fields_dict.items():
+                messages.append(
+                    f"{field} has failed expectations {', '.join(failed_expectations)}"
+                )
+
+        fail_message = ("Great Expectations data validation has failed: ") + "; ".join(
+            messages
+        )
+
+        return fail_message
 
     @staticmethod
     def convert_nested_columns_to_json(
@@ -173,7 +184,5 @@ class GreatExpectationsRunner:
         self._upload_results_file_to_synapse(latest_reults_path)
 
         if not checkpoint_result.success:
-            fail_dict = self.get_failed_expectations(checkpoint_result)
-            return fail_dict
-
-        return None
+            fail_message = self.get_failed_expectations(checkpoint_result)
+            raise ADTDataValidationError(fail_message)

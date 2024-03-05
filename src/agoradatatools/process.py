@@ -4,7 +4,7 @@ import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
 
-from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
+from agoradatatools.errors import ADTDataProcessingError
 from agoradatatools.etl import extract, load, transform, utils
 from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
@@ -61,7 +61,6 @@ def process_dataset(
     dataset_obj: dict,
     staging_path: str,
     syn: synapseclient.Synapse,
-    data_validation_error_list: list,
 ) -> tuple:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
@@ -134,19 +133,16 @@ def process_dataset(
                 else None
             ),
         )
-        result = gx_runner.run()
+        gx_runner.run()
 
-        if result:
-            data_validation_error_list.append(result)
+    syn_obj = load.load(
+        file_path=json_path,
+        provenance=dataset_obj[dataset_name]["provenance"],
+        destination=dataset_obj[dataset_name]["destination"],
+        syn=syn,
+    )
 
-    # syn_obj = load.load(
-    #     file_path=json_path,
-    #     provenance=dataset_obj[dataset_name]["provenance"],
-    #     destination=dataset_obj[dataset_name]["destination"],
-    #     syn=syn,
-    # )
-
-    # return syn_obj
+    return syn_obj
 
 
 def create_data_manifest(
@@ -197,8 +193,7 @@ def process_all_files(
 
     load.create_temp_location(staging_path)
 
-    code_error_list = []
-    data_validation_error_list = []
+    error_list = []
     if datasets:
         for dataset in datasets:
             try:
@@ -206,39 +201,18 @@ def process_all_files(
                     dataset_obj=dataset,
                     staging_path=staging_path,
                     syn=syn,
-                    data_validation_error_list=data_validation_error_list,
                 )
             except Exception as e:
-                code_error_list.append(
+                error_list.append(
                     f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
                 )
 
     destination = config["destination"]
 
-    if code_error_list:
+    if error_list:
         raise ADTDataProcessingError(
             "\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
-            + "\n".join(code_error_list)
-        )
-
-    if data_validation_error_list:
-        print(data_validation_error_list)
-        breakpoint()
-        string_error_list = []
-        for error_dict in data_validation_error_list:
-            dataset_error_list = []
-            for dataset, errors in error_dict.items():
-                column = list(errors.keys())[0]
-                expectations = ", ".join(list(errors.values()))
-                dataset_error_string = f"Dataset {dataset} failed validation on column {column} with expectations {expectations}"
-                dataset_error_list.append(dataset_error_string)
-            string_error_list.extend(dataset_error_list)
-        print(string_error_list)
-        breakpoint()
-
-        raise ADTDataValidationError(
-            "\nData Validation has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
-            + "\n".join(data_validation_error_list)
+            + "\n".join(error_list)
         )
 
     manifest_df = create_data_manifest(syn=syn, parent=destination)
