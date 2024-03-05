@@ -83,6 +83,14 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_match_regex",
+      "kwargs": {
+        "column": "hypothesis_tested",
+        "regex": "\ufffd"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "summary_findings",
@@ -96,6 +104,14 @@
         "column": "summary_findings",
         "max_value": 1000,
         "min_value": 2
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_match_regex",
+      "kwargs": {
+        "column": "summary_findings",
+        "regex": "\ufffd"
       },
       "meta": {}
     },
@@ -145,6 +161,14 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_match_regex",
+      "kwargs": {
+        "column": "reference",
+        "regex": "\ufffd"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "species",
@@ -170,6 +194,14 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_match_regex",
+      "kwargs": {
+        "column": "species",
+        "regex": "\ufffd"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "model_system",
@@ -183,6 +215,14 @@
         "column": "model_system",
         "max_value": 1000,
         "min_value": 2
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_match_regex",
+      "kwargs": {
+        "column": "model_system",
+        "regex": "\ufffd"
       },
       "meta": {}
     },
@@ -215,6 +255,14 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_match_regex",
+      "kwargs": {
+        "column": "outcome_measure",
+        "regex": "\ufffd"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "outcome_measure_details",
@@ -228,6 +276,14 @@
         "column": "outcome_measure_details",
         "max_value": 2000,
         "min_value": 2
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_match_regex",
+      "kwargs": {
+        "column": "outcome_measure_details",
+        "regex": "\ufffd"
       },
       "meta": {}
     },
