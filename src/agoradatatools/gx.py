@@ -109,6 +109,15 @@ class GreatExpectationsRunner:
             ),
         )
 
+    @staticmethod
+    def convert_nested_columns_to_json(
+        df: pd.DataFrame, nested_columns: typing.List[str]
+    ) -> pd.DataFrame:
+        """Converts nested columns in a DataFrame to JSON-parseable strings"""
+        for column in nested_columns:
+            df[column] = df[column].apply(json.dumps)
+        return df
+
     def get_failed_expectations(self, checkpoint_result: CheckpointResult) -> str:
         """Gets the failed expectations from a CheckpointResult and returns them as a formatted string
 
@@ -144,15 +153,6 @@ class GreatExpectationsRunner:
 
         return fail_message
 
-    @staticmethod
-    def convert_nested_columns_to_json(
-        df: pd.DataFrame, nested_columns: typing.List[str]
-    ) -> pd.DataFrame:
-        """Converts nested columns in a DataFrame to JSON-parseable strings"""
-        for column in nested_columns:
-            df[column] = df[column].apply(json.dumps)
-        return df
-
     def run(self) -> typing.Union[typing.Dict[str, list], None]:
         """Run great expectations on a dataset and upload the results to Synapse"""
         if not self._check_if_expectation_suite_exists():
@@ -183,6 +183,6 @@ class GreatExpectationsRunner:
         latest_reults_path = self._get_results_path(checkpoint_result)
         self._upload_results_file_to_synapse(latest_reults_path)
 
-        if not checkpoint_result.success:
+        if not checkpoint_result["success"]:
             fail_message = self.get_failed_expectations(checkpoint_result)
             raise ADTDataValidationError(fail_message)
