@@ -151,7 +151,7 @@ class GreatExpectationsRunner:
 
         return fail_message
 
-    def run(self) -> typing.Union[typing.Dict[str, list], None]:
+    def run(self) -> None:
         """Run great expectations on a dataset and upload the results to Synapse"""
         if not self._check_if_expectation_suite_exists():
             return
