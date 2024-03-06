@@ -37,6 +37,12 @@ class TestGreatExpectationsRunner:
             upload_folder="test_folder",
             nested_columns=None,
         )
+        self.passed_checkpoint_result = CheckpointResult(
+            **json.load(open("./tests/test_assets/gx/checkpoint_result_pass.json"))
+        )
+        self.failed_checkpoint_result = CheckpointResult(
+            **json.load(open("./tests/test_assets/gx/checkpoint_result_fail.json"))
+        )
 
     def test_that_an_initialized_runner_has_the_attributes_it_should(self, syn):
         assert (
@@ -131,10 +137,9 @@ class TestGreatExpectationsRunner:
             "Great Expectations data validation has failed: "
             "ensembl_gene_id has failed expectations expect_column_value_lengths_to_equal, expect_column_values_to_match_regex"
         )
-        checkpoint_result = json.load(
-            open("./tests/test_assets/gx/checkpoint_result_fail.json")
+        fail_message = self.good_runner.get_failed_expectations(
+            self.failed_checkpoint_result
         )
-        fail_message = self.good_runner.get_failed_expectations(checkpoint_result)
         assert fail_message == expected
 
     def test_run_when_expectation_suite_exists_and_nested_columns(
@@ -155,9 +160,7 @@ class TestGreatExpectationsRunner:
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
             "run",
-            return_value=json.load(
-                open("./tests/test_assets/gx/checkpoint_result_pass.json")
-            ),
+            return_value=self.passed_checkpoint_result,
         ) as patch_checkpoint_run:
             self.good_runner.nested_columns = ["a"]
             self.good_runner.run()
@@ -187,9 +190,7 @@ class TestGreatExpectationsRunner:
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
             "run",
-            return_value=json.load(
-                open("./tests/test_assets/gx/checkpoint_result_pass.json")
-            ),
+            return_value=self.passed_checkpoint_result,
         ) as patch_checkpoint_run:
             self.good_runner.run()
             patch_read_json.assert_called_once_with(
@@ -244,9 +245,7 @@ class TestGreatExpectationsRunner:
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
             "run",
-            return_value=json.load(
-                open("./tests/test_assets/gx/checkpoint_result_fail.json")
-            ),
+            return_value=self.failed_checkpoint_result,
         ) as patch_checkpoint_run, patch.object(
             self.good_runner, "get_failed_expectations", return_value="test"
         ) as patch_get_failed_expectations:

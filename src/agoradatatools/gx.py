@@ -128,10 +128,8 @@ class GreatExpectationsRunner:
             fail_message: String with information on which fields and expectations failed
         """
         fail_dict = {self.expectation_suite_name: {}}
-        run_name = list(checkpoint_result["run_results"].keys())[0]
-        for result in checkpoint_result["run_results"][run_name]["validation_result"][
-            "results"
-        ]:
+        expectation_results = checkpoint_result.list_validation_results()[0]["results"]
+        for result in expectation_results:
             if not result["success"]:
                 column = result["expectation_config"]["kwargs"]["column"]
                 failed_expectation = result["expectation_config"]["expectation_type"]
@@ -183,6 +181,6 @@ class GreatExpectationsRunner:
         latest_reults_path = self._get_results_path(checkpoint_result)
         self._upload_results_file_to_synapse(latest_reults_path)
 
-        if not checkpoint_result["success"]:
+        if not checkpoint_result.success:
             fail_message = self.get_failed_expectations(checkpoint_result)
             raise ADTDataValidationError(fail_message)
