@@ -135,7 +135,8 @@ class TestGreatExpectationsRunner:
     def test_get_failed_expectations_with_failed_checkpoint_result(self):
         expected = (
             "Great Expectations data validation has failed: "
-            "ensembl_gene_id has failed expectations expect_column_value_lengths_to_equal, expect_column_values_to_match_regex"
+            "ensembl_gene_id has failed expectations expect_column_value_lengths_to_equal, "
+            "expect_column_values_to_match_regex"
         )
         fail_message = self.good_runner.get_failed_expectations(
             self.failed_checkpoint_result
