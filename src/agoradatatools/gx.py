@@ -6,6 +6,8 @@ import typing
 
 import pandas as pd
 
+from agoradatatools.errors import ADTDataValidationError
+
 import great_expectations as gx
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
 from synapseclient import Activity, File, Synapse
@@ -116,6 +118,39 @@ class GreatExpectationsRunner:
             df[column] = df[column].apply(json.dumps)
         return df
 
+    def get_failed_expectations(self, checkpoint_result: CheckpointResult) -> str:
+        """Gets the failed expectations from a CheckpointResult and returns them as a formatted string
+
+        Args:
+            checkpoint_result (CheckpointResult): CheckpointResult object
+
+        Returns:
+            fail_message: String with information on which fields and expectations failed
+        """
+        fail_dict = {self.expectation_suite_name: {}}
+        expectation_results = checkpoint_result.list_validation_results()[0]["results"]
+        for result in expectation_results:
+            if not result["success"]:
+                column = result["expectation_config"]["kwargs"]["column"]
+                failed_expectation = result["expectation_config"]["expectation_type"]
+                if not fail_dict[self.expectation_suite_name].get(column, None):
+                    fail_dict[self.expectation_suite_name][column] = []
+                fail_dict[self.expectation_suite_name][column].append(
+                    failed_expectation
+                )
+        messages = []
+        for _, fields_dict in fail_dict.items():
+            for field, failed_expectations in fields_dict.items():
+                messages.append(
+                    f"{field} has failed expectations {', '.join(failed_expectations)}"
+                )
+
+        fail_message = ("Great Expectations data validation has failed: ") + "; ".join(
+            messages
+        )
+
+        return fail_message
+
     def run(self) -> None:
         """Run great expectations on a dataset and upload the results to Synapse"""
         if not self._check_if_expectation_suite_exists():
@@ -145,3 +180,7 @@ class GreatExpectationsRunner:
         )
         latest_reults_path = self._get_results_path(checkpoint_result)
         self._upload_results_file_to_synapse(latest_reults_path)
+
+        if not checkpoint_result.success:
+            fail_message = self.get_failed_expectations(checkpoint_result)
+            raise ADTDataValidationError(fail_message)

@@ -58,7 +58,9 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
 
 @log_time(func_name="process_dataset", logger=logger)
 def process_dataset(
-    dataset_obj: dict, staging_path: str, syn: synapseclient.Synapse
+    dataset_obj: dict,
+    staging_path: str,
+    syn: synapseclient.Synapse,
 ) -> tuple:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
@@ -125,9 +127,11 @@ def process_dataset(
             dataset_path=json_path,
             dataset_name=dataset_name,
             upload_folder=dataset_obj[dataset_name]["gx_folder"],
-            nested_columns=dataset_obj[dataset_name]["gx_nested_columns"]
-            if "gx_nested_columns" in dataset_obj[dataset_name].keys()
-            else None,
+            nested_columns=(
+                dataset_obj[dataset_name]["gx_nested_columns"]
+                if "gx_nested_columns" in dataset_obj[dataset_name].keys()
+                else None
+            ),
         )
         gx_runner.run()
 
@@ -193,7 +197,11 @@ def process_all_files(
     if datasets:
         for dataset in datasets:
             try:
-                process_dataset(dataset_obj=dataset, staging_path=staging_path, syn=syn)
+                process_dataset(
+                    dataset_obj=dataset,
+                    staging_path=staging_path,
+                    syn=syn,
+                )
             except Exception as e:
                 error_list.append(
                     f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
@@ -201,24 +209,23 @@ def process_all_files(
 
     destination = config["destination"]
 
-    if not error_list:
-        # create manifest if there are no errors
-        manifest_df = create_data_manifest(syn=syn, parent=destination)
-        manifest_path = load.df_to_csv(
-            df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
-        )
-
-        load.load(
-            file_path=manifest_path,
-            provenance=manifest_df["id"].to_list(),
-            destination=destination,
-            syn=syn,
-        )
-    else:
+    if error_list:
         raise ADTDataProcessingError(
             "\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
             + "\n".join(error_list)
         )
+
+    manifest_df = create_data_manifest(syn=syn, parent=destination)
+    manifest_path = load.df_to_csv(
+        df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
+    )
+
+    load.load(
+        file_path=manifest_path,
+        provenance=manifest_df["id"].to_list(),
+        destination=destination,
+        syn=syn,
+    )
 
 
 app = Typer()
