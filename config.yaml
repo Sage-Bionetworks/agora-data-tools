@@ -120,6 +120,7 @@ datasets:
       provenance:
         - syn24184512.9
       destination: *dest
+      gx_folder: syn53710839
 
   - metabolomics:
       files:
