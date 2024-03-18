@@ -1,5 +1,6 @@
 destination: &dest syn17015333
 staging_path: ./staging
+gx_folder: syn52948670
 sources:
   - genes_biodomains:
     genes_biodomains_files: &genes_biodomains_files
@@ -62,7 +63,7 @@ datasets:
         ensembl_id: ensembl_gene_id
         goterm_name: go_terms
       destination: *dest
-      gx_folder: syn53127956
+      gx_enabled: true
       gx_nested_columns:
         - gene_biodomains
 
@@ -81,7 +82,7 @@ datasets:
         ensembl_gene_id: ensg
         hgnc_gene_id: gname
       destination: *dest
-      gx_folder: syn53461511
+      gx_enabled: true
 
   - proteomics:
       files: *agora_proteomics_files
@@ -100,7 +101,7 @@ datasets:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
       destination: *dest
-      gx_folder: syn53469659
+      gx_enabled: true
 
   - proteomics_srm:
       files: *agora_proteomics_srm_files
@@ -120,7 +121,7 @@ datasets:
       provenance:
         - syn24184512.9
       destination: *dest
-      gx_folder: syn53710838
+      gx_enabled: true
 
   - metabolomics:
       files:
@@ -131,7 +132,7 @@ datasets:
       provenance:
         - syn26064497.1
       destination: *dest
-      gx_folder: syn52948671
+      gx_enabled: true
 
   - gene_info:
       files:
@@ -209,7 +210,7 @@ datasets:
         - syn12615624.18
         - syn12615633.18
       destination: *dest
-      gx_folder: syn53616774
+      gx_enabled: true
       gx_nested_columns:
         - members
 
@@ -227,7 +228,7 @@ datasets:
         overall: target_risk_score
         omicsscore: multi_omics_score
       destination: *dest
-      gx_folder: syn53453225
+      gx_enabled: true
 
   - network:
       files:
@@ -286,4 +287,4 @@ datasets:
         - *agora_proteomics_tmt_provenance
         - *agora_proteomics_srm_provenance
       destination: *dest
-      gx_folder: syn53463344
+      gx_enabled: true

@@ -60,6 +60,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
 def process_dataset(
     dataset_obj: dict,
     staging_path: str,
+    gx_folder: str,
     syn: synapseclient.Synapse,
 ) -> tuple:
     """Takes in a dataset from the configuration file and passes it through the ETL process
@@ -67,6 +68,7 @@ def process_dataset(
     Args:
         dataset_obj (dict): A dataset defined in the configuration file
         staging_path (str): Staging path
+        gx_folder (str): Synapse ID of the folder where Great Expectations reports should be uploaded
         syn (synapseclient.Synapse): synapseclient.Synapse session.
 
     Returns:
@@ -121,12 +123,12 @@ def process_dataset(
         )
 
     # run great expectations on dataset if expectation suite exists
-    if "gx_folder" in dataset_obj[dataset_name].keys():
+    if "gx_enabled" in dataset_obj[dataset_name].keys():
         gx_runner = GreatExpectationsRunner(
             syn=syn,
             dataset_path=json_path,
             dataset_name=dataset_name,
-            upload_folder=dataset_obj[dataset_name]["gx_folder"],
+            upload_folder=gx_folder,
             nested_columns=(
                 dataset_obj[dataset_name]["gx_nested_columns"]
                 if "gx_nested_columns" in dataset_obj[dataset_name].keys()
@@ -200,6 +202,7 @@ def process_all_files(
                 process_dataset(
                     dataset_obj=dataset,
                     staging_path=staging_path,
+                    gx_folder=config["gx_folder"],
                     syn=syn,
                 )
             except Exception as e:

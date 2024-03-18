@@ -85,9 +85,9 @@ class GreatExpectationsRunner:
             *original_results_path_items,
         )
 
-        timestamp_file_name = original_results_path_items[-2] + ".html"
+        expectation_suite_name = self.expectation_suite_name + ".html"
         new_results_path_items = original_results_path_items
-        new_results_path_items[-1] = timestamp_file_name
+        new_results_path_items[-1] = expectation_suite_name
         new_results_path = os.path.join(
             self.validations_path,
             *new_results_path_items,
@@ -107,6 +107,7 @@ class GreatExpectationsRunner:
                 name=f"Great Expectations {self.expectation_suite_name} results",
                 executed="https://github.com/Sage-Bionetworks/agora-data-tools",
             ),
+            forceVersion=True,
         )
 
     @staticmethod

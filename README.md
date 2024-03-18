@@ -122,6 +122,8 @@ python -m pytest
 ## Config
 Parameters:
 - `destination`: Defines the default target location (folder) that the generated json files are written to; this value can be overridden on a per-dataset basis
+- `staging_path`: Defines the location of the staging folder that the generated json files are written to
+- `gx_folder`: Defines the Synapse ID of the folder that generated GX reports are written to
 - `datasets/<dataset>`: Each generated json file is named `<dataset>.json`
 - `datasets/<dataset>/files`: A list of source files for the dataset
     - `name`: The name of the source file (this name is the reference the code will use to retrieve a file from the configuration)
