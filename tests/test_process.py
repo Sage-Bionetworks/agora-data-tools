@@ -9,6 +9,9 @@ from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError
 from agoradatatools.etl import extract, load, utils
 
+STAGING_PATH = "./staging"
+GX_FOLDER = "test_folder"
+
 
 class TestProcessDataset:
     dataset_object = {
@@ -87,7 +90,8 @@ class TestProcessDataset:
     def test_process_dataset_with_column_rename(self, syn: Any):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
-            staging_path="./staging",
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
             syn=syn,
         )
         self.patch_rename_columns.assert_called_once_with(
@@ -99,7 +103,8 @@ class TestProcessDataset:
     def test_process_dataset_custom_transformations(self, syn: Any):
         process.process_dataset(
             dataset_obj=self.dataset_object_custom_transform,
-            staging_path="./staging",
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
             syn=syn,
         )
         self.patch_custom_transform.assert_called_once_with(
@@ -119,7 +124,8 @@ class TestProcessDataset:
     def test_process_dataset_with_agora_rename(self, syn: Any):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
-            staging_path="./staging",
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
             syn=syn,
         )
         self.patch_rename_columns.assert_called_once_with(
@@ -133,10 +139,13 @@ class TestProcessDataset:
             dict()
         )  # test if it is a dictionary later
         process.process_dataset(
-            dataset_obj=self.dataset_object, staging_path="./staging", syn=syn
+            dataset_obj=self.dataset_object,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
         )
         self.patch_dict_to_json.assert_called_once_with(
-            df={}, staging_path="./staging", filename="neuropath_corr.json"
+            df={}, staging_path=STAGING_PATH, filename="neuropath_corr.json"
         )
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
@@ -168,6 +177,8 @@ class TestCreateDataManifest:
 
 
 class TestProcessAllFiles:
+    CONFIG_PATH = "./path/to/config"
+
     @pytest.fixture(scope="function", autouse=True)
     def setup_method(self):
         self.patch_get_config = patch.object(
@@ -175,6 +186,7 @@ class TestProcessAllFiles:
             "_get_config",
             return_value={
                 "destination": "destination",
+                "gx_folder": GX_FOLDER,
                 "datasets": [{"a": {"b": "c"}}, {"d": {"e": "f"}}, {"g": {"h": "i"}}],
             },
         ).start()
@@ -198,8 +210,8 @@ class TestProcessAllFiles:
         mock.patch.stopall()
 
     def test_process_all_files_config_path(self, syn: Any):
-        process.process_all_files(syn=syn, config_path="path/to/config")
-        self.patch_get_config.assert_called_once_with(config_path="path/to/config")
+        process.process_all_files(syn=syn, config_path=self.CONFIG_PATH)
+        self.patch_get_config.assert_called_once_with(config_path=self.CONFIG_PATH)
 
     def test_process_all_files_no_config_path(self, syn: Any):
         process.process_all_files(syn=syn, config_path=None)
@@ -208,25 +220,34 @@ class TestProcessAllFiles:
     def test_process_all_files_process_dataset_fails(self, syn: Any):
         with pytest.raises(ADTDataProcessingError):
             self.patch_process_dataset.side_effect = Exception
-            process.process_all_files(syn=syn, config_path="path/to/config")
+            process.process_all_files(syn=syn, config_path=self.CONFIG_PATH)
             self.patch_create_data_manifest.assert_not_called()
 
     def test_process_all_files_full(self, syn: Any):
         process.process_all_files(syn=syn, config_path=None)
         self.patch_process_dataset.assert_any_call(
-            dataset_obj={"a": {"b": "c"}}, staging_path="./staging", syn=syn
+            dataset_obj={"a": {"b": "c"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
         )
         self.patch_process_dataset.assert_any_call(
-            dataset_obj={"d": {"e": "f"}}, staging_path="./staging", syn=syn
+            dataset_obj={"d": {"e": "f"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
         )
         self.patch_process_dataset.assert_any_call(
-            dataset_obj={"g": {"h": "i"}}, staging_path="./staging", syn=syn
+            dataset_obj={"g": {"h": "i"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
         )
         self.patch_create_data_manifest.assert_called_once_with(
             parent="destination", syn=syn
         )
         self.patch_df_to_csv.assert_called_once_with(
             df=self.patch_create_data_manifest.return_value,
-            staging_path="./staging",
+            staging_path=STAGING_PATH,
             filename="data_manifest.csv",
         )

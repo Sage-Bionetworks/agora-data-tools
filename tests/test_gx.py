@@ -80,7 +80,10 @@ class TestGreatExpectationsRunner:
         assert self.good_runner._check_if_expectation_suite_exists() is True
 
     def test_get_results_path(self):
-        expected = self.good_runner.validations_path + "/test/path/to/to.html"
+        expected = (
+            self.good_runner.validations_path
+            + f"/test/path/to/{self.good_runner.expectation_suite_name}.html"
+        )
         mocked_checkpoint_result = mock.create_autospec(CheckpointResult)
         mocked_validation_result_identifier = mock.create_autospec(
             ValidationResultIdentifier(
@@ -103,7 +106,8 @@ class TestGreatExpectationsRunner:
             patch_list_validation_result_identifiers.assert_called_once()
             patch_copy.assert_called_once_with(
                 self.good_runner.validations_path + "/test/path/to/file.html",
-                self.good_runner.validations_path + "/test/path/to/to.html",
+                self.good_runner.validations_path
+                + f"/test/path/to/{self.good_runner.expectation_suite_name}.html",
             )
             assert result == expected
 
@@ -116,6 +120,7 @@ class TestGreatExpectationsRunner:
                     name=f"Great Expectations {self.good_runner.expectation_suite_name} results",
                     executed="https://github.com/Sage-Bionetworks/agora-data-tools",
                 ),
+                forceVersion=True,
             )
 
     def test_that_convert_nested_columns_to_json_converts_nested_columns_to_json(self):
