@@ -151,11 +151,11 @@ This package has a `src/agoradatatools/etl/transform` submodule.  This folder ho
 
 ### Great Expectations
 
-This package uses [Great Expectations](https://greatexpectations.io/) to validate output data.  The `src/agoradatatools/great_expectations` folder houses our file system data context and Great Expectations-specific configuration files. Eventually, our goal is for each `agora-data-tools` output dataset to be convered by an expectation suite. To add data validation for more datasets, follow these steps:
+This package uses [Great Expectations](https://greatexpectations.io/) to validate output data.  The `src/agoradatatools/great_expectations` folder houses our file system data context and Great Expectations-specific configuration files. Eventually, our goal is for each `agora-data-tools` dataset to be convered by an expectation suite. To add data validation for more datasets, follow these steps:
 
-1. Create a new expectation suite by defining the expectations for the new dataset in a Jupyter Notebook inside the `gx_suite_definitions` folder. Use `metabolomics.ipynb` as an example. You can find a catalog of existing expectations [here](https://greatexpectations.io/expectations/).
+1. Create a new expectation suite by defining the expectations for the dataset in a Jupyter Notebook inside the `gx_suite_definitions` folder. Use `metabolomics.ipynb` as an example. You can find a catalog of existing expectations [here](https://greatexpectations.io/expectations/).
 1. Run the notebook to generate the new expectation suite. It should populate as a JSON file in the `/great_expectations/expectations` folder.
-1. Add support for running Great Expectations on a dataset by adding the `gx_folder` key to the configuration for the datatset in both `test_config.yaml` and `config.yaml`. The `gx_folder` should be the Synapse ID pointing of a folder where generated HTML reports from Great Expectations for that dataset should be uploaded. If a folder specific to your dataset does not yet exist in the proper locations ([Prod](https://www.synapse.org/#!Synapse:syn52948668), [Testing](https://www.synapse.org/#!Synapse:syn52948670)), create folders with the same name as the dataset itself and copy the new folders' Synapse IDs to the config files.
+1. Add support for running Great Expectations on a dataset by adding `gx_enabled: true`  to the configuration for the datatset in both `test_config.yaml` and `config.yaml`. After updating the config files reports should be uploaded in the proper locations ([Prod](https://www.synapse.org/#!Synapse:syn52948668), [Testing](https://www.synapse.org/#!Synapse:syn52948670)) when data processing is complete.
 1. Test data processing by running `adt test_config.yaml` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
 
 #### Custom Expectations
