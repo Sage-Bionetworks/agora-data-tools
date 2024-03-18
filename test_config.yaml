@@ -63,7 +63,7 @@ datasets:
         ensembl_id: ensembl_gene_id
         goterm_name: go_terms
       destination: *dest
-      gx_enabled: true 
+      gx_enabled: true
       gx_nested_columns:
         - gene_biodomains
 
