@@ -179,8 +179,8 @@ class GreatExpectationsRunner:
         logger.info(
             f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
         )
-        latest_reults_path = self._get_results_path(checkpoint_result)
-        self._upload_results_file_to_synapse(latest_reults_path)
+        latest_results_path = self._get_results_path(checkpoint_result)
+        self._upload_results_file_to_synapse(latest_results_path)
 
         if not checkpoint_result.success:
             fail_message = self.get_failed_expectations(checkpoint_result)
