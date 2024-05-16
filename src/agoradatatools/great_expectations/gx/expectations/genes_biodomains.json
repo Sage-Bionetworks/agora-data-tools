@@ -94,12 +94,12 @@
               "go_terms": {
                 "default": [],
                 "items": {
-                  "UniqueItems": true,
                   "type": "string"
                 },
                 "maxItems": 100,
                 "minItems": 1,
-                "type": "array"
+                "type": "array",
+                "uniqueItems": true
               },
               "n_biodomain_terms": {
                 "default": 0,

@@ -42,12 +42,12 @@
             },
             "go_terms": {
                 "type": "array",
+                "uniqueItems": true,
                 "default": [],
                 "minItems": 1,
                 "maxItems": 100,
                 "items": {
-                    "type": "string",
-                    "UniqueItems": true
+                    "type": "string"
                 }
             },
             "n_biodomain_terms": {
