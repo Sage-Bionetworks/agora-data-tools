@@ -67,10 +67,60 @@ def filter_hasgs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
     regex = re.compile("^(\d|X|Y|MT)")
     keep = df[chromosome_name_column].apply(
         # Keep rows if they have a numerical chromosome name, or have X, Y, or MT
-        lambda row: re.match(regex, row) is not None
-        if isinstance(row, str)
-        else True  # Always true for numbers
+        lambda row: (
+            re.match(regex, row) is not None if isinstance(row, str) else True
+        )  # Always true for numbers
     )
 
     df_filt = df.copy().loc[keep].reset_index(drop=True)
     return df_filt
+
+
+def r_query_biomart() -> pd.DataFrame:
+    """Uses rpy2 to query BioMart for all genes. This function is no longer used but is here in case we need it again.
+
+    Args:
+        none
+
+    Returns:
+        ensembl_ids_df (pd.DataFrame): a data frame including columns "ensembl_gene_id",
+                                      "chromosome_name", and "hgnc_symbol" retrived from BioMart
+    """
+    from rpy2.robjects import r
+
+    r(
+        'if (!require("BiocManager", character.only = TRUE)) { install.packages("BiocManager") }'
+    )
+    r('if (!require("biomaRt")) { BiocManager::install("biomaRt") }')
+
+    r.library("biomaRt")
+
+    # Sometimes Biomart doesn't respond and the command needs to be sent again. Try up to 5 times.
+    for T in range(5):
+        try:
+            mart = r.useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+            ensembl_ids = r.getBM(
+                attributes=r.c("ensembl_gene_id", "chromosome_name", "hgnc_symbol"),
+                mart=mart,
+                useCache=False,
+            )
+
+        except:
+            print("Trying again...")
+            ensembl_ids = None
+        else:
+            break
+
+    if ensembl_ids is None or ensembl_ids.nrow == 0:
+        print("Biomart was unresponsive after 5 attempts. Try again later.")
+        return pd.DataFrame()
+    else:
+        # Convert the ensembl_gene_id column from R object to a python list
+        ensembl_ids_df = pd.DataFrame(
+            {
+                "ensembl_gene_id": list(ensembl_ids.rx2("ensembl_gene_id")),
+                "chromosome_name": list(ensembl_ids.rx2("chromosome_name")),
+                "hgnc_symbol": list(ensembl_ids.rx2("hgnc_symbol")),
+            }
+        )
+        return ensembl_ids_df

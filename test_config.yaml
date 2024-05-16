@@ -137,7 +137,7 @@ datasets:
   - gene_info:
       files:
         - name: gene_metadata
-          id: syn25953363.12
+          id: syn25953363.13
           format: feather
         - name: igap
           id: syn12514826.5
@@ -180,7 +180,7 @@ datasets:
         possible_replacement: ensembl_possible_replacements
         permalink: ensembl_permalink
       provenance:
-        - syn25953363.12
+        - syn25953363.13
         - syn12514826.5
         - syn12514912.3
         - *agora_proteomics_provenance
