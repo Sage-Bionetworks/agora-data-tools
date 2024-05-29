@@ -8,6 +8,7 @@ import pytest
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError
 from agoradatatools.etl import extract, load, utils
+from agoradatatools.gx import GreatExpectationsRunner
 
 STAGING_PATH = "./staging"
 GX_FOLDER = "test_folder"
@@ -53,6 +54,16 @@ class TestProcessDataset:
         }
     }
 
+    dataset_object_gx_enabled = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn1111111"],
+            "destination": "syn1111113",
+            "gx_enabled": True,
+        }
+    }
+
     def setup_method(self):
         self.patch_get_entity_as_df = patch.object(
             extract, "get_entity_as_df", return_value=pd.DataFrame
@@ -76,6 +87,10 @@ class TestProcessDataset:
         self.patch_dict_to_json = patch.object(
             load, "dict_to_json", return_value="path/to/json"
         ).start()
+        self.patch_gx_runner_run = patch.object(
+            GreatExpectationsRunner,
+            "run",
+        ).start()
 
     def teardown_method(self):
         self.patch_get_entity_as_df.stop()
@@ -86,6 +101,7 @@ class TestProcessDataset:
         self.patch_load.stop()
         self.patch_custom_transform.stop()
         self.patch_dict_to_json.stop()
+        self.patch_gx_runner_run.stop()
 
     def test_process_dataset_with_column_rename(self, syn: Any):
         process.process_dataset(
@@ -93,12 +109,20 @@ class TestProcessDataset:
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             syn=syn,
+            upload=True,
         )
         self.patch_rename_columns.assert_called_once_with(
             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
         )
         self.patch_custom_transform.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_called_once_with(
+            file_path=self.patch_dict_to_json.return_value,
+            provenance=self.dataset_object_col_rename["neuropath_corr"]["provenance"],
+            destination=self.dataset_object_col_rename["neuropath_corr"]["destination"],
+            syn=syn,
+        )
 
     def test_process_dataset_custom_transformations(self, syn: Any):
         process.process_dataset(
@@ -106,6 +130,7 @@ class TestProcessDataset:
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             syn=syn,
+            upload=True,
         )
         self.patch_custom_transform.assert_called_once_with(
             datasets={"test_file_1": pd.DataFrame},
@@ -120,6 +145,17 @@ class TestProcessDataset:
         )
         self.patch_rename_columns.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_called_once_with(
+            file_path=self.patch_dict_to_json.return_value,
+            provenance=self.dataset_object_custom_transform["neuropath_corr"][
+                "provenance"
+            ],
+            destination=self.dataset_object_custom_transform["neuropath_corr"][
+                "destination"
+            ],
+            syn=syn,
+        )
 
     def test_process_dataset_with_agora_rename(self, syn: Any):
         process.process_dataset(
@@ -127,22 +163,31 @@ class TestProcessDataset:
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             syn=syn,
+            upload=True,
         )
         self.patch_rename_columns.assert_called_once_with(
             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
         )
         self.patch_custom_transform.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_called_once_with(
+            file_path=self.patch_dict_to_json.return_value,
+            provenance=self.dataset_object_agora_rename["neuropath_corr"]["provenance"],
+            destination=self.dataset_object_agora_rename["neuropath_corr"][
+                "destination"
+            ],
+            syn=syn,
+        )
 
     def test_process_dataset_type_dict(self, syn: Any):
-        self.patch_standardize_values.return_value = (
-            dict()
-        )  # test if it is a dictionary later
+        self.patch_standardize_values.return_value = dict()
         process.process_dataset(
             dataset_obj=self.dataset_object,
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             syn=syn,
+            upload=True,
         )
         self.patch_dict_to_json.assert_called_once_with(
             df={}, staging_path=STAGING_PATH, filename="neuropath_corr.json"
@@ -150,6 +195,50 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_called_once_with(
+            file_path=self.patch_dict_to_json.return_value,
+            provenance=self.dataset_object["neuropath_corr"]["provenance"],
+            destination=self.dataset_object["neuropath_corr"]["destination"],
+            syn=syn,
+        )
+
+    def test_process_when_upload_false(self, syn: Any):
+        process.process_dataset(
+            dataset_obj=self.dataset_object,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=False,
+        )
+        self.patch_rename_columns.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
+        self.patch_df_to_json.assert_called_once_with(
+            df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+        )
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_not_called()
+
+    def test_process_when_gx_is_enabled(self, syn: Any):
+        process.process_dataset(
+            dataset_obj=self.dataset_object_gx_enabled,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+        self.patch_rename_columns.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
+        self.patch_df_to_json.assert_called_once_with(
+            df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+        )
+        self.patch_gx_runner_run.assert_called_once()
+        self.patch_load.assert_called_once_with(
+            file_path=self.patch_dict_to_json.return_value,
+            provenance=self.dataset_object["neuropath_corr"]["provenance"],
+            destination=self.dataset_object["neuropath_corr"]["destination"],
+            syn=syn,
+        )
 
 
 class TestCreateDataManifest:
@@ -230,18 +319,21 @@ class TestProcessAllFiles:
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             syn=syn,
+            upload=True,
         )
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"d": {"e": "f"}},
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             syn=syn,
+            upload=True,
         )
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"g": {"h": "i"}},
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             syn=syn,
+            upload=True,
         )
         self.patch_create_data_manifest.assert_called_once_with(
             parent="destination", syn=syn
@@ -251,3 +343,42 @@ class TestProcessAllFiles:
             staging_path=STAGING_PATH,
             filename="data_manifest.csv",
         )
+        self.patch_load.assert_called_once_with(
+            file_path=self.patch_df_to_csv.return_value,
+            provenance=self.patch_create_data_manifest.return_value["id"].tolist(),
+            destination=self.patch_get_config.return_value["destination"],
+            syn=syn,
+        )
+
+    def test_process_all_files_no_upload(self, syn: Any):
+        process.process_all_files(syn=syn, config_path=self.CONFIG_PATH, upload=False)
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj={"a": {"b": "c"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=False,
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj={"d": {"e": "f"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=False,
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj={"g": {"h": "i"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=False,
+        )
+        self.patch_create_data_manifest.assert_called_once_with(
+            parent="destination", syn=syn
+        )
+        self.patch_df_to_csv.assert_called_once_with(
+            df=self.patch_create_data_manifest.return_value,
+            staging_path=STAGING_PATH,
+            filename="data_manifest.csv",
+        )
+        self.patch_load.assert_not_called()

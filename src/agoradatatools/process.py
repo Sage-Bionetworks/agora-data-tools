@@ -1,4 +1,6 @@
 import logging
+import typing
+from enum import Enum
 
 import synapseclient
 from pandas import DataFrame
@@ -10,6 +12,12 @@ from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
 
 logger = logging.getLogger(__name__)
+
+
+class Platform(Enum):
+    LOCAL = "LOCAL"
+    GITHUB = "GITHUB"
+    NEXTFLOW = "NEXTFLOW"
 
 
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
@@ -62,6 +70,7 @@ def process_dataset(
     staging_path: str,
     gx_folder: str,
     syn: synapseclient.Synapse,
+    upload: bool = True,
 ) -> tuple:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
@@ -70,6 +79,7 @@ def process_dataset(
         staging_path (str): Staging path
         gx_folder (str): Synapse ID of the folder where Great Expectations reports should be uploaded
         syn (synapseclient.Synapse): synapseclient.Synapse session.
+        upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
 
     Returns:
         syn_obj (tuple): Tuple containing the id and version number of the uploaded file.
@@ -128,7 +138,7 @@ def process_dataset(
             syn=syn,
             dataset_path=json_path,
             dataset_name=dataset_name,
-            upload_folder=gx_folder,
+            upload_folder=gx_folder if upload else None,
             nested_columns=(
                 dataset_obj[dataset_name]["gx_nested_columns"]
                 if "gx_nested_columns" in dataset_obj[dataset_name].keys()
@@ -137,19 +147,18 @@ def process_dataset(
         )
         gx_runner.run()
 
-    syn_obj = load.load(
-        file_path=json_path,
-        provenance=dataset_obj[dataset_name]["provenance"],
-        destination=dataset_obj[dataset_name]["destination"],
-        syn=syn,
-    )
-
-    return syn_obj
+    if upload:
+        load.load(
+            file_path=json_path,
+            provenance=dataset_obj[dataset_name]["provenance"],
+            destination=dataset_obj[dataset_name]["destination"],
+            syn=syn,
+        )
 
 
 def create_data_manifest(
     syn: synapseclient.Synapse, parent: synapseclient.Folder = None
-) -> DataFrame:
+) -> typing.Union[DataFrame, None]:
     """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse folders
 
     Args:
@@ -157,14 +166,13 @@ def create_data_manifest(
         parent (synapseclient.Folder/str, optional): synapse folder or synapse id pointing to parent synapse folder. Defaults to None.
 
     Returns:
-        DataFrame: Dataframe containing IDs and version numbers of folders within the parent directory
+        Dataframe containing IDs and version numbers of folders within the parent directory, or None if parent is None
     """
 
     if not parent:
         return None
 
     folders = syn.getChildren(parent)
-    folder = [folders]
     folder = [
         {"id": folder["id"], "version": folder["versionNumber"]} for folder in folders
     ]
@@ -176,17 +184,28 @@ def create_data_manifest(
 def process_all_files(
     syn: synapseclient.Synapse,
     config_path: str = None,
+    platform: Platform = Platform.LOCAL,
+    upload: bool = True,
 ):
     """This function will read through the entire configuration and process each file listed.
 
     Args:
         syn (synapseclient.Session): Synapse client session
         config_path (str, optional): path to configuration file. Defaults to None.
+        platform (Platform, optional): Platform where the process is being run. One of LOCAL, GITHUB, NEXTFLOW. Defaults to LOCAL.
+        upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
     """
+    if platform == Platform.LOCAL and upload is True:
+        logger.warning(
+            """Data will be uploaded to Synapse despite the platform being set to `LOCAL`.
+            Make sure you have provided a configuration file with alternative upload `destination` and `gx_folder`.
+            See the contributing guide for more information."""
+        )
 
     config = utils._get_config(config_path=config_path)
 
     datasets = config["datasets"]
+    destination = config["destination"]
 
     # create staging location
     staging_path = config.get("staging_path", None)
@@ -204,13 +223,12 @@ def process_all_files(
                     staging_path=staging_path,
                     gx_folder=config["gx_folder"],
                     syn=syn,
+                    upload=upload,
                 )
             except Exception as e:
                 error_list.append(
                     f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
                 )
-
-    destination = config["destination"]
 
     if error_list:
         raise ADTDataProcessingError(
@@ -223,18 +241,33 @@ def process_all_files(
         df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
     )
 
-    load.load(
-        file_path=manifest_path,
-        provenance=manifest_df["id"].to_list(),
-        destination=destination,
-        syn=syn,
-    )
+    if upload:
+        load.load(
+            file_path=manifest_path,
+            provenance=manifest_df["id"].to_list(),
+            destination=destination,
+            syn=syn,
+        )
 
 
 app = Typer()
 
-
 input_path_arg = Argument(..., help="Path to configuration file for processing run")
+
+platform_arg = Option(
+    "LOCAL",
+    "--platform",
+    "-p",
+    help="Platform that is running the process. Must be one of LOCAL, GITHUB, or NEXTFLOW.",
+    show_default=True,
+)
+upload_opt = Option(
+    False,
+    "--upload",
+    "-u",
+    help="Toggles whether or not files will be uploaded to Synapse.",
+    show_default=True,
+)
 synapse_auth_opt = Option(
     None,
     "--token",
@@ -247,10 +280,15 @@ synapse_auth_opt = Option(
 @app.command()
 def process(
     config_path: str = input_path_arg,
+    platform: str = platform_arg,
+    upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
 ):
     syn = utils._login_to_synapse(token=auth_token)
-    process_all_files(syn=syn, config_path=config_path)
+    platform_enum = Platform(platform)
+    process_all_files(
+        syn=syn, config_path=config_path, platform=platform_enum, upload=upload
+    )
 
 
 if __name__ == "__main__":
