@@ -71,7 +71,7 @@ def process_dataset(
     gx_folder: str,
     syn: synapseclient.Synapse,
     upload: bool = True,
-) -> tuple:
+) -> None:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
@@ -80,9 +80,6 @@ def process_dataset(
         gx_folder (str): Synapse ID of the folder where Great Expectations reports should be uploaded
         syn (synapseclient.Synapse): synapseclient.Synapse session.
         upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
-
-    Returns:
-        syn_obj (tuple): Tuple containing the id and version number of the uploaded file.
     """
 
     dataset_name = list(dataset_obj.keys())[0]
@@ -254,7 +251,7 @@ app = Typer()
 
 input_path_arg = Argument(..., help="Path to configuration file for processing run")
 
-platform_arg = Option(
+platform_opt = Option(
     "LOCAL",
     "--platform",
     "-p",
@@ -280,7 +277,7 @@ synapse_auth_opt = Option(
 @app.command()
 def process(
     config_path: str = input_path_arg,
-    platform: str = platform_arg,
+    platform: str = platform_opt,
     upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
 ):
