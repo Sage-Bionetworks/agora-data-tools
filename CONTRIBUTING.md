@@ -1,4 +1,3 @@
-
 ## Contributing
 
 We welcome all contributions!  That said, this is a Sage Bionetworks owned project, and we use JIRA ([AG](https://sagebionetworks.jira.com/jira/software/c/projects/AG/boards/91)/[IBCDPE](https://sagebionetworks.jira.com/jira/software/c/projects/IBCDPE/boards/189)) to track any bug/feature requests. This guide will be more focussed on a Sage Bio employee's development workflow.  If you are a Sage Bio employee, make sure to assign yourself the JIRA ticket if you decide to work on it.
@@ -71,9 +70,21 @@ The agora-data-tools project follows the standard [trunk based development](http
 
 1. Make sure to run the auto python code formatter, black.
 
-    ```shell
-    black ./
-    ```
+   ```shell
+   black ./
+   ```
+
+1. Test your changes by running `agora-data-tools` locally.
+
+```
+adt test_config.yaml
+```
+
+If your changes have to do with the way that files are uploaded to Synapse, create a new configuration file by copying `test_config.yaml` and changing the `destination` and `gx_folder` fields to testing locations that you own. The command will change to be:
+
+```
+adt my_dev_config.yaml --upload
+```
 
 1. Once you have completed all the steps above, create a pull request from the feature branch to the `dev` branch of the Sage-Bionetworks/agora-data-tools repo.
 
