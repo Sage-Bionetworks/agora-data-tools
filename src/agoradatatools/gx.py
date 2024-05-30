@@ -25,7 +25,7 @@ class GreatExpectationsRunner:
         syn: Synapse,
         dataset_path: str,
         dataset_name: str,
-        upload_folder: str,
+        upload_folder: str = None,
         nested_columns: typing.List[str] = None,
     ):
         """Initialize the class"""
@@ -180,7 +180,9 @@ class GreatExpectationsRunner:
             f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
         )
         latest_reults_path = self._get_results_path(checkpoint_result)
-        self._upload_results_file_to_synapse(latest_reults_path)
+
+        if self.upload_folder:
+            self._upload_results_file_to_synapse(latest_reults_path)
 
         if not checkpoint_result.success:
             fail_message = self.get_failed_expectations(checkpoint_result)

@@ -276,3 +276,34 @@ class TestGreatExpectationsRunner:
                 patch_get_failed_expectations.assert_called_once_with(
                     patch_upload_results_file_to_synapse.return_value
                 )
+
+    def test_that_that_files_are_not_uploaded_when_upload_folder_is_none(
+        self,
+    ):
+        with patch.object(
+            self.good_runner, "_check_if_expectation_suite_exists", return_value=True
+        ), patch.object(
+            pd, "read_json", return_value=pd.DataFrame()
+        ) as patch_read_json, patch.object(
+            self.good_runner,
+            "convert_nested_columns_to_json",
+            return_value=pd.DataFrame(),
+        ) as patch_convert_nested_columns_to_json, patch.object(
+            self.good_runner, "_get_results_path", return_value="test_path"
+        ) as patch_get_results_path, patch.object(
+            self.good_runner, "_upload_results_file_to_synapse", return_value=None
+        ) as patch_upload_results_file_to_synapse, patch.object(
+            Checkpoint,
+            "run",
+            return_value=self.passed_checkpoint_result,
+        ) as patch_checkpoint_run, patch.object(
+            self.good_runner, "get_failed_expectations", return_value="test"
+        ) as patch_get_failed_expectations:
+            self.good_runner.upload_folder = None
+            self.good_runner.run()
+            patch_read_json.assert_called_once_with(self.good_runner.dataset_path)
+            patch_convert_nested_columns_to_json.assert_not_called()
+            patch_get_results_path.assert_called_once()
+            patch_upload_results_file_to_synapse.assert_not_called()
+            patch_checkpoint_run.assert_called_once()
+            patch_get_failed_expectations.assert_not_called()
