@@ -18,9 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with: {fetch-depth: 0}  # deep clone for setuptools-scm
+        with: { fetch-depth: 0 } # deep clone for setuptools-scm
       - uses: actions/setup-python@v4
-        with: {python-version: "3.9"}
+        with: { python-version: "3.9" }
       - name: Run static analysis and format checkers
         run: pipx run pre-commit run --all-files --show-diff-on-failure
   test:
@@ -72,33 +72,34 @@ jobs:
 
   ghcr-publish:
     needs: [build, test]
+    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    - id: meta
-      uses: docker/metadata-action@v4
-      with:
-        images: |
-          ghcr.io/${{ github.repository }}
-        tags: |
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=ref,event=branch
-          type=sha
-          latest
-    - name: Publish Docker Image
-      uses: docker/build-push-action@v3
-      with:
-        context: .
-        build-args: |
-          TARBALL_PATH=${{ needs.prepare.outputs.tarball-path }}
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+      - uses: actions/checkout@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=ref,event=branch
+            type=sha
+            latest
+      - name: Publish Docker Image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          build-args: |
+            TARBALL_PATH=${{ needs.prepare.outputs.tarball-path }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
