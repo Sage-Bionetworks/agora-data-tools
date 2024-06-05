@@ -6,7 +6,7 @@ import typing
 
 import pandas as pd
 
-from agoradatatools.errors import ADTDataValidationError
+from agoradatatools.reporter import DatasetReport
 
 import great_expectations as gx
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
@@ -35,6 +35,12 @@ class GreatExpectationsRunner:
         self.upload_folder = upload_folder
         self.nested_columns = nested_columns
         self.gx_project_dir = self._get_data_context_location()
+        self.failures = False
+        self.warnings = False
+        self.failure_message = ""
+        self.report_file = None
+        self.report_version = None
+        self.report_link = None
 
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
         self.validations_path = os.path.join(
@@ -98,7 +104,7 @@ class GreatExpectationsRunner:
 
     def _upload_results_file_to_synapse(self, results_path: str) -> None:
         """Uploads a results file to Synapse"""
-        self.syn.store(
+        file = self.syn.store(
             File(
                 results_path,
                 parentId=self.upload_folder,
@@ -108,6 +114,11 @@ class GreatExpectationsRunner:
                 executed="https://github.com/Sage-Bionetworks/agora-data-tools",
             ),
             forceVersion=True,
+        )
+        self.report_file = file.id
+        self.report_version = file.versionNumber
+        self.report_link = DatasetReport.format_link(
+            syn_id=file.id, version=file.versionNumber
         )
 
     @staticmethod
@@ -154,6 +165,7 @@ class GreatExpectationsRunner:
 
     def run(self) -> None:
         """Run great expectations on a dataset and upload the results to Synapse"""
+
         if not self._check_if_expectation_suite_exists():
             return
 
@@ -184,6 +196,13 @@ class GreatExpectationsRunner:
         if self.upload_folder:
             self._upload_results_file_to_synapse(latest_reults_path)
 
+        # TODO: Confirm that this works properly
+        for result in list(checkpoint_result.run_results.values())[0][
+            "validation_result"
+        ]["results"]:
+            if result["exception_info"]["raised_exception"]:
+                self.warnings = True
+
         if not checkpoint_result.success:
-            fail_message = self.get_failed_expectations(checkpoint_result)
-            raise ADTDataValidationError(fail_message)
+            self.failures = True
+            self.failure_message = self.get_failed_expectations(checkpoint_result)

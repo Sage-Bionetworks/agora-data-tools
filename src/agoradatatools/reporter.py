@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import synapseclient
 
-from agoradatatools.process import Platform
+from agoradatatools.platform import Platform
 
 
 @dataclass
@@ -21,6 +21,7 @@ class DatasetReport:
         gx_report_version: Version number of the GX report file.
         gx_report_link: URL of the specific version of the GX report file.
         gx_failures: Whether or not the GX run had any failed expectations.
+        gx_failure_message: Message of the GX run if any expectations failed.
         gx_warnings: Whether or not the GX run had any warnings on from the expectations.
         adt_output_file: Synapse ID of the ADT output file.
         adt_output_version: Version number of the ADT output file.
@@ -38,6 +39,7 @@ class DatasetReport:
     gx_report_version: Optional[int] = field(default=None)
     gx_report_link: Optional[str] = field(default=None)
     gx_failures: Optional[bool] = field(default=False)
+    gx_failure_message: Optional[str] = field(default=None)
     gx_warnings: Optional[bool] = field(default=False)
     adt_output_file: Optional[str] = field(default=None)
     adt_output_version: Optional[int] = field(default=None)
@@ -64,6 +66,7 @@ class DatasetReport:
             "gx_report_version": self.gx_report_version,
             "gx_report_link": self.gx_report_link,
             "gx_failures": self.gx_failures,
+            "gx_failure_message": self.gx_failure_message,
             "gx_warnings": self.gx_warnings,
             "adt_output_file": self.adt_output_file,
             "adt_output_version": self.adt_output_version,
@@ -84,6 +87,9 @@ class ADTGXReporter:
         platform: The platform where the processing was run.
         run_id: The id of the processing run. This will be passed from the `process` CLI command.
         table_id: Synapse ID of the Synapse table to be updated.
+        adt_manifest_file: Synapse ID of the ADT manifest file.
+        adt_manifest_version: Version number of the ADT manifest file.
+        adt_manifest_link: URL of the specific version of the ADT manifest file.
         reports: List of DatasetReport objects to be added to the table.
     """
 
@@ -91,20 +97,34 @@ class ADTGXReporter:
     platform: Platform
     run_id: str
     table_id: str
+    adt_manifest_file: Optional[str] = field(default=None)
+    adt_manifest_version: Optional[int] = field(default=None)
+    adt_manifest_link: Optional[str] = field(default=None)
     reports: Optional[List[DatasetReport]] = field(default_factory=list)
 
     def generate_report(self):
         return DatasetReport(platform=self.platform, run_id=self.run_id)
 
-    def add_row(self, row: DatasetReport):
-        self.rows.append(row)
+    def add_report(self, report: DatasetReport):
+        self.reports.append(report)
+        print(self.reports)
+        breakpoint()
 
     def update_table(self):
         timestamp = datetime.datetime.now()
-        for row in self.reports:
-            row.timestamp = timestamp
-            rows = [[val for val in row.to_dict.values()]]
-
+        for report in self.reports:
+            report.timestamp = timestamp
+            report.platform = self.platform.value
+            report.run_id = self.run_id
+            report.adt_manifest_file = self.adt_manifest_file
+            report.adt_manifest_version = self.adt_manifest_version
+            report.adt_manifest_link = self.adt_manifest_link
+        rows = []
+        for report in self.reports:
+            row = report.to_dict()
+            rows.append(row.values())
+        print(rows)
+        breakpoint()
         self.syn.store(
             synapseclient.Table(
                 self.table_id,
