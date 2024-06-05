@@ -12,11 +12,11 @@ def format_seconds(seconds):
 def time_function(func, *args, **kwargs):
     """Returns the elapsed time for a function to run."""
     start_time = time.monotonic()
-    func(*args, **kwargs)
+    result = func(*args, **kwargs)
     end_time = time.monotonic()
     elapsed_time = end_time - start_time
     elapsed_time_formatted = format_seconds(elapsed_time)
-    return elapsed_time_formatted
+    return elapsed_time_formatted, result
 
 
 def log_time(func_name: str, logger: logging.Logger):
@@ -43,19 +43,20 @@ def log_time(func_name: str, logger: logging.Logger):
             if func_name == "process_dataset":
                 dataset = next(iter(kwargs["dataset_obj"]))
                 logger.info("Now processing %s dataset", dataset)
-                elapsed_time_formatted = time_function(func, *args, **kwargs)
+                elapsed_time_formatted, result = time_function(func, *args, **kwargs)
                 logger.info("Processing complete for %s dataset", dataset)
                 string_list = [elapsed_time_formatted, dataset]
                 message = "Elapsed time: %s for %s dataset"
 
             if func_name == "process_all_files":
                 logger.info("Agora Data Tools processing has started")
-                elapsed_time_formatted = time_function(func, *args, **kwargs)
+                elapsed_time_formatted, result = time_function(func, *args, **kwargs)
                 logger.info("Agora Data Tools processing has completed")
                 string_list = [elapsed_time_formatted]
                 message = "Elapsed time: %s for all data processing"
 
             logger.info(message, *string_list)
+            return result
 
         return wrapped
 

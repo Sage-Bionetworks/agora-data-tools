@@ -12,7 +12,7 @@ from agoradatatools.etl import extract, load, transform, utils
 from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
-from agoradatatools.platform import Platform
+from agoradatatools.platform_testing import Platform
 
 logger = logging.getLogger(__name__)
 
@@ -176,7 +176,7 @@ def process_dataset(
 
         print("before returning report")
         print(dataset_report)
-        breakpoint()
+        # breakpoint()
         return dataset_report
 
     else:
@@ -270,7 +270,7 @@ def process_all_files(
         )
         print("after process_dataset")
         print(dataset_report)
-        breakpoint()
+        # breakpoint()
         if dataset_report:
             reporter.add_report(dataset_report)
             if dataset_report.gx_failures:

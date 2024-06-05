@@ -4,7 +4,7 @@ from typing import List, Optional
 
 import synapseclient
 
-from agoradatatools.platform import Platform
+from agoradatatools.platform_testing import Platform
 
 
 @dataclass
