@@ -1,6 +1,7 @@
 destination: &dest syn12177492
 staging_path: ./staging
 gx_folder: syn52948668
+gx_table: syn60527066
 sources:
   - genes_biodomains:
     genes_biodomains_files: &genes_biodomains_files
