@@ -80,7 +80,11 @@ class GreatExpectationsRunner:
         return exists
 
     def _get_results_path(self, checkpoint_result: CheckpointResult) -> str:
-        """Gets the path to the most recent HTML report for a checkpoint, copies it to a Synapse-API friendly name, and returns the new path"""
+        """Gets the path to the most recent HTML report for a checkpoint, copies it to a Synapse-API friendly name, and returns the new path
+
+        Args:
+            checkpoint_result (CheckpointResult): CheckpointResult object from GX validation run.
+        """
         validation_results = checkpoint_result.list_validation_result_identifiers()
         latest_validation_result = validation_results[0]
 
@@ -103,7 +107,12 @@ class GreatExpectationsRunner:
         return new_results_path
 
     def _upload_results_file_to_synapse(self, results_path: str) -> None:
-        """Uploads a results file to Synapse"""
+        """Uploads a results file to Synapse. Assigns class attributes associated
+        with the report file.
+
+        Args:
+            results_path (str): Path to the GX report file.
+        """
         file = self.syn.store(
             File(
                 results_path,
@@ -125,7 +134,16 @@ class GreatExpectationsRunner:
     def convert_nested_columns_to_json(
         df: pd.DataFrame, nested_columns: typing.List[str]
     ) -> pd.DataFrame:
-        """Converts nested columns in a DataFrame to JSON-parseable strings"""
+        """Converts nested columns in a DataFrame to JSON-parseable strings
+
+        Args:
+            df (pd.DataFrame): DataFrame
+            nested_columns (typing.List[str]): List of nested columns
+
+        Returns:
+            df (pd.DataFrame): DataFrame with nested columns converted to JSON-parseable strings
+        """
+        df = df.copy()
         for column in nested_columns:
             df[column] = df[column].apply(json.dumps)
         return df
@@ -137,7 +155,7 @@ class GreatExpectationsRunner:
             checkpoint_result (CheckpointResult): CheckpointResult object
 
         Returns:
-            fail_message: String with information on which fields and expectations failed
+            fail_message (str): String with information on which fields and expectations failed
         """
         fail_dict = {self.expectation_suite_name: {}}
         expectation_results = checkpoint_result.list_validation_results()[0]["results"]
@@ -164,7 +182,7 @@ class GreatExpectationsRunner:
         return fail_message
 
     def run(self) -> None:
-        """Run great expectations on a dataset and upload the results to Synapse"""
+        """Run great expectations on a dataset and upload the results to Synapse."""
 
         if not self._check_if_expectation_suite_exists():
             return
