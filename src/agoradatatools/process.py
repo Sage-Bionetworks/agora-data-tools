@@ -12,7 +12,7 @@ from agoradatatools.etl import extract, load, transform, utils
 from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
-from agoradatatools.platform_testing import Platform
+from agoradatatools.run_platform import Platform
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +81,10 @@ def process_dataset(
     Returns:
         None if GX is not enabled. Otherwise, a DatasetReport object.
     """
-
     dataset_name = list(dataset_obj.keys())[0]
-    entities_as_df = {}
-
     dataset_report = DatasetReport(data_set=dataset_name)
 
+    entities_as_df = {}
     for entity in dataset_obj[dataset_name]["files"]:
         entity_id = entity["id"]
         entity_format = entity["format"]
@@ -96,7 +94,6 @@ def process_dataset(
         df = utils.standardize_column_names(df=df)
         df = utils.standardize_values(df=df)
 
-        # the column rename gets applied to all entities in a dataset
         if "column_rename" in dataset_obj[dataset_name].keys():
             df = utils.rename_columns(
                 df=df, column_map=dataset_obj[dataset_name]["column_rename"]
@@ -173,10 +170,6 @@ def process_dataset(
                     syn_id=file_id, version=file_version
                 ),
             )
-
-        print("before returning report")
-        print(dataset_report)
-        # breakpoint()
         return dataset_report
 
     else:
@@ -187,7 +180,6 @@ def process_dataset(
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,
             )
-        print("before returning None")
         return None
 
 
@@ -240,47 +232,41 @@ def process_all_files(
         )
 
     config = utils._get_config(config_path=config_path)
-
     datasets = config["datasets"]
     destination = config["destination"]
+    report_table = config["report_table"]
 
-    # create staging location
     staging_path = config.get("staging_path", None)
     if staging_path is None:
         staging_path = "./staging"
-
     load.create_temp_location(staging_path)
 
     reporter = ADTGXReporter(
         syn=syn,
         platform=platform,
         run_id=run_id,
-        table_id="syn60209988",  # TODO: add to config after final tables have been created
+        table_id=report_table,
     )
 
     error_list = []
     for dataset in datasets:
-        # try:
-        dataset_report = process_dataset(
-            dataset_obj=dataset,
-            staging_path=staging_path,
-            gx_folder=config["gx_folder"],
-            syn=syn,
-            upload=upload,
-        )
-        print("after process_dataset")
-        print(dataset_report)
-        # breakpoint()
-        if dataset_report:
-            reporter.add_report(dataset_report)
-            if dataset_report.gx_failures:
-                raise ADTDataValidationError(dataset_report.gx_failure_message)
-        # except Exception as e:
-        #     error_list.append(f"{list(dataset.keys())[0]}: " + str(e).replace("\n", ""))
+        try:
+            dataset_report = process_dataset(
+                dataset_obj=dataset,
+                staging_path=staging_path,
+                gx_folder=config["gx_folder"],
+                syn=syn,
+                upload=upload,
+            )
+            if dataset_report:
+                reporter.add_report(dataset_report)
+                if dataset_report.gx_failures:
+                    raise ADTDataValidationError(dataset_report.gx_failure_message)
+        except Exception as e:
+            error_list.append(f"{list(dataset.keys())[0]}: " + str(e).replace("\n", ""))
 
     if error_list:
-        if platform != Platform.LOCAL:
-            reporter.update_table()
+        reporter.update_table()
 
         raise ADTDataProcessingError(
             "\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
@@ -299,14 +285,13 @@ def process_all_files(
             destination=destination,
             syn=syn,
         )
-        reporter.adt_manifest_file = file_id
-        reporter.adt_manifest_version = file_version
-        reporter.adt_manifest_link = DatasetReport.format_link(
+        reporter.data_manifest_file = file_id
+        reporter.data_manifest_version = file_version
+        reporter.data_manifest_link = DatasetReport.format_link(
             syn_id=file_id, version=file_version
         )
 
-    if platform != Platform.LOCAL:
-        reporter.update_table()
+    reporter.update_table()
 
 
 app = Typer()
