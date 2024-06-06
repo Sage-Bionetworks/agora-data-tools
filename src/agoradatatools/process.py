@@ -234,7 +234,7 @@ def process_all_files(
     config = utils._get_config(config_path=config_path)
     datasets = config["datasets"]
     destination = config["destination"]
-    report_table = config["report_table"]
+    gx_table = config["gx_table"]
 
     staging_path = config.get("staging_path", None)
     if staging_path is None:
@@ -245,7 +245,7 @@ def process_all_files(
         syn=syn,
         platform=platform,
         run_id=run_id,
-        table_id=report_table,
+        table_id=gx_table,
     )
 
     error_list = []

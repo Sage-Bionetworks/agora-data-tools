@@ -81,7 +81,7 @@ The agora-data-tools project follows the standard [trunk based development](http
 adt test_config.yaml
 ```
 
-If your changes have to do with the way that files are uploaded to Synapse, create a new configuration file by copying `test_config.yaml` and changing the `destination` and `gx_folder` fields to testing locations that you own. The command will change to be:
+If your changes have to do with the way that files are uploaded to Synapse and/or uploading new records to the ADT GX Synapse table, create a new configuration file by copying `test_config.yaml` and changing the `destination`, `gx_folder`, and `gx_table` fields to testing locations that you own. The command will change to be:
 
 ```
 adt my_dev_config.yaml --upload
