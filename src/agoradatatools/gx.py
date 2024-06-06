@@ -1,24 +1,30 @@
+import json
 import logging
 import os
 import shutil
-import json
 import typing
-
-import pandas as pd
-
-from agoradatatools.reporter import DatasetReport
+from typing import Optional
 
 import great_expectations as gx
+import pandas as pd
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
 from synapseclient import Activity, File, Synapse
 
+from agoradatatools.reporter import DatasetReport
+
 logger = logging.getLogger(__name__)
-# Disable GX INFO logging
 logging.getLogger("great_expectations").setLevel(logging.WARNING)
 
 
 class GreatExpectationsRunner:
     """Class to run great expectations on a dataset and upload the HTML report to Synapse"""
+
+    failures: bool = False
+    warnings: bool = False
+    failure_message: Optional[str] = None
+    report_file: Optional[str] = None
+    report_version: Optional[int] = None
+    report_link: Optional[str] = None
 
     def __init__(
         self,
@@ -35,12 +41,6 @@ class GreatExpectationsRunner:
         self.upload_folder = upload_folder
         self.nested_columns = nested_columns
         self.gx_project_dir = self._get_data_context_location()
-        self.failures = False
-        self.warnings = False
-        self.failure_message = ""
-        self.report_file = None
-        self.report_version = None
-        self.report_link = None
 
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
         self.validations_path = os.path.join(
@@ -49,11 +49,11 @@ class GreatExpectationsRunner:
         from expectations.expect_column_values_to_have_list_length import (
             ExpectColumnValuesToHaveListLength,
         )
-        from expectations.expect_column_values_to_have_list_members import (
-            ExpectColumnValuesToHaveListMembers,
-        )
         from expectations.expect_column_values_to_have_list_length_in_range import (
             ExpectColumnValuesToHaveListLengthInRange,
+        )
+        from expectations.expect_column_values_to_have_list_members import (
+            ExpectColumnValuesToHaveListMembers,
         )
         from expectations.expect_column_values_to_have_list_members_of_type import (
             ExpectColumnValuesToHaveListMembersOfType,
@@ -196,13 +196,13 @@ class GreatExpectationsRunner:
         if self.upload_folder:
             self._upload_results_file_to_synapse(latest_reults_path)
 
-        # TODO: Confirm that this works properly
-        for result in list(checkpoint_result.run_results.values())[0][
-            "validation_result"
-        ]["results"]:
-            if result["exception_info"]["raised_exception"]:
-                self.warnings = True
-
         if not checkpoint_result.success:
             self.failures = True
             self.failure_message = self.get_failed_expectations(checkpoint_result)
+
+        # TODO: Confirm that this works properly
+        # for result in list(checkpoint_result.run_results.values())[0][
+        #     "validation_result"
+        # ]["results"]:
+        #     if result["exception_info"]["raised_exception"]:
+        #         self.warnings = True
