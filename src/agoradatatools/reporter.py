@@ -1,16 +1,16 @@
 import datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import List, Optional
 
 import synapseclient
 
-from agoradatatools.platform_testing import Platform
+from agoradatatools.run_platform import Platform
 
 
 @dataclass
 class DatasetReport:
     """
-    This class will be used to collect all of the data needed to populate one row of the Synapse table.
+    Holds all of the data needed to populate one row of the ADT GX Reporting Synapse table.
 
     Attributes:
         timestamp: Timestamp when the processing run took place.
@@ -48,48 +48,44 @@ class DatasetReport:
     data_manifest_version: Optional[int] = field(default=None)
     data_manifest_link: Optional[str] = field(default=None)
 
-    def set_attributes(self, **kwargs):
+    def set_attributes(self, **kwargs) -> None:
+        """Set attributes for the DatasetReport object.
+
+        Args:
+            **kwargs: Keyword arguments for the DatasetReport object.
+        """
         for key, value in kwargs.items():
             setattr(self, key, value)
 
     @classmethod
     def format_link(cls, syn_id: str, version: int) -> str:
-        return f"https://www.synapse.org/Synapse:{syn_id}.{version}"
+        """Generates a link to a specific version of a synapse entity
 
-    def to_dict(self):
-        return {
-            "timestamp": self.timestamp,
-            "platform": self.platform.value,
-            "run_id": self.run_id,
-            "data_set": self.data_set,
-            "gx_report_file": self.gx_report_file,
-            "gx_report_version": self.gx_report_version,
-            "gx_report_link": self.gx_report_link,
-            "gx_failures": self.gx_failures,
-            "gx_failure_message": self.gx_failure_message,
-            "gx_warnings": self.gx_warnings,
-            "adt_output_file": self.adt_output_file,
-            "adt_output_version": self.adt_output_version,
-            "adt_output_link": self.adt_output_link,
-            "data_manifest_file": self.data_manifest_file,
-            "data_manifest_version": self.data_manifest_version,
-            "data_manifest_link": self.data_manifest_link,
-        }
+        Args:
+            syn_id (str): Synapse ID of the entity.
+            version (int): Version number of the entity.
+
+        Returns:
+            str: Formatted link to the specific version of the entity.
+        """
+        return f"https://www.synapse.org/Synapse:{syn_id}.{version}"
 
 
 @dataclass
 class ADTGXReporter:
     """
-    This class will be used to collect all of the data needed to populate the Synapse table.
+    Holds all DatasetReport objects needed to update the Synapse table for an ADT run.
+    Includes attributes necessary to execute the upload to the table, as well as data which is common
+    to all DatasetReport objects.
 
     Attributes:
         syn: Synapse session object.
         platform: The platform where the processing was run.
         run_id: The id of the processing run. This will be passed from the `process` CLI command.
         table_id: Synapse ID of the Synapse table to be updated.
-        adt_manifest_file: Synapse ID of the ADT manifest file.
-        adt_manifest_version: Version number of the ADT manifest file.
-        adt_manifest_link: URL of the specific version of the ADT manifest file.
+        data_manifest_file: Synapse ID of the ADT manifest file.
+        data_manifest_version: Version number of the ADT manifest file.
+        data_manifest_link: URL of the specific version of the ADT manifest file.
         reports: List of DatasetReport objects to be added to the table.
     """
 
@@ -97,37 +93,39 @@ class ADTGXReporter:
     platform: Platform
     run_id: str
     table_id: str
-    adt_manifest_file: Optional[str] = field(default=None)
-    adt_manifest_version: Optional[int] = field(default=None)
-    adt_manifest_link: Optional[str] = field(default=None)
+    data_manifest_file: Optional[str] = field(default=None)
+    data_manifest_version: Optional[int] = field(default=None)
+    data_manifest_link: Optional[str] = field(default=None)
     reports: Optional[List[DatasetReport]] = field(default_factory=list)
 
-    def generate_report(self):
-        return DatasetReport(platform=self.platform, run_id=self.run_id)
+    def add_report(self, report: DatasetReport) -> None:
+        """Adds a DatasetReport object to the list of reports.
 
-    def add_report(self, report: DatasetReport):
+        Args:
+            report (DatasetReport): DatasetReport object to be added to the list.
+        """
         self.reports.append(report)
-        print(self.reports)
-        breakpoint()
+
+    def _update_reports_before_upload(self) -> None:
+        """Updates the DatasetReport objects with common attributes before uploading to the table."""
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        for report in self.reports:
+            report.set_attributes(
+                timestamp=timestamp,
+                platform=self.platform.value,
+                run_id=self.run_id,
+                data_manifest_file=self.data_manifest_file,
+                data_manifest_version=self.data_manifest_version,
+                data_manifest_link=self.data_manifest_link,
+            )
 
     def update_table(self):
-        timestamp = datetime.datetime.now()
-        for report in self.reports:
-            report.timestamp = timestamp
-            report.platform = self.platform.value
-            report.run_id = self.run_id
-            report.adt_manifest_file = self.adt_manifest_file
-            report.adt_manifest_version = self.adt_manifest_version
-            report.adt_manifest_link = self.adt_manifest_link
-        rows = []
-        for report in self.reports:
-            row = report.to_dict()
-            rows.append(row.values())
-        print(rows)
-        breakpoint()
+        """Updates the Synapse table adding one new row for each DatasetReport object."""
+        self._update_reports_before_upload()
+
         self.syn.store(
             synapseclient.Table(
                 self.table_id,
-                rows,
+                [asdict(report).values() for report in self.reports],
             )
         )
