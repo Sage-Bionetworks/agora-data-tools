@@ -45,14 +45,14 @@ sources:
     rna_diff_expr_data_provenance: &rna_diff_expr_data_provenance
       - syn27211942.1
 datasets:
-  # - biodomain_info:
-  #     files: *genes_biodomains_files
-  #     final_format: json
-  #     custom_transformations: 1
-  #     provenance: *genes_biodomains_provenance
-  #     column_rename:
-  #       biodomain: name
-  #     destination: *dest
+  - biodomain_info:
+      files: *genes_biodomains_files
+      final_format: json
+      custom_transformations: 1
+      provenance: *genes_biodomains_provenance
+      column_rename:
+        biodomain: name
+      destination: *dest
 
   - genes_biodomains:
       files: *genes_biodomains_files
