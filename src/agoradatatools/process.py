@@ -1,6 +1,5 @@
 import logging
 import typing
-from enum import Enum
 from typing import Union
 
 import synapseclient
