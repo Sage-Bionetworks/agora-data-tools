@@ -151,7 +151,6 @@ def process_dataset(
             ),
             gx_failures=gx_runner.failures,
             gx_failure_message=gx_runner.failure_message,
-            gx_warnings=gx_runner.warnings,
         )
 
         if upload and not gx_runner.failures:

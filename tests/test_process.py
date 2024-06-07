@@ -401,7 +401,6 @@ class TestProcessAllFiles:
         gx_report_link="test_link",
         gx_failures=False,
         gx_failure_message="test_message",
-        gx_warnings=False,
         adt_output_file="syn456",
         adt_output_version=1,
         adt_output_link="test_link",

@@ -46,7 +46,6 @@ class TestGreatExpectationsRunner:
 
     def test_that_an_initialized_runner_has_the_attributes_it_should(self, syn):
         assert self.good_runner.failures is False
-        assert self.good_runner.warnings is False
         assert self.good_runner.failure_message is None
         assert self.good_runner.report_file is None
         assert self.good_runner.report_version is None
@@ -199,7 +198,6 @@ class TestGreatExpectationsRunner:
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
             patch_get_failed_expectations.assert_not_called()
             assert self.good_runner.failures is False
-            assert self.good_runner.warnings is False
             assert self.good_runner.failure_message is None
 
     def test_run_when_expectation_suite_exists_and_no_nested_columns(
@@ -235,7 +233,6 @@ class TestGreatExpectationsRunner:
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
             patch_get_failed_expectations.assert_not_called()
             assert self.good_runner.failures is False
-            assert self.good_runner.warnings is False
             assert self.good_runner.failure_message is None
 
     def test_that_run_does_not_complete_when_check_if_expectation_suite_exists_is_false(
@@ -268,7 +265,6 @@ class TestGreatExpectationsRunner:
             patch_upload_results_file_to_synapse.assert_not_called()
             patch_get_failed_expectations.assert_not_called()
             assert self.good_runner.failures is False
-            assert self.good_runner.warnings is False
             assert self.good_runner.failure_message is None
 
     def test_run_when_validation_fails(
@@ -304,7 +300,6 @@ class TestGreatExpectationsRunner:
                 patch_checkpoint_run.return_value
             )
             assert self.good_runner.failures is True
-            assert self.good_runner.warnings is False
             assert self.good_runner.failure_message == "test"
 
     def test_that_that_files_are_not_uploaded_when_upload_folder_is_none(
@@ -339,5 +334,4 @@ class TestGreatExpectationsRunner:
             patch_upload_results_file_to_synapse.assert_not_called()
             patch_get_failed_expectations.assert_not_called()
             assert self.good_runner.failures is False
-            assert self.good_runner.warnings is False
             assert self.good_runner.failure_message is None

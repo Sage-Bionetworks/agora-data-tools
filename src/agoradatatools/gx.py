@@ -20,7 +20,6 @@ class GreatExpectationsRunner:
     """Class to run great expectations on a dataset and upload the HTML report to Synapse"""
 
     failures: bool = False
-    warnings: bool = False
     failure_message: Optional[str] = None
     report_file: Optional[str] = None
     report_version: Optional[int] = None
@@ -217,10 +216,3 @@ class GreatExpectationsRunner:
         if not checkpoint_result.success:
             self.failures = True
             self.failure_message = self.get_failed_expectations(checkpoint_result)
-
-        # TODO: Confirm that this works properly
-        # for result in list(checkpoint_result.run_results.values())[0][
-        #     "validation_result"
-        # ]["results"]:
-        #     if result["exception_info"]["raised_exception"]:
-        #         self.warnings = True

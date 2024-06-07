@@ -22,7 +22,6 @@ class DatasetReport:
         gx_report_link: URL of the specific version of the GX report file.
         gx_failures: Whether or not the GX run had any failed expectations.
         gx_failure_message: Message of the GX run if any expectations failed.
-        gx_warnings: Whether or not the GX run had any warnings on from the expectations.
         adt_output_file: Synapse ID of the ADT output file.
         adt_output_version: Version number of the ADT output file.
         adt_output_link: URL of the specific version of the ADT output file.
@@ -40,7 +39,6 @@ class DatasetReport:
     gx_report_link: Optional[str] = field(default=None)
     gx_failures: Optional[bool] = field(default=False)
     gx_failure_message: Optional[str] = field(default=None)
-    gx_warnings: Optional[bool] = field(default=False)
     adt_output_file: Optional[str] = field(default=None)
     adt_output_version: Optional[int] = field(default=None)
     adt_output_link: Optional[str] = field(default=None)
