@@ -117,7 +117,7 @@ class ADTGXReporter:
                 data_manifest_link=self.data_manifest_link,
             )
 
-    def update_table(self):
+    def update_table(self) -> None:
         """Updates the Synapse table adding one new row for each DatasetReport object if the platform is not LOCAL."""
         if self.platform != Platform.LOCAL:
             self._update_reports_before_upload()
