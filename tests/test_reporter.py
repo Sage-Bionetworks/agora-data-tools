@@ -1,7 +1,6 @@
 import pytest
 import datetime
 
-from unittest import mock
 from unittest.mock import patch
 
 import agoradatatools.reporter
@@ -29,7 +28,6 @@ class TestDatasetReport:
 
 
 class TestADTGXReporter:
-
     @pytest.fixture(scope="function", autouse=True)
     def setup_method(self, syn):
         self.test_reporter = ADTGXReporter(
