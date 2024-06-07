@@ -79,7 +79,8 @@ class GreatExpectationsRunner:
         return exists
 
     def _get_results_path(self, checkpoint_result: CheckpointResult) -> str:
-        """Gets the path to the most recent HTML report for a checkpoint, copies it to a Synapse-API friendly name, and returns the new path
+        """Gets the path to the most recent HTML report for a checkpoint,
+        copies it to a Synapse-API friendly name, and returns the new path
 
         Args:
             checkpoint_result (CheckpointResult): CheckpointResult object from GX validation run.
