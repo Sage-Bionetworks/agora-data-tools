@@ -11,7 +11,7 @@ from agoradatatools.etl import extract, load, transform, utils
 from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
-from agoradatatools.run_platform import Platform
+from agoradatatools.constants import Platform
 
 logger = logging.getLogger(__name__)
 

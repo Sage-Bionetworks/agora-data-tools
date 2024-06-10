@@ -6,7 +6,7 @@ from unittest.mock import patch
 import agoradatatools.reporter
 
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
-from agoradatatools.run_platform import Platform
+from agoradatatools.constants import Platform
 
 
 class TestDatasetReport:

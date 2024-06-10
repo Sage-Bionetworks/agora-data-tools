@@ -9,7 +9,7 @@ from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError
 from agoradatatools.etl import load, utils, extract
 from agoradatatools.reporter import DatasetReport, ADTGXReporter
-from agoradatatools.run_platform import Platform
+from agoradatatools.constants import Platform
 from agoradatatools.gx import GreatExpectationsRunner
 
 STAGING_PATH = "./staging"
