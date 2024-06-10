@@ -137,5 +137,5 @@ staging/*
 #test staging location
 test_staging_dir/
 
-# dev config
+# dev config file
 dev_config.yaml
