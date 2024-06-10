@@ -1,23 +1,19 @@
 import logging
 import typing
-from enum import Enum
+from typing import Union
 
 import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
 
-from agoradatatools.errors import ADTDataProcessingError
+from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
 from agoradatatools.etl import extract, load, transform, utils
 from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
+from agoradatatools.reporter import ADTGXReporter, DatasetReport
+from agoradatatools.constants import Platform
 
 logger = logging.getLogger(__name__)
-
-
-class Platform(Enum):
-    LOCAL = "LOCAL"
-    GITHUB = "GITHUB"
-    NEXTFLOW = "NEXTFLOW"
 
 
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
@@ -71,7 +67,7 @@ def process_dataset(
     gx_folder: str,
     syn: synapseclient.Synapse,
     upload: bool = True,
-) -> None:
+) -> Union[DatasetReport, None]:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
@@ -80,11 +76,14 @@ def process_dataset(
         gx_folder (str): Synapse ID of the folder where Great Expectations reports should be uploaded
         syn (synapseclient.Synapse): synapseclient.Synapse session.
         upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
+
+    Returns:
+        None if GX is not enabled. Otherwise, a DatasetReport object.
     """
-
     dataset_name = list(dataset_obj.keys())[0]
-    entities_as_df = {}
+    dataset_report = DatasetReport(data_set=dataset_name)
 
+    entities_as_df = {}
     for entity in dataset_obj[dataset_name]["files"]:
         entity_id = entity["id"]
         entity_format = entity["format"]
@@ -94,7 +93,6 @@ def process_dataset(
         df = utils.standardize_column_names(df=df)
         df = utils.standardize_values(df=df)
 
-        # the column rename gets applied to all entities in a dataset
         if "column_rename" in dataset_obj[dataset_name].keys():
             df = utils.rename_columns(
                 df=df, column_map=dataset_obj[dataset_name]["column_rename"]
@@ -129,8 +127,9 @@ def process_dataset(
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
 
-    # run great expectations on dataset if expectation suite exists
-    if "gx_enabled" in dataset_obj[dataset_name].keys():
+    gx_enabled = "gx_enabled" in dataset_obj[dataset_name].keys()
+
+    if gx_enabled:
         gx_runner = GreatExpectationsRunner(
             syn=syn,
             dataset_path=json_path,
@@ -144,13 +143,42 @@ def process_dataset(
         )
         gx_runner.run()
 
-    if upload:
-        load.load(
-            file_path=json_path,
-            provenance=dataset_obj[dataset_name]["provenance"],
-            destination=dataset_obj[dataset_name]["destination"],
-            syn=syn,
+        dataset_report.set_attributes(
+            gx_report_file=gx_runner.report_file,
+            gx_report_version=gx_runner.report_version,
+            gx_report_link=DatasetReport.format_link(
+                syn_id=gx_runner.report_file, version=gx_runner.report_version
+            ),
+            gx_failures=gx_runner.failures,
+            gx_failure_message=gx_runner.failure_message,
         )
+
+        if upload and not gx_runner.failures:
+            file_id, file_version = load.load(
+                file_path=json_path,
+                provenance=dataset_obj[dataset_name]["provenance"],
+                destination=dataset_obj[dataset_name]["destination"],
+                syn=syn,
+            )
+
+            dataset_report.set_attributes(
+                adt_output_file=file_id,
+                adt_output_version=file_version,
+                adt_output_link=DatasetReport.format_link(
+                    syn_id=file_id, version=file_version
+                ),
+            )
+        return dataset_report
+
+    else:
+        if upload:
+            file_id, file_version = load.load(
+                file_path=json_path,
+                provenance=dataset_obj[dataset_name]["provenance"],
+                destination=dataset_obj[dataset_name]["destination"],
+                syn=syn,
+            )
+        return None
 
 
 def create_data_manifest(
@@ -182,6 +210,7 @@ def process_all_files(
     syn: synapseclient.Synapse,
     config_path: str = None,
     platform: Platform = Platform.LOCAL,
+    run_id: str = None,
     upload: bool = True,
 ):
     """This function will read through the entire configuration and process each file listed.
@@ -190,6 +219,7 @@ def process_all_files(
         syn (synapseclient.Session): Synapse client session
         config_path (str, optional): path to configuration file. Defaults to None.
         platform (Platform, optional): Platform where the process is being run. One of LOCAL, GITHUB, NEXTFLOW. Defaults to LOCAL.
+        run_id (str, optional): Unique identifier for the processing run. Defaults to None.
         upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
     """
     if platform == Platform.LOCAL and upload is True:
@@ -200,34 +230,40 @@ def process_all_files(
         )
 
     config = utils._get_config(config_path=config_path)
-
     datasets = config["datasets"]
     destination = config["destination"]
+    gx_table = config["gx_table"]
 
-    # create staging location
     staging_path = config.get("staging_path", None)
-    if staging_path is None:
-        staging_path = "./staging"
+    load.create_temp_location(staging_path=staging_path or "./staging")
 
-    load.create_temp_location(staging_path)
+    reporter = ADTGXReporter(
+        syn=syn,
+        platform=platform,
+        run_id=run_id,
+        table_id=gx_table,
+    )
 
     error_list = []
-    if datasets:
-        for dataset in datasets:
-            try:
-                process_dataset(
-                    dataset_obj=dataset,
-                    staging_path=staging_path,
-                    gx_folder=config["gx_folder"],
-                    syn=syn,
-                    upload=upload,
-                )
-            except Exception as e:
-                error_list.append(
-                    f"{list(dataset.keys())[0]}: " + str(e).replace("\n", "")
-                )
+    for dataset in datasets:
+        try:
+            dataset_report = process_dataset(
+                dataset_obj=dataset,
+                staging_path=staging_path,
+                gx_folder=config["gx_folder"],
+                syn=syn,
+                upload=upload,
+            )
+            if dataset_report:
+                reporter.add_report(dataset_report)
+                if dataset_report.gx_failures:
+                    raise ADTDataValidationError(dataset_report.gx_failure_message)
+        except Exception as e:
+            error_list.append(f"{list(dataset.keys())[0]}: " + str(e).replace("\n", ""))
 
     if error_list:
+        reporter.update_table()
+
         raise ADTDataProcessingError(
             "\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\n"
             + "\n".join(error_list)
@@ -239,12 +275,19 @@ def process_all_files(
     )
 
     if upload:
-        load.load(
+        file_id, file_version = load.load(
             file_path=manifest_path,
             provenance=manifest_df["id"].to_list(),
             destination=destination,
             syn=syn,
         )
+        reporter.data_manifest_file = file_id
+        reporter.data_manifest_version = file_version
+        reporter.data_manifest_link = DatasetReport.format_link(
+            syn_id=file_id, version=file_version
+        )
+
+    reporter.update_table()
 
 
 app = Typer()
@@ -256,6 +299,13 @@ platform_opt = Option(
     "--platform",
     "-p",
     help="Platform that is running the process. Must be one of LOCAL, GITHUB, or NEXTFLOW.",
+    show_default=True,
+)
+run_id_opt = Option(
+    None,
+    "--run_id",
+    "-r",
+    help="Run ID of the process.",
     show_default=True,
 )
 upload_opt = Option(
@@ -278,13 +328,18 @@ synapse_auth_opt = Option(
 def process(
     config_path: str = input_path_arg,
     platform: str = platform_opt,
+    run_id: str = run_id_opt,
     upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
 ):
     syn = utils._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
     process_all_files(
-        syn=syn, config_path=config_path, platform=platform_enum, upload=upload
+        syn=syn,
+        config_path=config_path,
+        platform=platform_enum,
+        run_id=run_id,
+        upload=upload,
     )
 
 

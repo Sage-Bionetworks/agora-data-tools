@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from agoradatatools.errors import ADTDataValidationError
+from agoradatatools.reporter import DatasetReport
 
 import pytest
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
@@ -45,22 +45,29 @@ class TestGreatExpectationsRunner:
         )
 
     def test_that_an_initialized_runner_has_the_attributes_it_should(self, syn):
-        assert (
-            self.good_runner.gx_project_dir
-            == self.good_runner._get_data_context_location()
-        )
+        assert self.good_runner.failures is False
+        assert self.good_runner.failure_message is None
+        assert self.good_runner.report_file is None
+        assert self.good_runner.report_version is None
+        assert self.good_runner.report_link is None
+
         assert self.good_runner.syn == syn
         assert (
             self.good_runner.dataset_path == "./tests/test_assets/gx/metabolomics.json"
         )
         assert self.good_runner.expectation_suite_name == "metabolomics"
         assert self.good_runner.upload_folder == "test_folder"
-        assert isinstance(self.good_runner.context, FileDataContext)
+        assert self.good_runner.nested_columns is None
         assert (
             self.good_runner.validations_path
             == self.good_runner.gx_project_dir
             + "/gx/uncommitted/data_docs/local_site/validations"
         )
+        assert (
+            self.good_runner.gx_project_dir
+            == self.good_runner._get_data_context_location()
+        )
+        assert isinstance(self.good_runner.context, FileDataContext)
 
     def test_that_get_data_context_location_returns_the_path_to_the_gx_directory(
         self,
@@ -112,7 +119,11 @@ class TestGreatExpectationsRunner:
             assert result == expected
 
     def test_upload_results_file_to_synapse(self):
-        with patch.object(self.good_runner.syn, "store") as patch_syn_store:
+        with patch.object(
+            self.good_runner.syn,
+            "store",
+            return_value=File(parent="syn456", id="syn123", versionNumber=1),
+        ) as patch_syn_store:
             self.good_runner._upload_results_file_to_synapse("test_path")
             patch_syn_store.assert_called_once_with(
                 File(path="test_path", parent=self.good_runner.upload_folder),
@@ -121,6 +132,11 @@ class TestGreatExpectationsRunner:
                     executed="https://github.com/Sage-Bionetworks/agora-data-tools",
                 ),
                 forceVersion=True,
+            )
+            assert self.good_runner.report_file == "syn123"
+            assert self.good_runner.report_version == 1
+            assert self.good_runner.report_link == DatasetReport.format_link(
+                syn_id="syn123", version=1
             )
 
     def test_that_convert_nested_columns_to_json_converts_nested_columns_to_json(self):
@@ -153,7 +169,7 @@ class TestGreatExpectationsRunner:
     ):
         with patch.object(
             self.good_runner, "_check_if_expectation_suite_exists", return_value=True
-        ), patch.object(
+        ) as patch_check_if_expectation_suite_exists, patch.object(
             pd, "read_json", return_value=pd.DataFrame()
         ) as patch_read_json, patch.object(
             self.good_runner,
@@ -172,21 +188,24 @@ class TestGreatExpectationsRunner:
         ) as patch_get_failed_expectations:
             self.good_runner.nested_columns = ["a"]
             self.good_runner.run()
+            patch_check_if_expectation_suite_exists.assert_called_once()
             patch_read_json.assert_called_once_with(
                 self.good_runner.dataset_path,
             )
             patch_convert_nested_columns_to_json.assert_called_once()
+            patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
-            patch_checkpoint_run.assert_called_once()
             patch_get_failed_expectations.assert_not_called()
+            assert self.good_runner.failures is False
+            assert self.good_runner.failure_message is None
 
     def test_run_when_expectation_suite_exists_and_no_nested_columns(
         self,
     ):
         with patch.object(
             self.good_runner, "_check_if_expectation_suite_exists", return_value=True
-        ), patch.object(
+        ) as patch_check_if_expectation_suite_exists, patch.object(
             pd, "read_json", return_value=pd.DataFrame()
         ) as patch_read_json, patch.object(
             self.good_runner,
@@ -204,21 +223,24 @@ class TestGreatExpectationsRunner:
             self.good_runner, "get_failed_expectations", return_value="test"
         ) as patch_get_failed_expectations:
             self.good_runner.run()
+            patch_check_if_expectation_suite_exists.assert_called_once()
             patch_read_json.assert_called_once_with(
                 self.good_runner.dataset_path,
             )
             patch_convert_nested_columns_to_json.assert_not_called()
+            patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
-            patch_checkpoint_run.assert_called_once()
             patch_get_failed_expectations.assert_not_called()
+            assert self.good_runner.failures is False
+            assert self.good_runner.failure_message is None
 
     def test_that_run_does_not_complete_when_check_if_expectation_suite_exists_is_false(
         self,
     ):
         with patch.object(
             self.good_runner, "_check_if_expectation_suite_exists", return_value=False
-        ), patch.object(
+        ) as patch_check_if_expectation_suite_exists, patch.object(
             pd, "read_json", return_value=pd.DataFrame()
         ) as patch_read_json, patch.object(
             self.good_runner,
@@ -235,19 +257,22 @@ class TestGreatExpectationsRunner:
             self.good_runner, "get_failed_expectations", return_value="test"
         ) as patch_get_failed_expectations:
             self.good_runner.run()
+            patch_check_if_expectation_suite_exists.assert_called_once()
             patch_read_json.assert_not_called()
             patch_convert_nested_columns_to_json.assert_not_called()
+            patch_checkpoint_run.assert_not_called()
             patch_get_results_path.assert_not_called()
             patch_upload_results_file_to_synapse.assert_not_called()
-            patch_checkpoint_run.assert_not_called()
             patch_get_failed_expectations.assert_not_called()
+            assert self.good_runner.failures is False
+            assert self.good_runner.failure_message is None
 
-    def test_run_raises_error_when_validation_fails(
+    def test_run_when_validation_fails(
         self,
     ):
         with patch.object(
             self.good_runner, "_check_if_expectation_suite_exists", return_value=True
-        ), patch.object(
+        ) as patch_check_if_expectation_suite_exists, patch.object(
             pd, "read_json", return_value=pd.DataFrame()
         ) as patch_read_json, patch.object(
             self.good_runner,
@@ -264,25 +289,25 @@ class TestGreatExpectationsRunner:
         ) as patch_checkpoint_run, patch.object(
             self.good_runner, "get_failed_expectations", return_value="test"
         ) as patch_get_failed_expectations:
-            with pytest.raises(ADTDataValidationError, match="test"):
-                self.good_runner.run()
-                patch_read_json.assert_called_once_with(self.good_runner.dataset_path)
-                patch_convert_nested_columns_to_json.assert_not_called()
-                patch_get_results_path.assert_called_once()
-                patch_upload_results_file_to_synapse.assert_called_once_with(
-                    "test_path"
-                )
-                patch_checkpoint_run.assert_called_once()
-                patch_get_failed_expectations.assert_called_once_with(
-                    patch_upload_results_file_to_synapse.return_value
-                )
+            self.good_runner.run()
+            patch_check_if_expectation_suite_exists.assert_called_once()
+            patch_read_json.assert_called_once_with(self.good_runner.dataset_path)
+            patch_convert_nested_columns_to_json.assert_not_called()
+            patch_checkpoint_run.assert_called_once()
+            patch_get_results_path.assert_called_once()
+            patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
+            patch_get_failed_expectations.assert_called_once_with(
+                patch_checkpoint_run.return_value
+            )
+            assert self.good_runner.failures is True
+            assert self.good_runner.failure_message == "test"
 
     def test_that_that_files_are_not_uploaded_when_upload_folder_is_none(
         self,
     ):
         with patch.object(
             self.good_runner, "_check_if_expectation_suite_exists", return_value=True
-        ), patch.object(
+        ) as patch_check_if_expectation_suite_exists, patch.object(
             pd, "read_json", return_value=pd.DataFrame()
         ) as patch_read_json, patch.object(
             self.good_runner,
@@ -301,9 +326,12 @@ class TestGreatExpectationsRunner:
         ) as patch_get_failed_expectations:
             self.good_runner.upload_folder = None
             self.good_runner.run()
+            patch_check_if_expectation_suite_exists.assert_called_once()
             patch_read_json.assert_called_once_with(self.good_runner.dataset_path)
             patch_convert_nested_columns_to_json.assert_not_called()
+            patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
             patch_upload_results_file_to_synapse.assert_not_called()
-            patch_checkpoint_run.assert_called_once()
             patch_get_failed_expectations.assert_not_called()
+            assert self.good_runner.failures is False
+            assert self.good_runner.failure_message is None

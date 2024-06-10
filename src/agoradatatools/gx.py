@@ -1,24 +1,29 @@
+import json
 import logging
 import os
 import shutil
-import json
 import typing
-
-import pandas as pd
-
-from agoradatatools.errors import ADTDataValidationError
+from typing import Optional
 
 import great_expectations as gx
+import pandas as pd
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
 from synapseclient import Activity, File, Synapse
 
+from agoradatatools.reporter import DatasetReport
+
 logger = logging.getLogger(__name__)
-# Disable GX INFO logging
 logging.getLogger("great_expectations").setLevel(logging.WARNING)
 
 
 class GreatExpectationsRunner:
     """Class to run great expectations on a dataset and upload the HTML report to Synapse"""
+
+    failures: bool = False
+    failure_message: Optional[str] = None
+    report_file: Optional[str] = None
+    report_version: Optional[int] = None
+    report_link: Optional[str] = None
 
     def __init__(
         self,
@@ -43,11 +48,11 @@ class GreatExpectationsRunner:
         from expectations.expect_column_values_to_have_list_length import (
             ExpectColumnValuesToHaveListLength,
         )
-        from expectations.expect_column_values_to_have_list_members import (
-            ExpectColumnValuesToHaveListMembers,
-        )
         from expectations.expect_column_values_to_have_list_length_in_range import (
             ExpectColumnValuesToHaveListLengthInRange,
+        )
+        from expectations.expect_column_values_to_have_list_members import (
+            ExpectColumnValuesToHaveListMembers,
         )
         from expectations.expect_column_values_to_have_list_members_of_type import (
             ExpectColumnValuesToHaveListMembersOfType,
@@ -74,7 +79,12 @@ class GreatExpectationsRunner:
         return exists
 
     def _get_results_path(self, checkpoint_result: CheckpointResult) -> str:
-        """Gets the path to the most recent HTML report for a checkpoint, copies it to a Synapse-API friendly name, and returns the new path"""
+        """Gets the path to the most recent HTML report for a checkpoint,
+        copies it to a Synapse-API friendly name, and returns the new path
+
+        Args:
+            checkpoint_result (CheckpointResult): CheckpointResult object from GX validation run.
+        """
         validation_results = checkpoint_result.list_validation_result_identifiers()
         latest_validation_result = validation_results[0]
 
@@ -97,8 +107,13 @@ class GreatExpectationsRunner:
         return new_results_path
 
     def _upload_results_file_to_synapse(self, results_path: str) -> None:
-        """Uploads a results file to Synapse"""
-        self.syn.store(
+        """Uploads a results file to Synapse. Assigns class attributes associated
+        with the report file.
+
+        Args:
+            results_path (str): Path to the GX report file.
+        """
+        file = self.syn.store(
             File(
                 results_path,
                 parentId=self.upload_folder,
@@ -109,12 +124,26 @@ class GreatExpectationsRunner:
             ),
             forceVersion=True,
         )
+        self.report_file = file.id
+        self.report_version = file.versionNumber
+        self.report_link = DatasetReport.format_link(
+            syn_id=file.id, version=file.versionNumber
+        )
 
     @staticmethod
     def convert_nested_columns_to_json(
         df: pd.DataFrame, nested_columns: typing.List[str]
     ) -> pd.DataFrame:
-        """Converts nested columns in a DataFrame to JSON-parseable strings"""
+        """Converts nested columns in a DataFrame to JSON-parseable strings
+
+        Args:
+            df (pd.DataFrame): DataFrame
+            nested_columns (typing.List[str]): List of nested columns
+
+        Returns:
+            df (pd.DataFrame): DataFrame with nested columns converted to JSON-parseable strings
+        """
+        df = df.copy()
         for column in nested_columns:
             df[column] = df[column].apply(json.dumps)
         return df
@@ -126,7 +155,7 @@ class GreatExpectationsRunner:
             checkpoint_result (CheckpointResult): CheckpointResult object
 
         Returns:
-            fail_message: String with information on which fields and expectations failed
+            fail_message (str): String with information on which fields and expectations failed
         """
         fail_dict = {self.expectation_suite_name: {}}
         expectation_results = checkpoint_result.list_validation_results()[0]["results"]
@@ -153,7 +182,8 @@ class GreatExpectationsRunner:
         return fail_message
 
     def run(self) -> None:
-        """Run great expectations on a dataset and upload the results to Synapse"""
+        """Run great expectations on a dataset and upload the results to Synapse."""
+
         if not self._check_if_expectation_suite_exists():
             return
 
@@ -185,5 +215,5 @@ class GreatExpectationsRunner:
             self._upload_results_file_to_synapse(latest_reults_path)
 
         if not checkpoint_result.success:
-            fail_message = self.get_failed_expectations(checkpoint_result)
-            raise ADTDataValidationError(fail_message)
+            self.failures = True
+            self.failure_message = self.get_failed_expectations(checkpoint_result)
