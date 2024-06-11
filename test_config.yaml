@@ -254,6 +254,7 @@ datasets:
       custom_transformations: 1
       provenance: *rna_diff_expr_data_provenance
       destination: *dest
+      gx_enabled: true
 
   - distribution_data:
       files: *overall_scores_files
