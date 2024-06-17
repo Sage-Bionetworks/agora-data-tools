@@ -1,0 +1,409 @@
+
+# Create Biomarker source file (MG-88)
+
+This notebook generates a single harmonized source file containing the data required to surface Biomarker evidence in the Model-AD Explorer.
+
+Required packages (will automatically be installed if necessary):
+
+- synapser (also requires a Synapse account with an auth token)
+- tidyverse
+
+
+## Library setup
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "http://cran.fhcrc.org"))
+}
+
+if (!require("tidyverse", quietly = TRUE)) {
+  install.packages("tidyverse")
+}
+
+library(synapser)
+library(tidyverse)
+```
+
+## Utility functions & variables
+```{r}
+# Harmonized column spec for intermediate per-model files
+keeps <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units')
+
+# Vector to store all downloaded synIds for Synapse provenance
+data_sources <- character()
+
+
+# Download a file from Synapse by synId and read it into a dataframe
+download_file <- function(synId, df_name, type) {
+
+  synLogin()
+
+  # Capture all downloaded synIds for provenance
+  data_sources <<- c(data_sources, synId)
+
+  input_dir <- file.path("..", "input")
+  id_parts <- strsplit(synId, '.', fixed = TRUE)
+  id_value <- id_parts[[1]][1]
+  version_value <- id_parts[[1]][2]
+
+  if (is.na(version_value)) {
+    version_value <- NULL
+  }
+
+  cat(paste0("Downloading ", synId, "..."))
+
+
+  file <- synGet(id_value, version = version_value, downloadLocation = input_dir, ifcollision='overwrite.local')
+  path <- file$path
+
+  cat("\nDownload on:  ", date())
+  cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
+  cat("\npath: ", file$path, "\n")
+
+  if (type == 'f') {
+    data <- read_feather(path)
+  } else {
+    if (type == 'json') { data <- fromJSON(path) }
+    if (type == 'csv' || type == 'table') { data <- read.csv(path) }
+    if (type == 'tsv') { data <- read.csv(path, sep = "\t") }
+    if (type == 'rda') { data <- load(path)}
+    if (type == 'rds') {data <- readRDS(path)}
+    df_name <- as.data.frame(data)
+  }
+}
+
+# Join a data file to a pair of metadata files to get required age, sex, ageDeath, and genotype values
+join_to_metadata <- function(df, individual_metadata, biospecimen_metadata) {
+
+  individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
+  biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
+  metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
+
+  #df_out <- merge(df, metadata) # MG-12 - drop rows that are missing from biospecimen metadata
+  df_out <- merge(df, metadata, fixed=TRUE)
+
+  df_out
+}
+```
+
+
+## Download data and metadata files from Synapse
+Note that each file's synId and version is added to the data_sources vector via the download_file function.
+The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
+```{r}
+# 3xTG-AD
+# metadata
+threex_biospecimen <- download_file('syn23532198.3', type = "csv")
+threex_individual <- download_file('syn23532199.4', type = "csv")
+# Abetas
+threex_abs_sol_source <- download_file('syn25913411', type = "csv")
+threex_abs_insol_source <- download_file('syn25913418', type = "csv")
+# NO NFL DATA
+
+# 5xFAD
+# metadata
+fivex_biospecimen <- download_file('syn18876530.10', type = "csv")
+fivex_individual <- download_file('syn18880070.14', type = "csv")
+# Abetas
+fivex_abs_sol_source <- download_file('syn22101767', type = "csv")
+fivex_abs_insol_source <- download_file('syn22101766', type = "csv")
+# fivex_abs_plasma_source <- download_file('syn22101772', type = "csv")
+# NO NFL DATA
+
+#NSS
+# metadata
+nss_biospecimen <- download_file('syn29568452.3', type = "csv")
+nss_individual <- download_file('syn27147690.3', type = "csv")
+# Abetas
+nss_abs_sol_4mo_source <- download_file('syn29568621', type = "csv")
+nss_abs_sol_12mo_source <- download_file('syn29568624', type = "csv")
+nss_abs_insol_4mo_source <- download_file('syn29568619', type = "csv")
+nss_abs_insol_12mo_source <- download_file('syn29568622', type = "csv")
+# NFL
+nss_nfl_cortex_source <- download_file('syn29568489', type = "csv")
+nss_nfl_plasma_source <- download_file('syn29568490', type = "csv")
+
+#Abca7
+# metadata
+abca7_biospecimen <- download_file('syn30859390.2', type = "csv")
+abca7_individual <- download_file('syn30859394.2', type = "csv")
+# Abetas
+abca7_abs_sol_4mo_source <- download_file('syn30859386', type = "csv")
+abca7_abs_sol_12mo_source <- download_file('syn30859377', type = "csv")
+abca7_abs_insol_4mo_source <- download_file('syn30859383', type = "csv")
+abca7_abs_insol_12mo_source <- download_file('syn30859387', type = "csv")
+# NFL
+abca7_nfl_cortex_source <- download_file('syn30859379', type = "csv")
+abca7_nfl_plasma_source <- download_file('syn30859380', type = "csv")
+```
+
+
+## Generate per-model intermediate files with one measurement per row
+
+### 3xTG-AD
+```{r}
+# Abeta measures
+# Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
+threex_abs_sol <- threex_abs_sol_source %>% mutate(fraction_type = 'Soluble')
+threex_abs_insol <- threex_abs_insol_source %>% mutate(fraction_type = 'Insoluble')
+threex_abs_merged <- bind_rows(threex_abs_sol, threex_abs_insol)
+
+# populate 'model' column
+threex_abs_merged$model <- '3xTG-AD'
+
+# Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
+threex_abs_pivot <- threex_abs_merged %>%
+        pivot_longer(
+                cols = c(Abeta40, Abeta42),
+                names_to = "abeta_type",
+                values_to = "measurement"
+        )
+
+# Concatenate 'fraction_type' and 'abeta_type' columns to populate target 'type' column values
+threex_abs_pivot$type <- paste(threex_abs_pivot$fraction_type, threex_abs_pivot$abeta_type)
+
+# Drop unwanted columns and rows with no measurement value
+threex_abs_with_nas <- threex_abs_pivot[keeps]
+threex_abs <- threex_abs_with_nas[!is.na(threex_abs_with_nas$measurement),]
+
+# No NfL measures for this model
+
+threex_biomarkers <- threex_abs
+```
+
+### 5xFAD
+```{r}
+# Abeta measures
+# Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
+fivex_abs_sol <- fivex_abs_sol_source %>% mutate(fraction_type = 'Soluble')
+fivex_abs_insol <- fivex_abs_insol_source %>% mutate(fraction_type = 'Insoluble')
+fivex_abs_merged <- bind_rows(fivex_abs_sol, fivex_abs_insol)
+
+# populate 'model' column
+fivex_abs_merged$model <- '5xFAD'
+
+# Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
+fivex_abs_pivot <- fivex_abs_merged %>%
+        pivot_longer(
+                cols = c(Abeta40, Abeta42),
+                names_to = "abeta_type",
+                values_to = "measurement"
+        )
+
+# Concatenate 'fraction_type' and 'abeta_type' columns to populate target 'type' column values
+fivex_abs_pivot$type <- paste(fivex_abs_pivot$fraction_type, fivex_abs_pivot$abeta_type)
+
+# Drop unwanted columns and rows with no measurement value
+fivex_abs_with_nas <- fivex_abs_pivot[keeps]
+fivex_abs <- fivex_abs_with_nas[!is.na(fivex_abs_with_nas$measurement),]
+
+# No NfL measures for this model
+fivex_biomarkers <- fivex_abs
+```
+
+### Trem2-R47H_NSS
+```{r}
+
+# Abeta measures
+# Convert columns to consistent types
+nss_abs_sol_12mo_source$individualID <- as.character(nss_abs_sol_12mo_source$individualID)
+nss_abs_insol_12mo_source$individualID <- as.character(nss_abs_insol_12mo_source$individualID)
+nss_abs_insol_12mo_source$Abeta42 <- suppressWarnings(as.numeric(nss_abs_insol_12mo_source$Abeta42))
+
+# Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
+nss_abs_sol_4mo <- nss_abs_sol_4mo_source %>% mutate(fraction_type = 'Soluble')
+nss_abs_sol_12mo <- nss_abs_sol_12mo_source %>% mutate(fraction_type = 'Soluble')
+nss_abs_insol_4mo <- nss_abs_insol_4mo_source %>% mutate(fraction_type = 'Insoluble')
+nss_abs_insol_12mo <- nss_abs_insol_12mo_source %>% mutate(fraction_type = 'Insoluble')
+nss_abs_merged <- bind_rows(nss_abs_sol_4mo, nss_abs_sol_12mo, nss_abs_insol_4mo, nss_abs_insol_12mo)
+
+# populate 'model' column
+nss_abs_merged$model <- 'Trem2-R47H_NSS'
+
+# Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
+nss_abs_pivot <- nss_abs_merged %>%
+        pivot_longer(
+                cols = c(Abeta40, Abeta42),
+                names_to = "abeta_type",
+                values_to = "measurement"
+        )
+
+# Concatenate 'fraction_type' and 'abeta_type' columns to populate target 'type' column values
+nss_abs_pivot$type <- paste(nss_abs_pivot$fraction_type, nss_abs_pivot$abeta_type)
+
+# Drop unwanted columns and rows with no measurement value
+nss_abs_with_nas <- nss_abs_pivot[keeps]
+nss_abs <- nss_abs_with_nas[!is.na(nss_abs_with_nas$measurement),]
+
+# NfL measures
+# Merge source dfs
+nss_nfl_merged <- bind_rows(nss_nfl_cortex_source, nss_nfl_plasma_source)
+
+# Populate 'model' column
+nss_nfl_merged$model <- 'Trem2-R47H_NSS'
+
+# Pivot nfl column and populate the target 'measurement' column
+nss_nfl_pivot <- nss_nfl_merged %>%
+        pivot_longer(
+                cols = c(NfL),
+                names_to = "type",
+                values_to = "measurement"
+        )
+
+# Drop unwanted columns and rows with no measurement value
+nss_nfl_with_nas <- nss_nfl_pivot[keeps]
+nss_nfl <- nss_nfl_with_nas[!is.na(nss_nfl_with_nas$measurement),]
+
+# Merge Abetas and NfL
+nss_biomarkers <- bind_rows(nss_abs, nss_nfl)
+
+```
+
+### Abca7*V1599M
+```{r}
+# Abeta measures
+# Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
+abca7_abs_sol_4mo <- abca7_abs_sol_4mo_source %>% mutate(fraction_type = 'Soluble')
+abca7_abs_sol_12mo <- abca7_abs_sol_12mo_source %>% mutate(fraction_type = 'Soluble')
+abca7_abs_insol_4mo <- abca7_abs_insol_4mo_source %>% mutate(fraction_type = 'Insoluble')
+abca7_abs_insol_12mo <- abca7_abs_insol_12mo_source %>% mutate(fraction_type = 'Insoluble')
+abca7_abs_merged <- bind_rows(abca7_abs_sol_4mo, abca7_abs_sol_12mo, abca7_abs_insol_4mo, abca7_abs_insol_12mo)
+
+# populate 'model' column
+abca7_abs_merged$model <- 'Abca7*v1599M'
+
+# Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
+abca7_abs_pivot <- abca7_abs_merged %>%
+        pivot_longer(
+                cols = c(Abeta40, Abeta42),
+                names_to = "abeta_type",
+                values_to = "measurement"
+        )
+
+# Concatenate 'fraction_type' and 'abeta_type' columns to populate target 'type' column values
+abca7_abs_pivot$type <- paste(abca7_abs_pivot$fraction_type, abca7_abs_pivot$abeta_type)
+
+# Drop unwanted columns and rows with no measurement value
+abca7_abs_with_nas <- abca7_abs_pivot[keeps]
+abca7_abs <- abca7_abs_with_nas[!is.na(abca7_abs_with_nas$measurement),]
+
+# NfL measures
+# Merge source dfs
+abca7_nfl_merged <- bind_rows(abca7_nfl_cortex_source, abca7_nfl_plasma_source)
+
+# Populate 'model' column
+abca7_nfl_merged$model <- 'Abca7*v1599M'
+
+# Pivot nfl column and populate the target 'measurement' column
+abca7_nfl_pivot <- abca7_nfl_merged %>%
+        pivot_longer(
+                cols = c(NfL),
+                names_to = "type",
+                values_to = "measurement"
+        )
+
+# Drop unwanted columns and rows with no measurement value
+abca7_nfl_with_nas <- abca7_nfl_pivot[keeps]
+abca7_nfl <- abca7_nfl_with_nas[!is.na(abca7_nfl_with_nas$measurement),]
+
+# Merge abs and nfl
+abca7_biomarkers <- bind_rows(abca7_abs, abca7_nfl)
+```
+
+
+## Join source files to metadata to populate age, tissue, and genotype values
+```{r}
+keeps <- c('model', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
+
+# 3xTG-AD
+threex_final <- join_to_metadata(threex_biomarkers, threex_individual, threex_biospecimen)[keeps]
+
+# 5xFAD
+fivex_with_8mo <- join_to_metadata(fivex_biomarkers, fivex_individual, fivex_biospecimen)[keeps]
+# drop unwanted 8 month samples from 5xFAD
+fivex_final <- fivex_with_8mo[fivex_with_8mo$ageDeath != 8,]
+
+# Trem2-R47H_NSS
+nss_final <- join_to_metadata(nss_biomarkers, nss_individual, nss_biospecimen)[keeps]
+
+# Abca7*V1599M
+abca7_final <- join_to_metadata(abca7_biomarkers, abca7_individual, abca7_biospecimen)[keeps]
+```
+
+
+## Sanity check nrow in generated files
+```{r}
+# 3xTG-AD
+# before dropping NA values
+stopifnot(nrow(threex_abs_sol) + nrow(threex_abs_insol) == nrow(threex_abs_merged))
+stopifnot(nrow(threex_abs_merged) * 2 == nrow(threex_abs_pivot))
+# after dropping NA values
+stopifnot(nrow(threex_abs) == nrow(threex_biomarkers))
+stopifnot(nrow(threex_biomarkers) == nrow(threex_final))
+
+# 5xFAD
+# before dropping NA values
+stopifnot(nrow(fivex_abs_sol) + nrow(fivex_abs_insol) == nrow(fivex_abs_merged))
+stopifnot(nrow(fivex_abs_merged) * 2 == nrow(fivex_abs_with_nas))
+# after dropping NA values
+stopifnot(nrow(fivex_abs) == nrow(fivex_biomarkers))
+# correct for rows lost due to MG-12 (missing biospecimen metadata) and 8mo age filtering
+stopifnot(nrow(fivex_biomarkers) == nrow(fivex_final) + 4 + nrow(fivex_with_8mo[fivex_with_8mo$ageDeath == 8,]))
+
+# Trem2-R47H_NSS
+# before dropping NA values
+stopifnot(nrow(nss_abs_sol_4mo) + nrow(nss_abs_sol_12mo) + nrow(nss_abs_insol_4mo) + nrow(nss_abs_insol_12mo) == nrow(nss_abs_merged))
+stopifnot(nrow(nss_abs_merged) * 2 == nrow(nss_abs_with_nas))
+stopifnot(nrow(nss_nfl_cortex_source) + nrow(nss_nfl_plasma_source) == nrow(nss_nfl_with_nas))
+stopifnot(nrow(nss_nfl_cortex_source) + nrow(nss_nfl_plasma_source) == nrow(nss_nfl_with_nas))
+# after dropping NA values
+stopifnot(nrow(nss_nfl) + nrow(nss_abs) == nrow(nss_biomarkers))
+stopifnot(nrow(nss_biomarkers) == nrow(nss_final))
+
+# Abca7*V1599M
+# before dropping NA values
+stopifnot(nrow(abca7_abs_sol_4mo) + nrow(abca7_abs_sol_12mo) + nrow(abca7_abs_insol_4mo) + nrow(abca7_abs_insol_12mo) == nrow(abca7_abs_merged))
+stopifnot(nrow(abca7_abs_merged) * 2 == nrow(abca7_abs_with_nas))
+stopifnot(nrow(abca7_nfl_cortex_source) + nrow(abca7_nfl_plasma_source) == nrow(abca7_nfl_with_nas))
+# after dropping NA values
+stopifnot(nrow(abca7_nfl) + nrow(abca7_abs) == nrow(abca7_biomarkers))
+stopifnot(nrow(abca7_biomarkers) == nrow(abca7_final))
+```
+
+
+## merge files, write csv file, and upload to synapse
+```{r}
+biomarkers_merged <- bind_rows(threex_final, fivex_final, nss_final, abca7_final)
+
+
+# standardize genotype values for display
+biomarkers_final <- mutate(biomarkers_merged,
+                           genotype = case_when(genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
+                                                genotype == "3xTg-AD_homozygous"  ~ "3xTG-AD",
+                                                genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
+                                                genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFADTrem2-R47H_NSS",
+                                                genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
+                                                genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
+                                                genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFADAbca7*V1599M",
+                                                TRUE ~ genotype))
+
+# print final dataframe below
+biomarkers_final
+
+# write csv file
+output_dir <- file.path("./output")
+write.csv(biomarkers_final, file.path(output_dir, "biomarkers.csv"), row.names = FALSE)
+
+# upload to synapse
+syn_file <- File(file.path(output_dir, "biomarkers.csv"),
+                 description = "Harmonized Biomarker data for Model-AD Explorer 2.0.",
+                 parent = "syn51498054")
+
+res <- synStore(syn_file, forceVersion = FALSE,
+                used = data_sources,
+                executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-88_Create_harmonized_biomarkers_source_file.rmd")
+
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
+```
+
