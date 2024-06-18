@@ -96,8 +96,8 @@ The populated data_sources vector is used to populate Synapse provenance when th
 threex_biospecimen <- download_file('syn23532198.3', type = "csv")
 threex_individual <- download_file('syn23532199.4', type = "csv")
 # Abetas
-threex_abs_sol_source <- download_file('syn25913411', type = "csv")
-threex_abs_insol_source <- download_file('syn25913418', type = "csv")
+threex_abs_sol_source <- download_file('syn25913411.7', type = "csv")
+threex_abs_insol_source <- download_file('syn25913418.8', type = "csv")
 # NO NFL DATA
 
 # 5xFAD
@@ -105,9 +105,8 @@ threex_abs_insol_source <- download_file('syn25913418', type = "csv")
 fivex_biospecimen <- download_file('syn18876530.10', type = "csv")
 fivex_individual <- download_file('syn18880070.14', type = "csv")
 # Abetas
-fivex_abs_sol_source <- download_file('syn22101767', type = "csv")
-fivex_abs_insol_source <- download_file('syn22101766', type = "csv")
-# fivex_abs_plasma_source <- download_file('syn22101772', type = "csv")
+fivex_abs_sol_source <- download_file('syn22101767.3', type = "csv")
+fivex_abs_insol_source <- download_file('syn22101766.1', type = "csv")
 # NO NFL DATA
 
 #NSS
@@ -115,26 +114,26 @@ fivex_abs_insol_source <- download_file('syn22101766', type = "csv")
 nss_biospecimen <- download_file('syn29568452.3', type = "csv")
 nss_individual <- download_file('syn27147690.3', type = "csv")
 # Abetas
-nss_abs_sol_4mo_source <- download_file('syn29568621', type = "csv")
-nss_abs_sol_12mo_source <- download_file('syn29568624', type = "csv")
-nss_abs_insol_4mo_source <- download_file('syn29568619', type = "csv")
-nss_abs_insol_12mo_source <- download_file('syn29568622', type = "csv")
+nss_abs_sol_4mo_source <- download_file('syn29568621.2', type = "csv")
+nss_abs_sol_12mo_source <- download_file('syn29568624.2', type = "csv")
+nss_abs_insol_4mo_source <- download_file('syn29568619.1', type = "csv")
+nss_abs_insol_12mo_source <- download_file('syn29568622.1', type = "csv")
 # NFL
-nss_nfl_cortex_source <- download_file('syn29568489', type = "csv")
-nss_nfl_plasma_source <- download_file('syn29568490', type = "csv")
+nss_nfl_cortex_source <- download_file('syn29568489.2', type = "csv")
+nss_nfl_plasma_source <- download_file('syn29568490.1', type = "csv")
 
 #Abca7
 # metadata
 abca7_biospecimen <- download_file('syn30859390.2', type = "csv")
 abca7_individual <- download_file('syn30859394.2', type = "csv")
 # Abetas
-abca7_abs_sol_4mo_source <- download_file('syn30859386', type = "csv")
-abca7_abs_sol_12mo_source <- download_file('syn30859377', type = "csv")
-abca7_abs_insol_4mo_source <- download_file('syn30859383', type = "csv")
-abca7_abs_insol_12mo_source <- download_file('syn30859387', type = "csv")
+abca7_abs_sol_4mo_source <- download_file('syn30859386.1', type = "csv")
+abca7_abs_sol_12mo_source <- download_file('syn30859377.1', type = "csv")
+abca7_abs_insol_4mo_source <- download_file('syn30859383.1', type = "csv")
+abca7_abs_insol_12mo_source <- download_file('syn30859387.1', type = "csv")
 # NFL
-abca7_nfl_cortex_source <- download_file('syn30859379', type = "csv")
-abca7_nfl_plasma_source <- download_file('syn30859380', type = "csv")
+abca7_nfl_cortex_source <- download_file('syn30859379.1', type = "csv")
+abca7_nfl_plasma_source <- download_file('syn30859380.1', type = "csv")
 ```
 
 
