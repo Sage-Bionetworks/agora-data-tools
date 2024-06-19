@@ -41,7 +41,7 @@ download_file <- function(synId, df_name, type) {
   # Capture all downloaded synIds for provenance
   data_sources <<- c(data_sources, synId)
 
-  input_dir <- file.path("..", "input")
+  input_dir <- file.path("./", "input")
   id_parts <- strsplit(synId, '.', fixed = TRUE)
   id_value <- id_parts[[1]][1]
   version_value <- id_parts[[1]][2]
@@ -80,7 +80,7 @@ join_to_metadata <- function(df, individual_metadata, biospecimen_metadata) {
   metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
   #df_out <- merge(df, metadata) # MG-12 - drop rows that are missing from biospecimen metadata
-  df_out <- merge(df, metadata, fixed=TRUE)
+  df_out <- merge(df, metadata)
 
   df_out
 }
@@ -390,7 +390,10 @@ biomarkers_final <- mutate(biomarkers_merged,
 biomarkers_final
 
 # write csv file
-output_dir <- file.path("./output")
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
 write.csv(biomarkers_final, file.path(output_dir, "biomarkers.csv"), row.names = FALSE)
 
 # upload to synapse
