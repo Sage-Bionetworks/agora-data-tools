@@ -3,13 +3,54 @@
 
 This notebook generates a single harmonized source file containing the data required to surface Biomarker evidence in the Model-AD Explorer.
 
-Required packages (will automatically be installed if necessary):
+Models that are currently handled by this notebook:
+* 3xTG-AD
+* 5xFAD
+* Trem2-R47H_NSS
+* Abca7*V1599M
 
-- synapser (also requires a Synapse account with an auth token)
-- tidyverse
+ADDING NEW MODELS
+As data becomes available for additional models, the data for those models will need to be incorporated into the harmonized source file.
+
+To incorporate each new model into this notebook:
+
+1. 'Download data and metadata files from Synapse' section:
+- Add a section to download the new model's metadata and data files
+
+2. 'Generate model-specific intermediate files' section
+- Add a code block that generates an intermediate results file for the new model
+
+3. 'Join source files to metadata to populate age, tissue, and genotype values' section
+- Update to join metadata to the new model's intermediate file
+
+4. 'Sanity check nrow in generated files' section
+- Add validation for the new model's intermediate file
+
+5. 'Merge files, write csv file, and upload to synapse' section
+- Add the new model's intermediate file to the bind_rows call on the first line
+- Add genotype-genotype display name mappings for the new model
+
+
+ADDING NEW MEASURES
+As additional measurement types become available, those measurement types will need to be incorporated into the harmonized source file.
+
+To incorporate a new measurement type into the notebook:
+
+1. 'Download data and metadata files from Synapse' section
+- Add the data file(s) containing the new measurement to the appropriate model-specific section(s)
+- Adjust the metadata file version(s) as required to bring in metadata for the new measurement
+
+2. 'Generate model-specific intermediate files' section
+- For each model, add the code required to process the new source file(s)
+
+4. 'Sanity check nrow in generated files' section
+- Add a sanity check for the new measure for each model that has it
 
 
 ## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- tidyverse
 ```{r}
 if (!require("synapser", quietly = TRUE)) {
   install.packages("synapser", repos = c("http://ran.synapse.org",
@@ -79,7 +120,6 @@ join_to_metadata <- function(df, individual_metadata, biospecimen_metadata) {
   biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
   metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
-  #df_out <- merge(df, metadata) # MG-12 - drop rows that are missing from biospecimen metadata
   df_out <- merge(df, metadata)
 
   df_out
@@ -329,7 +369,6 @@ nss_final <- join_to_metadata(nss_biomarkers, nss_individual, nss_biospecimen)[k
 abca7_final <- join_to_metadata(abca7_biomarkers, abca7_individual, abca7_biospecimen)[keeps]
 ```
 
-
 ## Sanity check nrow in generated files
 ```{r}
 # 3xTG-AD
@@ -369,7 +408,6 @@ stopifnot(nrow(abca7_nfl) + nrow(abca7_abs) == nrow(abca7_biomarkers))
 stopifnot(nrow(abca7_biomarkers) == nrow(abca7_final))
 ```
 
-
 ## merge files, write csv file, and upload to synapse
 ```{r}
 biomarkers_merged <- bind_rows(threex_final, fivex_final, nss_final, abca7_final)
@@ -377,16 +415,28 @@ biomarkers_merged <- bind_rows(threex_final, fivex_final, nss_final, abca7_final
 
 # standardize genotype values for display
 biomarkers_final <- mutate(biomarkers_merged,
-                           genotype = case_when(genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
-                                                genotype == "3xTg-AD_homozygous"  ~ "3xTG-AD",
-                                                genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
-                                                genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFADTrem2-R47H_NSS",
-                                                genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
-                                                genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
-                                                genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFADAbca7*V1599M",
-                                                TRUE ~ genotype))
+                           genotype = case_when(
 
-# print final dataframe below
+                                   # 3xTG-AD genotypes
+                                   genotype == "3xTg-AD_homozygous"  ~ "3xTG-AD",
+                                   genotype == "3XTg-AD_noncarrier" ~ "B6129",
+
+                                   # 5xFAD genotypes
+                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
+                                   genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
+
+                                   # NSS genotypes
+                                   genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
+                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFADTrem2-R47H_NSS",
+
+                                   # Abca7 genotypes
+                                   genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
+                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFADAbca7*V1599M",
+
+                                   TRUE ~ genotype))
+
+
+# print final data frame below
 biomarkers_final
 
 # write csv file
