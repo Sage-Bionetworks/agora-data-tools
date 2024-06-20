@@ -1,7 +1,7 @@
 
 # Create Biomarker source file (MG-88)
 
-This notebook generates a single harmonized source file containing the data required to surface Biomarker evidence in the Model-AD Explorer.
+This notebook generates a single harmonized source file (syn61250724) containing the data required to surface Biomarker evidence in the Model-AD Explorer.
 
 Models that are currently handled by this notebook:
 * 3xTG-AD
