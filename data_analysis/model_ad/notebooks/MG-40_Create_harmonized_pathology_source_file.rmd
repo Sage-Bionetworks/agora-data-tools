@@ -1,0 +1,713 @@
+
+# Create Pathology source file (MG-40)
+
+This notebook generates a single harmonized source file (syn61357279) containing the results data and display values required to surface Pathology evidence in the Model-AD Explorer.
+
+Models that are currently handled by this notebook:
+* 3xTG-AD
+* 5xFAD
+* Trem2-R47H_NSS
+* Abca7*V1599M
+
+ADDING NEW MODELS
+As data becomes available for additional models, the data for those models will need to be incorporated into the harmonized source file.
+
+To incorporate each new model into this notebook:
+
+1. 'Download data and metadata files from Synapse' section:
+- Add a section to download the new model's metadata and data files
+
+2. 'Generate model-specific intermediate files' section
+- Add a code block that generates an intermediate results file for the new model
+
+3. 'Sanity check nrow in generated files' section
+- Add validation for the new model's intermediate file
+
+4. 'Join source files to metadata to populate age, tissue, and genotype values' section
+- Update to join metadata to the new model's intermediate file
+
+5. 'Merge files, write csv file, and upload to synapse' section
+- Add the new model's intermediate file to the bind_rows call on the first line
+- Add genotype-genotype display name mappings for the new model
+
+
+ADDING NEW MEASURES
+As additional measurement types become available, those measurement types will need to be incorporated into the harmonized source file.
+
+To incorporate a new measurement type into the notebook:
+
+1. 'Utility functions & variables' section
+- Update stain_keeps to ensure that the required rows aren't filtered out
+- Add a display name for the new measure
+- Add a display value for the new measure's units, if not already defined
+
+2. 'Download data and metadata files from Synapse' section
+- Add the data file(s) containing the new measurement to the appropriate model-specific section(s)
+- Adjust the metadata file version(s) as required to bring in metadata for the new measurement
+
+3. 'Generate model-specific intermediate files' section
+- For each model, add the new stain-display name mapping
+--include units in the mappings when multiple measurements are being captured from a single source row
+
+4. 'Sanity check nrow in generated files' section
+- Add a sanity check for the new measure for each model that has it
+
+
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- tidyverse
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "http://cran.fhcrc.org"))
+}
+
+if (!require("tidyverse", quietly = TRUE)) {
+  install.packages("tidyverse")
+}
+
+library(synapser)
+library(tidyverse)
+```
+
+## Utility functions & variables
+Run this to initialize shared variables and functions.
+```{r}
+# Measures (stain values) that we want to include
+stain_keeps <- c("GFAP", "S100B", "LAMP1", "IBA1", "ThioS", "HT7", "AT8")
+
+# Harmonized column specs for intermediate per-model files
+keeps_with_pool_join_field <- c('specimenID', 'model', 'type', 'measurement', 'units') # 3xTG-AD, NSS
+keeps_with_join_fields <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units') # 5xFAD
+
+# Harmonized column spec for final output file
+keeps <- c('model', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
+
+# Pathology display names
+IBA1_display_name <- 'Microglia Cell Density (IBA1)'
+GFAP_display_name <- 'Astrocyte Cell Density (GFAP)'
+S100B_display_name <- 'Astrocyte Cell Density (S100B)'
+LAMP1_display_name <- 'Dystrophic Neurites (LAMP1)'
+AT8_display_name <- 'Phospho-tau (AT8)'
+HT7_display_name <- 'Tau (HT7)'
+ThioS_density_display_name <- 'Plaque Density (Thio-S)'
+ThioS_size_display_name <- 'Plaque Size (Thio-S)'
+
+
+# Pathology display units
+objectDensity_display_name <- '# objects / square mm'
+averageObjectVolume_display_name <- 'mean object volume (cubic mm)'
+totalObjectVolume_display_name <- 'total object volume (cubic mm)'
+meanObjectArea_display_name <- 'mean object area (square mm)'
+areaPercent_display_name <- '%'
+
+
+# Vector to store all downloaded synIds for Synapse provenance (populated via download_file function)
+data_sources <- character()
+
+# Download a file from Synapse by synId and read it into a dataframe
+download_file <- function(synId, df_name, type) {
+
+  synLogin()
+
+  # Capture all downloaded synIds for provenance
+  data_sources <<- c(data_sources, synId)
+
+  input_dir <- file.path("./", "input")
+  id_parts <- strsplit(synId, '.', fixed = TRUE)
+  id_value <- id_parts[[1]][1]
+  version_value <- id_parts[[1]][2]
+
+  if (is.na(version_value)) {
+    version_value <- NULL
+  }
+
+  cat(paste0("Downloading ", synId, "..."))
+
+
+  file <- synGet(id_value, version = version_value, downloadLocation = input_dir, ifcollision='overwrite.local')
+  path <- file$path
+
+  cat("\nDownload on:  ", date())
+  cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
+  cat("\npath: ", file$path, "\n")
+
+  if (type == 'f') {
+    data <- read_feather(path)
+  } else {
+    if (type == 'json') { data <- fromJSON(path) }
+    if (type == 'csv' || type == 'table') { data <- read.csv(path) }
+    if (type == 'tsv') { data <- read.csv(path, sep = "\t") }
+    if (type == 'rda') { data <- load(path)}
+    if (type == 'rds') {data <- readRDS(path)}
+    df_name <- as.data.frame(data)
+  }
+}
+
+# Join a data file to a pair of metadata files to get required age, sex, ageDeath, and genotype values
+join_to_metadata <- function(individual_metadata, biospecimen_metadata, df) {
+
+  individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
+  biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
+
+  # Join biospecimen metadata to individual metadata
+  merged_metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
+
+  # Prevent creating duplicate data rows for 'Pool-X' specimenIDs by matching only first metadata row
+  df_out <- df %>% left_join(merged_metadata, by='specimenID', multiple="first")
+
+  # make sure we didn't change the number of data rows
+  stopifnot(nrow(df) == nrow(df_out))
+
+  df_out
+}
+```
+
+
+## Download data and metadata files from Synapse
+Note that each file's synId and version is added to the data_sources vector via the download_file function.
+The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
+```{r}
+# 3xTG-AD
+# metadata
+threex_biospecimen <- download_file('syn23532198.3', type = "csv")
+threex_individual <- download_file('syn23532199.4', type = "csv")
+# data
+threex_pathology_source <- download_file('syn26601504.1', type = "csv")
+
+# 5xFAD
+# metadata
+fivex_biospecimen <- download_file('syn18876530.10', type = "csv")
+fivex_individual <- download_file('syn18880070.14', type = "csv")
+# data
+fivex_gfap_s100b_source <- download_file('syn22049816.3', type = "csv")
+fivex_lamp1_source <- download_file('syn22049817.2', type = "csv")
+fivex_iba1_thios_source <- download_file('syn22049825.4', type = "csv")
+
+#NSS
+# metadata
+nss_biospecimen <- download_file('syn29568452.3', type = "csv")
+nss_individual <- download_file('syn27147690.3', type = "csv")
+# data
+nss_pathology_source <- download_file('syn42131930.1', type = "csv")
+
+#Abca7
+# metadata
+abca7_biospecimen <- download_file('syn30859390.2', type = "csv")
+abca7_individual <- download_file('syn30859394.2', type = "csv")
+# data
+abca7_pathology_source <- download_file('syn53127289.1', type = "csv")
+```
+
+
+## Generate model-specific intermediate files
+File-measurement-unit and display value mappings for legacy models are from the v1 data spreadsheet here:
+https://docs.google.com/spreadsheets/d/1B3ZMReC7nR2CGgpFNJuxJTj__lF2h6dt/edit?gid=1108411940#gid=1108411940
+
+### 3xTG-AD
+```{r}
+threex_pathology <- threex_pathology_source %>%
+
+  # Filter out rows with unused 'Stain' values
+  filter(
+    stain %in% stain_keeps
+
+    # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+  ) %>% pivot_longer(
+  cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
+  names_to = "units",
+  values_to = "measurement",
+  values_transform = list(measurement = as.numeric)
+
+  # Convert units to display values
+) %>% mutate(
+  units = case_match(
+    units,
+    'objectDensity' ~ objectDensity_display_name,
+    'averageObjectVolume' ~ averageObjectVolume_display_name,
+    'totalObjectVolume' ~ totalObjectVolume_display_name
+  )
+
+  # Map 'stain' values to 'type' display names
+) %>% mutate(
+  type = case_when(
+    stain == 'IBA1' ~ IBA1_display_name,
+    stain == 'GFAP' ~ GFAP_display_name,
+    stain == 'S100B' ~ S100B_display_name,
+    stain == 'LAMP1' ~ LAMP1_display_name,
+    stain == 'AT8' ~ AT8_display_name,
+    stain == 'HT7' ~ HT7_display_name,
+    stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
+    stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
+    # Drops ThioS totalObjectVolume measurements
+    .default = 'UNMAPPED_DROPME'
+  )
+
+  # drop rows for unused ThioS stain/unit combinations
+) %>% filter(
+  type != 'UNMAPPED_DROPME'
+
+  # Drop rows with NA measurements
+) %>% filter(
+  !is.na(measurement)
+
+  # Populate model column
+) %>% add_column(
+  model = '3xTG-AD'
+
+  # Drop unwanted columns
+) %>% select(
+  all_of(keeps_with_pool_join_field)
+)
+
+threex_pathology
+```
+
+
+### 5xFAD
+```{r}
+# Filter each source to remove unused rows by 'Stain' value
+fivex_gfap_s100b <- fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain %in% c('GFAP', 'S100B'),]
+fivex_lamp1 <- fivex_lamp1_source[fivex_lamp1_source$Stain == 'LAMP1',]
+fivex_iba1_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain %in% c('Iba1', 'ThioS'),]
+
+# Pivot targeted measurement columns; capture colname as 'unit' and value as numeric 'measurement'
+# GFAP/S100B source file
+fivex_gfap_s100b_pivot <- fivex_gfap_s100b %>%
+  pivot_longer(
+    cols = c('X.objects..sqmm', 'mean.object.area..sqmm.'),
+    names_to = "units",
+    values_to = "measurement",
+    values_transform = list(measurement = as.numeric)
+
+    # Rename columns for consistency
+  ) %>% rename(c('type' = 'Stain',
+                 'individualID' = 'IndividualID',
+                 'specimenID' = 'SpecimenID')
+
+               # Populate model column
+) %>% add_column(
+  model = '5xFAD'
+
+  # Drop unused columns
+) %>% select(keeps_with_join_fields)
+
+
+# LAMP1 source file
+fivex_lamp1_pivot <- fivex_lamp1 %>%
+  pivot_longer(
+    cols = c('Area..'),
+    names_to = "units",
+    values_to = "measurement",
+    values_transform = list(measurement = as.numeric),
+
+    # Rename columns for consistency
+  ) %>% rename(c('type' = 'Stain',
+                 'individualID' = 'IndividualID',
+                 'specimenID' = 'SpecimenID')
+
+               # Populate model column
+) %>% add_column(
+  model = '5xFAD'
+
+  # Drop unused columns
+) %>% select(keeps_with_join_fields)
+
+
+# IBA1/ThioS source file
+fivex_iba1_thios_pivot <- fivex_iba1_thios %>%
+  pivot_longer(
+    cols = c('X.objects..sqmm', 'mean.object.area..squm.'),
+    names_to = "units",
+    values_to = "measurement",
+    values_transform = list(measurement = as.numeric),
+
+    # Rename columns for consistency
+  ) %>% rename(c('type' = 'Stain',
+                 'individualID' = 'IndividualID',
+                 'specimenID' = 'SpecimenID')
+
+               # Populate model column
+) %>% add_column(
+  model = '5xFAD'
+
+  # Drop unused columns
+) %>% select(keeps_with_join_fields)
+
+
+# Merge the three sources into a single data frame
+fivex_pathology <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_iba1_thios_pivot
+
+                             # Convert units to display values
+) %>% mutate(
+  units = case_match(
+    units,
+    'X.objects..sqmm' ~ objectDensity_display_name,
+    'mean.object.area..sqmm.' ~ meanObjectArea_display_name,
+    'Area..' ~ areaPercent_display_name,
+    'X.objects..sqmm' ~ objectDensity_display_name,
+    'mean.object.area..squm.' ~ meanObjectArea_display_name
+  )
+
+  # Map stain values to type display names
+) %>% mutate(
+  type = case_when(
+    type == 'Iba1' ~ IBA1_display_name,
+    type == 'GFAP' ~ GFAP_display_name,
+    type == 'S100B' ~ S100B_display_name,
+    type == 'LAMP1' ~ LAMP1_display_name,
+    type == 'AT8' ~ AT8_display_name,
+    type == 'HT7' ~ HT7_display_name,
+    type == 'ThioS' & units == meanObjectArea_display_name ~ ThioS_size_display_name,
+    type == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
+    # Drops ThioS totalObjectVolume measurements
+    .default = 'UNMAPPED_DROPME'
+  )
+
+  # drop rows for unused ThioS stain/unit combinations
+) %>% filter(
+  type != 'UNMAPPED_DROPME'
+
+  # Drop rows with NA measurements
+) %>% filter(
+  !is.na(measurement)
+
+  # Drop unwanted columns
+) %>% select(
+  all_of(keeps_with_join_fields)
+)
+
+fivex_pathology
+```
+
+
+
+### Trem2-R47H_NSS
+```{r}
+nss_pathology <- nss_pathology_source %>%
+
+  # Filter out rows with unused 'Stain' values
+  filter(
+    stain %in% stain_keeps
+
+    # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+  ) %>% pivot_longer(
+  cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
+  names_to = "units",
+  values_to = "measurement",
+  values_transform = list(measurement = as.numeric)
+
+  # Convert units to display values
+) %>% mutate(
+  units = case_match(
+    units,
+    'objectDensity' ~ objectDensity_display_name,
+    'averageObjectVolume' ~ averageObjectVolume_display_name,
+    'totalObjectVolume' ~ totalObjectVolume_display_name
+  )
+
+  # Map 'stain' values to 'type' display names
+) %>% mutate(
+  type = case_when(
+    stain == 'IBA1' & units == objectDensity_display_name ~ IBA1_display_name,
+    stain == 'GFAP' & units == objectDensity_display_name ~ GFAP_display_name,
+    stain == 'S100B' & units == objectDensity_display_name ~ S100B_display_name,
+    stain == 'LAMP1' ~ LAMP1_display_name,
+    stain == 'AT8' ~ AT8_display_name,
+    stain == 'HT7' ~ HT7_display_name,
+    stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
+    stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
+    # Set default value for rows with unused measurements
+    .default = 'UNMAPPED_DROPME'
+  )
+
+  # drop rows for unused stain/unit combinations
+) %>% filter(
+  type != 'UNMAPPED_DROPME'
+
+  # Drop rows with NA measurements
+) %>% filter(
+  !is.na(measurement)
+
+  # Populate model column
+) %>% add_column(
+  model = 'Trem2-R47H_NSS'
+
+  # Drop unwanted columns
+) %>% select(
+  all_of(keeps_with_pool_join_field)
+)
+
+nss_pathology
+
+```
+
+### Abca7*V1599M
+```{r}
+abca7_pathology <- abca7_pathology_source %>%
+
+  # Filter out rows with unused 'Stain' values
+  filter(
+    stain %in% stain_keeps
+
+    # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+  ) %>% pivot_longer(
+  cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
+  names_to = "units",
+  values_to = "measurement",
+  values_transform = list(measurement = as.numeric)
+
+  # Convert units to display values
+) %>% mutate(
+  units = case_match(
+    units,
+    'objectDensity' ~ objectDensity_display_name,
+    'averageObjectVolume' ~ averageObjectVolume_display_name,
+    'totalObjectVolume' ~ totalObjectVolume_display_name
+  )
+
+  # Map 'stain' values to 'type' display names
+) %>% mutate(
+  type = case_when(
+    stain == 'IBA1' & units == objectDensity_display_name ~ IBA1_display_name,
+    stain == 'GFAP' & units == objectDensity_display_name ~ GFAP_display_name,
+    stain == 'S100B' & units == objectDensity_display_name ~ S100B_display_name,
+    stain == 'LAMP1' & units == totalObjectVolume_display_name ~ LAMP1_display_name,
+    stain == 'AT8' ~ AT8_display_name,
+    stain == 'HT7' ~ HT7_display_name,
+    stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
+    stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
+    # Set default value for rows with unused measurements
+    .default = 'UNMAPPED_DROPME'
+  )
+
+  # drop rows for unused stain/unit combinations
+) %>% filter(
+  type != 'UNMAPPED_DROPME'
+
+  # Drop rows with NA measurements
+) %>% filter(
+  !is.na(measurement)
+
+  # Populate model column
+) %>% add_column(
+  model = 'Abca7*V1599M'
+
+  # Drop unwanted columns
+) %>% select(
+  all_of(keeps_with_pool_join_field)
+)
+
+abca7_pathology
+
+```
+
+
+## Sanity check nrow in generated files
+```{r}
+# 3xTG-AD
+# IBA1 Correct for "N/A" values in targeted source column: objectDensity
+threex_iba1 <- threex_pathology_source[threex_pathology_source$stain == 'IBA1',]
+threex_iba1_nas <- sum(is.na(threex_iba1$objectDensity))
+stopifnot(nrow(threex_pathology[threex_pathology$type == IBA1_display_name,]) == nrow(threex_iba1) - threex_iba1_nas)
+
+# GFAP Correct for "N/A" values in targeted source column: objectDensity
+threex_gfap <- threex_pathology_source[threex_pathology_source$stain == 'GFAP',]
+threex_gfap_nas <- sum(is.na(threex_gfap$objectDensity))
+stopifnot(nrow(threex_pathology[threex_pathology$type == GFAP_display_name,]) == nrow(threex_gfap) - threex_gfap_nas)
+
+# S100B Correct for "N/A" values in targeted source column: objectDensity
+threex_s100b <- threex_pathology_source[threex_pathology_source$stain == 'S100B',]
+threex_s100b_nas <- sum(is.na(threex_s100b$objectDensity))
+stopifnot(nrow(threex_pathology[threex_pathology$type == S100B_display_name,]) == nrow(threex_s100b) - threex_s100b_nas)
+
+# LAMP1 Correct for "N/A" values in targeted source column: totalObjectVolume
+threex_lamp1 <- threex_pathology_source[threex_pathology_source$stain == 'LAMP1',]
+threex_lamp1_nas <- sum(is.na(threex_lamp1$totalObjectVolume))
+stopifnot(nrow(threex_pathology[threex_pathology$type == LAMP1_display_name,]) == nrow(threex_lamp1) - threex_lamp1_nas)
+
+# AT8 Correct for "N/A" values in targeted source column: totalObjectVolume
+threex_at8 <- threex_pathology_source[threex_pathology_source$stain == 'AT8',]
+threex_at8_nas <- sum(is.na(threex_at8$totalObjectVolume))
+stopifnot(nrow(threex_pathology[threex_pathology$type == AT8_display_name,]) == nrow(threex_at8) - threex_at8_nas)
+
+# HT7 Correct for "N/A" values in targeted source column: totalObjectVolume
+threex_ht7 <- threex_pathology_source[threex_pathology_source$stain == 'HT7',]
+threex_ht7_nas <- sum(is.na(threex_at8$totalObjectVolume))
+stopifnot(nrow(threex_pathology[threex_pathology$type == HT7_display_name,]) == nrow(threex_ht7) -threex_ht7_nas)
+
+# ThioS size Correct for "N/A" values in targeted source column: averageObjectVolume
+threex_thioss <- threex_pathology_source[threex_pathology_source$stain == 'ThioS',]
+threex_thioss_nas <- sum(is.na(threex_thioss$averageObjectVolume))
+stopifnot(nrow(threex_pathology[threex_pathology$type == ThioS_size_display_name,]) == nrow(threex_thioss) - threex_thioss_nas)
+
+# Thios density Correct for "N/A" values in targeted source column: objectDensity
+threex_thiosd <- threex_pathology_source[threex_pathology_source$stain == 'ThioS',]
+threex_thiosd_nas <- sum(is.na(threex_thiosd$objectDensity))
+stopifnot(nrow(threex_pathology[threex_pathology$type == ThioS_density_display_name,]) == nrow(threex_thiosd) - threex_thiosd_nas)
+
+
+# 5xFAD
+# Iba1 Correct for "N/A" values in targeted source columns: 'X.objects..sqmm', 'mean.object.area..squm.'
+fivex_ibas <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'Iba1',]
+fivex_iba_nas <- sum(fivex_ibas$X.objects..sqmm == "N/A") + sum(fivex_ibas$mean.object.area..squm. == "N/A")
+stopifnot(nrow(fivex_pathology[fivex_pathology$type == IBA1_display_name,]) == nrow(fivex_ibas) * 2 - fivex_iba_nas)
+
+# GFAP Correct for "N/A" values in targeted source columns: 'X.objects..sqmm', 'mean.object.area..sqmm.'
+fivex_gfap <- fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain == 'GFAP',]
+fivex_gfap_nas <- sum(fivex_gfap$X.objects..sqmm == "N/A") + sum(fivex_gfap$mean.object.area..sqmm. == "N/A")
+stopifnot(nrow(fivex_pathology[fivex_pathology$type == GFAP_display_name,]) == nrow(fivex_gfap) * 2 - fivex_gfap_nas)
+
+# S100B Correct for "N/A" values in targeted source column: 'X.objects..sqmm'
+fivex_s100bs <- fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain == 'S100B',]
+fivex_s100b_nas <- sum(fivex_s100bs$X.objects..sqmm == "N/A")
+stopifnot(nrow(fivex_pathology[fivex_pathology$type == S100B_display_name,]) == nrow(fivex_s100bs) - fivex_s100b_nas)
+
+# LAMP1 Correct for "N/A" values in targeted source column: 'Area..'
+fivex_lamp1s <- fivex_lamp1_source[fivex_lamp1_source$Stain == 'LAMP1',]
+fivex_lamp1_nas <- sum(fivex_lamp1s$Area.. == "N/A")
+stopifnot(nrow(fivex_pathology[fivex_pathology$type == LAMP1_display_name,]) == nrow(fivex_lamp1s) - fivex_lamp1_nas)
+
+# ThioS size Correct for N/A values in targeted source column: 'mean.object.area..squm.'
+fivex_thios <- fivex_lamp1_source[fivex_lamp1_source$Stain == 'ThioS',]
+fivex_thios_size_nas <- !is.na(fivex_thios$mean.object.area..squm)
+stopifnot(nrow(fivex_pathology[fivex_pathology$type == ThioS_size_display_name,]) == nrow(fivex_thios) - fivex_thios_size_nas)
+
+# ThioS density Correct for N/A values in targeted source column: 'X.objects..sqmm'
+thios_density_nas <-is.na(fivex_thios$X.objects..sqmm)
+stopifnot(nrow(fivex_pathology[fivex_pathology$type == ThioS_density_display_name,]) == nrow(fivex_thios) - thios_density_nas)
+
+
+# Trem2-R47H_NSS
+# IBA1 Correct for "N/A" values in targeted source column: objectDensity
+nss_iba1 <- nss_pathology_source[nss_pathology_source$stain == 'IBA1',]
+nss_iba1_nas <- sum(is.na(nss_iba1$objectDensity))
+stopifnot(nrow(nss_pathology[nss_pathology$type == IBA1_display_name,]) == nrow(nss_iba1) - nss_iba1_nas)
+
+# GFAP Correct for "N/A" values in targeted source column: objectDensity
+nss_gfap <- nss_pathology_source[nss_pathology_source$stain == 'GFAP',]
+nss_gfap_nas <- sum(is.na(nss_gfap$objectDensity))
+stopifnot(nrow(nss_pathology[nss_pathology$type == GFAP_display_name,]) == nrow(nss_gfap) - nss_gfap_nas)
+
+# S100B Correct for "N/A" values in targeted source column: objectDensity
+nss_s100b <- nss_pathology_source[nss_pathology_source$stain == 'S100B',]
+nss_s100b_nas <- sum(is.na(nss_s100b$objectDensity))
+stopifnot(nrow(nss_pathology[nss_pathology$type == S100B_display_name,]) == nrow(nss_s100b) - nss_s100b_nas)
+
+# LAMP1 Correct for "N/A" values in targeted source column: totalObjectVolume
+nss_lamp1 <- nss_pathology_source[nss_pathology_source$stain == 'LAMP1',]
+nss_lamp1_nas <- sum(is.na(nss_lamp1$totalObjectVolume))
+stopifnot(nrow(nss_pathology[nss_pathology$type == LAMP1_display_name,]) == nrow(nss_lamp1) - nss_lamp1_nas)
+
+# ThioS size Correct for "N/A" values in targeted source column: averageObjectVolume
+nss_thios <- nss_pathology_source[nss_pathology_source$stain == 'ThioS',]
+nss_thioss_nas <- sum(is.na(nss_thios$averageObjectVolume))
+stopifnot(nrow(nss_pathology[nss_pathology$type == ThioS_size_display_name,]) == nrow(nss_thios) - nss_thioss_nas)
+
+# Thios density Correct for "N/A" values in targeted source column: objectDensity
+nss_thiosd_nas <- sum(is.na(nss_thios$objectDensity))
+stopifnot(nrow(nss_pathology[nss_pathology$type == ThioS_density_display_name,]) == nrow(nss_thios) - nss_thiosd_nas)
+
+
+# Abca7*V1599M
+# IBA1 Correct for "N/A" values in targeted source column: objectDensity
+abca7_iba1 <- abca7_pathology_source[abca7_pathology_source$stain == 'IBA1',]
+abca7_iba1_nas <- sum(abca7_iba1$objectDensity == "N/A")
+stopifnot(nrow(abca7_pathology[abca7_pathology$type == IBA1_display_name,]) == nrow(abca7_iba1) - abca7_iba1_nas)
+
+# GFAP Correct for "N/A" values in targeted source column: objectDensity
+abca7_gfap <- abca7_pathology_source[abca7_pathology_source$stain == 'GFAP',]
+abca7_gfap_nas <- sum(abca7_gfap$objectDensity == "N/A")
+stopifnot(nrow(abca7_pathology[abca7_pathology$type == GFAP_display_name,]) == nrow(abca7_gfap) - abca7_gfap_nas)
+
+# S100B Correct for "N/A" values in targeted source column: objectDensity
+abca7_s100b <- abca7_pathology_source[abca7_pathology_source$stain == 'S100B',]
+abca7_s100b_nas <- sum(abca7_s100b$objectDensity == "N/A")
+stopifnot(nrow(abca7_pathology[abca7_pathology$type == S100B_display_name,]) == nrow(abca7_s100b) - abca7_s100b_nas)
+
+# LAMP1 Correct for "N/A" values in targeted source column: totalObjectVolume
+abca7_lamp1 <- abca7_pathology_source[abca7_pathology_source$stain == 'LAMP1',]
+abca7_lamp1_nas <- sum(is.na(abca7_lamp1$totalObjectVolume))
+stopifnot(nrow(abca7_pathology[abca7_pathology$type == LAMP1_display_name,]) == nrow(abca7_lamp1) - abca7_lamp1_nas)
+
+# ThioS size Correct for "N/A" values in targeted source column: averageObjectVolume
+abca7_thios <- abca7_pathology_source[abca7_pathology_source$stain == 'ThioS',]
+abca7_thioss_nas <- sum(abca7_thios$averageObjectVolume == "N/A")
+stopifnot(nrow(abca7_pathology[abca7_pathology$type == ThioS_size_display_name,]) == nrow(abca7_thios) - abca7_thioss_nas)
+
+# Thios density Correct for "N/A" values in targeted source column: objectDensity
+abca7_thiosd_nas <- sum(abca7_thios$objectDensity == "N/A")
+stopifnot(nrow(abca7_pathology[abca7_pathology$type == ThioS_density_display_name,]) == nrow(abca7_thios) - abca7_thiosd_nas)
+```
+
+
+
+## Join source files to metadata to populate age, tissue, and genotype values
+```{r}
+# 3xTG-AD
+threex_final <- join_to_metadata(threex_individual, threex_biospecimen, threex_pathology)[keeps]
+
+# 5xFAD
+fivex_with_8mo <- join_to_metadata(fivex_individual, fivex_biospecimen, fivex_pathology)[keeps]
+# drop unwanted 8 month samples from 5xFAD
+fivex_final <- fivex_with_8mo[fivex_with_8mo$ageDeath != 8,]
+
+# Trem2-R47H_NSS
+nss_final <- join_to_metadata(nss_individual, nss_biospecimen, nss_pathology)[keeps]
+
+# Abca7*V1599M
+abca7_final <- join_to_metadata(abca7_individual, abca7_biospecimen, abca7_pathology)[keeps]
+```
+
+
+
+## Merge files, write csv file, and upload to synapse
+```{r}
+pathology_merged <- bind_rows(threex_final, fivex_final, nss_final, abca7_final)
+
+
+# standardize genotype values for display
+pathology_final <- mutate(pathology_merged, genotype = case_when(
+
+  # 3xTG-AD genotypes
+  genotype == "3xTg-AD_homozygous"  ~ "3xTG-AD",
+  genotype == "3XTg-AD_noncarrier" ~ "B6129",
+
+  # 5xFAD genotypes
+  genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
+  genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
+
+  # NSS genotypes
+  genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
+  genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFADTrem2-R47H_NSS",
+
+  # Abca7 genotypes
+  genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
+  genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFADAbca7*V1599M",
+
+  TRUE ~ genotype))
+
+# print final data frame below
+pathology_final
+
+# write csv file
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+write.csv(pathology_final, file.path(output_dir, "pathology.csv"), row.names = FALSE)
+
+# upload to synapse
+syn_file <- File(file.path(output_dir, "pathology.csv"),
+                 description = "Harmonized Pathology data for Model-AD Explorer 2.0.",
+                 parent = "syn51498054")
+
+res <- synStore(syn_file, forceVersion = FALSE,
+                used = data_sources,
+                executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-40_Create_harmonized_pathology_source_file.rmd")
+
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
+```
+
