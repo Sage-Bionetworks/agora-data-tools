@@ -1,0 +1,53 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://example.com/example.json",
+    "type": ["array", "null"],
+    "default": [],
+    "title": "Median Expression Schema",
+    "items": {
+        "type": "object",
+        "required": [
+            "min",
+            "first_quartile",
+            "median",
+            "mean",
+            "third_quartile",
+            "max",
+            "tissue"
+        ],
+        "properties": {
+            "min": {
+                "type": "number"
+            },
+            "first_quartile": {
+                "type": "number"
+            },
+            "median": {
+                "type": "number"
+            },
+            "mean": {
+                "type": "number"
+            },
+            "third_quartile": {
+                "type": "number"
+            },
+            "max": {
+                "type": "number"
+            },
+            "tissue": {
+                "type": "string",
+                "enum": [
+                    "CBE",
+                    "TCX",
+                    "ACC",
+                    "DLPFC",
+                    "PCC",
+                    "FP",
+                    "IFG",
+                    "PHG",
+                    "STG"
+                ]
+            }
+        }
+    }
+}

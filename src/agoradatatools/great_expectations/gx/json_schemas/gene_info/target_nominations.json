@@ -1,0 +1,87 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://example.com/example.json",
+    "type": ["array", "null"],
+    "default": [],
+    "title": "Target Nominations Schema",
+    "items": {
+        "type": "object",
+        "default": {},
+        "required": [
+            "source",
+            "team",
+            "rank",
+            "hgnc_symbol",
+            "target_choice_justification",
+            "predicted_therapeutic_direction",
+            "data_used_to_support_target_selection",
+            "data_synapseid",
+            "study",
+            "input_data",
+            "validation_study_details",
+            "initial_nomination"
+        ],
+        "properties": {
+            "source": {
+                "type": "string",
+                "enum": ["Community", "AMP-AD", "Resilience-AD", "TREAT-AD"]
+            },
+            "team": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 50
+            },
+            "rank": {
+                "type": ["string", "null"]
+            },
+            "hgnc_symbol": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 25
+            },
+            "target_choice_justification": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 3000,
+                "pattern": "^((?!�).)*$"
+            },
+            "predicted_therapeutic_direction": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2000,
+                "pattern": "^((?!�).)*$"
+            },
+            "data_used_to_support_target_selection": {
+                "type": "string",
+                "minLength": 15,
+                "maxLength": 2000,
+                "pattern": "^((?!�).)*$"
+            },
+            "data_synapseid": {
+                "type": "string",
+                "minLength": 4,
+                "maxLength": 25,
+                "pattern": "^syn\\d+$"
+            },
+            "study": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 500
+            },
+            "input_data": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 200
+            },
+            "validation_study_details": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 1000
+            },
+            "initial_nomination": {
+                "type": "integer",
+                "minimum": 2018
+            }
+        }
+    }
+}

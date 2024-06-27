@@ -196,6 +196,12 @@ datasets:
       agora_rename:
         symbol: hgnc_symbol
       destination: *dest
+      gx_enabled: true
+      gx_nested_columns:
+        - target_nominations
+        - median_expression
+        - druggability
+        - ensembl_info
 
   - team_info:
       files:
