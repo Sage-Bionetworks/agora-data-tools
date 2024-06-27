@@ -74,6 +74,10 @@ library(tidyverse)
 ## Utility functions & variables
 Run this to initialize shared variables and functions.
 ```{r}
+# MODEL-AD 2.0 harmonized source file directory
+# ADP Backend > Files > 2.ConsortiumStudies > MODEL-AD Data Explorer > Model AD Explorer 2.0 Source Files
+synapse_folder <- 'syn51498054'
+
 # Measures (stain values) that we want to include
 stain_keeps <- c("GFAP", "S100B", "LAMP1", "IBA1", "ThioS", "HT7", "AT8")
 
@@ -209,56 +213,56 @@ https://docs.google.com/spreadsheets/d/1B3ZMReC7nR2CGgpFNJuxJTj__lF2h6dt/edit?gi
 ```{r}
 threex_pathology <- threex_pathology_source %>%
 
-  # Filter out rows with unused 'Stain' values
-  filter(
-    stain %in% stain_keeps
+        # Filter out rows with unused 'Stain' values
+        filter(
+                stain %in% stain_keeps
 
-    # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-  ) %>% pivot_longer(
-  cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
-  names_to = "units",
-  values_to = "measurement",
-  values_transform = list(measurement = as.numeric)
+                # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+        ) %>% pivot_longer(
+        cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
+        names_to = "units",
+        values_to = "measurement",
+        values_transform = list(measurement = as.numeric)
 
-  # Convert units to display values
+        # Convert units to display values
 ) %>% mutate(
-  units = case_match(
-    units,
-    'objectDensity' ~ objectDensity_display_name,
-    'averageObjectVolume' ~ averageObjectVolume_display_name,
-    'totalObjectVolume' ~ totalObjectVolume_display_name
-  )
+        units = case_match(
+                units,
+                'objectDensity' ~ objectDensity_display_name,
+                'averageObjectVolume' ~ averageObjectVolume_display_name,
+                'totalObjectVolume' ~ totalObjectVolume_display_name
+        )
 
-  # Map 'stain' values to 'type' display names
+        # Map 'stain' values to 'type' display names
 ) %>% mutate(
-  type = case_when(
-    stain == 'IBA1' ~ IBA1_display_name,
-    stain == 'GFAP' ~ GFAP_display_name,
-    stain == 'S100B' ~ S100B_display_name,
-    stain == 'LAMP1' ~ LAMP1_display_name,
-    stain == 'AT8' ~ AT8_display_name,
-    stain == 'HT7' ~ HT7_display_name,
-    stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
-    stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
-    # Drops ThioS totalObjectVolume measurements
-    .default = 'UNMAPPED_DROPME'
-  )
+        type = case_when(
+                stain == 'IBA1' ~ IBA1_display_name,
+                stain == 'GFAP' ~ GFAP_display_name,
+                stain == 'S100B' ~ S100B_display_name,
+                stain == 'LAMP1' ~ LAMP1_display_name,
+                stain == 'AT8' ~ AT8_display_name,
+                stain == 'HT7' ~ HT7_display_name,
+                stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
+                stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
+                # Drops ThioS totalObjectVolume measurements
+                .default = 'UNMAPPED_DROPME'
+        )
 
-  # drop rows for unused ThioS stain/unit combinations
+        # drop rows for unused ThioS stain/unit combinations
 ) %>% filter(
-  type != 'UNMAPPED_DROPME'
+        type != 'UNMAPPED_DROPME'
 
-  # Drop rows with NA measurements
+        # Drop rows with NA measurements
 ) %>% filter(
-  !is.na(measurement)
+        !is.na(measurement)
 
-  # Populate model column
+        # Populate model column
 ) %>% add_column(
-  model = '3xTG-AD'
+        model = '3xTG-AD'
 
-  # Drop unwanted columns
+        # Drop unwanted columns
 ) %>% select(
-  all_of(keeps_with_pool_join_field)
+        all_of(keeps_with_pool_join_field)
 )
 
 threex_pathology
@@ -275,65 +279,71 @@ fivex_iba1_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain %in% c
 # Pivot targeted measurement columns; capture colname as 'unit' and value as numeric 'measurement'
 # GFAP/S100B source file
 fivex_gfap_s100b_pivot <- fivex_gfap_s100b %>%
-  pivot_longer(
-    cols = c('X.objects..sqmm', 'mean.object.area..sqmm.'),
-    names_to = "units",
-    values_to = "measurement",
-    values_transform = list(measurement = as.numeric)
+        pivot_longer(
+                cols = c('X.objects..sqmm', 'mean.object.area..sqmm.'),
+                names_to = "units",
+                values_to = "measurement",
+                values_transform = list(measurement = as.numeric)
 
-    # Rename columns for consistency
-  ) %>% rename(c('type' = 'Stain',
-                 'individualID' = 'IndividualID',
-                 'specimenID' = 'SpecimenID')
+                # Rename columns for consistency
+        ) %>% rename(c('type' = 'Stain',
+                       'individualID' = 'IndividualID',
+                       'specimenID' = 'SpecimenID')
 
-               # Populate model column
+                     # Populate model column
 ) %>% add_column(
-  model = '5xFAD'
+        model = '5xFAD'
 
-  # Drop unused columns
-) %>% select(keeps_with_join_fields)
+        # Drop unused columns
+) %>% select(
+        all_of(keeps_with_join_fields)
+)
 
 
 # LAMP1 source file
 fivex_lamp1_pivot <- fivex_lamp1 %>%
-  pivot_longer(
-    cols = c('Area..'),
-    names_to = "units",
-    values_to = "measurement",
-    values_transform = list(measurement = as.numeric),
+        pivot_longer(
+                cols = c('Area..'),
+                names_to = "units",
+                values_to = "measurement",
+                values_transform = list(measurement = as.numeric),
 
-    # Rename columns for consistency
-  ) %>% rename(c('type' = 'Stain',
-                 'individualID' = 'IndividualID',
-                 'specimenID' = 'SpecimenID')
+                # Rename columns for consistency
+        ) %>% rename(c('type' = 'Stain',
+                       'individualID' = 'IndividualID',
+                       'specimenID' = 'SpecimenID')
 
-               # Populate model column
+                     # Populate model column
 ) %>% add_column(
-  model = '5xFAD'
+        model = '5xFAD'
 
-  # Drop unused columns
-) %>% select(keeps_with_join_fields)
+        # Drop unused columns
+) %>% select(
+        all_of(keeps_with_join_fields)
+)
 
 
 # IBA1/ThioS source file
 fivex_iba1_thios_pivot <- fivex_iba1_thios %>%
-  pivot_longer(
-    cols = c('X.objects..sqmm', 'mean.object.area..squm.'),
-    names_to = "units",
-    values_to = "measurement",
-    values_transform = list(measurement = as.numeric),
+        pivot_longer(
+                cols = c('X.objects..sqmm', 'mean.object.area..squm.'),
+                names_to = "units",
+                values_to = "measurement",
+                values_transform = list(measurement = as.numeric),
 
-    # Rename columns for consistency
-  ) %>% rename(c('type' = 'Stain',
-                 'individualID' = 'IndividualID',
-                 'specimenID' = 'SpecimenID')
+                # Rename columns for consistency
+        ) %>% rename(c('type' = 'Stain',
+                       'individualID' = 'IndividualID',
+                       'specimenID' = 'SpecimenID')
 
-               # Populate model column
+                     # Populate model column
 ) %>% add_column(
-  model = '5xFAD'
+        model = '5xFAD'
 
-  # Drop unused columns
-) %>% select(keeps_with_join_fields)
+        # Drop unused columns
+) %>% select(
+        all_of(keeps_with_join_fields)
+)
 
 
 # Merge the three sources into a single data frame
@@ -341,41 +351,41 @@ fivex_pathology <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_ib
 
                              # Convert units to display values
 ) %>% mutate(
-  units = case_match(
-    units,
-    'X.objects..sqmm' ~ objectDensity_display_name,
-    'mean.object.area..sqmm.' ~ meanObjectArea_display_name,
-    'Area..' ~ areaPercent_display_name,
-    'X.objects..sqmm' ~ objectDensity_display_name,
-    'mean.object.area..squm.' ~ meanObjectArea_display_name
-  )
+        units = case_match(
+                units,
+                'X.objects..sqmm' ~ objectDensity_display_name,
+                'mean.object.area..sqmm.' ~ meanObjectArea_display_name,
+                'Area..' ~ areaPercent_display_name,
+                'X.objects..sqmm' ~ objectDensity_display_name,
+                'mean.object.area..squm.' ~ meanObjectArea_display_name
+        )
 
-  # Map stain values to type display names
+        # Map stain values to type display names
 ) %>% mutate(
-  type = case_when(
-    type == 'Iba1' ~ IBA1_display_name,
-    type == 'GFAP' ~ GFAP_display_name,
-    type == 'S100B' ~ S100B_display_name,
-    type == 'LAMP1' ~ LAMP1_display_name,
-    type == 'AT8' ~ AT8_display_name,
-    type == 'HT7' ~ HT7_display_name,
-    type == 'ThioS' & units == meanObjectArea_display_name ~ ThioS_size_display_name,
-    type == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
-    # Drops ThioS totalObjectVolume measurements
-    .default = 'UNMAPPED_DROPME'
-  )
+        type = case_when(
+                type == 'Iba1' ~ IBA1_display_name,
+                type == 'GFAP' ~ GFAP_display_name,
+                type == 'S100B' ~ S100B_display_name,
+                type == 'LAMP1' ~ LAMP1_display_name,
+                type == 'AT8' ~ AT8_display_name,
+                type == 'HT7' ~ HT7_display_name,
+                type == 'ThioS' & units == meanObjectArea_display_name ~ ThioS_size_display_name,
+                type == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
+                # Drops ThioS totalObjectVolume measurements
+                .default = 'UNMAPPED_DROPME'
+        )
 
-  # drop rows for unused ThioS stain/unit combinations
+        # drop rows for unused ThioS stain/unit combinations
 ) %>% filter(
-  type != 'UNMAPPED_DROPME'
+        type != 'UNMAPPED_DROPME'
 
-  # Drop rows with NA measurements
+        # Drop rows with NA measurements
 ) %>% filter(
-  !is.na(measurement)
+        !is.na(measurement)
 
-  # Drop unwanted columns
+        # Drop unwanted columns
 ) %>% select(
-  all_of(keeps_with_join_fields)
+        all_of(keeps_with_join_fields)
 )
 
 fivex_pathology
@@ -387,56 +397,56 @@ fivex_pathology
 ```{r}
 nss_pathology <- nss_pathology_source %>%
 
-  # Filter out rows with unused 'Stain' values
-  filter(
-    stain %in% stain_keeps
+        # Filter out rows with unused 'Stain' values
+        filter(
+                stain %in% stain_keeps
 
-    # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-  ) %>% pivot_longer(
-  cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
-  names_to = "units",
-  values_to = "measurement",
-  values_transform = list(measurement = as.numeric)
+                # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+        ) %>% pivot_longer(
+        cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
+        names_to = "units",
+        values_to = "measurement",
+        values_transform = list(measurement = as.numeric)
 
-  # Convert units to display values
+        # Convert units to display values
 ) %>% mutate(
-  units = case_match(
-    units,
-    'objectDensity' ~ objectDensity_display_name,
-    'averageObjectVolume' ~ averageObjectVolume_display_name,
-    'totalObjectVolume' ~ totalObjectVolume_display_name
-  )
+        units = case_match(
+                units,
+                'objectDensity' ~ objectDensity_display_name,
+                'averageObjectVolume' ~ averageObjectVolume_display_name,
+                'totalObjectVolume' ~ totalObjectVolume_display_name
+        )
 
-  # Map 'stain' values to 'type' display names
+        # Map 'stain' values to 'type' display names
 ) %>% mutate(
-  type = case_when(
-    stain == 'IBA1' & units == objectDensity_display_name ~ IBA1_display_name,
-    stain == 'GFAP' & units == objectDensity_display_name ~ GFAP_display_name,
-    stain == 'S100B' & units == objectDensity_display_name ~ S100B_display_name,
-    stain == 'LAMP1' ~ LAMP1_display_name,
-    stain == 'AT8' ~ AT8_display_name,
-    stain == 'HT7' ~ HT7_display_name,
-    stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
-    stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
-    # Set default value for rows with unused measurements
-    .default = 'UNMAPPED_DROPME'
-  )
+        type = case_when(
+                stain == 'IBA1' & units == objectDensity_display_name ~ IBA1_display_name,
+                stain == 'GFAP' & units == objectDensity_display_name ~ GFAP_display_name,
+                stain == 'S100B' & units == objectDensity_display_name ~ S100B_display_name,
+                stain == 'LAMP1' ~ LAMP1_display_name,
+                stain == 'AT8' ~ AT8_display_name,
+                stain == 'HT7' ~ HT7_display_name,
+                stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
+                stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
+                # Set default value for rows with unused measurements
+                .default = 'UNMAPPED_DROPME'
+        )
 
-  # drop rows for unused stain/unit combinations
+        # drop rows for unused stain/unit combinations
 ) %>% filter(
-  type != 'UNMAPPED_DROPME'
+        type != 'UNMAPPED_DROPME'
 
-  # Drop rows with NA measurements
+        # Drop rows with NA measurements
 ) %>% filter(
-  !is.na(measurement)
+        !is.na(measurement)
 
-  # Populate model column
+        # Populate model column
 ) %>% add_column(
-  model = 'Trem2-R47H_NSS'
+        model = 'Trem2-R47H_NSS'
 
-  # Drop unwanted columns
+        # Drop unwanted columns
 ) %>% select(
-  all_of(keeps_with_pool_join_field)
+        all_of(keeps_with_pool_join_field)
 )
 
 nss_pathology
@@ -447,56 +457,56 @@ nss_pathology
 ```{r}
 abca7_pathology <- abca7_pathology_source %>%
 
-  # Filter out rows with unused 'Stain' values
-  filter(
-    stain %in% stain_keeps
+        # Filter out rows with unused 'Stain' values
+        filter(
+                stain %in% stain_keeps
 
-    # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-  ) %>% pivot_longer(
-  cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
-  names_to = "units",
-  values_to = "measurement",
-  values_transform = list(measurement = as.numeric)
+                # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+        ) %>% pivot_longer(
+        cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
+        names_to = "units",
+        values_to = "measurement",
+        values_transform = list(measurement = as.numeric)
 
-  # Convert units to display values
+        # Convert units to display values
 ) %>% mutate(
-  units = case_match(
-    units,
-    'objectDensity' ~ objectDensity_display_name,
-    'averageObjectVolume' ~ averageObjectVolume_display_name,
-    'totalObjectVolume' ~ totalObjectVolume_display_name
-  )
+        units = case_match(
+                units,
+                'objectDensity' ~ objectDensity_display_name,
+                'averageObjectVolume' ~ averageObjectVolume_display_name,
+                'totalObjectVolume' ~ totalObjectVolume_display_name
+        )
 
-  # Map 'stain' values to 'type' display names
+        # Map 'stain' values to 'type' display names
 ) %>% mutate(
-  type = case_when(
-    stain == 'IBA1' & units == objectDensity_display_name ~ IBA1_display_name,
-    stain == 'GFAP' & units == objectDensity_display_name ~ GFAP_display_name,
-    stain == 'S100B' & units == objectDensity_display_name ~ S100B_display_name,
-    stain == 'LAMP1' & units == totalObjectVolume_display_name ~ LAMP1_display_name,
-    stain == 'AT8' ~ AT8_display_name,
-    stain == 'HT7' ~ HT7_display_name,
-    stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
-    stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
-    # Set default value for rows with unused measurements
-    .default = 'UNMAPPED_DROPME'
-  )
+        type = case_when(
+                stain == 'IBA1' & units == objectDensity_display_name ~ IBA1_display_name,
+                stain == 'GFAP' & units == objectDensity_display_name ~ GFAP_display_name,
+                stain == 'S100B' & units == objectDensity_display_name ~ S100B_display_name,
+                stain == 'LAMP1' & units == totalObjectVolume_display_name ~ LAMP1_display_name,
+                stain == 'AT8' ~ AT8_display_name,
+                stain == 'HT7' ~ HT7_display_name,
+                stain == 'ThioS' & units == averageObjectVolume_display_name ~ ThioS_size_display_name,
+                stain == 'ThioS' & units == objectDensity_display_name ~ ThioS_density_display_name,
+                # Set default value for rows with unused measurements
+                .default = 'UNMAPPED_DROPME'
+        )
 
-  # drop rows for unused stain/unit combinations
+        # drop rows for unused stain/unit combinations
 ) %>% filter(
-  type != 'UNMAPPED_DROPME'
+        type != 'UNMAPPED_DROPME'
 
-  # Drop rows with NA measurements
+        # Drop rows with NA measurements
 ) %>% filter(
-  !is.na(measurement)
+        !is.na(measurement)
 
-  # Populate model column
+        # Populate model column
 ) %>% add_column(
-  model = 'Abca7*V1599M'
+        model = 'Abca7*V1599M'
 
-  # Drop unwanted columns
+        # Drop unwanted columns
 ) %>% select(
-  all_of(keeps_with_pool_join_field)
+        all_of(keeps_with_pool_join_field)
 )
 
 abca7_pathology
@@ -661,7 +671,6 @@ abca7_final <- join_to_metadata(abca7_individual, abca7_biospecimen, abca7_patho
 ```
 
 
-
 ## Merge files, write csv file, and upload to synapse
 ```{r}
 pathology_merged <- bind_rows(threex_final, fivex_final, nss_final, abca7_final)
@@ -670,23 +679,23 @@ pathology_merged <- bind_rows(threex_final, fivex_final, nss_final, abca7_final)
 # standardize genotype values for display
 pathology_final <- mutate(pathology_merged, genotype = case_when(
 
-  # 3xTG-AD genotypes
-  genotype == "3xTg-AD_homozygous"  ~ "3xTG-AD",
-  genotype == "3XTg-AD_noncarrier" ~ "B6129",
+        # 3xTG-AD genotypes
+        genotype == "3xTg-AD_homozygous"  ~ "3xTG-AD",
+        genotype == "3XTg-AD_noncarrier" ~ "B6129",
 
-  # 5xFAD genotypes
-  genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
-  genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
+        # 5xFAD genotypes
+        genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
+        genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
 
-  # NSS genotypes
-  genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
-  genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFADTrem2-R47H_NSS",
+        # NSS genotypes
+        genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
+        genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFADTrem2-R47H_NSS",
 
-  # Abca7 genotypes
-  genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
-  genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFADAbca7*V1599M",
+        # Abca7 genotypes
+        genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
+        genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFADAbca7*V1599M",
 
-  TRUE ~ genotype))
+        TRUE ~ genotype))
 
 # print final data frame below
 pathology_final
@@ -701,7 +710,7 @@ write.csv(pathology_final, file.path(output_dir, "pathology.csv"), row.names = F
 # upload to synapse
 syn_file <- File(file.path(output_dir, "pathology.csv"),
                  description = "Harmonized Pathology data for Model-AD Explorer 2.0.",
-                 parent = "syn51498054")
+                 parent = synapse_folder)
 
 res <- synStore(syn_file, forceVersion = FALSE,
                 used = data_sources,
