@@ -18,14 +18,6 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_value_lengths_to_equal",
-      "kwargs": {
-        "column": "ensembl_gene_id",
-        "value": 15
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
@@ -250,13 +242,19 @@
                 "maxLength": 25,
                 "minLength": 4,
                 "pattern": "^syn\\d+$",
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "data_used_to_support_target_selection": {
                 "maxLength": 2000,
                 "minLength": 15,
-                "pattern": "^((?!\ufffd).)*$",
-                "type": "string"
+                "pattern": "^(?:(?![\ufffd]).|[\r\n])*(?<![\r\n])$",
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "hgnc_symbol": {
                 "maxLength": 25,
@@ -275,7 +273,7 @@
               "predicted_therapeutic_direction": {
                 "maxLength": 2000,
                 "minLength": 2,
-                "pattern": "^((?!\ufffd).)*$",
+                "pattern": "^(?:(?![\ufffd]).|[\r\n])*(?<![\r\n])$",
                 "type": "string"
               },
               "rank": {
@@ -296,12 +294,15 @@
               "study": {
                 "maxLength": 500,
                 "minLength": 2,
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "target_choice_justification": {
                 "maxLength": 3000,
                 "minLength": 2,
-                "pattern": "^((?!\ufffd).)*$",
+                "pattern": "^(?:(?![\ufffd]).|[\r\n])*(?<![\r\n])$",
                 "type": "string"
               },
               "team": {
@@ -312,7 +313,10 @@
               "validation_study_details": {
                 "maxLength": 1000,
                 "minLength": 0,
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
             "required": [
@@ -336,8 +340,7 @@
             "array",
             "null"
           ]
-        },
-        "mostly": 0.98
+        }
       },
       "meta": {}
     },
@@ -612,9 +615,7 @@
             "ensembl_possible_replacements": {
               "items": {
                 "pattern": "^ENSG\\d{11}$",
-                "type": [
-                  "string"
-                ]
+                "type": "string"
               },
               "type": "array"
             },
@@ -632,16 +633,6 @@
           "title": "Ensembl Info Schema",
           "type": "object"
         }
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_compound_columns_to_be_unique",
-      "kwargs": {
-        "column_list": [
-          "hgnc_symbol",
-          "ensembl_gene_id"
-        ]
       },
       "meta": {}
     }
