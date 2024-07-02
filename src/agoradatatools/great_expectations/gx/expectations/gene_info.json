@@ -1,0 +1,644 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "gene_info",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "ensembl_gene_id",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "ensembl_gene_id"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "ensembl_gene_id",
+        "regex": "^ENSG\\d{11}$"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "ensembl_gene_id"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "name",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "name",
+        "max_value": 200,
+        "min_value": 1
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "name",
+        "mostly": 0.7
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "summary",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "summary",
+        "mostly": 0.5
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "hgnc_symbol",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "hgnc_symbol",
+        "max_value": 25,
+        "min_value": 1
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "hgnc_symbol",
+        "regex": "^[a-zA-Z0-9_.-]*$"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "hgnc_symbol",
+        "mostly": 0.7
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "alias",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "alias"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "alias",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "is_igap",
+        "type_": "bool"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "is_igap"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "is_eqtl",
+        "type_": "bool"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "is_eqtl"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "is_any_rna_changed_in_ad_brain",
+        "type_": "bool"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "is_any_rna_changed_in_ad_brain"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "rna_brain_change_studied",
+        "type_": "bool"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "rna_brain_change_studied"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "is_any_protein_changed_in_ad_brain",
+        "type_": "bool"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "is_any_protein_changed_in_ad_brain"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "protein_brain_change_studied",
+        "type_": "bool"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "protein_brain_change_studied"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "target_nominations",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "target_nominations",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": [],
+          "items": {
+            "default": {},
+            "properties": {
+              "data_synapseid": {
+                "maxLength": 25,
+                "minLength": 4,
+                "pattern": "^syn\\d+$",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data_used_to_support_target_selection": {
+                "maxLength": 2000,
+                "minLength": 15,
+                "pattern": "^(?:(?![\ufffd]).|[\r\n])*(?<![\r\n])$",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "hgnc_symbol": {
+                "maxLength": 25,
+                "minLength": 2,
+                "type": "string"
+              },
+              "initial_nomination": {
+                "minimum": 2018,
+                "type": "integer"
+              },
+              "input_data": {
+                "maxLength": 200,
+                "minLength": 2,
+                "type": "string"
+              },
+              "predicted_therapeutic_direction": {
+                "maxLength": 2000,
+                "minLength": 2,
+                "pattern": "^(?:(?![\ufffd]).|[\r\n])*(?<![\r\n])$",
+                "type": "string"
+              },
+              "rank": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source": {
+                "enum": [
+                  "Community",
+                  "AMP-AD",
+                  "Resilience-AD",
+                  "TREAT-AD"
+                ],
+                "type": "string"
+              },
+              "study": {
+                "maxLength": 500,
+                "minLength": 2,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "target_choice_justification": {
+                "maxLength": 3000,
+                "minLength": 2,
+                "pattern": "^(?:(?![\ufffd]).|[\r\n])*(?<![\r\n])$",
+                "type": "string"
+              },
+              "team": {
+                "maxLength": 50,
+                "minLength": 3,
+                "type": "string"
+              },
+              "validation_study_details": {
+                "maxLength": 1000,
+                "minLength": 0,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "source",
+              "team",
+              "rank",
+              "hgnc_symbol",
+              "target_choice_justification",
+              "predicted_therapeutic_direction",
+              "data_used_to_support_target_selection",
+              "data_synapseid",
+              "study",
+              "input_data",
+              "validation_study_details",
+              "initial_nomination"
+            ],
+            "type": "object"
+          },
+          "title": "Target Nominations Schema",
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "median_expression",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "median_expression",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": [],
+          "items": {
+            "properties": {
+              "first_quartile": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              },
+              "mean": {
+                "type": "number"
+              },
+              "median": {
+                "type": "number"
+              },
+              "min": {
+                "type": "number"
+              },
+              "third_quartile": {
+                "type": "number"
+              },
+              "tissue": {
+                "enum": [
+                  "CBE",
+                  "TCX",
+                  "ACC",
+                  "DLPFC",
+                  "PCC",
+                  "FP",
+                  "IFG",
+                  "PHG",
+                  "STG"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "min",
+              "first_quartile",
+              "median",
+              "mean",
+              "third_quartile",
+              "max",
+              "tissue"
+            ],
+            "type": "object"
+          },
+          "title": "Median Expression Schema",
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "druggability",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "druggability",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": [],
+          "items": {
+            "default": {},
+            "properties": {
+              "abability_bucket": {
+                "type": "number"
+              },
+              "abability_bucket_definition": {
+                "maxLength": 1000,
+                "minLength": 44,
+                "type": "string"
+              },
+              "classification": {
+                "maxLength": 1000,
+                "minLength": 22,
+                "type": "string"
+              },
+              "pharos_class": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "safety_bucket": {
+                "type": "number"
+              },
+              "safety_bucket_definition": {
+                "maxLength": 1000,
+                "minLength": 50,
+                "type": "string"
+              },
+              "sm_druggability_bucket": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "title": "Druggability Schema",
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "total_nominations",
+        "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "total_nominations",
+        "max_value": 1000,
+        "min_value": 0
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "biodomains",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "biodomains",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members",
+      "kwargs": {
+        "column": "biodomains",
+        "list_members": [
+          "Myelination",
+          "Mitochondrial Metabolism",
+          "Proteostasis",
+          "Oxidative Stress",
+          "DNA Repair",
+          "Metal Binding and Homeostasis",
+          "Structural Stabilization",
+          "Endolysosome",
+          "Immune Response",
+          "Autophagy",
+          "Tau Homeostasis",
+          "Cell Cycle",
+          "Vasculature",
+          "APP Metabolism",
+          "Lipid Metabolism",
+          "Apoptosis",
+          "Synapse",
+          "Epigenetic",
+          "RNA Spliceosome"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "is_adi",
+        "type_": "bool"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "is_adi"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "is_tep",
+        "type_": "bool"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "is_tep"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "resource_url",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "resource_url",
+        "regex": "^https://adknowledgeportal.synapse.org/Explore/Target"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "ensembl_info",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "ensembl_info"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "ensembl_info",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": {},
+          "properties": {
+            "ensembl_permalink": {
+              "format": "uri",
+              "pattern": "^https://\\w+\\.archive\\.ensembl\\.org/Homo_sapiens/Gene/Summary\\?db=core\\;g=(ENSG\\d+)$",
+              "type": "string"
+            },
+            "ensembl_possible_replacements": {
+              "items": {
+                "pattern": "^ENSG\\d{11}$",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "ensembl_release": {
+              "maxLength": 3,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ensembl_release",
+            "ensembl_possible_replacements",
+            "ensembl_permalink"
+          ],
+          "title": "Ensembl Info Schema",
+          "type": "object"
+        }
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}

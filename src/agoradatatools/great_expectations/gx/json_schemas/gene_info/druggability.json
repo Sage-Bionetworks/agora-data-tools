@@ -1,0 +1,40 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://example.com/example.json",
+    "type": ["array", "null"],
+    "default": [],
+    "title": "Druggability Schema",
+    "items": {
+        "type": "object",
+        "default": {},
+        "properties": {
+            "sm_druggability_bucket": {
+                "type": "number"
+            },
+            "safety_bucket": {
+                "type": "number"
+            },
+            "abability_bucket": {
+                "type": "number"
+            },
+            "pharos_class": {
+                "type": ["string", "null"]
+            },
+            "classification": {
+                "type": "string",
+                "minLength": 22,
+                "maxLength": 1000
+            },
+            "safety_bucket_definition": {
+                "type": "string",
+                "minLength": 50,
+                "maxLength": 1000
+            },
+            "abability_bucket_definition": {
+                "type": "string",
+                "minLength": 44,
+                "maxLength": 1000
+            }
+        }
+    }
+}

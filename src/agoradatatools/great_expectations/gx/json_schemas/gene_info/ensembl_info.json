@@ -1,0 +1,31 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "default": {},
+    "title": "Ensembl Info Schema",
+    "required": [
+        "ensembl_release",
+        "ensembl_possible_replacements",
+        "ensembl_permalink"
+    ],
+    "properties": {
+        "ensembl_release": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 3
+        },
+        "ensembl_possible_replacements": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "pattern": "^ENSG\\d{11}$"
+            }
+        },
+        "ensembl_permalink": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https:\/\/\\w+\\.archive\\.ensembl\\.org\/Homo_sapiens\/Gene\/Summary\\?db=core\\;g=(ENSG\\d+)$"
+        }
+    }
+}
