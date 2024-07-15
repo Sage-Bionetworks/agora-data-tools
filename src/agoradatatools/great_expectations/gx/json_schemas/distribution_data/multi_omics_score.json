@@ -1,0 +1,90 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "default": {},
+    "title": "Multi Omics Score Schema",
+    "required": [
+        "distribution",
+        "bins",
+        "min",
+        "max",
+        "mean",
+        "first_quartile",
+        "third_quartile",
+        "name",
+        "syn_id",
+        "wiki_id"
+    ],
+    "properties": {
+        "distribution": {
+            "type": "array",
+            "default": [],
+            "minItems": 10,
+            "maxItems": 10,
+            "items": {
+                "type": "number",
+                "minimum": 0
+            }
+        },
+        "bins": {
+            "type": "array",
+            "default": [],
+            "minItems": 10,
+            "maxItems": 10,
+            "items": {
+                "type": "array",
+                "default": [],
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                    "allOf": [{
+                        "type": "number",
+                        "default": 0,
+                        "minimum": 0
+                    },
+                    {
+                        "type": "number",
+                        "default": 0,
+                        "maximum": 2
+                    }]
+                }
+            }
+        },
+        "min": {
+            "type": "number",
+            "default": 0.0
+        },
+        "max": {
+            "type": "number",
+            "default": 0.0
+        },
+        "mean": {
+            "type": "number",
+            "default": 0.0
+        },
+        "first_quartile": {
+            "type": "number",
+            "default": 0.0
+        },
+        "third_quartile": {
+            "type": "number",
+            "default": 0.0
+        },
+        "name": {
+            "type": "string",
+            "default": "Multi-omic Risk Score",
+            "pattern": "Multi-omic Risk Score"
+        },
+        "syn_id": {
+            "type": "string",
+            "default": "syn25913473",
+            "pattern": "syn25913473"
+        },
+        "wiki_id": {
+            "type": "string",
+            "default": "621070",
+            "pattern": "621070"
+        }
+    }
+}

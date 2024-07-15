@@ -1,0 +1,352 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "distribution_data",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "target_risk_score",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "target_risk_score"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "target_risk_score",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": {},
+          "properties": {
+            "bins": {
+              "default": [],
+              "items": {
+                "default": [],
+                "items": {
+                  "allOf": [
+                    {
+                      "default": 0,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    {
+                      "default": 0,
+                      "maximum": 5,
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "maxItems": 10,
+              "minItems": 10,
+              "type": "array"
+            },
+            "distribution": {
+              "default": [],
+              "items": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "maxItems": 10,
+              "minItems": 10,
+              "type": "array"
+            },
+            "first_quartile": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "max": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "mean": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "min": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "name": {
+              "default": "Target Risk Score",
+              "pattern": "Target Risk Score",
+              "type": "string"
+            },
+            "syn_id": {
+              "default": "syn25913473",
+              "pattern": "syn25913473",
+              "type": "string"
+            },
+            "third_quartile": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "wiki_id": {
+              "default": "621071",
+              "pattern": "621071",
+              "type": "string"
+            }
+          },
+          "required": [
+            "distribution",
+            "bins",
+            "min",
+            "max",
+            "mean",
+            "first_quartile",
+            "third_quartile",
+            "name",
+            "syn_id",
+            "wiki_id"
+          ],
+          "title": "Target Risk Score Schema",
+          "type": "object"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "genetics_score",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "genetics_score"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "genetics_score",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": {},
+          "properties": {
+            "bins": {
+              "default": [],
+              "items": {
+                "default": [],
+                "items": {
+                  "allOf": [
+                    {
+                      "default": 0,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    {
+                      "default": 0,
+                      "maximum": 3,
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "maxItems": 10,
+              "minItems": 10,
+              "type": "array"
+            },
+            "distribution": {
+              "default": [],
+              "items": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "maxItems": 10,
+              "minItems": 10,
+              "type": "array"
+            },
+            "first_quartile": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "max": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "mean": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "min": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "name": {
+              "default": "Genetic Risk Score",
+              "pattern": "Genetic Risk Score",
+              "type": "string"
+            },
+            "syn_id": {
+              "default": "syn25913473",
+              "pattern": "syn25913473",
+              "type": "string"
+            },
+            "third_quartile": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "wiki_id": {
+              "default": "621069",
+              "pattern": "621069",
+              "type": "string"
+            }
+          },
+          "required": [
+            "distribution",
+            "bins",
+            "min",
+            "max",
+            "mean",
+            "first_quartile",
+            "third_quartile",
+            "name",
+            "syn_id",
+            "wiki_id"
+          ],
+          "title": "Genetics Score Schema",
+          "type": "object"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "multi_omics_score",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "multi_omics_score"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "multi_omics_score",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": {},
+          "properties": {
+            "bins": {
+              "default": [],
+              "items": {
+                "default": [],
+                "items": {
+                  "allOf": [
+                    {
+                      "default": 0,
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    {
+                      "default": 0,
+                      "maximum": 2,
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "maxItems": 10,
+              "minItems": 10,
+              "type": "array"
+            },
+            "distribution": {
+              "default": [],
+              "items": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "maxItems": 10,
+              "minItems": 10,
+              "type": "array"
+            },
+            "first_quartile": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "max": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "mean": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "min": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "name": {
+              "default": "Multi-omic Risk Score",
+              "pattern": "Multi-omic Risk Score",
+              "type": "string"
+            },
+            "syn_id": {
+              "default": "syn25913473",
+              "pattern": "syn25913473",
+              "type": "string"
+            },
+            "third_quartile": {
+              "default": 0.0,
+              "type": "number"
+            },
+            "wiki_id": {
+              "default": "621070",
+              "pattern": "621070",
+              "type": "string"
+            }
+          },
+          "required": [
+            "distribution",
+            "bins",
+            "min",
+            "max",
+            "mean",
+            "first_quartile",
+            "third_quartile",
+            "name",
+            "syn_id",
+            "wiki_id"
+          ],
+          "title": "Multi Omics Score Schema",
+          "type": "object"
+        }
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}
