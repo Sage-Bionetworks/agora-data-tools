@@ -275,6 +275,11 @@ datasets:
         geneticsscore: genetics_score
         omicsscore: multi_omics_score
       destination: *dest
+      gx_enabled: true
+      gx_nested_columns:
+        - target_risk_score
+        - genetics_score
+        - multi_omics_score
 
   - rna_distribution_data:
       files: *rna_diff_expr_data_files
