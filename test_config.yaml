@@ -54,6 +54,7 @@ datasets:
       column_rename:
         biodomain: name
       destination: *dest
+      gx_enabled: true
 
   - genes_biodomains:
       files: *genes_biodomains_files
