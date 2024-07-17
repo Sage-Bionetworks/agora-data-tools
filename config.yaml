@@ -253,6 +253,7 @@ datasets:
         geneb_external_gene_name: geneB_external_gene_name
         brainregion: brainRegion
       destination: *dest
+      gx_enabled: true
 
   - rnaseq_differential_expression:
       files: *rna_diff_expr_data_files
