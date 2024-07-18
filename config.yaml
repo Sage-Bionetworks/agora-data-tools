@@ -94,6 +94,7 @@ datasets:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
       destination: *dest
+      gx_enabled: true
 
   - proteomics_tmt:
       files: *agora_proteomics_tmt_files
