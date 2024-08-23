@@ -1,5 +1,6 @@
-"""Function for transforming proteomics data. This function is currently only used for LFQ
-proteomics.
+"""Function for transforming proteomics data. This function is called on all three proteomics
+data sets, although currently it only affects the LFQ data set as it is the only one with "CON__"
+entries.
 """
 
 import pandas as pd
@@ -18,7 +19,7 @@ def transform_proteomics(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: a DataFrame that is identical to the input DataFrame but with rows containing
                       "CON__" in the uniqid removed.
     """
-    # Checking for "== False" has the benefit of removing rows with NA uniqid values as well,
+    # Checking for "is False" has the benefit of removing rows with NA uniqid values as well,
     # as contains() returns NA for those values.
-    df = df[df["uniqid"].str.contains("CON__") == False]
+    df = df[df["uniqid"].str.contains("CON__") is False]
     return df

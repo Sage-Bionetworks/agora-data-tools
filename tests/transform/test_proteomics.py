@@ -3,6 +3,7 @@ The transform should successfully filter out proteins that start with "CON__" an
 rows that are missing a uniqid value. The only failure case for this transform is when "uniqid"
 is not a column in the data frame.
 """
+
 import os
 
 import pandas as pd
@@ -18,6 +19,7 @@ class TestTranformProteomics:
     transform, the test input data was constructed from LFQ data and we do not test on data from
     TMT or SRM proteomics.
     """
+
     data_files_path = "tests/test_assets/proteomics"
     pass_test_data = [
         (  # pass with good data
