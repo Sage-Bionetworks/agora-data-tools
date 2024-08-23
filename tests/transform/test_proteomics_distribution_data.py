@@ -7,10 +7,9 @@ from agoradatatools.etl.transform import proteomics_distribution
 
 
 # NOTE: This test's input is structured a little differently than the other transform
-# tests because we may have up to 3 input files with specific dataset names but the
-# test should work with the current 2 we support, and won't require modifying the
-# test functions to add SRM data later. This structure also lets us test what happens
-# when we input a file with an unsupported proteomics type.
+# tests because we may have up to 3 input files with specific dataset names but can have fewer, as
+# there used to be only 2 proteomics data sets. This structure also lets us test what happens when
+# we input a file with an unsupported proteomics type.
 class TestTransformProteomicsDistributionData:
     data_files_path = "tests/test_assets/proteomics_distribution_data"
     pass_test_data = [

@@ -15,6 +15,7 @@ from agoradatatools.etl.transform.rnaseq_differential_expression import (
     transform_rnaseq_differential_expression,
 )
 from agoradatatools.etl.transform.team_info import transform_team_info
+from agoradatatools.etl.transform.proteomics import transform_proteomics
 
 __all__ = [
     "transform_distribution_data",
@@ -26,4 +27,5 @@ __all__ = [
     "transform_rna_distribution_data",
     "transform_rnaseq_differential_expression",
     "transform_team_info",
+    "transform_proteomics",
 ]

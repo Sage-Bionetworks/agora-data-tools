@@ -1,0 +1,50 @@
+[
+  {
+    "uniqid": "ACAT1|P24752",
+    "genename": "ACAT1",
+    "uniprotid": "P24752",
+    "ensg": "ENSG00000075239",
+    "tissue": "DLPFC",
+    "log2_fc": -0.043497787,
+    "ci_upr": -0.001436119,
+    "ci_lwr": -0.085559454,
+    "pval": 0.039605844,
+    "cor_pval": 0.121519784
+  },
+  {
+    "uniqid": "MOGS|Q13724-2",
+    "genename": "MOGS",
+    "uniprotid": "Q13724-2",
+    "ensg": "ENSG00000115275",
+    "tissue": "MFG",
+    "log2_fc": -0.024737651,
+    "ci_upr": 0.268741708,
+    "ci_lwr": -0.318217011,
+    "pval": 0.977232785,
+    "cor_pval": 0.999999988
+  },
+  {
+    "uniqid": "CPLX1|O14810",
+    "genename": "CPLX1",
+    "uniprotid": "O14810",
+    "ensg": "ENSG00000168993",
+    "tissue": "TCX",
+    "log2_fc": -0.095310355,
+    "ci_upr": 0.051454069,
+    "ci_lwr": -0.242074778,
+    "pval": 0.277450316,
+    "cor_pval": 0.793276833
+  },
+  {
+    "uniqid": "MYH14|Q7Z406",
+    "genename": "MYH14",
+    "uniprotid": "Q7Z406",
+    "ensg": "ENSG00000105357",
+    "tissue": "AntPFC",
+    "log2_fc": 0.036596903,
+    "ci_upr": 0.187572953,
+    "ci_lwr": -0.114379147,
+    "pval": 0.835493315,
+    "cor_pval": 0.999999904
+  }
+]
