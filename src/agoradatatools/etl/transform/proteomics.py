@@ -19,7 +19,7 @@ def transform_proteomics(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: a DataFrame that is identical to the input DataFrame but with rows containing
                       "CON__" in the uniqid removed.
     """
-    # Checking for "is False" has the benefit of removing rows with NA uniqid values as well,
-    # as contains() returns NA for those values.
-    df = df[df["uniqid"].str.contains("CON__") is False]
+    # Using "na=True" causes rows with NA uniqids to be set to True so they get removed
+    remove_rows = df["uniqid"].str.contains("CON__", na=True)
+    df = df.drop(df.index[remove_rows])
     return df
