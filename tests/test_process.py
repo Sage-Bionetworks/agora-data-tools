@@ -66,7 +66,17 @@ class TestProcessDataset:
         }
     }
 
-    def setup_method(self, syn):
+    dataset_object_gx_disabled = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn1111111"],
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+
+    def setup_method(self):
         self.patch_get_entity_as_df = patch.object(
             extract, "get_entity_as_df", return_value=pd.DataFrame
         ).start()
@@ -114,7 +124,7 @@ class TestProcessDataset:
         self.patch_format_link.stop()
         mock.patch.stopall()
 
-    def test_process_dataset_upload_false_gx_disabled(self, syn: Any):
+    def test_process_dataset_upload_false_gx_not_specified(self, syn: Any):
         process.process_dataset(
             dataset_obj=self.dataset_object,
             staging_path=STAGING_PATH,
@@ -142,7 +152,9 @@ class TestProcessDataset:
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
 
-    def test_process_dataset_upload_false_gx_disabled_column_rename(self, syn: Any):
+    def test_process_dataset_upload_false_gx_not_specified_column_rename(
+        self, syn: Any
+    ):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
             staging_path=STAGING_PATH,
@@ -172,7 +184,7 @@ class TestProcessDataset:
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
 
-    def test_process_dataset_upload_false_gx_disabled_custom_transformations(
+    def test_process_dataset_upload_false_gx_not_specified_custom_transformations(
         self, syn: Any
     ):
         process.process_dataset(
@@ -214,7 +226,9 @@ class TestProcessDataset:
 
     # This test looks like a duplicate of test_process_dataset_upload_false_gx_disabled
     # but it uses the agora_rename configuration with the same util function
-    def test_process_dataset_upload_false_gx_disabled_with_agora_rename(self, syn: Any):
+    def test_process_dataset_upload_false_gx_not_specified_with_agora_rename(
+        self, syn: Any
+    ):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
             staging_path=STAGING_PATH,
@@ -244,7 +258,7 @@ class TestProcessDataset:
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
 
-    def test_process_dataset_upload_false_gx_disabled_type_dict(self, syn: Any):
+    def test_process_dataset_upload_false_gx_not_specified_type_dict(self, syn: Any):
         self.patch_standardize_values.return_value = dict()
         process.process_dataset(
             dataset_obj=self.dataset_object,
@@ -275,7 +289,7 @@ class TestProcessDataset:
 
     def test_process_dataset_upload_true_gx_disabled(self, syn: Any):
         process.process_dataset(
-            dataset_obj=self.dataset_object,
+            dataset_obj=self.dataset_object_gx_disabled,
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             syn=syn,

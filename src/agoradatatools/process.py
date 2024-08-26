@@ -127,7 +127,7 @@ def process_dataset(
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
 
-    gx_enabled = "gx_enabled" in dataset_obj[dataset_name].keys()
+    gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False)
 
     if gx_enabled:
         gx_runner = GreatExpectationsRunner(
