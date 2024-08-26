@@ -56,11 +56,7 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
         return transform.transform_rna_distribution_data(datasets=datasets)
     if dataset_name == "proteomics_distribution_data":
         return transform.transform_proteomics_distribution_data(datasets=datasets)
-    if (
-        dataset_name == "proteomics"
-        or dataset_name == "proteomics_tmt"
-        or dataset_name == "proteomics_srm"
-    ):
+    if dataset_name in ["proteomics", "proteomics_tmt", "proteomics_srm"]:
         df = datasets[dataset_name]
         return transform.transform_proteomics(df=df)
     else:

@@ -15,25 +15,34 @@ from agoradatatools.etl.transform import proteomics
 class TestTranformProteomics:
     """Class for testing the transform.
     ADT currently ingests three proteomics data sets (LFQ, TMT, SRM) and runs the transform on each.
-    As these data sets are identical in format and only LFQ data is actually modified by the
-    transform, the test input data was constructed from LFQ data and we do not test on data from
-    TMT or SRM proteomics.
+    Currently only LFQ data is actually modified by the transform, so the TMT and SRM test data
+    should not be changed by the transform.
     """
 
     data_files_path = "tests/test_assets/proteomics"
     pass_test_data = [
-        (  # pass with good data
+        (  # pass with good data (LFQ)
             "proteomics_lfq_good_input.csv",
             "proteomics_lfq_good_output.json",
         ),
-        (  # pass with missing data
+        (  # pass with missing data (LFQ)
             "proteomics_lfq_missing_input.csv",
             "proteomics_lfq_missing_output.json",
         ),
+        (  # pass with good data (TMT)
+            "proteomics_tmt_good_input.csv",
+            "proteomics_tmt_good_output.json",
+        ),
+        (  # pass with good data (SRM)
+            "proteomics_srm_good_input.csv",
+            "proteomics_srm_good_output.json",
+        ),
     ]
     pass_test_ids = [
-        "Pass with good data",
-        "Pass with missing data",
+        "Pass with good data (LFQ)",
+        "Pass with missing data (LFQ)",
+        "Pass with good data (TMT)",
+        "Pass with good data (SRM)",
     ]
     fail_test_data = [
         "proteomics_lfq_no_uniqid_input.csv",
