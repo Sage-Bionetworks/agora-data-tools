@@ -20,10 +20,10 @@ sources:
   - agora_proteomics:
     agora_proteomics_files: &agora_proteomics_files
       - name: proteomics
-        id: syn18689335.3
+        id: syn18689335.4
         format: csv
     agora_proteomics_provenance: &agora_proteomics_provenance
-      - syn18689335.3
+      - syn18689335.4
   - agora_proteomics_tmt:
     agora_proteomics_tmt_files: &agora_proteomics_tmt_files
       - name: proteomics_tmt
@@ -89,6 +89,7 @@ datasets:
   - proteomics:
       files: *agora_proteomics_files
       final_format: json
+      custom_transformations: 1
       provenance: *agora_proteomics_provenance
       column_rename:
         genename: hgnc_symbol
@@ -99,6 +100,7 @@ datasets:
   - proteomics_tmt:
       files: *agora_proteomics_tmt_files
       final_format: json
+      custom_transformations: 1
       provenance: *agora_proteomics_tmt_provenance
       column_rename:
         genename: hgnc_symbol
@@ -109,6 +111,7 @@ datasets:
   - proteomics_srm:
       files: *agora_proteomics_srm_files
       final_format: json
+      custom_transformations: 1
       provenance: *agora_proteomics_srm_provenance
       column_rename:
         genename: hgnc_symbol
@@ -290,6 +293,7 @@ datasets:
       custom_transformations: 1
       provenance: *rna_diff_expr_data_provenance
       destination: *dest
+      gx_enabled: true
 
   - proteomics_distribution_data:
       files:

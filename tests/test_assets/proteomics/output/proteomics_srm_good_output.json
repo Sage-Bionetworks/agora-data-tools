@@ -1,0 +1,62 @@
+[
+  {
+    "uniqid": "UQCR10|Q9UDW1",
+    "hgnc_symbol": "UQCR10",
+    "uniprotid": "Q9UDW1",
+    "ensembl_gene_id": "ENSG00000184076",
+    "tissue": "DLPFC",
+    "log2_fc": -0.047856325401006046,
+    "ci_upr": -0.006795632637535513,
+    "ci_lwr": -0.08891701816447659,
+    "pval": 0.017404524464477378,
+    "cor_pval": 0.050609778954836496
+  },
+  {
+    "uniqid": "RUVBL1|Q9Y265",
+    "hgnc_symbol": "RUVBL1",
+    "uniprotid": "Q9Y265",
+    "ensembl_gene_id": "ENSG00000175792",
+    "tissue": "DLPFC",
+    "log2_fc": 0.05453315389554793,
+    "ci_upr": 0.09014995830291843,
+    "ci_lwr": 0.018916349488177428,
+    "pval": 0.0009952823691273815,
+    "cor_pval": 0.0049961119358832295
+  },
+  {
+    "uniqid": "CASS4|Q9NQ75",
+    "hgnc_symbol": "CASS4",
+    "uniprotid": "Q9NQ75",
+    "ensembl_gene_id": "ENSG00000087589",
+    "tissue": "DLPFC",
+    "log2_fc": -0.029649429337509504,
+    "ci_upr": 0.06993115111279105,
+    "ci_lwr": -0.12923000978781007,
+    "pval": 0.7642063208064378,
+    "cor_pval": 0.9998368407824682
+  },
+  {
+    "uniqid": "SLC6A12|P48065",
+    "hgnc_symbol": "SLC6A12",
+    "uniprotid": "P48065",
+    "ensembl_gene_id": "ENSG00000111181",
+    "tissue": "DLPFC",
+    "log2_fc": 0.04243291583556599,
+    "ci_upr": 0.10994911407693496,
+    "ci_lwr": -0.025083282405802973,
+    "pval": 0.30332095961363803,
+    "cor_pval": 0.5210898536952243
+  },
+  {
+    "uniqid": "SPP1|P10451",
+    "hgnc_symbol": "SPP1",
+    "uniprotid": "P10451",
+    "ensembl_gene_id": "ENSG00000118785",
+    "tissue": "DLPFC",
+    "log2_fc": 0.4912046816154135,
+    "ci_upr": 0.6957173937274684,
+    "ci_lwr": 0.2866919695033585,
+    "pval": 6.70612867459397e-08,
+    "cor_pval": 9.97536640345853e-07
+  }
+]

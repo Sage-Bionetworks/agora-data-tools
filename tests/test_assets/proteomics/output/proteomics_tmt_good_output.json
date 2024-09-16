@@ -1,0 +1,62 @@
+[
+  {
+    "uniqid": "AKAP5|P24588",
+    "hgnc_symbol": "AKAP5",
+    "uniprotid": "P24588",
+    "ensembl_gene_id": "ENSG00000179841",
+    "tissue": "DLPFC",
+    "log2_fc": -0.0509573858882245,
+    "ci_upr": 0.0115626499396124,
+    "ci_lwr": -0.113477421716061,
+    "pval": 0.109363318498206,
+    "cor_pval": 0.288347297776616
+  },
+  {
+    "uniqid": "CRYZ|Q08257",
+    "hgnc_symbol": "CRYZ",
+    "uniprotid": "Q08257",
+    "ensembl_gene_id": "ENSG00000116791",
+    "tissue": "DLPFC",
+    "log2_fc": 0.0867240045720519,
+    "ci_upr": 0.186673804841658,
+    "ci_lwr": -0.0132257956975545,
+    "pval": 0.0884904979890596,
+    "cor_pval": 0.253483015194782
+  },
+  {
+    "uniqid": "TRMT1|Q9NXH9",
+    "hgnc_symbol": "TRMT1",
+    "uniprotid": "Q9NXH9",
+    "ensembl_gene_id": "ENSG00000104907",
+    "tissue": "DLPFC",
+    "log2_fc": 0.0338755789687381,
+    "ci_upr": 0.101380502490424,
+    "ci_lwr": -0.0336293445529475,
+    "pval": 0.32282128810998,
+    "cor_pval": 0.550613717538814
+  },
+  {
+    "uniqid": "HIKESHI|Q53FT3",
+    "hgnc_symbol": "HIKESHI",
+    "uniprotid": "Q53FT3",
+    "ensembl_gene_id": "ENSG00000149196",
+    "tissue": "DLPFC",
+    "log2_fc": 0.0235456798211915,
+    "ci_upr": 0.0578409455829091,
+    "ci_lwr": -0.0107495859405262,
+    "pval": 0.176890998787692,
+    "cor_pval": 0.388261871125487
+  },
+  {
+    "uniqid": "ATP8A2|Q9NTI2",
+    "hgnc_symbol": "ATP8A2",
+    "uniprotid": "Q9NTI2",
+    "ensembl_gene_id": "ENSG00000132932",
+    "tissue": "DLPFC",
+    "log2_fc": 0.0376416492318968,
+    "ci_upr": 0.0625255578627375,
+    "ci_lwr": 0.0127577406010561,
+    "pval": 0.0032829559268753,
+    "cor_pval": 0.0311245402228597
+  }
+]

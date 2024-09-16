@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl import transform
 
 
 def transform_gene_info(
@@ -14,10 +15,10 @@ def transform_gene_info(
     gene_metadata = datasets["gene_metadata"]
     igap = datasets["igap"]
     eqtl = datasets["eqtl"]
-    proteomics = datasets["proteomics"]
+    proteomics = transform.transform_proteomics(df=datasets["proteomics"])
     rna_change = datasets["diff_exp_data"]
-    proteomics_tmt = datasets["proteomics_tmt"]
-    proteomics_srm = datasets["proteomics_srm"]
+    proteomics_tmt = transform.transform_proteomics(df=datasets["proteomics_tmt"])
+    proteomics_srm = transform.transform_proteomics(df=datasets["proteomics_srm"])
     target_list = datasets["target_list"]
     median_expression = datasets["median_expression"]
     druggability = datasets["druggability"]

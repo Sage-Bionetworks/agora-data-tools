@@ -1,0 +1,26 @@
+[
+  {
+    "uniqid": "ACAT1|P24752",
+    "genename": "ACAT1",
+    "uniprotid": "P24752",
+    "ensg": "ENSG00000075239",
+    "tissue": "DLPFC",
+    "log2_fc": -0.043497787,
+    "ci_upr": -0.001436119,
+    "ci_lwr": -0.085559454,
+    "pval": 0.039605844,
+    "cor_pval": 0.121519784
+  },
+  {
+    "uniqid": "FKBP8|Q14318",
+    "genename": "FKBP8",
+    "uniprotid": "Q14318",
+    "ensg": "ENSG00000105701",
+    "tissue": "DLPFC",
+    "log2_fc": -0.037274408,
+    "ci_upr": 0.048093291,
+    "ci_lwr": -0.122642107,
+    "pval": 0.67121033,
+    "cor_pval": 1
+  }
+]

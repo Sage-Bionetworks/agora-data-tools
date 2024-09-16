@@ -1,6 +1,6 @@
 import pandas as pd
 
-from agoradatatools.etl import utils
+from agoradatatools.etl import utils, transform
 
 
 def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
@@ -18,6 +18,9 @@ def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
     """
     transformed = []
     for name, dataset in datasets.items():
+        # Remove contaminant ("CON__") entries and rows with NA uniqids before calculating distribution
+        dataset = transform.transform_proteomics(df=dataset)
+
         df = utils.calculate_distribution(
             df=dataset, grouping="tissue", distribution_column="log2_fc"
         )
