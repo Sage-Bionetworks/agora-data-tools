@@ -125,11 +125,21 @@ def process_dataset(
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
-    else:
+    elif isinstance(df, list):
+        json_path = load.list_to_json(
+            df=df,
+            staging_path=staging_path,
+            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+        )
+    elif isinstance(df, DataFrame):
         json_path = load.df_to_json(
             df=df,
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+        )
+    else:
+        raise ADTDataProcessingError(
+            f"Data processing failed for {dataset_name}. Dataframe type is not supported."
         )
 
     gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False)

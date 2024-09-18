@@ -160,3 +160,21 @@ def dict_to_json(df: dict, staging_path: str, filename: str) -> str:
     json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     temp_json.close()
     return temp_json.name
+
+
+def list_to_json(df: list, staging_path: str, filename: str) -> str:
+    """Converts a list into a JSON file.
+
+    Args:
+        df (list): List to be converted to a JSON file
+        staging_path (str): Path to staging directory
+        filename (str): name of JSON file to be created
+
+    Returns:
+        str: Returns a string containing the name of the new JSON file
+    """
+
+    temp_json = open(os.path.join(staging_path, filename), "w+")
+    json.dump(df, temp_json, cls=NumpyEncoder, indent=2)
+    temp_json.close()
+    return temp_json.name
