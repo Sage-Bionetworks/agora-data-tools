@@ -1,0 +1,13 @@
+destination: &dest syn51498092
+staging_path: ./staging
+datasets:
+  - biomarkers:
+      files:
+        - name: biomarkers
+          id: syn61250724.1
+          format: csv
+      final_format: json
+      provenance:
+        - syn61250724.1
+      destination: *dest
+      gx_enabled: true # CHECK THIS
