@@ -1,0 +1,39 @@
+genotype,measurement,sex,model,type,ageDeath,tissue,units
+3xTG-AD,1.887403509,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,2.507680422,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,3.095873882,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,3.639017544,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,0.74988673,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,11.98119457,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,6.393679577,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,3.098566667,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,3.452296527,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,2.644899123,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,0.110659787,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,1.899942325,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,2.397684799,male,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,6.048395918,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,5.886637838,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,3.368940156,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,0.234726268,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,6.193847515,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,7.122192076,female,3xTG-AD,Insoluble Abeta40,4,cerebral cortex,pg/mg
+3xTG-AD,4.853281065,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,37.12325,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,15.62036898,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,37.12734722,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,75.55092784,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,63.56345,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,60.22938,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,23.23818056,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,93.87042718,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,107.5141702,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,130.5238413,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,13.75984343,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,34.07885294,male,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,80.33369231,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,84.89822857,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,92.64340206,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,133.3285882,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,130.4151077,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
+3xTG-AD,255.0758333,female,3xTG-AD,Insoluble Abeta40,4,hippocampus,pg/mg
