@@ -8,14 +8,8 @@ from agoradatatools.etl.transform import biomarkers
 
 class TestTransformBiomarkers:
     data_files_path = "tests/test_assets/biomarkers"
-    pass_test_data = [
-        (  # Pass with good data
-            "biomarkers_good_input.csv"
-        )
-    ]
-    pass_test_ids = [
-        "Pass with good data"
-    ]
+    pass_test_data = [("biomarkers_good_input.csv")]  # Pass with good data
+    pass_test_ids = ["Pass with good data"]
     fail_test_data = [
         # No failure cases for this transform
     ]
