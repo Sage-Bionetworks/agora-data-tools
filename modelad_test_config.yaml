@@ -10,4 +10,4 @@ datasets:
       provenance:
         - syn61250724.1
       destination: *dest
-      gx_enabled: true # CHECK THIS
+      gx_enabled: false # CHECK THIS
