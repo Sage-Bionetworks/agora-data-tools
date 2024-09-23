@@ -5,6 +5,12 @@ import pytest
 
 from agoradatatools.etl.transform import biomarkers
 
+"""
+Test Cases to-do:
+- What happens if there are two identical entries?
+- Create a test file fully made by hand
+"""
+
 
 class TestTransformBiomarkers:
     data_files_path = "tests/test_assets/biomarkers"

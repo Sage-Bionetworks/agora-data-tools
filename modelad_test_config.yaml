@@ -1,5 +1,7 @@
 destination: &dest syn51498092
 staging_path: ./staging
+gx_folder: none
+gx_table: none
 datasets:
   - biomarkers:
       files:
@@ -10,4 +12,7 @@ datasets:
       provenance:
         - syn61250724.1
       destination: *dest
-      gx_enabled: false # CHECK THIS
+      custom_transformations:
+        adjusted_p_value_threshold: 0.05
+      column_rename:
+        agedeath: ageDeath

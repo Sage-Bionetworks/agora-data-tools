@@ -23,8 +23,9 @@ def transform_biomarkers(datasets: dict) -> list:
     # Check that the dataset looks like what we expect
     if not isinstance(biomarkers_dataset, pd.DataFrame):
         raise ValueError("Biomarker dataset is not a pandas DataFrame")
-    if not biomarkers_dataset.columns.isin(
-        [
+    if (
+        not list(biomarkers_dataset.columns).sort()
+        == [
             "model",
             "type",
             "ageDeath",
@@ -33,9 +34,11 @@ def transform_biomarkers(datasets: dict) -> list:
             "genotype",
             "measurement",
             "sex",
-        ]
-    ).all():
-        raise ValueError("Biomarker dataset does not contain expected columns")
+        ].sort()
+    ):
+        raise ValueError(
+            f"Biomarker dataset does not contain expected columns. Columns found: {list(biomarkers_dataset.columns)}"
+        )
 
     data_as_list = []
     grouped = biomarkers_dataset.groupby(
