@@ -12,7 +12,6 @@ datasets:
       provenance:
         - syn61250724.1
       destination: *dest
-      custom_transformations:
-        adjusted_p_value_threshold: 0.05
+      custom_transformations: 1
       column_rename:
         agedeath: ageDeath
