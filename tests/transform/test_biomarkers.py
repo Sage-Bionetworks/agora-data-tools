@@ -15,12 +15,17 @@ Test Cases to-do:
 class TestTransformBiomarkers:
     data_files_path = "tests/test_assets/biomarkers"
     pass_test_data = [
-        (  # Pass with good data
+        (  # Pass with good real data
             "biomarkers_good_input.csv",
-            "biomarkers_good_output.json",
+            "biomarkers_good_output.json"
+        ),
+        (
+            # Pass with good fake data
+            "biomarkers_good_test_input.csv",
+            "biomarkers_good_test_output.json"
         )
     ]
-    pass_test_ids = ["Pass with good data"]
+    pass_test_ids = ["Pass with good real data", "Pass with good fake data"]
     fail_test_data = [
         # No failure cases for this transform
     ]
