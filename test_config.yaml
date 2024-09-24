@@ -117,6 +117,7 @@ datasets:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
       destination: *dest
+      gx_enabled: true
 
   - target_exp_validation_harmonized:
       files:
