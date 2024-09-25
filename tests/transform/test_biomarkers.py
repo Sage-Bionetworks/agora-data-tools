@@ -8,7 +8,6 @@ from agoradatatools.etl.transform import biomarkers
 """
 Test Cases to-do:
 - What happens if there are two identical entries?
-- Create a test file fully made by hand
 """
 
 
@@ -23,9 +22,14 @@ class TestTransformBiomarkers:
             # Pass with good fake data
             "biomarkers_good_test_input.csv",
             "biomarkers_good_test_output.json"
+        ),
+        (
+            # Pass with duplicated data
+            "biomarkers_duplicated_input.csv",
+            "biomarkers_duplicated_output.json"
         )
     ]
-    pass_test_ids = ["Pass with good real data", "Pass with good fake data"]
+    pass_test_ids = ["Pass with good real data", "Pass with good fake data", "Pass with duplicated data"]
     fail_test_data = [
         # No failure cases for this transform
     ]
