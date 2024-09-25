@@ -16,20 +16,24 @@ class TestTransformBiomarkers:
     pass_test_data = [
         (  # Pass with good real data
             "biomarkers_good_input.csv",
-            "biomarkers_good_output.json"
+            "biomarkers_good_output.json",
         ),
         (
             # Pass with good fake data
             "biomarkers_good_test_input.csv",
-            "biomarkers_good_test_output.json"
+            "biomarkers_good_test_output.json",
         ),
         (
             # Pass with duplicated data
             "biomarkers_duplicated_input.csv",
-            "biomarkers_duplicated_output.json"
-        )
+            "biomarkers_duplicated_output.json",
+        ),
     ]
-    pass_test_ids = ["Pass with good real data", "Pass with good fake data", "Pass with duplicated data"]
+    pass_test_ids = [
+        "Pass with good real data",
+        "Pass with good fake data",
+        "Pass with duplicated data",
+    ]
     fail_test_data = [
         # No failure cases for this transform
     ]
