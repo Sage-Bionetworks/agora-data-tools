@@ -4,9 +4,10 @@ This is for the Model AD project.
 """
 
 import pandas as pd
+from typing import Any
 
 
-def transform_biomarkers(datasets: dict) -> list:
+def transform_biomarkers(datasets: dict[str, pd.DataFrame]) -> list[dict[str, Any]]:
     """
     Takes dictionary of dataset DataFrames, extracts the biomarkers
     DataFrame, and transforms it into a list of dictionaries grouped by
@@ -16,7 +17,7 @@ def transform_biomarkers(datasets: dict) -> list:
         datasets (dict[str, pd.DataFrame]): dictionary of dataset names mapped to their DataFrame
 
     Returns:
-        dict: a dictionary of biomarkers data modeled after intended final JSON structure
+        list[dict]: a list of dictionaries containing biomarker data modeled after intended final JSON structure
     """
     biomarkers_dataset = datasets["biomarkers"]
 
