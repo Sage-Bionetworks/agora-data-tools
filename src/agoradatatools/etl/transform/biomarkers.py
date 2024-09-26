@@ -22,7 +22,9 @@ def transform_biomarkers(datasets: dict) -> list:
 
     # Check that the dataset looks like what we expect
     if not isinstance(biomarkers_dataset, pd.DataFrame):
-        raise ValueError("Biomarker dataset is not a pandas DataFrame")
+        raise TypeError(
+            f"Expected pd.DataFrame for Biomarker dataset but received {type(biomarkers_dataset)}."
+        )
     if (
         not list(biomarkers_dataset.columns).sort()
         == [
