@@ -4,7 +4,6 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-from typing import Any
 
 
 def transform_biomarkers(datasets: dict) -> list:
