@@ -139,7 +139,9 @@ def process_dataset(
         )
     else:
         raise ADTDataProcessingError(
-            f"Data processing failed for {dataset_name}. Data is of type {type(df)}. Supported data types are: dict, list, pd.DataFrame."
+            f"Data processing failed for {dataset_name}. \
+                Data is of type {type(df)}. Supported data \
+                    types are: dict, list, pd.DataFrame."
         )
 
     gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False)
