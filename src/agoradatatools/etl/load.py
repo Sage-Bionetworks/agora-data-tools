@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from synapseclient import Activity, File, Synapse
 
+from typing import Dict, List, Any
 
 class NumpyEncoder(json.JSONEncoder):
     """Special json encoder for numpy types"""
@@ -162,11 +163,11 @@ def dict_to_json(df: dict, staging_path: str, filename: str) -> str:
     return temp_json.name
 
 
-def list_to_json(df: list, staging_path: str, filename: str) -> str:
+def list_to_json(df: List[Dict[str, Any]], staging_path: str, filename: str) -> str:
     """Converts a list into a JSON file.
 
     Args:
-        df (list): List to be converted to a JSON file
+        df (List[Dict[str, Any]]): List to be converted to a JSON file
         staging_path (str): Path to staging directory
         filename (str): name of JSON file to be created
 
@@ -174,7 +175,6 @@ def list_to_json(df: list, staging_path: str, filename: str) -> str:
         str: Returns a string containing the name of the new JSON file
     """
 
-    temp_json = open(os.path.join(staging_path, filename), "w+")
-    json.dump(df, temp_json, cls=NumpyEncoder, indent=2)
-    temp_json.close()
+    with open(os.path.join(staging_path, filename), "w+") as temp_json:
+        json.dump(df, temp_json, cls=NumpyEncoder, indent=2)
     return temp_json.name
