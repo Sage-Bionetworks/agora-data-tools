@@ -4,19 +4,20 @@ This is for the Model AD project.
 """
 
 import pandas as pd
+from typing import Dict, List, Any
 
 
-def transform_biomarkers(datasets: dict) -> list:
+def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, Any]]:
     """
     Takes dictionary of dataset DataFrames, extracts the biomarkers
     DataFrame, and transforms it into a list of dictionaries grouped by
     'model', 'type', 'ageDeath', 'tissue', and 'units'.
 
     Args:
-        datasets (dict[str, pd.DataFrame]): dictionary of dataset names mapped to their DataFrame
+        datasets (Dict[str, pd.DataFrame]): dictionary of dataset names mapped to their DataFrame
 
     Returns:
-        list[dict[str, Any]]: a list of dictionaries containing biomarker data modeled after intended final JSON structure
+        List[Dict[str, Any]]: a list of dictionaries containing biomarker data modeled after intended final JSON structure
     """
     biomarkers_dataset = datasets["biomarkers"]
 
