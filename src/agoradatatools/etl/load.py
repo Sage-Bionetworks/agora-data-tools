@@ -167,7 +167,7 @@ def list_to_json(df: List[Dict[str, Any]], staging_path: str, filename: str) -> 
     """Converts a list into a JSON file.
 
     Args:
-        df (List[Dict[str, Any]]): List to be converted to a JSON file
+        df (list): List to be converted to a JSON file
         staging_path (str): Path to staging directory
         filename (str): name of JSON file to be created
 
@@ -175,6 +175,7 @@ def list_to_json(df: List[Dict[str, Any]], staging_path: str, filename: str) -> 
         str: Returns a string containing the name of the new JSON file
     """
 
-    with open(os.path.join(staging_path, filename), "w+") as temp_json:
-        json.dump(df, temp_json, cls=NumpyEncoder, indent=2)
+    temp_json = open(os.path.join(staging_path, filename), "w+")
+    json.dump(df, temp_json, cls=NumpyEncoder, indent=2)
+    temp_json.close()
     return temp_json.name
