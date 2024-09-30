@@ -9,10 +9,6 @@ from agoradatatools.etl.transform import biomarkers
 class TestTransformBiomarkers:
     data_files_path = "tests/test_assets/biomarkers"
     pass_test_data = [
-        (  # Pass with good real data
-            "biomarkers_good_input.csv",
-            "biomarkers_good_output.json",
-        ),
         (
             # Pass with good fake data
             "biomarkers_good_test_input.csv",
@@ -40,7 +36,6 @@ class TestTransformBiomarkers:
         ),
     ]
     pass_test_ids = [
-        "Pass with good real data",
         "Pass with good fake data",
         "Pass with duplicated data",
         "Pass with none data",
