@@ -1,5 +1,6 @@
 import logging
 import typing
+import warnings
 from typing import Union
 
 import synapseclient
@@ -138,8 +139,13 @@ def process_dataset(
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
     else:
-        raise ADTDataProcessingError(
-            f"Data processing failed for {dataset_name}. Data is of type {type(df)}. Supported data types are: dict, list, pd.DataFrame."
+        warnings.warn(
+            f"{dataset_name} data is of type {type(df)}. Supported data types are: dict, list, pd.DataFrame. Will process as pd.DataFrame."
+        )
+        json_path = load.df_to_json(
+            df=df,
+            staging_path=staging_path,
+            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
 
     gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False)
