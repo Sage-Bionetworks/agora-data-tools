@@ -1,0 +1,10 @@
+model,type,measurement,units,ageDeath,tissue,sex,genotype
+ModelA,TypeA,1,A,1,TissueA,male,genotype1
+ModelA,TypeA,none,A,1,TissueA,male,genotype1
+ModelA,TypeA,NA,A,1,TissueA,male,genotype1
+ModelA,TypeA,nan,A,1,TissueA,male,genotype1
+ModelA,TypeA,N/A,A,1,TissueA,male,genotype1
+none,TypeA,1,A,1,TissueA,male,genotype1
+none,TypeA,1,A,1,TissueA,male,NA
+NA,TypeA,1,A,1,TissueA,male,genotype1
+ModelA,NA,1,A,1,TissueA,male,genotype1

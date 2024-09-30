@@ -42,7 +42,7 @@ def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, An
         raise ValueError(
             f"Biomarker dataset does not contain expected columns. Columns found: {list(biomarkers_dataset.columns)}"
         )
-
+    biomarkers_dataset = biomarkers_dataset.fillna("none")
     data_as_list = []
     grouped = biomarkers_dataset.groupby(
         ["model", "type", "ageDeath", "tissue", "units"]

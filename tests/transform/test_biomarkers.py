@@ -28,11 +28,17 @@ class TestTransformBiomarkers:
             "biomarkers_duplicated_input.csv",
             "biomarkers_duplicated_output.json",
         ),
+        (
+            # Pass with none data
+            "biomarkers_none_input.csv",
+            "biomarkers_none_output.json",
+        ),
     ]
     pass_test_ids = [
         "Pass with good real data",
         "Pass with good fake data",
         "Pass with duplicated data",
+        "Pass with none data",
     ]
     fail_test_data = [
         # No failure cases for this transform
