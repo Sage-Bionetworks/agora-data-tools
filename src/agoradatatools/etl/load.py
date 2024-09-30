@@ -168,7 +168,7 @@ def list_to_json(df: List[Dict[str, Any]], staging_path: str, filename: str) -> 
     """Converts a list into a JSON file.
 
     Args:
-        df (list): List to be converted to a JSON file
+        df (List[Dict[str, Any]]): List to be converted to a JSON file
         staging_path (str): Path to staging directory
         filename (str): name of JSON file to be created
 
