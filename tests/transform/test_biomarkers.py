@@ -5,11 +5,6 @@ import pytest
 
 from agoradatatools.etl.transform import biomarkers
 
-"""
-Test Cases to-do:
-- What happens if there are two identical entries?
-"""
-
 
 class TestTransformBiomarkers:
     data_files_path = "tests/test_assets/biomarkers"
@@ -33,12 +28,18 @@ class TestTransformBiomarkers:
             "biomarkers_none_input.csv",
             "biomarkers_none_output.json",
         ),
+        (
+            # Pass with missing data
+            "biomarkers_missing_input.csv",
+            "biomarkers_missing_output.json",
+        ),
     ]
     pass_test_ids = [
         "Pass with good real data",
         "Pass with good fake data",
         "Pass with duplicated data",
         "Pass with none data",
+        "Pass with missing data",
     ]
     fail_test_data = [
         # No failure cases for this transform
