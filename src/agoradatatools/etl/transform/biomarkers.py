@@ -19,13 +19,9 @@ def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, An
     Returns:
         List[Dict[str, Any]]: a list of dictionaries containing biomarker data modeled after intended final JSON structure
     """
+    if "biomarkers" not in datasets:
+        raise ValueError("Biomarkers dataset not found in datasets dictionary")
     biomarkers_dataset = datasets["biomarkers"]
-
-    # Check that the dataset looks like what we expect
-    if not isinstance(biomarkers_dataset, pd.DataFrame):
-        raise TypeError(
-            f"Expected pd.DataFrame for Biomarker dataset but received {type(biomarkers_dataset)}."
-        )
     expected_columns = [
         "model",
         "type",
