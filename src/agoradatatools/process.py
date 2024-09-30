@@ -132,16 +132,8 @@ def process_dataset(
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
-    elif isinstance(df, DataFrame):
-        json_path = load.df_to_json(
-            df=df,
-            staging_path=staging_path,
-            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
-        )
     else:
-        warnings.warn(
-            f"{dataset_name} data is of type {type(df)}. Supported data types are: dict, list, pd.DataFrame. Will process as pd.DataFrame."
-        )
+        # If it's a type that we don't support, we will process it as a DataFrame
         json_path = load.df_to_json(
             df=df,
             staging_path=staging_path,
