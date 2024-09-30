@@ -33,6 +33,11 @@ class TestTransformBiomarkers:
             "biomarkers_missing_input.csv",
             "biomarkers_missing_output.json",
         ),
+        (
+            # Pass with extra column
+            "biomarkers_extra_column.csv",
+            "biomarkers_extra_column_output.json",
+        ),
     ]
     pass_test_ids = [
         "Pass with good real data",
@@ -40,6 +45,7 @@ class TestTransformBiomarkers:
         "Pass with duplicated data",
         "Pass with none data",
         "Pass with missing data",
+        "Pass with extra column",
     ]
     fail_test_data = [("biomarkers_missing_column.csv")]
     fail_test_ids = [("Fail with missing column")]

@@ -1,0 +1,3 @@
+model,type,measurement,units,ageDeath,tissue,sex,genotype,extra
+ModelA,TypeA,1,A,1,TissueA,male,genotype1,extra1
+ModelA,TypeA,2,A,1,TissueA,male,genotype1,extra1
