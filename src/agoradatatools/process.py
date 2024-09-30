@@ -137,7 +137,6 @@ def process_dataset(
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
     else:
-        # If it's a type that we don't support, we will process it as a DataFrame
         json_path = load.df_to_json(
             df=df,
             staging_path=staging_path,
