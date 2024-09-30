@@ -41,12 +41,8 @@ class TestTransformBiomarkers:
         "Pass with none data",
         "Pass with missing data",
     ]
-    fail_test_data = [
-        # No failure cases for this transform
-    ]
-    fail_test_ids = [
-        # No failure cases for this transform
-    ]
+    fail_test_data = [("biomarkers_missing_column.csv")]
+    fail_test_ids = [("Fail with missing column")]
 
     @pytest.mark.parametrize(
         "biomarkers_file, expected_output_file", pass_test_data, ids=pass_test_ids
@@ -64,3 +60,13 @@ class TestTransformBiomarkers:
             os.path.join(self.data_files_path, "output", expected_output_file),
         )
         pd.testing.assert_frame_equal(output_df, expected_df)
+
+    @pytest.mark.parametrize("biomarkers_file", fail_test_data, ids=fail_test_ids)
+    def test_transform_biomarkers_should_fail(
+        self, biomarkers_file, error_type: BaseException = ValueError
+    ):
+        biomarkers_df = pd.read_csv(
+            os.path.join(self.data_files_path, "input", biomarkers_file)
+        )
+        with pytest.raises(error_type):
+            biomarkers.transform_biomarkers(datasets={"biomarkers": biomarkers_df})

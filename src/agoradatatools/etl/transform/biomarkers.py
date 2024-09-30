@@ -26,21 +26,22 @@ def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, An
         raise TypeError(
             f"Expected pd.DataFrame for Biomarker dataset but received {type(biomarkers_dataset)}."
         )
-    if (
-        not list(biomarkers_dataset.columns).sort()
-        == [
-            "model",
-            "type",
-            "ageDeath",
-            "tissue",
-            "units",
-            "genotype",
-            "measurement",
-            "sex",
-        ].sort()
-    ):
+    expected_columns = [
+        "model",
+        "type",
+        "ageDeath",
+        "tissue",
+        "units",
+        "genotype",
+        "measurement",
+        "sex",
+    ]
+    if not set(expected_columns).issubset(set(biomarkers_dataset.columns)):
+        missing_columns = [
+            s for s in set(expected_columns) if s not in biomarkers_dataset.columns
+        ]
         raise ValueError(
-            f"Biomarker dataset does not contain expected columns. Columns found: {list(biomarkers_dataset.columns)}"
+            f"Biomarker dataset does not contain expected columns. Missing column(s): {missing_columns}"
         )
     biomarkers_dataset = biomarkers_dataset.fillna("none")
     data_as_list = []
