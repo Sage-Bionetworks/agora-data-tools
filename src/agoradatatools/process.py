@@ -14,11 +14,15 @@ from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
 from agoradatatools.constants import Platform
 
+from typing import Union
+
 logger = logging.getLogger(__name__)
 
 
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
-def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
+def apply_custom_transformations(
+    datasets: dict, dataset_name: str, dataset_obj: dict
+) -> Union[DataFrame, list, dict]:
     if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
         return None
     if dataset_name == "biodomain_info":
