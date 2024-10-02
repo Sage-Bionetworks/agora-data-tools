@@ -5,8 +5,6 @@ import numpy as np
 import pandas as pd
 from synapseclient import Activity, File, Synapse
 
-from typing import Dict, List, Any
-
 
 class NumpyEncoder(json.JSONEncoder):
     """Special json encoder for numpy types"""
