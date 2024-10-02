@@ -1,6 +1,5 @@
 import logging
 import typing
-import warnings
 from typing import Union
 
 import synapseclient
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
 def apply_custom_transformations(
     datasets: dict, dataset_name: str, dataset_obj: dict
-) -> Union[DataFrame, list, dict]:
+) -> Union[DataFrame, dict, None]:
     if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
         return None
     if dataset_name == "biodomain_info":
