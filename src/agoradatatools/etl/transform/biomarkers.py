@@ -4,20 +4,20 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-from typing import Dict, List, Any
+from typing import Dict
 
 
-def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, Any]]:
+def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
-    Takes dictionary of dataset DataFrames, extracts the biomarkers
-    DataFrame, and transforms it into a list of dictionaries grouped by
+    Takes a dictionary of dataset DataFrames, extracts the biomarkers
+    DataFrame, and transforms it into a DataFrame grouped by
     'model', 'type', 'ageDeath', 'tissue', and 'units'.
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): dictionary of dataset names mapped to their DataFrame
+        datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
 
     Returns:
-        List[Dict[str, Any]]: a list of dictionaries containing biomarker data modeled after intended final JSON structure
+        pd.DataFrame: A DataFrame containing biomarker data modeled after intended final structure.
     """
     biomarkers_dataset = datasets["biomarkers"]
     group_columns = ["model", "type", "ageDeath", "tissue", "units"]
@@ -34,13 +34,13 @@ def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, An
         )
 
     biomarkers_dataset = biomarkers_dataset.fillna("none")
-    data_as_list = []
+    data_rows = []
 
     grouped = biomarkers_dataset.groupby(group_columns)
 
     for group_key, group in grouped:
         entry = dict(zip(group_columns, group_key))
         entry["points"] = group[point_columns].to_dict("records")
-        data_as_list.append(entry)
+        data_rows.append(entry)
 
-    return data_as_list
+    return pd.DataFrame(data_rows)
