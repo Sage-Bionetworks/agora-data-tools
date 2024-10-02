@@ -1,5 +1,4 @@
 import logging
-import typing
 from typing import Union
 
 import synapseclient
@@ -13,7 +12,6 @@ from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
 from agoradatatools.constants import Platform
 
-from typing import Union
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +190,7 @@ def process_dataset(
 
 def create_data_manifest(
     syn: synapseclient.Synapse, parent: synapseclient.Folder = None
-) -> typing.Union[DataFrame, None]:
+) -> Union[DataFrame, None]:
     """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse folders
 
     Args:
