@@ -2,7 +2,7 @@
     {
         "model": "ModelA",
         "type": "TypeA",
-        "ageDeath": 1,
+        "age_death": 1,
         "tissue": "TissueA",
         "units": "A",
         "points": [
@@ -36,7 +36,7 @@
     {
         "model": "ModelA",
         "type": "none",
-        "ageDeath": 1,
+        "age_death": 1,
         "tissue": "TissueA",
         "units": "A",
         "points": [
@@ -50,7 +50,7 @@
     {
         "model": "none",
         "type": "TypeA",
-        "ageDeath": 1,
+        "age_death": 1,
         "tissue": "TissueA",
         "units": "A",
         "points": [

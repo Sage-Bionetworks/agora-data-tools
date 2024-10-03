@@ -1,3 +1,3 @@
-model,type,measurement,units,ageDeath,tissue,sex
+model,type,measurement,units,age_death,tissue,sex
 ModelA,TypeA,1,A,1,TissueA,male
 ModelA,TypeA,2,A,1,TissueA,male

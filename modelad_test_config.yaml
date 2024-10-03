@@ -14,4 +14,4 @@ datasets:
       destination: *dest
       custom_transformations: 1
       column_rename:
-        agedeath: ageDeath
+        agedeath: age_death

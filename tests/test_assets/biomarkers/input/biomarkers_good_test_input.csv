@@ -1,4 +1,4 @@
-model,type,measurement,units,ageDeath,tissue,sex,genotype
+model,type,measurement,units,age_death,tissue,sex,genotype
 ModelA,TypeA,1,A,1,TissueA,male,genotype1
 ModelA,TypeA,2,A,1,TissueA,male,genotype1
 ModelA,TypeA,3,A,2,TissueA,male,genotype2

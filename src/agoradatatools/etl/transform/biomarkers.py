@@ -11,7 +11,7 @@ def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Takes a dictionary of dataset DataFrames, extracts the biomarkers
     DataFrame, and transforms it into a DataFrame grouped by
-    'model', 'type', 'ageDeath', 'tissue', and 'units'.
+    'model', 'type', 'age_death', 'tissue', and 'units'.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
@@ -20,7 +20,7 @@ def transform_biomarkers(datasets: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         pd.DataFrame: A DataFrame containing biomarker data modeled after intended final structure.
     """
     biomarkers_dataset = datasets["biomarkers"]
-    group_columns = ["model", "type", "ageDeath", "tissue", "units"]
+    group_columns = ["model", "type", "age_death", "tissue", "units"]
     point_columns = ["genotype", "measurement", "sex"]
 
     missing_columns = [
