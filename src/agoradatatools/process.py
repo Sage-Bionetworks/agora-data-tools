@@ -63,11 +63,11 @@ def apply_custom_transformations(
         return transform.transform_proteomics(df=df)
     if dataset_name == "biomarkers":
         return transform.modelAD_general_transform(
-            datasets=datasets, datasetname="biomarkers"
+            datasets=datasets, dataset_name=dataset_name
         )
     if dataset_name == "pathology":
         return transform.modelAD_general_transform(
-            datasets=datasets, datasetname="pathology"
+            datasets=datasets, dataset_name=dataset_name
         )
     else:
         return None
