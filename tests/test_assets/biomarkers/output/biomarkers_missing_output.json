@@ -1,0 +1,35 @@
+[
+    {
+        "model": "ModelA",
+        "type": "TypeA",
+        "age_death": 1,
+        "tissue": "TissueA",
+        "units": "A",
+        "points": [
+            {
+                "genotype": "genotype1",
+                "measurement": 1.0,
+                "sex": "male"
+            },
+            {
+                "genotype": "genotype1",
+                "measurement": "none",
+                "sex": "male"
+            }
+        ]
+    },
+    {
+        "model": "none",
+        "type": "TypeA",
+        "age_death": 1,
+        "tissue": "TissueA",
+        "units": "A",
+        "points": [
+            {
+                "genotype": "genotype1",
+                "measurement": 1.0,
+                "sex": "male"
+            }
+        ]
+    }
+]

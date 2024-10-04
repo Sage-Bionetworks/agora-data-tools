@@ -1,5 +1,4 @@
 import logging
-import typing
 from typing import Union
 
 import synapseclient
@@ -13,11 +12,14 @@ from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
 from agoradatatools.constants import Platform
 
+
 logger = logging.getLogger(__name__)
 
 
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
-def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj: dict):
+def apply_custom_transformations(
+    datasets: dict, dataset_name: str, dataset_obj: dict
+) -> Union[DataFrame, dict, None]:
     if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
         return None
     if dataset_name == "biodomain_info":
@@ -59,6 +61,8 @@ def apply_custom_transformations(datasets: dict, dataset_name: str, dataset_obj:
     if dataset_name in ["proteomics", "proteomics_tmt", "proteomics_srm"]:
         df = datasets[dataset_name]
         return transform.transform_proteomics(df=df)
+    if dataset_name == "biomarkers":
+        return transform.transform_biomarkers(datasets=datasets)
     else:
         return None
 
@@ -186,7 +190,7 @@ def process_dataset(
 
 def create_data_manifest(
     syn: synapseclient.Synapse, parent: synapseclient.Folder = None
-) -> typing.Union[DataFrame, None]:
+) -> Union[DataFrame, None]:
     """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse folders
 
     Args:

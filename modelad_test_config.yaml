@@ -1,0 +1,17 @@
+destination: &dest syn51498092
+staging_path: ./staging
+gx_folder: none
+gx_table: none
+datasets:
+  - biomarkers:
+      files:
+        - name: biomarkers
+          id: syn61250724.1
+          format: csv
+      final_format: json
+      provenance:
+        - syn61250724.1
+      destination: *dest
+      custom_transformations: 1
+      column_rename:
+        agedeath: age_death
