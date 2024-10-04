@@ -3,7 +3,9 @@ import os
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform import biomarkers
+from agoradatatools.etl.transform.modelAD_general_transform import (
+    modelAD_general_transform,
+)
 
 
 class TestTransformBiomarkers:
@@ -48,14 +50,16 @@ class TestTransformBiomarkers:
     @pytest.mark.parametrize(
         "biomarkers_file, expected_output_file", pass_test_data, ids=pass_test_ids
     )
-    def test_transform_biomarkers_should_pass(
+    def test_modelAD_general_transform_should_pass(
         self, biomarkers_file, expected_output_file
     ):
         biomarkers_df = pd.read_csv(
             os.path.join(self.data_files_path, "input", biomarkers_file)
         )
         output_df = pd.DataFrame(
-            biomarkers.transform_biomarkers(datasets={"biomarkers": biomarkers_df})
+            modelAD_general_transform(
+                datasets={"biomarkers": biomarkers_df}, datasetname="biomarkers"
+            )
         )
         expected_df = pd.read_json(
             os.path.join(self.data_files_path, "output", expected_output_file),
@@ -63,11 +67,13 @@ class TestTransformBiomarkers:
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     @pytest.mark.parametrize("biomarkers_file", fail_test_data, ids=fail_test_ids)
-    def test_transform_biomarkers_should_fail(
+    def test_modelAD_general_transform_should_fail(
         self, biomarkers_file, error_type: BaseException = ValueError
     ):
         biomarkers_df = pd.read_csv(
             os.path.join(self.data_files_path, "input", biomarkers_file)
         )
         with pytest.raises(error_type):
-            biomarkers.transform_biomarkers(datasets={"biomarkers": biomarkers_df})
+            modelAD_general_transform(
+                datasets={"biomarkers": biomarkers_df}, datasetname="biomarkers"
+            )
