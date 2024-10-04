@@ -27,7 +27,7 @@ def modelAD_general_transform(
         extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'points'.
 
     Returns:
-        pd.DataFrame: A DataFrame containing biomarker data modeled after intended final structure.
+        pd.DataFrame: A DataFrame grouped by the group_columns.
     """
     dataset = datasets[dataset_name]
 

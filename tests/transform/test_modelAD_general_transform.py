@@ -8,7 +8,7 @@ from agoradatatools.etl.transform.modelAD_general_transform import (
 )
 
 
-class TestTransformBiomarkers:
+class TestTransformGeneralModelAD:
     data_files_path = "tests/test_assets/modelAD_general_transform"
     pass_test_data = [
         (
