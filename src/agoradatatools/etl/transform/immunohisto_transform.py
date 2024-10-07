@@ -7,7 +7,7 @@ import pandas as pd
 from typing import Dict, List
 
 
-def modelAD_general_transform(
+def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
     dataset_name: str,
     group_columns: List[str] = ["model", "type", "age_death", "tissue", "units"],
