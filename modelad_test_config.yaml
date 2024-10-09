@@ -15,3 +15,16 @@ datasets:
       custom_transformations: 1
       column_rename:
         agedeath: age_death
+
+  - pathology:
+      files:
+        - name: pathology
+          id: syn61357279
+          format: csv
+      final_format: json
+      provenance:
+        - syn61357279
+      destination: *dest
+      custom_transformations: 1
+      column_rename:
+        agedeath: age_death
