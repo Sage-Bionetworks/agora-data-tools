@@ -157,7 +157,7 @@ datasets:
         - <<: *agora_proteomics_srm_files
         - <<: *rna_diff_expr_data_files
         - name: target_list
-          id: syn12540368.47
+          id: syn12540368.48
           format: csv
         - name: median_expression
           id: syn27211878.2
@@ -167,7 +167,7 @@ datasets:
           format: csv
         - <<: *genes_biodomains_files
         - name: tep_adi_info
-          id: syn51942280.2
+          id: syn51942280.3
           format: csv
       final_format: json
       custom_transformations:
@@ -194,11 +194,11 @@ datasets:
         - *agora_proteomics_tmt_provenance
         - *agora_proteomics_srm_provenance
         - *rna_diff_expr_data_provenance
-        - syn12540368.47
+        - syn12540368.48
         - syn27211878.2
         - syn13363443.11
         - *genes_biodomains_provenance
-        - syn51942280.2
+        - syn51942280.3
       agora_rename:
         symbol: hgnc_symbol
       destination: *dest
