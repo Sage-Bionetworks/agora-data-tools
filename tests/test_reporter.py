@@ -71,10 +71,11 @@ class TestADTGXReporter:
         mock_datetime.datetime.now.return_value.strftime.assert_called_once()
         assert self.test_reporter.reports[0] == self.upload_report
 
-    def test_update_table(self, syn):
+    def test_update_table_platform_not_local_and_reports_not_empty(self, syn):
         with patch.object(syn, "store") as mock_store, patch.object(
             self.test_reporter, "_update_reports_before_upload"
         ) as mock_update_reports_before_upload:
+            self.test_reporter.reports = [self.test_report]
             self.test_reporter.update_table()
 
             mock_store.assert_called_once()
@@ -85,6 +86,15 @@ class TestADTGXReporter:
             self.test_reporter_local, "_update_reports_before_upload"
         ) as mock_update_reports_before_upload:
             self.test_reporter_local.update_table()
+
+            mock_store.assert_not_called()
+            mock_update_reports_before_upload.assert_not_called()
+
+    def test_update_table_platform_not_local_and_reports_empty(self, syn):
+        with patch.object(syn, "store") as mock_store, patch.object(
+            self.test_reporter, "_update_reports_before_upload"
+        ) as mock_update_reports_before_upload:
+            self.test_reporter.update_table()
 
             mock_store.assert_not_called()
             mock_update_reports_before_upload.assert_not_called()
