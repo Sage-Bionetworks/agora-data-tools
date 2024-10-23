@@ -301,27 +301,32 @@ def process_all_files(
 
 app = Typer()
 
-input_path_arg = Argument(..., help="Path to configuration file for processing run")
+input_path_arg = Argument(
+    ..., help="Path to configuration file for processing run (Required)."
+)
 
 platform_opt = Option(
     "LOCAL",
     "--platform",
     "-p",
-    help="Platform that is running the process. Must be one of LOCAL, GITHUB, or NEXTFLOW.",
+    help="Platform that is running the process. Must be one of LOCAL, GITHUB, or NEXTFLOW (Optional).",
     show_default=True,
 )
 run_id_opt = Option(
     None,
     "--run_id",
     "-r",
-    help="Run ID of the process.",
+    help="Run ID of the process. This is used to identify the run in the GX table. (Optional)",
     show_default=True,
 )
 upload_opt = Option(
     False,
     "--upload",
     "-u",
-    help="Toggles whether or not files will be uploaded to Synapse.",
+    help="Toggles whether or not files will be uploaded to Synapse. The absence of this option means "
+    "that neither output data files nor GX reports will be uploaded to Synapse. Setting "
+    "`--upload` in the command will cause both to be uploaded. This option is used to control "
+    "the upload behavior of the process.",
     show_default=True,
 )
 synapse_auth_opt = Option(
