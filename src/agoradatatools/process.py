@@ -301,7 +301,9 @@ def process_all_files(
 
 app = Typer()
 
-input_path_arg = Argument(..., help="Path to configuration file for processing run (Required).")
+input_path_arg = Argument(
+    ..., help="Path to configuration file for processing run (Required)."
+)
 
 platform_opt = Option(
     "LOCAL",
