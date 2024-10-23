@@ -119,9 +119,8 @@ class ADTGXReporter:
 
     def update_table(self) -> None:
         """Updates the Synapse table adding one new row for each DatasetReport object if the platform is not LOCAL."""
-        if self.platform != Platform.LOCAL:
+        if self.platform != Platform.LOCAL and self.reports:
             self._update_reports_before_upload()
-
             self.syn.store(
                 synapseclient.Table(
                     self.table_id,
