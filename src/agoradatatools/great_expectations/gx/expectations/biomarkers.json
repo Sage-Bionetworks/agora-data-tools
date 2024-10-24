@@ -5,6 +5,60 @@
     {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
+        "column": "points",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "points"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "points",
+        "member_type": "dict"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "points",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": [],
+          "items": {
+            "properties": {
+              "genotype": {
+                "default": "",
+                "type": "string"
+              },
+              "measurement": {
+                "default": 0.0,
+                "type": "number"
+              },
+              "sex": {
+                "default": "",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "title": "Points Schema",
+          "type": "array"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
         "column": "model",
         "type_": "str"
       },
@@ -67,7 +121,7 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "age_death",
-        "type_": "float"
+        "type_": "int"
       },
       "meta": {}
     },
@@ -107,29 +161,6 @@
       "kwargs": {
         "column": "tissue",
         "regex": "^[A-Za-z0-9\\/\\s\\*_.-]+$"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "points",
-        "type_": "list"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "points"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_have_list_members_of_type",
-      "kwargs": {
-        "column": "points",
-        "member_type": "dict"
       },
       "meta": {}
     },

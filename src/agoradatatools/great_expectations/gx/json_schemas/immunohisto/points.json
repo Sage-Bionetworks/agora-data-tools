@@ -1,0 +1,24 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "http://example.com/example.json",
+    "title": "Points Schema",
+    "type": "array",
+    "default": [],
+    "items": {
+        "type": "object",
+        "properties": {
+            "genotype": {
+                "type": "string",
+                "default": ""
+            },
+            "measurement": {
+                "type": "number",
+                "default": 0.0
+            },
+            "sex": {
+                "type": "string",
+                "default": ""
+            }
+        }
+    }
+}
