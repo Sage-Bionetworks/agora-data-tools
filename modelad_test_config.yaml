@@ -1,7 +1,7 @@
 destination: &dest syn51498092
 staging_path: ./staging
 gx_folder: syn63141015
-gx_table: none
+gx_table: syn63891939
 datasets:
   - biomarkers:
       files:

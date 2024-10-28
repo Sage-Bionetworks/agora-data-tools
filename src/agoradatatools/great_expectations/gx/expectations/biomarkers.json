@@ -11,21 +11,6 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "points"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_have_list_members_of_type",
-      "kwargs": {
-        "column": "points",
-        "member_type": "dict"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "points",
@@ -34,24 +19,19 @@
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "default": [],
           "items": {
-            "properties": {
-              "genotype": {
-                "default": "",
-                "type": "string"
-              },
-              "measurement": {
-                "default": 0.0,
-                "type": "number"
-              },
-              "sex": {
-                "default": "",
-                "type": "string"
-              }
-            },
+            "default": {},
+            "required": [
+              "genotype",
+              "measurement",
+              "sex"
+            ],
             "type": "object"
           },
           "title": "Points Schema",
-          "type": "array"
+          "type": [
+            "array",
+            "null"
+          ]
         }
       },
       "meta": {}
