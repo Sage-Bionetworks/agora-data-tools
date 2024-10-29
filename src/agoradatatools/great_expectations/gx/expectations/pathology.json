@@ -55,7 +55,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "type",
-        "regex": "^[A-Za-z0-9\\s_.-]+$"
+        "regex": "^[A-Za-z0-9\\s\\(\\)\\*_.-]+$"
       },
       "meta": {}
     },
@@ -93,7 +93,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "units",
-        "regex": "^[A-Za-z0-9\\/\\s\\*_.-]+$"
+        "regex": "^[A-Za-z0-9\\s\\(\\)\\#\\/\\%*_.-]+$"
       },
       "meta": {}
     },
