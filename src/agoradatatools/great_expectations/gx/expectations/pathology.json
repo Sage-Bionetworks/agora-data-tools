@@ -6,7 +6,7 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "points",
-        "type_": "object"
+        "type_": "str"
       },
       "meta": {}
     },
