@@ -183,21 +183,25 @@ These expectations are defined in the `/great_expectations/gx/plugins/expectatio
 
 #### Nested Columns
 
-If the transform includes nested columns (example: `druggability` column in `gene_info` tranform), the following must be included:
-1. The nested column name must be specified in the config under `gx_nested_columns`.
+If the transform includes nested columns (example: `druggability` column in `gene_info` tranform), please follow these four steps:
+1. Add the nested column name to the `gx_nested_columns` flag for the specific transform. This will convert the column values to a JSON parsable string.
 ```
 gx_nested_columns:
-   - nested_column_name
+   - <nested_column_name>
 ```
 2. When creating the validator object in the gx_suite_definitions notebook, the nested column(s) must be included in the `nested_columns` list.
 ```
-df = pd.read_json(data_file)
-nested_columns = ['nested_column_name']
+df = pd.read_json(<data_file>)
+nested_columns = ['<nested_column_name>']
 df = GreatExpectationsRunner.convert_nested_columns_to_json(df, nested_columns)
 validator = context.sources.pandas_default.read_dataframe(df)
-validator.expectation_suite_name = "suite_name"
+validator.expectation_suite_name = "<suite_name>"
 ```
-3. A JSON file containing the expected schema must be added: `src/agoradatatools/great_expectations/gx/json_schemas/transform_name/column_name.json`. Use the [JSON schema tool](https://jsonschema.net/app/schemas/0) to create the schema template for your nested column.
+3. When validating the value type of the nested column, make sure to specify it as a string (see Step 1 for reasoning):
+```
+validator.expect_column_values_to_be_of_type("<nested_column_name>", "str")
+```
+4. A JSON file containing the expected schema must be added here: `src/agoradatatools/great_expectations/gx/json_schemas/<transform_name>/<column_name>.json`. Use the [JSON schema tool](https://jsonschema.net/app/schemas/0) to create the schema template for your nested column.
 
 ### DockerHub
 
