@@ -6,7 +6,7 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "points",
-        "type_": "list"
+        "type_": "object"
       },
       "meta": {}
     },
@@ -19,19 +19,30 @@
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "default": [],
           "items": {
-            "default": {},
+            "properties": {
+              "genotype": {
+                "type": "string"
+              },
+              "measurement": {
+                "type": [
+                  "number",
+                  "integer"
+                ]
+              },
+              "sex": {
+                "type": "string"
+              }
+            },
             "required": [
               "genotype",
               "measurement",
               "sex"
             ],
+            "title": "A Schema",
             "type": "object"
           },
           "title": "Points Schema",
-          "type": [
-            "array",
-            "null"
-          ]
+          "type": "array"
         }
       },
       "meta": {}
