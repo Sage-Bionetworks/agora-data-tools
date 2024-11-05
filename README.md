@@ -123,12 +123,21 @@ python -m pytest
 Parameters:
 - `destination`: Defines the default target location (folder) that the generated json files are written to; this value can be overridden on a per-dataset basis
 - `staging_path`: Defines the location of the staging folder that the generated json files are written to
-- `gx_folder`: Defines the Synapse ID of the folder that generated GX reports are written to
+- `gx_folder`: Defines the Synapse ID of the folder that generated GX reports are written to. This key must always be present in the config file. A valid Synapse ID assigned to `gx_folder` is required if `gx_enabled` is set to `true` for any dataset. If this key is missing from the dataset, or if it is set to `none` when `gx_enabled` is `true` for any dataset, an error will be thrown.
+- `gx_table`: Defines the Synapse ID of the table that generated GX reporting is posted to. This key must always be present in the config file. A valid Synapse ID assigned to `gx_table` is required if `gx_enabled` is set to `true` for any dataset. If this key is missing from the dataset, or if it is set to `none` when `gx_enabled` is `true` for any dataset, an error will be thrown.
+- `sources/<source>`: Source files for each dataset are defined in the `sources` section of the config file.
+- `sources/<source>/<source>_files`: A list of source file information for the dataset.
+- `sources/<source>/<source>_files/name`: The name of the source file/dataset.
+- `sources/<source>/<source>_files/id`: The Synapse ID of the source file. Dot notation is supported to indicate the version of the file to use.
+- `sources/<source>/<source>_files/format`: The format of the source file.
 - `datasets/<dataset>`: Each generated json file is named `<dataset>.json`
 - `datasets/<dataset>/files`: A list of source files for the dataset
     - `name`: The name of the source file (this name is the reference the code will use to retrieve a file from the configuration)
     - `id`: Synapse id of the file
     - `format`: The format of the source file
+- `datasets/<dataset>/final_format`: The format of the generated output file.
+- `datasets/<dataset>/gx_enabled`: Whether or not GX validation should be run on the dataset. `true` will run GX validation, `false` or the absence of this key will skip GX validation.
+- `datasets/<dataset>/gx_nested_columns`: A list of nested columns that should be validated using GX nested validation. Failure to include this key and a valid list of columns will result in an error because the nested fields will not be converted to a JSON-parseable string prior to validation. This key is not needed if `gx_enabled` is not set to `true` or if the dataset does not have nested fields.
 - `datasets/<dataset>/provenance`: The Synapse id of each entity that the dataset is derived from, used to populate the generated file's Synapse provenance. (The Synapse API calls this "Activity")
 - `datasets/<dataset>/destination`: Override the default destination for a specific dataset by specifying a synID, or use `*dest` to use the default destination
 - `datasets/<dataset>/column_rename`: Columns to be renamed prior to data transformation

@@ -309,7 +309,7 @@ platform_opt = Option(
     "LOCAL",
     "--platform",
     "-p",
-    help="Platform that is running the process. Must be one of LOCAL, GITHUB, or NEXTFLOW (Optional).",
+    help="Platform that is running the process. Must be one of LOCAL, GITHUB, or NEXTFLOW (Optional, defaults to LOCAL).",
     show_default=True,
 )
 run_id_opt = Option(
@@ -323,17 +323,17 @@ upload_opt = Option(
     False,
     "--upload",
     "-u",
-    help="Toggles whether or not files will be uploaded to Synapse. The absence of this option means "
-    "that neither output data files nor GX reports will be uploaded to Synapse. Setting "
-    "`--upload` in the command will cause both to be uploaded. This option is used to control "
-    "the upload behavior of the process.",
+    help="Boolean value that toggles whether or not files will be uploaded to Synapse. The absence of this option means "
+    "`False` - that neither output data files nor GX reports will be uploaded to Synapse. Setting "
+    "`--upload` in the command will cause both to be uploaded. (Optional, defaults to False)",
     show_default=True,
 )
 synapse_auth_opt = Option(
     None,
     "--token",
     "-t",
-    help="Synapse authentication token. Defaults to environment variable $SYNAPSE_AUTH_TOKEN via syn.login() functionality",
+    help="Synapse authentication token. (Required, Defaults to environment variable SYNAPSE_AUTH_TOKEN via syn.login() functionality "
+    "https://python-docs.synapse.org/reference/client/?h=syn.login#synapseclient.Synapse.login)",
     show_default=False,
 )
 

@@ -167,9 +167,9 @@ This package uses [Great Expectations](https://greatexpectations.io/) to validat
 
 1. Create a new expectation suite by defining the expectations for the dataset in a Jupyter Notebook inside the `gx_suite_definitions` folder. Use `metabolomics.ipynb` as an example. You can find a catalog of existing expectations [here](https://greatexpectations.io/expectations/).
 1. Run the notebook to generate the new expectation suite. It should populate as a JSON file in the `/great_expectations/expectations` folder.
-1. Add support for running Great Expectations on a dataset by adding `gx_enabled: true` to the configuration for the datatset in both `test_config.yaml` and `config.yaml`. After updating the config files reports should be uploaded in the proper locations ([Prod](https://www.synapse.org/#!Synapse:syn52948668), [Testing](https://www.synapse.org/#!Synapse:syn52948670)) when data processing is complete.
-   - You can prevent Great Expectations from running for a dataset by removing the `gx_enabled: true` from the configuration for the dataset.
-1. Test data processing by running `adt test_config.yaml` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
+1. Add support for running Great Expectations on a dataset by adding `gx_enabled: true` to the configuration for the datatset in both `test_config.yaml` and `config.yaml`. Ensure that the `gx_folder` and `gx_table` keys are present in the configuration file and contain valid Synapse IDs for the GX reports and GX table, respectively.
+   - You can prevent Great Expectations from running for a dataset by setting `gx_enabled: false` in the configuration for the dataset.
+1. Test data processing by running `adt test_config.yaml --upload` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
 
 #### Custom Expectations
 
@@ -180,6 +180,28 @@ This repository is currently home to three custom expectations that were created
 1. `ExpectColumnValuesToHaveListMembersOfType`: checks to see if the lists in a particular column contain members of the type we expect.
 
 These expectations are defined in the `/great_expectations/gx/plugins/expectations` folder. To add more custom expectations, follow the instructions [here](https://docs.greatexpectations.io/docs/guides/expectations/custom_expectations_lp).
+
+#### Nested Columns
+
+If the transform includes nested columns (example: `druggability` column in `gene_info` tranform), please follow these steps:
+1. Add the nested column name to the `gx_nested_columns` flag in the configuration file for the specific transform. This will convert the column values to a JSON parsable string.
+```
+gx_nested_columns:
+   - <nested_column_name>
+```
+1. When creating the validator object in the gx_suite_definitions notebook, the nested column(s) must be included in the `nested_columns` list.
+```
+df = pd.read_json(<data_file>)
+nested_columns = ['<nested_column_name>']
+df = GreatExpectationsRunner.convert_nested_columns_to_json(df, nested_columns)
+validator = context.sources.pandas_default.read_dataframe(df)
+validator.expectation_suite_name = "<suite_name>"
+```
+1. When validating the value type of the nested column, make sure to specify it as a string (see Step 1 for reasoning):
+```
+validator.expect_column_values_to_be_of_type("<nested_column_name>", "str")
+```
+1. A JSON file containing the expected schema must be added here: `src/agoradatatools/great_expectations/gx/json_schemas/<transform_name>/<column_name>.json`. Use the [JSON schema tool](https://jsonschema.net/app/schemas/0) to create the schema template for your nested column.
 
 ### DockerHub
 
