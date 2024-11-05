@@ -2,12 +2,13 @@
 
 - [Intro](#intro)
 - [Running the pipeline](#running-the-pipeline)
-  - [Nextflow Tower](#nextflow-tower)
+  - [Seqera Platform](#seqera-platform)
+  - [Configuring Synapse Credentials](#configuring-synapse-credentials)
   - [Locally](#locally)
   - [Docker](#docker)
 - [Testing Github Workflow](#testing-github-workflow)
 - [Unit Tests](#unit-tests)
-- [Config](#config)
+- [Pipeline Configuration](#pipeline-configuration)
 
 ## Intro
 A place for Agora's ETL, data testing, and data analysis
@@ -18,7 +19,7 @@ parameters defined in a config file to determine which kinds of extraction and t
 dataset needs to go through before the resulting data is serialized as json files that can be loaded into Agora's data repository.
 
 In the spirit of importing datasets with the minimum amount of transformations, one can simply add a dataset to the config file,
-and run the scripts.
+and run the tool.
 
 This `src/agoradatatools` implementation was influenced by the "Modern Config Driven ELT Framework for Building a
 Data Lake" talk given at the Data + AI Summit of 2021.
@@ -33,9 +34,9 @@ Note that running the pipeline does _not_ automatically update the Agora databas
 into the Agora databases is handled by [agora-data-manager](https://github.com/Sage-Bionetworks/agora-data-manager/).
 
 You can run the pipeline in any of the following ways:
-1. [Nextflow Tower](#nextflow-tower) is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synapse PAT, or setting up the Synapse Python client.
-2. [Locally](#locally) requires installing Python and Pipenv, obtaining the required Synapse permissions, creating a Synpase PAT, and setting up the Synapse Python client.
-3. [Docker](#docker) requires installing Docker, obtaining the required Synapse permissions, and creating a Synpase PAT.
+1. **Seqera Platform**: is the simplest, but least flexible, way to run the pipeline; it does not require Synapse permissions, creating a Synapse PAT, or setting up the Synapse Python client.
+2. **Locally**: requires installing Python and Pipenv, obtaining the required Synapse permissions, creating a Synpase PAT, and setting up the Synapse Python client.
+3. **Docker**: requires installing Docker, obtaining the required Synapse permissions, and creating a Synpase PAT.
 
 When running the pipeline, you must specify the config file that will be used. There are two config files that are checked into this repo:
 * ```test_config.yaml``` places the transformed datasets in the [Agora Testing Data](https://www.synapse.org/#!Synapse:syn17015333) folder in synapse; write files to this folder to perform data validation.
@@ -45,8 +46,8 @@ Note that files in the Agora Live Data folder are not automatically released, so
 You may also create a custom config file to use locally to target specific dataset(s) or transforms of interest, and/or to write the generated json files to a different Synapse
 location. See the [config file](#config) section for additional information.
 
-### Nextflow Tower
-This pipeline can be executed without any local installation, permissions, or credentials; the Sage Bionetworks Nextflow Tower workspace is configured to use Agora's Synapse credentials, which can be found in LastPass in the "Shared-Agora" Folder.
+### Seqera Platform
+This pipeline can be executed without any local installation, permissions, or credentials; the Sage Bionetworks Seqera Platform workspace is configured to use Agora's Synapse credentials, which can be found in LastPass in the "Shared-Agora" Folder.
 
 The instructions to trigger the workflow can be found at [Sage-Bionetworks-Workflows/nf-agora](https://github.com/Sage-Bionetworks-Workflows/nf-agora)
 
@@ -80,7 +81,7 @@ Perform the following one-time steps to set up your local environment and obtain
       pipenv shell
       ```
 
-6. You can check if the package was isntalled correctly by running `adt --help` in the terminal. If it returns instructions about how to use the CLI, installation was successful and you can run the pipeline by providing the desired [config file](#config) as an argument. Be sure to review these instructions prior to executing a processing run. The following example command will execute the pipeline using ```test_config.yaml```:
+6. You can check if the package was isntalled correctly by running `adt --help` in the terminal. If it returns instructions about how to use the CLI, installation was successful and you can run the pipeline by providing the desired [config file](#config) as an argument. Be sure to review these instructions prior to executing a processing run. The following example command will execute the pipeline using ```test_config.yaml``` and the default options:
 
     ```bash
     adt test_config.yaml
@@ -119,7 +120,7 @@ Unit tests can be run by calling pytest from the command line.
 python -m pytest
 ```
 
-## Config
+## Pipeline Configuration
 Parameters:
 - `destination`: Defines the default target location (folder) that the generated json files are written to; this value can be overridden on a per-dataset basis
 - `staging_path`: Defines the location of the staging folder that the generated json files are written to

@@ -1,6 +1,21 @@
-## Contributing
+# Contributing
 
 We welcome all contributions! That said, this is a Sage Bionetworks owned project, and we use JIRA ([AG](https://sagebionetworks.jira.com/jira/software/c/projects/AG/boards/91)/[IBCDPE](https://sagebionetworks.jira.com/jira/software/c/projects/IBCDPE/boards/189)) to track any bug/feature requests. This guide will be more focussed on a Sage Bio employee's development workflow. If you are a Sage Bio employee, make sure to assign yourself the JIRA ticket if you decide to work on it.
+
+- [Coding Style](#coding-style)
+- [The Development Life Cycle](#the-development-life-cycle)
+  - [Install Development Dependencies](#install-development-dependencies)
+  - [Developing at Sage Bio](#developing-at-sage-bio)
+  - [Pre-Commit Hooks](#pre-commit-hooks)
+  - [Testing](#testing)
+    - [Running tests](#running-tests)
+    - [Test Development](#test-development)
+      - [Mock Testing](#mock-testing)
+- [Transforms](#transforms)
+- [Great Expectations](#great-expectations)
+  - [Custom Expectations](#custom-expectations)
+  - [Nested Columns](#nested-columns)
+- [DockerHub](#dockerhub)
 
 ## Coding Style
 
@@ -21,7 +36,7 @@ The code in this package is also automatically formatted by `black` for consiste
     git pull upstream develop
     ``` -->
 
-### Install development dependencies
+### Install Development Dependencies
 
 Please follow the [README.md](README.md) to install the package for development purposes. Be sure you run this:
 
