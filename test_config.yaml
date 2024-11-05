@@ -1,6 +1,6 @@
 destination: &dest syn17015333
 staging_path: ./staging
-gx_folder: none
+gx_folder: syn52948670
 gx_table: syn60527065
 sources:
   - genes_biodomains:
@@ -141,73 +141,73 @@ datasets:
       destination: *dest
       gx_enabled: true
 
-  # - gene_info:
-  #     files:
-  #       - name: gene_metadata
-  #         id: syn25953363.13
-  #         format: feather
-  #       - name: igap
-  #         id: syn12514826.5
-  #         format: csv
-  #       - name: eqtl
-  #         id: syn12514912.3
-  #         format: csv
-  #       - <<: *agora_proteomics_files
-  #       - <<: *agora_proteomics_tmt_files
-  #       - <<: *agora_proteomics_srm_files
-  #       - <<: *rna_diff_expr_data_files
-  #       - name: target_list
-  #         id: syn12540368.51
-  #         format: csv
-  #       - name: median_expression
-  #         id: syn27211878.2
-  #         format: csv
-  #       - name: druggability
-  #         id: syn13363443.11
-  #         format: csv
-  #       - <<: *genes_biodomains_files
-  #       - name: tep_adi_info
-  #         id: syn51942280.3
-  #         format: csv
-  #     final_format: json
-  #     custom_transformations:
-  #       adjusted_p_value_threshold: 0.05
-  #       protein_level_threshold: 0.05
-  #     column_rename:
-  #       ensg: ensembl_gene_id
-  #       ensembl_id: ensembl_gene_id
-  #       geneid: ensembl_gene_id
-  #       has_eqtl: is_eqtl
-  #       minimumlogcpm: min
-  #       quartile1logcpm: first_quartile
-  #       medianlogcpm: median
-  #       meanlogcpm: mean
-  #       quartile3logcpm: third_quartile
-  #       maximumlogcpm: max
-  #       possible_replacement: ensembl_possible_replacements
-  #       permalink: ensembl_permalink
-  #     provenance:
-  #       - syn25953363.13
-  #       - syn12514826.5
-  #       - syn12514912.3
-  #       - *agora_proteomics_provenance
-  #       - *agora_proteomics_tmt_provenance
-  #       - *agora_proteomics_srm_provenance
-  #       - *rna_diff_expr_data_provenance
-  #       - syn12540368.51
-  #       - syn27211878.2
-  #       - syn13363443.11
-  #       - *genes_biodomains_provenance
-  #       - syn51942280.3
-  #     agora_rename:
-  #       symbol: hgnc_symbol
-  #     destination: *dest
-  #     gx_enabled: true
-  #     gx_nested_columns:
-  #       - target_nominations
-  #       - median_expression
-  #       - druggability
-  #       - ensembl_info
+  - gene_info:
+      files:
+        - name: gene_metadata
+          id: syn25953363.13
+          format: feather
+        - name: igap
+          id: syn12514826.5
+          format: csv
+        - name: eqtl
+          id: syn12514912.3
+          format: csv
+        - <<: *agora_proteomics_files
+        - <<: *agora_proteomics_tmt_files
+        - <<: *agora_proteomics_srm_files
+        - <<: *rna_diff_expr_data_files
+        - name: target_list
+          id: syn12540368.51
+          format: csv
+        - name: median_expression
+          id: syn27211878.2
+          format: csv
+        - name: druggability
+          id: syn13363443.11
+          format: csv
+        - <<: *genes_biodomains_files
+        - name: tep_adi_info
+          id: syn51942280.3
+          format: csv
+      final_format: json
+      custom_transformations:
+        adjusted_p_value_threshold: 0.05
+        protein_level_threshold: 0.05
+      column_rename:
+        ensg: ensembl_gene_id
+        ensembl_id: ensembl_gene_id
+        geneid: ensembl_gene_id
+        has_eqtl: is_eqtl
+        minimumlogcpm: min
+        quartile1logcpm: first_quartile
+        medianlogcpm: median
+        meanlogcpm: mean
+        quartile3logcpm: third_quartile
+        maximumlogcpm: max
+        possible_replacement: ensembl_possible_replacements
+        permalink: ensembl_permalink
+      provenance:
+        - syn25953363.13
+        - syn12514826.5
+        - syn12514912.3
+        - *agora_proteomics_provenance
+        - *agora_proteomics_tmt_provenance
+        - *agora_proteomics_srm_provenance
+        - *rna_diff_expr_data_provenance
+        - syn12540368.51
+        - syn27211878.2
+        - syn13363443.11
+        - *genes_biodomains_provenance
+        - syn51942280.3
+      agora_rename:
+        symbol: hgnc_symbol
+      destination: *dest
+      gx_enabled: true
+      gx_nested_columns:
+        - target_nominations
+        - median_expression
+        - druggability
+        - ensembl_info
 
   - team_info:
       files:
