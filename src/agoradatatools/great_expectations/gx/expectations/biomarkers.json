@@ -63,10 +63,15 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_match_regex",
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
       "kwargs": {
-        "column": "type",
-        "regex": "^[A-Za-z0-9\\s_.-]+$"
+        "column": "model",
+        "value_set": [
+          "3xTG-AD",
+          "5xFAD",
+          "Trem2-R47H_NSS",
+          "Abca7*v1599M"
+        ]
       },
       "meta": {}
     },
@@ -86,6 +91,20 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
+      "kwargs": {
+        "column": "type",
+        "value_set": [
+          "Insoluble Abeta40",
+          "Insoluble Abeta42",
+          "Soluble Abeta40",
+          "Soluble Abeta42",
+          "NfL"
+        ]
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "units",
@@ -97,14 +116,6 @@
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "units"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_match_regex",
-      "kwargs": {
-        "column": "units",
-        "regex": "^[A-Za-z0-9\\/\\s\\*_.-]+$"
       },
       "meta": {}
     },
@@ -148,10 +159,14 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_match_regex",
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
       "kwargs": {
         "column": "tissue",
-        "regex": "^[A-Za-z0-9\\/\\s\\*_.-]+$"
+        "value_set": [
+          "cerebral cortex",
+          "hippocampus",
+          "plasma"
+        ]
       },
       "meta": {}
     },

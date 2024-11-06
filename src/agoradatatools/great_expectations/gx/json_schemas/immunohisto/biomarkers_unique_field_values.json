@@ -1,0 +1,24 @@
+{
+    "model": [
+        "3xTG-AD",
+        "5xFAD",
+        "Trem2-R47H_NSS",
+        "Abca7*v1599M"
+    ],
+    "type": [
+        "Insoluble Abeta40",
+        "Insoluble Abeta42",
+        "Soluble Abeta40",
+        "Soluble Abeta42",
+        "NfL"
+    ],
+    "tissue": [
+        "cerebral cortex",
+        "hippocampus",
+        "plasma"
+    ],
+    "sex": [
+        "female",
+        "male"
+    ]
+}

@@ -184,7 +184,7 @@ These expectations are defined in the `/great_expectations/gx/plugins/expectatio
 #### Nested Columns
 
 If the transform includes nested columns (example: `druggability` column in `gene_info` tranform), please follow these four steps:
-1. Add the nested column name to the `gx_nested_columns` flag for the specific transform. This will convert the column values to a JSON parsable string.
+1. In the config file, add the nested column name to the `gx_nested_columns` flag for the specific transform. This will convert the column values to a JSON parsable string.
 ```
 gx_nested_columns:
    - <nested_column_name>
@@ -197,7 +197,7 @@ df = GreatExpectationsRunner.convert_nested_columns_to_json(df, nested_columns)
 validator = context.sources.pandas_default.read_dataframe(df)
 validator.expectation_suite_name = "<suite_name>"
 ```
-3. When validating the value type of the nested column, make sure to specify it as a string (see Step 1 for reasoning):
+3. When validating the value type of the nested column, specify it as a string (see Step 1 for reasoning):
 ```
 validator.expect_column_values_to_be_of_type("<nested_column_name>", "str")
 ```

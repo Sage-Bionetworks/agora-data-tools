@@ -63,10 +63,15 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_match_regex",
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
       "kwargs": {
-        "column": "type",
-        "regex": "^[A-Za-z0-9\\s\\(\\)\\*_.-]+$"
+        "column": "model",
+        "value_set": [
+          "3xTG-AD",
+          "5xFAD",
+          "Trem2-R47H_NSS",
+          "Abca7*V1599M"
+        ]
       },
       "meta": {}
     },
@@ -86,6 +91,23 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
+      "kwargs": {
+        "column": "type",
+        "value_set": [
+          "Microglia Cell Density (IBA1)",
+          "Plaque Density (Thio-S)",
+          "Plaque Size (Thio-S)",
+          "Astrocyte Cell Density (GFAP)",
+          "Astrocyte Cell Density (S100B)",
+          "Phospho-tau (AT8)",
+          "Dystrophic Neurites (LAMP1)",
+          "Tau (HT7)"
+        ]
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "units",
@@ -97,14 +119,6 @@
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "units"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_match_regex",
-      "kwargs": {
-        "column": "units",
-        "regex": "^[A-Za-z0-9\\s\\(\\)\\#\\/\\%*_.-]+$"
       },
       "meta": {}
     },
@@ -148,10 +162,13 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_match_regex",
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
       "kwargs": {
         "column": "tissue",
-        "regex": "^[A-Za-z0-9\\/\\s\\*_.-]+$"
+        "value_set": [
+          "hippocampus",
+          "cerebral cortex"
+        ]
       },
       "meta": {}
     },
