@@ -181,6 +181,28 @@ This repository is currently home to three custom expectations that were created
 
 These expectations are defined in the `/great_expectations/gx/plugins/expectations` folder. To add more custom expectations, follow the instructions [here](https://docs.greatexpectations.io/docs/guides/expectations/custom_expectations_lp).
 
+#### Nested Columns
+
+If the transform includes nested columns (example: `druggability` column in `gene_info` tranform), please follow these four steps:
+1. In the config file, add the nested column name to the `gx_nested_columns` flag for the specific transform. This will convert the column values to a JSON parsable string.
+```
+gx_nested_columns:
+   - <nested_column_name>
+```
+2. When creating the validator object in the gx_suite_definitions notebook, the nested column(s) must be included in the `nested_columns` list.
+```
+df = pd.read_json(<data_file>)
+nested_columns = ['<nested_column_name>']
+df = GreatExpectationsRunner.convert_nested_columns_to_json(df, nested_columns)
+validator = context.sources.pandas_default.read_dataframe(df)
+validator.expectation_suite_name = "<suite_name>"
+```
+3. When validating the value type of the nested column, specify it as a string (see Step 1 for reasoning):
+```
+validator.expect_column_values_to_be_of_type("<nested_column_name>", "str")
+```
+4. A JSON file containing the expected schema must be added here: `src/agoradatatools/great_expectations/gx/json_schemas/<transform_name>/<column_name>.json`. Use the [JSON schema tool](https://jsonschema.net/app/schemas/0) to create the schema template for your nested column.
+
 ### DockerHub
 
 Rather than using GitHub actions to build and push Docker images to DockerHub, the Docker images are automatically built in DockerHub. This requires the `sagebiodockerhub` GitHub user to be an Admin of this repo. You can view the docker build [here](https://hub.docker.com/r/sagebionetworks/agora-data-tools).

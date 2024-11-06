@@ -1,7 +1,7 @@
 destination: &dest syn51498092
 staging_path: ./staging
-gx_folder: none
-gx_table: none
+gx_folder: syn63141015
+gx_table: syn63891939
 datasets:
   - biomarkers:
       files:
@@ -15,6 +15,9 @@ datasets:
       custom_transformations: 1
       column_rename:
         agedeath: age_death
+      gx_enabled: true
+      gx_nested_columns:
+        - points
 
   - pathology:
       files:
@@ -28,3 +31,6 @@ datasets:
       custom_transformations: 1
       column_rename:
         agedeath: age_death
+      gx_enabled: true
+      gx_nested_columns:
+        - points

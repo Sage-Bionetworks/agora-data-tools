@@ -1,0 +1,26 @@
+{
+    "model": [
+        "3xTG-AD",
+        "5xFAD",
+        "Trem2-R47H_NSS",
+        "Abca7*V1599M"
+    ],
+    "type": [
+        "Microglia Cell Density (IBA1)",
+        "Plaque Density (Thio-S)",
+        "Plaque Size (Thio-S)",
+        "Astrocyte Cell Density (GFAP)",
+        "Astrocyte Cell Density (S100B)",
+        "Phospho-tau (AT8)",
+        "Dystrophic Neurites (LAMP1)",
+        "Tau (HT7)"
+    ],
+    "tissue": [
+        "hippocampus",
+        "cerebral cortex"
+    ],
+    "sex": [
+        "female",
+        "male"
+    ]
+}
