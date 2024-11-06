@@ -1,0 +1,191 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "biomarkers",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "points",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "points",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": [],
+          "items": {
+            "properties": {
+              "genotype": {
+                "type": "string"
+              },
+              "measurement": {
+                "type": [
+                  "number",
+                  "integer"
+                ]
+              },
+              "sex": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "genotype",
+              "measurement",
+              "sex"
+            ],
+            "title": "A Schema",
+            "type": "object"
+          },
+          "title": "Points Schema",
+          "type": "array"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "model",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "model"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
+      "kwargs": {
+        "column": "model",
+        "value_set": [
+          "3xTG-AD",
+          "5xFAD",
+          "Trem2-R47H_NSS",
+          "Abca7*v1599M"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "type",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "type"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
+      "kwargs": {
+        "column": "type",
+        "value_set": [
+          "Insoluble Abeta40",
+          "Insoluble Abeta42",
+          "Soluble Abeta40",
+          "Soluble Abeta42",
+          "NfL"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "units",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "units"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "age_death",
+        "type_": "int"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "age_death"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "age_death",
+        "max_value": 100,
+        "strict_min_value": 0
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "tissue",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "tissue"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_distinct_values_to_be_in_set",
+      "kwargs": {
+        "column": "tissue",
+        "value_set": [
+          "cerebral cortex",
+          "hippocampus",
+          "plasma"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_select_column_values_to_be_unique_within_record",
+      "kwargs": {
+        "column_list": [
+          "model",
+          "type",
+          "age_death",
+          "tissue",
+          "units"
+        ]
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}
