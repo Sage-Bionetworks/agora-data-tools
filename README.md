@@ -81,7 +81,7 @@ Perform the following one-time steps to set up your local environment and obtain
       pipenv shell
       ```
 
-6. You can check if the package was isntalled correctly by running `adt --help` in the terminal. If it returns instructions about how to use the CLI, installation was successful and you can run the pipeline by providing the desired [config file](#config) as an argument. Be sure to review these instructions prior to executing a processing run. The following example command will execute the pipeline using ```test_config.yaml``` and the default options:
+6. You can check if the package was installed correctly by running `adt --help` in the terminal. If it returns instructions about how to use the CLI, installation was successful and you can run the pipeline by providing the desired [config file](#config) as an argument. Be sure to review these instructions prior to executing a processing run. The following example command will execute the pipeline using ```test_config.yaml``` and the default options:
 
     ```bash
     adt test_config.yaml
