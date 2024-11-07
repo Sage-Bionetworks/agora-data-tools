@@ -1,6 +1,21 @@
-## Contributing
+# Contributing
 
 We welcome all contributions! That said, this is a Sage Bionetworks owned project, and we use JIRA ([AG](https://sagebionetworks.jira.com/jira/software/c/projects/AG/boards/91)/[IBCDPE](https://sagebionetworks.jira.com/jira/software/c/projects/IBCDPE/boards/189)) to track any bug/feature requests. This guide will be more focussed on a Sage Bio employee's development workflow. If you are a Sage Bio employee, make sure to assign yourself the JIRA ticket if you decide to work on it.
+
+- [Coding Style](#coding-style)
+- [The Development Life Cycle](#the-development-life-cycle)
+  - [Install Development Dependencies](#install-development-dependencies)
+  - [Developing at Sage Bio](#developing-at-sage-bio)
+  - [Pre-Commit Hooks](#pre-commit-hooks)
+  - [Testing](#testing)
+    - [Running tests](#running-tests)
+    - [Test Development](#test-development)
+      - [Mock Testing](#mock-testing)
+- [Transforms](#transforms)
+- [Great Expectations](#great-expectations)
+  - [Custom Expectations](#custom-expectations)
+  - [Nested Columns](#nested-columns)
+- [DockerHub](#dockerhub)
 
 ## Coding Style
 
@@ -21,7 +36,7 @@ The code in this package is also automatically formatted by `black` for consiste
     git pull upstream develop
     ``` -->
 
-### Install development dependencies
+### Install Development Dependencies
 
 Please follow the [README.md](README.md) to install the package for development purposes. Be sure you run this:
 
@@ -167,9 +182,9 @@ This package uses [Great Expectations](https://greatexpectations.io/) to validat
 
 1. Create a new expectation suite by defining the expectations for the dataset in a Jupyter Notebook inside the `gx_suite_definitions` folder. Use `metabolomics.ipynb` as an example. You can find a catalog of existing expectations [here](https://greatexpectations.io/expectations/).
 1. Run the notebook to generate the new expectation suite. It should populate as a JSON file in the `/great_expectations/expectations` folder.
-1. Add support for running Great Expectations on a dataset by adding `gx_enabled: true` to the configuration for the datatset in both `test_config.yaml` and `config.yaml`. After updating the config files reports should be uploaded in the proper locations ([Prod](https://www.synapse.org/#!Synapse:syn52948668), [Testing](https://www.synapse.org/#!Synapse:syn52948670)) when data processing is complete.
-   - You can prevent Great Expectations from running for a dataset by removing the `gx_enabled: true` from the configuration for the dataset.
-1. Test data processing by running `adt test_config.yaml` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
+1. Add support for running Great Expectations on a dataset by adding `gx_enabled: true` to the configuration for the datatset in both `test_config.yaml` and `config.yaml`. Ensure that the `gx_folder` and `gx_table` keys are present in the configuration file and contain valid Synapse IDs for the GX reports and GX table, respectively.
+   - You can prevent Great Expectations from running for a dataset by setting `gx_enabled: false` in the configuration for the dataset.
+1. Test data processing by running `adt test_config.yaml --upload` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
 
 #### Custom Expectations
 
