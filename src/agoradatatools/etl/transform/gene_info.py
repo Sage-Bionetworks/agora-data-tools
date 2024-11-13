@@ -1,8 +1,42 @@
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl.utils import nest_fields, standardize_column_names
+from agoradatatools.etl.extract import get_entity_as_df
 from agoradatatools.etl import transform
+
+import synapseclient
+
+
+def add_uniprot_id_to_gene_info(gene_info: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function will add a uniprotkb_accession column containing uniprod IDs to the gene_info dataset.
+    The ensembl_gene_id is used to map the uniprot ID to the gene_info dataset.
+
+    Args:
+        gene_info (pd.DataFrame): The gene_info dataset to which the uniprot ID will be added.
+
+    Returns:
+        pd.DataFrame: The gene_info dataset with the uniprot ID added.
+    """
+    # Get uniprot ID mapping file
+    syn = synapseclient.Synapse()
+    syn.login()
+    uniprot_df = standardize_column_names(get_entity_as_df(
+        syn_id = "syn54113663",
+        source = "tsv",
+        syn = syn
+    ))
+
+    # Merge the datasets
+    gene_info = pd.merge(
+        left=gene_info,
+        right=uniprot_df,
+        on="ensembl_gene_id",
+        how="left"
+    )
+
+    return gene_info
 
 
 def transform_gene_info(
@@ -250,5 +284,8 @@ def transform_gene_info(
 
     # Make sure there are no N/A Ensembl IDs
     gene_info = gene_info.dropna(subset=["ensembl_gene_id"])
+    
+    # Add uniprot ID
+    gene_info = add_uniprot_id_to_gene_info(gene_info)
 
     return gene_info
