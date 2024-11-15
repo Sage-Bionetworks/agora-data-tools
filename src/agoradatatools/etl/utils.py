@@ -215,3 +215,29 @@ def calculate_distribution(
     df.drop("IQR", axis=1, inplace=True)
 
     return df
+
+
+def rename_unknown_column(
+    df: pd.DataFrame, known_column_name: str, unknown_column_rename: str
+) -> pd.DataFrame:
+    """
+    Renames the column in a DataFrame that is not known_column_name to unknown_column_rename.
+
+    Parameters:
+        df (pd.DataFrame): The DataFrame with one known column known_column_name and one unknown column.
+        known_column_name (str): The name of the known column in the DataFrame.
+        unknown_column_rename (str): The new name for the unknown column.
+
+    Returns:
+        pd.DataFrame: A new DataFrame with the unknown column renamed to unknown_column_rename.
+    """
+    # Identify the column that is not known_column_name
+    unknown_column = [col for col in df.columns if col != known_column_name]
+    if len(unknown_column) != 1:
+        raise ValueError(
+            f"The DataFrame must contain exactly two columns, one of which is {known_column_name}."
+        )
+
+    # Rename the unknown column to unknown_column_rename
+    df = df.rename(columns={unknown_column[0]: unknown_column_rename})
+    return df

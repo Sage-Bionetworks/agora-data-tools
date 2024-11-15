@@ -169,6 +169,9 @@ datasets:
         - name: tep_adi_info
           id: syn51942280.3
           format: csv
+        - name: ensg_to_uniprot_mapping
+          id: syn54113663
+          format: tsv
       final_format: json
       custom_transformations:
         adjusted_p_value_threshold: 0.05

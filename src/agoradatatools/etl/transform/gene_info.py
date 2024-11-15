@@ -1,39 +1,45 @@
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields, standardize_column_names
-from agoradatatools.etl.extract import get_entity_as_df
+from agoradatatools.etl.utils import nest_fields, rename_unknown_column
 from agoradatatools.etl import transform
 
-import synapseclient
 
-
-def add_uniprot_id_to_gene_info(gene_info: pd.DataFrame) -> pd.DataFrame:
+def add_uniprot_id_to_gene_info(
+    gene_info: pd.DataFrame, uniprot_df: pd.DataFrame
+) -> pd.DataFrame:
     """
     This function will add a uniprotkb_accession column containing uniprod IDs to the gene_info dataset.
     The ensembl_gene_id is used to map the uniprot ID to the gene_info dataset.
 
     Args:
         gene_info (pd.DataFrame): The gene_info dataset to which the uniprot ID will be added.
+        uniprot_df (pd.DataFrame): The uniprot ID mapping dataset.
 
     Returns:
         pd.DataFrame: The gene_info dataset with the uniprot ID added.
     """
-    # Get uniprot ID mapping file
-    syn = synapseclient.Synapse()
-    syn.login()
-    uniprot_df = standardize_column_names(get_entity_as_df(
-        syn_id = "syn54113663",
-        source = "tsv",
-        syn = syn
-    ))
+    # Rename the unknown column to "ensembl_gene_id"
+    # This was added because the column used to be called "ensembl_gene_id",
+    # but now it is called "resource_identifier".
+    # Just trying to prevent any problems incase of another rename
+    uniprot_df = rename_unknown_column(
+        df=uniprot_df,
+        known_column_name="uniprotkb_accession",
+        unknown_column_rename="ensembl_gene_id",
+    )
+
+    # Collapse uniprot IDs into a list for each ensembl_gene_id
+    # This is necessary because there are multiple uniprot IDs for some ensembl_gene_id
+    collapsed_uniprot = (
+        uniprot_df.groupby("ensembl_gene_id")["uniprotkb_accession"]
+        .apply(list)
+        .reset_index()
+    )
 
     # Merge the datasets
     gene_info = pd.merge(
-        left=gene_info,
-        right=uniprot_df,
-        on="ensembl_gene_id",
-        how="left"
+        left=gene_info, right=collapsed_uniprot, on="ensembl_gene_id", how="left"
     )
 
     return gene_info
@@ -58,6 +64,7 @@ def transform_gene_info(
     druggability = datasets["druggability"]
     biodomains = datasets["genes_biodomains"]
     tep_info = datasets["tep_adi_info"]
+    uniprot = datasets["ensg_to_uniprot_mapping"]
 
     # Modify the data before merging
 
@@ -284,8 +291,8 @@ def transform_gene_info(
 
     # Make sure there are no N/A Ensembl IDs
     gene_info = gene_info.dropna(subset=["ensembl_gene_id"])
-    
+
     # Add uniprot ID
-    gene_info = add_uniprot_id_to_gene_info(gene_info)
+    gene_info = add_uniprot_id_to_gene_info(gene_info, uniprot)
 
     return gene_info

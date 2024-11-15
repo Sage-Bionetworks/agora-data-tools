@@ -514,25 +514,25 @@
       "kwargs": {
         "column": "biodomains",
         "list_members": [
-          "Myelination",
-          "Mitochondrial Metabolism",
-          "Proteostasis",
-          "Oxidative Stress",
+          "Synapse",
+          "APP Metabolism",
           "DNA Repair",
-          "Metal Binding and Homeostasis",
+          "Proteostasis",
           "Structural Stabilization",
-          "Endolysosome",
           "Immune Response",
+          "Apoptosis",
+          "Myelination",
+          "Oxidative Stress",
           "Autophagy",
           "Tau Homeostasis",
+          "Lipid Metabolism",
+          "Mitochondrial Metabolism",
+          "Metal Binding and Homeostasis",
           "Cell Cycle",
           "Vasculature",
-          "APP Metabolism",
-          "Lipid Metabolism",
-          "Apoptosis",
-          "Synapse",
-          "Epigenetic",
-          "RNA Spliceosome"
+          "Endolysosome",
+          "RNA Spliceosome",
+          "Epigenetic"
         ]
       },
       "meta": {}
@@ -633,6 +633,22 @@
           "title": "Ensembl Info Schema",
           "type": "object"
         }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "uniprotkb_accession",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "uniprotkb_accession",
+        "member_type": "str"
       },
       "meta": {}
     }
