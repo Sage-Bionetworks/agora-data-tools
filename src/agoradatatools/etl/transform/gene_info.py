@@ -9,7 +9,7 @@ def add_uniprot_id_to_gene_info(
     gene_info: pd.DataFrame, uniprot_df: pd.DataFrame
 ) -> pd.DataFrame:
     """
-    This function will add a uniprotkb_accession column containing uniprod IDs to the gene_info dataset.
+    This function will add a uniprotkb_accessions column containing uniprod IDs to the gene_info dataset.
     The ensembl_gene_id is used to map the uniprot ID to the gene_info dataset.
 
     Args:
@@ -23,16 +23,18 @@ def add_uniprot_id_to_gene_info(
     # This was added because the column used to be called "ensembl_gene_id",
     # but now it is called "resource_identifier".
     # Just trying to prevent any problems incase of another rename
-    uniprot_df = rename_unknown_column(
-        df=uniprot_df,
-        known_column_name="uniprotkb_accession",
-        unknown_column_rename="ensembl_gene_id",
-    )
+    expected_columns = ["ensembl_gene_id", "uniprotkb_accessions"]
+    if not all(name in uniprot_df.columns for name in expected_columns):
+        uniprot_df = rename_unknown_column(
+            df=uniprot_df,
+            known_column_name="uniprotkb_accessions",
+            unknown_column_rename="ensembl_gene_id",
+        )
 
     # Collapse uniprot IDs into a list for each ensembl_gene_id
     # This is necessary because there are multiple uniprot IDs for some ensembl_gene_id
     collapsed_uniprot = (
-        uniprot_df.groupby("ensembl_gene_id")["uniprotkb_accession"]
+        uniprot_df.groupby("ensembl_gene_id")["uniprotkb_accessions"]
         .apply(list)
         .reset_index()
     )

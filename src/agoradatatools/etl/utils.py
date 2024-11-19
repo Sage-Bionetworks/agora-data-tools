@@ -1,10 +1,12 @@
 from typing import Union
+import logging
 
 import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
 
+logger = logging.getLogger(__name__)
 
 # TODO remove "_" - these utils functions are not only used internally
 def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
@@ -235,9 +237,10 @@ def rename_unknown_column(
     unknown_column = [col for col in df.columns if col != known_column_name]
     if len(unknown_column) != 1:
         raise ValueError(
-            f"The DataFrame must contain exactly two columns, one of which is {known_column_name}."
+            f"The DataFrame must contain exactly two columns (one of which is {known_column_name}) in order to use the rename_unknown_column() function. Columns found: {df.columns}"
         )
 
     # Rename the unknown column to unknown_column_rename
+    logger.info(f"Renaming column {unknown_column[0]} to {unknown_column_rename}")
     df = df.rename(columns={unknown_column[0]: unknown_column_rename})
     return df
