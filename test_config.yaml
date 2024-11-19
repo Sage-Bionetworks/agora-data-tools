@@ -190,6 +190,7 @@ datasets:
         possible_replacement: ensembl_possible_replacements
         permalink: ensembl_permalink
         uniprotkb_accession: uniprotkb_accessions
+        resource_identifier: ensembl_gene_id
       provenance:
         - syn25953363.13
         - syn12514826.5

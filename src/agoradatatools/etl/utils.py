@@ -8,6 +8,7 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
+
 # TODO remove "_" - these utils functions are not only used internally
 def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     """Logs into Synapse python client, returns authenticated Synapse session.
