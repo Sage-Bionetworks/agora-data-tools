@@ -15,7 +15,7 @@ import requests
 import re
 import synapseclient
 from io import StringIO
-from typing import Union, Dict, List, Set, Tuple
+from typing import Union, Dict, List, Set
 import agoradatatools.etl.utils as utils
 import agoradatatools.etl.extract as extract
 
@@ -97,7 +97,8 @@ def query_ensembl_version_api(ensembl_ids: List[str]) -> pd.DataFrame:
             try:
                 res = requests.post(url, headers=headers, data=request_data)
                 ok = res.ok
-            except:
+            except requests.RequestException as ex:
+                print(ex)
                 ok = False
 
             tries = tries + 1
@@ -158,6 +159,7 @@ def r_query_biomart() -> pd.DataFrame:
                                       "chromosome_name", and "hgnc_symbol" retrived from BioMart
     """
     from rpy2.robjects import r
+    from rpy2.rinterface_lib.embedded import RRuntimeError
 
     r(
         'if (!require("BiocManager", character.only = TRUE)) { install.packages("BiocManager") }'
@@ -176,7 +178,8 @@ def r_query_biomart() -> pd.DataFrame:
                 useCache=False,
             )
 
-        except:
+        except RRuntimeError as ex:
+            print(ex)
             print("Trying again...")
             ensembl_ids = None
         else:

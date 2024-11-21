@@ -133,6 +133,7 @@ dmypy.json
 
 # local generated files
 staging/*
+data_analysis/*/output/*
 
 #test staging location
 test_staging_dir/
@@ -141,3 +142,5 @@ test_staging_dir/
 dev_config.yaml
 
 .vscode/
+.ipynb_checkpoints/
+.Rhistory
