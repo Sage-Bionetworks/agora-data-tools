@@ -55,7 +55,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000005"
-    }
+    },
+    "uniprotkb_accessions": ["Q9H2S6"]
   },
   {
     "ensembl_gene_id": "ENSG00000000419",
@@ -157,7 +158,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000419"
-    }
+    },
+    "uniprotkb_accessions": ["O60762"]
   },
   {
     "ensembl_gene_id": "ENSG00000000457",
@@ -213,7 +215,8 @@
       "ensembl_release": null,
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000457"
-    }
+    },
+    "uniprotkb_accessions": ["Q8IZE3"]
   },
   {
     "ensembl_gene_id": "ENSG00000000460",
@@ -254,7 +257,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000460"
-    }
+    },
+    "uniprotkb_accessions": ["Q9NSG2"]
   },
   {
     "ensembl_gene_id": "ENSG00000000938",
@@ -288,7 +292,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000938"
-    }
+    },
+    "uniprotkb_accessions": ["P09769"]
   },
   {
     "ensembl_gene_id": "ENSG00000000971",
@@ -343,7 +348,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000971"
-    }
+    },
+    "uniprotkb_accessions": ["P08603"]
   },
   {
     "ensembl_gene_id": "ENSG00000001036",
@@ -400,7 +406,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001036"
-    }
+    },
+    "uniprotkb_accessions": ["Q9BTY2"]
   },
   {
     "ensembl_gene_id": "ENSG00000001084",
@@ -441,7 +448,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": null
-    }
+    },
+    "uniprotkb_accessions": ["P48506"]
   },
   {
     "ensembl_gene_id": "ENSG00000001167",
@@ -472,7 +480,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001167"
-    }
+    },
+    "uniprotkb_accessions": ["P23511"]
   },
   {
     "ensembl_gene_id": "ENSG00000001460",
@@ -501,7 +510,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001460"
-    }
+    },
+    "uniprotkb_accessions": ["Q5TH74"]
   },
   {
     "ensembl_gene_id": "ENSG00000001461",
@@ -531,7 +541,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001461"
-    }
+    },
+    "uniprotkb_accessions": ["Q6P499"]
   },
   {
     "ensembl_gene_id": "ENSG00000001497",
@@ -563,7 +574,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001497"
-    }
+    },
+    "uniprotkb_accessions": ["Q9Y4W2"]
   },
   {
     "ensembl_gene_id": "ENSG00000001561",
@@ -591,7 +603,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001561"
-    }
+    },
+    "uniprotkb_accessions": ["Q9Y6X5"]
   },
   {
     "ensembl_gene_id": "ENSG00000001617",
@@ -621,7 +634,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001617"
-    }
+    },
+    "uniprotkb_accessions": ["Q13275"]
   },
   {
     "ensembl_gene_id": "ENSG00000001626",
@@ -655,7 +669,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001626"
-    }
+    },
+    "uniprotkb_accessions": ["P13569"]
   },
   {
     "ensembl_gene_id": "ENSG00000001629",
@@ -681,7 +696,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001629"
-    }
+    },
+    "uniprotkb_accessions": ["Q9P2G1"]
   },
   {
     "ensembl_gene_id": "ENSG00000001630",
@@ -714,7 +730,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001630"
-    }
+    },
+    "uniprotkb_accessions": ["Q16850"]
   },
   {
     "ensembl_gene_id": "ENSG00000001631",
@@ -762,7 +779,8 @@
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001631"
-    }
+    },
+    "uniprotkb_accessions": ["O00522"]
   },
   {
     "ensembl_gene_id": "ENSG00000161149",

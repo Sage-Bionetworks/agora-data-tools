@@ -70,6 +70,11 @@ or failing input for each dataset:
                        or is_tep values are assumed to mean "False". These two fields must have boolean values if the
                        data isn't missing. Ensembl IDs should be unique.
         failing input: a missing hgnc_symbol or a string value in is_adi or is_tep should throw a TypeError.
+    ensg_to_uniprot_mapping: a list of Ensembl IDs and their associated Uniprot accessions.
+        passing input: we perform an inner join, so any field can be missing and nothing will happen
+                       Duplicate Ensembl IDs are allowed due to association with multiple Uniprot accessions,
+                       so the test file has rows with the same Ensembl ID but different Uniprot accession values.
+        failing input: none
 
 Other notes about the test files:
     Missing Ensembl IDs: these are allowed in any dataset, and rows with missing IDs will get dropped in the transform.
@@ -122,6 +127,7 @@ class TestTransformGeneInfo:
         "druggability": "druggability_good_input.csv",
         "genes_biodomains": "genes_biodomains_good_input.csv",
         "tep_adi_info": "tep_adi_info_good_input.csv",
+        "ensg_to_uniprot_mapping": "ensg_to_uniprot_mapping_good.tsv",
     }
 
     pval_error_match_string = "'<=' not supported"
@@ -245,6 +251,8 @@ class TestTransformGeneInfo:
             filename = os.path.join(self.data_files_path, "input", value)
             if key == "gene_metadata":
                 datasets[key] = pd.read_feather(filename)
+            elif value.endswith("tsv"):
+                datasets[key] = pd.read_csv(filename, sep="\t")
             else:
                 datasets[key] = pd.read_csv(filename)
 
