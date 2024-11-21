@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields, rename_unknown_column
+from agoradatatools.etl.utils import nest_fields
 from agoradatatools.etl import transform
 
 
@@ -19,16 +19,11 @@ def add_uniprot_id_to_gene_info(
     Returns:
         pd.DataFrame: The gene_info dataset with the uniprot ID added.
     """
-    # Rename the unknown column to "ensembl_gene_id"
-    # This was added because the column used to be called "ensembl_gene_id",
-    # but now it is called "resource_identifier".
-    # Just trying to prevent any problems incase of another rename
+    # Check that the uniprot_df contains the expected columns
     expected_columns = ["ensembl_gene_id", "uniprotkb_accessions"]
     if not all(name in uniprot_df.columns for name in expected_columns):
-        uniprot_df = rename_unknown_column(
-            df=uniprot_df,
-            known_column_name="uniprotkb_accessions",
-            unknown_column_rename="ensembl_gene_id",
+        raise ValueError(
+            f"uniprot_df does not contain the expected columns. Expected columns: {expected_columns}. Columns found: {uniprot_df.columns}"
         )
 
     # Collapse uniprot IDs into a list for each ensembl_gene_id
