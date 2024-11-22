@@ -360,9 +360,13 @@ def standardize_list_item(item: Union[str, List[str]]) -> List[str]:
     if isinstance(item, str):
         return [item]
 
-    # Get unique values only and sort them
-    item = list(set(item))
-    item.sort()
+    if isinstance(item, list):
+        # Get unique values only and sort them
+        item = list(set(item))
+        item.sort()
+
+    # No extra handling necessary for other data types
+
     return item
 
 
