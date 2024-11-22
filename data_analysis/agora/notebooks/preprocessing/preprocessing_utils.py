@@ -347,10 +347,10 @@ def standardize_list_item(item: Union[str, List[str]]) -> List[str]:
     column.
 
     Args:
-        item: either a list of strings, a list of lists of strings, or np.NaN
+        item: either a string, a list of strings, or np.NaN
 
     Returns:
-        A single-level list of strings, which may be empty. The list is sorted alphabetically.
+        A list of strings or an empty list. The list is sorted alphabetically.
     """
     # Convert NaN to an empty list
     if item is np.NaN:
