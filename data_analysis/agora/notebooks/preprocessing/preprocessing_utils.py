@@ -7,6 +7,10 @@ Current public-facing functions:
     r_query_biomart - queries Biomart using rpy2
     filter_hasgs - removes human alternative sequence genes from a data frame
     get_all_adt_ensembl_ids - gets the Ensembl IDs in all of the files ingested by ADT
+    standardize_list_item - turn values of varying types into a list. Used for fixing the "alias" and
+                            "possible_replacement" fields of gene_metadata.
+    merge_duplicate_ensembl_ids - collapse rows with the same Ensembl ID but different gene symbols
+                                  or aliases into one row
 """
 
 import pandas as pd
@@ -330,3 +334,77 @@ def _extract_ensembl_ids(
 
     # Remove duplicate values
     return list(set(file_ensembl_ids))
+
+
+def standardize_list_item(item: Union[str, List[str]]) -> List[str]:
+    """
+    For the gene_metadata data frame, some queries return columns that are a mixture of None/NaN,
+    a single string, and a list of strings. This function standardizes the column values so that
+    everything is a list, either empty (if NaN) or a list of strings. The final list is sorted
+    alphabetically to make comparison between different versions of the file easier.
+
+    This function is intended to be called as part of an apply() statement on a pandas data frame
+    column.
+
+    Args:
+        item: either a list of strings, a list of lists of strings, or np.NaN
+
+    Returns:
+        A single-level list of strings, which may be empty. The list is sorted alphabetically.
+    """
+    # Convert NaN to an empty list
+    if item is np.NaN:
+        return []
+
+    # Convert plain strings to a list of one string
+    if isinstance(item, str):
+        return [item]
+
+    # Get unique values only and sort them
+    item = list(set(item))
+    item.sort()
+    return item
+
+
+def merge_duplicate_ensembl_ids(gene_table: pd.DataFrame) -> pd.DataFrame:
+    """
+    MyGene queries sometimes return multiple rows rows with the same Ensembl ID but different symbols
+    or other information. This usually happens when a single Ensembl ID maps to multiple Entrez IDs
+    in the NCBI database. There's not a good way to reconcile this, so for every set of rows with the
+    same Ensembl ID, we designate the first entry in the as the main row. The gene symbols of the
+    remaining rows in the set are then added as aliases to the "main" row, and all of their aliases
+    are added to the main row alias field as well. All rows in the set except the main row are then
+    deleted from the data frame, leaving a single row for that Ensembl ID with all symbols and aliases
+    from the duplicate rows merged into the alias field.
+
+    Args:
+        gene_table: a pandas DataFrame containing gene metadata results from MyGene
+
+    Returns:
+        a data frame with duplicate rows removed
+    """
+    dupes = gene_table["ensembl_gene_id"].duplicated()
+    dupe_ids = gene_table.loc[dupes, "ensembl_gene_id"].drop_duplicates().tolist()
+
+    for ens_id in dupe_ids:
+        rows = gene_table.loc[gene_table["ensembl_gene_id"] == ens_id]
+
+        # Add duplicate rows' symbols to the alias field of the first row, then add duplicate rows'
+        # aliases to the first row's alias field. All other information in the duplicate rows is
+        # discarded.
+        new_alias = rows.iloc[0]["alias"]
+
+        for row in rows.index[1:]:
+            new_alias.append(rows.loc[row, "symbol"])
+            new_alias = new_alias + rows.loc[row, "alias"]
+
+        # Remove any duplicate aliases and sort them
+        new_alias = list(set(new_alias))
+        new_alias.sort()
+
+        # Set the new aliases to the first row in this group and remove all duplicate rows from the
+        # data frame
+        gene_table.at[rows.index[0], "alias"] = new_alias
+        gene_table = gene_table.drop(rows.index[1:])
+
+    return gene_table
