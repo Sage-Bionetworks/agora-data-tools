@@ -1,12 +1,9 @@
 from typing import Union
-import logging
 
 import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
-
-logger = logging.getLogger(__name__)
 
 
 # TODO remove "_" - these utils functions are not only used internally
