@@ -133,6 +133,7 @@ class TestTransformGeneInfo:
 
     pval_error_match_string = "'<=' not supported"
     merge_error_match_string = "Merge keys are not unique"
+    uniprot_error_match_string = "uniprot_df does not contain the expected columns"
 
     pass_test_data = [
         (  # Pass with good data on param set 1
@@ -234,29 +235,23 @@ class TestTransformGeneInfo:
         "Fail with bad data type in tep_adi_info's is_adi column",
         "Fail with bad data type in tep_adi_info's is_tep column",
     ]
-    unpiprot_input_files={
+    unpiprot_input_files = {
         "gene_info": "geneinfo_uniprot_good.csv",
         "uniprot_good": "uniprot_input_good.csv",
-        "uniprot_bad": "uniprot_input_bad_colnames.csv"
+        "uniprot_bad": "uniprot_input_bad_colnames.csv",
     }
-    pass_uniprot_test_data=[
-        (  # Pass with good data
-            unpiprot_input_files,
-            "geneinfo_uniprot_output.tsv"
-        )
+    pass_uniprot_test_data = [
+        (unpiprot_input_files, "geneinfo_uniprot_output.tsv")  # Pass with good data
     ]
-    pass_uniprot_test_ids = [
-        "Pass uniprot with good data"
-    ]
-    fail_uniprot_test_data=[
+    pass_uniprot_test_ids = ["Pass uniprot with good data"]
+    fail_uniprot_test_data = [
         (  # Fail with bad column names
-            unpiprot_input_files
+            unpiprot_input_files,
+            ValueError,
+            uniprot_error_match_string,
         )
     ]
-    fail_uniprot_test_ids = [
-        "Fail uniprot with bad column names"
-    ]
-
+    fail_uniprot_test_ids = ["Fail uniprot with bad column names"]
 
     def read_input_files_dict(self, input_files_dict: dict) -> dict:
         """Utility function to read a dictionary of filenames into a dictionary of data frames. Most files for
@@ -342,13 +337,54 @@ class TestTransformGeneInfo:
     def test_add_uniprot_id_to_gene_info_should_pass(
         self, unpiprot_input_files: dict, expected_output_file: str
     ):
-        gene_info_df = pd.read_csv(os.path.join(self.data_files_path, "input", unpiprot_input_files["gene_info"]))
-        uniprot_df = pd.read_csv(os.path.join(self.data_files_path, "input", unpiprot_input_files["uniprot_good"]))
-
+        gene_info_df = pd.read_csv(
+            os.path.join(
+                self.data_files_path, "input", unpiprot_input_files["gene_info"]
+            )
+        )
+        uniprot_df = pd.read_csv(
+            os.path.join(
+                self.data_files_path, "input", unpiprot_input_files["uniprot_good"]
+            )
+        )
         output_df = gene_info.add_uniprot_id_to_gene_info(gene_info_df, uniprot_df)
+
         # Read in expected dataframe and convert uniprotkb_accessions to list
         expected_df = pd.read_csv(
             os.path.join(self.data_files_path, "output", expected_output_file),
-            sep='\t',
-            converters={"uniprotkb_accessions": lambda x: ast.literal_eval(x) if isinstance(x, str) and x.strip() else float('nan')})
+            sep="\t",
+            converters={
+                "uniprotkb_accessions": lambda x: (
+                    ast.literal_eval(x)
+                    if isinstance(x, str) and x.strip()
+                    else float("nan")
+                )
+            },
+        )
+
         pd.testing.assert_frame_equal(output_df, expected_df)
+
+    @pytest.mark.parametrize(
+        "unpiprot_input_files, error_type, error_match_string",
+        fail_uniprot_test_data,
+        ids=fail_uniprot_test_ids,
+    )
+    def test_add_uniprot_id_to_gene_info_should_fail(
+        self,
+        unpiprot_input_files: dict,
+        error_type: BaseException,
+        error_match_string: str,
+    ):
+        gene_info_df = pd.read_csv(
+            os.path.join(
+                self.data_files_path, "input", unpiprot_input_files["gene_info"]
+            )
+        )
+        uniprot_df = pd.read_csv(
+            os.path.join(
+                self.data_files_path, "input", unpiprot_input_files["uniprot_bad"]
+            )
+        )
+
+        with pytest.raises(error_type, match=error_match_string):
+            gene_info.add_uniprot_id_to_gene_info(gene_info_df, uniprot_df)
