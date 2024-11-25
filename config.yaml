@@ -170,7 +170,7 @@ datasets:
           id: syn51942280.3
           format: csv
         - name: ensg_to_uniprot_mapping
-          id: syn54113663
+          id: syn54113663.3
           format: tsv
       final_format: json
       custom_transformations:
@@ -204,7 +204,7 @@ datasets:
         - syn13363443.11
         - *genes_biodomains_provenance
         - syn51942280.3
-        - syn54113663
+        - syn54113663.3
       agora_rename:
         symbol: hgnc_symbol
       destination: *dest
