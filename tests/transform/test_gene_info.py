@@ -1,6 +1,6 @@
 """Integration test for the gene_info transform.
 
-This transform requires 12 different input datasets and tests several conditions in each one. Description and passing
+This transform requires 13 different input datasets and tests several conditions in each one. Description and passing
 or failing input for each dataset:
     gene_metadata: collection of information like gene symbol, aliases, etc about each Ensembl ID in every dataset.
                    Both the "alias" and "ensembl_possible_replacements" fields are lists of strings, so this dataset
@@ -71,8 +71,7 @@ or failing input for each dataset:
                        data isn't missing. Ensembl IDs should be unique.
         failing input: a missing hgnc_symbol or a string value in is_adi or is_tep should throw a TypeError.
     ensg_to_uniprot_mapping: a list of Ensembl IDs and their associated Uniprot accessions.
-        passing input: we perform an inner join, so any field can be missing and nothing will happen
-                       Duplicate Ensembl IDs are allowed due to association with multiple Uniprot accessions,
+        passing input: Duplicate Ensembl IDs are allowed due to association with multiple Uniprot accessions,
                        so the test file has rows with the same Ensembl ID but different Uniprot accession values.
         failing input: none
 
