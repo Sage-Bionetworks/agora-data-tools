@@ -95,7 +95,6 @@ import os
 
 import pandas as pd
 import pytest
-import ast
 
 from agoradatatools.etl.transform import gene_info
 
@@ -328,63 +327,3 @@ class TestTransformGeneInfo:
                 adjusted_p_value_threshold=param_set["adjusted_p_value_threshold"],
                 protein_level_threshold=param_set["protein_level_threshold"],
             )
-
-    @pytest.mark.parametrize(
-        "unpiprot_input_files, expected_output_file",
-        pass_uniprot_test_data,
-        ids=pass_uniprot_test_ids,
-    )
-    def test_add_uniprot_id_to_gene_info_should_pass(
-        self, unpiprot_input_files: dict, expected_output_file: str
-    ):
-        gene_info_df = pd.read_csv(
-            os.path.join(
-                self.data_files_path, "input", unpiprot_input_files["gene_info"]
-            )
-        )
-        uniprot_df = pd.read_csv(
-            os.path.join(
-                self.data_files_path, "input", unpiprot_input_files["uniprot_good"]
-            )
-        )
-        output_df = gene_info.add_uniprot_id_to_gene_info(gene_info_df, uniprot_df)
-
-        # Read in expected dataframe and convert uniprotkb_accessions to list
-        expected_df = pd.read_csv(
-            os.path.join(self.data_files_path, "output", expected_output_file),
-            sep="\t",
-            converters={
-                "uniprotkb_accessions": lambda x: (
-                    ast.literal_eval(x)
-                    if isinstance(x, str) and x.strip()
-                    else float("nan")
-                )
-            },
-        )
-
-        pd.testing.assert_frame_equal(output_df, expected_df)
-
-    @pytest.mark.parametrize(
-        "unpiprot_input_files, error_type, error_match_string",
-        fail_uniprot_test_data,
-        ids=fail_uniprot_test_ids,
-    )
-    def test_add_uniprot_id_to_gene_info_should_fail(
-        self,
-        unpiprot_input_files: dict,
-        error_type: BaseException,
-        error_match_string: str,
-    ):
-        gene_info_df = pd.read_csv(
-            os.path.join(
-                self.data_files_path, "input", unpiprot_input_files["gene_info"]
-            )
-        )
-        uniprot_df = pd.read_csv(
-            os.path.join(
-                self.data_files_path, "input", unpiprot_input_files["uniprot_bad"]
-            )
-        )
-
-        with pytest.raises(error_type, match=error_match_string):
-            gene_info.add_uniprot_id_to_gene_info(gene_info_df, uniprot_df)

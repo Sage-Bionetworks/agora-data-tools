@@ -5,43 +5,6 @@ from agoradatatools.etl.utils import nest_fields
 from agoradatatools.etl import transform
 
 
-def add_uniprot_id_to_gene_info(
-    gene_info: pd.DataFrame, uniprot_df: pd.DataFrame
-) -> pd.DataFrame:
-    """
-    This function will add a uniprotkb_accessions column containing uniprod IDs to the gene_info dataset.
-    The ensembl_gene_id is used to map the uniprot ID to the gene_info dataset.
-
-    Args:
-        gene_info (pd.DataFrame): The gene_info dataset to which the uniprot ID will be added.
-        uniprot_df (pd.DataFrame): The uniprot ID mapping dataset.
-
-    Returns:
-        pd.DataFrame: The gene_info dataset with the uniprot ID added.
-    """
-    # Check that the uniprot_df contains the expected columns
-    expected_columns = ["ensembl_gene_id", "uniprotkb_accessions"]
-    if not all(name in uniprot_df.columns for name in expected_columns):
-        raise ValueError(
-            f"uniprot_df does not contain the expected columns. Expected columns: {expected_columns}. Columns found: {uniprot_df.columns}"
-        )
-
-    # Collapse uniprot IDs into a list for each ensembl_gene_id
-    # This is necessary because there are multiple uniprot IDs for some ensembl_gene_id
-    collapsed_uniprot = (
-        uniprot_df.groupby("ensembl_gene_id")["uniprotkb_accessions"]
-        .apply(list)
-        .reset_index()
-    )
-
-    # Merge the datasets
-    gene_info = pd.merge(
-        left=gene_info, right=collapsed_uniprot, on="ensembl_gene_id", how="left"
-    )
-
-    return gene_info
-
-
 def transform_gene_info(
     datasets: dict, adjusted_p_value_threshold: float, protein_level_threshold: float
 ) -> pd.DataFrame:
@@ -167,6 +130,13 @@ def transform_gene_info(
         axis=1,
     )
 
+    # Collapse uniprot IDs into a list for each ensembl_gene_id
+    collapsed_uniprot = (
+        uniprot.groupby("ensembl_gene_id")["uniprotkb_accessions"]
+        .apply(list)
+        .reset_index()
+    )
+
     # Merge all the datasets
     gene_info = gene_metadata
 
@@ -180,6 +150,7 @@ def transform_gene_info(
         druggability,
         biodomains,
         tep_info,
+        collapsed_uniprot,
     ]:
         gene_info = pd.merge(
             left=gene_info,
@@ -283,13 +254,11 @@ def transform_gene_info(
             "is_tep",
             "resource_url",
             "ensembl_info",
+            "uniprotkb_accessions",
         ]
     ]
 
     # Make sure there are no N/A Ensembl IDs
     gene_info = gene_info.dropna(subset=["ensembl_gene_id"])
-
-    # Add uniprot ID
-    gene_info = add_uniprot_id_to_gene_info(gene_info, uniprot)
 
     return gene_info
