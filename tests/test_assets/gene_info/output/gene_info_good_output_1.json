@@ -662,7 +662,8 @@
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001617"
     },
     "uniprotkb_accessions": [
-      "Q13275"
+      "Q13275",
+      "Q1TEST"
     ]
   },
   {
