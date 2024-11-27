@@ -169,6 +169,9 @@ datasets:
         - name: tep_adi_info
           id: syn51942280.3
           format: csv
+        - name: ensg_to_uniprot_mapping
+          id: syn54113663.3
+          format: tsv
       final_format: json
       custom_transformations:
         adjusted_p_value_threshold: 0.05
@@ -186,6 +189,8 @@ datasets:
         maximumlogcpm: max
         possible_replacement: ensembl_possible_replacements
         permalink: ensembl_permalink
+        uniprotkb_accession: uniprotkb_accessions
+        resource_identifier: ensembl_gene_id
       provenance:
         - syn25953363.13
         - syn12514826.5
@@ -199,6 +204,7 @@ datasets:
         - syn13363443.11
         - *genes_biodomains_provenance
         - syn51942280.3
+        - syn54113663.3
       agora_rename:
         symbol: hgnc_symbol
       destination: *dest

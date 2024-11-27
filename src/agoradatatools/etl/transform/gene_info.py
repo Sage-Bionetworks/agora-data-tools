@@ -24,6 +24,7 @@ def transform_gene_info(
     druggability = datasets["druggability"]
     biodomains = datasets["genes_biodomains"]
     tep_info = datasets["tep_adi_info"]
+    uniprot = datasets["ensg_to_uniprot_mapping"]
 
     # Modify the data before merging
 
@@ -129,6 +130,13 @@ def transform_gene_info(
         axis=1,
     )
 
+    # Collapse uniprot IDs into a list for each ensembl_gene_id
+    collapsed_uniprot = (
+        uniprot.groupby("ensembl_gene_id")["uniprotkb_accessions"]
+        .apply(list)
+        .reset_index()
+    )
+
     # Merge all the datasets
     gene_info = gene_metadata
 
@@ -142,6 +150,7 @@ def transform_gene_info(
         druggability,
         biodomains,
         tep_info,
+        collapsed_uniprot,
     ]:
         gene_info = pd.merge(
             left=gene_info,
@@ -245,6 +254,7 @@ def transform_gene_info(
             "is_tep",
             "resource_url",
             "ensembl_info",
+            "uniprotkb_accessions",
         ]
     ]
 
