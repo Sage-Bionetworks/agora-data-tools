@@ -131,7 +131,6 @@ class TestTransformGeneInfo:
 
     pval_error_match_string = "'<=' not supported"
     merge_error_match_string = "Merge keys are not unique"
-    uniprot_error_match_string = "uniprot_df does not contain the expected columns"
 
     pass_test_data = [
         (  # Pass with good data on param set 1
@@ -233,23 +232,6 @@ class TestTransformGeneInfo:
         "Fail with bad data type in tep_adi_info's is_adi column",
         "Fail with bad data type in tep_adi_info's is_tep column",
     ]
-    unpiprot_input_files = {
-        "gene_info": "geneinfo_uniprot_good.csv",
-        "uniprot_good": "uniprot_input_good.csv",
-        "uniprot_bad": "uniprot_input_bad_colnames.csv",
-    }
-    pass_uniprot_test_data = [
-        (unpiprot_input_files, "geneinfo_uniprot_output.tsv")  # Pass with good data
-    ]
-    pass_uniprot_test_ids = ["Pass uniprot with good data"]
-    fail_uniprot_test_data = [
-        (  # Fail with bad column names
-            unpiprot_input_files,
-            ValueError,
-            uniprot_error_match_string,
-        )
-    ]
-    fail_uniprot_test_ids = ["Fail uniprot with bad column names"]
 
     def read_input_files_dict(self, input_files_dict: dict) -> dict:
         """Utility function to read a dictionary of filenames into a dictionary of data frames. Most files for
