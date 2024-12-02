@@ -169,6 +169,9 @@ datasets:
         - name: ensg_to_uniprot_mapping
           id: syn54113663.3
           format: tsv
+        - name: pharos_classes
+          id: syn64123611.1
+          format: csv
       final_format: json
       custom_transformations:
         adjusted_p_value_threshold: 0.05
@@ -201,6 +204,7 @@ datasets:
         - *genes_biodomains_provenance
         - syn51942280.3
         - syn54113663.3
+        - syn64123611.1
       agora_rename:
         symbol: hgnc_symbol
       destination: *dest
