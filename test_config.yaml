@@ -162,9 +162,6 @@ datasets:
         - name: median_expression
           id: syn27211878.2
           format: csv
-        - name: druggability
-          id: syn13363443.11
-          format: csv
         - <<: *genes_biodomains_files
         - name: tep_adi_info
           id: syn51942280.3
@@ -201,7 +198,6 @@ datasets:
         - *rna_diff_expr_data_provenance
         - syn12540368.51
         - syn27211878.2
-        - syn13363443.11
         - *genes_biodomains_provenance
         - syn51942280.3
         - syn54113663.3
