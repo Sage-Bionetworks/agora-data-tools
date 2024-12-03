@@ -21,7 +21,7 @@ def transform_gene_info(
     proteomics_srm = transform.transform_proteomics(df=datasets["proteomics_srm"])
     target_list = datasets["target_list"]
     median_expression = datasets["median_expression"]
-    druggability = datasets["druggability"]
+    pharos_classes = datasets["pharos_classes"]
     biodomains = datasets["genes_biodomains"]
     tep_info = datasets["tep_adi_info"]
     uniprot = datasets["ensg_to_uniprot_mapping"]
@@ -49,19 +49,6 @@ def transform_gene_info(
         .reset_index()
     )
 
-    # these are the interesting columns of the druggability dataset
-    useful_columns = [
-        "ensembl_gene_id",
-        "sm_druggability_bucket",
-        "safety_bucket",
-        "abability_bucket",
-        "pharos_class",
-        "classification",
-        "safety_bucket_definition",
-        "abability_bucket_definition",
-    ]
-    druggability = druggability[useful_columns]
-
     target_list = nest_fields(
         df=target_list,
         grouping="ensembl_gene_id",
@@ -77,10 +64,15 @@ def transform_gene_info(
     )
 
     druggability = nest_fields(
-        df=druggability,
+        df=(
+            pharos_classes.groupby("ensembl_gene_id")["pharos_class"]
+            .apply(list)
+            .reset_index()
+        ),
         grouping="ensembl_gene_id",
         new_column="druggability",
         drop_columns=["ensembl_gene_id"],
+        nested_field_is_list=False
     )
 
     biodomains = biodomains.dropna(subset=["biodomain", "ensembl_gene_id"])
