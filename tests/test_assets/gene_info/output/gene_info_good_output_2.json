@@ -782,9 +782,7 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": {
-      "pharos_class":["Tbio"]
-    },
+    "druggability": null,
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -812,9 +810,7 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": {
-      "pharos_class":["Tbio"]
-    },
+    "druggability": null,
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -844,9 +840,7 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": {
-      "pharos_class":["Tbio"]
-    },
+    "druggability": null,
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
