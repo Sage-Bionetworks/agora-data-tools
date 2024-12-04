@@ -54,10 +54,9 @@ or failing input for each dataset:
                        "tissue" value is missing. Duplicate Ensembl IDs are allowed due to multiple tissues, so the test
                        file has several rows with the same Ensembl ID but different tissue value.
         failing input: none
-    druggability: information on the druggability and safety of each gene.
+    pharos_classes: information on the pharos class of each gene.
         passing input: any field can be missing, so there are a few rows with missing data in at least one column.
-                       Duplicate Ensembl IDs are technically allowed, but this does not happen (or make sense) in the
-                       full dataset, so we do not test it.
+                       Duplicate Ensembl IDs are allowed and does happen in the real dataset, so we test for it.
         failing input: none
     genes_biodomains: a list of Ensembl IDs and their associated biodomains and GO terms.
         passing input: any field can be missing, so the test file has rows with missing data in at least one column.
@@ -123,7 +122,7 @@ class TestTransformGeneInfo:
         "proteomics_srm": "proteomics_srm_good_input.csv",
         "target_list": "target_list_good_input.csv",
         "median_expression": "median_expression_good_input.csv",
-        "druggability": "druggability_good_input.csv",
+        "pharos_classes": "pharos_classes_good_input.csv",
         "genes_biodomains": "genes_biodomains_good_input.csv",
         "tep_adi_info": "tep_adi_info_good_input.csv",
         "ensg_to_uniprot_mapping": "ensg_to_uniprot_mapping_good.tsv",

@@ -198,7 +198,7 @@ These expectations are defined in the `/great_expectations/gx/plugins/expectatio
 
 #### Nested Columns
 
-If the transform includes nested columns (example: `druggability` column in `gene_info` tranform), please follow these four steps:
+If the transform includes nested columns (example: `ensembl_info` column in `gene_info` tranform), please follow these four steps:
 1. In the config file, add the nested column name to the `gx_nested_columns` flag for the specific transform. This will convert the column values to a JSON parsable string.
 ```
 gx_nested_columns:
