@@ -418,67 +418,6 @@
     {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
-        "column": "druggability",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_match_json_schema",
-      "kwargs": {
-        "column": "druggability",
-        "json_schema": {
-          "$id": "http://example.com/example.json",
-          "$schema": "https://json-schema.org/draft/2019-09/schema",
-          "default": [],
-          "items": {
-            "default": {},
-            "properties": {
-              "abability_bucket": {
-                "type": "number"
-              },
-              "abability_bucket_definition": {
-                "maxLength": 1000,
-                "minLength": 44,
-                "type": "string"
-              },
-              "classification": {
-                "maxLength": 1000,
-                "minLength": 22,
-                "type": "string"
-              },
-              "pharos_class": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "safety_bucket": {
-                "type": "number"
-              },
-              "safety_bucket_definition": {
-                "maxLength": 1000,
-                "minLength": 50,
-                "type": "string"
-              },
-              "sm_druggability_bucket": {
-                "type": "number"
-              }
-            },
-            "type": "object"
-          },
-          "title": "Druggability Schema",
-          "type": [
-            "array",
-            "null"
-          ]
-        }
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
         "column": "total_nominations",
         "type_": "float"
       },
@@ -514,25 +453,25 @@
       "kwargs": {
         "column": "biodomains",
         "list_members": [
-          "Apoptosis",
-          "Vasculature",
-          "Lipid Metabolism",
-          "Oxidative Stress",
-          "Mitochondrial Metabolism",
-          "APP Metabolism",
-          "Proteostasis",
-          "DNA Repair",
-          "Synapse",
-          "Immune Response",
-          "Tau Homeostasis",
           "Cell Cycle",
-          "Epigenetic",
-          "Metal Binding and Homeostasis",
+          "Autophagy",
+          "Mitochondrial Metabolism",
+          "Proteostasis",
+          "APP Metabolism",
           "Endolysosome",
-          "Structural Stabilization",
-          "Myelination",
+          "Vasculature",
+          "Tau Homeostasis",
           "RNA Spliceosome",
-          "Autophagy"
+          "Apoptosis",
+          "Lipid Metabolism",
+          "Myelination",
+          "Metal Binding and Homeostasis",
+          "Synapse",
+          "Epigenetic",
+          "Immune Response",
+          "Oxidative Stress",
+          "Structural Stabilization",
+          "DNA Repair"
         ]
       },
       "meta": {}

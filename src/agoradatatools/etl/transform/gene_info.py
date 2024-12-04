@@ -72,7 +72,7 @@ def transform_gene_info(
         grouping="ensembl_gene_id",
         new_column="druggability",
         drop_columns=["ensembl_gene_id"],
-        nested_field_is_list=False
+        nested_field_is_list=False,
     )
 
     biodomains = biodomains.dropna(subset=["biodomain", "ensembl_gene_id"])
