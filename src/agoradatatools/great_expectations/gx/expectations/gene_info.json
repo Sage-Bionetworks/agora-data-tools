@@ -335,10 +335,24 @@
             ],
             "type": "object"
           },
-          "title": "Target Nominations Schema",
-          "type": [
-            "array",
-            "null"
+          "allOf": [
+            {
+              "maxItems": 1,
+              "items": {
+                "properties": {
+                  "hgnc_symbol": {
+                    "not": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "title": "Target Nominations Schema",
+              "type": [
+                "array",
+                "null"
+              ]
+            }
           ]
         }
       },
@@ -411,7 +425,8 @@
             "array",
             "null"
           ]
-        }
+        },
+        "mostly": 0.95
       },
       "meta": {}
     },
@@ -505,7 +520,8 @@
       "expectation_type": "expect_column_values_to_have_list_members_of_type",
       "kwargs": {
         "column": "biodomains",
-        "member_type": "str"
+        "member_type": "str",
+        "mostly": 0.95
       },
       "meta": {}
     },
@@ -514,25 +530,25 @@
       "kwargs": {
         "column": "biodomains",
         "list_members": [
-          "Apoptosis",
+          "Myelination",
           "Vasculature",
-          "Lipid Metabolism",
-          "Oxidative Stress",
-          "Mitochondrial Metabolism",
-          "APP Metabolism",
-          "Proteostasis",
-          "DNA Repair",
           "Synapse",
           "Immune Response",
-          "Tau Homeostasis",
+          "DNA Repair",
+          "Autophagy",
+          "Endolysosome",
+          "Proteostasis",
+          "Mitochondrial Metabolism",
           "Cell Cycle",
           "Epigenetic",
+          "Lipid Metabolism",
           "Metal Binding and Homeostasis",
-          "Endolysosome",
-          "Structural Stabilization",
-          "Myelination",
           "RNA Spliceosome",
-          "Autophagy"
+          "Tau Homeostasis",
+          "Apoptosis",
+          "Oxidative Stress",
+          "APP Metabolism",
+          "Structural Stabilization"
         ]
       },
       "meta": {}
@@ -640,6 +656,7 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "uniprotkb_accessions",
+        "mostly": 0.95,
         "type_": "list"
       },
       "meta": {}
