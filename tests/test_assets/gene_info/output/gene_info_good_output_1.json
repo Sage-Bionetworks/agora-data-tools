@@ -32,17 +32,9 @@
       }
     ],
     "median_expression": null,
-    "druggability": [
-      {
-        "sm_druggability_bucket": 7,
-        "safety_bucket": 4,
-        "abability_bucket": 3,
-        "pharos_class": "Tbio",
-        "classification": null,
-        "safety_bucket_definition": "Safety definition 1",
-        "abability_bucket_definition": "Abability definition 1"
-      }
-    ],
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": 1.0,
     "biodomains": [
       "Proteostasis",
@@ -148,7 +140,9 @@
         "tissue": "IFG"
       }
     ],
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": 3.0,
     "biodomains": [
       "Apoptosis"
@@ -207,7 +201,9 @@
         "tissue": "TCX"
       }
     ],
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": 1.0,
     "biodomains": [
       "Structural Stabilization"
@@ -243,17 +239,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": [
-      {
-        "sm_druggability_bucket": 13,
-        "safety_bucket": 3,
-        "abability_bucket": 3,
-        "pharos_class": "Tdark",
-        "classification": "Classification 3",
-        "safety_bucket_definition": "Safety definition 3",
-        "abability_bucket_definition": null
-      }
-    ],
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -290,7 +278,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tchem"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -338,17 +328,9 @@
         "tissue": "DLPFC"
       }
     ],
-    "druggability": [
-      {
-        "sm_druggability_bucket": 3,
-        "safety_bucket": 4,
-        "abability_bucket": 1,
-        "pharos_class": "Tbio",
-        "classification": "Classification 4",
-        "safety_bucket_definition": "Safety definition 4",
-        "abability_bucket_definition": "Abability definition 4"
-      }
-    ],
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -398,17 +380,9 @@
         "tissue": "IFG"
       }
     ],
-    "druggability": [
-      {
-        "sm_druggability_bucket": 1,
-        "safety_bucket": 3,
-        "abability_bucket": 1,
-        "pharos_class": "Tchem",
-        "classification": "Classification 2",
-        "safety_bucket_definition": null,
-        "abability_bucket_definition": "Abability definition 2"
-      }
-    ],
+    "druggability": {
+      "pharos_class":["Tchem"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -442,17 +416,9 @@
     "protein_brain_change_studied": true,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": [
-      {
-        "sm_druggability_bucket": 1,
-        "safety_bucket": 5,
-        "abability_bucket": 3,
-        "pharos_class": null,
-        "classification": "Classification 5",
-        "safety_bucket_definition": "Safety definition 5",
-        "abability_bucket_definition": "Abability definition 5"
-      }
-    ],
+    "druggability": {
+      "pharos_class":["Tchem"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -486,7 +452,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -518,7 +486,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -551,7 +521,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tdark"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -586,7 +558,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": true,
@@ -617,7 +591,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -650,7 +626,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -688,7 +666,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tclin"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -717,7 +697,9 @@
     "protein_brain_change_studied": true,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tdark"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -753,7 +735,9 @@
     "protein_brain_change_studied": true,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tchem"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -804,7 +788,9 @@
         "tissue": "IFG"
       }
     ],
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio", "Tchem"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -833,7 +819,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -861,7 +849,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
@@ -891,7 +881,9 @@
     "protein_brain_change_studied": false,
     "target_nominations": null,
     "median_expression": null,
-    "druggability": null,
+    "druggability": {
+      "pharos_class":["Tbio"]
+    },
     "total_nominations": null,
     "biodomains": null,
     "is_adi": false,
