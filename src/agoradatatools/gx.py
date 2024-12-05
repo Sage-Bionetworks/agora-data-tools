@@ -185,7 +185,7 @@ class GreatExpectationsRunner:
 
     def _generate_message(
         self, result_dict: dict, message_type: str
-    ) -> tuple[str, bool]:
+    ) -> typing.Tuple[str, bool]:
         """Generate message and status for warnings or failures."""
         messages = []
         for suite_name, fields_dict in result_dict.items():
