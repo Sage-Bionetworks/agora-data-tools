@@ -151,7 +151,7 @@ class GreatExpectationsRunner:
         return df
 
     def set_warnings_and_failures(self, checkpoint_result: CheckpointResult) -> None:
-        """Sets class attributes for warnings and failures
+        """Sets class attributes for warnings and failures given a CheckpointResult
 
         Args:
             checkpoint_result (CheckpointResult): CheckpointResult object
