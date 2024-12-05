@@ -207,9 +207,18 @@ class TestGreatExpectationsRunner:
     ):
         self.good_runner.set_warnings_and_failures(self.failed_checkpoint_result)
         assert self.good_runner.warnings is True
-        assert self.good_runner.warning_message is not None
+        assert (
+            self.good_runner.warning_message
+            == "Great Expectations data validation has the following warnings: "
+            "In the metabolomics dataset, 'ensembl_gene_id' has failed values for "
+            "expectations expect_column_value_lengths_to_equal"
+        )
         assert self.good_runner.failures is True
-        assert self.good_runner.failure_message is not None
+        assert self.good_runner.failure_message == (
+            "Great Expectations data validation has the following failures: "
+            "In the metabolomics dataset, 'ensembl_gene_id' has failed values for "
+            "expectations expect_column_values_to_match_regex"
+        )
 
     def test_run_when_expectation_suite_exists_and_nested_columns(
         self,
