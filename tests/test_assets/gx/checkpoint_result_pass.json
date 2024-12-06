@@ -76,11 +76,9 @@
                         },
                         "result": {
                             "element_count": 15991,
-                            "unexpected_count": 1,
-                            "unexpected_percent": 0.006253517603652055,
-                            "partial_unexpected_list": [
-                                "ENSG00"
-                            ],
+                            "unexpected_count": 0,
+                            "unexpected_percent": 0.0,
+                            "partial_unexpected_list": [],
                             "missing_count": 0,
                             "missing_percent": 0.0,
                             "unexpected_percent_total": 0.006253517603652055,
@@ -115,11 +113,9 @@
                         },
                         "result": {
                             "element_count": 15991,
-                            "unexpected_count": 1,
-                            "unexpected_percent": 0.006253517603652055,
-                            "partial_unexpected_list": [
-                                "ENSG00"
-                            ],
+                            "unexpected_count": 0,
+                            "unexpected_percent": 0.0,
+                            "partial_unexpected_list": [],
                             "missing_count": 0,
                             "missing_percent": 0.0,
                             "unexpected_percent_total": 0.006253517603652055,
