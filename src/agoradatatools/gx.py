@@ -17,7 +17,17 @@ logging.getLogger("great_expectations").setLevel(logging.WARNING)
 
 
 class GreatExpectationsRunner:
-    """Class to run great expectations on a dataset and upload the HTML report to Synapse"""
+    """Class to run great expectations on a dataset and upload the HTML report to Synapse
+
+    Attributes:
+        failures (bool): Whether or not the GX run had any failed expectations.
+        failure_message (str): Message of the GX run if any expectations failed.
+        warnings (bool): Whether or not the GX run had any warnings.
+        warning_message (str): Summary message for the GX run if any expectations had warnings.
+        report_file (str): Synapse ID of the GX report file.
+        report_version (int): Version number of the GX report file.
+        report_link (str): URL of the specific version of the GX report file.
+    """
 
     failures: bool = False
     failure_message: Optional[str] = None
