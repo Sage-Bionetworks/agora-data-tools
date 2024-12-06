@@ -418,6 +418,56 @@
     {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
+        "column": "druggability",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "druggability",
+        "json_schema": {
+          "$id": "http://example.com/example.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "default": null,
+          "examples": [
+            {
+              "pharos_class": [
+                "Tchem"
+              ]
+            }
+          ],
+          "properties": {
+            "pharos_class": {
+              "default": [],
+              "examples": [
+                [
+                  "Tchem"
+                ]
+              ],
+              "items": {
+                "default": "",
+                "examples": [
+                  "Tchem"
+                ],
+                "title": "Pharos object",
+                "type": "string"
+              },
+              "title": "The pharos_class Schema",
+              "type": "array"
+            }
+          },
+          "title": "Root Schema",
+          "type": "object"
+        },
+        "mostly": 0.5
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
         "column": "total_nominations",
         "type_": "float"
       },
@@ -453,25 +503,25 @@
       "kwargs": {
         "column": "biodomains",
         "list_members": [
-          "Cell Cycle",
+          "Oxidative Stress",
+          "Synapse",
+          "Metal Binding and Homeostasis",
           "Autophagy",
-          "Mitochondrial Metabolism",
-          "Proteostasis",
+          "RNA Spliceosome",
           "APP Metabolism",
+          "Apoptosis",
           "Endolysosome",
           "Vasculature",
-          "Tau Homeostasis",
-          "RNA Spliceosome",
-          "Apoptosis",
-          "Lipid Metabolism",
-          "Myelination",
-          "Metal Binding and Homeostasis",
-          "Synapse",
-          "Epigenetic",
+          "DNA Repair",
           "Immune Response",
-          "Oxidative Stress",
+          "Lipid Metabolism",
+          "Tau Homeostasis",
+          "Myelination",
+          "Epigenetic",
+          "Mitochondrial Metabolism",
+          "Proteostasis",
           "Structural Stabilization",
-          "DNA Repair"
+          "Cell Cycle"
         ]
       },
       "meta": {}

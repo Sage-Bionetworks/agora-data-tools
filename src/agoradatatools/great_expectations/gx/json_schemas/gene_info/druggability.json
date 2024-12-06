@@ -2,11 +2,8 @@
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "http://example.com/example.json",
     "type": "object",
-    "default": {},
+    "default": null,
     "title": "Root Schema",
-    "required": [
-        "pharos_class"
-    ],
     "properties": {
         "pharos_class": {
             "type": "array",
@@ -15,7 +12,7 @@
             "items": {
                 "type": "string",
                 "default": "",
-                "title": "A Schema",
+                "title": "Pharos object",
                 "examples": [
                     "Tchem"
                 ]
