@@ -17,10 +17,22 @@ logging.getLogger("great_expectations").setLevel(logging.WARNING)
 
 
 class GreatExpectationsRunner:
-    """Class to run great expectations on a dataset and upload the HTML report to Synapse"""
+    """Class to run great expectations on a dataset and upload the HTML report to Synapse
+
+    Attributes:
+        failures (bool): Whether or not the GX run had any failed expectations.
+        failure_message (str): Message of the GX run if any expectations failed.
+        warnings (bool): Whether or not the GX run had any warnings.
+        warning_message (str): Summary message for the GX run if any expectations had warnings.
+        report_file (str): Synapse ID of the GX report file.
+        report_version (int): Version number of the GX report file.
+        report_link (str): URL of the specific version of the GX report file.
+    """
 
     failures: bool = False
     failure_message: Optional[str] = None
+    warnings: bool = False
+    warning_message: Optional[str] = None
     report_file: Optional[str] = None
     report_version: Optional[int] = None
     report_link: Optional[str] = None
@@ -67,7 +79,7 @@ class GreatExpectationsRunner:
         gx_directory = os.path.join(script_dir, "great_expectations")
         return gx_directory
 
-    def _check_if_expectation_suite_exists(self) -> bool:
+    def check_if_expectation_suite_exists(self) -> bool:
         """Checks if the expectation suite exists in the great_expectations workspace"""
         exists = (
             self.expectation_suite_name in self.context.list_expectation_suite_names()
@@ -78,7 +90,7 @@ class GreatExpectationsRunner:
             )
         return exists
 
-    def _get_results_path(self, checkpoint_result: CheckpointResult) -> str:
+    def get_results_path(self, checkpoint_result: CheckpointResult) -> str:
         """Gets the path to the most recent HTML report for a checkpoint,
         copies it to a Synapse-API friendly name, and returns the new path
 
@@ -106,7 +118,7 @@ class GreatExpectationsRunner:
         shutil.copy(original_results_path, new_results_path)
         return new_results_path
 
-    def _upload_results_file_to_synapse(self, results_path: str) -> None:
+    def upload_results_file_to_synapse(self, results_path: str) -> None:
         """Uploads a results file to Synapse. Assigns class attributes associated
         with the report file.
 
@@ -148,43 +160,61 @@ class GreatExpectationsRunner:
             df[column] = df[column].apply(json.dumps)
         return df
 
-    def get_failed_expectations(self, checkpoint_result: CheckpointResult) -> str:
-        """Gets the failed expectations from a CheckpointResult and returns them as a formatted string
+    def set_warnings_and_failures(self, checkpoint_result: CheckpointResult) -> None:
+        """Sets class attributes for warnings and failures given a CheckpointResult
 
         Args:
             checkpoint_result (CheckpointResult): CheckpointResult object
-
-        Returns:
-            fail_message (str): String with information on which fields and expectations failed
         """
+        warning_dict = {self.expectation_suite_name: {}}
         fail_dict = {self.expectation_suite_name: {}}
         expectation_results = checkpoint_result.list_validation_results()[0]["results"]
+
         for result in expectation_results:
-            if not result["success"]:
-                column = result["expectation_config"]["kwargs"]["column"]
-                failed_expectation = result["expectation_config"]["expectation_type"]
-                if not fail_dict[self.expectation_suite_name].get(column, None):
-                    fail_dict[self.expectation_suite_name][column] = []
-                fail_dict[self.expectation_suite_name][column].append(
-                    failed_expectation
-                )
-        messages = []
-        for _, fields_dict in fail_dict.items():
-            for field, failed_expectations in fields_dict.items():
-                messages.append(
-                    f"{field} has failed expectations {', '.join(failed_expectations)}"
+            column = result["expectation_config"]["kwargs"].get(
+                "column",
+                "/".join(result["expectation_config"]["kwargs"].get("column_list", [])),
+            )
+            expectation = result["expectation_config"]["expectation_type"]
+            if result["success"]:
+                if result["result"].get("partial_unexpected_list", None):
+                    warning_dict[self.expectation_suite_name].setdefault(
+                        column, []
+                    ).append(expectation)
+            else:
+                fail_dict[self.expectation_suite_name].setdefault(column, []).append(
+                    expectation
                 )
 
-        fail_message = ("Great Expectations data validation has failed: ") + "; ".join(
-            messages
+        self.warning_message, self.warnings = self._generate_message(
+            warning_dict, "warnings"
+        )
+        self.failure_message, self.failures = self._generate_message(
+            fail_dict, "failures"
         )
 
-        return fail_message
+    def _generate_message(
+        self, result_dict: dict, message_type: str
+    ) -> typing.Tuple[str, bool]:
+        """Generate message and status for warnings or failures."""
+        messages = []
+        for suite_name, fields_dict in result_dict.items():
+            for field, expectations in fields_dict.items():
+                messages.append(
+                    f"In the {suite_name} dataset, '{field}' has failed values for expectations {', '.join(expectations)}"
+                )
+        message = (
+            (f"Great Expectations data validation has the following {message_type}: ")
+            + "; ".join(messages)
+            if messages
+            else None
+        )
+        return message, bool(message)
 
     def run(self) -> None:
         """Run great expectations on a dataset and upload the results to Synapse."""
 
-        if not self._check_if_expectation_suite_exists():
+        if not self.check_if_expectation_suite_exists():
             return
 
         logger.info(f"Running data validation on {self.expectation_suite_name}")
@@ -209,11 +239,9 @@ class GreatExpectationsRunner:
         logger.info(
             f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
         )
-        latest_reults_path = self._get_results_path(checkpoint_result)
+        latest_reults_path = self.get_results_path(checkpoint_result)
+
+        self.set_warnings_and_failures(checkpoint_result)
 
         if self.upload_folder:
-            self._upload_results_file_to_synapse(latest_reults_path)
-
-        if not checkpoint_result.success:
-            self.failures = True
-            self.failure_message = self.get_failed_expectations(checkpoint_result)
+            self.upload_results_file_to_synapse(latest_reults_path)
