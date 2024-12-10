@@ -186,6 +186,8 @@ This package uses [Great Expectations](https://greatexpectations.io/) to validat
    - You can prevent Great Expectations from running for a dataset by setting `gx_enabled: false` in the configuration for the dataset.
 1. Test data processing by running `adt test_config.yaml --upload` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
 
+**Note:** If you are adding a new expectation and you want to allow for "fuzzy validation" (e.g. you expect X% of the values in a column to match the expectation, but the remaining Y% are allowed to not match), you will need to make use of the `mostly` [parameter](https://docs.greatexpectations.io/docs/0.18/reference/learn/expectations/standard_arguments/#mostly). This package is set up to surface "warnings" for instances where the `mostly` parameter is used to show users which expectations have some failed values although the overall validation still passes.
+
 #### Custom Expectations
 
 This repository is currently home to three custom expectations that were created for use on `agora-data-tools` datasets:

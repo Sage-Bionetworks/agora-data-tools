@@ -64,7 +64,7 @@
                         }
                     },
                     {
-                        "success": false,
+                        "success": true,
                         "expectation_config": {
                             "expectation_type": "expect_column_value_lengths_to_equal",
                             "kwargs": {

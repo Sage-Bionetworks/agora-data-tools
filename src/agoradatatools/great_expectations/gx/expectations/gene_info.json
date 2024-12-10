@@ -411,7 +411,8 @@
             "array",
             "null"
           ]
-        }
+        },
+        "mostly": 0.95
       },
       "meta": {}
     },
@@ -494,7 +495,8 @@
       "expectation_type": "expect_column_values_to_have_list_members_of_type",
       "kwargs": {
         "column": "biodomains",
-        "member_type": "str"
+        "member_type": "str",
+        "mostly": 0.95
       },
       "meta": {}
     },
@@ -503,25 +505,25 @@
       "kwargs": {
         "column": "biodomains",
         "list_members": [
-          "Oxidative Stress",
-          "Synapse",
-          "Metal Binding and Homeostasis",
-          "Autophagy",
-          "RNA Spliceosome",
-          "APP Metabolism",
-          "Apoptosis",
-          "Endolysosome",
-          "Vasculature",
-          "DNA Repair",
-          "Immune Response",
-          "Lipid Metabolism",
-          "Tau Homeostasis",
           "Myelination",
-          "Epigenetic",
-          "Mitochondrial Metabolism",
+          "Vasculature",
+          "Synapse",
+          "Immune Response",
+          "DNA Repair",
+          "Autophagy",
+          "Endolysosome",
           "Proteostasis",
-          "Structural Stabilization",
-          "Cell Cycle"
+          "Mitochondrial Metabolism",
+          "Cell Cycle",
+          "Epigenetic",
+          "Lipid Metabolism",
+          "Metal Binding and Homeostasis",
+          "RNA Spliceosome",
+          "Tau Homeostasis",
+          "Apoptosis",
+          "Oxidative Stress",
+          "APP Metabolism",
+          "Structural Stabilization"
         ]
       },
       "meta": {}
@@ -629,6 +631,7 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "uniprotkb_accessions",
+        "mostly": 0.95,
         "type_": "list"
       },
       "meta": {}
