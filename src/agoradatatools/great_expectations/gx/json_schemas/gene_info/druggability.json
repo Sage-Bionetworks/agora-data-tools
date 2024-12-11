@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2019-09/schema",
     "$id": "http://example.com/example.json",
-    "type": "object",
+    "type": ["object", "null"],
     "default": null,
     "title": "Root Schema",
     "properties": {
@@ -13,14 +13,14 @@
                 "type": "string",
                 "default": "",
                 "title": "Pharos object",
-                "examples": [
-                    "Tchem"
+                "enum": [
+                    "Tdark",
+                    "Tchem",
+                    "Tbio",
+                    "Tclin",
+                    null
                 ]
-            },
-            "examples": [
-                [
-                    "Tchem"]
-            ]
+            }
         }
     },
     "examples": [{

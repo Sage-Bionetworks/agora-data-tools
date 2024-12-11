@@ -442,15 +442,14 @@
           "properties": {
             "pharos_class": {
               "default": [],
-              "examples": [
-                [
-                  "Tchem"
-                ]
-              ],
               "items": {
                 "default": "",
-                "examples": [
-                  "Tchem"
+                "enum": [
+                  "Tdark",
+                  "Tchem",
+                  "Tbio",
+                  "Tclin",
+                  null
                 ],
                 "title": "Pharos object",
                 "type": "string"
@@ -460,9 +459,11 @@
             }
           },
           "title": "Root Schema",
-          "type": "object"
-        },
-        "mostly": 0.5
+          "type": [
+            "object",
+            "null"
+          ]
+        }
       },
       "meta": {}
     },
@@ -505,25 +506,25 @@
       "kwargs": {
         "column": "biodomains",
         "list_members": [
-          "Myelination",
-          "Vasculature",
-          "Synapse",
-          "Immune Response",
-          "DNA Repair",
-          "Autophagy",
           "Endolysosome",
-          "Proteostasis",
-          "Mitochondrial Metabolism",
-          "Cell Cycle",
-          "Epigenetic",
-          "Lipid Metabolism",
-          "Metal Binding and Homeostasis",
-          "RNA Spliceosome",
           "Tau Homeostasis",
+          "Synapse",
+          "Mitochondrial Metabolism",
           "Apoptosis",
           "Oxidative Stress",
+          "Proteostasis",
+          "Lipid Metabolism",
+          "Vasculature",
+          "Autophagy",
+          "RNA Spliceosome",
+          "Cell Cycle",
+          "DNA Repair",
+          "Structural Stabilization",
           "APP Metabolism",
-          "Structural Stabilization"
+          "Metal Binding and Homeostasis",
+          "Immune Response",
+          "Myelination",
+          "Epigenetic"
         ]
       },
       "meta": {}
