@@ -54,10 +54,9 @@ or failing input for each dataset:
                        "tissue" value is missing. Duplicate Ensembl IDs are allowed due to multiple tissues, so the test
                        file has several rows with the same Ensembl ID but different tissue value.
         failing input: none
-    druggability: information on the druggability and safety of each gene.
+    pharos_classes: information on the pharos class of each gene.
         passing input: any field can be missing, so there are a few rows with missing data in at least one column.
-                       Duplicate Ensembl IDs are technically allowed, but this does not happen (or make sense) in the
-                       full dataset, so we do not test it.
+                       Duplicate Ensembl IDs are allowed and does happen in the real dataset, so we test for it.
         failing input: none
     genes_biodomains: a list of Ensembl IDs and their associated biodomains and GO terms.
         passing input: any field can be missing, so the test file has rows with missing data in at least one column.
@@ -123,7 +122,7 @@ class TestTransformGeneInfo:
         "proteomics_srm": "proteomics_srm_good_input.csv",
         "target_list": "target_list_good_input.csv",
         "median_expression": "median_expression_good_input.csv",
-        "druggability": "druggability_good_input.csv",
+        "pharos_classes": "pharos_classes_good_input.csv",
         "genes_biodomains": "genes_biodomains_good_input.csv",
         "tep_adi_info": "tep_adi_info_good_input.csv",
         "ensg_to_uniprot_mapping": "ensg_to_uniprot_mapping_good.tsv",
@@ -265,6 +264,18 @@ class TestTransformGeneInfo:
     def test_transform_gene_info_should_pass(
         self, input_files_dict: dict, expected_output_file: str, param_set: dict
     ):
+        """
+        Test that the transform_gene_info function passes with the given input files and parameters.
+
+        Args:
+            input_files_dict: a dictionary where the keys are the names of the datasets, as expected by
+                               transform_gene_info, and the values are the filenames to load
+            expected_output_file: the filename of the expected output JSON file
+            param_set: a dictionary of parameters to pass to transform_gene_info
+
+        Returns:
+            None
+        """
         datasets = self.read_input_files_dict(input_files_dict)
 
         output_df = gene_info.transform_gene_info(
@@ -293,6 +304,21 @@ class TestTransformGeneInfo:
         error_type: BaseException,
         error_match_string: str,
     ):
+        """
+        Test that the transform_gene_info function fails with the given input files and parameters.
+
+        Args:
+            input_files_dict: a dictionary where the keys are the names of the datasets, as expected by
+                               transform_gene_info, and the values are the filenames to load
+            failure_case_files_dict: a dictionary where the keys are the names of the datasets with bad data,
+                                     and the values are the filenames to load
+            param_set: a dictionary of parameters to pass to transform_gene_info
+            error_type: the type of error that should be raised
+            error_match_string: a string to match against the error message
+
+        Returns:
+            None
+        """
         # Need to make a copy, otherwise this edits the original dictionary and persists through all the tests
         updated_files_dict = input_files_dict.copy()
 

@@ -431,46 +431,36 @@
         "json_schema": {
           "$id": "http://example.com/example.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
-          "default": [],
-          "items": {
-            "default": {},
-            "properties": {
-              "abability_bucket": {
-                "type": "number"
-              },
-              "abability_bucket_definition": {
-                "maxLength": 1000,
-                "minLength": 44,
+          "default": null,
+          "examples": [
+            {
+              "pharos_class": [
+                "Tchem"
+              ]
+            }
+          ],
+          "properties": {
+            "pharos_class": {
+              "default": [],
+              "items": {
+                "default": "",
+                "enum": [
+                  "Tdark",
+                  "Tchem",
+                  "Tbio",
+                  "Tclin",
+                  null
+                ],
+                "title": "Pharos object",
                 "type": "string"
               },
-              "classification": {
-                "maxLength": 1000,
-                "minLength": 22,
-                "type": "string"
-              },
-              "pharos_class": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "safety_bucket": {
-                "type": "number"
-              },
-              "safety_bucket_definition": {
-                "maxLength": 1000,
-                "minLength": 50,
-                "type": "string"
-              },
-              "sm_druggability_bucket": {
-                "type": "number"
-              }
-            },
-            "type": "object"
+              "title": "The pharos_class Schema",
+              "type": "array"
+            }
           },
-          "title": "Druggability Schema",
+          "title": "Root Schema",
           "type": [
-            "array",
+            "object",
             "null"
           ]
         }
@@ -516,25 +506,25 @@
       "kwargs": {
         "column": "biodomains",
         "list_members": [
-          "Myelination",
-          "Vasculature",
-          "Synapse",
-          "Immune Response",
-          "DNA Repair",
+          "APP Metabolism",
+          "Apoptosis",
           "Autophagy",
-          "Endolysosome",
-          "Proteostasis",
-          "Mitochondrial Metabolism",
           "Cell Cycle",
+          "DNA Repair",
+          "Endolysosome",
           "Epigenetic",
+          "Immune Response",
           "Lipid Metabolism",
           "Metal Binding and Homeostasis",
-          "RNA Spliceosome",
-          "Tau Homeostasis",
-          "Apoptosis",
+          "Mitochondrial Metabolism",
+          "Myelination",
           "Oxidative Stress",
-          "APP Metabolism",
-          "Structural Stabilization"
+          "Proteostasis",
+          "RNA Spliceosome",
+          "Structural Stabilization",
+          "Synapse",
+          "Tau Homeostasis",
+          "Vasculature"
         ]
       },
       "meta": {}
