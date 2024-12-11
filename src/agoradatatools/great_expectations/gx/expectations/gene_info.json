@@ -506,25 +506,25 @@
       "kwargs": {
         "column": "biodomains",
         "list_members": [
-          "Endolysosome",
-          "Tau Homeostasis",
-          "Synapse",
-          "Mitochondrial Metabolism",
+          "APP Metabolism",
           "Apoptosis",
-          "Oxidative Stress",
-          "Proteostasis",
-          "Lipid Metabolism",
-          "Vasculature",
           "Autophagy",
-          "RNA Spliceosome",
           "Cell Cycle",
           "DNA Repair",
-          "Structural Stabilization",
-          "APP Metabolism",
-          "Metal Binding and Homeostasis",
+          "Endolysosome",
+          "Epigenetic",
           "Immune Response",
+          "Lipid Metabolism",
+          "Metal Binding and Homeostasis",
+          "Mitochondrial Metabolism",
           "Myelination",
-          "Epigenetic"
+          "Oxidative Stress",
+          "Proteostasis",
+          "RNA Spliceosome",
+          "Structural Stabilization",
+          "Synapse",
+          "Tau Homeostasis",
+          "Vasculature"
         ]
       },
       "meta": {}
