@@ -264,6 +264,18 @@ class TestTransformGeneInfo:
     def test_transform_gene_info_should_pass(
         self, input_files_dict: dict, expected_output_file: str, param_set: dict
     ):
+        """
+        Test that the transform_gene_info function passes with the given input files and parameters.
+
+        Args:
+            input_files_dict: a dictionary where the keys are the names of the datasets, as expected by
+                               transform_gene_info, and the values are the filenames to load
+            expected_output_file: the filename of the expected output JSON file
+            param_set: a dictionary of parameters to pass to transform_gene_info
+
+        Returns:
+            None
+        """
         datasets = self.read_input_files_dict(input_files_dict)
 
         output_df = gene_info.transform_gene_info(
@@ -292,6 +304,21 @@ class TestTransformGeneInfo:
         error_type: BaseException,
         error_match_string: str,
     ):
+        """
+        Test that the transform_gene_info function fails with the given input files and parameters.
+
+        Args:
+            input_files_dict: a dictionary where the keys are the names of the datasets, as expected by
+                               transform_gene_info, and the values are the filenames to load
+            failure_case_files_dict: a dictionary where the keys are the names of the datasets with bad data,
+                                     and the values are the filenames to load
+            param_set: a dictionary of parameters to pass to transform_gene_info
+            error_type: the type of error that should be raised
+            error_match_string: a string to match against the error message
+
+        Returns:
+            None
+        """
         # Need to make a copy, otherwise this edits the original dictionary and persists through all the tests
         updated_files_dict = input_files_dict.copy()
 
