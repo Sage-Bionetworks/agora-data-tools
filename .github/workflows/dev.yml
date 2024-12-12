@@ -4,7 +4,7 @@ name: CI
 
 on:
   push:
-    branches: ["dev", "bwmac/CI-update-dev-publish"]
+    branches: ["dev"]
     # Match tags that resemble a version
     tags: ['[0-9]+\.[0-9]+\.[0-9]+']
   pull_request:
