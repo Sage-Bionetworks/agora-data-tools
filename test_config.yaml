@@ -164,7 +164,7 @@ datasets:
           format: csv
         - <<: *genes_biodomains_files
         - name: tep_adi_info
-          id: syn51942280.3
+          id: syn51942280.4
           format: csv
         - name: ensg_to_uniprot_mapping
           id: syn54113663.3
@@ -202,7 +202,7 @@ datasets:
         - syn12540368.51
         - syn27211878.2
         - *genes_biodomains_provenance
-        - syn51942280.3
+        - syn51942280.4
         - syn54113663.3
         - syn64123611.1
       agora_rename:
