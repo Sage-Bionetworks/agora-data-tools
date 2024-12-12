@@ -4,7 +4,7 @@ name: CI
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["dev", "bwmac/CI-update-dev-publish"]
     # Match tags that resemble a version
     tags: ['[0-9]+\.[0-9]+\.[0-9]+']
   pull_request:
@@ -72,7 +72,7 @@ jobs:
 
   ghcr-publish:
     needs: [build, test]
-    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
