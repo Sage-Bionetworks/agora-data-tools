@@ -338,7 +338,7 @@ def _extract_ensembl_ids(
 
 def load_file_with_name(
     file_name: str, config_filename: str, token: str = None
-) -> pd.DataFrame:
+) -> Union[pd.DataFrame, None]:
     """
     Loops through a config file, finds the input file config that matches file_name, and downloads
     and reads the file in as a pandas data frame.
@@ -350,7 +350,8 @@ def load_file_with_name(
         token: optional, a Synapse auth token
 
     Returns:
-        a pandas.DataFrame, if a file matching file_name exists in the config, or None
+        a pandas.DataFrame, if a file matching file_name exists in the config, or
+        None, if no file spec with that name exists
     """
     syn = utils._login_to_synapse(token=token)
     config = utils._get_config(config_path=config_filename)
