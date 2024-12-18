@@ -336,6 +336,40 @@ def _extract_ensembl_ids(
     return list(set(file_ensembl_ids))
 
 
+def load_file_with_name(
+    file_name: str, config_filename: str, token: str = None
+) -> Union[pd.DataFrame, None]:
+    """
+    Loops through a config file, finds the input file config that matches file_name, and downloads
+    and reads the file in as a pandas data frame.
+
+    Args:
+        file_name: the name of the data to load, which should match what is in the "name" field in
+                   the config file
+        config_filename: path to the config YAML file
+        token: optional, a Synapse auth token
+
+    Returns:
+        a pandas.DataFrame, if a file matching file_name exists in the config, or
+        None, if no file spec with that name exists
+    """
+    syn = utils._login_to_synapse(token=token)
+    config = utils._get_config(config_path=config_filename)
+    datasets = config["datasets"]
+
+    for dataset in datasets:
+        dataset_name = list(dataset.keys())[0]
+
+        for file in dataset[dataset_name]["files"]:
+            if file["name"] == file_name:
+                df = extract.get_entity_as_df(
+                    syn_id=file["id"], source=file["format"], syn=syn
+                )
+                return df
+
+    return None
+
+
 def standardize_list_item(item: Union[str, List[str]]) -> List[str]:
     """
     For the gene_metadata data frame, some queries return columns that are a mixture of None/NaN,
@@ -372,7 +406,7 @@ def standardize_list_item(item: Union[str, List[str]]) -> List[str]:
 
 def merge_duplicate_ensembl_ids(gene_table: pd.DataFrame) -> pd.DataFrame:
     """
-    MyGene queries sometimes return multiple rows rows with the same Ensembl ID but different symbols
+    MyGene queries sometimes return multiple rows with the same Ensembl ID but different symbols
     or other information. This usually happens when a single Ensembl ID maps to multiple Entrez IDs
     in the NCBI database. There's not a good way to reconcile this, so for every set of rows with the
     same Ensembl ID, we designate the first entry in the as the main row. The gene symbols of the
