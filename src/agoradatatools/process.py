@@ -1,5 +1,5 @@
 import logging
-from typing import Union
+from typing import Optional, Union
 
 import synapseclient
 from pandas import DataFrame
@@ -73,25 +73,28 @@ def upload_dataversion_metadata(
     syn: synapseclient.Synapse,
     file_id: str,
     file_version: str,
-    team_images_id: str,
     staging_path: str,
     destination: str,
+    team_images_id: Optional[str] = None,
 ) -> None:
-    """Uploads dataversion.json file to Synapse with metadata about the manifest file
+    """Uploads dataversion.json file to Synapse with metadata about the manifest file.
+    Model-AD runs do not have a team_images_id, which will be left out of the dataversion.json file.
 
     Args:
         syn (synapseclient.Synapse): Synapse client session
         file_id (str): Synapse ID of the manifest file
         file_version (str): Version number of the manifest file
-        team_images_id (str): Synapse ID of the team_images folder
         staging_path (str): Path to the staging directory
         destination (str): Synapse ID of the destination folder
+        team_images_id (str, optional): Synapse ID of the team_images folder if provided. Defaults to None.
     """
     dataversion_dict = {
         "data_file": file_id,
         "data_version": file_version,
-        "team_images_id": team_images_id,
     }
+    if team_images_id:
+        dataversion_dict["team_images_id"] = team_images_id
+
     dataversion_json_path = load.dict_to_json(
         df=dataversion_dict, staging_path=staging_path, filename="dataversion.json"
     )
@@ -340,7 +343,7 @@ def process_all_files(
             syn=syn,
             file_id=file_id,
             file_version=file_version,
-            team_images_id=config["team_images_id"],
+            team_images_id=config.get("team_images_id", None),
             staging_path=staging_path,
             destination=destination,
         )
