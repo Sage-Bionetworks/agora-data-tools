@@ -471,6 +471,7 @@ class TestProcessAllFiles:
                 "gx_folder": GX_FOLDER,
                 "gx_table": "syn321",
                 "staging_path": STAGING_PATH,
+                "team_images_id": "syn987",
                 "datasets": [{"a": {"b": "c"}}, {"d": {"e": "f"}}, {"g": {"h": "i"}}],
             },
         ).start()
@@ -496,6 +497,9 @@ class TestProcessAllFiles:
             load, "df_to_csv", return_value="path/to/csv"
         ).start()
         self.patch_load = patch.object(load, "load", return_value=("syn123", 1)).start()
+        self.patch_upload_dataversion_metadata = patch.object(
+            process, "upload_dataversion_metadata", return_value=None
+        ).start()
         self.patch_update_table = patch.object(
             ADTGXReporter,
             "update_table",
@@ -546,6 +550,7 @@ class TestProcessAllFiles:
             staging_path=STAGING_PATH,
             filename="data_manifest.csv",
         )
+        self.patch_upload_dataversion_metadata.assert_not_called()
         self.patch_load.assert_not_called()
         self.patch_format_link.assert_not_called()
         self.patch_update_table.assert_called_once()
@@ -591,6 +596,14 @@ class TestProcessAllFiles:
             df=self.patch_create_data_manifest.return_value,
             staging_path=STAGING_PATH,
             filename="data_manifest.csv",
+        )
+        self.patch_upload_dataversion_metadata.assert_called_once_with(
+            syn=syn,
+            file_id="syn123",
+            file_version=1,
+            team_images_id="syn987",
+            staging_path=STAGING_PATH,
+            destination="destination",
         )
         self.patch_load.assert_called_once_with(
             file_path="path/to/csv",
@@ -644,6 +657,7 @@ class TestProcessAllFiles:
             )
             self.patch_create_data_manifest.assert_not_called()
             self.patch_df_to_csv.assert_not_called()
+            self.patch_upload_dataversion_metadata.assert_not_called()
             self.patch_load.assert_not_called()
             self.patch_format_link.assert_not_called()
             self.patch_update_table.assert_called_once()
@@ -688,6 +702,7 @@ class TestProcessAllFiles:
             )
             self.patch_create_data_manifest.assert_not_called()
             self.patch_df_to_csv.assert_not_called()
+            self.patch_upload_dataversion_metadata.assert_not_called()
             self.patch_load.assert_not_called()
             self.patch_format_link.assert_not_called()
             self.patch_update_table.assert_called_once()
