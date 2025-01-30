@@ -5,12 +5,15 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
+from synapseclient import File
+
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError
 from agoradatatools.etl import load, utils, extract
 from agoradatatools.reporter import DatasetReport, ADTGXReporter
 from agoradatatools.constants import Platform
 from agoradatatools.gx import GreatExpectationsRunner
+
 
 STAGING_PATH = "./staging"
 GX_FOLDER = "test_folder"
@@ -424,27 +427,40 @@ class TestProcessDataset:
 
 
 class TestCreateDataManifest:
+    files = [
+        File(id="syn123", name="not_a_manifest", versionNumber=1),
+        File(id="syn456", name="data_manifest.csv", versionNumber=1),
+    ]
+    manifest_rows = [
+        {"id": "syn123", "version": 1},
+        {"id": "syn456", "version": 2},
+    ]
+
     @pytest.fixture(scope="function", autouse=True)
     def setup_method(self, syn: Any):
-        self.patch_syn_login = patch.object(
-            utils, "_login_to_synapse", return_value=syn
-        ).start()
         self.patch_get_children = patch.object(
-            syn, "getChildren", return_value=[{"id": "123", "versionNumber": 1}]
+            syn, "getChildren", return_value=self.files
         ).start()
 
     def teardown_method(self):
         mock.patch.stopall()
 
     def test_create_data_manifest_parent_none(self, syn: Any):
-        assert process.create_data_manifest(syn=syn, parent=None) is None
-        self.patch_syn_login.assert_not_called()
+        # WHEN I call create_data_manifest with a parent of None
+        result = process.create_data_manifest(syn=syn, parent=None)
+        # THEN I expect the result to be None
+        assert result is None
+        # AND I expect the getChildren method to not be called
+        self.patch_get_children.assert_not_called()
 
-    def test_create_data_manifest_no_none(self, syn: Any):
-        df = process.create_data_manifest(syn=syn, parent="syn1111111")
+    def test_create_data_manifest_with_parent(self, syn: Any):
+        # WHEN I call create_data_manifest with a parent
+        result_df = process.create_data_manifest(syn=syn, parent="syn1111111")
+        # THEN I expect the getChildren method to be called with the parent
         self.patch_get_children.assert_called_once_with("syn1111111")
-        self.patch_syn_login.assert_not_called()
-        assert isinstance(df, pd.DataFrame)
+        # AND I expect the result to be a dataframe with the correct rows
+        # Including incrementing the version number for the data_manifest.csv file
+        pd.testing.assert_frame_equal(result_df, pd.DataFrame(self.manifest_rows))
 
 
 class TestProcessAllFiles:

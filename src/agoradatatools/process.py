@@ -227,9 +227,9 @@ def process_dataset(
 
 
 def create_data_manifest(
-    syn: synapseclient.Synapse, parent: synapseclient.Folder = None
+    syn: synapseclient.Synapse, parent: Union[synapseclient.Folder, str] = None
 ) -> Union[DataFrame, None]:
-    """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse folders
+    """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse files
 
     Args:
         syn (synapseclient.Synapse): Synapse client session.
@@ -242,13 +242,21 @@ def create_data_manifest(
     if not parent:
         return None
 
-    folders = syn.getChildren(parent)
+    files = syn.getChildren(parent)
 
-    folder = [
-        {"id": folder["id"], "version": folder["versionNumber"]} for folder in folders
+    manifest_rows = [
+        {
+            "id": file["id"],
+            "version": (
+                file["versionNumber"]
+                if file["name"] != "data_manifest.csv"
+                else file["versionNumber"] + 1
+            ),
+        }
+        for file in files
     ]
 
-    return DataFrame(folder)
+    return DataFrame(manifest_rows)
 
 
 @log_time(func_name="process_all_files", logger=logger)
