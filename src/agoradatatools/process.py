@@ -248,9 +248,9 @@ def create_data_manifest(
         {
             "id": file["id"],
             "version": (
-                file["versionNumber"]
-                if file["name"] != "data_manifest.csv"
-                else file["versionNumber"] + 1
+                file["versionNumber"] + 1
+                if file["name"] == "data_manifest.csv"
+                else file["versionNumber"]
             ),
         }
         for file in files
