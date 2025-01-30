@@ -16,6 +16,47 @@ STAGING_PATH = "./staging"
 GX_FOLDER = "test_folder"
 
 
+class TestUploadDataversionMetadata:
+    file_id = "syn1111111"
+    file_version = "1"
+    team_images_id = "syn12861877"
+    destination = "syn1111113"
+    dataversion_dict = {
+        "data_file": file_id,
+        "data_version": file_version,
+        "team_images_id": team_images_id,
+    }
+
+    def test_upload_dataversion_metadata(self, syn: Any):
+        with patch.object(
+            load, "dict_to_json", return_value="path/to/json"
+        ) as patch_dict_to_json, patch.object(
+            load, "load", return_value=("syn123", 1)
+        ) as patch_load:
+            # WHEN I call upload_dataversion_metadata with the correct arguments
+            process.upload_dataversion_metadata(
+                syn=syn,
+                file_id=self.file_id,
+                file_version=self.file_version,
+                team_images_id=self.team_images_id,
+                staging_path=STAGING_PATH,
+                destination=self.destination,
+            )
+            # THEN I expect the dict_to_json function to be called with the correct arguments
+            patch_dict_to_json.assert_called_once_with(
+                df=self.dataversion_dict,
+                staging_path=STAGING_PATH,
+                filename="dataversion.json",
+            )
+            # AND I expect the load function to be called with the correct arguments
+            patch_load.assert_called_once_with(
+                file_path="path/to/json",
+                provenance=[self.file_id],
+                destination=self.destination,
+                syn=syn,
+            )
+
+
 class TestProcessDataset:
     dataset_object = {
         "neuropath_corr": {

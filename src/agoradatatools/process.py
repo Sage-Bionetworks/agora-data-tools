@@ -69,6 +69,40 @@ def apply_custom_transformations(
         return None
 
 
+def upload_dataversion_metadata(
+    syn: synapseclient.Synapse,
+    file_id: str,
+    file_version: str,
+    team_images_id: str,
+    staging_path: str,
+    destination: str,
+) -> None:
+    """Uploads dataversion.json file to Synapse with metadata about the manifest file
+
+    Args:
+        syn (synapseclient.Synapse): Synapse client session
+        file_id (str): Synapse ID of the manifest file
+        file_version (str): Version number of the manifest file
+        team_images_id (str): Synapse ID of the team_images folder
+        staging_path (str): Path to the staging directory
+        destination (str): Synapse ID of the destination folder
+    """
+    dataversion_dict = {
+        "data_file": file_id,
+        "data_version": file_version,
+        "team_images_id": team_images_id,
+    }
+    dataversion_json_path = load.dict_to_json(
+        df=dataversion_dict, staging_path=staging_path, filename="dataversion.json"
+    )
+    load.load(
+        file_path=dataversion_json_path,
+        provenance=[file_id],
+        destination=destination,
+        syn=syn,
+    )
+
+
 @log_time(func_name="process_dataset", logger=logger)
 def process_dataset(
     dataset_obj: dict,
@@ -209,6 +243,7 @@ def create_data_manifest(
         return None
 
     folders = syn.getChildren(parent)
+
     folder = [
         {"id": folder["id"], "version": folder["versionNumber"]} for folder in folders
     ]
@@ -292,6 +327,16 @@ def process_all_files(
             destination=destination,
             syn=syn,
         )
+
+        upload_dataversion_metadata(
+            syn=syn,
+            file_id=file_id,
+            file_version=file_version,
+            team_images_id=config["team_images_id"],
+            staging_path=staging_path,
+            destination=destination,
+        )
+
         reporter.data_manifest_file = file_id
         reporter.data_manifest_version = file_version
         reporter.data_manifest_link = DatasetReport.format_link(

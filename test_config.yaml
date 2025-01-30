@@ -2,6 +2,7 @@ destination: &dest syn17015333
 staging_path: ./staging
 gx_folder: syn52948670
 gx_table: syn60527065
+team_images_id: syn12861877
 sources:
   - genes_biodomains:
     genes_biodomains_files: &genes_biodomains_files
