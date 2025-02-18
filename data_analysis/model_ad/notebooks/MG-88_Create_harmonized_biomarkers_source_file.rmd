@@ -68,7 +68,7 @@ library(tidyverse)
 ## Utility functions & variables
 ```{r}
 # Harmonized column spec for intermediate per-model files
-keeps <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units')
+keeps <- c('specimenID', 'individualID', 'model', 'type', 'measurement', 'units')
 
 # Vector to store all downloaded synIds for Synapse provenance
 data_sources <- character()
@@ -82,7 +82,7 @@ download_file <- function(synId, df_name, type) {
   # Capture all downloaded synIds for provenance
   data_sources <<- c(data_sources, synId)
 
-  input_dir <- file.path("./", "input")
+  input_dir <- file.path("../../../staging/", "input")
   id_parts <- strsplit(synId, '.', fixed = TRUE)
   id_value <- id_parts[[1]][1]
   version_value <- id_parts[[1]][2]
@@ -352,7 +352,7 @@ abca7_biomarkers <- bind_rows(abca7_abs, abca7_nfl)
 
 ## Join source files to metadata to populate age, tissue, and genotype values
 ```{r}
-keeps <- c('model', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
+keeps <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
 
 # 3xTG-AD
 threex_final <- join_to_metadata(threex_biomarkers, threex_individual, threex_biospecimen)[keeps]
@@ -410,7 +410,17 @@ stopifnot(nrow(abca7_biomarkers) == nrow(abca7_final))
 
 ## merge files, write csv file, and upload to synapse
 ```{r}
-biomarkers_merged <- bind_rows(threex_final, fivex_final, nss_final, abca7_final)
+biomarkers_merged <- bind_rows(
+  threex_final %>% mutate(across(individualID, as.character)),
+  fivex_final %>% mutate(across(individualID, as.character)),
+  nss_final %>% mutate(across(individualID, as.character)),
+  abca7_final %>% mutate(across(individualID, as.character))
+) %>%
+  rename(
+    individual_id = individualID,
+    specimen_id = specimenID,
+    age_death = ageDeath
+  )
 
 
 # standardize genotype values for display
@@ -440,7 +450,7 @@ biomarkers_final <- mutate(biomarkers_merged,
 biomarkers_final
 
 # write csv file
-output_dir <- file.path("./", "output")
+output_dir <- file.path("../../../staging/", "output")
 if(!dir.exists(output_dir)){
   dir.create(output_dir)
 }

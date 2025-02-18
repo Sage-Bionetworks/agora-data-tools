@@ -86,7 +86,7 @@ keeps_with_pool_join_field <- c('specimenID', 'model', 'type', 'measurement', 'u
 keeps_with_join_fields <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units') # 5xFAD
 
 # Harmonized column spec for final output file
-keeps <- c('specimenID', 'individualID', 'model', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
+keeps <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
 
 # Pathology display names
 IBA1_display_name <- 'Microglia Cell Density (IBA1)'
