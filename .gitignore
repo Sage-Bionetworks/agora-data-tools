@@ -144,3 +144,4 @@ dev_config.yaml
 .vscode/
 .ipynb_checkpoints/
 .Rhistory
+.Rproj.user
