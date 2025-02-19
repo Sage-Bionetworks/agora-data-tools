@@ -118,7 +118,7 @@ download_file <- function(synId, df_name, type) {
   # Capture all downloaded synIds for provenance
   data_sources <<- c(data_sources, synId)
 
-  input_dir <- file.path("../../../staging/", "input")
+  input_dir <- file.path("./", "input")
   id_parts <- strsplit(synId, '.', fixed = TRUE)
   id_value <- id_parts[[1]][1]
   version_value <- id_parts[[1]][2]
@@ -718,7 +718,7 @@ pathology_final <- mutate(pathology_merged, genotype = case_when(
 pathology_final
 
 # write csv file
-output_dir <- file.path("../../../staging/", "output")
+output_dir <- file.path("./", "output")
 if(!dir.exists(output_dir)){
   dir.create(output_dir)
 }
