@@ -411,10 +411,10 @@ stopifnot(nrow(abca7_biomarkers) == nrow(abca7_final))
 ## merge files, write csv file, and upload to synapse
 ```{r}
 biomarkers_merged <- bind_rows(
-  threex_final %>% mutate(across(individualID, as.character)),
-  fivex_final %>% mutate(across(individualID, as.character)),
-  nss_final %>% mutate(across(individualID, as.character)),
-  abca7_final %>% mutate(across(individualID, as.character))
+  threex_final %>% mutate(individualID = as.character(individualID)),
+  fivex_final %>% mutate(individualID = as.character(individualID)),
+  nss_final %>% mutate(individualID = as.character(individualID)),
+  abca7_final %>% mutate(individualID = as.character(individualID))
 ) %>%
   rename(
     individual_id = individualID,

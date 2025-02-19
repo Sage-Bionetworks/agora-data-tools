@@ -682,10 +682,10 @@ abca7_final <- join_to_metadata(abca7_individual, abca7_biospecimen, abca7_patho
 ## Merge files, write csv file, and upload to synapse
 ```{r}
 pathology_merged <- bind_rows(
-  threex_final %>% mutate(across(individualID, as.character)),
-  fivex_final %>% mutate(across(individualID, as.character)),
-  nss_final %>% mutate(across(individualID, as.character)),
-  abca7_final %>% mutate(across(individualID, as.character))
+  threex_final %>% mutate(individualID = as.character(individualID)),
+  fivex_final %>% mutate(individualID = as.character(individualID)),
+  nss_final %>% mutate(individualID = as.character(individualID)),
+  abca7_final %>% mutate(individualID = as.character(individualID))
 ) %>%
   rename(
     specimen_id = specimenID,
