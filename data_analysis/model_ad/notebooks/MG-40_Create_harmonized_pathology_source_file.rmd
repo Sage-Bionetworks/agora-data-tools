@@ -679,7 +679,7 @@ abca7_final <- join_to_metadata(abca7_individual, abca7_biospecimen, abca7_patho
 ```
 
 
-## Merge files, write csv file, and upload to synapse
+## Merge files
 ```{r}
 pathology_merged <- bind_rows(
   threex_final %>% mutate(individualID = as.character(individualID)),
@@ -714,9 +714,17 @@ pathology_final <- mutate(pathology_merged, genotype = case_when(
 
         TRUE ~ genotype))
 
+#Correct typos
+pathology_final$model <- gsub("3xTG-AD", "3xTg-AD", pathology_final$model)
+pathology_final$genotype <- gsub("3xTG-AD", "3xTg-AD", pathology_final$genotype)
+
 # print final data frame below
 pathology_final
+```
 
+
+## Write csv file and upload to synapse
+```{r}
 # write csv file
 output_dir <- file.path("./", "output")
 if(!dir.exists(output_dir)){

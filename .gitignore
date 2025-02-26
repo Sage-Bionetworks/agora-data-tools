@@ -145,3 +145,7 @@ dev_config.yaml
 .ipynb_checkpoints/
 .Rhistory
 .Rproj.user
+*.Rproj
+
+data_analysis/model_ad/notebooks/input/*
+data_analysis/model_ad/notebooks/output/*

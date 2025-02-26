@@ -408,7 +408,7 @@ stopifnot(nrow(abca7_nfl) + nrow(abca7_abs) == nrow(abca7_biomarkers))
 stopifnot(nrow(abca7_biomarkers) == nrow(abca7_final))
 ```
 
-## merge files, write csv file, and upload to synapse
+## Merge files
 ```{r}
 biomarkers_merged <- bind_rows(
   threex_final %>% mutate(individualID = as.character(individualID)),
@@ -446,9 +446,18 @@ biomarkers_final <- mutate(biomarkers_merged,
                                    TRUE ~ genotype))
 
 
+#Correct typos
+biomarkers_final$model <- gsub("3xTG-AD", "3xTg-AD", biomarkers_final$model)
+biomarkers_final$genotype <- gsub("3xTG-AD", "3xTg-AD", biomarkers_final$genotype)
+
 # print final data frame below
 biomarkers_final
 
+```
+
+
+## Write csv file and upload to synapse
+```{r}
 # write csv file
 output_dir <- file.path("./", "output")
 if(!dir.exists(output_dir)){
