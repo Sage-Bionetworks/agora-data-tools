@@ -11,7 +11,14 @@ def transform_model_details(
     datasets: Dict[str, pd.DataFrame]
 ) -> Dict[str, Any]:
     """
-    Transform multiple CSV files into a structured JSON format according to specifications.
+    Transforms the model_details datasets into a structured format.
+    See MG-42 for more details on expected structure: https://sagebionetworks.jira.com/browse/MG-42
+
+    Args:
+        datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
+    
+    Returns:
+        Dict[str, Any]: A dictionary containing the transformed model_details data.
     """
     # Load all CSV files
     biomarkers_df = datasets["biomarkers"]
@@ -45,7 +52,7 @@ def transform_model_details(
     )
     
     # Build the final data structure
-    # result = []
+    result = []
     
     # Process each model
     for _, model_row in model_info_df.iterrows():
@@ -143,6 +150,6 @@ def transform_model_details(
             'pathology': model_pathology
         }
         
-        # result.append(model_entry)
+        result.append(model_entry)
     
-    return model_entry
+    return result

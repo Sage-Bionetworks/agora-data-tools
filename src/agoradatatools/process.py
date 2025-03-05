@@ -65,6 +65,10 @@ def apply_custom_transformations(
         return transform.immunohisto_transform(
             datasets=datasets, dataset_name=dataset_name
         )
+    if dataset_name == "model_details":
+        return transform.transform_model_details(
+            datasets=datasets, dataset_name=dataset_name
+        )
     else:
         return None
 
