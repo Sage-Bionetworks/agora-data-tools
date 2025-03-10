@@ -8,7 +8,8 @@ import pandas as pd
 
 
 def transform_model_details(
-    datasets: Dict[str, pd.DataFrame]
+    datasets: Dict[str, pd.DataFrame],
+    dataset_name: str = "model_details"
 ) -> Dict[str, Any]:
     """
     Transforms the model_details datasets into a structured format.
@@ -139,7 +140,7 @@ def transform_model_details(
             'matched_controls': model_row['matched_controls'],
             'model_type': model_row['model_type'],
             'contributing_group': model_row['contributing_group'],
-            'study_synid': model_row['study_synId'],
+            #'study_synid': model_row['study_synId'],
             'rrid': model_row['rrid'],
             'jax_id': model_row['jax_id'],
             'alzforum_id': model_row['alzforum_id'],
