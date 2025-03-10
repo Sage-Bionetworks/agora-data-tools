@@ -1,0 +1,71 @@
+[
+  {
+    "model": "3xTg-AD",
+    "matched_controls": [],
+    "model_type": "Familial AD",
+    "contributing_group": "UCI",
+    "rrid": "",
+    "jax_id": null,
+    "alzforum_id": "3xtg",
+    "genotype": "B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",
+    "aliases": ["3xTg"],
+    "genetic_info": [
+      {
+        "modified_gene": "App",
+        "ensembl_id": "ENSG00000142192",
+        "allele": "APP K670_M671delinsNL (Swedish)",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831
+      },
+      {
+        "modified_gene": "Mapt",
+        "ensembl_id": "ENSMUSG00000018411",
+        "allele": "MAPT P301L",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831
+      },
+      {
+        "modified_gene": "Psen1",
+        "ensembl_id": "ENSG00000080815",
+        "allele": "Psen1<sup>tm1Mpm</sup>",
+        "allele_type": "Targeted",
+        "mgi_allele_id": 1930937
+      }
+    ],
+    "biomarkers": [
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Soluble A&beta;40",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "pg/ml",
+        "data": [
+          {
+            "genotype": "",
+            "sex": "Female",
+            "individual_id": "mouse1",
+            "value": 10.5
+          },
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "",
+            "value": 12.3
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Soluble A&beta;42",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "pg/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "",
+            "individual_id": "mouse3",
+            "value": 15.7
+          }
+        ]
+      },
