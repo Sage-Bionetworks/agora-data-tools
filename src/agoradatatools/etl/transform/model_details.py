@@ -21,7 +21,7 @@ def transform_model_details(
     Returns:
         Dict[str, Any]: A dictionary containing the transformed model_details data.
     """
-    # Load all CSV files
+    # Load all datasets
     biomarkers_df = datasets["biomarkers"]
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
     allele_info_df = datasets["allele_info"]
@@ -90,7 +90,7 @@ def transform_model_details(
                 'model': model_name,
                 'evidence_type': evidence_type,
                 'tissue': tissue,
-                'age_death': f"{age} months",
+                'age': f"{age} months",
                 'units': group['units'].iloc[0],
                 'data': []
             }
@@ -117,7 +117,7 @@ def transform_model_details(
                 'model': model_name,
                 'evidence_type': evidence_type,
                 'tissue': tissue,
-                'age_death': f"{age} months",
+                'age': f"{age} months",
                 'units': group['units'].iloc[0],
                 'data': []
             }
