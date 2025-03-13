@@ -148,7 +148,7 @@ def transform_model_details(
             'matched_controls': model_row['matched_controls'],
             'model_type': model_row['model_type'],
             'contributing_group': model_row['contributing_group'],
-            #'study_synid': model_row['study_synId'],
+            'study_synid': model_row['study_synid'],
             'rrid': model_row['rrid'],
             'jax_id': model_row['jax_id'],
             'alzforum_id': model_row['alzforum_id'],
