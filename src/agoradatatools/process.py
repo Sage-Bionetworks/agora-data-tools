@@ -170,6 +170,12 @@ def process_dataset(
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
+    if isinstance(df, list):
+        json_path = load.list_to_json(
+            df=df,
+            staging_path=staging_path,
+            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+        )
     else:
         json_path = load.df_to_json(
             df=df,

@@ -2,15 +2,14 @@
 This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
-
-from typing import Dict, Any
 import pandas as pd
+from typing import Any
 
 
 def transform_model_details(
-    datasets: Dict[str, pd.DataFrame],
+    datasets: dict[str, pd.DataFrame],
     dataset_name: str = "model_details"
-) -> Dict[str, Any]:
+) -> list[dict[str, Any]]:
     """
     Transforms the model_details datasets into a structured format.
     See MG-42 for more details on expected structure: https://sagebionetworks.jira.com/browse/MG-42
@@ -19,7 +18,7 @@ def transform_model_details(
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
     
     Returns:
-        Dict[str, Any]: A dictionary containing the transformed model_details data.
+        list[dict[str, Any]]: A list containing dicionaries with the transformed data.
     """
     # Load all datasets
     biomarkers_df = datasets["biomarkers"]
@@ -27,6 +26,7 @@ def transform_model_details(
     allele_info_df = datasets["allele_info"]
     model_info_df = datasets["model_info"]
     pathology_df = datasets["pathology"]
+    # break passed
     
     # Transform text fields to Initial Caps
     biomarkers_df['sex'] = biomarkers_df['sex'].str.capitalize()
@@ -35,14 +35,20 @@ def transform_model_details(
     pathology_df['sex'] = pathology_df['sex'].str.capitalize()
     pathology_df['tissue'] = pathology_df['tissue'].apply(lambda x: ' '.join(word.capitalize() for word in x.split()))
     
+    # break passed
+
     # Replace 'beta' with '&beta;' in biomarker types
     biomarkers_df['type'] = biomarkers_df['type'].str.replace('beta', '&beta;')
     pathology_df['type'] = pathology_df['type'].str.replace('beta', '&beta;')
+
+    # break passed
     
     # Rename 'type' column to 'evidence_type' and 'measurement' to 'value'
     biomarkers_df = biomarkers_df.rename(columns={'type': 'evidence_type', 'measurement': 'value'})
     pathology_df = pathology_df.rename(columns={'type': 'evidence_type', 'measurement': 'value'})
     
+    # break passed
+
     # Convert matching controls and aliases from comma-delimited strings to lists
     model_info_df['matched_controls'] = model_info_df['matched_controls'].apply(
         lambda x: [item.strip() for item in str(x).split(',')] if pd.notna(x) else []
@@ -51,6 +57,8 @@ def transform_model_details(
     model_info_df['aliases'] = model_info_df['aliases'].apply(
         lambda x: [item.strip() for item in str(x).split(',')] if pd.notna(x) else []
     )
+
+    # break passed
     
     # Build the final data structure
     result = []
@@ -152,5 +160,5 @@ def transform_model_details(
         }
         
         result.append(model_entry)
-    
+
     return result
