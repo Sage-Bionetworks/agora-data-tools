@@ -6,11 +6,11 @@ datasets:
   - biomarkers:
       files:
         - name: biomarkers
-          id: syn61250724.1
+          id: syn61250724
           format: csv
       final_format: json
       provenance:
-        - syn61250724.1
+        - syn61250724
       destination: *dest
       custom_transformations: 1
       column_rename:
