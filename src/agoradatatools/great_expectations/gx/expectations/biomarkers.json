@@ -67,7 +67,7 @@
       "kwargs": {
         "column": "model",
         "value_set": [
-          "3xTG-AD",
+          "3xTg-AD",
           "5xFAD",
           "Trem2-R47H_NSS",
           "Abca7*v1599M"
@@ -177,8 +177,7 @@
           "model",
           "type",
           "age_death",
-          "tissue",
-          "units"
+          "tissue"
         ]
       },
       "meta": {}
