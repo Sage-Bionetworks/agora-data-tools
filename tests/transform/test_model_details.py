@@ -130,12 +130,12 @@ class TestTransformModelDetails:
         # Transform data
         output_data = transform_model_details(datasets=datasets)
         output_df = pd.DataFrame(output_data)
-        
+
         # Load expected output
         expected_df = pd.read_json(
             os.path.join(self.data_files_path, "output", expected_output_file),
         )
-        
+
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
 
@@ -144,9 +144,7 @@ class TestTransformModelDetails:
         fail_test_data,
         ids=fail_test_ids,
     )
-    def test_model_details_transform_should_fail(
-        self, input_files, error_type
-    ):
+    def test_model_details_transform_should_fail(self, input_files, error_type):
         # Create datasets dictionary
         datasets = {}
         for dataset_name, file_name in input_files.items():
