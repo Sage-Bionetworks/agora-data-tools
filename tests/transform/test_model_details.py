@@ -7,7 +7,7 @@ from agoradatatools.etl.transform.model_details import transform_model_details
 
 
 class TestTransformModelDetails:
-    data_files_path = "tests/test_assets/model_details_transform"
+    data_files_path = "tests/test_assets/model_details"
     pass_test_data = [
         (
             # Pass with good test data
