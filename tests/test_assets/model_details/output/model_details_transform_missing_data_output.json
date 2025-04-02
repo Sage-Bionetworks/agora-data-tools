@@ -4,11 +4,14 @@
     "matched_controls": [],
     "model_type": "Familial AD",
     "contributing_group": "UCI",
+    "study_synid": "syn22964685",
     "rrid": "",
-    "jax_id": null,
+    "jax_id": "",
     "alzforum_id": "3xtg",
     "genotype": "B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",
-    "aliases": ["3xTg"],
+    "aliases": [
+      "3xTg"
+    ],
     "genetic_info": [
       {
         "modified_gene": "App",
@@ -35,7 +38,22 @@
     "biomarkers": [
       {
         "model": "3xTg-AD",
-        "evidence_type": "Soluble A&beta;40",
+        "evidence_type": "Insoluble &beta;40",
+        "tissue": "",
+        "age": "8 months",
+        "units": "pg/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse4",
+            "value": 8.2
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Soluble &beta;40",
         "tissue": "Hippocampus",
         "age": "4 months",
         "units": "pg/ml",
@@ -56,7 +74,7 @@
       },
       {
         "model": "3xTg-AD",
-        "evidence_type": "Soluble A&beta;42",
+        "evidence_type": "Soluble &beta;42",
         "tissue": "Hippocampus",
         "age": "4 months",
         "units": "pg/ml",
@@ -68,24 +86,24 @@
             "value": 15.7
           }
         ]
-      },
-      {
-        "model": "3xTg-AD",
-        "evidence_type": "Insoluble A&beta;40",
-        "tissue": "",
-        "age": "8 months",
-        "units": "pg/ml",
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Male",
-            "individual_id": "mouse4",
-            "value": 8.2
-          }
-        ]
       }
     ],
     "pathology": [
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Plaque area",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "µm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse3",
+            "value": 3.2
+          }
+        ]
+      },
       {
         "model": "3xTg-AD",
         "evidence_type": "Plaque count",
@@ -106,6 +124,36 @@
             "value": 6.1
           }
         ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Tangle area",
+        "tissue": "Cortex",
+        "age": "8 months",
+        "units": "µm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse5",
+            "value": 2.5
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Tangle count",
+        "tissue": "Cortex",
+        "age": "8 months",
+        "units": "count/mm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse4",
+            "value": 4.8
+          }
+        ]
       }
     ]
   },
@@ -114,8 +162,9 @@
     "matched_controls": [],
     "model_type": "Tauopathy",
     "contributing_group": "Mayo",
+    "study_synid": "syn25539881",
     "rrid": "",
-    "jax_id": null,
+    "jax_id": "",
     "alzforum_id": "",
     "genotype": "B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J",
     "aliases": [],
@@ -135,23 +184,44 @@
         "mgi_allele_id": 3057560
       }
     ],
-    "biomarkers": [
+    "biomarkers": [],
+    "pathology": [
       {
         "model": "hTau",
-        "evidence_type": "Tau",
+        "evidence_type": "Tangle area",
+        "tissue": "Cortex",
+        "age": "12 months",
+        "units": "µm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse8",
+            "value": 4.6
+          }
+        ]
+      },
+      {
+        "model": "hTau",
+        "evidence_type": "Tangle count",
         "tissue": "Hippocampus",
         "age": "6 months",
-        "units": "ng/ml",
+        "units": "count/mm²",
         "data": [
           {
             "genotype": "transgenic",
             "sex": "Male",
             "individual_id": "mouse6",
-            "value": 22.4
+            "value": 7.2
+          },
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse7",
+            "value": 8.1
           }
         ]
       }
-    ],
-    "pathology": []
+    ]
   }
 ]
