@@ -3,12 +3,12 @@ This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
 import pandas as pd
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 def transform_model_details(
     datasets: Dict[str, pd.DataFrame], dataset_name: str = "model_details"
-) -> list[Dict[str, Any]]:
+) -> List[Dict[str, Any]]:
     """
     Transforms the model_details datasets into a structured format.
     See MG-42 for more details on expected structure: https://sagebionetworks.jira.com/browse/MG-42
