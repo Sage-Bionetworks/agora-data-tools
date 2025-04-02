@@ -36,12 +36,16 @@ def transform_model_details(
     # Transform text fields to Initial Caps
     biomarkers_df["sex"] = biomarkers_df["sex"].str.capitalize()
     biomarkers_df["tissue"] = biomarkers_df["tissue"].apply(
-        lambda x: " ".join(word.capitalize() for word in x.split()) if isinstance(x, str) else x
+        lambda x: " ".join(word.capitalize() for word in x.split())
+        if isinstance(x, str)
+        else x
     )
 
     pathology_df["sex"] = pathology_df["sex"].str.capitalize()
     pathology_df["tissue"] = pathology_df["tissue"].apply(
-        lambda x: " ".join(word.capitalize() for word in x.split()) if isinstance(x, str) else x
+        lambda x: " ".join(word.capitalize() for word in x.split())
+        if isinstance(x, str)
+        else x
     )
 
     # Replace 'beta' with '&beta;' in biomarker types
@@ -58,11 +62,15 @@ def transform_model_details(
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     model_info_df["matched_controls"] = model_info_df["matched_controls"].apply(
-        lambda x: [item.strip() for item in str(x).split(",")] if (pd.notna(x) and x != "") else []
+        lambda x: [item.strip() for item in str(x).split(",")]
+        if (pd.notna(x) and x != "")
+        else []
     )
 
     model_info_df["aliases"] = model_info_df["aliases"].apply(
-        lambda x: [item.strip() for item in str(x).split(",")] if (pd.notna(x) and x != "") else []
+        lambda x: [item.strip() for item in str(x).split(",")]
+        if (pd.notna(x) and x != "")
+        else []
     )
 
     # Build the final data structure
