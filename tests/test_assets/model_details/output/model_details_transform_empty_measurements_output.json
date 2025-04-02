@@ -1,14 +1,19 @@
 [
   {
     "model": "3xTg-AD",
-    "matched_controls": ["B6129"],
+    "matched_controls": [
+      "B6129"
+    ],
     "model_type": "Familial AD",
     "contributing_group": "UCI",
+    "study_synid": "syn22964685",
     "rrid": "MMRRC_034830-JAX",
     "jax_id": 4807,
     "alzforum_id": "3xtg",
     "genotype": "B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",
-    "aliases": ["3xTg"],
+    "aliases": [
+      "3xTg"
+    ],
     "genetic_info": [
       {
         "modified_gene": "App",
@@ -37,14 +42,20 @@
   },
   {
     "model": "hTau",
-    "matched_controls": ["C57BL/6J"],
+    "matched_controls": [
+      "C57BL/6J"
+    ],
     "model_type": "Tauopathy",
     "contributing_group": "Mayo",
+    "study_synid": "syn25539881",
     "rrid": "IMSR_JAX:005491",
     "jax_id": 5491,
     "alzforum_id": "htau",
     "genotype": "B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J",
-    "aliases": ["hTau", "Mapt-/-"],
+    "aliases": [
+      "hTau",
+      "Mapt-/-"
+    ],
     "genetic_info": [
       {
         "modified_gene": "Mapt",
