@@ -370,7 +370,6 @@ class TestProcessDataset:
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
 
-    
     def test_process_dataset_upload_false_gx_not_specified_type_list(self, syn: Any):
         self.patch_standardize_values.return_value = list()
         process.process_dataset(
@@ -400,7 +399,6 @@ class TestProcessDataset:
         self.patch_set_attributes.assert_not_called()
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
-
 
     def test_process_dataset_upload_true_gx_disabled(self, syn: Any):
         process.process_dataset(
