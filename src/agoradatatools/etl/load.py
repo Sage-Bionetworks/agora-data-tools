@@ -162,7 +162,7 @@ def dict_to_json(df: dict, staging_path: str, filename: str) -> str:
     return temp_json.name
 
 
-def list_to_json(df_as_list: list, staging_path: str, filename: str) -> str:
+def list_to_json(df_as_list: list[dict[str,str]], staging_path: str, filename: str) -> str:
     """Converts a data list into a JSON file.
 
     Args:

@@ -172,7 +172,7 @@ def process_dataset(
         )
     elif isinstance(df, list):
         json_path = load.list_to_json(
-            df=df,
+            df_as_list=df,
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
