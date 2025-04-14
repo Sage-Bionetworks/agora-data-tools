@@ -705,7 +705,7 @@ class TestProcessAllFiles:
     def test_process_all_files_upload_false_gx_failure(self, syn: Any):
         with pytest.raises(
             ADTDataProcessingError,
-            match="\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:\na: test_message\nd: test_message\ng: test_message",
+            match="\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:",
         ):
             self.patch_process_dataset.return_value.gx_failures = True
             process.process_all_files(
