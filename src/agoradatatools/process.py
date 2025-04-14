@@ -67,7 +67,7 @@ def apply_custom_transformations(
         )
     if dataset_name == "model_details":
         return transform.transform_model_details(
-            datasets=datasets, dataset_name=dataset_name
+            datasets=datasets
         )
     else:
         return None
