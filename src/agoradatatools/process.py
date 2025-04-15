@@ -66,9 +66,7 @@ def apply_custom_transformations(
             datasets=datasets, dataset_name=dataset_name
         )
     if dataset_name == "model_details":
-        return transform.transform_model_details(
-            datasets=datasets
-        )
+        return transform.transform_model_details(datasets=datasets)
     else:
         return None
 
@@ -326,12 +324,7 @@ def process_all_files(
                 if dataset_report.gx_failures:
                     raise ADTDataValidationError(dataset_report.gx_failure_message)
         except Exception as e:
-            import traceback
-
-            error_message = (
-                f"{list(dataset.keys())[0]}:\n {str(e)}\n{traceback.format_exc()}"
-            )
-            error_list.append(error_message)
+            error_list.append(f"{list(dataset.keys())[0]}: " + str(e).replace("\n", ""))
 
     if error_list:
         reporter.update_table()

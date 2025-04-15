@@ -23,18 +23,18 @@ def prepare_biomarker_pathology(df: pd.DataFrame) -> pd.DataFrame:
     df["type"] = df["type"].str.replace("beta", "&beta;")
 
     # Rename 'type' column to 'evidence_type' and 'measurement' to 'value'
-    df = df.rename(
-        columns={"type": "evidence_type", "measurement": "value"}
-    )
+    df = df.rename(columns={"type": "evidence_type", "measurement": "value"})
 
     return df
 
 
-def proccess_biomarker_pathology(df: pd.DataFrame, model_name: str) -> List[Dict[str, Any]]:
+def proccess_biomarker_pathology(
+    df: pd.DataFrame, model_name: str
+) -> List[Dict[str, Any]]:
     """
     Processes the biomarkers and pathology data for a specific model.
     Group by evidence_type, tissue, and age_death.
-    
+
     Args:
         df (pd.DataFrame): The DataFrame containing the data.
         model_name (str): The name of the model to process.
@@ -72,7 +72,10 @@ def proccess_biomarker_pathology(df: pd.DataFrame, model_name: str) -> List[Dict
     return output
 
 
-def process_genetic_info(human_transgene_allele_map_df: pd.DataFrame, model_alleles: pd.DataFrame, ) -> List[Dict[str, Any]]:
+def process_genetic_info(
+    human_transgene_allele_map_df: pd.DataFrame,
+    model_alleles: pd.DataFrame,
+) -> List[Dict[str, Any]]:
     """
     Processes the gene information DataFrame.
 
@@ -135,15 +138,14 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
     Returns:
         list[dict[str, Any]]: A list containing dicionaries with the transformed data.
     """
-
     # Load datasets
-    allele_info_df = datasets["allele_info"].fillna("", inplace=True)
-    model_info_df = datasets["model_info"].fillna("", inplace=True)
-    human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("", inplace=True)
+    allele_info_df = datasets["allele_info"].fillna("")
+    model_info_df = datasets["model_info"].fillna("")
+    human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
     # Load and prepare the biomarker and pathology dataframes
-    biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"].fillna("", inplace=True))
-    pathology_df = prepare_biomarker_pathology(datasets["pathology"].fillna("", inplace=True))
+    biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"].fillna(""))
+    pathology_df = prepare_biomarker_pathology(datasets["pathology"].fillna(""))
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
@@ -163,7 +165,8 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
         # Get genetic info for this model
         genetic_info = process_genetic_info(
             human_transgene_allele_map_df,
-            model_alleles=allele_info_df[allele_info_df["model"] == model_name])
+            model_alleles=allele_info_df[allele_info_df["model"] == model_name],
+        )
 
         # Process the biomarkers and pathology datasets for this model
         model_biomarkers = proccess_biomarker_pathology(biomarkers_df, model_name)
