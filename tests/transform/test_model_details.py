@@ -69,6 +69,17 @@ class TestTransformModelDetails:
             },
             "model_details_transform_no_human_match_output.json",
         ),
+        (
+            # Pass with missing data in allele_info
+            {
+                "biomarkers": "model_details_biomarkers_good_test_input.csv",
+                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
+                "allele_info": "model_details_allele_info_missing_data_input.csv",
+                "model_info": "model_details_model_info_good_test_input.csv",
+                "pathology": "model_details_pathology_good_test_input.csv",
+            },
+            "model_details_transform_missing_allele_info_output.json",
+        ),
     ]
     pass_test_ids = [
         "Pass with good test data",
@@ -76,6 +87,7 @@ class TestTransformModelDetails:
         "Pass with empty biomarkers and pathology",
         "Pass with extra columns",
         "Pass with no matching human transgene alleles",
+        "Pass with missing data in allele_info",
     ]
     fail_test_data = [
         (
