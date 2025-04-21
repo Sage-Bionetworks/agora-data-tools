@@ -77,13 +77,15 @@ def process_genetic_info(
     model_alleles: pd.DataFrame,
 ) -> List[Dict[str, Any]]:
     """
-    Processes the gene information DataFrame.
+    Processes the gene information DataFrame. If the allele is a human transgene,
+    replace the ensembl_id with the human one.
 
     Args:
-        df (pd.DataFrame): The DataFrame containing the gene information.
+        human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
+        model_alleles (pd.DataFrame): The DataFrame containing the model allele information.
 
     Returns:
-        list[dict]: A list of dictionaries containing the processed gene information.
+        List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
     genetic_info = []
     for _, allele_row in model_alleles.iterrows():
