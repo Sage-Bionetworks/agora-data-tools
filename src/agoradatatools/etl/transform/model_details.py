@@ -88,26 +88,32 @@ def process_genetic_info(
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
-    # Merge the dataframes on mgi_allele_id and gene
-    merged_df = model_alleles.merge(
-        human_transgene_allele_map_df[["mgi_allele_id", "gene_symbol", "ensembl_id"]],
-        on=["mgi_allele_id", "gene"],
-        how="left",
-        suffixes=("", "_human")
-    )
-    
-    # Create the genetic info list using vectorized operations
     genetic_info = []
-    for _, row in merged_df.iterrows():
+    for _, allele_row in model_alleles.iterrows():
         gene_info = {
-            "modified_gene": row["gene"],
-            "ensembl_id": row["ensembl_id_human"] if pd.notna(row["ensembl_id_human"]) else row["gene_ensembl_id"],
-            "allele": row["allele"],
-            "allele_type": row["allele_type"],
-            "mgi_allele_id": row["mgi_allele_id"],
+            "modified_gene": allele_row["gene"],
+            "ensembl_id": allele_row["gene_ensembl_id"],
+            "allele": allele_row["allele"],
+            "allele_type": allele_row["allele_type"],
+            "mgi_allele_id": allele_row["mgi_allele_id"],
         }
+
+        # If it's a human transgene, replace the ensembl_id with the human one
+        if (
+            allele_row["mgi_allele_id"]
+            in human_transgene_allele_map_df["mgi_allele_id"].values
+        ):
+            matching_row = human_transgene_allele_map_df[
+                human_transgene_allele_map_df["mgi_allele_id"]
+                == allele_row["mgi_allele_id"]
+            ]
+            if (
+                len(matching_row) > 0
+                and matching_row.iloc[0]["gene_symbol"] == allele_row["gene"]
+            ):
+                gene_info["ensembl_id"] = matching_row.iloc[0]["ensembl_id"]
+
         genetic_info.append(gene_info)
-    
     return genetic_info
 
 
