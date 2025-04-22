@@ -8,17 +8,18 @@ from typing import Any, Dict, List
 
 def prepare_biomarker_pathology(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Capitalize 'sex' and 'tissue' columns in the DataFrame.
-    Replace 'beta' with '&beta;' in the 'type' column.
-    Rename 'type' column to 'evidence_type' and 'measurement' to 'value'.
+    This function prepares the biomarker and pathology dataframes for the Model AD project.
+    It performs the following transformations:
+    1. Fill missing values with an empty string.
+    2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
+    3. Replace 'beta' with '&beta;' in the 'type' column.
+    4. Rename 'type' column to 'evidence_type' and 'measurement' to 'value'.
     """
+    df.fillna("", inplace=True)
     # Transform text fields to Initial Caps
-    df["sex"] = df["sex"].str.capitalize()
-    df["tissue"] = df["tissue"].apply(
-        lambda x: " ".join(word.capitalize() for word in x.split())
-        if isinstance(x, str)
-        else x
-    )
+    df["sex"] = df["sex"].apply(lambda x: x.title())
+    df["tissue"] = df["tissue"].apply(lambda x: x.title())
+
     # Replace 'beta' with '&beta;' in biomarker types
     df["type"] = df["type"].str.replace("beta", "&beta;")
 
@@ -87,32 +88,26 @@ def process_genetic_info(
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
+    # Merge the dataframes on mgi_allele_id and gene
+    merged_df = model_alleles.merge(
+        human_transgene_allele_map_df[["mgi_allele_id", "gene_symbol", "ensembl_id"]],
+        on=["mgi_allele_id", "gene"],
+        how="left",
+        suffixes=("", "_human")
+    )
+    
+    # Create the genetic info list using vectorized operations
     genetic_info = []
-    for _, allele_row in model_alleles.iterrows():
+    for _, row in merged_df.iterrows():
         gene_info = {
-            "modified_gene": allele_row["gene"],
-            "ensembl_id": allele_row["gene_ensembl_id"],
-            "allele": allele_row["allele"],
-            "allele_type": allele_row["allele_type"],
-            "mgi_allele_id": allele_row["mgi_allele_id"],
+            "modified_gene": row["gene"],
+            "ensembl_id": row["ensembl_id_human"] if pd.notna(row["ensembl_id_human"]) else row["gene_ensembl_id"],
+            "allele": row["allele"],
+            "allele_type": row["allele_type"],
+            "mgi_allele_id": row["mgi_allele_id"],
         }
-
-        # If it's a human transgene, replace the ensembl_id with the human one
-        if (
-            allele_row["mgi_allele_id"]
-            in human_transgene_allele_map_df["mgi_allele_id"].values
-        ):
-            matching_row = human_transgene_allele_map_df[
-                human_transgene_allele_map_df["mgi_allele_id"]
-                == allele_row["mgi_allele_id"]
-            ]
-            if (
-                len(matching_row) > 0
-                and matching_row.iloc[0]["gene_symbol"] == allele_row["gene"]
-            ):
-                gene_info["ensembl_id"] = matching_row.iloc[0]["ensembl_id"]
-
         genetic_info.append(gene_info)
+    
     return genetic_info
 
 
@@ -123,8 +118,8 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
     Source Files: model_info (syn61378590), allele_info (syn64618791),
     pathology (syn61357279), biomarkers (syn61250724), human_transgene_allele_map (syn64846805)
 
-    Expected Changes:
-        1. Column reanames are applied to Pathology and Biomarkers:
+    Expected Transformations:
+        1. Column renames are applied to Pathology and Biomarkers:
             - measure -> evidence_type
             - ageDeath -> age
             - measurement -> value
@@ -146,8 +141,8 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
     # Load and prepare the biomarker and pathology dataframes
-    biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"].fillna(""))
-    pathology_df = prepare_biomarker_pathology(datasets["pathology"].fillna(""))
+    biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"])
+    pathology_df = prepare_biomarker_pathology(datasets["pathology"])
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:

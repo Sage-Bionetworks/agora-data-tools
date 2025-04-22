@@ -241,9 +241,9 @@ class TestTransformModelDetails:
         # Expected output DataFrame
         expected_df = pd.DataFrame(
             {
-                "sex": ["Male", None],
-                "tissue": ["Cerebral Cortex", None],
-                "evidence_type": ["&beta; amyloid", None],
+                "sex": ["Male", ""],
+                "tissue": ["Cerebral Cortex", ""],
+                "evidence_type": ["&beta; amyloid", ""],
                 "value": [1.0, 2.0],
             }
         )
