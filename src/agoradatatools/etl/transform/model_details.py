@@ -15,18 +15,19 @@ def prepare_biomarker_pathology(df: pd.DataFrame) -> pd.DataFrame:
     3. Replace 'beta' with '&beta;' in the 'type' column.
     4. Rename 'type' column to 'evidence_type' and 'measurement' to 'value'.
     """
-    df.fillna("", inplace=True)
-    # Transform text fields to Initial Caps
-    df["sex"] = df["sex"].apply(lambda x: x.title())
-    df["tissue"] = df["tissue"].apply(lambda x: x.title())
+    # Create a copy to avoid modifying the original
+    df = df.copy()
+
+    # Fill missing values and transform text fields
+    df = df.fillna("")
+    df["sex"] = df["sex"].str.title()
+    df["tissue"] = df["tissue"].str.title()
 
     # Replace 'beta' with '&beta;' in biomarker types
     df["type"] = df["type"].str.replace("beta", "&beta;")
 
-    # Rename 'type' column to 'evidence_type' and 'measurement' to 'value'
-    df = df.rename(columns={"type": "evidence_type", "measurement": "value"})
-
-    return df
+    # Rename columns
+    return df.rename(columns={"type": "evidence_type", "measurement": "value"})
 
 
 def proccess_biomarker_pathology(
@@ -42,34 +43,27 @@ def proccess_biomarker_pathology(
     Returns:
         list[dict]: A list of dictionaries containing the processed data.
     """
-
-    output = []
+    # Filter for the specific model
     model_df = df[df["model"] == model_name]
 
-    # Group biomarkers by evidence_type, tissue, and age_death
-    for (evidence_type, tissue, age), group in model_df.groupby(
-        ["evidence_type", "tissue", "age_death"]
-    ):
+    # Group by the required columns and aggregate the data
+    grouped = model_df.groupby(["evidence_type", "tissue", "age_death", "units"])
+
+    # Process each group into the required format
+    output = []
+    for (evidence_type, tissue, age, units), group in grouped:
         df_entry = {
             "model": model_name,
             "evidence_type": evidence_type,
             "tissue": tissue,
             "age": f"{age} months",
-            "units": group["units"].iloc[0],
-            "data": [],
+            "units": units,
+            "data": group[["genotype", "sex", "individual_id", "value"]].to_dict(
+                orient="records"
+            ),
         }
-
-        # Add individual data points
-        for _, row in group.iterrows():
-            data_point = {
-                "genotype": row["genotype"],
-                "sex": row["sex"],
-                "individual_id": row["individual_id"],
-                "value": row["value"],
-            }
-            df_entry["data"].append(data_point)
-
         output.append(df_entry)
+
     return output
 
 
@@ -88,33 +82,27 @@ def process_genetic_info(
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
-    genetic_info = []
-    for _, allele_row in model_alleles.iterrows():
-        gene_info = {
-            "modified_gene": allele_row["gene"],
-            "ensembl_id": allele_row["gene_ensembl_id"],
-            "allele": allele_row["allele"],
-            "allele_type": allele_row["allele_type"],
-            "mgi_allele_id": allele_row["mgi_allele_id"],
-        }
+    # Rename columns to match
+    human_df = human_transgene_allele_map_df.rename(
+        columns={"gene_symbol": "gene", "ensembl_id": "human_ensembl_id"}
+    )
 
-        # If it's a human transgene, replace the ensembl_id with the human one
-        if (
-            allele_row["mgi_allele_id"]
-            in human_transgene_allele_map_df["mgi_allele_id"].values
-        ):
-            matching_row = human_transgene_allele_map_df[
-                human_transgene_allele_map_df["mgi_allele_id"]
-                == allele_row["mgi_allele_id"]
-            ]
-            if (
-                len(matching_row) > 0
-                and matching_row.iloc[0]["gene_symbol"] == allele_row["gene"]
-            ):
-                gene_info["ensembl_id"] = matching_row.iloc[0]["ensembl_id"]
+    # Merge the dataframes on mgi_allele_id and gene
+    merged_df = model_alleles.merge(
+        human_df[["mgi_allele_id", "gene", "human_ensembl_id"]],
+        on=["mgi_allele_id", "gene"],
+        how="left",
+    )
 
-        genetic_info.append(gene_info)
-    return genetic_info
+    # Create the genetic info list using vectorized operations
+    merged_df["ensembl_id"] = merged_df["human_ensembl_id"].fillna(
+        merged_df["gene_ensembl_id"]
+    )
+    return (
+        merged_df[["gene", "ensembl_id", "allele", "allele_type", "mgi_allele_id"]]
+        .rename(columns={"gene": "modified_gene"})
+        .to_dict(orient="records")
+    )
 
 
 def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, Any]]:
@@ -141,12 +129,12 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
     Returns:
         list[dict[str, Any]]: A list containing dicionaries with the transformed data.
     """
-    # Load datasets
+    # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
-    # Load and prepare the biomarker and pathology dataframes
+    # Prepare biomarker and pathology dataframes
     biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"])
     pathology_df = prepare_biomarker_pathology(datasets["pathology"])
 
@@ -154,14 +142,12 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
     for col_name in ["matched_controls", "aliases"]:
         model_info_df[col_name] = model_info_df[col_name].apply(
             lambda x: [item.strip() for item in str(x).split(",")]
-            if (pd.notna(x) and x != "")
+            if pd.notna(x) and x != ""
             else []
         )
 
-    # Build the final data structure
-    result = []
-
     # Process each model
+    result = []
     for _, model_row in model_info_df.iterrows():
         model_name = model_row["model"]
 
@@ -191,7 +177,6 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
             "biomarkers": model_biomarkers,
             "pathology": model_pathology,
         }
-
         result.append(model_entry)
 
     return result
