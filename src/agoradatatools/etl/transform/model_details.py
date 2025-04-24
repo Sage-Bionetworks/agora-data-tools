@@ -82,14 +82,10 @@ def process_genetic_info(
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
-    # Rename columns to match
-    human_df = human_transgene_allele_map_df.rename(
-        columns={"gene_symbol": "gene", "ensembl_id": "human_ensembl_id"}
-    )
 
     # Merge the dataframes on mgi_allele_id and gene
     merged_df = model_alleles.merge(
-        human_df[["mgi_allele_id", "gene", "human_ensembl_id"]],
+        human_transgene_allele_map_df[["mgi_allele_id", "gene", "human_ensembl_id"]],
         on=["mgi_allele_id", "gene"],
         how="left",
     )
@@ -120,8 +116,8 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
         2. Sex and tissue values are converted to use Initial Caps (e.g. Female, Cerebral Cortex)
         3. Biomarker measure (pre-transform in source file) aka evidence_type (post-transform
         in output file)values use &beta; entity codes, instead of beta string literals
-        4. For the human_transgene_allele_map source file use the ensembl_id and
-        gene_symbol values for rows with a matching mgi_allele_id
+        4. For the human_transgene_allele_map source file use the human_ensembl_id and
+        gene values for rows with a matching mgi_allele_id
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
@@ -172,7 +168,7 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
             "genotype",
             "aliases",
         ],
-        "human_transgene_allele_map": ["mgi_allele_id", "gene_symbol", "ensembl_id"],
+        "human_transgene_allele_map": ["mgi_allele_id", "gene", "human_ensembl_id"],
         "biomarkers": [
             "model",
             "type",

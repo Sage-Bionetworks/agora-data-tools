@@ -1,4 +1,4 @@
-mgi_allele_id,gene_symbol,ensembl_id
+mgi_allele_id,gene,human_ensembl_id
 9999999,App,ENSG00000142192
 8888888,MAPT,ENSG00000186868
 7777777,Psen1,ENSG00000080815

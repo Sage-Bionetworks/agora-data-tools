@@ -405,8 +405,8 @@ class TestTransformModelDetails:
         human_transgene_allele_map_df = pd.DataFrame(
             {
                 "mgi_allele_id": [2672831, 1930937],
-                "gene_symbol": ["App", "Psen1"],
-                "ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
+                "gene": ["App", "Psen1"],
+                "human_ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
             }
         )
 
@@ -464,8 +464,8 @@ class TestTransformModelDetails:
         human_transgene_allele_map_df = pd.DataFrame(
             {
                 "mgi_allele_id": [9999999],  # Different MGI ID
-                "gene_symbol": ["DifferentGene"],
-                "ensembl_id": ["ENSG00000000000"],
+                "gene": ["DifferentGene"],
+                "human_ensembl_id": ["ENSG00000000000"],
             }
         )
 
@@ -521,7 +521,7 @@ class TestTransformModelDetails:
     def test_process_genetic_info_with_empty_input(self):
         # Create empty test input DataFrames
         human_transgene_allele_map_df = pd.DataFrame(
-            columns=["mgi_allele_id", "gene_symbol", "ensembl_id"]
+            columns=["mgi_allele_id", "gene", "human_ensembl_id"]
         )
         model_alleles = pd.DataFrame(
             columns=[

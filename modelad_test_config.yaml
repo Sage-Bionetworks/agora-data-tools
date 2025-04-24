@@ -61,3 +61,6 @@ datasets:
         - syn64846805
       destination: *dest
       custom_transformations: 1
+      column_rename:
+        gene_symbol: gene
+        ensembl_id: human_ensembl_id
