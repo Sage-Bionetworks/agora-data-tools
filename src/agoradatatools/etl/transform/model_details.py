@@ -207,63 +207,54 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
                 f"Please ensure the {dataset_name} dataset contains all required columns: {', '.join(columns)}."
             )
 
-    try:
-        # Load and prepare datasets
-        allele_info_df = datasets["allele_info"].fillna("")
-        model_info_df = datasets["model_info"].fillna("")
-        human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna(
-            ""
+    # Load and prepare datasets
+    allele_info_df = datasets["allele_info"].fillna("")
+    model_info_df = datasets["model_info"].fillna("")
+    human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
+
+    # Prepare biomarker and pathology dataframes
+    biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"])
+    pathology_df = prepare_biomarker_pathology(datasets["pathology"])
+
+    # Convert matching controls and aliases from comma-delimited strings to lists
+    for col_name in ["matched_controls", "aliases"]:
+        model_info_df[col_name] = model_info_df[col_name].apply(
+            lambda x: [item.strip() for item in str(x).split(",")]
+            if pd.notna(x) and x != ""
+            else []
         )
 
-        # Prepare biomarker and pathology dataframes
-        biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"])
-        pathology_df = prepare_biomarker_pathology(datasets["pathology"])
+    # Process each model
+    result = []
+    for _, model_row in model_info_df.iterrows():
+        model_name = model_row["model"]
 
-        # Convert matching controls and aliases from comma-delimited strings to lists
-        for col_name in ["matched_controls", "aliases"]:
-            model_info_df[col_name] = model_info_df[col_name].apply(
-                lambda x: [item.strip() for item in str(x).split(",")]
-                if pd.notna(x) and x != ""
-                else []
-            )
+        # Get genetic info for this model
+        genetic_info = process_genetic_info(
+            human_transgene_allele_map_df,
+            model_alleles=allele_info_df[allele_info_df["model"] == model_name],
+        )
 
-        # Process each model
-        result = []
-        for _, model_row in model_info_df.iterrows():
-            model_name = model_row["model"]
+        # Process the biomarkers and pathology datasets for this model
+        model_biomarkers = proccess_biomarker_pathology(biomarkers_df, model_name)
+        model_pathology = proccess_biomarker_pathology(pathology_df, model_name)
 
-            # Get genetic info for this model
-            genetic_info = process_genetic_info(
-                human_transgene_allele_map_df,
-                model_alleles=allele_info_df[allele_info_df["model"] == model_name],
-            )
+        # Build the complete model entry
+        model_entry = {
+            "model": model_name,
+            "matched_controls": model_row["matched_controls"],
+            "model_type": model_row["model_type"],
+            "contributing_group": model_row["contributing_group"],
+            "study_synid": model_row["study_synid"],
+            "rrid": model_row["rrid"],
+            "jax_id": model_row["jax_id"],
+            "alzforum_id": model_row["alzforum_id"],
+            "genotype": model_row["genotype"],
+            "aliases": model_row["aliases"],
+            "genetic_info": genetic_info,
+            "biomarkers": model_biomarkers,
+            "pathology": model_pathology,
+        }
+        result.append(model_entry)
 
-            # Process the biomarkers and pathology datasets for this model
-            model_biomarkers = proccess_biomarker_pathology(biomarkers_df, model_name)
-            model_pathology = proccess_biomarker_pathology(pathology_df, model_name)
-
-            # Build the complete model entry
-            model_entry = {
-                "model": model_name,
-                "matched_controls": model_row["matched_controls"],
-                "model_type": model_row["model_type"],
-                "contributing_group": model_row["contributing_group"],
-                "study_synid": model_row["study_synid"],
-                "rrid": model_row["rrid"],
-                "jax_id": model_row["jax_id"],
-                "alzforum_id": model_row["alzforum_id"],
-                "genotype": model_row["genotype"],
-                "aliases": model_row["aliases"],
-                "genetic_info": genetic_info,
-                "biomarkers": model_biomarkers,
-                "pathology": model_pathology,
-            }
-            result.append(model_entry)
-
-        return result
-
-    except Exception as e:
-        raise ValueError(
-            f"Error processing model details: {str(e)}. "
-            "Please check that all input datasets are properly formatted and contain the required data."
-        ) from e
+    return result
