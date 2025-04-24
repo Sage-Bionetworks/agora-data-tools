@@ -80,7 +80,7 @@ Perform the following one-time steps to set up your local environment and obtain
       # pipenv install --dev
       pipenv shell
       ```
-Note: the `pipenv install` command should create a virtual environment, and `pipenv shell` activates the virtual environment. 
+Note: the `pipenv install` command should create a virtual environment, and `pipenv shell` activates the virtual environment.
 
 6. You can check if the package was installed correctly by running `adt --help` in the terminal. If it returns instructions about how to use the CLI, installation was successful and you can run the pipeline by providing the desired [config file](#config) as an argument. Be sure to review these instructions prior to executing a processing run. The following example command will execute the pipeline using ```test_config.yaml``` and the default options:
 
@@ -90,40 +90,40 @@ Note: the `pipenv install` command should create a virtual environment, and `pip
 ### Troubleshooting
 
 #### zsh: command not found: adt
-This error indicates that your dependencies are not properly installed in your virtual environment, or your environment is not activated.  
-To resolve this:  
-1. Ensure that you have activated the virtual environment by running:  
+This error indicates that your dependencies are not properly installed in your virtual environment, or your environment is not activated.
+To resolve this:
+1. Ensure that you have activated the virtual environment by running:
   ```bash
   pipenv shell
-  ```  
-  If this doesn't work, try manually activating the virtual environment:  
+  ```
+  If this doesn't work, try manually activating the virtual environment:
   ```bash
   source $(pipenv --venv)/bin/activate
   ```
 
-2. If the issue persists, it might be that `pipenv install` didn't install the dependencies correctly. To resolve this, follow these steps:  
-  - Remove the existing virtual environment:  
+2. If the issue persists, it might be that `pipenv install` didn't install the dependencies correctly. To resolve this, follow these steps:
+  - Remove the existing virtual environment:
     ```bash
     pipenv --rm
-    ```  
-  - Verify that you are using a supported Python version (**>=3.7 and <3.11**). Check this by running:  
+    ```
+  - Verify that you are using a supported Python version (**>=3.7 and <3.11**). Check this by running:
     ```bash
     pyenv exec python3 --version
-    ```  
-    If the version is not supported, install the correct version using `pyenv`:  
+    ```
+    If the version is not supported, install the correct version using `pyenv`:
     ```bash
     pyenv install <your python version>
     pyenv local <your python version>
-    ```  
-  - Reinstall the dependencies:  
+    ```
+  - Reinstall the dependencies:
     ```bash
     pipenv install
-    ```  
-  - Reactivate the virtual environment:  
+    ```
+  - Reactivate the virtual environment:
     ```bash
     pipenv shell
-    ```   
-  - Verify the dependencies are installed properly:  
+    ```
+  - Verify the dependencies are installed properly:
     ```bash
     pipenv graph
     ```
@@ -135,26 +135,26 @@ If you encounter the following error when running `pipenv shell`:
 agora-data-tools % pipenv shell
 Shell for UNKNOWN_VIRTUAL_ENVIRONMENT already activated.
 ```
-Manually activate your virtual environment by running:  
+Manually activate your virtual environment by running:
 ```bash
 source $(pipenv --venv)/bin/activate
 ```
 This should activate the virtual environment.
 
 #### My Python version doesn't work
-Supported Python versions for this package are **>=3.7 and <3.11**. To check the Python versions installed via `pyenv`, run:  
+Supported Python versions for this package are **>=3.7 and <3.11**. To check the Python versions installed via `pyenv`, run:
 ```bash
 pyenv versions
 ```
-If you don't have a compatible version, install one using:  
+If you don't have a compatible version, install one using:
 ```bash
 pyenv install <your python version>
 ```
-Switch to the installed version locally by running:  
+Switch to the installed version locally by running:
 ```bash
 pyenv local <your python version>
 ```
-To confirm which Python version `pyenv` is using, run:  
+To confirm which Python version `pyenv` is using, run:
 ```bash
 pyenv which python3
 ```
