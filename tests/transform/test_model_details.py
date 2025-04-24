@@ -110,7 +110,7 @@ class TestTransformModelDetails:
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
-            KeyError,
+            ValueError,
         ),
         (
             # Fail with missing required columns in biomarkers
@@ -121,7 +121,7 @@ class TestTransformModelDetails:
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
-            KeyError,
+            ValueError,
         ),
         (
             # Fail with missing required columns in model_info
@@ -132,7 +132,7 @@ class TestTransformModelDetails:
                 "model_info": "model_details_model_info_missing_column_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
-            KeyError,
+            ValueError,
         ),
     ]
     fail_test_ids = [
