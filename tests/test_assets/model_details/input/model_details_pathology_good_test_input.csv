@@ -1,0 +1,9 @@
+individual_id,specimen_id,model,type,measurement,units,age_death,tissue,sex,genotype
+mouse1,spec1,3xTg-AD,Plaque count,5.3,count/mm²,4,hippocampus,female,transgenic
+mouse2,spec2,3xTg-AD,Plaque count,6.1,count/mm²,4,hippocampus,male,transgenic
+mouse3,spec3,3xTg-AD,Plaque area,3.2,µm²,4,hippocampus,female,transgenic
+mouse4,spec4,3xTg-AD,Tangle count,4.8,count/mm²,8,cortex,male,transgenic
+mouse5,spec5,3xTg-AD,Tangle area,2.5,µm²,8,cortex,female,transgenic
+mouse6,spec6,hTau,Tangle count,7.2,count/mm²,6,hippocampus,male,transgenic
+mouse7,spec7,hTau,Tangle count,8.1,count/mm²,6,hippocampus,female,transgenic
+mouse8,spec8,hTau,Tangle area,4.6,µm²,12,cortex,male,transgenic

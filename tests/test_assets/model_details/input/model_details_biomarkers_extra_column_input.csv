@@ -1,0 +1,9 @@
+individual_id,specimen_id,model,type,measurement,units,age_death,tissue,sex,genotype,extra_column
+mouse1,spec1,3xTg-AD,Soluble beta40,10.5,pg/ml,4,hippocampus,female,transgenic,extra_value1
+mouse2,spec2,3xTg-AD,Soluble beta40,12.3,pg/ml,4,hippocampus,male,transgenic,extra_value2
+mouse3,spec3,3xTg-AD,Soluble beta42,15.7,pg/ml,4,hippocampus,female,transgenic,extra_value3
+mouse4,spec4,3xTg-AD,Insoluble beta40,8.2,pg/ml,8,cortex,male,transgenic,extra_value4
+mouse5,spec5,3xTg-AD,Insoluble beta42,9.1,pg/ml,8,cortex,female,transgenic,extra_value5
+mouse6,spec6,hTau,Tau,22.4,ng/ml,6,hippocampus,male,transgenic,extra_value6
+mouse7,spec7,hTau,Tau,24.8,ng/ml,6,hippocampus,female,transgenic,extra_value7
+mouse8,spec8,hTau,Phospho-tau,18.3,ng/ml,12,cortex,male,transgenic,extra_value8

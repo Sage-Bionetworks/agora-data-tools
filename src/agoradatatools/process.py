@@ -65,6 +65,8 @@ def apply_custom_transformations(
         return transform.immunohisto_transform(
             datasets=datasets, dataset_name=dataset_name
         )
+    if dataset_name == "model_details":
+        return transform.transform_model_details(datasets=datasets)
     else:
         return None
 
@@ -163,6 +165,12 @@ def process_dataset(
     if isinstance(df, dict):
         json_path = load.dict_to_json(
             df=df,
+            staging_path=staging_path,
+            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+        )
+    elif isinstance(df, list):
+        json_path = load.list_to_json(
+            df_as_list=df,
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )

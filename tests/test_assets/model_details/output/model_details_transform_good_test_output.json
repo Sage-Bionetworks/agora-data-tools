@@ -1,0 +1,286 @@
+[
+  {
+    "model": "3xTg-AD",
+    "matched_controls": [
+      "B6129"
+    ],
+    "model_type": "Familial AD",
+    "contributing_group": "UCI",
+    "study_synid": "syn22964685",
+    "rrid": "MMRRC_034830-JAX",
+    "jax_id": 4807,
+    "alzforum_id": "3xtg",
+    "genotype": "B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",
+    "aliases": [
+      "3xTg"
+    ],
+    "genetic_info": [
+      {
+        "modified_gene": "App",
+        "ensembl_id": "ENSG00000142192",
+        "allele": "APP K670_M671delinsNL (Swedish)",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831
+      },
+      {
+        "modified_gene": "Mapt",
+        "ensembl_id": "ENSMUSG00000018411",
+        "allele": "MAPT P301L",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831
+      },
+      {
+        "modified_gene": "Psen1",
+        "ensembl_id": "ENSG00000080815",
+        "allele": "Psen1<sup>tm1Mpm</sup>",
+        "allele_type": "Targeted",
+        "mgi_allele_id": 1930937
+      }
+    ],
+    "biomarkers": [
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Insoluble &beta;40",
+        "tissue": "Cortex",
+        "age": "8 months",
+        "units": "pg/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse4",
+            "value": 8.2
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Insoluble &beta;42",
+        "tissue": "Cortex",
+        "age": "8 months",
+        "units": "pg/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse5",
+            "value": 9.1
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Soluble &beta;40",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "pg/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse1",
+            "value": 10.5
+          },
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse2",
+            "value": 12.3
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Soluble &beta;42",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "pg/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse3",
+            "value": 15.7
+          }
+        ]
+      }
+    ],
+    "pathology": [
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Plaque area",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "µm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse3",
+            "value": 3.2
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Plaque count",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "count/mm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse1",
+            "value": 5.3
+          },
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse2",
+            "value": 6.1
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Tangle area",
+        "tissue": "Cortex",
+        "age": "8 months",
+        "units": "µm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse5",
+            "value": 2.5
+          }
+        ]
+      },
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Tangle count",
+        "tissue": "Cortex",
+        "age": "8 months",
+        "units": "count/mm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse4",
+            "value": 4.8
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "model": "hTau",
+    "matched_controls": [
+      "C57BL/6J"
+    ],
+    "model_type": "Tauopathy",
+    "contributing_group": "Mayo",
+    "study_synid": "syn25539881",
+    "rrid": "IMSR_JAX:005491",
+    "jax_id": 5491,
+    "alzforum_id": "htau",
+    "genotype": "B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J",
+    "aliases": [
+      "hTau",
+      "Mapt-/-"
+    ],
+    "genetic_info": [
+      {
+        "modified_gene": "Mapt",
+        "ensembl_id": "ENSMUSG00000018411",
+        "allele": "Mapttm1(EGFP)Klt",
+        "allele_type": "Targeted",
+        "mgi_allele_id": 1926153
+      },
+      {
+        "modified_gene": "MAPT",
+        "ensembl_id": "ENSG00000186868",
+        "allele": "MAPT",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 3057560
+      }
+    ],
+    "biomarkers": [
+      {
+        "model": "hTau",
+        "evidence_type": "Phospho-tau",
+        "tissue": "Cortex",
+        "age": "12 months",
+        "units": "ng/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse8",
+            "value": 18.3
+          }
+        ]
+      },
+      {
+        "model": "hTau",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
+        "age": "6 months",
+        "units": "ng/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse6",
+            "value": 22.4
+          },
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse7",
+            "value": 24.8
+          }
+        ]
+      }
+    ],
+    "pathology": [
+      {
+        "model": "hTau",
+        "evidence_type": "Tangle area",
+        "tissue": "Cortex",
+        "age": "12 months",
+        "units": "µm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse8",
+            "value": 4.6
+          }
+        ]
+      },
+      {
+        "model": "hTau",
+        "evidence_type": "Tangle count",
+        "tissue": "Hippocampus",
+        "age": "6 months",
+        "units": "count/mm²",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse6",
+            "value": 7.2
+          },
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse7",
+            "value": 8.1
+          }
+        ]
+      }
+    ]
+  }
+]

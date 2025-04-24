@@ -1,0 +1,3 @@
+model,matched_controls,model_type,contributing_group,rrid,jax_id,alzforum_id,genotype
+3xTg-AD,B6129,Familial AD,UCI,MMRRC_034830-JAX,4807,3xtg,"B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax"
+hTau,C57BL/6J,Tauopathy,Mayo,IMSR_JAX:005491,5491,htau,B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J

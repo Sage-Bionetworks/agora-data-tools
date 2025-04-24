@@ -34,3 +34,33 @@ datasets:
       gx_enabled: true
       gx_nested_columns:
         - points
+
+  - model_details:
+      files:
+        - name: model_info
+          id: syn61378590
+          format: csv
+        - name: allele_info
+          id: syn64618791
+          format: csv
+        - name: pathology
+          id: syn61357279
+          format: csv
+        - name: biomarkers
+          id: syn61250724
+          format: csv
+        - name: human_transgene_allele_map
+          id: syn64846805
+          format: csv
+      final_format: json
+      provenance:
+        - syn61378590
+        - syn64618791
+        - syn61357279
+        - syn61250724
+        - syn64846805
+      destination: *dest
+      custom_transformations: 1
+      column_rename:
+        gene_symbol: gene
+        ensembl_id: human_ensembl_id
