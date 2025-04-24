@@ -133,8 +133,16 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
     # Check for required datasets
-    required_datasets = ["allele_info", "model_info", "human_transgene_allele_map", "biomarkers", "pathology"]
-    missing_datasets = [dataset for dataset in required_datasets if dataset not in datasets]
+    required_datasets = [
+        "allele_info",
+        "model_info",
+        "human_transgene_allele_map",
+        "biomarkers",
+        "pathology",
+    ]
+    missing_datasets = [
+        dataset for dataset in required_datasets if dataset not in datasets
+    ]
     if missing_datasets:
         raise ValueError(
             f"Missing required datasets: {', '.join(missing_datasets)}. "
@@ -144,15 +152,55 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
 
     # Check for required columns in each dataset
     required_columns = {
-        "allele_info": ["model", "gene", "gene_ensembl_id", "allele", "allele_type", "mgi_allele_id"],
-        "model_info": ["model", "matched_controls", "model_type", "contributing_group", "study_synid", "rrid", "jax_id", "alzforum_id", "genotype", "aliases"],
+        "allele_info": [
+            "model",
+            "gene",
+            "gene_ensembl_id",
+            "allele",
+            "allele_type",
+            "mgi_allele_id",
+        ],
+        "model_info": [
+            "model",
+            "matched_controls",
+            "model_type",
+            "contributing_group",
+            "study_synid",
+            "rrid",
+            "jax_id",
+            "alzforum_id",
+            "genotype",
+            "aliases",
+        ],
         "human_transgene_allele_map": ["mgi_allele_id", "gene_symbol", "ensembl_id"],
-        "biomarkers": ["model", "type", "measurement", "units", "age_death", "tissue", "sex", "genotype", "individual_id"],
-        "pathology": ["model", "type", "measurement", "units", "age_death", "tissue", "sex", "genotype", "individual_id"]
+        "biomarkers": [
+            "model",
+            "type",
+            "measurement",
+            "units",
+            "age_death",
+            "tissue",
+            "sex",
+            "genotype",
+            "individual_id",
+        ],
+        "pathology": [
+            "model",
+            "type",
+            "measurement",
+            "units",
+            "age_death",
+            "tissue",
+            "sex",
+            "genotype",
+            "individual_id",
+        ],
     }
 
     for dataset_name, columns in required_columns.items():
-        missing_columns = [col for col in columns if col not in datasets[dataset_name].columns]
+        missing_columns = [
+            col for col in columns if col not in datasets[dataset_name].columns
+        ]
         if missing_columns:
             raise ValueError(
                 f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
@@ -163,7 +211,9 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
         # Load and prepare datasets
         allele_info_df = datasets["allele_info"].fillna("")
         model_info_df = datasets["model_info"].fillna("")
-        human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
+        human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna(
+            ""
+        )
 
         # Prepare biomarker and pathology dataframes
         biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"])
