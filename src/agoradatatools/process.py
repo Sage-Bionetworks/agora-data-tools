@@ -324,7 +324,12 @@ def process_all_files(
                 if dataset_report.gx_failures:
                     raise ADTDataValidationError(dataset_report.gx_failure_message)
         except Exception as e:
-            error_list.append(f"{list(dataset.keys())[0]}: " + str(e).replace("\n", ""))
+            import traceback
+
+            error_message = (
+                f"{list(dataset.keys())[0]}:\n {str(e)}\n{traceback.format_exc()}"
+            )
+            error_list.append(error_message)
 
     if error_list:
         reporter.update_table()
