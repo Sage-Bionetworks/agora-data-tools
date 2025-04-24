@@ -30,7 +30,7 @@ def prepare_biomarker_pathology(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns={"type": "evidence_type", "measurement": "value"})
 
 
-def proccess_biomarker_pathology(
+def process_biomarker_pathology(
     df: pd.DataFrame, model_name: str
 ) -> List[Dict[str, Any]]:
     """
@@ -236,8 +236,8 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
         )
 
         # Process the biomarkers and pathology datasets for this model
-        model_biomarkers = proccess_biomarker_pathology(biomarkers_df, model_name)
-        model_pathology = proccess_biomarker_pathology(pathology_df, model_name)
+        model_biomarkers = process_biomarker_pathology(biomarkers_df, model_name)
+        model_pathology = process_biomarker_pathology(pathology_df, model_name)
 
         # Build the complete model entry
         model_entry = {

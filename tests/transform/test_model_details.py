@@ -6,7 +6,7 @@ import pytest
 from agoradatatools.etl.transform.model_details import (
     transform_model_details,
     prepare_biomarker_pathology,
-    proccess_biomarker_pathology,
+    process_biomarker_pathology,
     process_genetic_info,
 )
 
@@ -266,7 +266,7 @@ class TestTransformModelDetails:
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    def test_proccess_biomarker_pathology_should_pass(self):
+    def test_process_biomarker_pathology_should_pass(self):
         # Create test input DataFrame
         input_df = pd.DataFrame(
             {
@@ -308,12 +308,12 @@ class TestTransformModelDetails:
         ]
 
         # Transform data
-        output = proccess_biomarker_pathology(input_df, "model1")
+        output = process_biomarker_pathology(input_df, "model1")
 
         # Compare output with expected
         assert output == expected_output
 
-    def test_proccess_biomarker_pathology_with_empty_data(self):
+    def test_process_biomarker_pathology_with_empty_data(self):
         # Create test input DataFrame with no data for the model
         input_df = pd.DataFrame(
             {
@@ -333,12 +333,12 @@ class TestTransformModelDetails:
         expected_output = []
 
         # Transform data
-        output = proccess_biomarker_pathology(input_df, "model1")
+        output = process_biomarker_pathology(input_df, "model1")
 
         # Compare output with expected
         assert output == expected_output
 
-    def test_proccess_biomarker_pathology_with_multiple_groups(self):
+    def test_process_biomarker_pathology_with_multiple_groups(self):
         # Create test input DataFrame with multiple groups
         input_df = pd.DataFrame(
             {
@@ -395,7 +395,7 @@ class TestTransformModelDetails:
         ]
 
         # Transform data
-        output = proccess_biomarker_pathology(input_df, "model1")
+        output = process_biomarker_pathology(input_df, "model1")
 
         # Compare output with expected
         assert output == expected_output
