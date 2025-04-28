@@ -5,6 +5,7 @@
   - [Seqera Platform](#seqera-platform)
   - [Configuring Synapse Credentials](#configuring-synapse-credentials)
   - [Locally](#locally)
+    - [Troubleshooting](#troubleshooting)
   - [Docker](#docker)
 - [Testing Github Workflow](#testing-github-workflow)
 - [Unit Tests](#unit-tests)
