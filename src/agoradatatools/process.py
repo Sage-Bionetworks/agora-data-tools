@@ -45,11 +45,11 @@ def apply_custom_transformations(
         return None
     if isinstance(function_info, str):
         retrieved_function = getattr(transform, function_info)
-        extra_params = {}
+        config_defined_params = {}
     else:
         # Retrieve the function name and its parameters
         # Assumes a single function in the dict
-        function_name, extra_params = next(iter(function_info.items()))
+        function_name, config_defined_params = next(iter(function_info.items()))
         retrieved_function = getattr(transform, function_name)
     sig = inspect.signature(retrieved_function)
     key_word_parameters = {}
@@ -63,7 +63,7 @@ def apply_custom_transformations(
         elif name == "dataset_name":
             key_word_parameters["dataset_name"] = dataset_name
     # Merge parameters
-    combined_params = {**key_word_parameters, **extra_params}
+    combined_params = {**key_word_parameters, **config_defined_params}
     return retrieved_function(**combined_params)
 
 
