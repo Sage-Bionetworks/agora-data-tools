@@ -18,10 +18,16 @@ logger = logging.getLogger(__name__)
 
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
 def apply_custom_transformations(
-    datasets: dict, dataset_name: str, dataset_obj: dict,
+    datasets: dict,
+    dataset_name: str,
+    dataset_obj: dict,
 ) -> Union[DataFrame, dict, None]:
     function_info = dataset_obj.get("custom_transformations", "")
-    if not isinstance(datasets, dict) or not isinstance(dataset_name, str) or not function_info:
+    if (
+        not isinstance(datasets, dict)
+        or not isinstance(dataset_name, str)
+        or not function_info
+    ):
         return None
     if isinstance(function_info, str):
         retrieved_function = getattr(transform, function_info)
@@ -29,7 +35,7 @@ def apply_custom_transformations(
     else:
         # Retrieve the function name and its parameters
         # Assumes a single function in the dict
-        function_name, extra_params  = next(iter(function_info.items()))
+        function_name, extra_params = next(iter(function_info.items()))
         retrieved_function = getattr(transform, function_name)
     sig = inspect.signature(retrieved_function)
     key_word_parameters = {}
@@ -43,6 +49,7 @@ def apply_custom_transformations(
     # Merge parameters
     combined_params = {**key_word_parameters, **extra_params}
     return retrieved_function(**combined_params)
+
 
 def upload_dataversion_metadata(
     syn: synapseclient.Synapse,
