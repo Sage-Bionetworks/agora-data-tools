@@ -53,7 +53,7 @@ def apply_custom_transformations(
         retrieved_function = getattr(transform, function_name)
     sig = inspect.signature(retrieved_function)
     key_word_parameters = {}
-    # Map known inputs like 'df' or 'datasets' to the expected parameters
+    # Map known inputs
     for name, _ in sig.parameters.items():
         if name == "df":
             df = datasets[dataset_name]
