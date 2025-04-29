@@ -12,7 +12,7 @@ datasets:
       provenance:
         - syn61250724
       destination: *dest
-      custom_transformations: 1
+      custom_transformations: immunohisto_transform
       column_rename:
         agedeath: age_death
       gx_enabled: true
@@ -28,7 +28,7 @@ datasets:
       provenance:
         - syn61357279
       destination: *dest
-      custom_transformations: 1
+      custom_transformations: immunohisto_transform
       column_rename:
         agedeath: age_death
       gx_enabled: true
@@ -60,7 +60,7 @@ datasets:
         - syn61250724
         - syn64846805
       destination: *dest
-      custom_transformations: 1
+      custom_transformations: transform_model_details
       column_rename:
         gene_symbol: gene
         ensembl_id: human_ensembl_id

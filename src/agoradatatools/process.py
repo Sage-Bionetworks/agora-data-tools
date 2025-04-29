@@ -30,14 +30,14 @@ def apply_custom_transformations(
         dataset_obj (dict): dataset object from the configuration file
 
     Returns:
-        Union[DataFrame, dict, None]: result of transformation. 
+        Union[DataFrame, dict, None]: result of transformation.
     """
     function_info = dataset_obj.get("custom_transformations", "")
     if (
         not isinstance(datasets, dict)
         or not isinstance(dataset_name, str)
         or not function_info
-    ): 
+    ):
         if not function_info:
             logger.warning(
                 f"No custom transformation function provided for dataset {dataset_name}. Skipping."
@@ -60,6 +60,8 @@ def apply_custom_transformations(
             key_word_parameters["df"] = df
         elif name == "datasets":
             key_word_parameters["datasets"] = datasets
+        elif name == "dataset_name":
+            key_word_parameters["dataset_name"] = dataset_name
     # Merge parameters
     combined_params = {**key_word_parameters, **extra_params}
     return retrieved_function(**combined_params)
@@ -411,6 +413,15 @@ def process(
     upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
 ):
+    """Process the configuration file and execute the data processing pipeline based on options.
+
+    Args:
+        config_path (str): Path to the configuration file for the processing run.
+        platform (str): Platform that is running the process. Must be one of LOCAL, GITHUB, or NEXTFLOW.
+        run_id (str): Run ID of the process. Used to identify the run in the GX table.
+        upload (bool): Boolean value to toggle whether files will be uploaded to Synapse.
+        auth_token (str): Synapse authentication token. Defaults to environment variable SYNAPSE_AUTH_TOKEN.
+    """
     syn = utils._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
     process_all_files(
