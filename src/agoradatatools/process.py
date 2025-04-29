@@ -52,18 +52,18 @@ def apply_custom_transformations(
         function_name, config_defined_params = next(iter(function_info.items()))
         retrieved_function = getattr(transform, function_name)
     sig = inspect.signature(retrieved_function)
-    key_word_parameters = {}
+    parameters = {}
     # Map known inputs
     for name, _ in sig.parameters.items():
         if name == "df":
             df = datasets[dataset_name]
-            key_word_parameters["df"] = df
+            parameters["df"] = df
         elif name == "datasets":
-            key_word_parameters["datasets"] = datasets
+            parameters["datasets"] = datasets
         elif name == "dataset_name":
-            key_word_parameters["dataset_name"] = dataset_name
-    # Merge parameters
-    combined_params = {**key_word_parameters, **config_defined_params}
+            parameters["dataset_name"] = dataset_name
+    # Holds all the parameters to be passed to the transformation function
+    combined_params = {**parameters, **config_defined_params}
     return retrieved_function(**combined_params)
 
 
