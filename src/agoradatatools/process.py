@@ -27,7 +27,11 @@ def apply_custom_transformations(
         not isinstance(datasets, dict)
         or not isinstance(dataset_name, str)
         or not function_info
-    ):
+    ): 
+        if not function_info:
+            logger.warning(
+                f"No custom transformation function provided for dataset {dataset_name}. Skipping."
+            )
         return None
     if isinstance(function_info, str):
         retrieved_function = getattr(transform, function_info)
