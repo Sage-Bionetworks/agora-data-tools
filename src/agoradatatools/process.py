@@ -1,6 +1,6 @@
 import logging
 from typing import Optional, Union
-
+import inspect
 import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
@@ -18,58 +18,31 @@ logger = logging.getLogger(__name__)
 
 # TODO refactor to avoid so many if's - maybe some sort of mapping to callables
 def apply_custom_transformations(
-    datasets: dict, dataset_name: str, dataset_obj: dict
+    datasets: dict, dataset_name: str, dataset_obj: dict,
 ) -> Union[DataFrame, dict, None]:
-    if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
+    function_info = dataset_obj.get("custom_transformations", "")
+    if not isinstance(datasets, dict) or not isinstance(dataset_name, str) or not function_info:
         return None
-    if dataset_name == "biodomain_info":
-        return transform.transform_biodomain_info(datasets=datasets)
-    if dataset_name == "genes_biodomains":
-        return transform.transform_genes_biodomains(datasets=datasets)
-    if dataset_name == "overall_scores":
-        df = datasets["overall_scores"]
-        return transform.transform_overall_scores(df=df)
-    if dataset_name == "distribution_data":
-        return transform.transform_distribution_data(
-            datasets=datasets,
-            overall_max_score=dataset_obj["custom_transformations"][
-                "overall_max_score"
-            ],
-            genetics_max_score=dataset_obj["custom_transformations"][
-                "genetics_max_score"
-            ],
-            omics_max_score=dataset_obj["custom_transformations"]["omics_max_score"],
-        )
-    if dataset_name == "team_info":
-        return transform.transform_team_info(datasets=datasets)
-    if dataset_name == "rnaseq_differential_expression":
-        return transform.transform_rnaseq_differential_expression(datasets=datasets)
-    if dataset_name == "gene_info":
-        return transform.transform_gene_info(
-            datasets=datasets,
-            adjusted_p_value_threshold=dataset_obj["custom_transformations"][
-                "adjusted_p_value_threshold"
-            ],
-            protein_level_threshold=dataset_obj["custom_transformations"][
-                "protein_level_threshold"
-            ],
-        )
-    if dataset_name == "rna_distribution_data":
-        return transform.transform_rna_distribution_data(datasets=datasets)
-    if dataset_name == "proteomics_distribution_data":
-        return transform.transform_proteomics_distribution_data(datasets=datasets)
-    if dataset_name in ["proteomics", "proteomics_tmt", "proteomics_srm"]:
-        df = datasets[dataset_name]
-        return transform.transform_proteomics(df=df)
-    if dataset_name in ["biomarkers", "pathology"]:
-        return transform.immunohisto_transform(
-            datasets=datasets, dataset_name=dataset_name
-        )
-    if dataset_name == "model_details":
-        return transform.transform_model_details(datasets=datasets)
+    if isinstance(function_info, str):
+        retrieved_function = getattr(transform, function_info)
+        extra_params = {}
     else:
-        return None
-
+        # Retrieve the function name and its parameters
+        # Assumes a single function in the dict
+        function_name, extra_params  = next(iter(function_info.items()))
+        retrieved_function = getattr(transform, function_name)
+    sig = inspect.signature(retrieved_function)
+    key_word_parameters = {}
+    # Map known inputs like 'df' or 'datasets' to the expected parameters
+    for name, _ in sig.parameters.items():
+        if name == "df":
+            df = datasets[dataset_name]
+            key_word_parameters["df"] = df
+        elif name == "datasets":
+            key_word_parameters["datasets"] = datasets
+    # Merge parameters
+    combined_params = {**key_word_parameters, **extra_params}
+    return retrieved_function(**combined_params)
 
 def upload_dataversion_metadata(
     syn: synapseclient.Synapse,
