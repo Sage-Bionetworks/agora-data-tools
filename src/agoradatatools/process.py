@@ -22,6 +22,16 @@ def apply_custom_transformations(
     dataset_name: str,
     dataset_obj: dict,
 ) -> Union[DataFrame, dict, None]:
+    """Apply custom transformations to the dataset based on the provided function names and parameters.
+
+    Args:
+        datasets (dict): datasets to be transformed
+        dataset_name (str): name of the datasets
+        dataset_obj (dict): dataset object from the configuration file
+
+    Returns:
+        Union[DataFrame, dict, None]: result of transformation. 
+    """
     function_info = dataset_obj.get("custom_transformations", "")
     if (
         not isinstance(datasets, dict)
