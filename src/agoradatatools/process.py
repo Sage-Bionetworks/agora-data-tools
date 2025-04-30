@@ -181,11 +181,6 @@ def process_dataset(
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
     else:
-        if not isinstance(df, DataFrame):
-            raise TypeError(
-                f"The variable 'df' must be a DataFrame, but got {type(df)}."
-            )
-
         json_path = load.df_to_json(
             df=df,
             staging_path=staging_path,
