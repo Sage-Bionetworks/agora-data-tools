@@ -44,13 +44,23 @@ def apply_custom_transformations(
             )
         return None
     if isinstance(function_info, str):
-        retrieved_function = getattr(transform, function_info)
+        try:
+            retrieved_function = getattr(transform, function_info)
+        except AttributeError:
+            raise AttributeError(
+                f"Function {function_info} not found in the transform module. Please provide the correct function name."
+            )
         config_defined_params = {}
     else:
         # Retrieve the function name and its parameters
         # Assumes a single function in the dict
         function_name, config_defined_params = next(iter(function_info.items()))
-        retrieved_function = getattr(transform, function_name)
+        try:
+            retrieved_function = getattr(transform, function_name)
+        except AttributeError:
+            raise AttributeError(
+                f"Function {function_name} not found in the transform module. Please provide the correct function name."
+            )
     sig = inspect.signature(retrieved_function)
     parameters = {}
     # Map known inputs
@@ -171,6 +181,11 @@ def process_dataset(
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
     else:
+        if not isinstance(df, DataFrame):
+            raise TypeError(
+                f"The variable 'df' must be a DataFrame, but got {type(df)}."
+            )
+
         json_path = load.df_to_json(
             df=df,
             staging_path=staging_path,
