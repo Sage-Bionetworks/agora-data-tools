@@ -16,7 +16,6 @@ from agoradatatools.constants import Platform
 logger = logging.getLogger(__name__)
 
 
-# TODO refactor to avoid so many if's - maybe some sort of mapping to callables
 def apply_custom_transformations(
     datasets: dict,
     dataset_name: str,
