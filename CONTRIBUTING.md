@@ -165,7 +165,7 @@ This package has a `src/agoradatatools/etl/transform` submodule. This folder hou
 
 1. Create new script in the transform submodule that matches the dataset name and name the function `transform_...`. For example, if you have a dataset named `genome_variants`, your new script would be `src/agoradatatools/etl/transform/transform_genome_variants.py`.
 1. Register the new transform function in `src/agoradatatools/etl/transform/__init__.py`. Look in that file for examples.
-1. Add your transform function in `test_config.yaml`. As an example, the block here means that `transform_team_info` function will be applied to team_info dataset:
+1. Add your transform function in `test_config.yaml` and `config.yaml`. As an example, the block here means that `transform_team_info` function will be applied to team_info dataset:
 ```
   - team_info:
       files:
