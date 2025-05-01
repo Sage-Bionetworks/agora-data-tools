@@ -1,4 +1,4 @@
-from typing import Any, Callable, ContextManager
+from typing import Any, Callable, ContextManager, Dict
 from unittest import mock
 from unittest.mock import patch
 from agoradatatools.etl import transform
@@ -208,7 +208,7 @@ class TestProcessDataset:
         """mock simple transform function"""
 
         def _standard_transform_function(
-            df: pd.DataFrame, dataset_name: str, datasets: dict
+            df: pd.DataFrame, dataset_name: str, datasets: Dict[str, pd.DataFrame]
         ):
             return df.assign(test_col=2)
 
@@ -279,7 +279,9 @@ class TestProcessDataset:
         ],
     )
     def test_apply_invalid_custom_transformations(
-        self, example_config_with_custom_transform: dict, expectation: Exception
+        self,
+        example_config_with_custom_transform: Dict[str, Any],
+        expectation: Exception,
     ) -> None:
         """Test that invalid custom transformations raise an error."""
         # disable the class level patcher
@@ -335,13 +337,13 @@ class TestProcessDataset:
     def test_apply_valid_custom_transformations(
         self,
         standard_transform_function: Callable[
-            [pd.DataFrame, str, dict[str, pd.DataFrame]], pd.DataFrame
+            [pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame
         ],
         special_transform_function: Callable[
-            [pd.DataFrame, str, dict[str, pd.DataFrame]], pd.DataFrame
+            [pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame
         ],
         function_name: str,
-        example_config_with_custom_transform: dict,
+        example_config_with_custom_transform: Dict[str, Any],
         expectation: ContextManager[None],
         transformed_df: pd.DataFrame,
     ) -> None:
