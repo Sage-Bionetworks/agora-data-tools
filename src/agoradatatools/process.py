@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any
 import inspect
 import synapseclient
 from pandas import DataFrame
@@ -17,9 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 def apply_custom_transformations(
-    datasets: dict,
+    datasets: Dict[str, Any],
     dataset_name: str,
-    dataset_obj: dict,
+    dataset_obj: Dict[str, Any],
 ) -> Union[DataFrame, dict, None]:
     """Apply custom transformations to the dataset based on the provided function names and parameters.
 

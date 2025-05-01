@@ -209,7 +209,8 @@ class TestProcessDataset:
 
         def _standard_transform_function(
             df: pd.DataFrame, dataset_name: str, datasets: Dict[str, pd.DataFrame]
-        ):
+        ) -> pd.DataFrame:
+            """mock simple transform function"""
             return df.assign(test_col=2)
 
         return _standard_transform_function
@@ -218,7 +219,10 @@ class TestProcessDataset:
     def special_transform_function(self):
         """mock transform function that takes test_threshold as an argument"""
 
-        def _mock_transform_with_args(df: pd.DataFrame, test_threshold: int):
+        def _mock_transform_with_args(
+            df: pd.DataFrame, test_threshold: int
+        ) -> pd.DataFrame:
+            """mock transform function that takes test_threshold as an argument"""
             return df.assign(new_key=1)
 
         return _mock_transform_with_args
@@ -394,11 +398,8 @@ class TestProcessDataset:
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
 
-    @patch(
-        "agoradatatools.process.apply_custom_transformations", return_value=pd.DataFrame
-    )
     def test_process_dataset_upload_false_gx_not_specified_column_rename(
-        self, patch_custom_transform, syn: Any
+        self, syn: Any
     ):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
@@ -419,7 +420,7 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_called_once_with(
             df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
         )
-        patch_custom_transform.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
             df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
         )
