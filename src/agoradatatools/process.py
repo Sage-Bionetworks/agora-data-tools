@@ -43,23 +43,18 @@ def apply_custom_transformations(
             )
         return None
     if isinstance(function_info, str):
-        try:
-            retrieved_function = getattr(transform, function_info)
-        except AttributeError:
-            raise AttributeError(
-                f"Function {function_info} not found in the transform module. Please provide the correct function name."
-            )
+        function_name = function_info
         config_defined_params = {}
     else:
         # Retrieve the function name and its parameters
         # Assumes a single function in the dict
         function_name, config_defined_params = next(iter(function_info.items()))
-        try:
-            retrieved_function = getattr(transform, function_name)
-        except AttributeError:
-            raise AttributeError(
-                f"Function {function_name} not found in the transform module. Please provide the correct function name."
-            )
+    try:
+        retrieved_function = getattr(transform, function_name)
+    except AttributeError:
+        raise AttributeError(
+            f"Function {function_name} not found in the transform module. Please provide the correct function name."
+        )
     sig = inspect.signature(retrieved_function)
     parameters = {}
     # Map known inputs
