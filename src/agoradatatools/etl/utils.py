@@ -24,7 +24,7 @@ def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     return syn
 
 
-def _get_config(config_path: str = None) -> list:
+def _get_config(config_path: str = None) -> dict:
     """Takes config_path and opens yaml file path points to, loads configuration from file.
     If no config_path is supplied, defaults to "./config.yaml"
 
@@ -32,7 +32,7 @@ def _get_config(config_path: str = None) -> list:
         config_path (str, optional): Path to config file. Defaults to None.
 
     Returns:
-        list: list of dictionaries containing configuration information for run.
+        dict: Dictionary containing configuration from yaml file
     """
     if config_path is None:
         config_path = "./config.yaml"
@@ -53,7 +53,10 @@ def _get_config(config_path: str = None) -> list:
         raise yaml.scanner.ScannerError(
             "YAML file unable to be scanned.  Please provide a valid YAML file."
         )
-
+    if not isinstance(config, dict):
+        raise ValueError(
+            "YAML file must be loaded as a single dictionary.  Please reformat your YAML file correctly."
+        )
     return config
 
 
