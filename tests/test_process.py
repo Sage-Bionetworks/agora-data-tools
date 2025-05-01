@@ -204,8 +204,7 @@ class TestProcessDataset:
         mock.patch.stopall()
 
     @pytest.fixture(scope="function", autouse=True)
-    @staticmethod
-    def standard_transform_function():
+    def standard_transform_function(self):
         """mock simple transform function"""
 
         def _standard_transform_function(
@@ -216,8 +215,7 @@ class TestProcessDataset:
         return _standard_transform_function
 
     @pytest.fixture(scope="function", autouse=True)
-    @staticmethod
-    def special_transform_function():
+    def special_transform_function(self):
         """mock transform function that takes test_threshold as an argument"""
 
         def _mock_transform_with_args(df: pd.DataFrame, test_threshold: int):
