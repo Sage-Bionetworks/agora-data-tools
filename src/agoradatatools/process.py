@@ -58,7 +58,7 @@ def apply_custom_transformations(
         raise AttributeError(
             f"Function {function_name} not found in the transform module. Please provide the correct function name."
         )
-    
+
     retrieved_function = getattr(transform, function_name)
     sig = inspect.signature(retrieved_function)
     parameters = {}
