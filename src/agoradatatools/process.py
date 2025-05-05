@@ -60,19 +60,20 @@ def apply_custom_transformations(
         )
 
     retrieved_function = getattr(transform, function_name)
-    sig = inspect.signature(retrieved_function)
-    parameters = {}
-    # Map known inputs
-    for name, _ in sig.parameters.items():
-        if name == "df":
-            df = datasets.get(dataset_name, DataFrame())
-            parameters["df"] = df
-        elif name == "datasets":
-            parameters["datasets"] = datasets
-        elif name == "dataset_name":
-            parameters["dataset_name"] = dataset_name
+    function_params = inspect.signature(retrieved_function).parameters
+
+    standard_params = {
+        "df": datasets.get(dataset_name, DataFrame()),
+        "datasets": datasets,
+        "dataset_name": dataset_name,
+    }
+    function_params = inspect.signature(retrieved_function).parameters
+    new_standard_params = {
+        k: v for k, v in standard_params.items() if k in function_params
+    }
+
     # Holds all the parameters to be passed to the transformation function
-    combined_params = {**parameters, **config_defined_params}
+    combined_params = {**new_standard_params, **config_defined_params}
     return retrieved_function(**combined_params)
 
 
