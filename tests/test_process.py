@@ -119,7 +119,7 @@ class TestApplyCustomTransformations:
             df: pd.DataFrame, test_threshold: int
         ) -> pd.DataFrame:
             """mock transform function that takes test_threshold as an argument"""
-            return df.assign(new_key=1, anoter_new_key=test_threshold)
+            return df.assign(new_key=test_threshold)
 
         return _mock_transform_with_args
 
@@ -270,9 +270,7 @@ class TestApplyCustomTransformations:
                 },
                 "special_transform_function",
                 does_not_raise(),
-                pd.DataFrame(
-                    {"test_key": ["test_value"], "new_key": [1], "anoter_new_key": 1}
-                ),
+                pd.DataFrame({"test_key": ["test_value"], "new_key": [1]}),
             ),
         ],
     )
