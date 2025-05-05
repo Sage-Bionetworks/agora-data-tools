@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Dict, Any
 
 import numpy as np
 import pandas as pd
@@ -24,7 +24,7 @@ def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     return syn
 
 
-def _get_config(config_path: str = None) -> dict:
+def _get_config(config_path: str = None) -> Dict[str, Dict[str, Dict[str, Any]]]:
     """Takes config_path and opens yaml file path points to, loads configuration from file.
     If no config_path is supplied, defaults to "./config.yaml"
 
