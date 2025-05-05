@@ -175,6 +175,8 @@ This package has a `src/agoradatatools/etl/transform` submodule. This folder hou
       final_format: json
       custom_transformations: transform_team_info
 ```
+Note: **Only one custom transform per dataset is supported at this time**
+
 1. Write a test for the transform:
    - For transform tests, we are using a [Data-Driven Testing](https://www.develer.com/en/blog/data-driven-testing-with-python/) strategy
    - To contribute new tests, assets in the form of input and output data files are needed.
