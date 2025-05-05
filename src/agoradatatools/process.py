@@ -421,7 +421,7 @@ def process(
     run_id: str = run_id_opt,
     upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
-):
+) -> None:
     """Process the configuration file and execute the data processing pipeline based on options.
 
     Args:
