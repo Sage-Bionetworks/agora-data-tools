@@ -104,8 +104,10 @@ class TestApplyCustomTransformations:
             df: pd.DataFrame, dataset_name: str, datasets: Dict[str, pd.DataFrame]
         ) -> pd.DataFrame:
             """mock simple transform function"""
-            datasets["new_key"] = 2
-            return df.assign(test_col=2, new_key=dataset_name + "_new_key")
+            if dataset_name in datasets:
+                aggregated_value = datasets[dataset_name]["value_column"].sum()
+                df["aggregated_value"] = aggregated_value
+            return df.assign(new_key=dataset_name + "_new_key")
 
         return _standard_transform_function
 
@@ -252,9 +254,10 @@ class TestApplyCustomTransformations:
                 does_not_raise(),
                 pd.DataFrame(
                     {
-                        "test_key": ["test_value"],
-                        "test_col": [2],
-                        "new_key": "test_file_1_new_key",
+                        "test_key": ["test_value1", "test_value2"],
+                        "value_column": [1, 2],
+                        "aggregated_value": [3, 3],
+                        "new_key": ["test_file_1_new_key", "test_file_1_new_key"],
                     }
                 ),
             ),
@@ -275,7 +278,13 @@ class TestApplyCustomTransformations:
                 },
                 "special_transform_function",
                 does_not_raise(),
-                pd.DataFrame({"test_key": ["test_value"], "new_key": [1]}),
+                pd.DataFrame(
+                    {
+                        "test_key": ["test_value1", "test_value2"],
+                        "value_column": [1, 2],
+                        "new_key": [1, 1],
+                    }
+                ),
             ),
         ],
         ids=[
@@ -306,7 +315,12 @@ class TestApplyCustomTransformations:
             with expectation:
                 df_transformed = process.apply_custom_transformations(
                     datasets={
-                        "test_file_1": pd.DataFrame({"test_key": ["test_value"]})
+                        "test_file_1": pd.DataFrame(
+                            {
+                                "test_key": ["test_value1", "test_value2"],
+                                "value_column": [1, 2],
+                            }
+                        ),
                     },
                     dataset_name="test_file_1",
                     dataset_obj=example_config_with_custom_transform["neuropath_corr"],
