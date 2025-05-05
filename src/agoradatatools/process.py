@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import Optional, Union, Dict, Any
 import inspect
 import synapseclient
@@ -38,7 +39,7 @@ def apply_custom_transformations(
         or not function_info
     ):
         if not function_info:
-            logger.warning(
+            warnings.warn(
                 f"No custom transformation function provided for dataset {dataset_name}. Skipping."
             )
         return None
@@ -48,6 +49,10 @@ def apply_custom_transformations(
     else:
         # Retrieve the function name and its parameters
         # Assumes a single function in the dict
+        if len(function_info.items()) != 1:
+            warnings.warn(
+                "Please provide a single custom transformation function in the configuration file. Only the first function will be used if multiple are provided."
+            )
         function_name, config_defined_params = next(iter(function_info.items()))
     try:
         retrieved_function = getattr(transform, function_name)
@@ -60,7 +65,7 @@ def apply_custom_transformations(
     # Map known inputs
     for name, _ in sig.parameters.items():
         if name == "df":
-            df = datasets[dataset_name]
+            df = datasets.get(dataset_name, DataFrame())
             parameters["df"] = df
         elif name == "datasets":
             parameters["datasets"] = datasets

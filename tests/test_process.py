@@ -91,6 +91,207 @@ class TestUploadDataversionMetadata:
         )
 
 
+class TestApplyCustomTransformations:
+    @pytest.fixture(scope="function", autouse=True)
+    def standard_transform_function(self):
+        """mock simple transform function"""
+
+        def _standard_transform_function(
+            df: pd.DataFrame, dataset_name: str, datasets: Dict[str, pd.DataFrame]
+        ) -> pd.DataFrame:
+            """mock simple transform function"""
+            return df.assign(test_col=2)
+
+        return _standard_transform_function
+
+    @pytest.fixture(scope="function", autouse=True)
+    def special_transform_function(self):
+        """mock transform function that takes test_threshold as an argument"""
+
+        def _mock_transform_with_args(
+            df: pd.DataFrame, test_threshold: int
+        ) -> pd.DataFrame:
+            """mock transform function that takes test_threshold as an argument"""
+            return df.assign(new_key=1)
+
+        return _mock_transform_with_args
+
+    @pytest.mark.parametrize(
+        "example_config_with_custom_transform,expectation",
+        [
+            (
+                {
+                    "neuropath_corr": {
+                        "files": [
+                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
+                        ],
+                        "final_format": "json",
+                        "provenance": ["syn1111111"],
+                        "destination": "syn1111113",
+                        "gx_enabled": False,
+                        "custom_transformations": {
+                            "mock_transform_function_false": {
+                                "test_threshold": 1,
+                                "test_p_value": 2,
+                            }
+                        },
+                    }
+                },
+                pytest.raises(AttributeError),
+            ),
+            (
+                {
+                    "neuropath_corr": {
+                        "files": [
+                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
+                        ],
+                        "final_format": "json",
+                        "provenance": ["syn1111111"],
+                        "destination": "syn1111113",
+                        "gx_enabled": False,
+                        "custom_transformations": "mock_transform_function_false",
+                    },
+                },
+                pytest.raises(AttributeError),
+            ),
+            (
+                {
+                    "neuropath_corr": {
+                        "files": [
+                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
+                        ],
+                        "final_format": "json",
+                        "provenance": ["syn1111111"],
+                        "destination": "syn1111113",
+                        "gx_enabled": False,
+                        "custom_transformations": 1,
+                    },
+                },
+                pytest.raises(AttributeError),
+            ),
+        ],
+    )
+    def test_apply_invalid_custom_transformations(
+        self,
+        example_config_with_custom_transform: Dict[str, Any],
+        expectation: Exception,
+    ) -> None:
+        """Test that invalid custom transformations raise an error."""
+        with expectation:
+            process.apply_custom_transformations(
+                datasets={"test_file_1": pd.DataFrame()},
+                dataset_name="neuropath_corr",
+                dataset_obj=example_config_with_custom_transform["neuropath_corr"],
+            )
+
+    def test_apply_invalid_multi_custom_transformations(
+        self,
+        special_transform_function: Callable[
+            [pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame
+        ],
+    ):
+        """Test that when the config file contains multiple custom transformations, the first one gets used and a warning is raised"""
+        example_config_with_custom_transform = {
+            "neuropath_corr": {
+                "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+                "final_format": "json",
+                "provenance": ["syn1111111"],
+                "destination": "syn1111113",
+                "gx_enabled": False,
+                "custom_transformations": {
+                    "special_transform_function": {"test_threshold": 1},
+                    "mock_transform_function_false": {
+                        "test_threshold": 1,
+                        "test_p_value": 2,
+                    },
+                },
+            },
+        }
+        with pytest.warns(UserWarning):
+            with patch.object(
+                transform,
+                "special_transform_function",
+                special_transform_function,
+                create=True,
+            ):
+                process.apply_custom_transformations(
+                    datasets={"test_file_1": pd.DataFrame()},
+                    dataset_name="neuropath_corr",
+                    dataset_obj=example_config_with_custom_transform["neuropath_corr"],
+                )
+
+    @pytest.mark.parametrize(
+        "example_config_with_custom_transform, function_name, expectation, transformed_df",
+        [
+            (
+                {
+                    "neuropath_corr": {
+                        "files": [
+                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
+                        ],
+                        "final_format": "json",
+                        "provenance": ["syn1111111"],
+                        "destination": "syn1111113",
+                        "gx_enabled": False,
+                        "custom_transformations": "standard_transform_function",
+                    }
+                },
+                "standard_transform_function",
+                does_not_raise(),
+                pd.DataFrame({"test_key": ["test_value"], "test_col": [2]}),
+            ),
+            (
+                {
+                    "neuropath_corr": {
+                        "files": [
+                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
+                        ],
+                        "final_format": "json",
+                        "provenance": ["syn1111111"],
+                        "destination": "syn1111113",
+                        "gx_enabled": False,
+                        "custom_transformations": {
+                            "special_transform_function": {"test_threshold": 1}
+                        },
+                    }
+                },
+                "special_transform_function",
+                does_not_raise(),
+                pd.DataFrame({"test_key": ["test_value"], "new_key": [1]}),
+            ),
+        ],
+    )
+    def test_apply_valid_custom_transformations(
+        self,
+        standard_transform_function: Callable[
+            [pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame
+        ],
+        special_transform_function: Callable[
+            [pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame
+        ],
+        function_name: str,
+        example_config_with_custom_transform: Dict[str, Any],
+        expectation: ContextManager[None],
+        transformed_df: pd.DataFrame,
+    ) -> None:
+        """Test that transformations are applied correctly when a valid transformation function is provided."""
+
+        if function_name == "special_transform_function":
+            mocked_transform = special_transform_function
+        else:
+            mocked_transform = standard_transform_function
+        with patch.object(transform, function_name, mocked_transform, create=True):
+            with expectation:
+                df_transformed = process.apply_custom_transformations(
+                    datasets={
+                        "test_file_1": pd.DataFrame({"test_key": ["test_value"]})
+                    },
+                    dataset_name="test_file_1",
+                    dataset_obj=example_config_with_custom_transform["neuropath_corr"],
+                )
+                assert df_transformed.equals(transformed_df)
+
+
 class TestProcessDataset:
     dataset_object = {
         "neuropath_corr": {
@@ -202,172 +403,6 @@ class TestProcessDataset:
         self.patch_set_attributes.stop()
         self.patch_format_link.stop()
         mock.patch.stopall()
-
-    @pytest.fixture(scope="function", autouse=True)
-    def standard_transform_function(self):
-        """mock simple transform function"""
-
-        def _standard_transform_function(
-            df: pd.DataFrame, dataset_name: str, datasets: Dict[str, pd.DataFrame]
-        ) -> pd.DataFrame:
-            """mock simple transform function"""
-            return df.assign(test_col=2)
-
-        return _standard_transform_function
-
-    @pytest.fixture(scope="function", autouse=True)
-    def special_transform_function(self):
-        """mock transform function that takes test_threshold as an argument"""
-
-        def _mock_transform_with_args(
-            df: pd.DataFrame, test_threshold: int
-        ) -> pd.DataFrame:
-            """mock transform function that takes test_threshold as an argument"""
-            return df.assign(new_key=1)
-
-        return _mock_transform_with_args
-
-    @pytest.mark.parametrize(
-        "example_config_with_custom_transform,expectation",
-        [
-            (
-                {
-                    "neuropath_corr": {
-                        "files": [
-                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
-                        ],
-                        "final_format": "json",
-                        "provenance": ["syn1111111"],
-                        "destination": "syn1111113",
-                        "gx_enabled": False,
-                        "custom_transformations": {
-                            "mock_transform_function_false": {
-                                "test_threshold": 1,
-                                "test_p_value": 2,
-                            }
-                        },
-                    }
-                },
-                pytest.raises(AttributeError),
-            ),
-            (
-                {
-                    "neuropath_corr": {
-                        "files": [
-                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
-                        ],
-                        "final_format": "json",
-                        "provenance": ["syn1111111"],
-                        "destination": "syn1111113",
-                        "gx_enabled": False,
-                        "custom_transformations": "mock_transform_function_false",
-                    },
-                },
-                pytest.raises(AttributeError),
-            ),
-            (
-                {
-                    "neuropath_corr": {
-                        "files": [
-                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
-                        ],
-                        "final_format": "json",
-                        "provenance": ["syn1111111"],
-                        "destination": "syn1111113",
-                        "gx_enabled": False,
-                        "custom_transformations": 1,
-                    },
-                },
-                pytest.raises(AttributeError),
-            ),
-        ],
-    )
-    def test_apply_invalid_custom_transformations(
-        self,
-        example_config_with_custom_transform: Dict[str, Any],
-        expectation: Exception,
-    ) -> None:
-        """Test that invalid custom transformations raise an error."""
-        # disable the class level patcher
-        mock.patch.stopall()
-        with expectation:
-            process.apply_custom_transformations(
-                datasets={"test_file_1": pd.DataFrame()},
-                dataset_name="neuropath_corr",
-                dataset_obj=example_config_with_custom_transform["neuropath_corr"],
-            )
-
-    @pytest.mark.parametrize(
-        "example_config_with_custom_transform, function_name, expectation, transformed_df",
-        [
-            (
-                {
-                    "neuropath_corr": {
-                        "files": [
-                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
-                        ],
-                        "final_format": "json",
-                        "provenance": ["syn1111111"],
-                        "destination": "syn1111113",
-                        "gx_enabled": False,
-                        "custom_transformations": "standard_transform_function",
-                    }
-                },
-                "standard_transform_function",
-                does_not_raise(),
-                pd.DataFrame({"test_key": ["test_value"], "test_col": [2]}),
-            ),
-            (
-                {
-                    "neuropath_corr": {
-                        "files": [
-                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
-                        ],
-                        "final_format": "json",
-                        "provenance": ["syn1111111"],
-                        "destination": "syn1111113",
-                        "gx_enabled": False,
-                        "custom_transformations": {
-                            "special_transform_function": {"test_threshold": 1}
-                        },
-                    }
-                },
-                "special_transform_function",
-                does_not_raise(),
-                pd.DataFrame({"test_key": ["test_value"], "new_key": [1]}),
-            ),
-        ],
-    )
-    def test_apply_valid_custom_transformations(
-        self,
-        standard_transform_function: Callable[
-            [pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame
-        ],
-        special_transform_function: Callable[
-            [pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame
-        ],
-        function_name: str,
-        example_config_with_custom_transform: Dict[str, Any],
-        expectation: ContextManager[None],
-        transformed_df: pd.DataFrame,
-    ) -> None:
-        """Test that transformations are applied correctly when a valid transformation function is provided."""
-        # disable the class level patch
-        mock.patch.stopall()
-        if function_name == "special_transform_function":
-            mocked_transform = special_transform_function
-        else:
-            mocked_transform = standard_transform_function
-        with patch.object(transform, function_name, mocked_transform, create=True):
-            with expectation:
-                df_transformed = process.apply_custom_transformations(
-                    datasets={
-                        "test_file_1": pd.DataFrame({"test_key": ["test_value"]})
-                    },
-                    dataset_name="test_file_1",
-                    dataset_obj=example_config_with_custom_transform["neuropath_corr"],
-                )
-                assert df_transformed.equals(transformed_df)
 
     def test_process_dataset_upload_false_gx_not_specified(self, syn: Any):
         process.process_dataset(
