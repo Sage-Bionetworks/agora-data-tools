@@ -177,6 +177,11 @@ class TestApplyCustomTransformations:
                 pytest.raises(AttributeError),
             ),
         ],
+        ids=[
+            "invalid_custom_transformations_with_special_params",
+            "invalid_custom_transformations_with_standard_params",
+            "invalid_type",
+        ],
     )
     def test_apply_invalid_custom_transformations(
         self,
@@ -272,6 +277,10 @@ class TestApplyCustomTransformations:
                 does_not_raise(),
                 pd.DataFrame({"test_key": ["test_value"], "new_key": [1]}),
             ),
+        ],
+        ids=[
+            "valid_custom_transformations_standard_params",
+            "valid_custom_transformations_special_params",
         ],
     )
     def test_apply_valid_custom_transformations(
