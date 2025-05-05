@@ -127,6 +127,7 @@ class TestApplyCustomTransformations:
 
     @pytest.mark.parametrize(
         "example_config_with_custom_transform,expectation",
+        # Fails because mock_transform_function_false doesn't exist
         [
             (
                 {
@@ -148,6 +149,7 @@ class TestApplyCustomTransformations:
                 },
                 pytest.raises(AttributeError),
             ),
+            # Fails because mock_transform_function_false doesn't exist
             (
                 {
                     "neuropath_corr": {
@@ -163,6 +165,7 @@ class TestApplyCustomTransformations:
                 },
                 pytest.raises(AttributeError),
             ),
+            # Fails because mock_transform_function_false is mapped to an integer
             (
                 {
                     "neuropath_corr": {
@@ -238,6 +241,7 @@ class TestApplyCustomTransformations:
         "example_config_with_custom_transform, function_name, expectation, transformed_df",
         [
             (
+                # valid custom transformations with standard parameters
                 {
                     "neuropath_corr": {
                         "files": [
@@ -262,6 +266,7 @@ class TestApplyCustomTransformations:
                 ),
             ),
             (
+                # valid custom transformations with additional parameters
                 {
                     "neuropath_corr": {
                         "files": [
