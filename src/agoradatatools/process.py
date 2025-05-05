@@ -1,6 +1,7 @@
 import logging
-from typing import Optional, Union
-
+import warnings
+from typing import Optional, Union, Dict, Any
+import inspect
 import synapseclient
 from pandas import DataFrame
 from typer import Argument, Option, Typer
@@ -16,59 +17,68 @@ from agoradatatools.constants import Platform
 logger = logging.getLogger(__name__)
 
 
-# TODO refactor to avoid so many if's - maybe some sort of mapping to callables
 def apply_custom_transformations(
-    datasets: dict, dataset_name: str, dataset_obj: dict
+    datasets: Dict[str, Any],
+    dataset_name: str,
+    dataset_obj: Dict[str, Any],
 ) -> Union[DataFrame, dict, None]:
-    if not isinstance(datasets, dict) or not isinstance(dataset_name, str):
+    """Apply custom transformations to the dataset based on the provided function names and parameters.
+
+    Args:
+        datasets (dict): datasets to be transformed
+        dataset_name (str): name of the datasets
+        dataset_obj (dict): dataset object from the configuration file
+
+    Returns:
+        Union[DataFrame, dict, None]: result of transformation.
+    """
+    function_info = dataset_obj.get("custom_transformations", "")
+    if (
+        not isinstance(datasets, dict)
+        or not isinstance(dataset_name, str)
+        or not function_info
+    ):
+        if not function_info:
+            warnings.warn(
+                f"No custom transformation function provided for dataset {dataset_name}. Skipping."
+            )
         return None
-    if dataset_name == "biodomain_info":
-        return transform.transform_biodomain_info(datasets=datasets)
-    if dataset_name == "genes_biodomains":
-        return transform.transform_genes_biodomains(datasets=datasets)
-    if dataset_name == "overall_scores":
-        df = datasets["overall_scores"]
-        return transform.transform_overall_scores(df=df)
-    if dataset_name == "distribution_data":
-        return transform.transform_distribution_data(
-            datasets=datasets,
-            overall_max_score=dataset_obj["custom_transformations"][
-                "overall_max_score"
-            ],
-            genetics_max_score=dataset_obj["custom_transformations"][
-                "genetics_max_score"
-            ],
-            omics_max_score=dataset_obj["custom_transformations"]["omics_max_score"],
-        )
-    if dataset_name == "team_info":
-        return transform.transform_team_info(datasets=datasets)
-    if dataset_name == "rnaseq_differential_expression":
-        return transform.transform_rnaseq_differential_expression(datasets=datasets)
-    if dataset_name == "gene_info":
-        return transform.transform_gene_info(
-            datasets=datasets,
-            adjusted_p_value_threshold=dataset_obj["custom_transformations"][
-                "adjusted_p_value_threshold"
-            ],
-            protein_level_threshold=dataset_obj["custom_transformations"][
-                "protein_level_threshold"
-            ],
-        )
-    if dataset_name == "rna_distribution_data":
-        return transform.transform_rna_distribution_data(datasets=datasets)
-    if dataset_name == "proteomics_distribution_data":
-        return transform.transform_proteomics_distribution_data(datasets=datasets)
-    if dataset_name in ["proteomics", "proteomics_tmt", "proteomics_srm"]:
-        df = datasets[dataset_name]
-        return transform.transform_proteomics(df=df)
-    if dataset_name in ["biomarkers", "pathology"]:
-        return transform.immunohisto_transform(
-            datasets=datasets, dataset_name=dataset_name
-        )
-    if dataset_name == "model_details":
-        return transform.transform_model_details(datasets=datasets)
+    if isinstance(function_info, str):
+        function_name = function_info
+        config_defined_params = {}
     else:
-        return None
+        # Retrieve the function name and its parameters
+        # Assumes a single function in the dictionary
+        if not isinstance(function_info, dict):
+            raise TypeError(
+                f"Custom transformation in the config for dataset '{dataset_name}' should be mapped to a function name "
+                f"with custom parameters if needed. Received: {type(function_info).__name__}."
+            )
+        if len(function_info.items()) != 1:
+            warnings.warn(
+                "Please provide a single custom transformation function in the configuration file. Only the first function will be used if multiple are provided."
+            )
+        function_name, config_defined_params = next(iter(function_info.items()))
+    if not hasattr(transform, function_name):
+        raise AttributeError(
+            f"Function {function_name} not found in the transform module. Please provide the correct function name."
+        )
+
+    retrieved_function = getattr(transform, function_name)
+    function_params = inspect.signature(retrieved_function).parameters
+
+    standard_params = {
+        "df": datasets.get(dataset_name, DataFrame()),
+        "datasets": datasets,
+        "dataset_name": dataset_name,
+    }
+    new_standard_params = {
+        k: v for k, v in standard_params.items() if k in function_params
+    }
+
+    # Holds all the parameters to be passed to the transformation function
+    combined_params = {**new_standard_params, **config_defined_params}
+    return retrieved_function(**combined_params)
 
 
 def upload_dataversion_metadata(
@@ -416,7 +426,16 @@ def process(
     run_id: str = run_id_opt,
     upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
-):
+) -> None:
+    """Process the configuration file and execute the data processing pipeline based on options.
+
+    Args:
+        config_path (str): Path to the configuration file for the processing run.
+        platform (str): Platform that is running the process. Must be one of LOCAL, GITHUB, or NEXTFLOW.
+        run_id (str): Run ID of the process. Used to identify the run in the GX table.
+        upload (bool): Boolean value to toggle whether files will be uploaded to Synapse.
+        auth_token (str): Synapse authentication token. Defaults to environment variable SYNAPSE_AUTH_TOKEN.
+    """
     syn = utils._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
     process_all_files(

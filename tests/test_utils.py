@@ -39,6 +39,13 @@ def test_get_config_with_invalid_file_path():
         utils._get_config(config_path="this/is/a/bad/path")
 
 
+def test_get_config_invalid_config_file():
+    with pytest.raises(
+        ValueError, match="YAML file must be loaded as a single dictionary. *"
+    ):
+        utils._get_config(config_path="./tests/test_assets/bad_invalid_config.yaml")
+
+
 def test_get_config_with_parser_error():
     with pytest.raises(
         yaml.parser.ParserError, match="YAML file unable to be parsed. *"

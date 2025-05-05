@@ -50,7 +50,7 @@ datasets:
   - biodomain_info:
       files: *genes_biodomains_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_biodomain_info
       provenance: *genes_biodomains_provenance
       column_rename:
         biodomain: name
@@ -60,7 +60,7 @@ datasets:
   - genes_biodomains:
       files: *genes_biodomains_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_genes_biodomains
       provenance: *genes_biodomains_provenance
       column_rename:
         ensembl_id: ensembl_gene_id
@@ -90,7 +90,7 @@ datasets:
   - proteomics:
       files: *agora_proteomics_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_proteomics
       provenance: *agora_proteomics_provenance
       column_rename:
         genename: hgnc_symbol
@@ -101,7 +101,7 @@ datasets:
   - proteomics_tmt:
       files: *agora_proteomics_tmt_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_proteomics
       provenance: *agora_proteomics_tmt_provenance
       column_rename:
         genename: hgnc_symbol
@@ -112,7 +112,7 @@ datasets:
   - proteomics_srm:
       files: *agora_proteomics_srm_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_proteomics
       provenance: *agora_proteomics_srm_provenance
       column_rename:
         genename: hgnc_symbol
@@ -175,8 +175,9 @@ datasets:
           format: csv
       final_format: json
       custom_transformations:
-        adjusted_p_value_threshold: 0.05
-        protein_level_threshold: 0.05
+        transform_gene_info:
+          adjusted_p_value_threshold: 0.05
+          protein_level_threshold: 0.05
       column_rename:
         ensg: ensembl_gene_id
         ensembl_id: ensembl_gene_id
@@ -225,7 +226,7 @@ datasets:
           id: syn12615633.20
           format: csv
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_team_info
       provenance:
         - syn12615624.18
         - syn12615633.20
@@ -237,7 +238,7 @@ datasets:
   - overall_scores:
       files: *overall_scores_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_overall_scores
       column_rename:
         genename: hgnc_gene_id
       provenance: *overall_scores_provenance
@@ -271,7 +272,7 @@ datasets:
   - rnaseq_differential_expression:
       files: *rna_diff_expr_data_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_rnaseq_differential_expression
       provenance: *rna_diff_expr_data_provenance
       destination: *dest
       gx_enabled: true
@@ -280,9 +281,10 @@ datasets:
       files: *overall_scores_files
       final_format: json
       custom_transformations:
-        overall_max_score: 5
-        genetics_max_score: 3
-        omics_max_score: 2
+        transform_distribution_data:
+            overall_max_score: 5
+            genetics_max_score: 3
+            omics_max_score: 2
       provenance: *overall_scores_provenance
       column_rename:
         overall: target_risk_score
@@ -298,7 +300,7 @@ datasets:
   - rna_distribution_data:
       files: *rna_diff_expr_data_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_rna_distribution_data
       provenance: *rna_diff_expr_data_provenance
       destination: *dest
       gx_enabled: true
@@ -309,7 +311,7 @@ datasets:
         - <<: *agora_proteomics_tmt_files
         - <<: *agora_proteomics_srm_files
       final_format: json
-      custom_transformations: 1
+      custom_transformations: transform_proteomics_distribution_data
       provenance:
         - *agora_proteomics_provenance
         - *agora_proteomics_tmt_provenance

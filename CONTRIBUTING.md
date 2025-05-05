@@ -165,7 +165,18 @@ This package has a `src/agoradatatools/etl/transform` submodule. This folder hou
 
 1. Create new script in the transform submodule that matches the dataset name and name the function `transform_...`. For example, if you have a dataset named `genome_variants`, your new script would be `src/agoradatatools/etl/transform/transform_genome_variants.py`.
 1. Register the new transform function in `src/agoradatatools/etl/transform/__init__.py`. Look in that file for examples.
-1. Modify the `apply_custom_transformations` in `src/agoradatatools/process.py` to include your new transform.
+1. Add your transform function in `test_config.yaml` and `config.yaml`. As an example, the block here means that `transform_team_info` function will be applied to team_info dataset:
+```
+  - team_info:
+      files:
+        - name: team_member_info
+          id: syn12615633.20
+          format: csv
+      final_format: json
+      custom_transformations: transform_team_info
+```
+Note: **Only one custom transform per dataset is supported at this time**
+
 1. Write a test for the transform:
    - For transform tests, we are using a [Data-Driven Testing](https://www.develer.com/en/blog/data-driven-testing-with-python/) strategy
    - To contribute new tests, assets in the form of input and output data files are needed.

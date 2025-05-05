@@ -1,0 +1,7 @@
+- destination: &dest syn12345678
+- datasets:
+    - rnaseq_test_expression:
+        files:
+          - name: diff_exp_data
+            id: syn1234
+            format: tsv
