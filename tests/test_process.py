@@ -126,7 +126,7 @@ class TestApplyCustomTransformations:
         return _mock_transform_with_args
 
     @pytest.mark.parametrize(
-        "example_config_with_custom_transform,expectation",
+        "example_config_with_custom_transform,expected_error",
         # Fails because mock_transform_function_false doesn't exist
         [
             (
@@ -147,7 +147,7 @@ class TestApplyCustomTransformations:
                         },
                     }
                 },
-                pytest.raises(AttributeError),
+                pytest.raises(AttributeError, match="mock_transform_function_false"),
             ),
             # Fails because mock_transform_function_false doesn't exist
             (
@@ -163,9 +163,9 @@ class TestApplyCustomTransformations:
                         "custom_transformations": "mock_transform_function_false",
                     },
                 },
-                pytest.raises(AttributeError),
+                pytest.raises(AttributeError, match="mock_transform_function_false"),
             ),
-            # Fails because mock_transform_function_false is mapped to an integer
+            # Fails because custom_transformation is mapped to an integer, not a function
             (
                 {
                     "neuropath_corr": {
@@ -179,7 +179,10 @@ class TestApplyCustomTransformations:
                         "custom_transformations": 1,
                     },
                 },
-                pytest.raises(AttributeError),
+                pytest.raises(
+                    TypeError,
+                    match="Custom transformation in the config for dataset 'neuropath_corr' should be mapped to a function name with custom parameters if needed. Received: int",
+                ),
             ),
         ],
         ids=[
@@ -191,10 +194,10 @@ class TestApplyCustomTransformations:
     def test_apply_invalid_custom_transformations(
         self,
         example_config_with_custom_transform: Dict[str, Any],
-        expectation: Exception,
+        expected_error: Exception,
     ) -> None:
         """Test that invalid custom transformations raise an error."""
-        with expectation:
+        with expected_error:
             process.apply_custom_transformations(
                 datasets={"test_file_1": pd.DataFrame()},
                 dataset_name="neuropath_corr",
@@ -224,7 +227,10 @@ class TestApplyCustomTransformations:
                 },
             },
         }
-        with pytest.warns(UserWarning):
+        with pytest.warns(
+            UserWarning,
+            match="Please provide a single custom transformation function in the configuration file. * ",
+        ):
             with patch.object(
                 transform,
                 "special_transform_function",

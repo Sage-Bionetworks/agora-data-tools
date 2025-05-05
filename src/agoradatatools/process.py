@@ -48,7 +48,12 @@ def apply_custom_transformations(
         config_defined_params = {}
     else:
         # Retrieve the function name and its parameters
-        # Assumes a single function in the dict
+        # Assumes a single function in the dictionary
+        if not isinstance(function_info, dict):
+            raise TypeError(
+                f"Custom transformation in the config for dataset '{dataset_name}' should be mapped to a function name "
+                f"with custom parameters if needed. Received: {type(function_info).__name__}."
+            )
         if len(function_info.items()) != 1:
             warnings.warn(
                 "Please provide a single custom transformation function in the configuration file. Only the first function will be used if multiple are provided."
@@ -67,7 +72,6 @@ def apply_custom_transformations(
         "datasets": datasets,
         "dataset_name": dataset_name,
     }
-    function_params = inspect.signature(retrieved_function).parameters
     new_standard_params = {
         k: v for k, v in standard_params.items() if k in function_params
     }
