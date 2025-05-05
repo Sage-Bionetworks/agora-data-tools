@@ -92,27 +92,34 @@ class TestUploadDataversionMetadata:
 
 
 class TestApplyCustomTransformations:
+    """Test the apply_custom_transformations function."""
+
     @pytest.fixture(scope="function", autouse=True)
-    def standard_transform_function(self):
-        """mock simple transform function"""
+    def standard_transform_function(
+        self,
+    ) -> Callable[[pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame]:
+        """mock simple transform function that uses standard parameters such as dataframe, dataset_name, datasets"""
 
         def _standard_transform_function(
             df: pd.DataFrame, dataset_name: str, datasets: Dict[str, pd.DataFrame]
         ) -> pd.DataFrame:
             """mock simple transform function"""
-            return df.assign(test_col=2)
+            datasets["new_key"] = 2
+            return df.assign(test_col=2, new_key=dataset_name + "_new_key")
 
         return _standard_transform_function
 
     @pytest.fixture(scope="function", autouse=True)
-    def special_transform_function(self):
-        """mock transform function that takes test_threshold as an argument"""
+    def special_transform_function(
+        self,
+    ) -> Callable[[pd.DataFrame, int, Dict[str, pd.DataFrame]], pd.DataFrame]:
+        """mock transform function that uses additional parameters"""
 
         def _mock_transform_with_args(
             df: pd.DataFrame, test_threshold: int
         ) -> pd.DataFrame:
             """mock transform function that takes test_threshold as an argument"""
-            return df.assign(new_key=1)
+            return df.assign(new_key=1, anoter_new_key=test_threshold)
 
         return _mock_transform_with_args
 
@@ -238,7 +245,13 @@ class TestApplyCustomTransformations:
                 },
                 "standard_transform_function",
                 does_not_raise(),
-                pd.DataFrame({"test_key": ["test_value"], "test_col": [2]}),
+                pd.DataFrame(
+                    {
+                        "test_key": ["test_value"],
+                        "test_col": [2],
+                        "new_key": "test_file_1_new_key",
+                    }
+                ),
             ),
             (
                 {
@@ -257,7 +270,9 @@ class TestApplyCustomTransformations:
                 },
                 "special_transform_function",
                 does_not_raise(),
-                pd.DataFrame({"test_key": ["test_value"], "new_key": [1]}),
+                pd.DataFrame(
+                    {"test_key": ["test_value"], "new_key": [1], "anoter_new_key": 1}
+                ),
             ),
         ],
     )
