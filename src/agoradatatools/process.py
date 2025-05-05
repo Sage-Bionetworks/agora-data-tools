@@ -54,12 +54,12 @@ def apply_custom_transformations(
                 "Please provide a single custom transformation function in the configuration file. Only the first function will be used if multiple are provided."
             )
         function_name, config_defined_params = next(iter(function_info.items()))
-    try:
-        retrieved_function = getattr(transform, function_name)
-    except AttributeError:
+    if not hasattr(transform, function_name):
         raise AttributeError(
             f"Function {function_name} not found in the transform module. Please provide the correct function name."
         )
+    
+    retrieved_function = getattr(transform, function_name)
     sig = inspect.signature(retrieved_function)
     parameters = {}
     # Map known inputs
