@@ -29,7 +29,6 @@ jobs:
     strategy:
       matrix:
         python-version:
-          # Support for Python 3.10 and 3.11 is temproarily disabled
           - "3.10"
           - "3.11"
     steps:
