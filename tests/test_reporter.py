@@ -63,11 +63,9 @@ class TestADTGXReporter:
 
     @patch(f"{agoradatatools.reporter.__name__}.datetime", wraps=datetime)
     def test_update_reports_before_upload(self, mock_datetime):
-        # Create a mock for the return value of datetime.now()
         mock_now = Mock()
         mock_now.strftime.return_value = "test_timestamp"
-        mock_datetime.datetime.now.return_value = mock_now
-        # mock_datetime.datetime.now.return_value.strftime.return_value = "test_timestamp"
+        mock_datetime.datetime.now.return_value = mock_now  #
 
         self.test_reporter.reports = [self.test_report]
         self.test_reporter._update_reports_before_upload()
