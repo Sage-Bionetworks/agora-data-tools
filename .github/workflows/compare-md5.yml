@@ -9,6 +9,11 @@ on:
             description: 'Branch to run workflow on'
             required: true
             default: 'dev'
+
+  # TEMPORARY: Automatic trigger on push to my feature branch. TEMPORARY
+  push:
+    branches:
+      - ag-1092
 jobs:
   compare-md5:
     env:
