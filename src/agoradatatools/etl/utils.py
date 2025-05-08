@@ -1,4 +1,4 @@
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, List
 
 import numpy as np
 import pandas as pd
@@ -220,3 +220,50 @@ def calculate_distribution(
     df.drop("IQR", axis=1, inplace=True)
 
     return df
+
+
+def check_required_datasets(
+    datasets: Dict[str, pd.DataFrame], required_datasets: List[str]
+) -> None:
+    """
+    Check if all required datasets are present in the input dictionary.
+
+    Args:
+        datasets (Dict[str, pd.DataFrame]): Dictionary containing dataset names as keys and their corresponding pandas DataFrames as values.
+        required_datasets (List[str]): List of required dataset names.
+
+    Raises:
+        ValueError: If any required dataset is missing.
+    """
+    missing_datasets = [
+        dataset for dataset in required_datasets if dataset not in datasets
+    ]
+    if missing_datasets:
+        raise ValueError(
+            f"Missing required datasets: {', '.join(missing_datasets)}. "
+            "Please ensure all required datasets are provided {required_datasets}"
+        )
+
+
+def check_required_columns(
+    datasets: Dict[str, pd.DataFrame], required_columns: Dict[str, List[str]]
+) -> None:
+    """
+    Check if all required columns are present in the input dictionary.
+
+    Args:
+        datasets (Dict[str, pd.DataFrame]): Dictionary containing dataset names as keys and their corresponding pandas DataFrames as values.
+        required_columns (Dict[str, List[str]]): Dictionary containing dataset names as keys and their corresponding required columns as values.
+
+    Raises:
+        ValueError: If any required columns are missing.
+    """
+    for dataset_name, columns in required_columns.items():
+        missing_columns = [
+            col for col in columns if col not in datasets[dataset_name].columns
+        ]
+        if missing_columns:
+            raise ValueError(
+                f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
+                f"Please ensure the {dataset_name} dataset contains all required columns: {', '.join(columns)}."
+            )

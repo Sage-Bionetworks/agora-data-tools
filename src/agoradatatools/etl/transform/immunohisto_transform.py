@@ -6,6 +6,8 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Dict, List
 
+from utils import check_required_columns, check_required_datasets
+
 
 def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
@@ -29,17 +31,11 @@ def immunohisto_transform(
     Returns:
         pd.DataFrame: A DataFrame grouped by the group_columns.
     """
-    dataset = datasets[dataset_name]
+    check_required_datasets(datasets, [dataset_name])
+    check_required_columns(datasets, {dataset_name: group_columns + extra_columns})
 
-    missing_columns = [
-        col for col in group_columns + extra_columns if col not in dataset.columns
-    ]
-    if missing_columns:
-        raise ValueError(
-            f"{dataset_name} dataset missing columns: {', '.join(missing_columns)}"
-        )
+    dataset = datasets[dataset_name].fillna("none")
 
-    dataset = dataset.fillna("none")
     data_rows = []
 
     grouped = dataset.groupby(group_columns)
