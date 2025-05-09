@@ -377,3 +377,41 @@ class TestCalculateDistribution:
             df=self.df, grouping=["col_1", "col_2"], distribution_column="col_3"
         )
         assert output_df.equals(expected_df)
+
+
+def test_check_required_datasets_and_columns_all_present():
+    datasets = {
+        "foo": pd.DataFrame({"a": [1], "b": [2]}),
+        "bar": pd.DataFrame({"x": [3], "y": [4]}),
+    }
+    required_input = {
+        "foo": ["a", "b"],
+        "bar": ["x", "y"],
+    }
+    # Should not raise
+    utils.check_required_datasets_and_columns(datasets, required_input)
+
+
+def test_check_required_datasets_and_columns_missing_dataset():
+    datasets = {
+        "foo": pd.DataFrame({"a": [1], "b": [2]}),
+    }
+    required_input = {
+        "foo": ["a", "b"],
+        "bar": ["x", "y"],
+    }
+    with pytest.raises(ValueError, match="Missing required datasets: bar"):
+        utils.check_required_datasets_and_columns(datasets, required_input)
+
+
+def test_check_required_datasets_and_columns_missing_column():
+    datasets = {
+        "foo": pd.DataFrame({"a": [1]}),
+        "bar": pd.DataFrame({"x": [3], "y": [4]}),
+    }
+    required_input = {
+        "foo": ["a", "b"],
+        "bar": ["x", "y"],
+    }
+    with pytest.raises(ValueError, match="Missing required columns in foo dataset: b"):
+        utils.check_required_datasets_and_columns(datasets, required_input)
