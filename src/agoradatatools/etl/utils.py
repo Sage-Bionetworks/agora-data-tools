@@ -222,21 +222,22 @@ def calculate_distribution(
     return df
 
 
-def check_required_datasets(
-    datasets: Dict[str, pd.DataFrame], required_datasets: List[str]
+def check_required_datasets_and_columns(
+    datasets: Dict[str, pd.DataFrame], required_input: Dict[str, List[str]]
 ) -> None:
     """
-    Check if all required datasets are present in the input dictionary.
+    Check if all required datasets and columns are present in the input dictionary.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary containing dataset names as keys and their corresponding pandas DataFrames as values.
-        required_datasets (List[str]): List of required dataset names.
+        required_input (Dict[str, List[str]]): Dictionary containing dataset names as keys and their corresponding required columns as values.
 
     Raises:
-        ValueError: If any required dataset is missing.
+        ValueError: If any required columns are missing.
     """
+    # Check for missing datasets
     missing_datasets = [
-        dataset for dataset in required_datasets if dataset not in datasets
+        dataset for dataset in required_input.keys if dataset not in datasets
     ]
     if missing_datasets:
         raise ValueError(
@@ -244,21 +245,8 @@ def check_required_datasets(
             "Please ensure all required datasets are provided {required_datasets}"
         )
 
-
-def check_required_columns(
-    datasets: Dict[str, pd.DataFrame], required_columns: Dict[str, List[str]]
-) -> None:
-    """
-    Check if all required columns are present in the input dictionary.
-
-    Args:
-        datasets (Dict[str, pd.DataFrame]): Dictionary containing dataset names as keys and their corresponding pandas DataFrames as values.
-        required_columns (Dict[str, List[str]]): Dictionary containing dataset names as keys and their corresponding required columns as values.
-
-    Raises:
-        ValueError: If any required columns are missing.
-    """
-    for dataset_name, columns in required_columns.items():
+    # Check for missing columns
+    for dataset_name, columns in required_input.items():
         missing_columns = [
             col for col in columns if col not in datasets[dataset_name].columns
         ]

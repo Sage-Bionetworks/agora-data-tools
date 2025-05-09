@@ -7,7 +7,7 @@ import pandas as pd
 from typing import Dict, List, Any
 import re
 
-from agoradatatools.etl.utils import check_required_datasets, check_required_columns
+from agoradatatools.etl.utils import check_required_datasets_and_columns
 
 REQUIRED_INPUT = {
     "disease_correlation_results": [
@@ -38,19 +38,19 @@ def transform_disease_correlation(
     """
     Transforms the disease correlation source files into the nested structure required for Model AD Explorer.
     """
-    check_required_datasets(datasets, required_input.keys)
-    check_required_columns(datasets, required_input)
+    check_required_datasets_and_columns(datasets, required_input)
 
-    # Load and prepare datasets
+    # Load datasets and prepare lookups if necessary
     disease_correlation_df = datasets["disease_correlation_results"].fillna("")
-    model_info_df = datasets["model_info"].fillna("")
-    model_allele_info_df = datasets["model_allele_info"].fillna("")
-
-    # Prepare a lookup for model details
-    model_info_lookup = model_info_df.set_index("model").to_dict(orient="index")
-    # Prepare a lookup for modified genes per model
+    model_info_lookup = (
+        datasets["model_info"].fillna("").set_index("model").to_dict(orient="index")
+    )
     model_allele_lookup = (
-        model_allele_info_df.groupby("model")["gene"].apply(list).to_dict()
+        datasets["model_allele_info"]
+        .fillna("")
+        .groupby("model")["gene"]
+        .apply(list)
+        .to_dict()
     )
 
     # Group by all static fields and nest results by module

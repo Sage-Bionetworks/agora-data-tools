@@ -5,7 +5,7 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Any, Dict, List
 
-from agoradatatools.etl.utils import check_required_datasets, check_required_columns
+from agoradatatools.etl.utils import check_required_datasets_and_columns
 
 
 REQUIRED_INPUT = required_input = {
@@ -180,8 +180,7 @@ def transform_model_details(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets(datasets, required_input.keys)
-    check_required_columns(datasets, required_input)
+    check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")

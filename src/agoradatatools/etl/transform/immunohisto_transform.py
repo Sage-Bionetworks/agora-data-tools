@@ -6,7 +6,7 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Dict, List
 
-from utils import check_required_columns, check_required_datasets
+from utils import check_required_datasets_and_columns
 
 
 def immunohisto_transform(
@@ -31,8 +31,9 @@ def immunohisto_transform(
     Returns:
         pd.DataFrame: A DataFrame grouped by the group_columns.
     """
-    check_required_datasets(datasets, [dataset_name])
-    check_required_columns(datasets, {dataset_name: group_columns + extra_columns})
+    check_required_datasets_and_columns(
+        datasets, {dataset_name: group_columns + extra_columns}
+    )
 
     dataset = datasets[dataset_name].fillna("none")
 
