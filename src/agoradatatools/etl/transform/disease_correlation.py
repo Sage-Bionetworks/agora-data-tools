@@ -36,8 +36,41 @@ def transform_disease_correlation(
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
-    Transforms the disease correlation source files into the nested structure required for Model AD Explorer.
+    Transforms the disease correlation source files into a structured format for Model AD.
+
+    Source Files: disease_correlation_results (syn61378590), model_info (syn61357279),
+    allele_info (syn61250724)
+
+    Expected Transformations:
+        1. Groups data by Mouse Model, Cluster, Age and Sex
+        2. For each group:
+            - Gets model info from model_info lookup (matched controls, model type)
+            - Strips color suffixes from Module names (e.g. IFGyellow -> IFG)
+            - Nests correlation results by module
+        3. Converts correlation and p-value strings to floats where possible
+
+    Args:
+        datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
+        required_input (Dict[str, List[str]], optional): Dictionary specifying required columns
+            for each input dataset. Defaults to REQUIRED_INPUT.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries containing the transformed data with the
+            following structure:
+            {
+                "model": str,
+                "matched_control": str,
+                "model_type": str,
+                "cluster": str,
+                "age": str,
+                "sex": str,
+                "results": List[Dict] containing module, correlation and adj_p_val
+            }
+
+    Raises:
+        ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
+
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
@@ -59,13 +92,13 @@ def transform_disease_correlation(
     for (model, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
         # Get static model info
         model_info = model_info_lookup.get(model, {})
-        # If matched_controls is a list, get the first
+        # If matched_controls is a list, get the first element
         mc = model_info.get("matched_controls", "")
         matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
         # Prepare results for all modules in this group
         results = []
         for _, row in group.iterrows():
-            # Strip the ‘color’ suffixes from Module, e.g. IFGyellow -> IFG
+            # Strip the ‘color’ suffixes from Module (e.g. IFGyellow -> IFG)
             module = (
                 re.match(r"^[A-Z]+", row["Module"]).group(0)
                 if re.match(r"^[A-Z]+", row["Module"])
