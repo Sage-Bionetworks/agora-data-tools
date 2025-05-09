@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 from agoradatatools.etl.utils import check_required_datasets, check_required_columns
 
 
-REQUIRED_COLUMNS = required_columns = {
+REQUIRED_INPUT = required_input = {
     "allele_info": [
         "model",
         "gene",
@@ -152,14 +152,7 @@ def process_genetic_info(
 
 def transform_model_details(
     datasets: Dict[str, pd.DataFrame],
-    required_datasets: List[str] = [
-        "model_info",
-        "allele_info",
-        "human_transgene_allele_map",
-        "biomarkers",
-        "pathology",
-    ],
-    required_columns: Dict[str, List[str]] = REQUIRED_COLUMNS,
+    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
     Transforms the model_details souce files into a structured format for Model AD.
@@ -187,8 +180,8 @@ def transform_model_details(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets(datasets, required_datasets)
-    check_required_columns(datasets, required_columns)
+    check_required_datasets(datasets, required_input.keys)
+    check_required_columns(datasets, required_input)
 
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")

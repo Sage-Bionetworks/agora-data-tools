@@ -64,3 +64,22 @@ datasets:
       column_rename:
         gene_symbol: gene
         ensembl_id: human_ensembl_id
+
+  - disease_correlation:
+      files:
+        - name: disease_correlation_results
+          id: syn65467849
+          format: csv
+        - name: model_info
+          id: syn61378590
+          format: csv
+        - name: allele_info
+          id: syn64618791
+          format: csv
+      final_format: json
+      provenance:
+        - syn65467849
+        - syn61378590
+        - syn64618791
+      destination: *dest
+      custom_transformations: transform_disease_correlation
