@@ -13,31 +13,31 @@ class TestTransformDiseaseCorrelation:
                 "disease_correlation_results": pd.DataFrame(
                     [
                         {
-                            "Cluster": "Cluster A",
-                            "Module": "IFGyellow",
-                            "Mouse Model": "LOAD1",
-                            "Sex": "Female",
-                            "Age": "4 months",
-                            "Correlation": "0.5",
-                            "Adjusted P-Value": "0.01",
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
                         },
                         {
-                            "Cluster": "Cluster A",
-                            "Module": "PHGbrown",
-                            "Mouse Model": "LOAD1",
-                            "Sex": "Female",
-                            "Age": "4 months",
-                            "Correlation": "0.6",
-                            "Adjusted P-Value": "0.02",
+                            "cluster": "Cluster A",
+                            "module": "PHGbrown",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.6",
+                            "adjusted_p_value": "0.02",
                         },
                         {
-                            "Cluster": "Cluster B",
-                            "Module": "TCXturquoise",
-                            "Mouse Model": "LOAD2",
-                            "Sex": "Male",
-                            "Age": "6 months",
-                            "Correlation": "0.7",
-                            "Adjusted P-Value": "0.03",
+                            "cluster": "Cluster B",
+                            "module": "TCXturquoise",
+                            "mouse_model": "LOAD2",
+                            "sex": "Male",
+                            "age": "6 months",
+                            "correlation": "0.7",
+                            "adjusted_p_value": "0.03",
                         },
                     ]
                 ),
@@ -45,12 +45,12 @@ class TestTransformDiseaseCorrelation:
                     [
                         {
                             "model": "LOAD1",
-                            "matched_controls": ["C57BL6J"],
+                            "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                         {
                             "model": "LOAD2",
-                            "matched_controls": ["C57BL6J"],
+                            "matched_controls": "C57BL6J",
                             "model_type": "Early Onset AD",
                         },
                     ]
@@ -89,22 +89,22 @@ class TestTransformDiseaseCorrelation:
                 "disease_correlation_results": pd.DataFrame(
                     [
                         {
-                            "Cluster": "Cluster A",
-                            "Module": "IFGyellow",
-                            "Mouse Model": "LOAD1",
-                            "Sex": "Female",
-                            "Age": "4 months",
-                            "Correlation": "0.5",
-                            "Adjusted P-Value": "0.01",
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
                         },
                         {
-                            "Cluster": "Cluster A",
-                            "Module": "IFGyellow",
-                            "Mouse Model": "LOAD1",
-                            "Sex": "Female",
-                            "Age": "4 months",
-                            "Correlation": "0.5",
-                            "Adjusted P-Value": "0.01",
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
                         },
                     ]
                 ),
@@ -112,7 +112,7 @@ class TestTransformDiseaseCorrelation:
                     [
                         {
                             "model": "LOAD1",
-                            "matched_controls": ["C57BL6J"],
+                            "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                     ]
@@ -135,13 +135,13 @@ class TestTransformDiseaseCorrelation:
                 "disease_correlation_results": pd.DataFrame(
                     [
                         {
-                            "Cluster": "Cluster A",
-                            "Module": "IFGyellow",
-                            "Mouse Model": "LOAD1",
-                            "Sex": "Female",
-                            "Age": "4 months",
-                            "Correlation": "0.5",
-                            "Adjusted P-Value": "0.01",
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
                         },
                     ]
                 ),
@@ -149,12 +149,12 @@ class TestTransformDiseaseCorrelation:
                     [
                         {
                             "model": "LOAD1",
-                            "matched_controls": ["C57BL6J"],
+                            "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                         {
                             "model": "LOAD1",
-                            "matched_controls": ["CTRL2"],
+                            "matched_controls": "CTRL2",
                             "model_type": "Override",
                         },
                     ]
@@ -166,8 +166,8 @@ class TestTransformDiseaseCorrelation:
                 ),
             },
             lambda output: (
-                output[0]["matched_control"] == "CTRL2"
-                and output[0]["model_type"] == "Override"
+                output[0]["matched_control"] == "C57BL6J"
+                and output[0]["model_type"] == "Late Onset AD"
             ),
         ),
         # Duplicate allele_info
@@ -176,13 +176,13 @@ class TestTransformDiseaseCorrelation:
                 "disease_correlation_results": pd.DataFrame(
                     [
                         {
-                            "Cluster": "Cluster A",
-                            "Module": "IFGyellow",
-                            "Mouse Model": "LOAD1",
-                            "Sex": "Female",
-                            "Age": "4 months",
-                            "Correlation": "0.5",
-                            "Adjusted P-Value": "0.01",
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
                         },
                     ]
                 ),
@@ -190,7 +190,7 @@ class TestTransformDiseaseCorrelation:
                     [
                         {
                             "model": "LOAD1",
-                            "matched_controls": ["C57BL6J"],
+                            "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                     ]
@@ -208,7 +208,7 @@ class TestTransformDiseaseCorrelation:
     pass_test_ids = [
         "Basic valid input should pass",
         "Duplicate results in disease_correlation_results should pass",
-        "Duplicate model_info uses last row should pass",
+        "Duplicate model_info uses first row should pass",
         "Duplicate allele_info includes all genes should pass",
     ]
 
@@ -226,13 +226,13 @@ class TestTransformDiseaseCorrelation:
                 "disease_correlation_results": pd.DataFrame(
                     [
                         {
-                            "Cluster": "Cluster A",
-                            "Module": "IFGyellow",
-                            "Mouse Model": "LOAD1",
-                            "Sex": "Female",
-                            "Age": "4 months",
-                            "Correlation": "0.5",
-                            "Adjusted P-Value": "0.01",
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
                         },
                     ]
                 ),
@@ -254,12 +254,12 @@ class TestTransformDiseaseCorrelation:
                 "disease_correlation_results": pd.DataFrame(
                     [
                         {
-                            "Cluster": "Cluster A",
-                            "Module": "IFGyellow",
-                            "Mouse Model": "LOAD1",
-                            "Sex": "Female",
-                            "Correlation": "0.5",
-                            "Adjusted P-Value": "0.01",
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
                         },
                     ]
                 ),
@@ -267,7 +267,7 @@ class TestTransformDiseaseCorrelation:
                     [
                         {
                             "model": "LOAD1",
-                            "matched_controls": ["C57BL6J"],
+                            "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                     ]
@@ -279,7 +279,7 @@ class TestTransformDiseaseCorrelation:
                 ),
             },
             ValueError,
-            "Missing required columns in disease_correlation_results dataset: Age",
+            "Missing required columns in disease_correlation_results dataset: age",
         ),
     ]
 

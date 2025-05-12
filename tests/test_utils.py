@@ -412,20 +412,19 @@ class TestCheckRequiredDatasetsAndColumns:
 
 
 class TestCreateLookup:
-    def test_create_lookup():
+    def test_create_lookup(self):
         input_dataframe = pd.DataFrame(
             [
                 {"A": "a1", "B": "b1", "C": "c1"},
                 {"A": "a1", "B": "b2", "C": "c1"},
-                {"A": "a2", "B": "b3", "C": "c2"},
+                {"A": "a1", "B": "b3", "C": "c1"},
+                {"A": "a2", "B": "b4", "C": "c2"},
             ]
         )
         group_by_col = "A"
-        expected_output = pd.DataFrame(
-            [
-                {"A": "a1", "B": ["b1", "b2"], "C": "c1"},
-                {"A": "a2", "B": "b3", "C": "c2"},
-            ]
-        )
+        expected_output = {
+            "a1": {"B": ["b1", "b2", "b3"], "C": "c1"},
+            "a2": {"B": "b4", "C": "c2"},
+        }
         output = utils.create_lookup(df=input_dataframe, group_by_col=group_by_col)
-        assert output.equals(expected_output)
+        assert output == expected_output

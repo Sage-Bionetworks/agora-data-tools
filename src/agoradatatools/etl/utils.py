@@ -257,6 +257,52 @@ def check_required_datasets_and_columns(
             )
 
 
+def flatten_list(lst: List) -> List:
+    """
+    Recursively flattens a nested list into a single list of values.
+
+    Args:
+        lst (list): A list which may contain nested lists at arbitrary depth.
+
+    Returns:
+        list: A new flattened list containing all the non-list elements from the input.
+
+    Example:
+        flatten(['A', ['B', 'C'], [['D'], 'E']])
+        ['A', 'B', 'C', 'D', 'E']
+    """
+    result = []
+    for item in lst:
+        if isinstance(item, list):
+            result.extend(flatten_list(item))
+        else:
+            result.append(item)
+    return result
+
+
+def remove_duplicates_keep_order(lst: List) -> List:
+    """
+    Remove duplicate elements from a list while preserving the original order.
+
+    Parameters:
+        seq (list): The input list from which to remove duplicates.
+
+    Returns:
+        list: A new list with duplicates removed, maintaining the order of first occurrence.
+
+    Example:
+        remove_duplicates(['a', 'b', 'c', 'b'])
+        ['a', 'b', 'c']
+    """
+    seen = set()
+    result = []
+    for item in lst:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+    return result
+
+
 def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, Any]]:
     """
     Creates a nested dictionary lookup from a pandas DataFrame, grouping by a specified column.
@@ -274,6 +320,7 @@ def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, An
         Dict[str, Dict[str, Any]]: A dictionary where each key is a unique value from the
         group-by column, and the value is another dictionary of column-value pairs.
     """
+
     lookup = {}
     for _, row in df.iterrows():
         index = row[group_by_col]
@@ -282,9 +329,7 @@ def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, An
         else:
             for k, v in lookup[index].items():
                 if not row[k] == v:
-                    if isinstance(v, list):
-                        v.append(row[k])
-                        lookup[index][k] = list(set(v))
-                    else:
-                        lookup[index][k] = [v, row[k]]
+                    lookup[index][k] = remove_duplicates_keep_order(
+                        flatten_list([lookup[index][k], row[k]])
+                    )
     return lookup

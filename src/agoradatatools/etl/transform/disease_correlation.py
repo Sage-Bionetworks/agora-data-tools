@@ -12,13 +12,13 @@ from agoradatatools.etl.utils import check_required_datasets_and_columns, create
 
 REQUIRED_INPUT = {
     "disease_correlation_results": [
-        "Cluster",
-        "Module",
-        "Mouse Model",
-        "Sex",
-        "Age",
-        "Correlation",
-        "Adjusted P-Value",
+        "cluster",
+        "module",
+        "mouse_model",
+        "sex",
+        "age",
+        "correlation",
+        "adjusted_p_value",
     ],
     "model_info": [
         "model",
@@ -43,7 +43,7 @@ def transform_disease_correlation(
     allele_info (syn61250724)
 
     Expected Transformations:
-        1. Groups data by Mouse Model, Cluster, Age and Sex
+        1. Groups data by mouse_model, Cluster, Age and Sex
         2. For each group:
             - Gets model info from model_info lookup (matched controls, model type)
             - Strips color suffixes from Module names (e.g. IFGyellow -> IFG)
@@ -60,7 +60,7 @@ def transform_disease_correlation(
             following structure:
             {
                 "model": str,
-                "matched_control": str,
+                "matched_control": str or list,
                 "model_type": str,
                 "cluster": str,
                 "age": str,
@@ -76,16 +76,22 @@ def transform_disease_correlation(
 
     # Load datasets and prepare lookups if necessary
     disease_correlation_df = datasets["disease_correlation_results"].fillna("")
+
+    # Need to split using ', ' because the 'matched_controls' column contains comma-separated lists stored as strings
     model_info_lookup = create_lookup(
-        df=datasets["model_info"].fillna(""), group_by_col="model"
+        df=datasets["model_info"]
+        .fillna("")
+        .applymap(lambda x: x.split(", ") if isinstance(x, str) and ", " in x else x),
+        group_by_col="model",
     )
+
     model_allele_lookup = create_lookup(
         df=datasets["allele_info"].fillna(""), group_by_col="model"
     )
 
     # Group by all static fields and nest results by module
     output = []
-    group_cols = ["Mouse Model", "Cluster", "Age", "Sex"]
+    group_cols = ["mouse_model", "cluster", "age", "sex"]
     for (model, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
         model_info = model_info_lookup.get(model, {})
         allele_info = model_allele_lookup.get(model, {})
@@ -97,18 +103,18 @@ def transform_disease_correlation(
         for _, row in group.iterrows():
             # Strip the ‘color’ suffixes from Module (e.g. IFGyellow -> IFG)
             module = (
-                re.match(r"^[A-Z]+", row["Module"]).group(0)
-                if re.match(r"^[A-Z]+", row["Module"])
-                else row["Module"]
+                re.match(r"^[A-Z]+", row["module"]).group(0)
+                if re.match(r"^[A-Z]+", row["module"])
+                else row["module"]
             )
             results.append(
                 {
                     "module": module,
-                    "correlation": float(row["Correlation"])
-                    if row["Correlation"] != ""
+                    "correlation": float(row["correlation"])
+                    if row["correlation"] != ""
                     else None,
-                    "adj_p_val": float(row["Adjusted P-Value"])
-                    if row["Adjusted P-Value"] != ""
+                    "adj_p_val": float(row["adjusted_p_value"])
+                    if row["adjusted_p_value"] != ""
                     else None,
                 }
             )
