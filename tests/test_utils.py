@@ -379,39 +379,53 @@ class TestCalculateDistribution:
         assert output_df.equals(expected_df)
 
 
-def test_check_required_datasets_and_columns_all_present():
-    datasets = {
-        "foo": pd.DataFrame({"a": [1], "b": [2]}),
-        "bar": pd.DataFrame({"x": [3], "y": [4]}),
-    }
+class TestCheckRequiredDatasetsAndColumns:
     required_input = {
         "foo": ["a", "b"],
         "bar": ["x", "y"],
     }
-    # Should not raise
-    utils.check_required_datasets_and_columns(datasets, required_input)
+
+    def test_check_required_datasets_and_columns_all_present(self):
+        datasets = {
+            "foo": pd.DataFrame({"a": [1], "b": [2]}),
+            "bar": pd.DataFrame({"x": [3], "y": [4]}),
+        }
+        # Should not raise
+        utils.check_required_datasets_and_columns(datasets, self.required_input)
+
+    def test_check_required_datasets_and_columns_missing_dataset(self):
+        datasets = {
+            "foo": pd.DataFrame({"a": [1], "b": [2]}),
+        }
+        with pytest.raises(ValueError, match="Missing required datasets: bar"):
+            utils.check_required_datasets_and_columns(datasets, self.required_input)
+
+    def test_check_required_datasets_and_columns_missing_column(self):
+        datasets = {
+            "foo": pd.DataFrame({"a": [1]}),
+            "bar": pd.DataFrame({"x": [3], "y": [4]}),
+        }
+        with pytest.raises(
+            ValueError, match="Missing required columns in foo dataset: b"
+        ):
+            utils.check_required_datasets_and_columns(datasets, self.required_input)
 
 
-def test_check_required_datasets_and_columns_missing_dataset():
-    datasets = {
-        "foo": pd.DataFrame({"a": [1], "b": [2]}),
-    }
-    required_input = {
-        "foo": ["a", "b"],
-        "bar": ["x", "y"],
-    }
-    with pytest.raises(ValueError, match="Missing required datasets: bar"):
-        utils.check_required_datasets_and_columns(datasets, required_input)
-
-
-def test_check_required_datasets_and_columns_missing_column():
-    datasets = {
-        "foo": pd.DataFrame({"a": [1]}),
-        "bar": pd.DataFrame({"x": [3], "y": [4]}),
-    }
-    required_input = {
-        "foo": ["a", "b"],
-        "bar": ["x", "y"],
-    }
-    with pytest.raises(ValueError, match="Missing required columns in foo dataset: b"):
-        utils.check_required_datasets_and_columns(datasets, required_input)
+class TestCreateLookup:
+    def test_create_lookup():
+        input_dataframe = pd.DataFrame(
+            [
+                {"A": "a1", "B": "b1", "C": "c1"},
+                {"A": "a1", "B": "b2", "C": "c1"},
+                {"A": "a2", "B": "b3", "C": "c2"},
+            ]
+        )
+        group_by_col = "A"
+        expected_output = pd.DataFrame(
+            [
+                {"A": "a1", "B": ["b1", "b2"], "C": "c1"},
+                {"A": "a2", "B": "b3", "C": "c2"},
+            ]
+        )
+        output = utils.create_lookup(df=input_dataframe, group_by_col=group_by_col)
+        assert output.equals(expected_output)
