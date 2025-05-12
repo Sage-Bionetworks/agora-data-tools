@@ -6,7 +6,7 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Dict, List
 
-from utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import check_required_datasets_and_columns
 
 
 def immunohisto_transform(

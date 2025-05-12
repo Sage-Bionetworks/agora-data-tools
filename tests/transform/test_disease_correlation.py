@@ -1,26 +1,67 @@
 import pytest
 import pandas as pd
-from agoradatatools.etl.transform.disease_correlation import transform_disease_correlation
+from agoradatatools.etl.transform.disease_correlation import (
+    transform_disease_correlation,
+)
+
 
 class TestTransformDiseaseCorrelation:
     pass_test_data = [
         # Basic valid input
         (
             {
-                "disease_correlation_results": pd.DataFrame([
-                    {"Cluster": "Cluster A", "Module": "IFGyellow", "Mouse Model": "LOAD1", "Sex": "Female", "Age": "4 months", "Correlation": "0.5", "Adjusted P-Value": "0.01"},
-                    {"Cluster": "Cluster A", "Module": "PHGbrown", "Mouse Model": "LOAD1", "Sex": "Female", "Age": "4 months", "Correlation": "0.6", "Adjusted P-Value": "0.02"},
-                    {"Cluster": "Cluster B", "Module": "TCXturquoise", "Mouse Model": "LOAD2", "Sex": "Male", "Age": "6 months", "Correlation": "0.7", "Adjusted P-Value": "0.03"},
-                ]),
-                "model_info": pd.DataFrame([
-                    {"model": "LOAD1", "matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"},
-                    {"model": "LOAD2", "matched_controls": ["C57BL6J"], "model_type": "Early Onset AD"},
-                ]),
-                "allele_info": pd.DataFrame([
-                    {"model": "LOAD1", "gene": "APOE4"},
-                    {"model": "LOAD1", "gene": "TREM2"},
-                    {"model": "LOAD2", "gene": "APP"},
-                ]),
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "Cluster": "Cluster A",
+                            "Module": "IFGyellow",
+                            "Mouse Model": "LOAD1",
+                            "Sex": "Female",
+                            "Age": "4 months",
+                            "Correlation": "0.5",
+                            "Adjusted P-Value": "0.01",
+                        },
+                        {
+                            "Cluster": "Cluster A",
+                            "Module": "PHGbrown",
+                            "Mouse Model": "LOAD1",
+                            "Sex": "Female",
+                            "Age": "4 months",
+                            "Correlation": "0.6",
+                            "Adjusted P-Value": "0.02",
+                        },
+                        {
+                            "Cluster": "Cluster B",
+                            "Module": "TCXturquoise",
+                            "Mouse Model": "LOAD2",
+                            "Sex": "Male",
+                            "Age": "6 months",
+                            "Correlation": "0.7",
+                            "Adjusted P-Value": "0.03",
+                        },
+                    ]
+                ),
+                "model_info": pd.DataFrame(
+                    [
+                        {
+                            "model": "LOAD1",
+                            "matched_controls": ["C57BL6J"],
+                            "model_type": "Late Onset AD",
+                        },
+                        {
+                            "model": "LOAD2",
+                            "matched_controls": ["C57BL6J"],
+                            "model_type": "Early Onset AD",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"model": "LOAD1", "gene": "APOE4"},
+                        {"model": "LOAD1", "gene": "TREM2"},
+                        {"model": "LOAD2", "gene": "APP"},
+                    ]
+                ),
             },
             lambda output: (
                 isinstance(output, list)
@@ -45,52 +86,121 @@ class TestTransformDiseaseCorrelation:
         # Duplicate results in disease_correlation_results
         (
             {
-                "disease_correlation_results": pd.DataFrame([
-                    {"Cluster": "Cluster A", "Module": "IFGyellow", "Mouse Model": "LOAD1", "Sex": "Female", "Age": "4 months", "Correlation": "0.5", "Adjusted P-Value": "0.01"},
-                    {"Cluster": "Cluster A", "Module": "IFGyellow", "Mouse Model": "LOAD1", "Sex": "Female", "Age": "4 months", "Correlation": "0.5", "Adjusted P-Value": "0.01"},
-                ]),
-                "model_info": pd.DataFrame([
-                    {"model": "LOAD1", "matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"},
-                ]),
-                "allele_info": pd.DataFrame([
-                    {"model": "LOAD1", "gene": "APOE4"},
-                ]),
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "Cluster": "Cluster A",
+                            "Module": "IFGyellow",
+                            "Mouse Model": "LOAD1",
+                            "Sex": "Female",
+                            "Age": "4 months",
+                            "Correlation": "0.5",
+                            "Adjusted P-Value": "0.01",
+                        },
+                        {
+                            "Cluster": "Cluster A",
+                            "Module": "IFGyellow",
+                            "Mouse Model": "LOAD1",
+                            "Sex": "Female",
+                            "Age": "4 months",
+                            "Correlation": "0.5",
+                            "Adjusted P-Value": "0.01",
+                        },
+                    ]
+                ),
+                "model_info": pd.DataFrame(
+                    [
+                        {
+                            "model": "LOAD1",
+                            "matched_controls": ["C57BL6J"],
+                            "model_type": "Late Onset AD",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"model": "LOAD1", "gene": "APOE4"},
+                    ]
+                ),
             },
             lambda output: (
-                len(output) == 1 and len(output[0]["results"]) == 2 and output[0]["results"][0] == output[0]["results"][1]
+                len(output) == 1
+                and len(output[0]["results"]) == 2
+                and output[0]["results"][0] == output[0]["results"][1]
             ),
         ),
         # Duplicate model_info, last one should be used
         (
             {
-                "disease_correlation_results": pd.DataFrame([
-                    {"Cluster": "Cluster A", "Module": "IFGyellow", "Mouse Model": "LOAD1", "Sex": "Female", "Age": "4 months", "Correlation": "0.5", "Adjusted P-Value": "0.01"},
-                ]),
-                "model_info": pd.DataFrame([
-                    {"model": "LOAD1", "matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"},
-                    {"model": "LOAD1", "matched_controls": ["CTRL2"], "model_type": "Override"},
-                ]),
-                "allele_info": pd.DataFrame([
-                    {"model": "LOAD1", "gene": "APOE4"},
-                ]),
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "Cluster": "Cluster A",
+                            "Module": "IFGyellow",
+                            "Mouse Model": "LOAD1",
+                            "Sex": "Female",
+                            "Age": "4 months",
+                            "Correlation": "0.5",
+                            "Adjusted P-Value": "0.01",
+                        },
+                    ]
+                ),
+                "model_info": pd.DataFrame(
+                    [
+                        {
+                            "model": "LOAD1",
+                            "matched_controls": ["C57BL6J"],
+                            "model_type": "Late Onset AD",
+                        },
+                        {
+                            "model": "LOAD1",
+                            "matched_controls": ["CTRL2"],
+                            "model_type": "Override",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"model": "LOAD1", "gene": "APOE4"},
+                    ]
+                ),
             },
             lambda output: (
-                output[0]["matched_control"] == "CTRL2" and output[0]["model_type"] == "Override"
+                output[0]["matched_control"] == "CTRL2"
+                and output[0]["model_type"] == "Override"
             ),
         ),
         # Duplicate allele_info
         (
             {
-                "disease_correlation_results": pd.DataFrame([
-                    {"Cluster": "Cluster A", "Module": "IFGyellow", "Mouse Model": "LOAD1", "Sex": "Female", "Age": "4 months", "Correlation": "0.5", "Adjusted P-Value": "0.01"},
-                ]),
-                "model_info": pd.DataFrame([
-                    {"model": "LOAD1", "matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"},
-                ]),
-                "allele_info": pd.DataFrame([
-                    {"model": "LOAD1", "gene": "APOE4"},
-                    {"model": "LOAD1", "gene": "APOE4"},
-                ]),
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "Cluster": "Cluster A",
+                            "Module": "IFGyellow",
+                            "Mouse Model": "LOAD1",
+                            "Sex": "Female",
+                            "Age": "4 months",
+                            "Correlation": "0.5",
+                            "Adjusted P-Value": "0.01",
+                        },
+                    ]
+                ),
+                "model_info": pd.DataFrame(
+                    [
+                        {
+                            "model": "LOAD1",
+                            "matched_controls": ["C57BL6J"],
+                            "model_type": "Late Onset AD",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"model": "LOAD1", "gene": "APOE4"},
+                        {"model": "LOAD1", "gene": "APOE4"},
+                    ]
+                ),
             },
             lambda output: output[0]["modified_genes"] == ["APOE4", "APOE4"],
         ),
@@ -102,7 +212,9 @@ class TestTransformDiseaseCorrelation:
         "Duplicate allele_info includes all genes should pass",
     ]
 
-    @pytest.mark.parametrize("datasets, assertion_fn", pass_test_data, ids=pass_test_ids)
+    @pytest.mark.parametrize(
+        "datasets, assertion_fn", pass_test_data, ids=pass_test_ids
+    )
     def test_transform_disease_correlation_should_pass(self, datasets, assertion_fn):
         output = transform_disease_correlation(datasets)
         assert assertion_fn(output)
@@ -111,12 +223,24 @@ class TestTransformDiseaseCorrelation:
         # Missing model_info
         (
             {
-                "disease_correlation_results": pd.DataFrame([
-                    {"Cluster": "Cluster A", "Module": "IFGyellow", "Mouse Model": "LOAD1", "Sex": "Female", "Age": "4 months", "Correlation": "0.5", "Adjusted P-Value": "0.01"},
-                ]),
-                "allele_info": pd.DataFrame([
-                    {"model": "LOAD1", "gene": "APOE4"},
-                ]),
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "Cluster": "Cluster A",
+                            "Module": "IFGyellow",
+                            "Mouse Model": "LOAD1",
+                            "Sex": "Female",
+                            "Age": "4 months",
+                            "Correlation": "0.5",
+                            "Adjusted P-Value": "0.01",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"model": "LOAD1", "gene": "APOE4"},
+                    ]
+                ),
             },
             ValueError,
             "Missing required datasets: model_info",
@@ -127,15 +251,32 @@ class TestTransformDiseaseCorrelation:
         # Missing required column in disease_correlation_results
         (
             {
-                "disease_correlation_results": pd.DataFrame([
-                    {"Cluster": "Cluster A", "Module": "IFGyellow", "Mouse Model": "LOAD1", "Sex": "Female", "Correlation": "0.5", "Adjusted P-Value": "0.01"},
-                ]),
-                "model_info": pd.DataFrame([
-                    {"model": "LOAD1", "matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"},
-                ]),
-                "allele_info": pd.DataFrame([
-                    {"model": "LOAD1", "gene": "APOE4"},
-                ]),
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "Cluster": "Cluster A",
+                            "Module": "IFGyellow",
+                            "Mouse Model": "LOAD1",
+                            "Sex": "Female",
+                            "Correlation": "0.5",
+                            "Adjusted P-Value": "0.01",
+                        },
+                    ]
+                ),
+                "model_info": pd.DataFrame(
+                    [
+                        {
+                            "model": "LOAD1",
+                            "matched_controls": ["C57BL6J"],
+                            "model_type": "Late Onset AD",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"model": "LOAD1", "gene": "APOE4"},
+                    ]
+                ),
             },
             ValueError,
             "Missing required columns in disease_correlation_results dataset: Age",
@@ -145,12 +286,24 @@ class TestTransformDiseaseCorrelation:
     dataset_error_test_ids = ["Missing model_info"]
     column_error_test_ids = ["Missing required column in disease_correlation_results"]
 
-    @pytest.mark.parametrize("datasets, error_type, error_msg", dataset_error_test_data, ids=dataset_error_test_ids)
-    def test_transform_disease_correlation_missing_dataset(self, datasets, error_type, error_msg):
+    @pytest.mark.parametrize(
+        "datasets, error_type, error_msg",
+        dataset_error_test_data,
+        ids=dataset_error_test_ids,
+    )
+    def test_transform_disease_correlation_missing_dataset(
+        self, datasets, error_type, error_msg
+    ):
         with pytest.raises(error_type, match=error_msg):
             transform_disease_correlation(datasets)
 
-    @pytest.mark.parametrize("datasets, error_type, error_msg", column_error_test_data, ids=column_error_test_ids)
-    def test_transform_disease_correlation_missing_column(self, datasets, error_type, error_msg):
+    @pytest.mark.parametrize(
+        "datasets, error_type, error_msg",
+        column_error_test_data,
+        ids=column_error_test_ids,
+    )
+    def test_transform_disease_correlation_missing_column(
+        self, datasets, error_type, error_msg
+    ):
         with pytest.raises(error_type, match=error_msg):
             transform_disease_correlation(datasets)

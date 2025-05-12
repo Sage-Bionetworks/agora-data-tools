@@ -7,7 +7,8 @@ import pandas as pd
 from typing import Dict, List, Any
 import re
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import check_required_datasets_and_columns, create_lookup
+
 
 REQUIRED_INPUT = {
     "disease_correlation_results": [
@@ -75,23 +76,19 @@ def transform_disease_correlation(
 
     # Load datasets and prepare lookups if necessary
     disease_correlation_df = datasets["disease_correlation_results"].fillna("")
-    model_info_lookup = (
-        datasets["model_info"].fillna("").set_index("model").to_dict(orient="index")
+    model_info_lookup = create_lookup(
+        df=datasets["model_info"].fillna(""), group_by_col="model"
     )
-    model_allele_lookup = (
-        datasets["model_allele_info"]
-        .fillna("")
-        .groupby("model")["gene"]
-        .apply(list)
-        .to_dict()
+    model_allele_lookup = create_lookup(
+        df=datasets["allele_info"].fillna(""), group_by_col="model"
     )
 
     # Group by all static fields and nest results by module
     output = []
     group_cols = ["Mouse Model", "Cluster", "Age", "Sex"]
     for (model, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
-        # Get static model info
         model_info = model_info_lookup.get(model, {})
+        allele_info = model_allele_lookup.get(model, {})
         # If matched_controls is a list, get the first element
         mc = model_info.get("matched_controls", "")
         matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
@@ -120,7 +117,7 @@ def transform_disease_correlation(
                 "model": model,
                 "matched_control": matched_control,
                 "model_type": model_info.get("model_type", ""),
-                "modified_genes": model_allele_lookup.get(model, []),
+                "modified_genes": allele_info.get("gene", ""),
                 "cluster": cluster,
                 "age": age,
                 "sex": sex,

@@ -237,7 +237,7 @@ def check_required_datasets_and_columns(
     """
     # Check for missing datasets
     missing_datasets = [
-        dataset for dataset in required_input.keys if dataset not in datasets
+        dataset for dataset in required_input.keys() if dataset not in datasets
     ]
     if missing_datasets:
         raise ValueError(
@@ -255,3 +255,36 @@ def check_required_datasets_and_columns(
                 f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
                 f"Please ensure the {dataset_name} dataset contains all required columns: {', '.join(columns)}."
             )
+
+
+def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Creates a nested dictionary lookup from a pandas DataFrame, grouping by a specified column.
+
+    For each unique value in the specified group-by column, constructs a dictionary of the
+    remaining columns as keys and their corresponding values. If multiple rows share the same
+    group-by value but have differing values for the same column, the conflicting values are
+    merged into a list of unique values.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame containing the data.
+        group_by_col (str): The column name to group the data by.
+
+    Returns:
+        Dict[str, Dict[str, Any]]: A dictionary where each key is a unique value from the
+        group-by column, and the value is another dictionary of column-value pairs.
+    """
+    lookup = {}
+    for _, row in df.iterrows():
+        index = row[group_by_col]
+        if index not in lookup:
+            lookup[index] = {col: row[col] for col in df.columns if col != group_by_col}
+        else:
+            for k, v in lookup[index].items():
+                if not row[k] == v:
+                    if isinstance(v, list):
+                        v.append(row[k])
+                        lookup[index][k] = list(set(v))
+                    else:
+                        lookup[index][k] = [v, row[k]]
+    return lookup
