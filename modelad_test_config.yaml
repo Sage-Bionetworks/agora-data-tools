@@ -64,3 +64,13 @@ datasets:
       column_rename:
         gene_symbol: gene
         ensembl_id: human_ensembl_id
+
+  - ui_config:
+      files:
+        - name: ui_config
+          id: syn66527739
+          format: json
+      final_format: json
+      provenance:
+        - syn66527739
+      destination: *dest
