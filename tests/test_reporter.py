@@ -1,7 +1,7 @@
 import pytest
 import datetime
 
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import agoradatatools.reporter
 
@@ -63,7 +63,9 @@ class TestADTGXReporter:
 
     @patch(f"{agoradatatools.reporter.__name__}.datetime", wraps=datetime)
     def test_update_reports_before_upload(self, mock_datetime):
-        mock_datetime.datetime.now.return_value.strftime.return_value = "test_timestamp"
+        mock_now = Mock()
+        mock_now.strftime.return_value = "test_timestamp"
+        mock_datetime.datetime.now.return_value = mock_now  #
 
         self.test_reporter.reports = [self.test_report]
         self.test_reporter._update_reports_before_upload()
