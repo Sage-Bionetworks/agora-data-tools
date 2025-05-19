@@ -428,3 +428,51 @@ class TestCreateLookup:
         }
         output = utils.create_lookup(df=input_dataframe, group_by_col=group_by_col)
         assert output == expected_output
+
+
+class TestFlattenList:
+    def test_flatten_list_empty(self):
+        assert utils.flatten_list([]) == []
+
+    def test_flatten_list_no_nesting(self):
+        input_list = [1, 2, 3, 4, 5]
+        assert utils.flatten_list(input_list) == [1, 2, 3, 4, 5]
+
+    def test_flatten_list_single_level_nesting(self):
+        input_list = [1, [2, 3], 4, [5, 6]]
+        assert utils.flatten_list(input_list) == [1, 2, 3, 4, 5, 6]
+
+    def test_flatten_list_multiple_level_nesting(self):
+        input_list = [1, [2, [3, 4]], [5, [6, [7, 8]]]]
+        assert utils.flatten_list(input_list) == [1, 2, 3, 4, 5, 6, 7, 8]
+
+    def test_flatten_list_mixed_types(self):
+        input_list = [1, ["a", [2.5, True]], [None, ["x", []]]]
+        assert utils.flatten_list(input_list) == [1, "a", 2.5, True, None, "x"]
+
+
+class TestRemoveDuplicatesKeepOrder:
+    def test_remove_duplicates_empty(self):
+        assert utils.remove_duplicates_keep_order([]) == []
+
+    def test_remove_duplicates_no_duplicates(self):
+        input_list = [1, 2, 3, 4, 5]
+        assert utils.remove_duplicates_keep_order(input_list) == [1, 2, 3, 4, 5]
+
+    def test_remove_duplicates_with_duplicates(self):
+        input_list = [1, 2, 2, 3, 4, 4, 4, 5]
+        assert utils.remove_duplicates_keep_order(input_list) == [1, 2, 3, 4, 5]
+
+    def test_remove_duplicates_mixed_types(self):
+        input_list = [2, "a", 2.5, True, "a", 2, None, True]
+        assert utils.remove_duplicates_keep_order(input_list) == [2, "a", 2.5, True, None]
+    
+    def test_remove_duplicates_mixed_types_true_1(self):
+        # Note that True and 1 are considered equal for hashing purposes
+        # Explicitly testing this so we keep track of this behavior
+        input_list = [1, "a", 2.5, True, "a", 1, None, True]
+        assert utils.remove_duplicates_keep_order(input_list) == [1, "a", 2.5, None]
+
+    def test_remove_duplicates_preserves_order(self):
+        input_list = ["a", "b", "a", "c", "b", "d"]
+        assert utils.remove_duplicates_keep_order(input_list) == ["a", "b", "c", "d"]

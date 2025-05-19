@@ -70,7 +70,7 @@ class TestTransformDiseaseCorrelation:
                     entry["model"] == "LOAD1"
                     and entry["matched_control"] == "C57BL6J"
                     and entry["model_type"] == "Late Onset AD"
-                    and set(entry["modified_genes"]) == {"APOE4", "TREM2"}
+                    and entry["modified_genes"] == ["APOE4", "TREM2"]
                     and entry["cluster"] == "Cluster A"
                     and entry["age"] == "4 months"
                     and entry["sex"] == "Female"
@@ -129,47 +129,6 @@ class TestTransformDiseaseCorrelation:
                 and output[0]["results"][0] == output[0]["results"][1]
             ),
         ),
-        # Duplicate model_info, last one should be used
-        (
-            {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
-                ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "model": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                        {
-                            "model": "LOAD1",
-                            "matched_controls": "CTRL2",
-                            "model_type": "Override",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"model": "LOAD1", "gene": "APOE4"},
-                    ]
-                ),
-            },
-            lambda output: (
-                output[0]["matched_control"] == "C57BL6J"
-                and output[0]["model_type"] == "Late Onset AD"
-            ),
-        ),
         # Duplicate allele_info
         (
             {
@@ -202,13 +161,12 @@ class TestTransformDiseaseCorrelation:
                     ]
                 ),
             },
-            lambda output: output[0]["modified_genes"] == ["APOE4", "APOE4"],
+            lambda output: output[0]["modified_genes"] == "APOE4",
         ),
     ]
     pass_test_ids = [
         "Basic valid input should pass",
         "Duplicate results in disease_correlation_results should pass",
-        "Duplicate model_info uses first row should pass",
         "Duplicate allele_info includes all genes should pass",
     ]
 
@@ -244,6 +202,45 @@ class TestTransformDiseaseCorrelation:
             },
             ValueError,
             "Missing required datasets: model_info",
+        ),
+        # Inconsistent model_info
+        (
+            {
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
+                        },
+                    ]
+                ),
+                "model_info": pd.DataFrame(
+                    [
+                        {
+                            "model": "LOAD1",
+                            "matched_controls": "C57BL6J",
+                            "model_type": "Late Onset AD",
+                        },
+                        {
+                            "model": "LOAD1",
+                            "matched_controls": "CTRL2",
+                            "model_type": "Wrong",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"model": "LOAD1", "gene": "APOE4"},
+                    ]
+                ),
+            },
+            ValueError,
+            "Model LOAD1 has inconsistent matched_controls values:",
         ),
     ]
 
@@ -283,7 +280,7 @@ class TestTransformDiseaseCorrelation:
         ),
     ]
 
-    dataset_error_test_ids = ["Missing model_info"]
+    dataset_error_test_ids = ["Missing model_info", "Inconsistent model_info"]
     column_error_test_ids = ["Missing required column in disease_correlation_results"]
 
     @pytest.mark.parametrize(
