@@ -447,6 +447,7 @@ class TestFlattenList:
         assert utils.flatten_list(input_list) == [1, 2, 3, 4, 5, 6, 7, 8]
 
     def test_flatten_list_mixed_types(self):
+        # Note that an empty list is not kept as an output element
         input_list = [1, ["a", [2.5, True]], [None, ["x", []]]]
         assert utils.flatten_list(input_list) == [1, "a", 2.5, True, None, "x"]
 
