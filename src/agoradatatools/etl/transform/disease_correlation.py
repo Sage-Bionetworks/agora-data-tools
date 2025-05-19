@@ -35,25 +35,25 @@ REQUIRED_INPUT = {
 def input_validation_model_info(df: pd.DataFrame) -> None:
     """
     Validates that each model has consistent matched_controls and model_type values.
-    
+
     Args:
-        df (pd.DataFrame): DataFrame containing model information with columns 'model', 
+        df (pd.DataFrame): DataFrame containing model information with columns 'model',
                           'matched_controls', and 'model_type'
-                          
+
     Raises:
         ValueError: If any model has inconsistent matched_controls or model_type values
     """
     # Group by model and check for consistency
-    for model, group in df.groupby('model'):
+    for model, group in df.groupby("model"):
         # Check matched_controls consistency
-        unique_matched_controls = group['matched_controls'].unique()
+        unique_matched_controls = group["matched_controls"].unique()
         if len(unique_matched_controls) > 1:
             raise ValueError(
                 f"Model {model} has inconsistent matched_controls values: {unique_matched_controls}"
             )
-            
+
         # Check model_type consistency
-        unique_model_types = group['model_type'].unique()
+        unique_model_types = group["model_type"].unique()
         if len(unique_model_types) > 1:
             raise ValueError(
                 f"Model {model} has inconsistent model_type values: {unique_model_types}"
@@ -111,7 +111,9 @@ def transform_disease_correlation(
 
     # Need to split using ', ' because the 'matched_controls' column contains comma-separated lists stored as strings
     model_info_lookup = create_lookup(
-        df=model_info_df.applymap(lambda x: x.split(", ") if isinstance(x, str) and ", " in x else x),
+        df=model_info_df.applymap(
+            lambda x: x.split(", ") if isinstance(x, str) and ", " in x else x
+        ),
         group_by_col="model",
     )
 

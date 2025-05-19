@@ -466,8 +466,14 @@ class TestRemoveDuplicatesKeepOrder:
 
     def test_remove_duplicates_mixed_types(self):
         input_list = [2, "a", 2.5, True, "a", 2, None, True]
-        assert utils.remove_duplicates_keep_order(input_list) == [2, "a", 2.5, True, None]
-    
+        assert utils.remove_duplicates_keep_order(input_list) == [
+            2,
+            "a",
+            2.5,
+            True,
+            None,
+        ]
+
     def test_remove_duplicates_mixed_types_true_1(self):
         # Note that True and 1 are considered equal for hashing purposes
         # Explicitly testing this so we keep track of this behavior
