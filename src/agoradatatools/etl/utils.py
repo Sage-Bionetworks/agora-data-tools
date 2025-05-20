@@ -328,7 +328,7 @@ def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, An
             lookup[index] = {col: row[col] for col in df.columns if col != group_by_col}
         else:
             for k, v in lookup[index].items():
-                if not row[k] == v:
+                if row[k] != v:
                     lookup[index][k] = remove_duplicates_keep_order(
                         flatten_list([lookup[index][k], row[k]])
                     )
