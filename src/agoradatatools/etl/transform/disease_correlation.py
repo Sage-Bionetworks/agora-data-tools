@@ -7,7 +7,11 @@ import pandas as pd
 from typing import Dict, List, Any
 import re
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, create_lookup
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    flatten_list,
+    remove_duplicates_keep_order,
+)
 
 
 REQUIRED_INPUT = {
@@ -30,6 +34,38 @@ REQUIRED_INPUT = {
         "gene",
     ],
 }
+
+
+def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Creates a nested dictionary lookup from a pandas DataFrame, grouping by a specified column.
+
+    For each unique value in the specified group-by column, constructs a dictionary of the
+    remaining columns as keys and their corresponding values. If multiple rows share the same
+    group-by value but have differing values for the same column, the conflicting values are
+    merged into a list of unique values.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame containing the data.
+        group_by_col (str): The column name to group the data by.
+
+    Returns:
+        Dict[str, Dict[str, Any]]: A dictionary where each key is a unique value from the
+        group-by column, and the value is another dictionary of column-value pairs.
+    """
+
+    lookup = {}
+    for _, row in df.iterrows():
+        index = row[group_by_col]
+        if index not in lookup:
+            lookup[index] = {col: row[col] for col in df.columns if col != group_by_col}
+        else:
+            for k, v in lookup[index].items():
+                if not row[k] == v:
+                    lookup[index][k] = remove_duplicates_keep_order(
+                        flatten_list([lookup[index][k], row[k]])
+                    )
+    return lookup
 
 
 def input_validation_model_info(df: pd.DataFrame) -> None:

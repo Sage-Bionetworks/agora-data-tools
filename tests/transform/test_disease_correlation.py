@@ -2,6 +2,7 @@ import pytest
 import pandas as pd
 from agoradatatools.etl.transform.disease_correlation import (
     transform_disease_correlation,
+    create_lookup,
 )
 
 
@@ -304,3 +305,22 @@ class TestTransformDiseaseCorrelation:
     ):
         with pytest.raises(error_type, match=error_msg):
             transform_disease_correlation(datasets)
+
+
+class TestCreateLookup:
+    def test_create_lookup(self):
+        input_dataframe = pd.DataFrame(
+            [
+                {"A": "a1", "B": "b1", "C": "c1"},
+                {"A": "a1", "B": "b2", "C": "c1"},
+                {"A": "a1", "B": "b3", "C": "c1"},
+                {"A": "a2", "B": "b4", "C": "c2"},
+            ]
+        )
+        group_by_col = "A"
+        expected_output = {
+            "a1": {"B": ["b1", "b2", "b3"], "C": "c1"},
+            "a2": {"B": "b4", "C": "c2"},
+        }
+        output = create_lookup(df=input_dataframe, group_by_col=group_by_col)
+        assert output == expected_output
