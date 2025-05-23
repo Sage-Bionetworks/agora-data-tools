@@ -82,21 +82,39 @@ def process_genetic_info(
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
+    # Copy dataframes to avoid modifying originals
+    model_alleles = model_alleles.copy()
+    human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
 
-    # Merge the dataframes on mgi_allele_id and gene
+    # Store original gene names
+    model_alleles["gene_original"] = model_alleles["gene"]
+
+    # Normalize gene columns to uppercase for consistent merging
+    model_alleles["gene_upper"] = model_alleles["gene"].str.upper()
+    human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
+        "gene"
+    ].str.upper()
+
+    # Merge on mgi_allele_id and gene_upper
     merged_df = model_alleles.merge(
-        human_transgene_allele_map_df[["mgi_allele_id", "gene", "human_ensembl_id"]],
-        on=["mgi_allele_id", "gene"],
+        human_transgene_allele_map_df[
+            ["mgi_allele_id", "gene_upper", "human_ensembl_id"]
+        ],
+        on=["mgi_allele_id", "gene_upper"],
         how="left",
     )
 
-    # Create the genetic info list using vectorized operations
+    # Override ensembl_id if mapping exists
     merged_df["ensembl_id"] = merged_df["human_ensembl_id"].fillna(
         merged_df["gene_ensembl_id"]
     )
+
+    # Use the original gene name for output
     return (
-        merged_df[["gene", "ensembl_id", "allele", "allele_type", "mgi_allele_id"]]
-        .rename(columns={"gene": "modified_gene"})
+        merged_df[
+            ["gene_original", "ensembl_id", "allele", "allele_type", "mgi_allele_id"]
+        ]
+        .rename(columns={"gene_original": "modified_gene"})
         .to_dict(orient="records")
     )
 

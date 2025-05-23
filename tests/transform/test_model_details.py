@@ -541,3 +541,53 @@ class TestTransformModelDetails:
 
         # Compare output with expected
         assert output == expected_output
+
+    def test_process_genetic_info_case_insensitive_mapping(self):
+        # Create test input DataFrames with different gene casing
+        human_transgene_allele_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": [1234567, 1234567],
+                "gene": ["APP", "mapt"],  # Upper and lower case in mapping
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
+            }
+        )
+
+        model_alleles = pd.DataFrame(
+            {
+                "gene": ["App", "Mapt"],  # Title case in alleles
+                "gene_ensembl_id": [
+                    "ENSMUSG00000011111",
+                    "ENSMUSG00000022222",
+                ],
+                "allele": [
+                    "APP Example Allele",
+                    "MAPT Example Allele",
+                ],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [1234567, 1234567],
+            }
+        )
+
+        # Expected output: ENSG IDs should be mapped, gene names should keep original case
+        expected_output = [
+            {
+                "modified_gene": "App",
+                "ensembl_id": "ENSG00000123456",
+                "allele": "APP Example Allele",
+                "allele_type": "Transgenic",
+                "mgi_allele_id": 1234567,
+            },
+            {
+                "modified_gene": "Mapt",
+                "ensembl_id": "ENSG00000987654",
+                "allele": "MAPT Example Allele",
+                "allele_type": "Transgenic",
+                "mgi_allele_id": 1234567,
+            },
+        ]
+
+        # Transform data
+        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+
+        # Compare output with expected
+        assert output == expected_output
