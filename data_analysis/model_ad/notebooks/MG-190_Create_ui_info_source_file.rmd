@@ -156,13 +156,30 @@ mo_static_definitions <- data.frame(
 build_mo_object <- function() {
   columns <- apply(mo_static_definitions, 1, function(row) {
     name <- row["name"]
-    metadata <- c(row["type"], row["column_type"], "", paste("Sort by", name, "value"))
-    make_column(name, metadata)
+    type <- row["type"]
+    column_type <- row["column_type"]
+
+    metadata <- c(type, column_type, "", paste("Sort by", name, "value"))
+    column <- make_column(name, metadata)
+
+    if (column$column_type %in% c("link_internal", "link_external")) {
+      if (name %in% c("Gene Expression", "Disease Correlation", "Pathology", "Biomarkers")) {
+        column$link_text <- "Results"
+      } else if (name == "Study Data") {
+        column$link_text <- "View Data"
+      } else if (name == "JAX Strain") {
+        column$link_text <- "View Strain"
+      } else if (name == "Center") {
+        # Explicitly omit link_text by not setting it
+      }
+    }
+
+    column
   })
 
   list(
     page = "Model Overview",
-    dropdowns = list(),  # no dropdowns
+    dropdowns = list(),
     columns = columns
   )
 }
