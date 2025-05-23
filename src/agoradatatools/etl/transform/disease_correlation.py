@@ -99,10 +99,10 @@ def input_validation_model_info(df: pd.DataFrame) -> None:
 def extract_module_name(module: str) -> str:
     """
     Extracts the base module name by removing color suffixes.
-    
+
     Args:
         module (str): The module name that may contain color suffixes (e.g. 'IFGyellow')
-        
+
     Returns:
         str: The base module name (e.g. 'IFG')
     """
@@ -113,17 +113,19 @@ def extract_module_name(module: str) -> str:
 def create_result_dict(row: pd.Series) -> Dict[str, Any]:
     """
     Creates a result dictionary for a single module's correlation data.
-    
+
     Args:
         row (pd.Series): A row from the disease correlation DataFrame
-        
+
     Returns:
         Dict[str, Any]: A dictionary containing the module name, correlation, and adjusted p-value
     """
     return {
         "module": extract_module_name(row["module"]),
         "correlation": float(row["correlation"]) if row["correlation"] != "" else None,
-        "adj_p_val": float(row["adjusted_p_value"]) if row["adjusted_p_value"] != "" else None,
+        "adj_p_val": float(row["adjusted_p_value"])
+        if row["adjusted_p_value"] != ""
+        else None,
     }
 
 
@@ -138,7 +140,7 @@ def process_group(
 ) -> Dict[str, Any]:
     """
     Processes a group of disease correlation results for a specific model, cluster, age, and sex combination.
-    
+
     Args:
         group (pd.DataFrame): The group of rows to process
         model_info (Dict[str, Any]): Information about the model
@@ -147,17 +149,17 @@ def process_group(
         cluster (str): The cluster name
         age (str): The age group
         sex (str): The sex
-        
+
     Returns:
         Dict[str, Any]: A dictionary containing the processed group data
     """
     # If matched_controls is a list, get the first element
     mc = model_info.get("matched_controls", "")
     matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
-    
+
     # Process results for all modules in this group
     results = [create_result_dict(row) for _, row in group.iterrows()]
-    
+
     return {
         "model": model,
         "matched_control": matched_control,
@@ -236,7 +238,7 @@ def transform_disease_correlation(
     for (model, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
         model_info = model_info_lookup.get(model, {})
         allele_info = model_allele_lookup.get(model, {})
-        
+
         processed_group = process_group(
             group=group,
             model_info=model_info,
@@ -247,5 +249,5 @@ def transform_disease_correlation(
             sex=sex,
         )
         output.append(processed_group)
-        
+
     return output
