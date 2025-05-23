@@ -96,6 +96,80 @@ def input_validation_model_info(df: pd.DataFrame) -> None:
             )
 
 
+def extract_module_name(module: str) -> str:
+    """
+    Extracts the base module name by removing color suffixes.
+    
+    Args:
+        module (str): The module name that may contain color suffixes (e.g. 'IFGyellow')
+        
+    Returns:
+        str: The base module name (e.g. 'IFG')
+    """
+    match = re.match(r"^[A-Z]+", module)
+    return match.group(0) if match else module
+
+
+def create_result_dict(row: pd.Series) -> Dict[str, Any]:
+    """
+    Creates a result dictionary for a single module's correlation data.
+    
+    Args:
+        row (pd.Series): A row from the disease correlation DataFrame
+        
+    Returns:
+        Dict[str, Any]: A dictionary containing the module name, correlation, and adjusted p-value
+    """
+    return {
+        "module": extract_module_name(row["module"]),
+        "correlation": float(row["correlation"]) if row["correlation"] != "" else None,
+        "adj_p_val": float(row["adjusted_p_value"]) if row["adjusted_p_value"] != "" else None,
+    }
+
+
+def process_group(
+    group: pd.DataFrame,
+    model_info: Dict[str, Any],
+    allele_info: Dict[str, Any],
+    model: str,
+    cluster: str,
+    age: str,
+    sex: str,
+) -> Dict[str, Any]:
+    """
+    Processes a group of disease correlation results for a specific model, cluster, age, and sex combination.
+    
+    Args:
+        group (pd.DataFrame): The group of rows to process
+        model_info (Dict[str, Any]): Information about the model
+        allele_info (Dict[str, Any]): Information about the alleles
+        model (str): The mouse model name
+        cluster (str): The cluster name
+        age (str): The age group
+        sex (str): The sex
+        
+    Returns:
+        Dict[str, Any]: A dictionary containing the processed group data
+    """
+    # If matched_controls is a list, get the first element
+    mc = model_info.get("matched_controls", "")
+    matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
+    
+    # Process results for all modules in this group
+    results = [create_result_dict(row) for _, row in group.iterrows()]
+    
+    return {
+        "model": model,
+        "matched_control": matched_control,
+        "model_type": model_info.get("model_type", ""),
+        "modified_genes": allele_info.get("gene", ""),
+        "cluster": cluster,
+        "age": age,
+        "sex": sex,
+        "results": results,
+    }
+
+
 def transform_disease_correlation(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -135,7 +209,6 @@ def transform_disease_correlation(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
@@ -163,39 +236,16 @@ def transform_disease_correlation(
     for (model, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
         model_info = model_info_lookup.get(model, {})
         allele_info = model_allele_lookup.get(model, {})
-        # If matched_controls is a list, get the first element
-        mc = model_info.get("matched_controls", "")
-        matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
-        # Prepare results for all modules in this group
-        results = []
-        for _, row in group.iterrows():
-            # Strip the 'color' suffixes from Module (e.g. IFGyellow -> IFG)
-            module = (
-                re.match(r"^[A-Z]+", row["module"]).group(0)
-                if re.match(r"^[A-Z]+", row["module"])
-                else row["module"]
-            )
-            results.append(
-                {
-                    "module": module,
-                    "correlation": float(row["correlation"])
-                    if row["correlation"] != ""
-                    else None,
-                    "adj_p_val": float(row["adjusted_p_value"])
-                    if row["adjusted_p_value"] != ""
-                    else None,
-                }
-            )
-        output.append(
-            {
-                "model": model,
-                "matched_control": matched_control,
-                "model_type": model_info.get("model_type", ""),
-                "modified_genes": allele_info.get("gene", ""),
-                "cluster": cluster,
-                "age": age,
-                "sex": sex,
-                "results": results,
-            }
+        
+        processed_group = process_group(
+            group=group,
+            model_info=model_info,
+            allele_info=allele_info,
+            model=model,
+            cluster=cluster,
+            age=age,
+            sex=sex,
         )
+        output.append(processed_group)
+        
     return output

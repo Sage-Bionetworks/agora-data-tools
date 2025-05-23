@@ -3,6 +3,9 @@ import pandas as pd
 from agoradatatools.etl.transform.disease_correlation import (
     transform_disease_correlation,
     create_lookup,
+    extract_module_name,
+    create_result_dict,
+    process_group
 )
 
 
@@ -324,3 +327,176 @@ class TestCreateLookup:
         }
         output = create_lookup(df=input_dataframe, group_by_col=group_by_col)
         assert output == expected_output
+
+
+class TestExtractModuleName:
+    @pytest.mark.parametrize(
+        "input_module,expected",
+        [
+            ("IFGyellow", "IFG"),
+            ("PHGbrown", "PHG"),
+            ("TCXturquoise", "TCX"),
+            ("IFG", "IFG"),  # No color suffix
+            ("", ""),  # Empty string
+            ("123ABC", "123ABC"),  # No match for regex
+        ],
+    )
+    def test_extract_module_name(self, input_module, expected):
+        assert extract_module_name(input_module) == expected
+
+
+class TestCreateResultDict:
+    def test_create_result_dict_with_valid_data(self):
+
+
+        row = pd.Series({
+            "module": "IFGyellow",
+            "correlation": "0.5",
+            "adjusted_p_value": "0.01"
+        })
+
+        result = create_result_dict(row)
+        assert result == {
+            "module": "IFG",
+            "correlation": 0.5,
+            "adj_p_val": 0.01
+        }
+
+    def test_create_result_dict_with_empty_values(self):
+
+        row = pd.Series({
+            "module": "IFGyellow",
+            "correlation": "",
+            "adjusted_p_value": ""
+        })
+
+        result = create_result_dict(row)
+        assert result == {
+            "module": "IFG",
+            "correlation": None,
+            "adj_p_val": None
+        }
+
+
+class TestProcessGroup:
+    def test_process_group_with_valid_data(self):
+        # Create test data
+        group = pd.DataFrame([
+            {
+                "module": "IFGyellow",
+                "correlation": "0.5",
+                "adjusted_p_value": "0.01"
+            },
+            {
+                "module": "PHGbrown",
+                "correlation": "0.6",
+                "adjusted_p_value": "0.02"
+            }
+        ])
+
+        model_info = {
+            "matched_controls": "C57BL6J",
+            "model_type": "Late Onset AD"
+        }
+
+        allele_info = {
+            "gene": ["APOE4", "TREM2"]
+        }
+
+        result = process_group(
+            group=group,
+            model_info=model_info,
+            allele_info=allele_info,
+            model="LOAD1",
+            cluster="Cluster A",
+            age="4 months",
+            sex="Female"
+        )
+
+        assert result == {
+            "model": "LOAD1",
+            "matched_control": "C57BL6J",
+            "model_type": "Late Onset AD",
+            "modified_genes": ["APOE4", "TREM2"],
+            "cluster": "Cluster A",
+            "age": "4 months",
+            "sex": "Female",
+            "results": [
+                {
+                    "module": "IFG",
+                    "correlation": 0.5,
+                    "adj_p_val": 0.01
+                },
+                {
+                    "module": "PHG",
+                    "correlation": 0.6,
+                    "adj_p_val": 0.02
+                }
+            ]
+        }
+
+    def test_process_group_with_empty_model_info(self):
+
+        # Create test data
+        group = pd.DataFrame([
+            {
+                "module": "IFGyellow",
+                "correlation": "0.5",
+                "adjusted_p_value": "0.01"
+            }
+        ])
+
+        result = process_group(
+            group=group,
+            model_info={},
+            allele_info={},
+            model="LOAD1",
+            cluster="Cluster A",
+            age="4 months",
+            sex="Female"
+        )
+
+        assert result == {
+            "model": "LOAD1",
+            "matched_control": "",
+            "model_type": "",
+            "modified_genes": "",
+            "cluster": "Cluster A",
+            "age": "4 months",
+            "sex": "Female",
+            "results": [
+                {
+                    "module": "IFG",
+                    "correlation": 0.5,
+                    "adj_p_val": 0.01
+                }
+            ]
+        }
+
+    def test_process_group_with_list_matched_controls(self):
+
+        # Create test data
+        group = pd.DataFrame([
+            {
+                "module": "IFGyellow",
+                "correlation": "0.5",
+                "adjusted_p_value": "0.01"
+            }
+        ])
+
+        model_info = {
+            "matched_controls": ["C57BL6J", "CTRL2"],
+            "model_type": "Late Onset AD"
+        }
+
+        result = process_group(
+            group=group,
+            model_info=model_info,
+            allele_info={},
+            model="LOAD1",
+            cluster="Cluster A",
+            age="4 months",
+            sex="Female"
+        )
+
+        assert result["matched_control"] == "C57BL6J"  # Should take first element from list
