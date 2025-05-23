@@ -96,7 +96,7 @@ def process_genetic_info(
     )
     return (
         merged_df[["gene", "ensembl_id", "allele", "allele_type", "mgi_allele_id"]]
-        .rename(columns={"gene": "modified_gene"})
+        .rename(columns={"gene": "modified_gene", "ensembl_id": "ensembl_gene_id"})
         .to_dict(orient="records")
     )
 

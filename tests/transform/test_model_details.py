@@ -432,21 +432,21 @@ class TestTransformModelDetails:
         expected_output = [
             {
                 "modified_gene": "App",
-                "ensembl_id": "ENSG00000142192",  # Human Ensembl ID
+                "ensembl_gene_id": "ENSG00000142192",  # Human Ensembl ID
                 "allele": "APP K670_M671delinsNL (Swedish)",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 2672831,
             },
             {
                 "modified_gene": "Mapt",
-                "ensembl_id": "ENSMUSG00000018411",  # Mouse Ensembl ID (no human match)
+                "ensembl_gene_id": "ENSMUSG00000018411",  # Mouse Ensembl ID (no human match)
                 "allele": "MAPT P301L",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 2672831,
             },
             {
                 "modified_gene": "Psen1",
-                "ensembl_id": "ENSG00000080815",  # Human Ensembl ID
+                "ensembl_gene_id": "ENSG00000080815",  # Human Ensembl ID
                 "allele": "Psen1<sup>tm1Mpm</sup>",
                 "allele_type": "Targeted",
                 "mgi_allele_id": 1930937,
@@ -491,21 +491,21 @@ class TestTransformModelDetails:
         expected_output = [
             {
                 "modified_gene": "App",
-                "ensembl_id": "ENSMUSG00000022892",
+                "ensembl_gene_id": "ENSMUSG00000022892",
                 "allele": "APP K670_M671delinsNL (Swedish)",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 2672831,
             },
             {
                 "modified_gene": "Mapt",
-                "ensembl_id": "ENSMUSG00000018411",
+                "ensembl_gene_id": "ENSMUSG00000018411",
                 "allele": "MAPT P301L",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 2672831,
             },
             {
                 "modified_gene": "Psen1",
-                "ensembl_id": "ENSMUSG00000019969",
+                "ensembl_gene_id": "ENSMUSG00000019969",
                 "allele": "Psen1<sup>tm1Mpm</sup>",
                 "allele_type": "Targeted",
                 "mgi_allele_id": 1930937,
