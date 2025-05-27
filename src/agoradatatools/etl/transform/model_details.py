@@ -85,7 +85,9 @@ def process_genetic_info(
 
     # Merge the dataframes on mgi_allele_id and gene
     merged_df = model_alleles.merge(
-        human_transgene_allele_map_df[["mgi_allele_id", "modified_gene", "human_ensembl_id"]],
+        human_transgene_allele_map_df[
+            ["mgi_allele_id", "modified_gene", "human_ensembl_id"]
+        ],
         on=["mgi_allele_id", "modified_gene"],
         how="left",
     )
@@ -94,10 +96,9 @@ def process_genetic_info(
     merged_df["ensembl_gene_id"] = merged_df["human_ensembl_id"].fillna(
         merged_df["gene_ensembl_id"]
     )
-    return (
-        merged_df[["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]]
-        .to_dict(orient="records")
-    )
+    return merged_df[
+        ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
+    ].to_dict(orient="records")
 
 
 def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, Any]]:
@@ -167,7 +168,11 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
             "genotype",
             "aliases",
         ],
-        "human_transgene_allele_map": ["mgi_allele_id", "modified_gene", "human_ensembl_id"],
+        "human_transgene_allele_map": [
+            "mgi_allele_id",
+            "modified_gene",
+            "human_ensembl_id",
+        ],
         "biomarkers": [
             "model",
             "type",
