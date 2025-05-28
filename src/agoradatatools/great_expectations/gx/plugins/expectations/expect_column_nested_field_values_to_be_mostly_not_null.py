@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 
 import pandas as pd
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
@@ -17,7 +17,7 @@ class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
 
     # This is the id string that will be used to reference your metric.
     condition_metric_name = "column_values.not_null"
-    condition_value_keys = ("nonnull_threshold","target_field")
+    condition_value_keys = ("nonnull_threshold", "target_field")
 
     # This method implements the core logic for the PandasExecutionEngine
     @column_condition_partial(engine=PandasExecutionEngine)
@@ -31,20 +31,24 @@ class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
 
         if target_field is None:
             raise ValueError("Missing required parameter: target_field")
-        
-        counts = cls._flatten_nested_object_count_nulls(list_object=list(column), target_field=target_field)
-        if counts["total_dict"] > 0: 
-            null_percentage = round(counts["total_none"]/counts["total_dict"], 1)
-        else: 
+
+        counts = cls._flatten_nested_object_count_nulls(
+            list_object=list(column), target_field=target_field
+        )
+        if counts["total_dict"] > 0:
+            null_percentage = round(counts["total_none"] / counts["total_dict"], 1)
+        else:
             null_percentage = 0
-        if null_percentage > (1-nonnull_threshold):
+        if null_percentage > (1 - nonnull_threshold):
             return pd.Series([False] * len(column))
-        else: 
+        else:
             return pd.Series([True] * len(column))
 
-    def _flatten_nested_object_count_nulls(list_object: list[list[dict[str, str | int | bool | None]]], target_field: str) -> dict[str, int]:
+    def _flatten_nested_object_count_nulls(
+        list_object: list[list[dict[str, str | int | bool | None]]], target_field: str
+    ) -> dict[str, int]:
         """
-        Recursively flattens a nested list of dictionaries and counts how many 
+        Recursively flattens a nested list of dictionaries and counts how many
         dictionaries have a null value for the specified target field.
 
         Example:
@@ -54,47 +58,56 @@ class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
                 {"target_field": "value2", "other_key": "info"}
             ],
             [
-                {"target_field": None}, // be counted as null 
-                {"another_key": "value"}
+                {"target_field": None}, // be counted as null
+                {"target_field": "value2", "other_key": "info"}
             ],
             [
-                {"target_field": ""}, // not be counted as null 
-                {"another_key": None}
-            ]
+                {"target_field": ""}, // be ignored because it is an empty string
+            ],
+            [
+                {"another_key": ""}, // be counted as null because "target field" is missing
+            ],
+            [] //be ignored because it is empty
         ]
 
         The code flattens nested lists of dictionaries and counts the total number of null values for the specified field.
+        total nulls = 2
+        total dictionary = 6
 
         Parameters:
             list_object (list of dictionaries): A potentially nested list containing dictionaries.
             target_field (str): The key to check for null values within each dictionary.
 
         Returns:
-            dictionary that contains two keys: 
+            dictionary that contains two keys:
                 - total_nulls (int): The number of dictionaries where target_field is None.
                 - total_none (int): The total number of dictionaries encountered that contain the target_field.
-        Note: 
-         - an empty list with no dictionary will be ignored. 
-         - an empty string will not be counted as "null". 
+        Note:
+         - an empty list with no dictionary will be ignored.
+         - an empty string will not be counted as "null".
         """
         counts = {"total_none": 0, "total_dict": 0}
-        def _flatten(list_object): 
+
+        def _flatten(list_object):
             for item in list_object:
-                if isinstance(item, list): 
+                if isinstance(item, list):
                     _flatten(item)
                 elif isinstance(item, dict):
-                    if target_field in item: 
+                    if target_field not in item:
+                        counts["total_none"] += 1
+                    else:
                         target_field_value = item.get(target_field)
-                        if target_field_value is None: 
+                        if target_field_value is None:
                             counts["total_none"] += 1
                     counts["total_dict"] += 1
+
         _flatten(list_object)
         return counts
 
 
 # This class defines the Expectation itself
 class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
-    """Expect the proportion of non-null values for the specified field 
+    """Expect the proportion of non-null values for the specified field
     across all dictionaries in each list to meet or exceed the `nonnull_threshold`."""
 
     # These examples will be shown in the public gallery.
@@ -102,51 +115,93 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
     examples = [
         {
             "data": {
-                "a": [[{"targeted": "b", "other_key": "not empty"}, {"targeted": "a", "other_key": "not empty"}], [{"targeted": None}, {"another_key2": None}], [{"targeted": "another key"}, {"another_key2": None}]],
-                "b": [[{"targeted": None, "other_key": "not empty"}, {"targeted": "", "other_key": "not empty"}], [], []],
-                "c": [[{"targeted": None}, {"targeted": None}],[{"targeted": None}],[{"targeted": None}, {"targeted": None}]],
-                "d": [[{"not_targeted": "x"}, {"something_else": "y"}],[{"also_missing": None}],[{}]],
+                "a": [
+                    [
+                        {"targeted": "a", "other_key": "not empty"},
+                        {"targeted": "a", "other_key": "not empty"},
+                    ],
+                    [{"targeted": None, "another_key2": None}],
+                    [{"targeted": "a", "another key1": None, "another_key2": None}],
+                ],
+                "b": [
+                    [
+                        {"targeted": None, "other_key": "not empty"},
+                        {"targeted": "", "other_key": "not empty"},
+                    ],
+                    [],
+                    [],
+                ],
+                "c": [
+                    [{"targeted": None}, {"targeted": None}],
+                    [{"targeted": None}],
+                    [{"targeted": None}, {"targeted": None}],
+                ],
+                "d": [
+                    [{"not_targeted": "x"}, {"something_else": "y"}],
+                    [{"also_missing": None}],
+                    [{}],
+                ],
             },
             "tests": [
                 # should pass because "targeted" is null 1/6 and threshold is 0.7
                 {
-                    "title": "positive_test",
+                    "title": "target_meet_threshold",
                     "exact_match_out": False,
                     "include_in_gallery": True,
-                    "in": {"column": "a", "nonnull_threshold": 0.7, "target_field": "targeted"},
+                    "in": {
+                        "column": "a",
+                        "nonnull_threshold": 0.7,
+                        "target_field": "targeted",
+                    },
                     "out": {"success": True},
                 },
                 # should fail because "targeted" is null 1/6 but threshold is 0.9
                 {
-                    "title": "positive_test",
+                    "title": "target_fail_threshold",
                     "exact_match_out": False,
                     "include_in_gallery": True,
-                    "in": {"column": "a", "nonnull_threshold": 0.9, "target_field": "targeted"},
+                    "in": {
+                        "column": "a",
+                        "nonnull_threshold": 0.9,
+                        "target_field": "targeted",
+                    },
                     "out": {"success": False},
                 },
                 # should pass because "targeted is null" 1/2
                 {
-                    "title": "positive_test",
+                    "title": "target_half_null",
                     "exact_match_out": False,
                     "include_in_gallery": True,
-                    "in": {"column": "b", "nonnull_threshold": 0.5, "target_field": "targeted"},
+                    "in": {
+                        "column": "b",
+                        "nonnull_threshold": 0.5,
+                        "target_field": "targeted",
+                    },
                     "out": {"success": True},
                 },
                 # should pass because "targeted" is null 100% but threshold is 0.1
                 {
-                    "title": "positive_test",
+                    "title": "target_all_null",
                     "exact_match_out": False,
                     "include_in_gallery": True,
-                    "in": {"column": "c", "nonnull_threshold": 0.1, "target_field": "targeted"},
+                    "in": {
+                        "column": "c",
+                        "nonnull_threshold": 0.1,
+                        "target_field": "targeted",
+                    },
                     "out": {"success": False},
                 },
-                # should pass because "targeted" is not present in the dictionary
+                # should fail because "targeted" is not present in the dictionary
                 {
-                    "title": "positive_test",
+                    "title": "target_not_present",
                     "exact_match_out": False,
                     "include_in_gallery": True,
-                    "in": {"column": "d", "nonnull_threshold": 0.1, "target_field": "targeted"},
-                    "out": {"success": True},
+                    "in": {
+                        "column": "d",
+                        "nonnull_threshold": 0.1,
+                        "target_field": "targeted",
+                    },
+                    "out": {"success": False},
                 },
             ],
         }
@@ -157,7 +212,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
     map_metric = "column_values.not_null"
 
     # This is a list of parameter names that can affect whether the Expectation evaluates to True or False
-    success_keys = ("nonnull_threshold","target_field")
+    success_keys = ("nonnull_threshold", "target_field")
 
     # This dictionary contains default values for any parameters that should have default values
     default_kwarg_values = {}
