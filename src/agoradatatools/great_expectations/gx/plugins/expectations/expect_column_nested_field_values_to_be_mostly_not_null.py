@@ -238,7 +238,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
     library_metadata = {
         "tags": [],  # Tags for this Expectation in the Gallery
         "contributors": [  # Github handles for all contributors to this Expectation.
-            "@BWMac",  # Don't forget to add your github handle here!
+            "@linglp",  # Don't forget to add your github handle here!
         ],
     }
 
