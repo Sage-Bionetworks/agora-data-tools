@@ -62,7 +62,8 @@ datasets:
       destination: *dest
       custom_transformations: transform_model_details
       column_rename:
-        gene_symbol: gene
+        gene: modified_gene
+        gene_symbol: modified_gene
         ensembl_id: human_ensembl_id
 
   - disease_correlation:
