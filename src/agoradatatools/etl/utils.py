@@ -257,15 +257,15 @@ def check_required_datasets_and_columns(
             )
 
 
-def flatten_list(lst: List) -> List:
+def flatten_list(lst: List[Any]) -> List[Any]:
     """
     Recursively flattens a nested list into a single list of values.
 
     Args:
-        lst (list): A list which may contain nested lists at arbitrary depth.
+        lst (List[Any]): A list which may contain nested lists at arbitrary depth.
 
     Returns:
-        list: A new flattened list containing all the non-list elements from the input.
+        List[Any]: A new flattened list containing all the non-list elements from the input.
 
     Example:
         flatten(['A', ['B', 'C'], [['D'], 'E']])
@@ -280,24 +280,22 @@ def flatten_list(lst: List) -> List:
     return result
 
 
-def remove_duplicates_keep_order(lst: List) -> List:
+def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
     """
     Remove duplicate elements from a list while preserving the original order.
 
-    Parameters:
-        seq (list): The input list from which to remove duplicates.
+    Args:
+        lst (List[Any]): The input list from which to remove duplicates.
 
     Returns:
-        list: A new list with duplicates removed, maintaining the order of first occurrence.
+        List[Any]: A new list with duplicates removed, maintaining the order of first occurrence.
 
     Example:
         remove_duplicates(['a', 'b', 'c', 'b'])
         ['a', 'b', 'c']
     """
-    seen = set()
     result = []
     for item in lst:
-        if item not in seen:
-            seen.add(item)
+        if item not in result:
             result.append(item)
     return result
