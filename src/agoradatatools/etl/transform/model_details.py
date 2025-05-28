@@ -11,7 +11,7 @@ from agoradatatools.etl.utils import check_required_datasets_and_columns
 REQUIRED_INPUT = required_input = {
     "allele_info": [
         "model",
-        "gene",
+        "modified_gene",
         "gene_ensembl_id",
         "allele",
         "allele_type",
@@ -29,7 +29,7 @@ REQUIRED_INPUT = required_input = {
         "genotype",
         "aliases",
     ],
-    "human_transgene_allele_map": ["mgi_allele_id", "gene", "human_ensembl_id"],
+    "human_transgene_allele_map": ["mgi_allele_id", "modified_gene", "human_ensembl_id"],
     "biomarkers": [
         "model",
         "type",
