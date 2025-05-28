@@ -87,9 +87,9 @@ def process_genetic_info(
     human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
 
     # Normalize gene columns to uppercase for consistent merging
-    model_alleles["gene_upper"] = model_alleles["gene"].str.upper()
+    model_alleles["gene_upper"] = model_alleles["modified_gene"].str.upper()
     human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
-        "gene"
+        "modified_gene"
     ].str.upper()
 
     # Merge on mgi_allele_id and gene_upper
@@ -102,18 +102,13 @@ def process_genetic_info(
     )
 
     # Override ensembl_id if mapping exists
-    merged_df["ensembl_id"] = merged_df["human_ensembl_id"].fillna(
+    merged_df["ensembl_gene_id"] = merged_df["human_ensembl_id"].fillna(
         merged_df["gene_ensembl_id"]
     )
 
-    # Use the original gene name for output
-    return (
-        merged_df[
-            ["gene", "ensembl_id", "allele", "allele_type", "mgi_allele_id"]
-        ]
-        .rename(columns={"gene": "modified_gene"})
-        .to_dict(orient="records")
-    )
+    return merged_df[
+        ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
+    ].to_dict(orient="records")
 
 
 def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, Any]]:
@@ -165,7 +160,7 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
     required_columns = {
         "allele_info": [
             "model",
-            "gene",
+            "modified_gene",
             "gene_ensembl_id",
             "allele",
             "allele_type",
@@ -183,7 +178,11 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
             "genotype",
             "aliases",
         ],
-        "human_transgene_allele_map": ["mgi_allele_id", "gene", "human_ensembl_id"],
+        "human_transgene_allele_map": [
+            "mgi_allele_id",
+            "modified_gene",
+            "human_ensembl_id",
+        ],
         "biomarkers": [
             "model",
             "type",

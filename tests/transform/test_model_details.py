@@ -405,14 +405,14 @@ class TestTransformModelDetails:
         human_transgene_allele_map_df = pd.DataFrame(
             {
                 "mgi_allele_id": [2672831, 1930937],
-                "gene": ["App", "Psen1"],
+                "modified_gene": ["App", "Psen1"],
                 "human_ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
             }
         )
 
         model_alleles = pd.DataFrame(
             {
-                "gene": ["App", "Mapt", "Psen1"],
+                "modified_gene": ["App", "Mapt", "Psen1"],
                 "gene_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000018411",
@@ -432,21 +432,21 @@ class TestTransformModelDetails:
         expected_output = [
             {
                 "modified_gene": "App",
-                "ensembl_id": "ENSG00000142192",  # Human Ensembl ID
+                "ensembl_gene_id": "ENSG00000142192",  # Human Ensembl ID
                 "allele": "APP K670_M671delinsNL (Swedish)",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 2672831,
             },
             {
                 "modified_gene": "Mapt",
-                "ensembl_id": "ENSMUSG00000018411",  # Mouse Ensembl ID (no human match)
+                "ensembl_gene_id": "ENSMUSG00000018411",  # Mouse Ensembl ID (no human match)
                 "allele": "MAPT P301L",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 2672831,
             },
             {
                 "modified_gene": "Psen1",
-                "ensembl_id": "ENSG00000080815",  # Human Ensembl ID
+                "ensembl_gene_id": "ENSG00000080815",  # Human Ensembl ID
                 "allele": "Psen1<sup>tm1Mpm</sup>",
                 "allele_type": "Targeted",
                 "mgi_allele_id": 1930937,
@@ -464,14 +464,14 @@ class TestTransformModelDetails:
         human_transgene_allele_map_df = pd.DataFrame(
             {
                 "mgi_allele_id": [9999999],  # Different MGI ID
-                "gene": ["DifferentGene"],
+                "modified_gene": ["DifferentGene"],
                 "human_ensembl_id": ["ENSG00000000000"],
             }
         )
 
         model_alleles = pd.DataFrame(
             {
-                "gene": ["App", "Mapt", "Psen1"],
+                "modified_gene": ["App", "Mapt", "Psen1"],
                 "gene_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000018411",
@@ -491,21 +491,21 @@ class TestTransformModelDetails:
         expected_output = [
             {
                 "modified_gene": "App",
-                "ensembl_id": "ENSMUSG00000022892",
+                "ensembl_gene_id": "ENSMUSG00000022892",
                 "allele": "APP K670_M671delinsNL (Swedish)",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 2672831,
             },
             {
                 "modified_gene": "Mapt",
-                "ensembl_id": "ENSMUSG00000018411",
+                "ensembl_gene_id": "ENSMUSG00000018411",
                 "allele": "MAPT P301L",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 2672831,
             },
             {
                 "modified_gene": "Psen1",
-                "ensembl_id": "ENSMUSG00000019969",
+                "ensembl_gene_id": "ENSMUSG00000019969",
                 "allele": "Psen1<sup>tm1Mpm</sup>",
                 "allele_type": "Targeted",
                 "mgi_allele_id": 1930937,
@@ -521,11 +521,11 @@ class TestTransformModelDetails:
     def test_process_genetic_info_with_empty_input(self):
         # Create empty test input DataFrames
         human_transgene_allele_map_df = pd.DataFrame(
-            columns=["mgi_allele_id", "gene", "human_ensembl_id"]
+            columns=["mgi_allele_id", "modified_gene", "human_ensembl_id"]
         )
         model_alleles = pd.DataFrame(
             columns=[
-                "gene",
+                "modified_gene",
                 "gene_ensembl_id",
                 "allele",
                 "allele_type",
@@ -547,14 +547,14 @@ class TestTransformModelDetails:
         human_transgene_allele_map_df = pd.DataFrame(
             {
                 "mgi_allele_id": [1234567, 1234567],
-                "gene": ["APP", "mapt"],  # Upper and lower case in mapping
+                "modified_gene": ["APP", "mapt"],  # Upper and lower case in mapping
                 "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
             }
         )
 
         model_alleles = pd.DataFrame(
             {
-                "gene": ["App", "Mapt"],  # Title case in alleles
+                "modified_gene": ["App", "Mapt"],  # Title case in alleles
                 "gene_ensembl_id": [
                     "ENSMUSG00000011111",
                     "ENSMUSG00000022222",
@@ -572,14 +572,14 @@ class TestTransformModelDetails:
         expected_output = [
             {
                 "modified_gene": "App",
-                "ensembl_id": "ENSG00000123456",
+                "ensembl_gene_id": "ENSG00000123456",
                 "allele": "APP Example Allele",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 1234567,
             },
             {
                 "modified_gene": "Mapt",
-                "ensembl_id": "ENSG00000987654",
+                "ensembl_gene_id": "ENSG00000987654",
                 "allele": "MAPT Example Allele",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 1234567,
