@@ -29,7 +29,11 @@ REQUIRED_INPUT = required_input = {
         "genotype",
         "aliases",
     ],
-    "human_transgene_allele_map": ["mgi_allele_id", "modified_gene", "human_ensembl_id"],
+    "human_transgene_allele_map": [
+        "mgi_allele_id",
+        "modified_gene",
+        "human_ensembl_id",
+    ],
     "biomarkers": [
         "model",
         "type",
