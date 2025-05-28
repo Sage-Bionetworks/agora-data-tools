@@ -33,7 +33,6 @@ class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
             raise ValueError("Missing required parameter: target_field")
         
         counts = cls._flatten_nested_object_count_nulls(list_object=list(column), target_field=target_field)
-        print('counts', counts)
         if counts["total_dict"] > 0: 
             null_percentage = round(counts["total_none"]/counts["total_dict"], 1)
         else: 
