@@ -6,6 +6,7 @@ from agoradatatools.etl.transform.disease_correlation import (
     extract_module_name,
     create_result_dict,
     process_group,
+    input_validation_model_info,
 )
 
 
@@ -464,3 +465,46 @@ class TestProcessGroup:
         assert (
             result["matched_control"] == "C57BL6J"
         )  # Should take first element from list
+
+
+class TestInputValidationModelInfo:
+    def test_valid_model_info(self):
+        """Test that valid model info passes validation."""
+        df = pd.DataFrame([
+            {"model": "LOAD1", "matched_controls": "C57BL6J", "model_type": "Late Onset AD"},
+            {"model": "LOAD2", "matched_controls": "C57BL6J", "model_type": "Early Onset AD"}
+        ])
+        # Should not raise any exception
+        input_validation_model_info(df)
+
+    def test_inconsistent_matched_controls(self):
+        """Test that inconsistent matched_controls values raise ValueError."""
+        df = pd.DataFrame([
+            {"model": "LOAD1", "matched_controls": "C57BL6J", "model_type": "Late Onset AD"},
+            {"model": "LOAD1", "matched_controls": "CTRL2", "model_type": "Late Onset AD"}
+        ])
+        with pytest.raises(ValueError, match="Model LOAD1 has inconsistent matched_controls values:"):
+            input_validation_model_info(df)
+
+    def test_inconsistent_model_type(self):
+        """Test that inconsistent model_type values raise ValueError."""
+        df = pd.DataFrame([
+            {"model": "LOAD1", "matched_controls": "C57BL6J", "model_type": "Late Onset AD"},
+            {"model": "LOAD1", "matched_controls": "C57BL6J", "model_type": "Early Onset AD"}
+        ])
+        with pytest.raises(ValueError, match="Model LOAD1 has inconsistent model_type values:"):
+            input_validation_model_info(df)
+
+    def test_empty_dataframe(self):
+        """Test that empty dataframe passes validation."""
+        df = pd.DataFrame(columns=["model", "matched_controls", "model_type"])
+        # Should not raise any exception
+        input_validation_model_info(df)
+
+    def test_single_row(self):
+        """Test that single row dataframe passes validation."""
+        df = pd.DataFrame([
+            {"model": "LOAD1", "matched_controls": "C57BL6J", "model_type": "Late Onset AD"}
+        ])
+        # Should not raise any exception
+        input_validation_model_info(df)
