@@ -86,9 +86,6 @@ def process_genetic_info(
     model_alleles = model_alleles.copy()
     human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
 
-    # Store original gene names
-    model_alleles["gene_original"] = model_alleles["gene"]
-
     # Normalize gene columns to uppercase for consistent merging
     model_alleles["gene_upper"] = model_alleles["gene"].str.upper()
     human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
@@ -112,9 +109,9 @@ def process_genetic_info(
     # Use the original gene name for output
     return (
         merged_df[
-            ["gene_original", "ensembl_id", "allele", "allele_type", "mgi_allele_id"]
+            ["gene", "ensembl_id", "allele", "allele_type", "mgi_allele_id"]
         ]
-        .rename(columns={"gene_original": "modified_gene"})
+        .rename(columns={"gene": "modified_gene"})
         .to_dict(orient="records")
     )
 
