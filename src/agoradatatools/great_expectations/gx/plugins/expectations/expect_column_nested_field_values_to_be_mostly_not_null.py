@@ -3,7 +3,6 @@ import pandas as pd
 
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
 from great_expectations.execution_engine import (
-    ExecutionEngine,
     PandasExecutionEngine,
 )
 from great_expectations.expectations.expectation import (
