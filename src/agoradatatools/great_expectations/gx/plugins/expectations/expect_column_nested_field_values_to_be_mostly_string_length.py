@@ -145,27 +145,27 @@ class ExpectColumnNestedObjectStrLength(ColumnAggregateExpectation):
             "data": {
                 # "targeted" is an empty string in one row  — 1/2 invalid
                 "a": [
-                    [{"targeted": "a", "other_key": "not empty"}],
-                    [{"targeted": "", "other_key": "not empty"}],
+                    [{"targeted": "a", "other_key": "a"}],
+                    [{"targeted": "", "other_key": "a"}],
                 ],
                 # "targeted" is None in one row — 1/2 null
                 "b": [
-                    [{"targeted": "b", "other_key": "not empty"}],
+                    [{"targeted": "b", "other_key": "b"}],
                     [{"targeted": None, "other_key": ""}],
                 ],
                 # "targeted" key is missing in both rows — 2/2 null
                 "c": [[{"other_key": "not empty"}], [{"other_key": ""}]],
                 # "targeted" has a string with length = 3 in both rows
                 "d": [
-                    [{"targeted": "aaa", "other_key": "not empty"}],
-                    [{"targeted": "aaa", "other_key": "not empty"}],
+                    [{"targeted": "aaa", "other_key": "d"}],
+                    [{"targeted": "aaa", "other_key": "d"}],
                 ],
                 # both rows are emtpy
                 "e": [[], []],
                 # "targeted" has a wrong data type
                 "f": [
-                    [{"targeted": True, "other_key": "not empty"}],
-                    [{"targeted": "aaa", "other_key": "not empty"}],
+                    [{"targeted": True, "other_key": "f"}],
+                    [{"targeted": "aaa", "other_key": "f"}],
                 ],
             },
             "tests": [
