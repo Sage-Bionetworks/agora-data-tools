@@ -5,6 +5,7 @@ import operator
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
 from great_expectations.execution_engine import (
     PandasExecutionEngine,
+    ExecutionEngine
 )
 from great_expectations.expectations.expectation import (
     ColumnAggregateExpectation,
@@ -322,6 +323,8 @@ class ExpectColumnNestedObjectStrLength(ColumnAggregateExpectation):
         self,
         configuration: ExpectationConfiguration,
         metrics: Dict,
+        runtime_configuration: Optional[dict] = None, # has to be added for validate to work
+        execution_engine: ExecutionEngine = None, # has to be added for validate to work
     ):
         valid_threshold = configuration["kwargs"]["mostly_threshold"]
         invalid_ratio = metrics["column_values.string_length_check"]
