@@ -24,7 +24,7 @@ class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
     def _pandas(cls, column: pd.core.series.Series, **kwargs) -> pd.Series:
         """Core logic for list member checking metric on a
         pandas execution engine.
-        Returns: pd.Sereis
+        Returns: pd.Series
         """
         target_field = kwargs.get("target_field")
         nonnull_threshold = kwargs.get("nonnull_threshold", 1)
@@ -208,7 +208,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
                         "nonnull_threshold": 0.1,
                         "target_field": "targeted",
                     },
-                    "out": {"success": True},
+                    "out": {"success": False},
                 },
             ],
         }

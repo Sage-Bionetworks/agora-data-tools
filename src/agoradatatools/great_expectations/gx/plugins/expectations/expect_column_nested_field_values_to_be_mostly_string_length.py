@@ -30,7 +30,7 @@ class ColumnNestedObjectStrLength(ColumnMapMetricProvider):
     def _pandas(cls, column: pd.core.series.Series, **kwargs) -> pd.Series:
         """Core logic for list member checking metric on a
         pandas execution engine.
-        Returns: pd.Sereis
+        Returns: pd.Series
         """
         target_field = kwargs.get("target_field")
         threshold = kwargs.get("mostly_threshold", 1)
