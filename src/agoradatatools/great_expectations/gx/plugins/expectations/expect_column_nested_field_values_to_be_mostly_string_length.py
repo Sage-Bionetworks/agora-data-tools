@@ -1,3 +1,5 @@
+"Custom expectation that calculates the percentage of strings meeting the specified length criteria."
+
 from typing import Dict, Optional
 import pandas as pd
 import operator

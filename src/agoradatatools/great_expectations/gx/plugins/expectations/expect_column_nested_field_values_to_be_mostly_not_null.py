@@ -1,3 +1,5 @@
+"Custom expectation rule that counts the percentage of nulls in a targeted field"
+
 from typing import Dict, Optional
 import pandas as pd
 
