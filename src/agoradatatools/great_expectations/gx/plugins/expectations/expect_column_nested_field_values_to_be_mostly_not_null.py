@@ -51,9 +51,9 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         )
 
         return (
-            round(counts["total_nulls"] / counts["total_dict"], 1)
-            if counts["total_dict"]
-            else 0
+        round((counts["total_dict"] - counts["total_nulls"]) / counts["total_dict"], 1)
+        if counts["total_dict"]
+        else 0
         )
 
     def _flatten_nested_object_count_nulls(
@@ -281,12 +281,12 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         runtime_configuration: Optional[dict] = None, # has to be added for validate to work
         execution_engine: ExecutionEngine = None, # has to be added for validate to work
     ):
-        nonnull_threshold = configuration["kwargs"]["nonnull_threshold"]
-        null_ratio = metrics["column.nested_object_not_null_ratio"]
+        not_null_threshold = configuration["kwargs"]["nonnull_threshold"]
+        not_null_ratio = metrics["column.nested_object_not_null_ratio"]
         # if the null ratio is less than the allowed null ratio, return True; else return False
         return {
-            "success": null_ratio <= (1 - nonnull_threshold),
-            "result": {"observed_value": null_ratio},
+            "success": not_null_ratio >= not_null_threshold,
+            "result": {"observed_not_null_ratio": not_null_ratio},
         }
 
     # This object contains metadata for display in the public Gallery
