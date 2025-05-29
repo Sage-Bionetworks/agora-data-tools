@@ -73,7 +73,8 @@ def process_genetic_info(
 ) -> List[Dict[str, Any]]:
     """
     Processes the gene information DataFrame. If the allele is a human transgene,
-    replace the ensembl_id with the human one.
+    replace the ensembl_id with the human one. Each model's alleles are processed independently.
+    Multiple entries are preserved for different alleles of the same gene.
 
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
@@ -92,7 +93,7 @@ def process_genetic_info(
         "modified_gene"
     ].str.upper()
 
-    # Merge on mgi_allele_id and gene_upper
+    # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles
     merged_df = model_alleles.merge(
         human_transgene_allele_map_df[
             ["mgi_allele_id", "gene_upper", "human_ensembl_id"]
@@ -101,9 +102,17 @@ def process_genetic_info(
         how="left",
     )
 
-    # Override ensembl_id if mapping exists
-    merged_df["ensembl_gene_id"] = merged_df["human_ensembl_id"].fillna(
-        merged_df["gene_ensembl_id"]
+    # Only override ensembl_id if we have a valid human_ensembl_id
+    merged_df["ensembl_gene_id"] = merged_df.apply(
+        lambda row: row["human_ensembl_id"]
+        if pd.notna(row["human_ensembl_id"])
+        else row["gene_ensembl_id"],
+        axis=1,
+    )
+
+    # Drop duplicates to ensure we don't have exact duplicates of the same allele
+    merged_df = merged_df.drop_duplicates(
+        subset=["modified_gene", "allele", "mgi_allele_id"]
     )
 
     return merged_df[

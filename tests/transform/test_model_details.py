@@ -1,4 +1,5 @@
 import os
+import json
 
 import pandas as pd
 import pytest
@@ -158,15 +159,15 @@ class TestTransformModelDetails:
 
         # Transform data
         output_data = transform_model_details(datasets=datasets)
-        output_df = pd.DataFrame(output_data)
 
         # Load expected output
-        expected_df = pd.read_json(
-            os.path.join(self.data_files_path, "output", expected_output_file),
-        )
+        with open(
+            os.path.join(self.data_files_path, "output", expected_output_file)
+        ) as f:
+            expected_data = json.load(f)
 
         # Compare output with expected
-        pd.testing.assert_frame_equal(output_df, expected_df)
+        assert output_data == expected_data
 
     @pytest.mark.parametrize(
         "input_files, error_type",
