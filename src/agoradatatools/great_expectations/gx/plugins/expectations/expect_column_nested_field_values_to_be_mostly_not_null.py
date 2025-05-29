@@ -285,7 +285,8 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         if not target_field:
             raise InvalidExpectationConfigurationError("target_field is required")
 
-    # This method performs a validation of your metrics against your success keys, returning a dict indicating the success or failure of the Expectation.
+    # This method performs a validation of your metrics against your success keys, 
+    # returning a dict indicating the success or failure of the Expectation.
     def _validate(
         self,
         configuration: ExpectationConfiguration,
