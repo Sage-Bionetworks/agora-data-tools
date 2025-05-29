@@ -335,11 +335,11 @@ class ExpectColumnNestedObjectStrLength(ColumnAggregateExpectation):
         self,
         configuration: ExpectationConfiguration,
         metrics: Dict,
-        runtime_configuration: Optional[
-            dict
-        ] = None,  # has to be added for validate to work
-        execution_engine: ExecutionEngine = None,  # has to be added for validate to work
+        runtime_configuration: Optional[dict] = None,  # required by gx api
+        execution_engine: ExecutionEngine = None,  # required by gx api
     ):
+        _ = runtime_configuration
+        _ = execution_engine
         valid_threshold = configuration["kwargs"]["mostly_threshold"]
         valid_ratio = metrics["column_values.string_length_check"]
         return {

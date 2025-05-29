@@ -279,11 +279,11 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         self,
         configuration: ExpectationConfiguration,
         metrics: Dict,
-        runtime_configuration: Optional[
-            dict
-        ] = None,  # has to be added for validate to work
-        execution_engine: ExecutionEngine = None,  # has to be added for validate to work
+        runtime_configuration: Optional[dict] = None,  # required by gx api
+        execution_engine: ExecutionEngine = None,  # required by gx api
     ):
+        _ = runtime_configuration
+        _ = execution_engine
         not_null_threshold = configuration["kwargs"]["nonnull_threshold"]
         not_null_ratio = metrics["column.nested_object_not_null_ratio"]
         # if the null ratio is less than the allowed null ratio, return True; else return False
