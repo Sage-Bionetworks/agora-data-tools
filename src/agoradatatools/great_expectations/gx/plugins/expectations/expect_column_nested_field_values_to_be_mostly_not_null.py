@@ -3,6 +3,7 @@ import pandas as pd
 
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
 from great_expectations.execution_engine import (
+    ExecutionEngine,
     PandasExecutionEngine,
 )
 from great_expectations.expectations.expectation import (
@@ -27,7 +28,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         nested list of dictionaries contained in a Pandas column.
 
         The function flattens each cell's nested structure and checks whether the
-        specified `target_field` exists and is not missing and not None.
+        specified `target_field` exists and is not None.
 
         Parameters:
             column (pd.Series): A column where each row contains a list of dictionaries.
@@ -50,9 +51,9 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         )
 
         return (
-            round(counts["total_none"] / counts["total_dict"], 1)
+            round(counts["total_nulls"] / counts["total_dict"], 1)
             if counts["total_dict"]
-            else 1
+            else 0
         )
 
     def _flatten_nested_object_count_nulls(
@@ -92,7 +93,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         Returns:
             dictionary that contains two keys:
                 - total_nulls (int): The number of dictionaries where target_field is None.
-                - total_none (int): The total number of dictionaries encountered that contain the target_field.
+                - total_dict (int): The total number of dictionaries encountered that contain the target_field.
         Note:
         A value is counted as invalid if:
             - The target field is missing from the dictionary
@@ -100,7 +101,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         Empty lists are ignored entirely.
         Empty string is considered as valid
         """
-        counts = {"total_none": 0, "total_dict": 0}
+        counts = {"total_nulls": 0, "total_dict": 0}
 
         def _flatten(list_object):
             for item in list_object:
@@ -108,11 +109,11 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
                     _flatten(item)
                 elif isinstance(item, dict):
                     if target_field not in item:
-                        counts["total_none"] += 1
+                        counts["total_nulls"] += 1
                     else:
                         target_field_value = item.get(target_field)
                         if target_field_value is None:
-                            counts["total_none"] += 1
+                            counts["total_nulls"] += 1
                     counts["total_dict"] += 1
 
         _flatten(list_object)
@@ -159,6 +160,13 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     [{"also_missing": None}],
                     [{}],
                 ],
+                "e": [
+                    # all rows are empty
+                    [],
+                    [],
+                    [],
+                ],
+
             },
             "tests": [
                 # Passes: 1 of 4 values is null, satisfying the 0.7 non-null threshold.
@@ -197,7 +205,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     },
                     "out": {"success": True},
                 },
-                # Failes: 5 of 5 values are null, NOT satisfying the 0.1 non-null threshold.
+                # Fails: 5 of 5 values are null, NOT satisfying the 0.1 non-null threshold.
                 {
                     "title": "target_all_null",
                     "exact_match_out": False,
@@ -209,7 +217,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     },
                     "out": {"success": False},
                 },
-                # Failes: 4 of 4 values are missing, NOT satisfying the 0.1 non-null threshold.
+                # Fails: 4 of 4 values are missing, NOT satisfying the 0.1 non-null threshold.
                 {
                     "title": "target_not_present",
                     "exact_match_out": False,
@@ -270,6 +278,8 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         self,
         configuration: ExpectationConfiguration,
         metrics: Dict,
+        runtime_configuration: Optional[dict] = None, # has to be added for validate to work
+        execution_engine: ExecutionEngine = None, # has to be added for validate to work
     ):
         nonnull_threshold = configuration["kwargs"]["nonnull_threshold"]
         null_ratio = metrics["column.nested_object_not_null_ratio"]
