@@ -1,48 +1,57 @@
-from typing import Optional
-
+from typing import Dict, Optional
 import pandas as pd
+
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
-from great_expectations.execution_engine import PandasExecutionEngine
-from great_expectations.expectations.expectation import ColumnMapExpectation
+from great_expectations.execution_engine import (
+    ExecutionEngine,
+    PandasExecutionEngine,
+)
+from great_expectations.expectations.expectation import ColumnAggregateExpectation
 from great_expectations.expectations.metrics import (
-    ColumnMapMetricProvider,
-    column_condition_partial,
+    ColumnAggregateMetricProvider,
+    column_aggregate_value,
 )
 
 
-# This class defines a Metric to support your Expectation.
-# For most ColumnMapExpectations, the main business logic for calculation will live in this class.
-class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
-    """Class definition for list member type checking metric."""
+# This method implements the core logic for the PandasExecutionEngine
+class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
+    metric_name = "column.nested_object_not_null_ratio"
+    value_keys = ("nonnull_threshold", "target_field")
 
-    # This is the id string that will be used to reference your metric.
-    condition_metric_name = "column_values.not_null"
-    condition_value_keys = ("nonnull_threshold", "target_field")
+    @column_aggregate_value(engine=PandasExecutionEngine)
+    def _pandas(cls, column: pd.Series, **kwargs) -> float | int:
+        """
+        Computes the proportion of non-null values for a specified field within a
+        nested list of dictionaries contained in a Pandas column.
 
-    # This method implements the core logic for the PandasExecutionEngine
-    @column_condition_partial(engine=PandasExecutionEngine)
-    def _pandas(cls, column: pd.core.series.Series, **kwargs) -> pd.Series:
-        """Core logic for list member checking metric on a
-        pandas execution engine.
-        Returns: pd.Series
+        The function flattens each cell's nested structure and checks whether the
+        specified `target_field` exists and is not missing and not None.
+
+        Parameters:
+            column (pd.Series): A column where each row contains a list of dictionaries.
+            **kwargs:
+                target_field (str): The dictionary key to check for null values.
+                nonnull_threshold (float): [Optional] Used for expectation logic,
+                                            not directly required in this method.
+
+        Returns:
+            float: The proportion of non-null entries for `target_field` across all dictionaries.
+                Returns 1.0 if there are no dictionaries to evaluate.
         """
         target_field = kwargs.get("target_field")
-        nonnull_threshold = kwargs.get("nonnull_threshold", 1)
 
-        if target_field is None:
+        if not target_field:
             raise ValueError("Missing required parameter: target_field")
 
         counts = cls._flatten_nested_object_count_nulls(
             list_object=list(column), target_field=target_field
         )
-        if counts["total_dict"] > 0:
-            null_percentage = round(counts["total_none"] / counts["total_dict"], 1)
-        else:
-            null_percentage = 0
-        if null_percentage > (1 - nonnull_threshold):
-            return pd.Series([False] * len(column))
-        else:
-            return pd.Series([True] * len(column))
+
+        return (
+            round(counts["total_none"] / counts["total_dict"], 1)
+            if counts["total_dict"]
+            else 1
+        )
 
     def _flatten_nested_object_count_nulls(
         list_object: list[list[dict[str, str | int | bool | None]]], target_field: str
@@ -109,7 +118,7 @@ class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
 
 
 # This class defines the Expectation itself
-class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
+class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
     """Expect the proportion of non-null values for the specified field
     across all dictionaries in each list to meet or exceed the `nonnull_threshold`."""
 
@@ -214,18 +223,12 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
         }
     ]
 
-    # This is the id string of the Metric used by this Expectation.
-    # For most Expectations, it will be the same as the `condition_metric_name` defined in your Metric class above.
-    map_metric = "column_values.not_null"
-
-    # This is a list of parameter names that can affect whether the Expectation evaluates to True or False
+    metric_dependencies = ("column.nested_object_not_null_ratio",)
     success_keys = ("nonnull_threshold", "target_field")
-
-    # This dictionary contains default values for any parameters that should have default values
     default_kwarg_values = {}
 
     def validate_configuration(
-        self, configuration: Optional[ExpectationConfiguration] = None
+        self, configuration: Optional[ExpectationConfiguration]
     ) -> None:
         """
         Validates that a configuration has been set, and sets a configuration if it has yet to be set. Ensures that
@@ -240,6 +243,22 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
 
         super().validate_configuration(configuration)
         configuration = configuration or self.configuration
+
+    # This method performs a validation of your metrics against your success keys, returning a dict indicating the success or failure of the Expectation.
+    def _validate(
+        self,
+        configuration: ExpectationConfiguration,
+        metrics: Dict,
+        runtime_configuration: dict = None,
+        execution_engine: ExecutionEngine = None,
+    ):
+        nonnull_threshold = configuration["kwargs"]["nonnull_threshold"]
+        null_ratio = metrics["column.nested_object_not_null_ratio"]
+        # if the null ratio is less than the allowed null ratio, return True; else return False
+        return {
+            "success": null_ratio <= (1 - nonnull_threshold),
+            "result": {"observed_value": null_ratio},
+        }
 
     # This object contains metadata for display in the public Gallery
     library_metadata = {
