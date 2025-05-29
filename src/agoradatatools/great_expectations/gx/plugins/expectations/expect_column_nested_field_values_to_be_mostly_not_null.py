@@ -58,14 +58,14 @@ class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
                 {"target_field": "value2", "other_key": "info"}
             ],
             [
-                {"target_field": None}, // be counted as null
+                {"target_field": None}, // one invalid: contain null
                 {"target_field": "value2", "other_key": "info"}
             ],
             [
-                {"target_field": ""}, // be ignored because it is an empty string
+                {"target_field": ""}, // one valid: contain an empty string
             ],
             [
-                {"another_key": ""}, // be counted as null because "target field" is missing
+                {"another_key": ""}, // one invalid: target_field is missing
             ],
             [] //be ignored because it is empty
         ]
@@ -83,8 +83,11 @@ class ColumnNestedObjectNotNull(ColumnMapMetricProvider):
                 - total_nulls (int): The number of dictionaries where target_field is None.
                 - total_none (int): The total number of dictionaries encountered that contain the target_field.
         Note:
-         - an empty list with no dictionary will be ignored.
-         - an empty string will not be counted as "null".
+        A value is counted as invalid if:
+            - The target field is missing from the dictionary
+            - The value is None
+        Empty lists are ignored entirely.
+        Empty string is considered as valid
         """
         counts = {"total_none": 0, "total_dict": 0}
 
@@ -116,6 +119,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
         {
             "data": {
                 "a": [
+                    # "targeted" is null in one row - 1/4 invalid
                     [
                         {"targeted": "a", "other_key": "not empty"},
                         {"targeted": "a", "other_key": "not empty"},
@@ -124,6 +128,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
                     [{"targeted": "a", "another key1": None, "another_key2": None}],
                 ],
                 "b": [
+                    # "targeted" is null in one row - 1/2 invalid
                     [
                         {"targeted": None, "other_key": "not empty"},
                         {"targeted": "", "other_key": "not empty"},
@@ -132,18 +137,20 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
                     [],
                 ],
                 "c": [
+                    # "targeted" is null in five rows - 5/5 invalid
                     [{"targeted": None}, {"targeted": None}],
                     [{"targeted": None}],
                     [{"targeted": None}, {"targeted": None}],
                 ],
                 "d": [
+                    # "targeted" is missing in two rows - 4/4 invalid
                     [{"not_targeted": "x"}, {"something_else": "y"}],
                     [{"also_missing": None}],
                     [{}],
                 ],
             },
             "tests": [
-                # should pass because "targeted" is null 1/6 and threshold is 0.7
+                # Passes: 1 of 4 values is null, satisfying the 0.7 non-null threshold.
                 {
                     "title": "target_meet_threshold",
                     "exact_match_out": False,
@@ -155,7 +162,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
                     },
                     "out": {"success": True},
                 },
-                # should fail because "targeted" is null 1/6 but threshold is 0.9
+                # Fails: 1 of 4 values is null, NOT satisfying the 0.9 non-null threshold.
                 {
                     "title": "target_fail_threshold",
                     "exact_match_out": False,
@@ -167,7 +174,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
                     },
                     "out": {"success": False},
                 },
-                # should pass because "targeted is null" 1/2
+                # Passes: 1 of 2 values is null, satisfying the 0.5 non-null threshold.
                 {
                     "title": "target_half_null",
                     "exact_match_out": False,
@@ -179,7 +186,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
                     },
                     "out": {"success": True},
                 },
-                # should pass because "targeted" is null 100% but threshold is 0.1
+                # Failes: 5 of 5 values are null, NOT satisfying the 0.1 non-null threshold.
                 {
                     "title": "target_all_null",
                     "exact_match_out": False,
@@ -191,7 +198,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
                     },
                     "out": {"success": False},
                 },
-                # should fail because "targeted" is not present in the dictionary
+                # Failes: 4 of 4 values are missing, NOT satisfying the 0.1 non-null threshold.
                 {
                     "title": "target_not_present",
                     "exact_match_out": False,
@@ -201,7 +208,7 @@ class ExpectColumnNestedObjectNotNull(ColumnMapExpectation):
                         "nonnull_threshold": 0.1,
                         "target_field": "targeted",
                     },
-                    "out": {"success": False},
+                    "out": {"success": True},
                 },
             ],
         }
