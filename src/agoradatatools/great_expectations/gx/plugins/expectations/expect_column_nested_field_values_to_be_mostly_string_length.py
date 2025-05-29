@@ -345,7 +345,7 @@ class ExpectColumnNestedObjectStrLength(ColumnAggregateExpectation):
         metrics: Dict,
         runtime_configuration: Optional[dict] = None,  # required by gx api
         execution_engine: ExecutionEngine = None,  # required by gx api
-    ):
+    ) -> dict[str, dict[str, float] | bool]:
         _ = runtime_configuration
         _ = execution_engine
         valid_threshold = configuration["kwargs"]["mostly_threshold"]

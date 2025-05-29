@@ -292,7 +292,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         metrics: Dict,
         runtime_configuration: Optional[dict] = None,  # required by gx api
         execution_engine: ExecutionEngine = None,  # required by gx api
-    ):
+    ) -> dict[str, dict[str, float] | bool]:
         _ = runtime_configuration
         _ = execution_engine
         not_null_threshold = configuration["kwargs"]["nonnull_threshold"]
