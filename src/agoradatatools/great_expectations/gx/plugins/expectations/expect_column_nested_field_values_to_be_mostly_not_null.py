@@ -271,8 +271,6 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         self,
         configuration: ExpectationConfiguration,
         metrics: Dict,
-        runtime_configuration: dict = None,
-        execution_engine: ExecutionEngine = None,
     ):
         nonnull_threshold = configuration["kwargs"]["nonnull_threshold"]
         null_ratio = metrics["column.nested_object_not_null_ratio"]
