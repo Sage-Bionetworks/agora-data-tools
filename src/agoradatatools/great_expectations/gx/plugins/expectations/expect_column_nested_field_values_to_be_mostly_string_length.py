@@ -1,41 +1,35 @@
-from typing import Optional
-
+from typing import Dict, Optional
 import pandas as pd
 import operator
+
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
-from great_expectations.execution_engine import PandasExecutionEngine
-from great_expectations.expectations.expectation import ColumnMapExpectation
+from great_expectations.execution_engine import (
+    PandasExecutionEngine,
+)
+from great_expectations.expectations.expectation import (
+    ColumnAggregateExpectation,
+    InvalidExpectationConfigurationError,
+)
 from great_expectations.expectations.metrics import (
-    ColumnMapMetricProvider,
-    column_condition_partial,
+    ColumnAggregateMetricProvider,
+    column_aggregate_value,
 )
 
 
-# This class defines a Metric to support your Expectation.
-# For most ColumnMapExpectations, the main business logic for calculation will live in this class.
-class ColumnNestedObjectStrLength(ColumnMapMetricProvider):
-    """Class definition for list member type checking metric."""
+# This method implements the core logic for the PandasExecutionEngine
+class ColumnNestedObjectStrLength(ColumnAggregateMetricProvider):
+    metric_name = "column_values.string_length_check"
+    value_keys = ("mostly_threshold", "target_field", "operator", "length_threshold")
 
-    # This is the id string that will be used to reference your metric.
-    condition_metric_name = "column_values.string_length_check"
-    condition_value_keys = (
-        "mostly_threshold",
-        "target_field",
-        "operator",
-        "length_threshold",
-    )
-
-    # This method implements the core logic for the PandasExecutionEngine
-    @column_condition_partial(engine=PandasExecutionEngine)
-    def _pandas(cls, column: pd.core.series.Series, **kwargs) -> pd.Series:
-        """Core logic for list member checking metric on a
-        pandas execution engine.
-        Returns: pd.Series
+    @column_aggregate_value(engine=PandasExecutionEngine)
+    def _pandas(cls, column: pd.Series, **kwargs) -> float | int:
+        """
+        Compute the proportion of invalid string values based on the specified
+        length threshold and comparison operator for a target field nested in lists of dictionaries.
         """
         target_field = kwargs.get("target_field")
-        threshold = kwargs.get("mostly_threshold", 1)
         operator_name = kwargs.get("operator")
-        length_threshold = kwargs.get("length_threshold", 0)
+        length_threshold = kwargs.get("length_threshold")
 
         op_func_map = {
             ">=": operator.ge,
@@ -46,31 +40,17 @@ class ColumnNestedObjectStrLength(ColumnMapMetricProvider):
         }
         op_func = op_func_map.get(operator_name)
 
-        if target_field is None:
-            raise ValueError("Missing required parameter: target_field")
-
-        if op_func is None:
-            raise ValueError(
-                f"{operator} is not a valid operator. The available options are: >=, >, <=, <, =="
-            )
-
         counts = cls._flatten_nested_object_count_invalid_string(
             list_object=list(column),
             target_field=target_field,
             op_func=op_func,
             length_threshold=length_threshold,
         )
-
-        if counts["total_dict"] > 0:
-            invalid_percentage = round(
-                counts["total_invalid"] / counts["total_dict"], 1
-            )
-        else:
-            invalid_percentage = 0
-        if invalid_percentage > (1 - threshold):
-            return pd.Series([False] * len(column))
-        else:
-            return pd.Series([True] * len(column))
+        return (
+            round(counts["total_invalid"] / counts["total_dict"], 1)
+            if counts["total_dict"]
+            else 0
+        )
 
     def _flatten_nested_object_count_invalid_string(
         list_object: list[list[dict[str, str | int | bool | None]]],
@@ -133,12 +113,12 @@ class ColumnNestedObjectStrLength(ColumnMapMetricProvider):
 
 
 # This class defines the Expectation itself
-class ExpectColumnNestedObjectStrLength(ColumnMapExpectation):
-    """Expect the proportion of non-null values for the specified field
-    across all dictionaries in each list to meet or exceed the `nonnull_threshold`."""
+class ExpectColumnNestedObjectStrLength(ColumnAggregateExpectation):
+    """
+    Expect the proportion of string values in nested list-of-dict structures
+    to satisfy the specified string length condition for a given field.
+    """
 
-    # These examples will be shown in the public gallery.
-    # They will also be executed as unit tests for your Expectation.
     examples = [
         {
             "data": {
@@ -284,18 +264,12 @@ class ExpectColumnNestedObjectStrLength(ColumnMapExpectation):
         }
     ]
 
-    # This is the id string of the Metric used by this Expectation.
-    # For most Expectations, it will be the same as the `condition_metric_name` defined in your Metric class above.
-    map_metric = "column_values.string_length_check"
-
-    # This is a list of parameter names that can affect whether the Expectation evaluates to True or False
+    metric_dependencies = ("column_values.string_length_check",)
     success_keys = ("mostly_threshold", "target_field", "operator", "length_threshold")
-
-    # This dictionary contains default values for any parameters that should have default values
     default_kwarg_values = {}
 
     def validate_configuration(
-        self, configuration: Optional[ExpectationConfiguration] = None
+        self, configuration: Optional[ExpectationConfiguration]
     ) -> None:
         """
         Validates that a configuration has been set, and sets a configuration if it has yet to be set. Ensures that
@@ -310,6 +284,51 @@ class ExpectColumnNestedObjectStrLength(ColumnMapExpectation):
 
         super().validate_configuration(configuration)
         configuration = configuration or self.configuration
+
+        kwargs = configuration.kwargs
+        mostly_threshold = kwargs.get("mostly_threshold")
+        operator_name = kwargs.get("operator")
+
+        required_params = [
+            "mostly_threshold",
+            "target_field",
+            "operator",
+            "length_threshold",
+        ]
+        missing_params = [
+            param
+            for param in required_params
+            if configuration.kwargs.get(param) is None
+        ]
+
+        if missing_params:
+            raise InvalidExpectationConfigurationError(
+                f"Missing required parameter(s): {', '.join(missing_params)}"
+            )
+
+        if not isinstance(mostly_threshold, (float, int)) or not (
+            0 <= mostly_threshold <= 1
+        ):
+            raise InvalidExpectationConfigurationError(
+                "mostly_threshold parameter needs to be set between 0 and 1"
+            )
+        if operator_name not in [">=", ">", "<=", "<", "=="]:
+            raise InvalidExpectationConfigurationError(
+                f"{operator_name} is not a valid operator. The available options are: >=, >, <=, <, =="
+            )
+
+    # This method performs a validation of your metrics against your success keys, returning a dict indicating the success or failure of the Expectation.
+    def _validate(
+        self,
+        configuration: ExpectationConfiguration,
+        metrics: Dict,
+    ):
+        valid_threshold = configuration["kwargs"]["mostly_threshold"]
+        invalid_ratio = metrics["column_values.string_length_check"]
+        return {
+            "success": invalid_ratio <= (1 - valid_threshold),
+            "result": {"observed_value": invalid_ratio},
+        }
 
     # This object contains metadata for display in the public Gallery
     library_metadata = {
