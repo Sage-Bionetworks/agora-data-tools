@@ -6,7 +6,10 @@ from great_expectations.execution_engine import (
     ExecutionEngine,
     PandasExecutionEngine,
 )
-from great_expectations.expectations.expectation import ColumnAggregateExpectation
+from great_expectations.expectations.expectation import (
+    ColumnAggregateExpectation,
+    InvalidExpectationConfigurationError,
+)
 from great_expectations.expectations.metrics import (
     ColumnAggregateMetricProvider,
     column_aggregate_value,
@@ -243,6 +246,25 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
 
         super().validate_configuration(configuration)
         configuration = configuration or self.configuration
+
+        kwargs = configuration.kwargs
+        non_null_threshold = kwargs.get("nonnull_threshold")
+        target_field = kwargs.get("target_field")
+
+        if not non_null_threshold:
+            raise InvalidExpectationConfigurationError(
+                "nonnull_threshold parameter is required"
+            )
+
+        if not isinstance(non_null_threshold, (float, int)) or not (
+            0 <= non_null_threshold <= 1
+        ):
+            raise InvalidExpectationConfigurationError(
+                "nonnull_threshold parameter needs to be set between 0 and 1"
+            )
+
+        if not target_field:
+            raise InvalidExpectationConfigurationError("target_field is required")
 
     # This method performs a validation of your metrics against your success keys, returning a dict indicating the success or failure of the Expectation.
     def _validate(
