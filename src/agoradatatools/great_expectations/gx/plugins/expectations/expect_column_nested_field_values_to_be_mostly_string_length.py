@@ -109,7 +109,13 @@ class ColumnNestedObjectStrLength(ColumnAggregateMetricProvider):
         """
         counts = {"total_invalid": 0, "total_dict": 0}
 
-        def _flatten(list_object):
+        def _flatten(
+            list_object: list[list[dict[str, str | int | bool | None]]]
+        ) -> dict[str, int]:
+            """ "
+            Recursively flattens a nested list of dictionaries and counts how many
+            dictionaries have a null value for the specified target field.
+            """
             for item in list_object:
                 if isinstance(item, list):
                     _flatten(item)

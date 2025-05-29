@@ -20,6 +20,9 @@ from great_expectations.expectations.metrics import (
 
 # This method implements the core logic for the PandasExecutionEngine
 class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
+    """A custom Great Expectations metric that calculates the proportion of non-null values
+    for a specified key across nested lists of dictionaries in a column."""
+
     metric_name = "column.nested_object_not_null_ratio"
     value_keys = ("nonnull_threshold", "target_field")
 
@@ -107,7 +110,13 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         """
         counts = {"total_nulls": 0, "total_dict": 0}
 
-        def _flatten(list_object):
+        def _flatten(
+            list_object: list[list[dict[str, str | int | bool | None]]]
+        ) -> dict[str, int]:
+            """ "
+            Recursively flattens a nested list of dictionaries and counts how many
+            dictionaries have a null value for the specified target field.
+            """
             for item in list_object:
                 if isinstance(item, list):
                     _flatten(item)
