@@ -3,10 +3,7 @@ import pandas as pd
 import operator
 
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
-from great_expectations.execution_engine import (
-    PandasExecutionEngine,
-    ExecutionEngine
-)
+from great_expectations.execution_engine import PandasExecutionEngine, ExecutionEngine
 from great_expectations.expectations.expectation import (
     ColumnAggregateExpectation,
     InvalidExpectationConfigurationError,
@@ -25,8 +22,23 @@ class ColumnNestedObjectStrLength(ColumnAggregateMetricProvider):
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float | int:
         """
-        Compute the proportion of invalid string values based on the specified
-        length threshold and comparison operator for a target field nested in lists of dictionaries.
+        Compute the proportion of invalid string values for a specified `target_field` within
+        a nested list of dictionaries in a column.
+
+        The column is expected to contain rows of nested lists of dictionaries. This method
+        recursively flattens these lists and applies the validation rules per dictionary.
+
+        Parameters (from kwargs):
+            target_field (str): The dictionary key to inspect.
+            operator (str): The comparison operator to apply (e.g., '>=', '==').
+            length_threshold (int): The integer value to compare the string length against.
+
+        Returns:
+            float: The proportion of valid entries. If no valid dictionaries are found (i.e., empty input), returns 1.
+
+        Notes:
+            - Empty lists are ignored and do not affect counts.
+            - If `total_dict` is 0 (i.e., no relevant dictionaries were found), the function returns 1 (i.e., 100% valid).
         """
         target_field = kwargs.get("target_field")
         operator_name = kwargs.get("operator")
@@ -47,10 +59,10 @@ class ColumnNestedObjectStrLength(ColumnAggregateMetricProvider):
             op_func=op_func,
             length_threshold=length_threshold,
         )
+
+        valid_counts = counts["total_dict"] - counts["total_invalid"]
         return (
-            round(counts["total_invalid"] / counts["total_dict"], 1)
-            if counts["total_dict"]
-            else 0
+            round(valid_counts / counts["total_dict"], 1) if counts["total_dict"] else 1
         )
 
     def _flatten_nested_object_count_invalid_string(
@@ -323,14 +335,16 @@ class ExpectColumnNestedObjectStrLength(ColumnAggregateExpectation):
         self,
         configuration: ExpectationConfiguration,
         metrics: Dict,
-        runtime_configuration: Optional[dict] = None, # has to be added for validate to work
-        execution_engine: ExecutionEngine = None, # has to be added for validate to work
+        runtime_configuration: Optional[
+            dict
+        ] = None,  # has to be added for validate to work
+        execution_engine: ExecutionEngine = None,  # has to be added for validate to work
     ):
         valid_threshold = configuration["kwargs"]["mostly_threshold"]
-        invalid_ratio = metrics["column_values.string_length_check"]
+        valid_ratio = metrics["column_values.string_length_check"]
         return {
-            "success": invalid_ratio <= (1 - valid_threshold),
-            "result": {"observed_value": invalid_ratio},
+            "success": valid_ratio >= valid_threshold,
+            "result": {"observed_valid_ratio": valid_ratio},
         }
 
     # This object contains metadata for display in the public Gallery

@@ -51,9 +51,11 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         )
 
         return (
-        round((counts["total_dict"] - counts["total_nulls"]) / counts["total_dict"], 1)
-        if counts["total_dict"]
-        else 0
+            round(
+                (counts["total_dict"] - counts["total_nulls"]) / counts["total_dict"], 1
+            )
+            if counts["total_dict"]
+            else 0
         )
 
     def _flatten_nested_object_count_nulls(
@@ -166,7 +168,6 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     [],
                     [],
                 ],
-
             },
             "tests": [
                 # Passes: 1 of 4 values is null, satisfying the 0.7 non-null threshold.
@@ -278,8 +279,10 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         self,
         configuration: ExpectationConfiguration,
         metrics: Dict,
-        runtime_configuration: Optional[dict] = None, # has to be added for validate to work
-        execution_engine: ExecutionEngine = None, # has to be added for validate to work
+        runtime_configuration: Optional[
+            dict
+        ] = None,  # has to be added for validate to work
+        execution_engine: ExecutionEngine = None,  # has to be added for validate to work
     ):
         not_null_threshold = configuration["kwargs"]["nonnull_threshold"]
         not_null_ratio = metrics["column.nested_object_not_null_ratio"]
