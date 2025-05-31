@@ -90,13 +90,13 @@ def process_genetic_info(
     # Normalize gene columns to uppercase for consistent merging
     model_alleles["gene_upper"] = model_alleles["modified_gene"].str.upper()
     human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
-        "modified_gene"
+        "gene_symbol"
     ].str.upper()
 
     # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles
     merged_df = model_alleles.merge(
         human_transgene_allele_map_df[
-            ["mgi_allele_id", "gene_upper", "human_ensembl_id"]
+            ["mgi_allele_id", "gene_upper", "human_ensembl_id", "gene_symbol"]
         ],
         on=["mgi_allele_id", "gene_upper"],
         how="left",
@@ -189,7 +189,7 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
         ],
         "human_transgene_allele_map": [
             "mgi_allele_id",
-            "modified_gene",
+            "gene_symbol",
             "human_ensembl_id",
         ],
         "biomarkers": [
