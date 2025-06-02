@@ -84,6 +84,8 @@ def process_genetic_info(
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
     # Copy dataframes to avoid modifying originals
+    # Using copy() to avoid warning: A value is trying to be set on a copy of a slice from a DataFrame.
+    # Warning appears even if using .loc to set the value.
     model_alleles = model_alleles.copy()
     human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
 
