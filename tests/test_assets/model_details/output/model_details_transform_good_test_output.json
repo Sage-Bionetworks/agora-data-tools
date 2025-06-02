@@ -18,7 +18,21 @@
       {
         "modified_gene": "App",
         "ensembl_gene_id": "ENSG00000142192",
-        "allele": "APP K670_M671delinsNL (Swedish)",
+        "allele": "Allele1",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831
+      },
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSG00000142192",
+        "allele": "Allele2",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831
+      },
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSG00000142192",
+        "allele": "Allele3",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },

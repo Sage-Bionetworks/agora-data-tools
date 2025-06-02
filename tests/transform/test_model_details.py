@@ -1,4 +1,5 @@
 import os
+import json
 
 import pandas as pd
 import pytest
@@ -158,15 +159,15 @@ class TestTransformModelDetails:
 
         # Transform data
         output_data = transform_model_details(datasets=datasets)
-        output_df = pd.DataFrame(output_data)
 
         # Load expected output
-        expected_df = pd.read_json(
-            os.path.join(self.data_files_path, "output", expected_output_file),
-        )
+        with open(
+            os.path.join(self.data_files_path, "output", expected_output_file)
+        ) as f:
+            expected_data = json.load(f)
 
         # Compare output with expected
-        pd.testing.assert_frame_equal(output_df, expected_df)
+        assert output_data == expected_data
 
     @pytest.mark.parametrize(
         "input_files, error_type",
@@ -405,7 +406,7 @@ class TestTransformModelDetails:
         human_transgene_allele_map_df = pd.DataFrame(
             {
                 "mgi_allele_id": [2672831, 1930937],
-                "modified_gene": ["App", "Psen1"],
+                "gene_symbol": ["App", "Psen1"],
                 "human_ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
             }
         )
@@ -464,7 +465,7 @@ class TestTransformModelDetails:
         human_transgene_allele_map_df = pd.DataFrame(
             {
                 "mgi_allele_id": [9999999],  # Different MGI ID
-                "modified_gene": ["DifferentGene"],
+                "gene_symbol": ["DifferentGene"],
                 "human_ensembl_id": ["ENSG00000000000"],
             }
         )
@@ -521,7 +522,7 @@ class TestTransformModelDetails:
     def test_process_genetic_info_with_empty_input(self):
         # Create empty test input DataFrames
         human_transgene_allele_map_df = pd.DataFrame(
-            columns=["mgi_allele_id", "modified_gene", "human_ensembl_id"]
+            columns=["mgi_allele_id", "gene_symbol", "human_ensembl_id"]
         )
         model_alleles = pd.DataFrame(
             columns=[
@@ -535,6 +536,56 @@ class TestTransformModelDetails:
 
         # Expected output - empty list since no alleles to process
         expected_output = []
+
+        # Transform data
+        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+
+        # Compare output with expected
+        assert output == expected_output
+
+    def test_process_genetic_info_case_insensitive_mapping(self):
+        # Create test input DataFrames with different gene casing
+        human_transgene_allele_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": [1234567, 1234567],
+                "gene_symbol": ["APP", "mapt"],  # Upper and lower case in mapping
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
+            }
+        )
+
+        model_alleles = pd.DataFrame(
+            {
+                "modified_gene": ["App", "Mapt"],  # Title case in alleles
+                "gene_ensembl_id": [
+                    "ENSMUSG00000011111",
+                    "ENSMUSG00000022222",
+                ],
+                "allele": [
+                    "APP Example Allele",
+                    "MAPT Example Allele",
+                ],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [1234567, 1234567],
+            }
+        )
+
+        # Expected output: ENSG IDs should be mapped, gene names should keep original case
+        expected_output = [
+            {
+                "modified_gene": "App",
+                "ensembl_gene_id": "ENSG00000123456",
+                "allele": "APP Example Allele",
+                "allele_type": "Transgenic",
+                "mgi_allele_id": 1234567,
+            },
+            {
+                "modified_gene": "Mapt",
+                "ensembl_gene_id": "ENSG00000987654",
+                "allele": "MAPT Example Allele",
+                "allele_type": "Transgenic",
+                "mgi_allele_id": 1234567,
+            },
+        ]
 
         # Transform data
         output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
