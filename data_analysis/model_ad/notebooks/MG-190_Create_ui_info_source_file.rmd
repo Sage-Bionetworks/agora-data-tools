@@ -29,7 +29,7 @@ library(jsonlite)
 # ------------------------------
 # Shared: Static column definition helper
 # ------------------------------
-static_colnames <- c("name", "type", "data_type", "tooltip", "sort_tooltip")
+static_colnames <- c("name", "data_type", "tooltip", "sort_tooltip")
 
 make_column <- function(name, metadata, override_tooltip = NULL) {
   names(metadata) <- static_colnames[-1]
@@ -37,8 +37,7 @@ make_column <- function(name, metadata, override_tooltip = NULL) {
 
   list(
     name = name,
-    type = metadata["type"],
-    column_type = metadata["data_type"],
+    type = metadata["data_type"],
     tooltip = tooltip_value,
     sort_tooltip = metadata["sort_tooltip"]
   )
@@ -50,8 +49,8 @@ make_column <- function(name, metadata, override_tooltip = NULL) {
 ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
 ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
 ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
-ge_static_row <- c("Model", "static", "text", "Mouse Model", "Sort by Model value")
-ge_dynamic_row <- c("dynamic", "heat_map", "", "Sort by log2 fold change value")
+ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
+ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
 ge_dynamic_names_jax <- c("4 months", "6 months", "8 months", "12 months", "24 months")
 ge_dynamic_names_uci <- c("2 months","4 months", "8 months", "12 months", "18 months", "22 months")
 
@@ -84,9 +83,9 @@ dc_menu2 <- c(
   "Consensus Cluster D - Cell Cycle, NMD",
   "Consensus Cluster E - Organelle Biogenesis, Cellular Stress Response"
 )
-dc_static_row1 <- c("Age", "static", "text", "", "Sort by Age value")
-dc_static_row2 <- c("Sex", "static", "text", "", "Sort by Sex value")
-dc_dynamic_row <- c("dynamic", "heat_map", "", "Sort by correlation value")
+dc_static_row1 <- c("Age", "text", "", "Sort by Age value")
+dc_static_row2 <- c("Sex", "text", "", "Sort by Sex value")
+dc_dynamic_row <- c("heat_map", "", "Sort by correlation value")
 
 dc_dynamic_names_A <- c("IFG", "PHG", "TCX")
 dc_dynamic_names_B <- c("CBE", "DLPFC", "PHG", "TCX", "FP", "IFG", "STG")
@@ -144,11 +143,10 @@ mo_static_definitions <- data.frame(
     "Model Type", "Matched Control", "Gene Expression", "Disease Correlation",
     "Pathology", "Biomarkers", "Study Data", "JAX Strain", "Center"
   ),
-  type = "static",
-  column_type = c(
+  type = c(
     "text", "text",
-    "internal_link", "internal_link", "internal_link", "internal_link",
-    "external_link", "external_link", "external_link"
+    "link_internal", "link_internal", "link_internal", "link_internal",
+    "link_external", "link_external", "link_external"
   ),
   stringsAsFactors = FALSE
 )
@@ -156,13 +154,12 @@ mo_static_definitions <- data.frame(
 build_mo_object <- function() {
   columns <- apply(mo_static_definitions, 1, function(row) {
     name <- row["name"]
-    type <- row["type"]
-    column_type <- row["column_type"]
+   type <- row["type"]
 
-    metadata <- c(type, column_type, "", paste("Sort by", name, "value"))
+    metadata <- c(type, "", paste("Sort by", name, "value"))
     column <- make_column(name, metadata)
 
-    if (column$column_type %in% c("link_internal", "link_external")) {
+    if (column$type %in% c("link_internal", "link_external")) {
       if (name %in% c("Gene Expression", "Disease Correlation", "Pathology", "Biomarkers")) {
         column$link_text <- "Results"
       } else if (name == "Study Data") {
@@ -170,7 +167,8 @@ build_mo_object <- function() {
       } else if (name == "JAX Strain") {
         column$link_text <- "View Strain"
       } else if (name == "Center") {
-        # Explicitly omit link_text by not setting it
+        # Omit link_text, add link_url instead
+        column$link_url <- "https://www.model-ad.org/"
       }
     }
 
@@ -187,19 +185,15 @@ build_mo_object <- function() {
 # ------------------------------
 # Combine and Output
 # ------------------------------
-
-# Build objects for each page
 json_list <- c(
   build_ge_objects(),
   build_dc_objects(),
   list(build_mo_object())  # wrap in list to match structure
 )
 
-# Convert to JSON and print
 json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
 cat(json_output)
 
-# Uncomment this to write to file
-#write(json_output, "ui_config.json")
-
+# Optionally write to file:
+write(json_output, "./out/ui_config.json")
 ```

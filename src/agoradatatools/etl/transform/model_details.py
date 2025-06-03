@@ -126,7 +126,8 @@ def process_genetic_info(
 ) -> List[Dict[str, Any]]:
     """
     Processes the gene information DataFrame. If the allele is a human transgene,
-    replace the ensembl_id with the human one.
+    replace the ensembl_id with the human one. Each model's alleles are processed independently.
+    Multiple entries are preserved for different alleles of the same gene.
 
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
@@ -135,20 +136,40 @@ def process_genetic_info(
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
+    # Copy dataframes to avoid modifying originals
+    # Using copy() to avoid warning: A value is trying to be set on a copy of a slice from a DataFrame.
+    # Warning appears even if using .loc to set the value.
+    model_alleles = model_alleles.copy()
+    human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
 
-    # Merge the dataframes on mgi_allele_id and gene
+    # Normalize gene columns to uppercase for consistent merging
+    model_alleles["gene_upper"] = model_alleles["modified_gene"].str.upper()
+    human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
+        "gene_symbol"
+    ].str.upper()
+
+    # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles
     merged_df = model_alleles.merge(
         human_transgene_allele_map_df[
-            ["mgi_allele_id", "modified_gene", "human_ensembl_id"]
+            ["mgi_allele_id", "gene_upper", "human_ensembl_id", "gene_symbol"]
         ],
-        on=["mgi_allele_id", "modified_gene"],
+        on=["mgi_allele_id", "gene_upper"],
         how="left",
     )
 
-    # Create the genetic info list using vectorized operations
-    merged_df["ensembl_gene_id"] = merged_df["human_ensembl_id"].fillna(
-        merged_df["gene_ensembl_id"]
+    # Only override ensembl_id if we have a valid human_ensembl_id
+    merged_df["ensembl_gene_id"] = merged_df.apply(
+        lambda row: row["human_ensembl_id"]
+        if pd.notna(row["human_ensembl_id"])
+        else row["gene_ensembl_id"],
+        axis=1,
     )
+
+    # Drop duplicates to ensure we don't have exact duplicates of the same allele
+    merged_df = merged_df.drop_duplicates(
+        subset=["modified_gene", "allele", "mgi_allele_id"]
+    )
+
     return merged_df[
         ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
     ].to_dict(orient="records")
@@ -184,7 +205,84 @@ def transform_model_details(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    # Check for required datasets
+    required_datasets = [
+        "allele_info",
+        "model_info",
+        "human_transgene_allele_map",
+        "biomarkers",
+        "pathology",
+    ]
+    missing_datasets = [
+        dataset for dataset in required_datasets if dataset not in datasets
+    ]
+    if missing_datasets:
+        raise ValueError(
+            f"Missing required datasets: {', '.join(missing_datasets)}. "
+            "Please ensure all required datasets are provided: allele_info, model_info, "
+            "human_transgene_allele_map, biomarkers, and pathology."
+        )
+
+    # Check for required columns in each dataset
+    required_columns = {
+        "allele_info": [
+            "model",
+            "modified_gene",
+            "gene_ensembl_id",
+            "allele",
+            "allele_type",
+            "mgi_allele_id",
+        ],
+        "model_info": [
+            "model",
+            "matched_controls",
+            "model_type",
+            "contributing_group",
+            "study_synid",
+            "rrid",
+            "jax_id",
+            "alzforum_id",
+            "genotype",
+            "aliases",
+        ],
+        "human_transgene_allele_map": [
+            "mgi_allele_id",
+            "gene_symbol",
+            "human_ensembl_id",
+        ],
+        "biomarkers": [
+            "model",
+            "type",
+            "measurement",
+            "units",
+            "age_death",
+            "tissue",
+            "sex",
+            "genotype",
+            "individual_id",
+        ],
+        "pathology": [
+            "model",
+            "type",
+            "measurement",
+            "units",
+            "age_death",
+            "tissue",
+            "sex",
+            "genotype",
+            "individual_id",
+        ],
+    }
+
+    for dataset_name, columns in required_columns.items():
+        missing_columns = [
+            col for col in columns if col not in datasets[dataset_name].columns
+        ]
+        if missing_columns:
+            raise ValueError(
+                f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
+                f"Please ensure the {dataset_name} dataset contains all required columns: {', '.join(columns)}."
+            )
 
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")
