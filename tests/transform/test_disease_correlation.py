@@ -1,5 +1,7 @@
 import pytest
 import pandas as pd
+import os
+import json
 from agoradatatools.etl.transform.disease_correlation import (
     transform_disease_correlation,
     create_lookup,
@@ -8,6 +10,52 @@ from agoradatatools.etl.transform.disease_correlation import (
     process_group,
     input_validation_model_info,
 )
+
+
+class TestDiseaseCorrelationAssets:
+    data_files_path = "tests/test_assets/disease_correlation"
+
+    pass_test_data = [
+        (
+            {
+                "disease_correlation_results": "disease_correlation_results.csv",
+                "allele_info": "model_allele_info.csv",
+                "model_info": "model_info.csv",
+            },
+            "disease_correlation_expected_output.json",
+        )
+    ]
+
+    pass_test_ids = [
+        "Test assets should pass",
+    ]
+
+    @pytest.mark.parametrize(
+        "input_files, expected_output_file",
+        pass_test_data,
+        ids=pass_test_ids,
+    )
+    def test_disease_correlation_transform_assets_should_pass(
+        self, input_files, expected_output_file
+    ):
+        # Create datasets dictionary
+        datasets = {}
+        for dataset_name, file_name in input_files.items():
+            datasets[dataset_name] = pd.read_csv(
+                os.path.join(self.data_files_path, "input", file_name)
+            )
+
+        # Transform data
+        output_data = transform_disease_correlation(datasets=datasets)
+
+        # Load expected output
+        with open(
+            os.path.join(self.data_files_path, "output", expected_output_file)
+        ) as f:
+            expected_data = json.load(f)
+
+        # Compare output with expected
+        assert output_data == expected_data
 
 
 class TestTransformDiseaseCorrelation:

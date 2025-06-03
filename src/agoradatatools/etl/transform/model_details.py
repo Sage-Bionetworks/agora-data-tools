@@ -198,6 +198,7 @@ def transform_model_details(
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
+        required_input (Dict[str, List[str]]): Dictionary of required input datasets and columns.
 
     Returns:
         list[dict[str, Any]]: A list containing dicionaries with the transformed data.
