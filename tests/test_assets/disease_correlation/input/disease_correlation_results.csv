@@ -1,0 +1,15 @@
+cluster,module,mouse_model,sex,age,correlation,adjusted_p_value
+Consensus Cluster A (ECM organization),IFGyellow,5xFAD,Female,4 months,0.08292285577172838,0.4617459764146099
+Consensus Cluster A (ECM organization),IFGyellow,5xFAD,Female,12 months,0.09705334229520347,0.38871997486146614
+Consensus Cluster A (ECM organization),IFGyellow,5xFAD,Male,4 months,0.034163995569938904,0.7620534740342116
+Consensus Cluster A (ECM organization),IFGyellow,5xFAD,Male,12 months,0.18020254711996359,0.10743634367352842
+Consensus Cluster A (ECM organization),PHGyellow,5xFAD,Female,4 months,0.05556910609374622,0.5868075423762884
+Consensus Cluster A (ECM organization),PHGyellow,5xFAD,Female,12 months,0.08429563818357898,0.40923107555290783
+Consensus Cluster A (ECM organization),PHGyellow,5xFAD,Male,4 months,0.07489187608760077,0.46361368149970383
+Consensus Cluster A (ECM organization),PHGyellow,5xFAD,Male,12 months,0.12000054819296058,0.23921093128646423
+Consensus Cluster A (ECM organization),IFGyellow,APOE4,Female,4 months,0.07048233616950102,0.5318004865047494
+Consensus Cluster A (ECM organization),IFGyellow,APOE4,Female,8 months,0.06956482920369983,0.5371683491780308
+Consensus Cluster A (ECM organization),IFGyellow,APOE4,Female,12 months,0.08270223078187941,0.4629426405554373
+Consensus Cluster A (ECM organization),PHGyellow,APOE4,Female,4 months,0.07947704950925025,0.4366165051976555
+Consensus Cluster A (ECM organization),PHGyellow,APOE4,Female,8 months,0.013631166199082738,0.8940221987653201
+Consensus Cluster A (ECM organization),PHGyellow,APOE4,Female,12 months,0.01892816345978795,0.8532356007363054 

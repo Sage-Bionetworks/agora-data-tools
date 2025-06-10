@@ -1,4 +1,4 @@
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, List
 
 import numpy as np
 import pandas as pd
@@ -220,3 +220,82 @@ def calculate_distribution(
     df.drop("IQR", axis=1, inplace=True)
 
     return df
+
+
+def check_required_datasets_and_columns(
+    datasets: Dict[str, pd.DataFrame], required_input: Dict[str, List[str]]
+) -> None:
+    """
+    Check if all required datasets and columns are present in the input dictionary.
+
+    Args:
+        datasets (Dict[str, pd.DataFrame]): Dictionary containing dataset names as keys and their corresponding pandas DataFrames as values.
+        required_input (Dict[str, List[str]]): Dictionary containing dataset names as keys and their corresponding required columns as values.
+
+    Raises:
+        ValueError: If any required columns are missing.
+    """
+    # Check for missing datasets
+    missing_datasets = [
+        dataset for dataset in required_input.keys() if dataset not in datasets
+    ]
+    if missing_datasets:
+        raise ValueError(
+            f"Missing required datasets: {', '.join(missing_datasets)}. "
+            "Please ensure all required datasets are provided {required_datasets}"
+        )
+
+    # Check for missing columns
+    for dataset_name, columns in required_input.items():
+        missing_columns = [
+            col for col in columns if col not in datasets[dataset_name].columns
+        ]
+        if missing_columns:
+            raise ValueError(
+                f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
+                f"Please ensure the {dataset_name} dataset contains all required columns: {', '.join(columns)}."
+            )
+
+
+def flatten_list(lst: List[Any]) -> List[Any]:
+    """
+    Recursively flattens a nested list into a single list of values.
+
+    Args:
+        lst (List[Any]): A list which may contain nested lists at arbitrary depth.
+
+    Returns:
+        List[Any]: A new flattened list containing all the non-list elements from the input.
+
+    Example:
+        flatten(['A', ['B', 'C'], [['D'], 'E']])
+        ['A', 'B', 'C', 'D', 'E']
+    """
+    result = []
+    for item in lst:
+        if isinstance(item, list):
+            result.extend(flatten_list(item))
+        else:
+            result.append(item)
+    return result
+
+
+def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
+    """
+    Remove duplicate elements from a list while preserving the original order.
+
+    Args:
+        lst (List[Any]): The input list from which to remove duplicates.
+
+    Returns:
+        List[Any]: A new list with duplicates removed, maintaining the order of first occurrence.
+
+    Example:
+        remove_duplicates(['a', 'b', 'c', 'b'])
+        ['a', 'b', 'c']
+    """
+    result = []
+    for item in lst:
+        if item not in result:
+            result.append(item)
+    return result

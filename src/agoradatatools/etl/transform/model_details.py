@@ -5,6 +5,59 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Any, Dict, List
 
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
+
+REQUIRED_INPUT = required_input = {
+    "allele_info": [
+        "model",
+        "modified_gene",
+        "gene_ensembl_id",
+        "allele",
+        "allele_type",
+        "mgi_allele_id",
+    ],
+    "model_info": [
+        "model",
+        "matched_controls",
+        "model_type",
+        "contributing_group",
+        "study_synid",
+        "rrid",
+        "jax_id",
+        "alzforum_id",
+        "genotype",
+        "aliases",
+    ],
+    "human_transgene_allele_map": [
+        "mgi_allele_id",
+        "gene_symbol",
+        "human_ensembl_id",
+    ],
+    "biomarkers": [
+        "model",
+        "type",
+        "measurement",
+        "units",
+        "age_death",
+        "tissue",
+        "sex",
+        "genotype",
+        "individual_id",
+    ],
+    "pathology": [
+        "model",
+        "type",
+        "measurement",
+        "units",
+        "age_death",
+        "tissue",
+        "sex",
+        "genotype",
+        "individual_id",
+    ],
+}
+
 
 def prepare_biomarker_pathology(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -122,7 +175,10 @@ def process_genetic_info(
     ].to_dict(orient="records")
 
 
-def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str, Any]]:
+def transform_model_details(
+    datasets: Dict[str, pd.DataFrame],
+    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
+) -> List[Dict[str, Any]]:
     """
     Transforms the model_details souce files into a structured format for Model AD.
 
@@ -142,6 +198,7 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
+        required_input (Dict[str, List[str]]): Dictionary of required input datasets and columns.
 
     Returns:
         list[dict[str, Any]]: A list containing dicionaries with the transformed data.
@@ -149,84 +206,7 @@ def transform_model_details(datasets: Dict[str, pd.DataFrame]) -> List[Dict[str,
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    # Check for required datasets
-    required_datasets = [
-        "allele_info",
-        "model_info",
-        "human_transgene_allele_map",
-        "biomarkers",
-        "pathology",
-    ]
-    missing_datasets = [
-        dataset for dataset in required_datasets if dataset not in datasets
-    ]
-    if missing_datasets:
-        raise ValueError(
-            f"Missing required datasets: {', '.join(missing_datasets)}. "
-            "Please ensure all required datasets are provided: allele_info, model_info, "
-            "human_transgene_allele_map, biomarkers, and pathology."
-        )
-
-    # Check for required columns in each dataset
-    required_columns = {
-        "allele_info": [
-            "model",
-            "modified_gene",
-            "gene_ensembl_id",
-            "allele",
-            "allele_type",
-            "mgi_allele_id",
-        ],
-        "model_info": [
-            "model",
-            "matched_controls",
-            "model_type",
-            "contributing_group",
-            "study_synid",
-            "rrid",
-            "jax_id",
-            "alzforum_id",
-            "genotype",
-            "aliases",
-        ],
-        "human_transgene_allele_map": [
-            "mgi_allele_id",
-            "gene_symbol",
-            "human_ensembl_id",
-        ],
-        "biomarkers": [
-            "model",
-            "type",
-            "measurement",
-            "units",
-            "age_death",
-            "tissue",
-            "sex",
-            "genotype",
-            "individual_id",
-        ],
-        "pathology": [
-            "model",
-            "type",
-            "measurement",
-            "units",
-            "age_death",
-            "tissue",
-            "sex",
-            "genotype",
-            "individual_id",
-        ],
-    }
-
-    for dataset_name, columns in required_columns.items():
-        missing_columns = [
-            col for col in columns if col not in datasets[dataset_name].columns
-        ]
-        if missing_columns:
-            raise ValueError(
-                f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
-                f"Please ensure the {dataset_name} dataset contains all required columns: {', '.join(columns)}."
-            )
+    check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")
