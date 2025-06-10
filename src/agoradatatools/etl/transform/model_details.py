@@ -6,7 +6,7 @@ import pandas as pd
 from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns
-
+from agoradatatools.etl.transform.immunohisto_transform import prepare_immunohisto_data, immunohisto_transform
 
 REQUIRED_INPUT = required_input = {
     "allele_info": [
@@ -57,30 +57,6 @@ REQUIRED_INPUT = required_input = {
         "individual_id",
     ],
 }
-
-
-def prepare_biomarker_pathology(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    This function prepares the biomarker and pathology dataframes for the Model AD project.
-    It performs the following transformations:
-    1. Fill missing values with an empty string.
-    2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
-    3. Replace 'beta' with '&beta;' in the 'type' column.
-    4. Rename 'type' column to 'evidence_type' and 'measurement' to 'value'.
-    """
-    # Create a copy to avoid modifying the original
-    df = df.copy()
-
-    # Fill missing values and transform text fields
-    df = df.fillna("")
-    df["sex"] = df["sex"].str.title()
-    df["tissue"] = df["tissue"].str.title()
-
-    # Replace 'beta' with '&beta;' in biomarker types
-    df["type"] = df["type"].str.replace("beta", "&beta;")
-
-    # Rename columns
-    return df.rename(columns={"type": "evidence_type", "measurement": "value"})
 
 
 def process_biomarker_pathology(
@@ -214,8 +190,8 @@ def transform_model_details(
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
     # Prepare biomarker and pathology dataframes
-    biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"])
-    pathology_df = prepare_biomarker_pathology(datasets["pathology"])
+    grouped_biomarkers = immunohisto_transform(prepare_immunohisto_data(datasets["biomarkers"]), dataset_name="biomarkers", model_name=model_name)
+    grouped_pathology = immunohisto_transform(prepare_immunohisto_data(datasets["pathology"]), dataset_name="pathology", model_name=model_name)
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
@@ -237,8 +213,8 @@ def transform_model_details(
         )
 
         # Process the biomarkers and pathology datasets for this model
-        model_biomarkers = process_biomarker_pathology(biomarkers_df, model_name)
-        model_pathology = process_biomarker_pathology(pathology_df, model_name)
+        model_biomarkers = process_biomarker_pathology(biomarkers_df, dataset_name="biomarkers", model_name=model_name)
+        model_pathology = process_biomarker_pathology(pathology_df, dataset_name="pathology", model_name=model_name)
 
         # Build the complete model entry
         model_entry = {

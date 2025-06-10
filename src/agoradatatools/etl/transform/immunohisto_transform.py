@@ -9,6 +9,30 @@ from typing import Dict, List
 from agoradatatools.etl.utils import check_required_datasets_and_columns
 
 
+def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function prepares the biomarker and pathology dataframes for the Model AD project.
+    It performs the following transformations:
+    1. Fill missing values with an empty string.
+    2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
+    3. Replace 'beta' with '&beta;' in the 'type' column.
+    4. Rename 'type' column to 'evidence_type' and 'measurement' to 'value'.
+    """
+    # Create a copy to avoid modifying the original
+    df = df.copy()
+
+    # Fill missing values and transform text fields
+    df = df.fillna("")
+    df["sex"] = df["sex"].str.title()
+    df["tissue"] = df["tissue"].str.title()
+
+    # Replace 'beta' with '&beta;' in biomarker types
+    df["type"] = df["type"].str.replace("beta", "&beta;")
+
+    # Rename columns
+    return df.rename(columns={"type": "evidence_type", "measurement": "value"})
+
+
 def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
     dataset_name: str,
