@@ -6,7 +6,58 @@ import pandas as pd
 from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns
-from agoradatatools.etl.transform.immunohisto_transform import prepare_immunohisto_data, immunohisto_transform
+
+
+REQUIRED_INPUT = required_input = {
+    "allele_info": [
+        "model",
+        "modified_gene",
+        "gene_ensembl_id",
+        "allele",
+        "allele_type",
+        "mgi_allele_id",
+    ],
+    "model_info": [
+        "model",
+        "matched_controls",
+        "model_type",
+        "contributing_group",
+        "study_synid",
+        "rrid",
+        "jax_id",
+        "alzforum_id",
+        "genotype",
+        "aliases",
+    ],
+    "human_transgene_allele_map": [
+        "mgi_allele_id",
+        "gene_symbol",
+        "human_ensembl_id",
+    ],
+    "biomarkers": [
+        "model",
+        "type",
+        "measurement",
+        "units",
+        "age_death",
+        "tissue",
+        "sex",
+        "genotype",
+        "individual_id",
+    ],
+    "pathology": [
+        "model",
+        "type",
+        "measurement",
+        "units",
+        "age_death",
+        "tissue",
+        "sex",
+        "genotype",
+        "individual_id",
+    ],
+}
+
 
 REQUIRED_INPUT = required_input = {
     "allele_info": [
