@@ -1,9 +1,10 @@
-individual_id,specimen_id,model,type,measurement,units,age_death,tissue,sex,genotype
-mouse1,spec1,3xTg-AD,Soluble beta40,10.5,pg/ml,4,hippocampus,female,transgenic
-mouse2,spec2,3xTg-AD,Soluble beta40,12.3,pg/ml,4,hippocampus,male,transgenic
-mouse3,spec3,3xTg-AD,Soluble beta42,15.7,pg/ml,4,hippocampus,female,transgenic
-mouse4,spec4,3xTg-AD,Insoluble beta40,8.2,pg/ml,8,cortex,male,transgenic
-mouse5,spec5,3xTg-AD,Insoluble beta42,9.1,pg/ml,8,cortex,female,transgenic
-mouse6,spec6,hTau,Tau,22.4,ng/ml,6,hippocampus,male,transgenic
-mouse7,spec7,hTau,Tau,24.8,ng/ml,6,hippocampus,female,transgenic
-mouse8,spec8,hTau,Phospho-tau,18.3,ng/ml,12,cortex,male,transgenic
+model,type,measurement,units,age_death,tissue,sex,genotype,individual_id
+3xTg-AD,Insoluble beta40,8.2,pg/ml,8,Cortex,Male,transgenic,mouse4
+3xTg-AD,Insoluble beta42,9.1,pg/ml,8,Cortex,Female,transgenic,mouse5
+3xTg-AD,Soluble beta40,10.5,pg/ml,4,Hippocampus,Female,transgenic,mouse1
+3xTg-AD,Soluble beta40,12.3,pg/ml,4,Hippocampus,Male,transgenic,mouse2
+3xTg-AD,Soluble beta42,15.7,pg/ml,4,Hippocampus,Female,transgenic,mouse3
+5xFAD,Insoluble beta40,12.5,pg/ml,6,Cortex,Male,transgenic,mouse10
+5xFAD,Insoluble beta42,14.2,pg/ml,6,Cortex,Female,transgenic,mouse11
+5xFAD,Soluble beta40,18.3,pg/ml,3,Hippocampus,Male,transgenic,mouse12
+5xFAD,Soluble beta42,20.1,pg/ml,3,Hippocampus,Female,transgenic,mouse13

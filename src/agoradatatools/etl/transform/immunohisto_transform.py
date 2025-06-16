@@ -4,9 +4,35 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-from typing import Dict, List
+from typing import Dict, List, Any
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import check_required_datasets_and_columns, convert_numpy_types
+
+
+REQUIRED_INPUT = {
+    "biomarkers": [
+        "model",
+        "type",
+        "measurement",
+        "units",
+        "age_death",
+        "tissue",
+        "sex",
+        "genotype",
+        "individual_id",
+    ],
+    "pathology": [
+        "model",
+        "type",
+        "measurement",
+        "units",
+        "age_death",
+        "tissue",
+        "sex",
+        "genotype",
+        "individual_id",
+    ],
+}
 
 
 def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -36,10 +62,11 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
 def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
     dataset_name: str,
-    group_columns: List[str] = ["model", "type", "age_death", "tissue", "units"],
-    extra_columns: List[str] = ["genotype", "measurement", "sex"],
-    extra_column_name: str = "points",
-) -> pd.DataFrame:
+    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
+    group_columns: List[str] = ["model", "evidence_type", "tissue", "age_death", "units"],
+    extra_columns: List[str] = ["genotype", "sex", "individual_id", "value"],
+    extra_column_name: str = "data",
+) -> List[Dict[str, Any]]:
     """
     Takes a dictionary of dataset DataFrames, extracts the 'dataset_name'
     DataFrame, and transforms it into a DataFrame grouped by group_columns.
@@ -48,18 +75,16 @@ def immunohisto_transform(
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
         dataset_name (str): The name of the dataset to transform.
-        group_columns (List[str], optional): List of columns to group by. Defaults to ['model', 'type', 'age_death', 'tissue', 'units'].
-        extra_columns (List[str], optional): List of columns to include in the group. Defaults to ['genotype', 'measurement', 'sex'].
-        extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'points'.
+        group_columns (List[str], optional): List of columns to group by. Defaults to ['model', 'evidence_type', 'tissue', 'age_death', 'units'].
+        extra_columns (List[str], optional): List of columns to include in the group. Defaults to ['genotype', 'sex', 'individual_id', 'value'].
+        extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'data'.
 
     Returns:
         pd.DataFrame: A DataFrame grouped by the group_columns.
     """
-    check_required_datasets_and_columns(
-        datasets, {dataset_name: group_columns + extra_columns}
-    )
+    check_required_datasets_and_columns(datasets, required_input)
 
-    dataset = datasets[dataset_name].fillna("none")
+    dataset = prepare_immunohisto_data(datasets[dataset_name].fillna("none"))
 
     data_rows = []
 
@@ -69,5 +94,7 @@ def immunohisto_transform(
         entry = dict(zip(group_columns, group_key))
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
+    
+    data_rows = convert_numpy_types(data_rows)
 
-    return pd.DataFrame(data_rows)
+    return data_rows

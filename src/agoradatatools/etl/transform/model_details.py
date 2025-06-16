@@ -6,9 +6,10 @@ import pandas as pd
 from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 
 
-REQUIRED_INPUT = required_input = {
+REQUIRED_INPUT = {
     "allele_info": [
         "model",
         "modified_gene",
@@ -57,95 +58,6 @@ REQUIRED_INPUT = required_input = {
         "individual_id",
     ],
 }
-
-
-REQUIRED_INPUT = required_input = {
-    "allele_info": [
-        "model",
-        "modified_gene",
-        "gene_ensembl_id",
-        "allele",
-        "allele_type",
-        "mgi_allele_id",
-    ],
-    "model_info": [
-        "model",
-        "matched_controls",
-        "model_type",
-        "contributing_group",
-        "study_synid",
-        "rrid",
-        "jax_id",
-        "alzforum_id",
-        "genotype",
-        "aliases",
-    ],
-    "human_transgene_allele_map": [
-        "mgi_allele_id",
-        "gene_symbol",
-        "human_ensembl_id",
-    ],
-    "biomarkers": [
-        "model",
-        "type",
-        "measurement",
-        "units",
-        "age_death",
-        "tissue",
-        "sex",
-        "genotype",
-        "individual_id",
-    ],
-    "pathology": [
-        "model",
-        "type",
-        "measurement",
-        "units",
-        "age_death",
-        "tissue",
-        "sex",
-        "genotype",
-        "individual_id",
-    ],
-}
-
-
-def process_biomarker_pathology(
-    df: pd.DataFrame, model_name: str
-) -> List[Dict[str, Any]]:
-    """
-    Processes the biomarkers and pathology data for a specific model.
-    Group by evidence_type, tissue, and age_death.
-
-    Args:
-        df (pd.DataFrame): The DataFrame containing the data.
-        model_name (str): The name of the model to process.
-    Returns:
-        list[dict]: A list of dictionaries containing the processed data.
-    """
-    # Filter for the specific model
-    model_df = df[df["model"] == model_name]
-
-    # Group by the required columns and aggregate the data
-    grouped = model_df.groupby(["evidence_type", "tissue", "age_death", "units"])
-
-    # Process each group into the required format
-    output = []
-    for (evidence_type, tissue, age, units), group in grouped:
-        df_entry = {
-            "model": model_name,
-            "evidence_type": evidence_type,
-            "tissue": tissue,
-            "age": f"{age} months",
-            "units": units,
-            "data": group[["genotype", "sex", "individual_id", "value"]].to_dict(
-                orient="records"
-            ),
-        }
-        output.append(df_entry)
-
-    return output
-
 
 def process_genetic_info(
     human_transgene_allele_map_df: pd.DataFrame,
@@ -241,8 +153,8 @@ def transform_model_details(
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
     # Prepare biomarker and pathology dataframes
-    grouped_biomarkers = immunohisto_transform(prepare_immunohisto_data(datasets["biomarkers"]), dataset_name="biomarkers", model_name=model_name)
-    grouped_pathology = immunohisto_transform(prepare_immunohisto_data(datasets["pathology"]), dataset_name="pathology", model_name=model_name)
+    grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")
+    grouped_pathology = immunohisto_transform(datasets, dataset_name="pathology")
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
@@ -264,8 +176,8 @@ def transform_model_details(
         )
 
         # Process the biomarkers and pathology datasets for this model
-        model_biomarkers = process_biomarker_pathology(biomarkers_df, dataset_name="biomarkers", model_name=model_name)
-        model_pathology = process_biomarker_pathology(pathology_df, dataset_name="pathology", model_name=model_name)
+        model_biomarkers = [x for x in grouped_biomarkers if x["model"] == model_name]
+        model_pathology = [x for x in grouped_pathology if x["model"] == model_name]
 
         # Build the complete model entry
         model_entry = {
