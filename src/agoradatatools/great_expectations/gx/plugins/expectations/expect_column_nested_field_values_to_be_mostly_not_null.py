@@ -38,7 +38,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         Parameters:
             column (pd.Series): A column where each row contains a list of dictionaries.
             **kwargs:
-                target_field (str):  the field to validate within each JSON object. 
+                target_field (str):  the field to validate within each JSON object.
                 non_null_threshold  (float): non null threshold
 
         Returns:
@@ -282,9 +282,11 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
             )
 
         if not target_field:
-            raise InvalidExpectationConfigurationError("target_field is required. Please provide a field to validate within each JSON object")
+            raise InvalidExpectationConfigurationError(
+                "target_field is required. Please provide a field to validate within each JSON object"
+            )
 
-    # This method performs a validation of your metrics against your success keys, 
+    # This method performs a validation of your metrics against your success keys,
     # returning a dict indicating the success or failure of the Expectation.
     def _validate(
         self,
