@@ -159,13 +159,13 @@ join_to_metadata <- function(individual_metadata, biospecimen_metadata, df) {
   merged_metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
   # Figure out what columns to merge by
-  join_by <- if(all(c('specimenID', 'individualID') %in% colnames(df)) && 
+  join_by <- if(all(c('specimenID', 'individualID') %in% colnames(df)) &&
               all(c('specimenID', 'individualID') %in% colnames(merged_metadata))) {
     c('specimenID', 'individualID')
   } else {
     c('specimenID')
   }
-  
+
   # Prevent creating duplicate data rows for 'Pool-X' specimenIDs by matching only first metadata row
   df_out <- df %>% left_join(merged_metadata, by=join_by, multiple="first")
 
@@ -294,13 +294,13 @@ fivex_gfap_s100b_pivot <- fivex_gfap_s100b %>%
                 values_transform = list(measurement = as.numeric)
 
                 # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
                      # Populate model column
 ) %>% add_column(
-        model = '5xFAD'
+        model = '5xFAD (UCI)'
 
         # Drop unused columns
 ) %>% select(
@@ -317,13 +317,13 @@ fivex_lamp1_pivot <- fivex_lamp1 %>%
                 values_transform = list(measurement = as.numeric),
 
                 # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
                      # Populate model column
 ) %>% add_column(
-        model = '5xFAD'
+        model = '5xFAD (UCI)'
 
         # Drop unused columns
 ) %>% select(
@@ -340,13 +340,13 @@ fivex_iba1_thios_pivot <- fivex_iba1_thios %>%
                 values_transform = list(measurement = as.numeric),
 
                 # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
                      # Populate model column
 ) %>% add_column(
-        model = '5xFAD'
+        model = '5xFAD (UCI)'
 
         # Drop unused columns
 ) %>% select(
@@ -687,7 +687,7 @@ pathology_merged <- bind_rows(
   nss_final %>% mutate(individualID = as.character(individualID)),
   abca7_final %>% mutate(individualID = as.character(individualID))
 ) %>%
-  rename(
+  dplyr::rename(
     specimen_id = specimenID,
     individual_id = individualID,
     age_death = ageDeath
@@ -715,7 +715,7 @@ pathology_final <- mutate(pathology_merged, genotype = case_when(
         TRUE ~ genotype))
 
 #Correct typos
-pathology_final$model <- gsub("3xTG-AD", "3xTg-AD", pathology_final$model)
+pathology_final$name <- gsub("3xTG-AD", "3xTg-AD", pathology_final$model)
 pathology_final$genotype <- gsub("3xTG-AD", "3xTg-AD", pathology_final$genotype)
 
 # print final data frame below
