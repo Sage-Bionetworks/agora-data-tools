@@ -270,11 +270,9 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                 "non_null_threshold parameter is required. Please provide a  "
             )
 
-        if not isinstance(non_null_threshold, (float, int)) or not (
-            0 < non_null_threshold < 1
-        ):
+        if not(0 < non_null_threshold < 1):
             raise InvalidExpectationConfigurationError(
-                "non_null_threshold parameter needs to be set between 0 and 1"
+                "The `non_null_threshold` parameter must be a float strictly between 0 and 1."
             )
 
         if not target_field:
@@ -287,7 +285,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
     def _validate(
         self,
         configuration: ExpectationConfiguration,
-        metrics: Dict,
+        metrics: Dict[str, int],
         runtime_configuration: Optional[dict] = None,  # required by gx api
         execution_engine: ExecutionEngine = None,  # required by gx api
     ) -> dict[str, dict[str, float] | bool]:
