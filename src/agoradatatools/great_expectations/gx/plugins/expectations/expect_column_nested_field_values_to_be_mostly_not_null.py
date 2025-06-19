@@ -63,6 +63,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
             else 0
         )
 
+    @staticmethod
     def _flatten_nested_object_count_nulls(
         list_object: list[list[dict[str, str | int | bool | None]]], target_field: str
     ) -> dict[str, int]:
@@ -89,7 +90,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
             [] //be ignored because it is empty
         ]
 
-        The code flattens nested lists of dictionaries and counts the total number of null values for the specified field.
+        The code recursively counts nulls for a field in nested dict lists.
         total_nulls = 2
         total_nulls = 6
 
