@@ -24,7 +24,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
     for a specified key across nested lists of dictionaries in a column."""
 
     metric_name = "column.nested_object_not_null_ratio"
-    value_keys = ("nonnull_threshold", "target_field")
+    value_keys = ("non_null_threshold", "target_field")
 
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float | int:
@@ -38,9 +38,8 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         Parameters:
             column (pd.Series): A column where each row contains a list of dictionaries.
             **kwargs:
-                target_field (str): The dictionary key to check for null values.
-                nonnull_threshold (float): [Optional] Used for expectation logic,
-                                            not directly required in this method.
+                target_field (str):  the field to validate within each JSON object. 
+                non_null_threshold  (float): non null threshold
 
         Returns:
             float: The proportion of non-null entries for `target_field` across all dictionaries.
@@ -136,7 +135,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 # This class defines the Expectation itself
 class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
     """Expect the proportion of non-null values for the specified field
-    across all dictionaries in each list to meet or exceed the `nonnull_threshold`."""
+    across all dictionaries in each list to meet or exceed the `non_null_threshold`."""
 
     # These examples will be shown in the public gallery.
     # They will also be executed as unit tests for your Expectation.
@@ -188,7 +187,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     "include_in_gallery": True,
                     "in": {
                         "column": "a",
-                        "nonnull_threshold": 0.7,
+                        "non_null_threshold": 0.7,
                         "target_field": "targeted",
                     },
                     "out": {"success": True},
@@ -200,7 +199,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     "include_in_gallery": True,
                     "in": {
                         "column": "a",
-                        "nonnull_threshold": 0.9,
+                        "non_null_threshold": 0.9,
                         "target_field": "targeted",
                     },
                     "out": {"success": False},
@@ -212,7 +211,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     "include_in_gallery": True,
                     "in": {
                         "column": "b",
-                        "nonnull_threshold": 0.5,
+                        "non_null_threshold": 0.5,
                         "target_field": "targeted",
                     },
                     "out": {"success": True},
@@ -224,7 +223,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     "include_in_gallery": True,
                     "in": {
                         "column": "c",
-                        "nonnull_threshold": 0.1,
+                        "non_null_threshold": 0.1,
                         "target_field": "targeted",
                     },
                     "out": {"success": False},
@@ -236,7 +235,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     "include_in_gallery": True,
                     "in": {
                         "column": "d",
-                        "nonnull_threshold": 0.1,
+                        "non_null_threshold": 0.1,
                         "target_field": "targeted",
                     },
                     "out": {"success": False},
@@ -246,7 +245,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
     ]
 
     metric_dependencies = ("column.nested_object_not_null_ratio",)
-    success_keys = ("nonnull_threshold", "target_field")
+    success_keys = ("non_null_threshold", "target_field")
     default_kwarg_values = {}
 
     def validate_configuration(
@@ -267,23 +266,23 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         configuration = configuration or self.configuration
 
         kwargs = configuration.kwargs
-        non_null_threshold = kwargs.get("nonnull_threshold")
+        non_null_threshold = kwargs.get("non_null_threshold")
         target_field = kwargs.get("target_field")
 
         if not non_null_threshold:
             raise InvalidExpectationConfigurationError(
-                "nonnull_threshold parameter is required"
+                "non_null_threshold parameter is required. Please provide a  "
             )
 
         if not isinstance(non_null_threshold, (float, int)) or not (
-            0 <= non_null_threshold <= 1
+            0 < non_null_threshold < 1
         ):
             raise InvalidExpectationConfigurationError(
-                "nonnull_threshold parameter needs to be set between 0 and 1"
+                "non_null_threshold parameter needs to be set between 0 and 1"
             )
 
         if not target_field:
-            raise InvalidExpectationConfigurationError("target_field is required")
+            raise InvalidExpectationConfigurationError("target_field is required. Please provide a field to validate within each JSON object")
 
     # This method performs a validation of your metrics against your success keys, 
     # returning a dict indicating the success or failure of the Expectation.
@@ -296,7 +295,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
     ) -> dict[str, dict[str, float] | bool]:
         _ = runtime_configuration
         _ = execution_engine
-        not_null_threshold = configuration["kwargs"]["nonnull_threshold"]
+        not_null_threshold = configuration["kwargs"]["non_null_threshold"]
         not_null_ratio = metrics["column.nested_object_not_null_ratio"]
         # if the null ratio is less than the allowed null ratio, return True; else return False
         return {
