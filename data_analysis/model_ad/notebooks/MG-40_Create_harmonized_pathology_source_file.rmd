@@ -82,11 +82,11 @@ synapse_folder <- 'syn51498054'
 stain_keeps <- c("GFAP", "S100B", "LAMP1", "IBA1", "ThioS", "HT7", "AT8")
 
 # Harmonized column specs for intermediate per-model files
-keeps_with_pool_join_field <- c('specimenID', 'model', 'type', 'measurement', 'units') # 3xTG-AD, NSS
-keeps_with_join_fields <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units') # 5xFAD
+keeps_with_pool_join_field <- c('specimenID', 'model_name', 'type', 'measurement', 'units') # 3xTG-AD, NSS
+keeps_with_join_fields <- c('individualID', 'specimenID', 'model_name', 'type', 'measurement', 'units') # 5xFAD
 
 # Harmonized column spec for final output file
-keeps <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
+keeps <- c('individualID', 'specimenID', 'model_name', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
 
 # Pathology display names
 IBA1_display_name <- 'Microglia Cell Density (IBA1)'
@@ -159,13 +159,13 @@ join_to_metadata <- function(individual_metadata, biospecimen_metadata, df) {
   merged_metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
   # Figure out what columns to merge by
-  join_by <- if(all(c('specimenID', 'individualID') %in% colnames(df)) && 
+  join_by <- if(all(c('specimenID', 'individualID') %in% colnames(df)) &&
               all(c('specimenID', 'individualID') %in% colnames(merged_metadata))) {
     c('specimenID', 'individualID')
   } else {
     c('specimenID')
   }
-  
+
   # Prevent creating duplicate data rows for 'Pool-X' specimenIDs by matching only first metadata row
   df_out <- df %>% left_join(merged_metadata, by=join_by, multiple="first")
 
@@ -266,7 +266,7 @@ threex_pathology <- threex_pathology_source %>%
 
         # Populate model column
 ) %>% add_column(
-        model = '3xTG-AD'
+        model_name = '3xTG-AD'
 
         # Drop unwanted columns
 ) %>% select(
@@ -294,13 +294,13 @@ fivex_gfap_s100b_pivot <- fivex_gfap_s100b %>%
                 values_transform = list(measurement = as.numeric)
 
                 # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
-                     # Populate model column
+                     # Populate model_name column
 ) %>% add_column(
-        model = '5xFAD'
+        model_name = '5xFAD (UCI)'
 
         # Drop unused columns
 ) %>% select(
@@ -317,13 +317,13 @@ fivex_lamp1_pivot <- fivex_lamp1 %>%
                 values_transform = list(measurement = as.numeric),
 
                 # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
                      # Populate model column
 ) %>% add_column(
-        model = '5xFAD'
+        model_name = '5xFAD (UCI)'
 
         # Drop unused columns
 ) %>% select(
@@ -340,13 +340,13 @@ fivex_iba1_thios_pivot <- fivex_iba1_thios %>%
                 values_transform = list(measurement = as.numeric),
 
                 # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
                      # Populate model column
 ) %>% add_column(
-        model = '5xFAD'
+        model_name = '5xFAD (UCI)'
 
         # Drop unused columns
 ) %>% select(
@@ -450,7 +450,7 @@ nss_pathology <- nss_pathology_source %>%
 
         # Populate model column
 ) %>% add_column(
-        model = 'Trem2-R47H_NSS'
+        model_name = 'Trem2-R47H_NSS'
 
         # Drop unwanted columns
 ) %>% select(
@@ -510,7 +510,7 @@ abca7_pathology <- abca7_pathology_source %>%
 
         # Populate model column
 ) %>% add_column(
-        model = 'Abca7*V1599M'
+        model_name = 'Abca7*V1599M'
 
         # Drop unwanted columns
 ) %>% select(
@@ -687,7 +687,7 @@ pathology_merged <- bind_rows(
   nss_final %>% mutate(individualID = as.character(individualID)),
   abca7_final %>% mutate(individualID = as.character(individualID))
 ) %>%
-  rename(
+  dplyr::rename(
     specimen_id = specimenID,
     individual_id = individualID,
     age_death = ageDeath
@@ -715,7 +715,7 @@ pathology_final <- mutate(pathology_merged, genotype = case_when(
         TRUE ~ genotype))
 
 #Correct typos
-pathology_final$model <- gsub("3xTG-AD", "3xTg-AD", pathology_final$model)
+pathology_final$model_name <- gsub("3xTG-AD", "3xTg-AD", pathology_final$model_name)
 pathology_final$genotype <- gsub("3xTG-AD", "3xTg-AD", pathology_final$genotype)
 
 # print final data frame below
