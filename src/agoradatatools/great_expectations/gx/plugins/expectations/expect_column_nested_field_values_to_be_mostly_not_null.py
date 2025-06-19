@@ -17,13 +17,14 @@ from great_expectations.expectations.metrics import (
     column_aggregate_value,
 )
 
+METRIC_NAME = "column.nested_object_not_null_ratio"
 
 # This method implements the core logic for the PandasExecutionEngine
 class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
     """A custom Great Expectations metric that calculates the proportion of non-null values
     for a specified key across nested lists of dictionaries in a column."""
 
-    metric_name = "column.nested_object_not_null_ratio"
+    metric_name = METRIC_NAME
     value_keys = ("non_null_threshold", "target_field")
 
     @column_aggregate_value(engine=PandasExecutionEngine)
@@ -112,7 +113,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         def _flatten(
             list_object: list[list[dict[str, str | int | bool | None]]]
         ) -> dict[str, int]:
-            """ "
+            """
             Recursively flattens a nested list of dictionaries and counts how many
             dictionaries have a null value for the specified target field.
             """
@@ -120,14 +121,9 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
                 if isinstance(item, list):
                     _flatten(item)
                 elif isinstance(item, dict):
-                    if target_field not in item:
+                    if target_field not in item or item.get(target_field) is None:
                         counts["total_nulls"] += 1
-                    else:
-                        target_field_value = item.get(target_field)
-                        if target_field_value is None:
-                            counts["total_nulls"] += 1
                     counts["total_dict"] += 1
-
         _flatten(list_object)
         return counts
 
@@ -244,7 +240,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         }
     ]
 
-    metric_dependencies = ("column.nested_object_not_null_ratio",)
+    metric_dependencies = (METRIC_NAME,)
     success_keys = ("non_null_threshold", "target_field")
     default_kwarg_values = {}
 
@@ -298,7 +294,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         _ = runtime_configuration
         _ = execution_engine
         not_null_threshold = configuration["kwargs"]["non_null_threshold"]
-        not_null_ratio = metrics["column.nested_object_not_null_ratio"]
+        not_null_ratio = metrics[METRIC_NAME]
         # if the null ratio is less than the allowed null ratio, return True; else return False
         return {
             "success": not_null_ratio >= not_null_threshold,
