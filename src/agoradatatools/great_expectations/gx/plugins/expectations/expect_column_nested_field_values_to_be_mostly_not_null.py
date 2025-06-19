@@ -90,8 +90,8 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         ]
 
         The code flattens nested lists of dictionaries and counts the total number of null values for the specified field.
-        total nulls = 2
-        total dictionary = 6
+        total_nulls = 2
+        total_nulls = 6
 
         Parameters:
             list_object (list of dictionaries): A potentially nested list containing dictionaries.
@@ -265,12 +265,12 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         non_null_threshold = kwargs.get("non_null_threshold")
         target_field = kwargs.get("target_field")
 
-        if not non_null_threshold:
+        if non_null_threshold is None:
             raise InvalidExpectationConfigurationError(
-                "non_null_threshold parameter is required. Please provide a  "
+                "The `non_null_threshold` parameter is required and cannot be None."
             )
 
-        if not(0 < non_null_threshold < 1):
+        if not (0 < non_null_threshold < 1):
             raise InvalidExpectationConfigurationError(
                 "The `non_null_threshold` parameter must be a float strictly between 0 and 1."
             )
