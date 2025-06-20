@@ -715,7 +715,7 @@ pathology_final <- mutate(pathology_merged, genotype = case_when(
         TRUE ~ genotype))
 
 #Correct typos
-pathology_final$name <- gsub("3xTG-AD", "3xTg-AD", pathology_final$model)
+pathology_final$model <- gsub("3xTG-AD", "3xTg-AD", pathology_final$model)
 pathology_final$genotype <- gsub("3xTG-AD", "3xTg-AD", pathology_final$genotype)
 
 # print final data frame below
