@@ -1,0 +1,112 @@
+
+# Modify Disease Correlation source (MG-264)
+
+This notebook downloads the correlation data that was exported from the legacy explorer (syn65467849.1) and aligns the model_name values with our other data.
+
+
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- tidyverse
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "http://cran.fhcrc.org"))
+}
+
+if (!require("tidyverse", quietly = TRUE)) {
+  install.packages("tidyverse")
+}
+
+library(synapser)
+library(tidyverse)
+```
+
+## Utility functions & variables
+Run this to initialize shared variables and functions.
+```{r}
+# MODEL-AD 2.0 harmonized source file directory
+# ADP Backend > Files > 2.ConsortiumStudies > MODEL-AD Data Explorer > Model AD Explorer 2.0 Source Files
+synapse_folder <- 'syn51498054'
+
+# Vector to store all downloaded synIds for Synapse provenance (populated via download_file function)
+data_sources <- character()
+
+# Download a file from Synapse by synId and read it into a dataframe
+download_file <- function(synId, df_name, type) {
+
+  synLogin()
+
+  # Capture all downloaded synIds for provenance
+  data_sources <<- c(data_sources, synId)
+
+  input_dir <- file.path("./", "input")
+  id_parts <- strsplit(synId, '.', fixed = TRUE)
+  id_value <- id_parts[[1]][1]
+  version_value <- id_parts[[1]][2]
+
+  if (is.na(version_value)) {
+    version_value <- NULL
+  }
+
+  cat(paste0("Downloading ", synId, "..."))
+
+
+  file <- synGet(id_value, version = version_value, downloadLocation = input_dir, ifcollision='overwrite.local')
+  path <- file$path
+
+  cat("\nDownload on:  ", date())
+  cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
+  cat("\npath: ", file$path, "\n")
+
+  if (type == 'f') {
+    data <- read_feather(path)
+  } else {
+    if (type == 'json') { data <- fromJSON(path) }
+    if (type == 'csv' || type == 'table') { data <- read.csv(path) }
+    if (type == 'tsv') { data <- read.csv(path, sep = "\t") }
+    if (type == 'rda') { data <- load(path)}
+    if (type == 'rds') {data <- readRDS(path)}
+    df_name <- as.data.frame(data)
+  }
+}
+```
+
+
+## Download data file from Synapse
+Note that each file's synId and version is added to the data_sources vector via the download_file function.
+The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
+```{r}
+disease_correlation_source <- download_file('syn65467849.1', type = "csv")
+```
+
+
+## Update 5xFAD model_name to include center info
+
+```{r}
+disease_correlation_final <- copy(disease_correlation_source)
+disease_correlation_final$Mouse.Model[disease_correlation_final$Mouse.Model == '5xFAD'] <- '5xFAD (IU/Jax/Pitt)'
+```
+
+
+## Write csv file and upload to synapse
+```{r}
+# write csv file
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+write.csv(disease_correlation_final, file.path(output_dir, "disease_correlation_results.csv"), row.names = FALSE)
+
+# upload to synapse
+syn_file <- File(file.path(output_dir, "disease_correlation_results.csv"),
+                 parent = synapse_folder)
+
+res <- synStore(syn_file, forceVersion = FALSE,
+                used = data_sources,
+                executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-261_Modify_disease_correlation_source_file.rmd")
+
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
+```
+
