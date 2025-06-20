@@ -436,11 +436,11 @@ biomarkers_final <- mutate(biomarkers_merged,
 
                                    # NSS genotypes
                                    genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
-                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFAD Trem2-R47H_NSS",
+                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFADTrem2-R47H_NSS",
 
                                    # Abca7 genotypes
                                    genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
-                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFAD Abca7*V1599M",
+                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFADAbca7*V1599M",
 
                                    TRUE ~ genotype))
 
