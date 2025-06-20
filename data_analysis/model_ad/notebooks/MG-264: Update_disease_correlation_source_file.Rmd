@@ -82,6 +82,7 @@ disease_correlation_source <- download_file('syn65467849.1', type = "csv")
 
 
 ## Update 5xFAD model_name to include center info
+Since only IU/Jax/Pitt contributed disease_correlation data, we can assign all 5xFAD results to that center.
 
 ```{r}
 disease_correlation_final <- copy(disease_correlation_source)

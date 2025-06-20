@@ -219,6 +219,7 @@ fivex_abs_insol <- fivex_abs_insol_source %>% mutate(fraction_type = 'Insoluble'
 fivex_abs_merged <- bind_rows(fivex_abs_sol, fivex_abs_insol)
 
 # populate 'model' column
+# Since only UCI contributes pathology/biomarker data, we can assign all 5xFAD results to that center.
 fivex_abs_merged$model <- '5xFAD (UCI)'
 
 # Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
