@@ -572,14 +572,14 @@ class TestTransformModelDetails:
         # Expected output: ENSG IDs should be mapped, gene names should keep original case
         expected_output = [
             {
-                "modified_gene": "App",
+                "modified_gene": "APP",
                 "ensembl_gene_id": "ENSG00000123456",
                 "allele": "APP Example Allele",
                 "allele_type": "Transgenic",
                 "mgi_allele_id": 1234567,
             },
             {
-                "modified_gene": "Mapt",
+                "modified_gene": "mapt",
                 "ensembl_gene_id": "ENSG00000987654",
                 "allele": "MAPT Example Allele",
                 "allele_type": "Transgenic",

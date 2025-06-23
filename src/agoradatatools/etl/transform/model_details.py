@@ -165,6 +165,14 @@ def process_genetic_info(
         axis=1,
     )
 
+    # Only override gene_symbol if we have a valid human_ensembl_id
+    merged_df["modified_gene"] = merged_df.apply(
+        lambda row: row["gene_symbol"]
+        if pd.notna(row["human_ensembl_id"])
+        else row["modified_gene"],
+        axis=1,
+    )
+
     # Drop duplicates to ensure we don't have exact duplicates of the same allele
     merged_df = merged_df.drop_duplicates(
         subset=["modified_gene", "allele", "mgi_allele_id"]
