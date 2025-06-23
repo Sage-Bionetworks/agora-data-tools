@@ -3,7 +3,7 @@
       "model": "ModelA",
       "evidence_type": "TypeA",
       "tissue": "Tissuea",
-      "age_death": 1,
+      "age": "1 months",
       "units": "A",
       "data": [
         {
@@ -24,7 +24,7 @@
       "model": "none",
       "evidence_type": "TypeA",
       "tissue": "Tissuea",
-      "age_death": 1,
+      "age": "1 months",
       "units": "A",
       "data": [
         {

@@ -46,6 +46,7 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
     3. Replace 'beta' with '&beta;' in the 'type' column.
     4. Rename 'type' column to 'evidence_type' and 'measurement' to 'value'.
+    5. Append "months" to age values
     """
     # Create a copy to avoid modifying the original
     df = df.copy()
@@ -59,7 +60,14 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     df["type"] = df["type"].str.replace("beta", "&beta;")
 
     # Rename columns
-    return df.rename(columns={"type": "evidence_type", "measurement": "value"})
+    df = df.rename(
+        columns={"type": "evidence_type", "measurement": "value", "age_death": "age"}
+    )
+
+    # Append "months" to age values
+    df["age"] = df["age"].astype(str) + " months"
+
+    return df
 
 
 def immunohisto_transform(
@@ -70,7 +78,7 @@ def immunohisto_transform(
         "model",
         "evidence_type",
         "tissue",
-        "age_death",
+        "age",
         "units",
     ],
     extra_columns: List[str] = ["genotype", "sex", "individual_id", "value"],
@@ -84,7 +92,7 @@ def immunohisto_transform(
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
         dataset_name (str): The name of the dataset to transform.
-        group_columns (List[str], optional): List of columns to group by. Defaults to ['model', 'evidence_type', 'tissue', 'age_death', 'units'].
+        group_columns (List[str], optional): List of columns to group by. Defaults to ['model', 'evidence_type', 'tissue', 'age', 'units'].
         extra_columns (List[str], optional): List of columns to include in the group. Defaults to ['genotype', 'sex', 'individual_id', 'value'].
         extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'data'.
 

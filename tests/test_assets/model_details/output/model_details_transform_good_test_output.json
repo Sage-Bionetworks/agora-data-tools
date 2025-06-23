@@ -56,7 +56,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Insoluble &beta;40",
         "tissue": "Cortex",
-        "age": "8 months",
+        "age_death": 8,
         "units": "pg/ml",
         "data": [
           {
@@ -71,7 +71,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Insoluble &beta;42",
         "tissue": "Cortex",
-        "age": "8 months",
+        "age_death": 8,
         "units": "pg/ml",
         "data": [
           {
@@ -86,7 +86,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Soluble &beta;40",
         "tissue": "Hippocampus",
-        "age": "4 months",
+        "age_death": 4,
         "units": "pg/ml",
         "data": [
           {
@@ -107,7 +107,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Soluble &beta;42",
         "tissue": "Hippocampus",
-        "age": "4 months",
+        "age_death": 4,
         "units": "pg/ml",
         "data": [
           {
@@ -124,7 +124,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Plaque area",
         "tissue": "Hippocampus",
-        "age": "4 months",
+        "age_death": "4",
         "units": "µm²",
         "data": [
           {
@@ -139,7 +139,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Plaque count",
         "tissue": "Hippocampus",
-        "age": "4 months",
+        "age_death": "4",
         "units": "count/mm²",
         "data": [
           {
@@ -160,7 +160,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
-        "age": "8 months",
+        "age_death": "8",
         "units": "µm²",
         "data": [
           {
@@ -175,7 +175,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Tangle count",
         "tissue": "Cortex",
-        "age": "8 months",
+        "age_death": "8",
         "units": "count/mm²",
         "data": [
           {
@@ -220,50 +220,13 @@
         "mgi_allele_id": 3057560
       }
     ],
-    "biomarkers": [
-      {
-        "model": "hTau",
-        "evidence_type": "Phospho-tau",
-        "tissue": "Cortex",
-        "age": "12 months",
-        "units": "ng/ml",
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Male",
-            "individual_id": "mouse8",
-            "value": 18.3
-          }
-        ]
-      },
-      {
-        "model": "hTau",
-        "evidence_type": "Tau",
-        "tissue": "Hippocampus",
-        "age": "6 months",
-        "units": "ng/ml",
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Male",
-            "individual_id": "mouse6",
-            "value": 22.4
-          },
-          {
-            "genotype": "transgenic",
-            "sex": "Female",
-            "individual_id": "mouse7",
-            "value": 24.8
-          }
-        ]
-      }
-    ],
+    "biomarkers": [],
     "pathology": [
       {
         "model": "hTau",
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
-        "age": "12 months",
+        "age_death": "12",
         "units": "µm²",
         "data": [
           {
@@ -278,7 +241,7 @@
         "model": "hTau",
         "evidence_type": "Tangle count",
         "tissue": "Hippocampus",
-        "age": "6 months",
+        "age_death": "6",
         "units": "count/mm²",
         "data": [
           {

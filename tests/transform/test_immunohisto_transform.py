@@ -99,6 +99,7 @@ class TestTransformGeneralModelAD:
                 "tissue": ["cerebral cortex", "hippocampus"],
                 "type": ["beta amyloid", "beta amyloid"],
                 "measurement": [1.0, 2.0],
+                "age_death": [1, 2],
             }
         )
 
@@ -109,6 +110,7 @@ class TestTransformGeneralModelAD:
                 "tissue": ["Cerebral Cortex", "Hippocampus"],
                 "evidence_type": ["&beta; amyloid", "&beta; amyloid"],
                 "value": [1.0, 2.0],
+                "age": ["1 months", "2 months"],
             }
         )
 
@@ -126,6 +128,7 @@ class TestTransformGeneralModelAD:
                 "tissue": ["cerebral cortex", ""],
                 "type": ["beta amyloid", ""],
                 "measurement": [1.0, 2.0],
+                "age_death": [1, 2],
             }
         )
 
@@ -136,6 +139,7 @@ class TestTransformGeneralModelAD:
                 "tissue": ["Cerebral Cortex", ""],
                 "evidence_type": ["&beta; amyloid", ""],
                 "value": [1.0, 2.0],
+                "age": ["1 months", "2 months"],
             }
         )
 
@@ -153,6 +157,7 @@ class TestTransformGeneralModelAD:
                 "tissue": ["cerebral cortex", None],
                 "type": ["beta amyloid", None],
                 "measurement": [1.0, 2.0],
+                "age_death": [1, 2],
             }
         )
 
@@ -163,6 +168,7 @@ class TestTransformGeneralModelAD:
                 "tissue": ["Cerebral Cortex", ""],
                 "evidence_type": ["&beta; amyloid", ""],
                 "value": [1.0, 2.0],
+                "age": ["1 months", "2 months"],
             }
         )
 
