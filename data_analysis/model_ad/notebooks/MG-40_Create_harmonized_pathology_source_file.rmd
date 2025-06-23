@@ -159,13 +159,13 @@ join_to_metadata <- function(individual_metadata, biospecimen_metadata, df) {
   merged_metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
   # Figure out what columns to merge by
-  join_by <- if(all(c('specimenID', 'individualID') %in% colnames(df)) && 
+  join_by <- if(all(c('specimenID', 'individualID') %in% colnames(df)) &&
               all(c('specimenID', 'individualID') %in% colnames(merged_metadata))) {
     c('specimenID', 'individualID')
   } else {
     c('specimenID')
   }
-  
+
   # Prevent creating duplicate data rows for 'Pool-X' specimenIDs by matching only first metadata row
   df_out <- df %>% left_join(merged_metadata, by=join_by, multiple="first")
 
@@ -225,14 +225,14 @@ threex_pathology <- threex_pathology_source %>%
         filter(
                 stain %in% stain_keeps
 
-                # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+          # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
         ) %>% pivot_longer(
         cols = c(objectDensity, averageObjectVolume, totalObjectVolume),
         names_to = "units",
         values_to = "measurement",
         values_transform = list(measurement = as.numeric)
 
-        # Convert units to display values
+  # Convert units to display values
 ) %>% mutate(
         units = case_match(
                 units,
@@ -241,7 +241,7 @@ threex_pathology <- threex_pathology_source %>%
                 'totalObjectVolume' ~ totalObjectVolume_display_name
         )
 
-        # Map 'stain' values to 'type' display names
+  # Map 'stain' values to 'type' display names
 ) %>% mutate(
         type = case_when(
                 stain == 'IBA1' ~ IBA1_display_name,
@@ -256,19 +256,19 @@ threex_pathology <- threex_pathology_source %>%
                 .default = 'UNMAPPED_DROPME'
         )
 
-        # drop rows for unused ThioS stain/unit combinations
+  # drop rows for unused ThioS stain/unit combinations
 ) %>% filter(
         type != 'UNMAPPED_DROPME'
 
-        # Drop rows with NA measurements
+  # Drop rows with NA measurements
 ) %>% filter(
         !is.na(measurement)
 
-        # Populate model column
+  # Populate model column
 ) %>% add_column(
         model = '3xTG-AD'
 
-        # Drop unwanted columns
+  # Drop unwanted columns
 ) %>% select(
         all_of(keeps_with_pool_join_field)
 )
@@ -293,16 +293,17 @@ fivex_gfap_s100b_pivot <- fivex_gfap_s100b %>%
                 values_to = "measurement",
                 values_transform = list(measurement = as.numeric)
 
-                # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+          # Rename columns for consistency
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
-                     # Populate model column
+  # Populate model column
+  # Since only UCI contributes pathology/biomarker data, we can assign all 5xFAD results to that center.
 ) %>% add_column(
-        model = '5xFAD'
+        model = '5xFAD (UCI)'
 
-        # Drop unused columns
+  # Drop unused columns
 ) %>% select(
         all_of(keeps_with_join_fields)
 )
@@ -316,16 +317,16 @@ fivex_lamp1_pivot <- fivex_lamp1 %>%
                 values_to = "measurement",
                 values_transform = list(measurement = as.numeric),
 
-                # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+        # Rename columns for consistency
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
-                     # Populate model column
+  # Populate model column
 ) %>% add_column(
-        model = '5xFAD'
+        model = '5xFAD (UCI)'
 
-        # Drop unused columns
+  # Drop unused columns
 ) %>% select(
         all_of(keeps_with_join_fields)
 )
@@ -339,16 +340,17 @@ fivex_iba1_thios_pivot <- fivex_iba1_thios %>%
                 values_to = "measurement",
                 values_transform = list(measurement = as.numeric),
 
-                # Rename columns for consistency
-        ) %>% rename(c('type' = 'Stain',
+          # Rename columns for consistency
+        ) %>% dplyr::rename(c('type' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID')
 
-                     # Populate model column
+   # Populate model column
+   # Since only UCI contributes pathology/biomarker data, we can assign all 5xFAD results to that center.
 ) %>% add_column(
-        model = '5xFAD'
+        model = '5xFAD (UCI)'
 
-        # Drop unused columns
+  # Drop unused columns
 ) %>% select(
         all_of(keeps_with_join_fields)
 )
@@ -368,7 +370,7 @@ fivex_pathology <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_ib
                 'mean.object.area..squm.' ~ meanObjectArea_display_name
         )
 
-        # Map stain values to type display names
+ # Map stain values to type display names
 ) %>% mutate(
         type = case_when(
                 type == 'Iba1' ~ IBA1_display_name,
@@ -383,15 +385,15 @@ fivex_pathology <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_ib
                 .default = 'UNMAPPED_DROPME'
         )
 
-        # drop rows for unused ThioS stain/unit combinations
+  # drop rows for unused ThioS stain/unit combinations
 ) %>% filter(
         type != 'UNMAPPED_DROPME'
 
-        # Drop rows with NA measurements
+  # Drop rows with NA measurements
 ) %>% filter(
         !is.na(measurement)
 
-        # Drop unwanted columns
+  # Drop unwanted columns
 ) %>% select(
         all_of(keeps_with_join_fields)
 )
@@ -416,7 +418,7 @@ nss_pathology <- nss_pathology_source %>%
         values_to = "measurement",
         values_transform = list(measurement = as.numeric)
 
-        # Convert units to display values
+  # Convert units to display values
 ) %>% mutate(
         units = case_match(
                 units,
@@ -425,7 +427,7 @@ nss_pathology <- nss_pathology_source %>%
                 'totalObjectVolume' ~ totalObjectVolume_display_name
         )
 
-        # Map 'stain' values to 'type' display names
+  # Map 'stain' values to 'type' display names
 ) %>% mutate(
         type = case_when(
                 stain == 'IBA1' & units == objectDensity_display_name ~ IBA1_display_name,
@@ -440,19 +442,19 @@ nss_pathology <- nss_pathology_source %>%
                 .default = 'UNMAPPED_DROPME'
         )
 
-        # drop rows for unused stain/unit combinations
+  # drop rows for unused stain/unit combinations
 ) %>% filter(
         type != 'UNMAPPED_DROPME'
 
-        # Drop rows with NA measurements
+  # Drop rows with NA measurements
 ) %>% filter(
         !is.na(measurement)
 
-        # Populate model column
+  # Populate model column
 ) %>% add_column(
         model = 'Trem2-R47H_NSS'
 
-        # Drop unwanted columns
+  # Drop unwanted columns
 ) %>% select(
         all_of(keeps_with_pool_join_field)
 )
@@ -476,7 +478,7 @@ abca7_pathology <- abca7_pathology_source %>%
         values_to = "measurement",
         values_transform = list(measurement = as.numeric)
 
-        # Convert units to display values
+  # Convert units to display values
 ) %>% mutate(
         units = case_match(
                 units,
@@ -485,7 +487,7 @@ abca7_pathology <- abca7_pathology_source %>%
                 'totalObjectVolume' ~ totalObjectVolume_display_name
         )
 
-        # Map 'stain' values to 'type' display names
+  # Map 'stain' values to 'type' display names
 ) %>% mutate(
         type = case_when(
                 stain == 'IBA1' & units == objectDensity_display_name ~ IBA1_display_name,
@@ -500,7 +502,7 @@ abca7_pathology <- abca7_pathology_source %>%
                 .default = 'UNMAPPED_DROPME'
         )
 
-        # drop rows for unused stain/unit combinations
+  # drop rows for unused stain/unit combinations
 ) %>% filter(
         type != 'UNMAPPED_DROPME'
 
@@ -687,7 +689,7 @@ pathology_merged <- bind_rows(
   nss_final %>% mutate(individualID = as.character(individualID)),
   abca7_final %>% mutate(individualID = as.character(individualID))
 ) %>%
-  rename(
+  dplyr::rename(
     specimen_id = specimenID,
     individual_id = individualID,
     age_death = ageDeath
@@ -714,7 +716,7 @@ pathology_final <- mutate(pathology_merged, genotype = case_when(
 
         TRUE ~ genotype))
 
-#Correct typos
+#Correct typos in source model and genotype values
 pathology_final$model <- gsub("3xTG-AD", "3xTg-AD", pathology_final$model)
 pathology_final$genotype <- gsub("3xTG-AD", "3xTg-AD", pathology_final$genotype)
 
