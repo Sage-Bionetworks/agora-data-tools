@@ -1,83 +1,92 @@
 [
-    {
-      "model": "ModelA",
-      "evidence_type": "TypeA",
-      "tissue": "Tissuea",
-      "age": "1 months",
-      "units": "A",
-      "data": [
-        {
-          "genotype": "genotype1",
-          "sex": "Male",
-          "individual_id": "individual_1",
-          "value": "1"
-        },
-        {
-          "genotype": "genotype1",
-          "sex": "Male",
-          "individual_id": "individual_2",
-          "value": "none"
-        },
-        {
-          "genotype": "genotype1",
-          "sex": "Male",
-          "individual_id": "individual_3",
-          "value": "none"
-        },
-        {
-          "genotype": "genotype1",
-          "sex": "Male",
-          "individual_id": "individual_4",
-          "value": "none"
-        },
-        {
-          "genotype": "genotype1",
-          "sex": "Male",
-          "individual_id": "individual_5",
-          "value": "none"
-        }
-      ]
-    },
-    {
-      "model": "ModelA",
-      "evidence_type": "none",
-      "tissue": "Tissuea",
-      "age": "1 months",
-      "units": "A",
-      "data": [
-        {
-          "genotype": "genotype1",
-          "sex": "Male",
-          "individual_id": "individual_9",
-          "value": "1"
-        }
-      ]
-    },
-    {
-      "model": "none",
-      "evidence_type": "TypeA",
-      "tissue": "Tissuea",
-      "age": "1 months",
-      "units": "A",
-      "data": [
-        {
-          "genotype": "genotype1",
-          "sex": "Male",
-          "individual_id": "individual_6",
-          "value": "1"
-        },
-        {
-          "genotype": "none",
-          "sex": "Male",
-          "individual_id": "individual_7",
-          "value": "1"
-        },
-        {
-          "genotype": "genotype1",
-          "sex": "Male",
-          "individual_id": "individual_8",
-          "value": "1"
-        }
-      ]
-    }
-  ]
+  {
+    "model": "",
+    "evidence_type": "TypeA",
+    "tissue": "Tissuea",
+    "age": "1 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_8",
+        "value": "1"
+      }
+    ]
+  },
+  {
+    "model": "ModelA",
+    "evidence_type": "",
+    "tissue": "Tissuea",
+    "age": "1 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_9",
+        "value": "1"
+      }
+    ]
+  },
+  {
+    "model": "ModelA",
+    "evidence_type": "TypeA",
+    "tissue": "Tissuea",
+    "age": "1 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_1",
+        "value": "1"
+      },
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_2",
+        "value": "none"
+      },
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_3",
+        "value": ""
+      },
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_4",
+        "value": ""
+      },
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_5",
+        "value": ""
+      }
+    ]
+  },
+  {
+    "model": "none",
+    "evidence_type": "TypeA",
+    "tissue": "Tissuea",
+    "age": "1 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_6",
+        "value": "1"
+      },
+      {
+        "genotype": "",
+        "sex": "Male",
+        "individual_id": "individual_7",
+        "value": "1"
+      }
+    ]
+  }
+]

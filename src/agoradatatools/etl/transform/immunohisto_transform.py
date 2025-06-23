@@ -113,7 +113,7 @@ def immunohisto_transform(
 
     check_required_datasets_and_columns(datasets, filtered_required_input)
 
-    dataset = prepare_immunohisto_data(datasets[dataset_name].fillna("none"))
+    dataset = prepare_immunohisto_data(datasets[dataset_name])
 
     data_rows = []
 

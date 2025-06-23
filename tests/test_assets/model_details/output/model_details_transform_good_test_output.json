@@ -56,7 +56,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Insoluble &beta;40",
         "tissue": "Cortex",
-        "age_death": 8,
+        "age": "8 months",
         "units": "pg/ml",
         "data": [
           {
@@ -71,7 +71,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Insoluble &beta;42",
         "tissue": "Cortex",
-        "age_death": 8,
+        "age": "8 months",
         "units": "pg/ml",
         "data": [
           {
@@ -86,7 +86,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Soluble &beta;40",
         "tissue": "Hippocampus",
-        "age_death": 4,
+        "age": "4 months",
         "units": "pg/ml",
         "data": [
           {
@@ -107,7 +107,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Soluble &beta;42",
         "tissue": "Hippocampus",
-        "age_death": 4,
+        "age": "4 months",
         "units": "pg/ml",
         "data": [
           {
@@ -124,7 +124,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Plaque area",
         "tissue": "Hippocampus",
-        "age_death": "4",
+        "age": "4 months",
         "units": "µm²",
         "data": [
           {
@@ -139,7 +139,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Plaque count",
         "tissue": "Hippocampus",
-        "age_death": "4",
+        "age": "4 months",
         "units": "count/mm²",
         "data": [
           {
@@ -160,7 +160,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
-        "age_death": "8",
+        "age": "8 months",
         "units": "µm²",
         "data": [
           {
@@ -175,7 +175,7 @@
         "model": "3xTg-AD",
         "evidence_type": "Tangle count",
         "tissue": "Cortex",
-        "age_death": "8",
+        "age": "8 months",
         "units": "count/mm²",
         "data": [
           {
@@ -226,7 +226,7 @@
         "model": "hTau",
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
-        "age_death": "12",
+        "age": "12 months",
         "units": "µm²",
         "data": [
           {
@@ -241,7 +241,7 @@
         "model": "hTau",
         "evidence_type": "Tangle count",
         "tissue": "Hippocampus",
-        "age_death": "6",
+        "age": "6 months",
         "units": "count/mm²",
         "data": [
           {
