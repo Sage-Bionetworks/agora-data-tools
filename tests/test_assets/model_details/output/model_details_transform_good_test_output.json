@@ -220,7 +220,44 @@
         "mgi_allele_id": 3057560
       }
     ],
-    "biomarkers": [],
+    "biomarkers": [
+      {
+        "model": "hTau",
+        "evidence_type": "Phospho-tau",
+        "tissue": "Cortex",
+        "age": "12 months",
+        "units": "ng/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse8",
+            "value": 18.3
+          }
+        ]
+      },
+      {
+        "model": "hTau",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
+        "age": "6 months",
+        "units": "ng/ml",
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse6",
+            "value": 22.4
+          },
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse7",
+            "value": 24.8
+          }
+        ]
+      }
+    ],
     "pathology": [
       {
         "model": "hTau",

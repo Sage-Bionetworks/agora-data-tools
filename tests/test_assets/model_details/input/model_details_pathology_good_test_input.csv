@@ -7,12 +7,3 @@ mouse5,spec5,3xTg-AD,Tangle area,2.5,µm²,8,cortex,female,transgenic
 mouse6,spec6,hTau,Tangle count,7.2,count/mm²,6,hippocampus,male,transgenic
 mouse7,spec7,hTau,Tangle count,8.1,count/mm²,6,hippocampus,female,transgenic
 mouse8,spec8,hTau,Tangle area,4.6,µm²,12,cortex,male,transgenic
-3xTg-AD,Plaque Density (Thio-S),4.2,count/mm²,8,Cortex,Male,transgenic,mouse4
-3xTg-AD,Plaque Size (Thio-S),120.5,µm²,8,Cortex,Female,transgenic,mouse5
-3xTg-AD,Microglia Cell Density (IBA1),350.2,cells/mm²,4,Hippocampus,Female,transgenic,mouse1
-3xTg-AD,Microglia Cell Density (IBA1),380.5,cells/mm²,4,Hippocampus,Male,transgenic,mouse2
-3xTg-AD,Astrocyte Cell Density (GFAP),280.3,cells/mm²,4,Hippocampus,Female,transgenic,mouse3
-5xFAD,Plaque Density (Thio-S),6.5,count/mm²,6,Cortex,Male,transgenic,mouse10
-5xFAD,Plaque Size (Thio-S),150.2,µm²,6,Cortex,Female,transgenic,mouse11
-5xFAD,Microglia Cell Density (IBA1),420.3,cells/mm²,3,Hippocampus,Male,transgenic,mouse12
-5xFAD,Astrocyte Cell Density (GFAP),320.1,cells/mm²,3,Hippocampus,Female,transgenic,mouse13

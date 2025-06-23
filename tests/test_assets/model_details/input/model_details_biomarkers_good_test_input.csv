@@ -8,3 +8,6 @@ model,type,measurement,units,age_death,tissue,sex,genotype,individual_id
 5xFAD,Insoluble beta42,14.2,pg/ml,6,Cortex,Female,transgenic,mouse11
 5xFAD,Soluble beta40,18.3,pg/ml,3,Hippocampus,Male,transgenic,mouse12
 5xFAD,Soluble beta42,20.1,pg/ml,3,Hippocampus,Female,transgenic,mouse13
+hTau,Tau,22.4,ng/ml,6,hippocampus,male,transgenic,mouse6
+hTau,Tau,24.8,ng/ml,6,hippocampus,female,transgenic,mouse7
+hTau,Phospho-tau,18.3,ng/ml,12,cortex,male,transgenic,mouse8

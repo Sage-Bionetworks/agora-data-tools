@@ -53,7 +53,7 @@
       {
         "model": "3xTg-AD",
         "evidence_type": "Insoluble &beta;40",
-        "tissue": "None",
+        "tissue": "",
         "age": "8 months",
         "units": "pg/ml",
         "data": [
@@ -73,7 +73,7 @@
         "units": "pg/ml",
         "data": [
           {
-            "genotype": "none",
+            "genotype": "",
             "sex": "Female",
             "individual_id": "mouse1",
             "value": 10.5
@@ -81,7 +81,7 @@
           {
             "genotype": "transgenic",
             "sex": "Male",
-            "individual_id": "none",
+            "individual_id": "",
             "value": 12.3
           }
         ]
@@ -95,7 +95,7 @@
         "data": [
           {
             "genotype": "transgenic",
-            "sex": "None",
+            "sex": "",
             "individual_id": "mouse3",
             "value": 15.7
           }
