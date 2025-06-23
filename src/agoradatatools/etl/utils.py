@@ -301,7 +301,7 @@ def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
     return result
 
 
-def convert_numpy_types(obj):
+def convert_numpy_types(obj: Any) -> Any:
     """Convert numpy types to Python native types for JSON serialization."""
     if isinstance(obj, np.integer):
         return int(obj)

@@ -6,7 +6,6 @@ import pytest
 
 from agoradatatools.etl.transform.model_details import (
     transform_model_details,
-    prepare_biomarker_pathology,
     process_biomarker_pathology,
     process_genetic_info,
 )

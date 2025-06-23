@@ -63,7 +63,7 @@ class TestTransformGeneralModelAD:
             immunohisto_transform(
                 datasets={
                     "biomarkers": immunohisto_transform_df,
-                    "pathology": immunohisto_transform_df
+                    "pathology": immunohisto_transform_df,
                 },
                 dataset_name="biomarkers",
             )
@@ -86,11 +86,10 @@ class TestTransformGeneralModelAD:
             immunohisto_transform(
                 datasets={
                     "biomarkers": immunohisto_transform_df,
-                    "pathology": immunohisto_transform_df
+                    "pathology": immunohisto_transform_df,
                 },
                 dataset_name="biomarkers",
             )
-
 
     def test_prepare_immunohisto_data_should_pass(self):
         # Create test input DataFrame

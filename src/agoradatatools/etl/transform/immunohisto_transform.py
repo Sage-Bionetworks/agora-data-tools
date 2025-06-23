@@ -6,7 +6,10 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Dict, List, Any
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, convert_numpy_types
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    convert_numpy_types,
+)
 
 
 REQUIRED_INPUT = {
@@ -63,7 +66,13 @@ def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
     dataset_name: str,
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-    group_columns: List[str] = ["model", "evidence_type", "tissue", "age_death", "units"],
+    group_columns: List[str] = [
+        "model",
+        "evidence_type",
+        "tissue",
+        "age_death",
+        "units",
+    ],
     extra_columns: List[str] = ["genotype", "sex", "individual_id", "value"],
     extra_column_name: str = "data",
 ) -> List[Dict[str, Any]]:
@@ -82,7 +91,19 @@ def immunohisto_transform(
     Returns:
         pd.DataFrame: A DataFrame grouped by the group_columns.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+
+    # Filter required_input to only include datasets that are present
+    filtered_required_input = {
+        key: value for key, value in required_input.items() if key in datasets
+    }
+
+    # Ensure at least one of "biomarkers" or "pathology" is present
+    if not any(key in datasets for key in ["biomarkers", "pathology"]):
+        raise ValueError(
+            "At least one of 'biomarkers' or 'pathology' must be present in the datasets"
+        )
+
+    check_required_datasets_and_columns(datasets, filtered_required_input)
 
     dataset = prepare_immunohisto_data(datasets[dataset_name].fillna("none"))
 
@@ -94,7 +115,7 @@ def immunohisto_transform(
         entry = dict(zip(group_columns, group_key))
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
-    
+
     data_rows = convert_numpy_types(data_rows)
 
     return data_rows

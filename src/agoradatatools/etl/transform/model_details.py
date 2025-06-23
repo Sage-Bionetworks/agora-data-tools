@@ -59,6 +59,7 @@ REQUIRED_INPUT = {
     ],
 }
 
+
 def process_genetic_info(
     human_transgene_allele_map_df: pd.DataFrame,
     model_alleles: pd.DataFrame,
