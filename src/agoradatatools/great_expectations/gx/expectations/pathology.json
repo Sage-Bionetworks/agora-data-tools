@@ -68,7 +68,7 @@
         "column": "model",
         "value_set": [
           "3xTg-AD",
-          "5xFAD",
+          "5xFAD (UCI)",
           "Trem2-R47H_NSS",
           "Abca7*V1599M"
         ]
