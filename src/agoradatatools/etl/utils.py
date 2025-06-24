@@ -94,7 +94,8 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: Resulting DataFrame with standardized values
     """
     try:
-        df.replace(["n/a", "N/A", "n/A", "N/a"], np.nan, regex=True, inplace=True)
+        # Use word boundaries to ensure we only replace exact N/A values, not substrings
+        df.replace([r'\bn/a\b', r'\bN/A\b', r'\bn/A\b', r'\bN/a\b'], np.nan, regex=True, inplace=True)
     except TypeError:  # I could not get this to trigger without mocking replace
         print("Error comparing types.")
 
