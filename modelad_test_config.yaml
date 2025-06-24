@@ -93,3 +93,18 @@ datasets:
       provenance:
         - syn66527739
       destination: *dest
+
+  - model_overview:
+      files:
+        - name: model_info
+          id: syn61378590
+          format: csv
+        - name: model_results_info
+          id: syn68377668
+          format: csv
+      final_format: json
+      provenance:
+        - syn61378590
+        - syn68377668
+      destination: *dest
+      custom_transformations: transform_model_overview
