@@ -15,6 +15,8 @@ class TestTransformModelOverview:
             {
                 "model_info": "model_overview_model_info_good_test_input.csv",
                 "model_results_info": "model_overview_model_results_info_good_test_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             "model_overview_transform_good_test_output.json",
         ),
@@ -23,6 +25,8 @@ class TestTransformModelOverview:
             {
                 "model_info": "model_overview_model_info_missing_data_input.csv",
                 "model_results_info": "model_overview_model_results_info_missing_data_input.csv",
+                "allele_info": "model_overview_allele_info_missing_data_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             "model_overview_transform_missing_data_output.json",
         ),
@@ -31,6 +35,8 @@ class TestTransformModelOverview:
             {
                 "model_info": "model_overview_model_info_good_test_input.csv",
                 "model_results_info": "model_overview_model_results_info_no_results_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             "model_overview_transform_no_results_output.json",
         ),
@@ -39,6 +45,8 @@ class TestTransformModelOverview:
             {
                 "model_info": "model_overview_model_info_extra_column_input.csv",
                 "model_results_info": "model_overview_model_results_info_extra_column_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             "model_overview_transform_extra_column_output.json",
         ),
@@ -47,6 +55,8 @@ class TestTransformModelOverview:
             {
                 "model_info": "model_overview_model_info_missing_models_test.csv",
                 "model_results_info": "model_overview_model_results_info_missing_models_test.csv",
+                "allele_info": "model_overview_allele_info_missing_models_test.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_missing_models_test.csv",
             },
             "model_overview_transform_missing_models_output.json",
         ),
@@ -63,6 +73,8 @@ class TestTransformModelOverview:
             # Fail with missing model_info dataset
             {
                 "model_results_info": "model_overview_model_results_info_good_test_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             ValueError,
         ),
@@ -70,6 +82,8 @@ class TestTransformModelOverview:
             # Fail with missing model_results_info dataset
             {
                 "model_info": "model_overview_model_info_good_test_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             ValueError,
         ),
@@ -78,6 +92,8 @@ class TestTransformModelOverview:
             {
                 "model_info": "model_overview_model_info_missing_column_input.csv",
                 "model_results_info": "model_overview_model_results_info_good_test_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             ValueError,
         ),
@@ -86,6 +102,8 @@ class TestTransformModelOverview:
             {
                 "model_info": "model_overview_model_info_good_test_input.csv",
                 "model_results_info": "model_overview_model_results_info_missing_column_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             ValueError,
         ),
@@ -166,10 +184,30 @@ class TestTransformModelOverview:
                 "biomarkers",
             ]
         )
+        empty_allele_info = pd.DataFrame(
+            columns=[
+                "model",
+                "modified_gene",
+                "mgi_gene_id",
+                "gene_ensembl_id",
+                "allele",
+                "allele_type",
+                "mgi_allele_id",
+            ]
+        )
+        empty_human_transgene_allele_map = pd.DataFrame(
+            columns=[
+                "mgi_allele_id",
+                "gene_symbol",
+                "human_ensembl_id",
+            ]
+        )
 
         datasets = {
             "model_info": empty_model_info,
             "model_results_info": empty_model_results_info,
+            "allele_info": empty_allele_info,
+            "human_transgene_allele_map": empty_human_transgene_allele_map,
         }
 
         # Transform data
@@ -206,10 +244,30 @@ class TestTransformModelOverview:
                 "biomarkers": [False],
             }
         )
+        allele_info = pd.DataFrame(
+            {
+                "model": ["test_model"],
+                "modified_gene": ["TestGene"],
+                "mgi_gene_id": [12345],
+                "gene_ensembl_id": ["ENSMUSG00000012345"],
+                "allele": ["TestAllele"],
+                "allele_type": ["Transgenic"],
+                "mgi_allele_id": [67890],
+            }
+        )
+        human_transgene_allele_map = pd.DataFrame(
+            {
+                "mgi_allele_id": [67890],
+                "gene_symbol": ["TestGene"],
+                "human_ensembl_id": ["ENSG00000012345"],
+            }
+        )
 
         datasets = {
             "model_info": model_info,
             "model_results_info": model_results_info,
+            "allele_info": allele_info,
+            "human_transgene_allele_map": human_transgene_allele_map,
         }
 
         # Transform data
@@ -232,7 +290,7 @@ class TestTransformModelOverview:
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": {"link_name": "Test Center"},
-                "modified_genes": [],
+                "modified_genes": ["TestGene"],
             }
         ]
 
@@ -264,10 +322,30 @@ class TestTransformModelOverview:
                 "biomarkers": [None],
             }
         )
+        allele_info = pd.DataFrame(
+            {
+                "model": ["test_model"],
+                "modified_gene": [None],
+                "mgi_gene_id": [None],
+                "gene_ensembl_id": [None],
+                "allele": [None],
+                "allele_type": [None],
+                "mgi_allele_id": [None],
+            }
+        )
+        human_transgene_allele_map = pd.DataFrame(
+            {
+                "mgi_allele_id": [None],
+                "gene_symbol": [None],
+                "human_ensembl_id": [None],
+            }
+        )
 
         datasets = {
             "model_info": model_info,
             "model_results_info": model_results_info,
+            "allele_info": allele_info,
+            "human_transgene_allele_map": human_transgene_allele_map,
         }
 
         # Transform data
@@ -320,10 +398,30 @@ class TestTransformModelOverview:
                 "biomarkers": [False, True],
             }
         )
+        allele_info = pd.DataFrame(
+            {
+                "model": ["model1", "model1", "model2"],
+                "modified_gene": ["Gene1", "Gene2", "Gene3"],
+                "mgi_gene_id": [11111, 22222, 33333],
+                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", "ENSMUSG00000033333"],
+                "allele": ["Allele1", "Allele2", "Allele3"],
+                "allele_type": ["Transgenic", "Targeted", "Transgenic"],
+                "mgi_allele_id": [111111, 222222, 333333],
+            }
+        )
+        human_transgene_allele_map = pd.DataFrame(
+            {
+                "mgi_allele_id": [111111, 222222, 333333],
+                "gene_symbol": ["Gene1", "Gene2", "Gene3"],
+                "human_ensembl_id": ["ENSG00000011111", "ENSG00000022222", "ENSG00000033333"],
+            }
+        )
 
         datasets = {
             "model_info": model_info,
             "model_results_info": model_results_info,
+            "allele_info": allele_info,
+            "human_transgene_allele_map": human_transgene_allele_map,
         }
 
         # Transform data
@@ -344,7 +442,7 @@ class TestTransformModelOverview:
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/111"},
                 "center": {"link_name": "Center1"},
-                "modified_genes": [],
+                "modified_genes": ["Gene1", "Gene2"],
             },
             {
                 "model": "model2",
@@ -361,7 +459,7 @@ class TestTransformModelOverview:
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/222"},
                 "center": {"link_name": "Center2"},
-                "modified_genes": [],
+                "modified_genes": ["Gene3"],
             },
         ]
 

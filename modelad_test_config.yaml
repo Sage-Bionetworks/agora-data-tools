@@ -102,9 +102,17 @@ datasets:
         - name: model_results_info
           id: syn68377668
           format: csv
+        - name: allele_info
+          id: syn64618791
+          format: csv
+        - name: human_transgene_allele_map
+          id: syn64846805
+          format: csv
       final_format: json
       provenance:
         - syn61378590
         - syn68377668
+        - syn64618791
+        - syn64846805
       destination: *dest
       custom_transformations: transform_model_overview
