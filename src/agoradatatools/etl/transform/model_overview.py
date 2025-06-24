@@ -55,8 +55,8 @@ def transform_model_overview(
 
     model_info = datasets["model_info"]
     model_results_info = datasets["model_results_info"]
-    allele_info = datasets["allele_info"].fillna("")
-    human_transgene_allele_map = datasets["human_transgene_allele_map"].fillna("")
+    allele_info = datasets["allele_info"]
+    human_transgene_allele_map = datasets["human_transgene_allele_map"]
 
     # Merge the two datasets on the "model" column
     merged_df = pd.merge(model_info, model_results_info, on="model", how="left")
@@ -70,6 +70,10 @@ def transform_model_overview(
             human_transgene_allele_map,
             model_alleles=allele_info[allele_info["model"] == row["model"]],
         )
+
+        modified_genes = remove_duplicates_keep_order([gene["modified_gene"] for gene in genetic_info]) if genetic_info else []
+        modified_genes = [gene for gene in modified_genes if gene is not None and str(gene) != "nan"]
+
         record = {
             "model": row["model"],
             "model_type": row["model_type"] if pd.notna(row["model_type"]) else None,
@@ -97,7 +101,7 @@ def transform_model_overview(
             "center": {"link_name": row["contributing_group"]}
             if pd.notna(row["contributing_group"])
             else None,
-            "modified_genes": remove_duplicates_keep_order([gene["modified_gene"] for gene in genetic_info]) if genetic_info else []
+            "modified_genes": modified_genes
         }
 
         transformed_records.append(record)
