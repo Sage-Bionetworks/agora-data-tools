@@ -213,6 +213,12 @@ def transform_model_details(
     model_info_df = datasets["model_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
+    # Ensure jax_id preserves leading zeros by converting to string with proper formatting
+    if "jax_id" in model_info_df.columns:
+        model_info_df["jax_id"] = model_info_df["jax_id"].apply(
+            lambda x: str(x).zfill(6) if pd.notna(x) and str(x).strip() != "" else x
+        )
+
     # Prepare biomarker and pathology dataframes
     biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"])
     pathology_df = prepare_biomarker_pathology(datasets["pathology"])
