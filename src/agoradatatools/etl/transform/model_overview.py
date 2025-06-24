@@ -5,10 +5,8 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Any, Dict, List
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    convert_numpy_types,
-)
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
 
 REQUIRED_INPUT = {
     "model_info": [
@@ -91,7 +89,5 @@ def transform_model_overview(
         }
 
         transformed_records.append(record)
-
-    transformed_records = convert_numpy_types(transformed_records)
 
     return transformed_records
