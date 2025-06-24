@@ -1,0 +1,20 @@
+model,matched_controls,model_type,contributing_group,study_synid,rrid,jax_id,alzforum_id,genotype,aliases
+3xTg-AD,B6129,Familial AD,UCI,syn22964685,MMRRC_034830-JAX,004807,3xtg,"B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",3xTg
+5xFAD (UCI),C57BL6J,Familial AD,UCI,syn16798076,MMRRC_034848-JAX,008730,5xfad-c57bl6,"B6.Cg-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax","5XFAD, 5x-FAD, Tg6799"
+5xFAD (IU/Jax/Pitt),C57BL6J,Familial AD,IU/JAX/PITT,syn21983020,MMRRC_034848-JAX,008730,5xfad-c57bl6,"B6.Cg-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax","5XFAD, 5x-FAD, Tg6799"
+APOE4,C57BL6J,Late Onset AD,IU/JAX/PITT,syn17095980,IMSR_JAX:027894,027894,apoe4-knock-jax,B6(SJL)-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup></i>/J,"APOE4 KI, APOE*4 KI"
+hAbKI,C57BL6J,Late Onset AD,UCI,syn18634479,IMSR_JAX:030898,030898,habeta-loxp-ki,B6(SJL)-<i>App<sup>tm1.1Aduci</sup></i>/J,hAbeta-loxP-KI on mixed B6J and B6NJ
+LOAD1,C57BL6J,Late Onset AD,IU/JAX/PITT,syn17095980,IMSR_JAX:028709,028709,trem2-r47h-ki-x-apoe4-load1,B6(SJL)-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup> Trem2<sup>em1Adiuj</sup></i>/J,"APOE4/Trem2*R47H, APOE*4/Trem2*R47H"
+Abca7*V1599M,"C57BL6J, 5xFAD",Late Onset AD,UCI,syn27207345,IMSR_JAX:035316,035316,,C57BL/6J-<i>Abca7<sup>em1Aduci</sup></i>/J,"Abca7<sup>V1613M</sup>, Abca7<sup>Aduci</sup>"
+LOAD1.Abca7A1527G,C57BL6J,Late Onset AD,IU/JAX/PITT,syn21595258,IMSR_JAX:030283,030283,abca7a1527gapoe4trem2r47h,B6.Cg-<i>Apoe<sup>tm1.1(APOE*4)Adiuj<sup> Abca7<sup>em2Adiuj<sup> Trem2<sup>em1Adiuj<sup></i>/J,Abca7*A1527G/APOE4/Trem2*R47H
+LOAD1.Ceacam1KO,C57BL6J,Late Onset AD,IU/JAX/PITT,syn21595258,IMSR_JAX:030673,030673,ceacam1-koapoe4trem2r47h,B6.Cg-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup> Ceacam1<sup>em1Adiuj</sup> Trem2<sup>em1Adiuj</sup></i>/J,Ceacam1 KO/APOE4/Trem2*R47H
+LOAD1.Clasp2L163P,C57BL6J,Late Onset AD,IU/JAX/PITT,syn21595258,IMSR_JAX:031944,031944,clasp2l163papoe4trem2r47h,B6.Cg-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup> Clasp2<sup>em1Adiuj</sup> Trem2<sup>em1Adiuj</sup></i>/J,Clasp2*L163P/APOE4/Trem2*R47H
+LOAD1.CR1long,C57BL6J,Late Onset AD,IU/JAX/PITT,syn21595258,IMSR_JAX:031668,031668,hcr1-ki-apoe4trem2,"B6(SJL)-<i>Cr2<sup>tm1(CR2,CR1)How</sup> Apoe<sup>tm1.1(APOE*4)Adiuj</sup> Trem2em1Adiuj</i>/J",hCR1 KI on APOE4/Trem2
+LOAD1.Il1rapExon2KO,C57BL6J,Late Onset AD,IU/JAX/PITT,syn21595258,IMSR_JAX:030304,030304,il1rap-koapoe4trem2r47h,B6.Cg-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup> Il1rap<sup>em1Adiuj</sup> Trem2<sup>em1Adiuj</sup></i>/J,Il1rap KO/APOE4/Trem2*R47H
+LOAD1.MthfrC677T,C57BL6J,Late Onset AD,IU/JAX/PITT,syn21595258,IMSR_JAX:030922,030922,mthfrc677tapoe4trem2r47h,B6.Cg-<i>Mthfr<sup>em1Adiuj</sup> Apoe<sup>tm1.1(APOE*4)Adiuj</sup> Trem2<sup>em1Adiuj</sup></i>/J,Mthfr<sup>677C>T</sup>/APOE4/Trem2*R47H
+LOAD1.Plcg2M28L,C57BL6J,Late Onset AD,IU/JAX/PITT,syn21595258,IMSR_JAX:030674,030674,plcg2m28lapoe4trem2r47h,B6.Cg-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup> Plcg2<sup>em3Adiuj</sup> Trem2<sup>em1Adiuj</sup>/J,Plcg2*M28L/APOE4/Trem2*R47H
+LOAD1.Snx1D465N,C57BL6J,Late Onset AD,IU/JAX/PITT,syn21595258,IMSR_JAX:031942,031942,snx1d465napoe4trem2r47h,B6.Cg-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup> Snx1<sup>em1Adiuj</sup> Trem2<sup>em1Adiuj</sup>/J,Snx1*D465N/APOE4/Trem2*R47H
+LOAD2,C57BL6J,Late Onset AD,IU/JAX/PITT,syn51534997,IMSR_JAX:030670,030670,habetaapoe4trem2r47h-load2,B6.Cg-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup> App<sup>em1Adiuj</sup> Trem2<sup>em1Adiuj</sup></i>/J,hAbeta/APOE4/Trem2*R47H
+Trem2R47H,C57BL6J,Late Onset AD,IU/JAX/PITT,syn17095980,IMSR_JAX:027918,027918,trem2-r47h-ki-jax,C57BL/6J-<i>Trem2<sup>em1Adiuj</sup></i>/J,"Trem2 R47H KI, Trem2*R47H"
+Trem2-R47H_NSS,"C57BL6J, 5xFAD",Late Onset AD,UCI,syn26943950,IMSR_JAX:034036,034036,trem2r47hnss,B6(SJL)-<i>Trem2<sup>em1Aduci</sup></i>/J,Trem2<sup>R47H NSS</sup>
+Trem2 KO,C57BL/6J,Late Onset AD,IU/JAX/PITT,syn50670633,IMSR_JAX:027197,027197,trem2-ko-jax,C57BL/6J-<i>Trem2<sup>em2Adiuj</sup></i>/J,

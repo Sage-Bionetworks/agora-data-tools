@@ -53,10 +53,10 @@ def transform_model_overview(
             "model": row["model"],
             "model_type": row["model_type"],
             "matched_controls": row["matched_controls"],
-            "gene_expression": {"link_url": f"comparison/expression?model={row['model']}"} if row["gene_expression"] else None,
-            "disease_correlation": {"link_url": f"comparison/correlation?model={row['model']}"} if row["disease_correlation"] else None,
-            "pathology": {"link_url": f"models/{row['model']}/pathology"} if row["pathology"] else None,
-            "biomarkers": {"link_url": f"models/{row['model']}/biomarkers"} if row["biomarkers"] else None,
+            "gene_expression": {"link_url": f"comparison/expression?model={row['model']}"} if row["gene_expression"] is True else None,
+            "disease_correlation": {"link_url": f"comparison/correlation?model={row['model']}"} if row["disease_correlation"] is True else None,
+            "pathology": {"link_url": f"models/{row['model']}/pathology"} if row["pathology"] is True else None,
+            "biomarkers": {"link_url": f"models/{row['model']}/biomarkers"} if row["biomarkers"] is True else None,
             "study_data": {
                 "link_url": f"https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study={row['study_synid']}"
             },
