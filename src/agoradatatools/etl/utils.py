@@ -299,3 +299,34 @@ def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
         if item not in result:
             result.append(item)
     return result
+
+
+def convert_numpy_types(obj: Any) -> Any:
+    """Convert numpy types to Python native types for JSON serialization.
+
+    This function recursively traverses Python objects and converts numpy data types
+    to their native Python equivalents. This is necessary because JSON serialization
+    cannot handle numpy types directly.
+
+    Args:
+        obj (Any): The object to convert. Can be a numpy type, dict, list, or any other type.
+
+    Returns:
+        Any: The converted object with numpy types replaced by native Python types.
+            - np.integer -> int
+            - np.floating -> float
+            - np.ndarray -> list
+            - dict/list -> recursively converted
+            - other types -> unchanged
+    """
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    return obj
