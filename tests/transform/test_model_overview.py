@@ -403,7 +403,11 @@ class TestTransformModelOverview:
                 "model": ["model1", "model1", "model2"],
                 "modified_gene": ["Gene1", "Gene2", "Gene3"],
                 "mgi_gene_id": [11111, 22222, 33333],
-                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", "ENSMUSG00000033333"],
+                "gene_ensembl_id": [
+                    "ENSMUSG00000011111",
+                    "ENSMUSG00000022222",
+                    "ENSMUSG00000033333",
+                ],
                 "allele": ["Allele1", "Allele2", "Allele3"],
                 "allele_type": ["Transgenic", "Targeted", "Transgenic"],
                 "mgi_allele_id": [111111, 222222, 333333],
@@ -413,7 +417,11 @@ class TestTransformModelOverview:
             {
                 "mgi_allele_id": [111111, 222222, 333333],
                 "gene_symbol": ["Gene1", "Gene2", "Gene3"],
-                "human_ensembl_id": ["ENSG00000011111", "ENSG00000022222", "ENSG00000033333"],
+                "human_ensembl_id": [
+                    "ENSG00000011111",
+                    "ENSG00000022222",
+                    "ENSG00000033333",
+                ],
             }
         )
 
