@@ -38,7 +38,6 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
                 return []
         # Fallback if it's not valid JSON like "null"
         except (json.JSONDecodeError, TypeError):
-            print("not parsed", value)
             return []
 
     @column_aggregate_value(engine=PandasExecutionEngine)
@@ -143,7 +142,6 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
                     counts["total_dict"] += 1
 
         _flatten(list_object)
-        print("counts", counts)
         return counts
 
 
