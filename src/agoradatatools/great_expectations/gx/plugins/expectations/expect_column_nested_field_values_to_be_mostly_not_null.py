@@ -28,6 +28,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
     metric_name = METRIC_NAME
     value_keys = ("non_null_threshold", "target_field")
 
+    @staticmethod
     def safe_parse(value: str) -> List[Dict[str, Any]]:
         """
         Load a JSON string and return a list of dictionaries.
@@ -290,18 +291,24 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         non_null_threshold = kwargs.get("non_null_threshold")
         target_field = kwargs.get("target_field")
 
-        if (
-            non_null_threshold is None
-            or not isinstance(non_null_threshold, (float, int))
-            or not (0 < non_null_threshold < 1)
-        ):
+        if non_null_threshold is None:
             raise InvalidExpectationConfigurationError(
-                "`non_null_threshold` is required and must be a float strictly between 0 and 1."
+                "`non_null_threshold` is required."
+            )
+
+        if not isinstance(non_null_threshold, (float, int)):
+            raise InvalidExpectationConfigurationError(
+                "`non_null_threshold` must be a number."
+            )
+
+        if not (0 < non_null_threshold < 1):
+            raise InvalidExpectationConfigurationError(
+                "`non_null_threshold` must be strictly between 0 and 1."
             )
 
         if not target_field:
             raise InvalidExpectationConfigurationError(
-                "target_field is required. Please provide a field to validate within each JSON object"
+                "`target_field` is required."
             )
 
     # This method performs a validation of your metrics against your success keys,
