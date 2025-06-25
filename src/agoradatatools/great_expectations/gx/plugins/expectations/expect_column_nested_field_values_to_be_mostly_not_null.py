@@ -296,16 +296,6 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                 "`non_null_threshold` is required."
             )
 
-        if not isinstance(non_null_threshold, (float, int)):
-            raise InvalidExpectationConfigurationError(
-                "`non_null_threshold` must be a number."
-            )
-
-        if not (0 < non_null_threshold < 1):
-            raise InvalidExpectationConfigurationError(
-                "`non_null_threshold` must be strictly between 0 and 1."
-            )
-
         if not target_field:
             raise InvalidExpectationConfigurationError("`target_field` is required.")
 
