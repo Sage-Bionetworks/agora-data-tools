@@ -73,8 +73,6 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         """
         target_field = kwargs.get("target_field")
 
-        if not target_field:
-            raise ValueError("Missing required parameter: target_field")
 
         # parse json in the column
         series_parsed = column.apply(cls.safe_parse)
