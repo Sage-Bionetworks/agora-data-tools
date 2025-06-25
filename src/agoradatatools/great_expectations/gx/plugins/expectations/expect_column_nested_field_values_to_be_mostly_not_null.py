@@ -81,7 +81,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
         if counts["total_dict"]:
             return round(
-                (counts["total_dict"] - counts["total_nulls"]) / counts["total_dict"], 1
+                (counts["total_dict"] - counts["total_nulls"]) / counts["total_dict"], 2
             )
         else:
             raise ValueError("There are no JSON objects to validate.")
