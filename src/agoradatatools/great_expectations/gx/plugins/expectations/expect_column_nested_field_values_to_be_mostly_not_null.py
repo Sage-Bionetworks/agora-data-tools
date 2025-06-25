@@ -172,15 +172,15 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                 ],
                 "c": [
                     # "targeted" is null in three rows - 5/5 invalid
-                    '[{"targeted": null}, {"targeted": null}]',
+                    '[{"targeted": null}, {"targeted": null, "a_key": "x"}]',
                     '[{"targeted": null}]',
-                    '[{"targeted": null}, {"targeted": null}]',
+                    '[{"targeted": null}, {"targeted": null, "another_key": "x"}]',
                 ],
                 "d": [
                     # "targeted" is null in one row, ignore null and empty list - 2/2 invalid
                     "null",
                     "[]",
-                    '[{"targeted": null}, {"targeted": null}]',
+                    '[{"targeted": null, "key": "x"}, {"targeted": null, "a_key": "y"}]',
                 ],
                 "e": [
                     # "targeted" is missing in one rows, ignore null - 1/3 invalid
