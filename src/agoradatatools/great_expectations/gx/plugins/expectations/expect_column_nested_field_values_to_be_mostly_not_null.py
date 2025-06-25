@@ -301,7 +301,6 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                 "`non_null_threshold` is required and must be a float strictly between 0 and 1."
             )
 
-
     # This method performs a validation of your metrics against your success keys,
     # returning a dict indicating the success or failure of the Expectation.
     def _validate(
