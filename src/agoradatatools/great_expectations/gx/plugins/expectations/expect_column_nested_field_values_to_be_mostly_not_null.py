@@ -291,13 +291,16 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         non_null_threshold = kwargs.get("non_null_threshold")
         target_field = kwargs.get("target_field")
 
-        if not isinstance(non_null_threshold, float) or not (0 < non_null_threshold < 1):
+        if not target_field:
+            raise InvalidExpectationConfigurationError("`target_field` is required.")
+
+        if not isinstance(non_null_threshold, float) or not (
+            0 < non_null_threshold < 1
+        ):
             raise InvalidExpectationConfigurationError(
                 "`non_null_threshold` is required and must be a float strictly between 0 and 1."
             )
 
-        if not target_field:
-            raise InvalidExpectationConfigurationError("`target_field` is required.")
 
     # This method performs a validation of your metrics against your success keys,
     # returning a dict indicating the success or failure of the Expectation.
