@@ -1,6 +1,6 @@
 "Custom expectation rule that counts the percentage of nulls in a targeted field"
 
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Any
 import pandas as pd
 import json
 
@@ -28,10 +28,19 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
     metric_name = METRIC_NAME
     value_keys = ("non_null_threshold", "target_field")
 
-    def safe_parse(value):
+    def safe_parse(value: str) -> List[Dict[str, Any]]:
+        """
+        Load a JSON string and return a list of dictionaries.
+        If the input is not valid JSON or not a list of dictionaries, return an empty list.
+
+        Parameters:
+            value[str]: the json string to be parsed. If input is not a valid json string, return an empty list
+
+        Returns:
+            Parsed json object or fall back to an empty list
+        """
         try:
             parsed = json.loads(value)
-            # Expecting a list of dicts
             if isinstance(parsed, list):
                 return parsed
             else:
@@ -54,6 +63,8 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
             **kwargs:
                 target_field (str):  the field to validate within each JSON object.
                 non_null_threshold  (float): non null threshold
+        Raises:
+            ValueError: if no json object to be evaluated
 
         Returns:
             float: The proportion of non-null entries for `target_field` across all dictionaries.
@@ -71,13 +82,12 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
             list_object=list(series_parsed), target_field=target_field
         )
 
-        return (
-            round(
+        if counts["total_dict"]:
+            return round(
                 (counts["total_dict"] - counts["total_nulls"]) / counts["total_dict"], 1
             )
-            if counts["total_dict"]
-            else 0
-        )
+        else:
+            raise ValueError("There are no JSON objects to validate.")
 
     @staticmethod
     def _flatten_nested_object_count_nulls(
@@ -89,26 +99,18 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
         Example:
         list_object = [
-            [
-                {"target_field": "value1", "other_key": "info"},
-                {"target_field": "value2", "other_key": "info"}
-            ],
-            [
-                {"target_field": None}, // one invalid: contain null
-                {"target_field": "value2", "other_key": "info"}
-            ],
-            [
-                {"target_field": ""}, // one valid: contain an empty string
-            ],
-            [
-                {"another_key": ""}, // one invalid: target_field is missing
-            ],
-            [] //be ignored because it is empty
+            '[{"target_field": "value1", "other_key": "info"}, {"target_field": "value2", "other_key": "info"}]', //all valid
+            '[{"target_field": null}, {"target_field": "value2", "other_key": "info"}]', // one INVALID: contain null
+            '[{"target_field": ""}]', // one valid: contain an empty string
+            '[{"another_key": ""}]', // one INVALID: target_field is missing
+            '[{}]', // one INVALID: target_field is missing
+            '[]' //IGNORE
+            'null' //IGNORE
         ]
 
         The code recursively counts nulls for a field in nested dict lists.
-        total_nulls = 2
-        total_nulls = 6
+        total_nulls = 3
+        total_nulls = 7
 
         Parameters:
             list_object (list of dictionaries): A potentially nested list containing dictionaries.
@@ -288,7 +290,11 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         non_null_threshold = kwargs.get("non_null_threshold")
         target_field = kwargs.get("target_field")
 
-        if non_null_threshold is None or not (0 < non_null_threshold < 1):
+        if (
+            non_null_threshold is None
+            or not isinstance(non_null_threshold, (float, int))
+            or not (0 < non_null_threshold < 1)
+        ):
             raise InvalidExpectationConfigurationError(
                 "`non_null_threshold` is required and must be a float strictly between 0 and 1."
             )
