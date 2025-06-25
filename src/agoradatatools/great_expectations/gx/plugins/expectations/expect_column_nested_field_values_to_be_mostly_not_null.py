@@ -31,15 +31,15 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
     def safe_parse(value):
         try:
             parsed = json.loads(value)
-             # Expecting a list of dicts
-            if isinstance(parsed, list): 
-                return parsed 
+            # Expecting a list of dicts
+            if isinstance(parsed, list):
+                return parsed
             else:
-                return [] 
+                return []
         # Fallback if it's not valid JSON like "null"
         except (json.JSONDecodeError, TypeError):
-            print('not parsed', value)
-            return []  
+            print("not parsed", value)
+            return []
 
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float | int:
@@ -64,7 +64,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
         if not target_field:
             raise ValueError("Missing required parameter: target_field")
-        
+
         # parse json in the column
         series_parsed = column.apply(cls.safe_parse)
 
@@ -128,9 +128,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         """
         counts = {"total_nulls": 0, "total_dict": 0}
 
-        def _flatten(
-            list_object:list[str]
-        ) -> dict[str, int]:
+        def _flatten(list_object: list[str]) -> dict[str, int]:
             """
             Recursively flattens a nested list of dictionaries and counts how many
             dictionaries have a null value for the specified target field.
@@ -143,8 +141,9 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
                     if target_field not in item or item.get(target_field) is None:
                         counts["total_nulls"] += 1
                     counts["total_dict"] += 1
+
         _flatten(list_object)
-        print('counts',counts)
+        print("counts", counts)
         return counts
 
 
@@ -157,7 +156,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
     # They will also be executed as unit tests for your Expectation.
     examples = [
         {
-        "data": {
+            "data": {
                 "a": [
                     # "targeted" is null in one row - 1/4 invalid
                     '[{"targeted": "a", "other_key": "m"}, {"targeted": "a", "other_key": "m"}]',
@@ -167,8 +166,8 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                 "b": [
                     # "targeted" is null in one row - 1/2 invalid
                     '[{"targeted": null, "other_key": "b"}, {"targeted": "", "other_key": "b"}]',
-                    '[]',
-                    '[]',
+                    "[]",
+                    "[]",
                 ],
                 "c": [
                     # "targeted" is null in three rows - 5/5 invalid
@@ -177,9 +176,9 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     '[{"targeted": null}, {"targeted": null}]',
                 ],
                 "d": [
-                    # "targeted" is null in one row, ignore null and empty list - 2/2 invalid 
-                    'null',
-                    '[]',
+                    # "targeted" is null in one row, ignore null and empty list - 2/2 invalid
+                    "null",
+                    "[]",
                     '[{"targeted": null}, {"targeted": null}]',
                 ],
                 "e": [
