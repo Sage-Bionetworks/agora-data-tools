@@ -32,7 +32,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
     def safe_parse(value: str) -> List[Dict[str, Any]]:
         """
         Load a JSON string and return a list of dictionaries.
-        If the input is not valid JSON or not a list of dictionaries, return an empty list.
+        If the input is not a valid JSON, return an empty list.
 
         Parameters:
             value[str]: the json string to be parsed. If input is not a valid json string, return an empty list
@@ -51,7 +51,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
             return []
 
     @column_aggregate_value(engine=PandasExecutionEngine)
-    def _pandas(cls, column: pd.Series, **kwargs) -> float | int:
+    def _pandas(cls, column: pd.Series, **kwargs) -> float:
         """
         Computes the proportion of non-null values for a specified field within a
         nested list of dictionaries contained in a Pandas column.
@@ -69,7 +69,6 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
         Returns:
             float: The proportion of non-null entries for `target_field` across all dictionaries.
-                Returns 1.0 if there are no dictionaries to evaluate.
         """
         target_field = kwargs.get("target_field")
 
@@ -123,7 +122,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
             - The target field is missing from the dictionary
             - The value is None
         Empty lists are ignored entirely.
-        Empty string is considered as valid
+        Empty string is considered as valid.
         """
         counts = {"total_nulls": 0, "total_dict": 0}
 
