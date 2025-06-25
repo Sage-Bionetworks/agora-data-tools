@@ -2,6 +2,7 @@
 
 from typing import Dict, Optional
 import pandas as pd
+import json
 
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
 from great_expectations.execution_engine import (
@@ -27,6 +28,19 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
     metric_name = METRIC_NAME
     value_keys = ("non_null_threshold", "target_field")
 
+    def safe_parse(value):
+        try:
+            parsed = json.loads(value)
+             # Expecting a list of dicts
+            if isinstance(parsed, list): 
+                return parsed 
+            else:
+                return [] 
+        # Fallback if it's not valid JSON like "null"
+        except (json.JSONDecodeError, TypeError):
+            print('not parsed', value)
+            return []  
+
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float | int:
         """
@@ -50,9 +64,12 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
         if not target_field:
             raise ValueError("Missing required parameter: target_field")
+        
+        # parse json in the column
+        series_parsed = column.apply(cls.safe_parse)
 
         counts = cls._flatten_nested_object_count_nulls(
-            list_object=list(column), target_field=target_field
+            list_object=list(series_parsed), target_field=target_field
         )
 
         return (
@@ -112,12 +129,13 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         counts = {"total_nulls": 0, "total_dict": 0}
 
         def _flatten(
-            list_object: list[list[dict[str, str | int | bool | None]]]
+            list_object:list[str]
         ) -> dict[str, int]:
             """
             Recursively flattens a nested list of dictionaries and counts how many
             dictionaries have a null value for the specified target field.
             """
+            # if this only contains empty list
             for item in list_object:
                 if isinstance(item, list):
                     _flatten(item)
@@ -126,6 +144,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
                         counts["total_nulls"] += 1
                     counts["total_dict"] += 1
         _flatten(list_object)
+        print('counts',counts)
         return counts
 
 
@@ -138,46 +157,40 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
     # They will also be executed as unit tests for your Expectation.
     examples = [
         {
-            "data": {
+        "data": {
                 "a": [
                     # "targeted" is null in one row - 1/4 invalid
-                    [
-                        {"targeted": "a", "other_key": "m"},
-                        {"targeted": "a", "other_key": "m"},
-                    ],
-                    [{"targeted": None, "another_key2": None}],
-                    [{"targeted": "a", "another key1": None, "another_key2": None}],
+                    '[{"targeted": "a", "other_key": "m"}, {"targeted": "a", "other_key": "m"}]',
+                    '[{"targeted": null, "another_key2": null}]',
+                    '[{"targeted": "a", "another key1": null, "another_key2": null}]',
                 ],
                 "b": [
                     # "targeted" is null in one row - 1/2 invalid
-                    [
-                        {"targeted": None, "other_key": "b"},
-                        {"targeted": "", "other_key": "b"},
-                    ],
-                    [],
-                    [],
+                    '[{"targeted": null, "other_key": "b"}, {"targeted": "", "other_key": "b"}]',
+                    '[]',
+                    '[]',
                 ],
                 "c": [
-                    # "targeted" is null in five rows - 5/5 invalid
-                    [{"targeted": None}, {"targeted": None}],
-                    [{"targeted": None}],
-                    [{"targeted": None}, {"targeted": None}],
+                    # "targeted" is null in three rows - 5/5 invalid
+                    '[{"targeted": null}, {"targeted": null}]',
+                    '[{"targeted": null}]',
+                    '[{"targeted": null}, {"targeted": null}]',
                 ],
                 "d": [
-                    # "targeted" is missing in two rows - 4/4 invalid
-                    [{"not_targeted": "x"}, {"something_else": "y"}],
-                    [{"also_missing": None}],
-                    [{}],
+                    # "targeted" is null in one row, ignore null and empty list - 2/2 invalid 
+                    'null',
+                    '[]',
+                    '[{"targeted": null}, {"targeted": null}]',
                 ],
                 "e": [
-                    # all rows are empty
-                    [],
-                    [],
-                    [],
+                    # "targeted" is missing in one rows, ignore null - 1/3 invalid
+                    "null",
+                    '[{"targeted": ""}]',
+                    '[{"targeted": null, "other_key": "y"}, {"targeted": "z", "other_key": "y"}]',
                 ],
             },
             "tests": [
-                # Passes: 1 of 4 values is null, satisfying the 0.7 non-null threshold.
+                # Passes: 1 of 3 values is null, satisfying the 0.7 non-null threshold.
                 {
                     "title": "target_meet_threshold",
                     "exact_match_out": False,
@@ -189,7 +202,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     },
                     "out": {"success": True},
                 },
-                # Fails: 1 of 4 values is null, NOT satisfying the 0.9 non-null threshold.
+                # Fails: 1 of 3 values is null, NOT satisfying the 0.9 non-null threshold.
                 {
                     "title": "target_fail_threshold",
                     "exact_match_out": False,
@@ -225,17 +238,29 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                     },
                     "out": {"success": False},
                 },
-                # Fails: 4 of 4 values are missing, NOT satisfying the 0.1 non-null threshold.
+                # Fails: 2 of 2 values are null, NOT satisfying the 0.01 non-null threshold.
                 {
-                    "title": "target_not_present",
+                    "title": "null_and_empty_list",
                     "exact_match_out": False,
                     "include_in_gallery": True,
                     "in": {
                         "column": "d",
-                        "non_null_threshold": 0.1,
+                        "non_null_threshold": 0.001,
                         "target_field": "targeted",
                     },
                     "out": {"success": False},
+                },
+                # Success: 1 of 3 values is invalid, satisfying the non-null threshold.
+                {
+                    "title": "target_mix_with_null",
+                    "exact_match_out": False,
+                    "include_in_gallery": True,
+                    "in": {
+                        "column": "e",
+                        "non_null_threshold": 0.6,
+                        "target_field": "targeted",
+                    },
+                    "out": {"success": True},
                 },
             ],
         }
