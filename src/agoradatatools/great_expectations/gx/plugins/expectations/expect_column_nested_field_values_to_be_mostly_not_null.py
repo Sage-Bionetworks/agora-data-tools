@@ -280,7 +280,7 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
     default_kwarg_values = {}
 
     def validate_configuration(
-        self, configuration: Optional[ExpectationConfiguration]
+        self, configuration: Optional[ExpectationConfiguration] = None
     ) -> None:
         """
         Validates that a configuration has been set, and sets a configuration if it has yet to be set. Ensures that
@@ -310,8 +310,6 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
                 "`non_null_threshold` is required and must be a float strictly between 0 and 1."
             )
 
-    # This method performs a validation of your metrics against your success keys,
-    # returning a dict indicating the success or failure of the Expectation.
     def _validate(
         self,
         configuration: ExpectationConfiguration,
@@ -319,6 +317,10 @@ class ExpectColumnNestedObjectNotNull(ColumnAggregateExpectation):
         runtime_configuration: Optional[dict] = None,  # required by gx api
         execution_engine: ExecutionEngine = None,  # required by gx api
     ) -> dict[str, dict[str, float] | bool]:
+        """
+        This method performs a validation of your metrics against your success keys,
+        returning a dict indicating the success or failure of the Expectation.
+        """
         _ = runtime_configuration
         _ = execution_engine
         not_null_threshold = configuration["kwargs"]["non_null_threshold"]
