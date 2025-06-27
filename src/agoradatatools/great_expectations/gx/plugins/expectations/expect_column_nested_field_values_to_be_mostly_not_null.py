@@ -132,13 +132,14 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
             dictionaries have a null value for the specified target field.
 
             Arguments:
-                object: a list of nested dictionary of a single dictionary.
+                object: a list of nested dictionaries or a single dictionary.
 
                 Example of valid inputs:
                     [{"a": "x"}, {"b": 2}]
                     [[{"a": "y"}], [{"c": True}]]
                     [[[{"a": "z"}]], []]
                     []
+                    [{}]
                     {"a": "x", "b": "y"}
 
             """
