@@ -19,7 +19,8 @@ from great_expectations.expectations.metrics import (
 )
 
 METRIC_NAME = "column.nested_object_not_null_ratio"
-DictOrNestedList = Union[Dict[str, str | int | bool | None], List["DictOrNestedList"]]
+NotDict = Union[str, int, float, bool, None, tuple, set]
+DictOrNestedList = Union[Dict[str, NotDict], List["DictOrNestedList"]]
 
 # This method implements the core logic for the PandasExecutionEngine
 class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
