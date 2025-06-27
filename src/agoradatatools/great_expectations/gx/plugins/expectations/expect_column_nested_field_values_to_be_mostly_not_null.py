@@ -42,15 +42,17 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         Returns:
             Parsed json object or fall back to an empty list
         """
+        # Fallback if it's "null"
+        if value == "null":
+            return []
         try:
             parsed = json.loads(value)
             if isinstance(parsed, list):
                 return parsed
             else:
                 return []
-        # Fallback if it's not valid JSON like "null"
-        except (json.JSONDecodeError, TypeError):
-            return []
+        except (json.JSONDecodeError, TypeError) as e:
+            raise ValueError(f"Invalid JSON string: {value}") from e
 
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float:
