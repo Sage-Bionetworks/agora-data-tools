@@ -126,13 +126,13 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         """
         counts = {"total_nulls": 0, "total_dict": 0}
 
-        def _flatten(list_object: DictOrNestedList) -> dict[str, int]:
+        def _flatten(object: DictOrNestedList) -> dict[str, int]:
             """
             Recursively flattens a nested list of dictionaries and counts how many
             dictionaries have a null value for the specified target field.
 
             Arguments:
-                list_object: a list of nested dictionary of a single dictionary.
+                object: a list of nested dictionary of a single dictionary.
 
                 Example of valid inputs:
                     [{"a": "x"}, {"b": 2}]
@@ -143,7 +143,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
             """
             # if this only contains empty list
-            for item in list_object:
+            for item in object:
                 if isinstance(item, list):
                     _flatten(item)
                 elif isinstance(item, dict):
