@@ -107,7 +107,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
         The code recursively counts nulls for a field in nested dict lists.
         total_nulls = 3
-        total_nulls = 7
+        total_dicts = 7
 
         Parameters:
             list_object (list of dictionaries): A potentially nested list containing dictionaries.
@@ -115,8 +115,8 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
         Returns:
             dictionary that contains two keys:
-                - total_nulls (int): The number of dictionaries where target_field is None.
-                - total_dict (int): The total number of dictionaries encountered that contain the target_field.
+                - total_nulls (int): The number of dictionaries where target_field is None or missing.
+                - total_dict (int): The total number of dictionaries encountered.
         Note:
         A value is counted as invalid if:
             - The target field is missing from the dictionary
