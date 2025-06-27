@@ -1,6 +1,6 @@
 "Custom expectation rule that counts the percentage of nulls in a targeted field"
 
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, List, Any, Union
 import pandas as pd
 import json
 
@@ -19,6 +19,7 @@ from great_expectations.expectations.metrics import (
 )
 
 METRIC_NAME = "column.nested_object_not_null_ratio"
+DictOrNestedList = Union[Dict[str, str | int | bool | None], List["DictOrNestedList"]]
 
 # This method implements the core logic for the PandasExecutionEngine
 class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
@@ -88,7 +89,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
     @staticmethod
     def _flatten_nested_object_count_nulls(
-        list_object: list[list[dict[str, str | int | bool | None]]], target_field: str
+        list_object: list[DictOrNestedList], target_field: str
     ) -> dict[str, int]:
         """
         Recursively flattens a nested list of dictionaries and counts how many
@@ -96,13 +97,12 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
 
         Example:
         list_object = [
-            '[{"target_field": "value1", "other_key": "info"}, {"target_field": "value2", "other_key": "info"}]', //all valid
-            '[{"target_field": null}, {"target_field": "value2", "other_key": "info"}]', // one INVALID: contain null
-            '[{"target_field": ""}]', // one valid: contain an empty string
-            '[{"another_key": ""}]', // one INVALID: target_field is missing
-            '[{}]', // one INVALID: target_field is missing
-            '[]' //IGNORE
-            'null' //IGNORE
+            [{"target_field": "value1", "other_key": "info"}, {"target_field": "value2", "other_key": "info"}], //all valid
+            [{"target_field": null}, {"target_field": "value2", "other_key": "info"}], // one INVALID: contain null
+            [{"target_field": ""}], // one valid: contain an empty string
+            [{"another_key": ""}], // one INVALID: target_field is missing
+            [{}], // one INVALID: target_field is missing
+            [] //IGNORE
         ]
 
         The code recursively counts nulls for a field in nested dict lists.
@@ -126,10 +126,21 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         """
         counts = {"total_nulls": 0, "total_dict": 0}
 
-        def _flatten(list_object: list[str]) -> dict[str, int]:
+        def _flatten(list_object: DictOrNestedList) -> dict[str, int]:
             """
             Recursively flattens a nested list of dictionaries and counts how many
             dictionaries have a null value for the specified target field.
+
+            Arguments:
+                list_object: a list of nested dictionary of a single dictionary.
+
+                Example of valid inputs:
+                    [{"a": "x"}, {"b": 2}]
+                    [[{"a": "y"}], [{"c": True}]]
+                    [[[{"a": "z"}]], []]
+                    []
+                    {"a": "x", "b": "y"}
+
             """
             # if this only contains empty list
             for item in list_object:
