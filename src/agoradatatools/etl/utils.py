@@ -305,7 +305,7 @@ def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
 def convert_transformation_result_to_dataframe(
     result: Union[DataFrame, Dict[str, Any], List[Dict[str, Any]], Any],
     dataset_name: str,
-) -> DataFrame:
+) -> Union[DataFrame, Dict[str, Any]]:
     """Convert the result of a custom transformation to a pandas DataFrame.
 
     Args:
@@ -313,15 +313,14 @@ def convert_transformation_result_to_dataframe(
         dataset_name (str): Name of the dataset for error reporting
 
     Returns:
-        DataFrame: The converted result as a pandas DataFrame
+        DataFrame: The converted result as a pandas DataFrame or a dictionary
 
     Raises:
         TypeError: If the result type is not supported for conversion
     """
-    if isinstance(result, DataFrame):
+
+    if isinstance(result, DataFrame) or isinstance(result, dict):
         return result
-    elif isinstance(result, dict):
-        return DataFrame.from_dict(result)
     elif isinstance(result, list):
         return pd.DataFrame(result)
     else:

@@ -473,17 +473,20 @@ class TestConvertTransformationResultToDataFrame:
     def test_convert_transformation_result_to_dataframe_with_df(self):
         """Test with a pandas DataFrame input"""
         result = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
-        df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
-        assert isinstance(df, pd.DataFrame)
-        assert df.equals(result)
+        output = utils.convert_transformation_result_to_dataframe(
+            result, "test_dataset"
+        )
+        assert isinstance(output, pd.DataFrame)
+        assert output.equals(result)
 
     def test_convert_transformation_result_to_dataframe_with_dict(self):
         "Test with a dictionary input"
         result = {"a": [1, 2], "b": [3, 4]}
-        df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
-        assert isinstance(df, pd.DataFrame)
-        expected_df = pd.DataFrame(result)
-        assert df.equals(expected_df)
+        output = utils.convert_transformation_result_to_dataframe(
+            result, "test_dataset"
+        )
+        assert isinstance(output, dict)
+        assert output == result
 
     def test_convert_transformation_result_to_dataframe_with_list_of_dicts(self):
         """Test with a list of dictionaries input"""
