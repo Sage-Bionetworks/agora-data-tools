@@ -419,6 +419,11 @@ class TestProcessDataset:
         self.patch_custom_transform = patch.object(
             process, "apply_custom_transformations", return_value=pd.DataFrame
         ).start()
+        self.patch_convert_transformation_result_to_dataframe = patch.object(
+            utils,
+            "convert_transformation_result_to_dataframe",
+            return_value=pd.DataFrame,
+        ).start()
         self.patch_dict_to_json = patch.object(
             load, "dict_to_json", return_value="path/to/json"
         ).start()
@@ -533,6 +538,7 @@ class TestProcessDataset:
             df=self.patch_standardize_column_names.return_value
         )
         self.patch_rename_columns.assert_not_called()
+
         self.patch_custom_transform.assert_called_once_with(
             datasets={"test_file_1": pd.DataFrame},
             dataset_name="neuropath_corr",
