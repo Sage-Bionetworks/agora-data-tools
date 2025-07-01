@@ -4,6 +4,7 @@ from typing import Optional, Union, Dict, Any
 import inspect
 import synapseclient
 from pandas import DataFrame
+import pandas as pd
 from typer import Argument, Option, Typer
 
 from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
@@ -159,11 +160,13 @@ def process_dataset(
         entities_as_df[entity_name] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
-        df = apply_custom_transformations(
+        result = apply_custom_transformations(
             datasets=entities_as_df,
             dataset_name=dataset_name,
             dataset_obj=dataset_obj[dataset_name],
         )
+        df = convert_transformation_result_to_dataframe(result, dataset_name)
+        
     else:
         df = entities_as_df[list(entities_as_df)[0]]
 
@@ -378,6 +381,33 @@ def process_all_files(
         )
 
     reporter.update_table()
+
+
+def convert_transformation_result_to_dataframe(
+    result: Union[DataFrame, dict, list, Any], dataset_name: str
+) -> DataFrame:
+    """Convert the result of a custom transformation to a pandas DataFrame.
+
+    Args:
+        result: The result from a custom transformation function
+        dataset_name (str): Name of the dataset for error reporting
+
+    Returns:
+        DataFrame: The converted result as a pandas DataFrame
+
+    Raises:
+        TypeError: If the result type is not supported for conversion
+    """
+    if isinstance(result, DataFrame):
+        return result
+    elif isinstance(result, dict):
+        return DataFrame.from_dict(result)
+    elif isinstance(result, list):
+        return pd.DataFrame(result)
+    else:
+        raise TypeError(
+            f"Custom transformation for dataset {dataset_name} returned an unsupported type: {type(result)}."
+        )
 
 
 app = Typer()
