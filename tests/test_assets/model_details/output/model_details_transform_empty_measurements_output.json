@@ -17,21 +17,35 @@
     "genetic_info": [
       {
         "modified_gene": "App",
-        "ensembl_id": "ENSG00000142192",
-        "allele": "APP K670_M671delinsNL (Swedish)",
+        "ensembl_gene_id": "ENSG00000142192",
+        "allele": "Allele1",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831
+      },
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSG00000142192",
+        "allele": "Allele2",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831
+      },
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSG00000142192",
+        "allele": "Allele3",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },
       {
         "modified_gene": "Mapt",
-        "ensembl_id": "ENSMUSG00000018411",
+        "ensembl_gene_id": "ENSMUSG00000018411",
         "allele": "MAPT P301L",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },
       {
         "modified_gene": "Psen1",
-        "ensembl_id": "ENSG00000080815",
+        "ensembl_gene_id": "ENSG00000080815",
         "allele": "Psen1<sup>tm1Mpm</sup>",
         "allele_type": "Targeted",
         "mgi_allele_id": 1930937
@@ -59,14 +73,14 @@
     "genetic_info": [
       {
         "modified_gene": "Mapt",
-        "ensembl_id": "ENSMUSG00000018411",
+        "ensembl_gene_id": "ENSMUSG00000018411",
         "allele": "Mapttm1(EGFP)Klt",
         "allele_type": "Targeted",
         "mgi_allele_id": 1926153
       },
       {
         "modified_gene": "MAPT",
-        "ensembl_id": "ENSG00000186868",
+        "ensembl_gene_id": "ENSG00000186868",
         "allele": "MAPT",
         "allele_type": "Transgenic",
         "mgi_allele_id": 3057560

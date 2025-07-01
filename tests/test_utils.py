@@ -377,3 +377,90 @@ class TestCalculateDistribution:
             df=self.df, grouping=["col_1", "col_2"], distribution_column="col_3"
         )
         assert output_df.equals(expected_df)
+
+
+class TestCheckRequiredDatasetsAndColumns:
+    required_input = {
+        "foo": ["a", "b"],
+        "bar": ["x", "y"],
+    }
+
+    def test_check_required_datasets_and_columns_all_present(self):
+        datasets = {
+            "foo": pd.DataFrame({"a": [1], "b": [2]}),
+            "bar": pd.DataFrame({"x": [3], "y": [4]}),
+        }
+        # Should not raise
+        utils.check_required_datasets_and_columns(datasets, self.required_input)
+
+    def test_check_required_datasets_and_columns_missing_dataset(self):
+        datasets = {
+            "foo": pd.DataFrame({"a": [1], "b": [2]}),
+        }
+        with pytest.raises(ValueError, match="Missing required datasets: bar"):
+            utils.check_required_datasets_and_columns(datasets, self.required_input)
+
+    def test_check_required_datasets_and_columns_missing_column(self):
+        datasets = {
+            "foo": pd.DataFrame({"a": [1]}),
+            "bar": pd.DataFrame({"x": [3], "y": [4]}),
+        }
+        with pytest.raises(
+            ValueError, match="Missing required columns in foo dataset: b"
+        ):
+            utils.check_required_datasets_and_columns(datasets, self.required_input)
+
+
+class TestFlattenList:
+    def test_flatten_list_empty(self):
+        assert utils.flatten_list([]) == []
+
+    def test_flatten_list_no_nesting(self):
+        input_list = [1, 2, 3, 4, 5]
+        assert utils.flatten_list(input_list) == [1, 2, 3, 4, 5]
+
+    def test_flatten_list_single_level_nesting(self):
+        input_list = [1, [2, 3], 4, [5, 6]]
+        assert utils.flatten_list(input_list) == [1, 2, 3, 4, 5, 6]
+
+    def test_flatten_list_multiple_level_nesting(self):
+        input_list = [1, [2, [3, 4]], [5, [6, [7, 8]]]]
+        assert utils.flatten_list(input_list) == [1, 2, 3, 4, 5, 6, 7, 8]
+
+    def test_flatten_list_mixed_types(self):
+        # Note that an empty list is not kept as an output element
+        input_list = [1, ["a", [2.5, True]], [None, ["x", []]]]
+        assert utils.flatten_list(input_list) == [1, "a", 2.5, True, None, "x"]
+
+
+class TestRemoveDuplicatesKeepOrder:
+    def test_remove_duplicates_empty(self):
+        assert utils.remove_duplicates_keep_order([]) == []
+
+    def test_remove_duplicates_no_duplicates(self):
+        input_list = [1, 2, 3, 4, 5]
+        assert utils.remove_duplicates_keep_order(input_list) == [1, 2, 3, 4, 5]
+
+    def test_remove_duplicates_with_duplicates(self):
+        input_list = [1, 2, 2, 3, 4, 4, 4, 5]
+        assert utils.remove_duplicates_keep_order(input_list) == [1, 2, 3, 4, 5]
+
+    def test_remove_duplicates_mixed_types(self):
+        input_list = [2, "a", 2.5, True, "a", 2, None, True]
+        assert utils.remove_duplicates_keep_order(input_list) == [
+            2,
+            "a",
+            2.5,
+            True,
+            None,
+        ]
+
+    def test_remove_duplicates_mixed_types_true_1(self):
+        # Note that True and 1 are considered equal for hashing purposes
+        # Explicitly testing this so we keep track of this behavior
+        input_list = [1, "a", 2.5, True, "a", 1, None, True]
+        assert utils.remove_duplicates_keep_order(input_list) == [1, "a", 2.5, None]
+
+    def test_remove_duplicates_preserves_order(self):
+        input_list = ["a", "b", "a", "c", "b", "d"]
+        assert utils.remove_duplicates_keep_order(input_list) == ["a", "b", "c", "d"]

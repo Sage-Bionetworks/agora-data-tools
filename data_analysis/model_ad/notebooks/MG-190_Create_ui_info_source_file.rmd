@@ -1,0 +1,199 @@
+Create ui_info.json source file (MG-190)
+
+This notebook generates a collection of JSON objects that represent The Model AD Explorer's Comparison Tool table configurations.
+
+Comparison Tool pages and dropdown menus that are currently supported by this notebook:
+* Model Overview
+* Gene Expression
+* Disease Correlation
+
+ADDING NEW PAGES
+1. Update the `pages` vector to include the title of the new CT page
+2. Define a vector of menu options for each dropdown menu on the new page
+3. Define a vector of values for each static column on the new page
+4. Define a vector of values shared by the dynamic columns on the new page (typically all but `name` and possibly `tooltip`)
+See Disease Correlation for an example that adds column-specific tooltips to the dynamic columns
+5. Define a vector of `name` values for each dynamic column on the new page
+See Gene Expression for an example that uses a multiple vectors of names to generate unique sets of dynamic columns based on dropdown selection
+6. Create a `build_<page>_objects` function that handles the required input vectors
+7. Update the `Combine and Output` section to invoke the new build function
+
+ADDING NEW DROPDOWN OPTIONS TO EXISTING MENUS
+1. Add the new menu option to the appropriate vector of menu options; each page has a vector of menu options for each dropdown on that page.
+2. That's it, unless there is some custom logic related to that new menu option.
+
+
+```{r}
+library(jsonlite)
+
+# ------------------------------
+# Shared: Static column definition helper
+# ------------------------------
+static_colnames <- c("name", "data_type", "tooltip", "sort_tooltip")
+
+make_column <- function(name, metadata, override_tooltip = NULL) {
+  names(metadata) <- static_colnames[-1]
+  tooltip_value <- if (!is.null(override_tooltip)) override_tooltip else metadata["tooltip"]
+
+  list(
+    name = name,
+    type = metadata["data_type"],
+    tooltip = tooltip_value,
+    sort_tooltip = metadata["sort_tooltip"]
+  )
+}
+
+# ------------------------------
+# Gene Expression
+# ------------------------------
+ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
+ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
+ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
+ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
+ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
+ge_dynamic_names_jax <- c("4 months", "6 months", "8 months", "12 months", "24 months")
+ge_dynamic_names_uci <- c("2 months","4 months", "8 months", "12 months", "18 months", "22 months")
+
+build_ge_objects <- function() {
+  combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
+
+  lapply(seq_len(nrow(combos)), function(i) {
+    row <- combos[i, ]
+    dynamic_names <- if (row$menu2 == "Tissue - Hemibrain") ge_dynamic_names_jax else ge_dynamic_names_uci
+    dynamic_columns <- lapply(dynamic_names, function(name) make_column(name, ge_dynamic_row))
+    static_column <- make_column(ge_static_row[1], ge_static_row[-1])
+    columns <- c(list(static_column), dynamic_columns)
+
+    list(
+      page = "Gene Expression",
+      dropdowns = c(row$menu1, row$menu2, row$menu3),
+      columns = columns
+    )
+  })
+}
+
+# ------------------------------
+# Disease Correlation
+# ------------------------------
+dc_menu1 <- c("CONSENSUS NETWORK MODULES")
+dc_menu2 <- c(
+  "Consensus Cluster A - ECM Organization",
+  "Consensus Cluster B - Immune System",
+  "Consensus Cluster C - Neuronal System",
+  "Consensus Cluster D - Cell Cycle, NMD",
+  "Consensus Cluster E - Organelle Biogenesis, Cellular Stress Response"
+)
+dc_static_row1 <- c("Age", "text", "", "Sort by Age value")
+dc_static_row2 <- c("Sex", "text", "", "Sort by Sex value")
+dc_dynamic_row <- c("heat_map", "", "Sort by correlation value")
+
+dc_dynamic_names_A <- c("IFG", "PHG", "TCX")
+dc_dynamic_names_B <- c("CBE", "DLPFC", "PHG", "TCX", "FP", "IFG", "STG")
+dc_dynamic_names_C <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
+dc_dynamic_names_D <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
+dc_dynamic_names_E <- c("CBE", "DLPFC", "PHG", "STG", "TCX", "FP")
+
+dc_tooltip_map <- c(
+  CBE = "Cerebellum",
+  DLPFC = "Dorsolateral Prefrontal Cortex",
+  FP = "Frontal Pole",
+  IFG = "Inferior Frontal Gyrus",
+  PHG = "Parahippocampal Gyrus",
+  STG = "Superior Frontal Gyrus",
+  TCX = "Temporal Cortex"
+)
+
+get_dc_dynamic_names <- function(cluster_label) {
+  if (grepl("Cluster A", cluster_label)) return(dc_dynamic_names_A)
+  if (grepl("Cluster B", cluster_label)) return(dc_dynamic_names_B)
+  if (grepl("Cluster C", cluster_label)) return(dc_dynamic_names_C)
+  if (grepl("Cluster D", cluster_label)) return(dc_dynamic_names_D)
+  if (grepl("Cluster E", cluster_label)) return(dc_dynamic_names_E)
+  character(0)
+}
+
+build_dc_objects <- function() {
+  combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
+
+  lapply(seq_len(nrow(combos)), function(i) {
+    row <- combos[i, ]
+    dynamic_names <- get_dc_dynamic_names(row$menu2)
+    dynamic_columns <- lapply(dynamic_names, function(name) {
+      tooltip_text <- dc_tooltip_map[[name]]
+      make_column(name, dc_dynamic_row, override_tooltip = tooltip_text)
+    })
+
+    static1 <- make_column(dc_static_row1[1], dc_static_row1[-1])
+    static2 <- make_column(dc_static_row2[1], dc_static_row2[-1])
+    columns <- c(list(static1, static2), dynamic_columns)
+
+    list(
+      page = "Disease Correlation",
+      dropdowns = c(row$menu1, row$menu2),
+      columns = columns
+    )
+  })
+}
+
+# ------------------------------
+# Model Overview (single static object, no menus)
+# ------------------------------
+mo_static_definitions <- data.frame(
+  name = c(
+    "Model Type", "Matched Control", "Gene Expression", "Disease Correlation",
+    "Pathology", "Biomarkers", "Study Data", "JAX Strain", "Center"
+  ),
+  type = c(
+    "text", "text",
+    "link_internal", "link_internal", "link_internal", "link_internal",
+    "link_external", "link_external", "link_external"
+  ),
+  stringsAsFactors = FALSE
+)
+
+build_mo_object <- function() {
+  columns <- apply(mo_static_definitions, 1, function(row) {
+    name <- row["name"]
+   type <- row["type"]
+
+    metadata <- c(type, "", paste("Sort by", name, "value"))
+    column <- make_column(name, metadata)
+
+    if (column$type %in% c("link_internal", "link_external")) {
+      if (name %in% c("Gene Expression", "Disease Correlation", "Pathology", "Biomarkers")) {
+        column$link_text <- "Results"
+      } else if (name == "Study Data") {
+        column$link_text <- "View Data"
+      } else if (name == "JAX Strain") {
+        column$link_text <- "View Strain"
+      } else if (name == "Center") {
+        # Omit link_text, add link_url instead
+        column$link_url <- "https://www.model-ad.org/"
+      }
+    }
+
+    column
+  })
+
+  list(
+    page = "Model Overview",
+    dropdowns = list(),
+    columns = columns
+  )
+}
+
+# ------------------------------
+# Combine and Output
+# ------------------------------
+json_list <- c(
+  build_ge_objects(),
+  build_dc_objects(),
+  list(build_mo_object())  # wrap in list to match structure
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+cat(json_output)
+
+# Optionally write to file:
+write(json_output, "./out/ui_config.json")
+```
