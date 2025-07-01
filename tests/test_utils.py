@@ -467,13 +467,18 @@ class TestRemoveDuplicatesKeepOrder:
 
 
 class TestConvertTransformationResultToDataFrame:
+    """Tests the convert_transformation_result_to_dataframe function
+    with various input types to ensure it correctly converts"""
+
     def test_convert_transformation_result_to_dataframe_with_df(self):
+        """Test with a pandas DataFrame input"""
         result = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
         df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
         assert isinstance(df, pd.DataFrame)
         assert df.equals(result)
 
     def test_convert_transformation_result_to_dataframe_with_dict(self):
+        "Test with a dictionary input"
         result = {"a": [1, 2], "b": [3, 4]}
         df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
         assert isinstance(df, pd.DataFrame)
@@ -481,6 +486,7 @@ class TestConvertTransformationResultToDataFrame:
         assert df.equals(expected_df)
 
     def test_convert_transformation_result_to_dataframe_with_list_of_dicts(self):
+        """Test with a list of dictionaries input"""
         result = [{"a": 1, "b": 3}, {"a": 2, "b": 4}]
         df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
         assert isinstance(df, pd.DataFrame)
@@ -488,6 +494,7 @@ class TestConvertTransformationResultToDataFrame:
         assert df.equals(expected_df)
 
     def test_convert_transformation_result_to_dataframe_with_wrong_type(self):
+        """Test with an unsupported type input"""
         result = True
         with pytest.raises(
             TypeError,
