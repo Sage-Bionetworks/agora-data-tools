@@ -345,6 +345,15 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_nested_object_not_null",
+      "kwargs": {
+        "column": "target_nominations",
+        "non_null_threshold": 0.85,
+        "target_field": "validation_study_details"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "median_expression",
