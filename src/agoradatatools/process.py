@@ -166,7 +166,7 @@ def process_dataset(
             dataset_obj=dataset_obj[dataset_name],
         )
         df = convert_transformation_result_to_dataframe(result, dataset_name)
-        
+
     else:
         df = entities_as_df[list(entities_as_df)[0]]
 
