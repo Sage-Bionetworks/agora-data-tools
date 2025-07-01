@@ -464,3 +464,33 @@ class TestRemoveDuplicatesKeepOrder:
     def test_remove_duplicates_preserves_order(self):
         input_list = ["a", "b", "a", "c", "b", "d"]
         assert utils.remove_duplicates_keep_order(input_list) == ["a", "b", "c", "d"]
+
+
+class TestConvertTransformationResultToDataFrame:
+    def test_convert_transformation_result_to_dataframe_with_df(self):
+        result = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
+        assert isinstance(df, pd.DataFrame)
+        assert df.equals(result)
+
+    def test_convert_transformation_result_to_dataframe_with_dict(self):
+        result = {"a": [1, 2], "b": [3, 4]}
+        df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
+        assert isinstance(df, pd.DataFrame)
+        expected_df = pd.DataFrame(result)
+        assert df.equals(expected_df)
+
+    def test_convert_transformation_result_to_dataframe_with_list_of_dicts(self):
+        result = [{"a": 1, "b": 3}, {"a": 2, "b": 4}]
+        df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
+        assert isinstance(df, pd.DataFrame)
+        expected_df = pd.DataFrame(result)
+        assert df.equals(expected_df)
+
+    def test_convert_transformation_result_to_dataframe_with_wrong_type(self):
+        result = True
+        with pytest.raises(
+            TypeError,
+            match="Custom transformation for dataset test_dataset returned an unsupported type",
+        ):
+            utils.convert_transformation_result_to_dataframe(result, "test_dataset")
