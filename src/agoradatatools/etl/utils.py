@@ -306,7 +306,8 @@ def convert_transformation_result_to_dataframe(
     result: Union[DataFrame, Dict[str, Any], List[Dict[str, Any]], Any],
     dataset_name: str,
 ) -> Union[DataFrame, Dict[str, Any]]:
-    """Convert the result of a custom transformation to a pandas DataFrame.
+    """
+    Convert the result of a custom transformation to a pandas DataFrame or keep the dictionary as is.
 
     Args:
         result: The result from a custom transformation function
