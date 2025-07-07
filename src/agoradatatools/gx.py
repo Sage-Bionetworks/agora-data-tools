@@ -72,6 +72,9 @@ class GreatExpectationsRunner:
         from expectations.expect_column_values_to_have_list_of_dict_with_expected_values import (
             ExpectColumnValuesToHaveListOfDictWithExpectedValues,
         )
+        from expectations.expect_column_nested_field_values_to_be_mostly_not_null import (
+            ExpectColumnNestedObjectNotNull,
+        )
 
     def _get_data_context_location(self) -> str:
         """Gets the path to the great_expectations directory"""
