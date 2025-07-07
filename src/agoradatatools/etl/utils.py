@@ -314,7 +314,7 @@ def convert_transformation_result_to_dataframe(
         dataset_name (str): Name of the dataset for error reporting
 
     Returns:
-        DataFrame: The converted result as a pandas DataFrame or a dictionary
+        pd.DataFrame or dict: The converted result as a pandas DataFrame or a dictionary
 
     Raises:
         TypeError: If the result type is not supported for conversion
