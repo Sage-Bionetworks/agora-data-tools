@@ -551,7 +551,7 @@ class TestProcessDataset:
             },
         )
         self.patch_df_to_json.assert_called_once_with(
-            df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            df=pd.DataFrame(), staging_path=STAGING_PATH, filename="neuropath_corr.json"
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
