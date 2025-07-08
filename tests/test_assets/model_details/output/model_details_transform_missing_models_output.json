@@ -8,7 +8,7 @@
     "contributing_group": "UCI",
     "study_synid": "syn22964685",
     "rrid": "MMRRC_034830-JAX",
-    "jax_id": 4807,
+    "jax_id": "004807",
     "alzforum_id": "3xtg",
     "genotype": "B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",
     "aliases": [
@@ -16,7 +16,7 @@
     ],
     "genetic_info": [
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "APP K670_M671delinsNL (Swedish)",
         "allele_type": "Transgenic",
@@ -183,7 +183,7 @@
     "contributing_group": "Mayo",
     "study_synid": "syn25539881",
     "rrid": "IMSR_JAX:005491",
-    "jax_id": 5491,
+    "jax_id": "005491",
     "alzforum_id": "htau",
     "genotype": "B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J",
     "aliases": [
@@ -192,7 +192,7 @@
     ],
     "genetic_info": [
       {
-        "modified_gene": "Mapt",
+        "modified_gene": "MAPT",
         "ensembl_gene_id": "ENSG00000186868",
         "allele": "Mapttm1(EGFP)Klt",
         "allele_type": "Targeted",
@@ -292,7 +292,7 @@
     "contributing_group": "UCI",
     "study_synid": "syn22964685",
     "rrid": "MMRRC_034830-JAX",
-    "jax_id": 4808,
+    "jax_id": "004808",
     "alzforum_id": "new1",
     "genotype": "B6;129-Tg(APPSwe)1Lfa",
     "aliases": [
@@ -300,7 +300,7 @@
     ],
     "genetic_info": [
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "APP K670_M671delinsNL (Swedish)",
         "allele_type": "Transgenic",
@@ -335,7 +335,7 @@
     "contributing_group": "Mayo",
     "study_synid": "syn25539881",
     "rrid": "IMSR_JAX:005492",
-    "jax_id": 5492,
+    "jax_id": "005492",
     "alzforum_id": "new2",
     "genotype": "B6.Cg-Mapttm1(EGFP)Klt",
     "aliases": [
@@ -343,7 +343,7 @@
     ],
     "genetic_info": [
       {
-        "modified_gene": "Mapt",
+        "modified_gene": "MAPT",
         "ensembl_gene_id": "ENSG00000186868",
         "allele": "Mapttm1(EGFP)Klt",
         "allele_type": "Targeted",
