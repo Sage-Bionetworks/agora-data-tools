@@ -488,9 +488,24 @@ class TestConvertTransformationResultToDataFrame:
         assert isinstance(output, dict)
         assert output == result
 
-    def test_convert_transformation_result_to_dataframe_with_list_of_dicts(self):
+    @pytest.mark.parametrize(
+        "result",
+        [
+            [
+                {"model": "LOAD1", "matched_controls": "value", "model_type": "LOAD"},
+                {
+                    "model": "5XFAD",
+                    "matched_controls": ["value1", "value2"],
+                    "model_type": "familial",
+                },
+            ],
+            [{"a": 1, "b": 3}, {"a": 2, "b": 4}],
+        ],
+    )
+    def test_convert_transformation_result_to_dataframe_with_list_of_dicts(
+        self, result
+    ):
         """Test with a list of dictionaries input"""
-        result = [{"a": 1, "b": 3}, {"a": 2, "b": 4}]
         df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
         assert isinstance(df, pd.DataFrame)
         expected_df = pd.DataFrame(result)
