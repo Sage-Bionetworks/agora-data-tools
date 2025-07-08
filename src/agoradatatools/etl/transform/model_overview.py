@@ -87,7 +87,7 @@ def transform_model_overview(
 
     # Merge the two datasets on the "model" column
     merged_df = pd.merge(
-        model_info, model_results_info, on="model", how="left", validate="1:1"
+        model_info, model_results_info, on="model", how="left", validate="1:m"
     )
 
     # Transform the merged dataframe into the target structure
