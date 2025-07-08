@@ -143,8 +143,7 @@ class TestStandardizeValues:
         df_with_substrings = pd.DataFrame(
             {
                 "aliases": [
-                    "Snx1*D465N/APOE4/Trem2*R47H",  # Contains "N/A" as substring
-                    "Trem2*R47H",  # No N/A
+                    "Snx1*D465N/APOE4/Trem2*R47H",  # Original problematic value
                     "N/A",  # Exact N/A - should be replaced
                     "n/a",  # Exact n/a - should be replaced
                     "n/A",  # Exact n/A - should be replaced
@@ -162,20 +161,19 @@ class TestStandardizeValues:
 
         # Check that N/A substrings within other text are preserved
         assert result_df.loc[0, "aliases"] == "Snx1*D465N/APOE4/Trem2*R47H"
-        assert result_df.loc[1, "aliases"] == "Trem2*R47H"
 
         # Check that exact N/A values are replaced with NaN
-        assert pd.isna(result_df.loc[2, "aliases"])  # "N/A" should become NaN
-        assert pd.isna(result_df.loc[3, "aliases"])  # "n/a" should become NaN
-        assert pd.isna(result_df.loc[4, "aliases"])  # "n/A" should become NaN
-        assert pd.isna(result_df.loc[5, "aliases"])  # "N/a" should become NaN
+        assert pd.isna(result_df.loc[1, "aliases"])  # "N/A" should become NaN
+        assert pd.isna(result_df.loc[2, "aliases"])  # "n/a" should become NaN
+        assert pd.isna(result_df.loc[3, "aliases"])  # "n/A" should become NaN
+        assert pd.isna(result_df.loc[4, "aliases"])  # "N/a" should become NaN
 
         # Check that N/A substrings within other text are preserved
-        assert result_df.loc[6, "aliases"] == "Some text with N/A in it"
-        assert result_df.loc[7, "aliases"] == "Some text with n/a in it"
-        assert result_df.loc[8, "aliases"] == "Some text with n/A in it"
-        assert result_df.loc[9, "aliases"] == "Some text with N/a in it"
-        assert result_df.loc[10, "aliases"] == "Normal text"  # Should be preserved
+        assert result_df.loc[5, "aliases"] == "Some text with N/A in it"
+        assert result_df.loc[6, "aliases"] == "Some text with n/a in it"
+        assert result_df.loc[7, "aliases"] == "Some text with n/A in it"
+        assert result_df.loc[8, "aliases"] == "Some text with N/a in it"
+        assert result_df.loc[9, "aliases"] == "Normal text"  # Should be preserved
 
 
 class TestRenameColumns:
