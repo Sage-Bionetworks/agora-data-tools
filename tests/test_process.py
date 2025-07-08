@@ -553,7 +553,7 @@ class TestProcessDataset:
             },
         )
         self.patch_df_to_json.assert_called_once()
-        args, kwargs = self.patch_df_to_json.call_args
+        _, kwargs = self.patch_df_to_json.call_args
 
         assert kwargs["staging_path"] == STAGING_PATH
         assert kwargs["filename"] == "neuropath_corr.json"
