@@ -326,7 +326,7 @@ def convert_transformation_result_to_dataframe(
 
     if isinstance(result, DataFrame) or isinstance(result, dict):
         return result
-    elif isinstance(result, list) or isinstance(result, dict):
+    elif isinstance(result, list):
         return pd.DataFrame(result)
     else:
         raise TypeError(
