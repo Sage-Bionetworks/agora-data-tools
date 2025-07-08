@@ -53,7 +53,31 @@ def transform_model_overview(
 ) -> List[Dict[str, Any]]:
     """
     Transforms the model_overview source files into a structured format for Model AD.
+
+    This function merges and processes the following input datasets:
+        - model_info: Contains metadata about each model.
+        - model_results_info: Contains information about available results for each model (e.g., gene expression, pathology).
+        - allele_info: Contains allele and genetic modification details for each model.
+        - human_transgene_allele_map: Maps mouse alleles to human Ensembl gene IDs.
+
+    The transformation includes:
+        1. Merging model_info and model_results_info on the "model" column.
+        2. For each model, extracting genetic information using process_genetic_info, which maps alleles to human Ensembl IDs where possible.
+        3. Building a structured dictionary for each model, including:
+            - model metadata (model, model_type, matched_controls, etc.)
+            - links to available results (gene_expression, disease_correlation, pathology, biomarkers)
+
+    Args:
+        datasets (Dict[str, pd.DataFrame]): Dictionary mapping dataset names to their DataFrames.
+        required_input (Dict[str, List[str]], optional): Dictionary specifying required datasets and columns. Defaults to REQUIRED_INPUT.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries, each representing a transformed model overview record.
+
+    Raises:
+        ValueError: If required datasets or columns are missing.
     """
+
     check_required_datasets_and_columns(datasets, required_input)
 
     model_info = datasets["model_info"]
