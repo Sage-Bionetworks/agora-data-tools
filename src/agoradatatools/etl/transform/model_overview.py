@@ -86,7 +86,9 @@ def transform_model_overview(
     human_transgene_allele_map = datasets["human_transgene_allele_map"]
 
     # Merge the two datasets on the "model" column
-    merged_df = pd.merge(model_info, model_results_info, on="model", how="left")
+    merged_df = pd.merge(
+        model_info, model_results_info, on="model", how="left", validate="1:1"
+    )
 
     # Transform the merged dataframe into the target structure
     transformed_records = []
