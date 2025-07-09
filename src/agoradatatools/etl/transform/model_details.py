@@ -105,6 +105,14 @@ def process_genetic_info(
         axis=1,
     )
 
+    # Only override gene_symbol if we have a valid human_ensembl_id
+    merged_df["modified_gene"] = merged_df.apply(
+        lambda row: row["gene_symbol"]
+        if pd.notna(row["human_ensembl_id"])
+        else row["modified_gene"],
+        axis=1,
+    )
+
     # Drop duplicates to ensure we don't have exact duplicates of the same allele
     merged_df = merged_df.drop_duplicates(
         subset=["modified_gene", "allele", "mgi_allele_id"]
@@ -152,6 +160,12 @@ def transform_model_details(
     allele_info_df = datasets["allele_info"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
+
+    # Ensure jax_id preserves leading zeros by converting to string with proper formatting
+    if "jax_id" in model_info_df.columns:
+        model_info_df["jax_id"] = model_info_df["jax_id"].apply(
+            lambda x: str(x).zfill(6) if pd.notna(x) and str(x).strip() != "" else x
+        )
 
     # Prepare biomarker and pathology dataframes
     grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")
