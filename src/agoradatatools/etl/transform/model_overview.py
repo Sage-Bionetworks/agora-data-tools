@@ -90,6 +90,8 @@ def transform_model_overview(
         model_info, model_results_info, on="model", how="left", validate="1:1"
     )
 
+    merged_df = merged_df.replace({float("nan"): None})
+
     # Transform the merged dataframe into the target structure
     transformed_records = []
 
@@ -111,42 +113,59 @@ def transform_model_overview(
             gene for gene in modified_genes if gene is not None and str(gene) != "nan"
         ]
 
-        record = {
-            "model": row["model"],
-            "model_type": row["model_type"] if pd.notna(row["model_type"]) else None,
-            "matched_controls": row["matched_controls"]
-            if pd.notna(row["matched_controls"])
-            else None,
-            "gene_expression": {
-                "link_url": f"comparison/expression?model={row['model']}"
-            }
+        # Build the links
+        row["gene_expression"] = (
+            {"link_url": f"comparison/expression?model={row['model']}"}
             if row["gene_expression"] is True
-            else None,
-            "disease_correlation": {
-                "link_url": f"comparison/correlation?model={row['model']}"
-            }
+            else None
+        )
+        row["disease_correlation"] = (
+            {"link_url": f"comparison/correlation?model={row['model']}"}
             if row["disease_correlation"] is True
-            else None,
-            "pathology": {"link_url": f"models/{row['model']}/pathology"}
+            else None
+        )
+        row["pathology"] = (
+            {"link_url": f"models/{row['model']}/pathology"}
             if row["pathology"] is True
-            else None,
-            "biomarkers": {"link_url": f"models/{row['model']}/biomarkers"}
+            else None
+        )
+        row["biomarkers"] = (
+            {"link_url": f"models/{row['model']}/biomarkers"}
             if row["biomarkers"] is True
-            else None,
-            "study_data": {
+            else None
+        )
+        row["study_data"] = (
+            {
                 "link_url": f"https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study={row['study_synid']}"
             }
-            if pd.notna(row["study_synid"])
-            else None,
-            "jax_strain": {"link_url": f"https://jax.org/strain/{row['jax_id']}"}
-            if pd.notna(row["jax_id"])
-            else None,
-            "center": {"link_name": row["contributing_group"]}
-            if pd.notna(row["contributing_group"])
-            else None,
-            "modified_genes": modified_genes,
-        }
+            if row["study_synid"]
+            else None
+        )
+        row["jax_strain"] = (
+            {"link_url": f"https://jax.org/strain/{row['jax_id']}"}
+            if row["jax_id"]
+            else None
+        )
+        row["center"] = (
+            {"link_name": row["contributing_group"]}
+            if row["contributing_group"]
+            else None
+        )
 
-        transformed_records.append(record)
+        transformed_records.append(
+            {
+                "model": row["model"],
+                "model_type": row["model_type"],
+                "matched_controls": row["matched_controls"],
+                "gene_expression": row["gene_expression"],
+                "disease_correlation": row["disease_correlation"],
+                "pathology": row["pathology"],
+                "biomarkers": row["biomarkers"],
+                "study_data": row["study_data"],
+                "jax_strain": row["jax_strain"],
+                "center": row["center"],
+                "modified_genes": modified_genes,
+            }
+        )
 
     return transformed_records
