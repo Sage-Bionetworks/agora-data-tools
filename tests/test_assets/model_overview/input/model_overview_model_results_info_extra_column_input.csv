@@ -1,0 +1,4 @@
+model,gene_expression,disease_correlation,pathology,biomarkers,extra_column
+3xTg-AD,TRUE,,TRUE,TRUE,extra_value
+5xFAD (UCI),TRUE,,TRUE,TRUE,extra_value
+APOE4,TRUE,TRUE,,,extra_value 
