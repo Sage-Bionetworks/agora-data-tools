@@ -1,0 +1,48 @@
+[
+  {
+    "model": "3xTg-AD",
+    "model_type": "Familial AD",
+    "matched_controls": "B6129",
+    "gene_expression": {
+      "link_url": "comparison/expression?model=3xTg-AD"
+    },
+    "disease_correlation": null,
+    "pathology": {
+      "link_url": "models/3xTg-AD/pathology"
+    },
+    "biomarkers": null,
+    "study_data": {
+      "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
+    },
+    "jax_strain": {
+      "link_url": "https://jax.org/strain/4807"
+    },
+    "center": {
+      "link_name": "UCI"
+    },
+    "modified_genes": [
+      "APP",
+      "Mapt",
+      "Psen1"
+    ]
+  },
+  {
+    "model": "5xFAD (UCI)",
+    "model_type": "Familial AD",
+    "matched_controls": "C57BL6J",
+    "gene_expression": null,
+    "disease_correlation": null,
+    "pathology": null,
+    "biomarkers": null,
+    "study_data": {
+      "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn16798076"
+    },
+    "jax_strain": {
+      "link_url": "https://jax.org/strain/8730"
+    },
+    "center": {
+      "link_name": "UCI"
+    },
+    "modified_genes": []
+  }
+]
