@@ -109,7 +109,7 @@ def transform_model_overview(
             if genetic_info
             else []
         )
-        modified_genes = [
+        row["modified_genes"] = [
             gene for gene in modified_genes if gene is not None and str(gene) != "nan"
         ]
 
@@ -152,20 +152,21 @@ def transform_model_overview(
             else None
         )
 
-        transformed_records.append(
-            {
-                "model": row["model"],
-                "model_type": row["model_type"],
-                "matched_controls": row["matched_controls"],
-                "gene_expression": row["gene_expression"],
-                "disease_correlation": row["disease_correlation"],
-                "pathology": row["pathology"],
-                "biomarkers": row["biomarkers"],
-                "study_data": row["study_data"],
-                "jax_strain": row["jax_strain"],
-                "center": row["center"],
-                "modified_genes": modified_genes,
-            }
-        )
+        # Keep only the columns that will be in transformed_records in row
+        keep_columns = [
+            "model",
+            "model_type",
+            "matched_controls",
+            "gene_expression",
+            "disease_correlation",
+            "pathology",
+            "biomarkers",
+            "study_data",
+            "jax_strain",
+            "center",
+            "modified_genes",
+        ]
+
+        transformed_records.append({k: row[k] for k in keep_columns if k in row})
 
     return transformed_records
