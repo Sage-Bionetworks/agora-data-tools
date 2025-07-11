@@ -141,6 +141,14 @@ def immunohisto_transform(
     grouped = dataset.groupby(group_columns)
 
     for group_key, group in grouped:
+        # This for loop iterates over each group produced by grouping the dataset by the specified group_columns.
+        # For each group:
+        #   - It creates a dictionary (entry) by zipping group_columns (list of column names) with the values from group_key (tuple containing the actual values for those columns) for this group.
+        #   - It then adds a new key to this dictionary, named according to extra_column_name (default 'data'), whose value is a list of dictionaries.
+        #     Each dictionary in this list corresponds to a row in the group, containing only the columns specified in extra_columns
+        #     (by default: ['genotype', 'sex', 'individual_id', 'value']).
+        #   - This entry is then appended to the data_rows list.
+        # The result is that data_rows will contain one dictionary per group, with group-level metadata and a list of per-individual data.
         entry = dict(zip(group_columns, group_key))
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
