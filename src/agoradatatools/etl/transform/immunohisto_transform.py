@@ -81,7 +81,32 @@ def immunohisto_transform(
     """
     Takes a dictionary of dataset DataFrames, extracts the 'dataset_name'
     DataFrame, and transforms it into a DataFrame grouped by group_columns.
-    Will include extra_columns in the group.
+    The output is a list of dictionaries, where each dictionary represents a unique combination
+    of the group_columns (by default: model, evidence_type, tissue, age, units). Each dictionary
+    contains these group-by fields as keys, and an additional key (by default "data") whose value
+    is a list of dictionaries. Each dictionary in this list corresponds to an individual measurement
+    and contains the extra_columns (by default: genotype, sex, individual_id, value).
+
+    Example output structure:
+    [
+      {
+        "model": "3xTg-AD",
+        "evidence_type": "Insoluble A&beta;40",
+        "tissue": "Cerebral Cortex",
+        "age": "12 months",
+        "units": "pg/mg",
+        "data": [
+          {
+            "genotype": "3xTg-AD",
+            "sex": "Male",
+            "individual_id": "4041",
+            "value": 3.816854093
+          },
+          ...
+        ]
+      },
+      ...
+    ]
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
@@ -91,7 +116,9 @@ def immunohisto_transform(
         extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'data'.
 
     Returns:
-        pd.DataFrame: A DataFrame grouped by the group_columns.
+        pd.DataFrame: DataFrame containing all group_columns, plus an extra column named as specified
+        in extra_column_name. This extra column contains all information from extra_columns, collapsed
+        into a single dictionary.
     """
 
     # Filter required_input to only include datasets that are present
