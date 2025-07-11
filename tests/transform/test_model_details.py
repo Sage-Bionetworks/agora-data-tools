@@ -448,10 +448,10 @@ class TestTransformModelDetails:
         biomarkers_df = pd.DataFrame(
             {
                 "model": pd.Series(dtype="object"),
-                "type": pd.Series(dtype="object"),
-                "measurement": pd.Series(dtype="object"),
+                "evidence_type": pd.Series(dtype="object"),
+                "value": pd.Series(dtype="object"),
                 "units": pd.Series(dtype="object"),
-                "age_death": pd.Series(dtype="object"),
+                "age": pd.Series(dtype="object"),
                 "tissue": pd.Series(dtype="object"),
                 "sex": pd.Series(dtype="object"),
                 "genotype": pd.Series(dtype="object"),
@@ -462,10 +462,10 @@ class TestTransformModelDetails:
         pathology_df = pd.DataFrame(
             {
                 "model": pd.Series(dtype="object"),
-                "type": pd.Series(dtype="object"),
-                "measurement": pd.Series(dtype="object"),
+                "evidence_type": pd.Series(dtype="object"),
+                "value": pd.Series(dtype="object"),
                 "units": pd.Series(dtype="object"),
-                "age_death": pd.Series(dtype="object"),
+                "age": pd.Series(dtype="object"),
                 "tissue": pd.Series(dtype="object"),
                 "sex": pd.Series(dtype="object"),
                 "genotype": pd.Series(dtype="object"),

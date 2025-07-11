@@ -15,10 +15,10 @@ from agoradatatools.etl.utils import (
 REQUIRED_INPUT = {
     "biomarkers": [
         "model",
-        "type",
-        "measurement",
+        "evidence_type",
+        "value",
         "units",
-        "age_death",
+        "age",
         "tissue",
         "sex",
         "genotype",
@@ -26,10 +26,10 @@ REQUIRED_INPUT = {
     ],
     "pathology": [
         "model",
-        "type",
-        "measurement",
+        "evidence_type",
+        "value",
         "units",
-        "age_death",
+        "age",
         "tissue",
         "sex",
         "genotype",
@@ -44,9 +44,8 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     It performs the following transformations:
     1. Fill missing values with an empty string.
     2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
-    3. Replace 'beta' with '&beta;' in the 'type' column.
-    4. Rename 'type' column to 'evidence_type' and 'measurement' to 'value'.
-    5. Append "months" to age values
+    3. Replace 'beta' with '&beta;' in the 'evidence_type' column.
+    4. Append "months" to age values
     """
     # Create a copy to avoid modifying the original
     df = df.copy()
@@ -56,13 +55,8 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     df["sex"] = df["sex"].str.title()
     df["tissue"] = df["tissue"].str.title()
 
-    # Replace 'beta' with '&beta;' in biomarker types
-    df["type"] = df["type"].str.replace("beta", "&beta;")
-
-    # Rename columns
-    df = df.rename(
-        columns={"type": "evidence_type", "measurement": "value", "age_death": "age"}
-    )
+    # Replace 'beta' with '&beta;' in biomarker evidence_type
+    df["evidence_type"] = df["evidence_type"].str.replace("beta", "&beta;")
 
     # Append "months" to age values
     df["age"] = df["age"].astype(str) + " months"
