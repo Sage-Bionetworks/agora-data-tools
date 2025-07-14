@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
+from pandas import DataFrame
 
 
 # TODO remove "_" - these utils functions are not only used internally
@@ -303,3 +304,31 @@ def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
         if item not in result:
             result.append(item)
     return result
+
+
+def convert_transformation_result_to_dataframe(
+    result: Union[DataFrame, Dict[str, Any], List[Dict[str, Any]], Any],
+    dataset_name: str,
+) -> Union[DataFrame, Dict[str, Any]]:
+    """
+    Convert the result of a custom transformation to a pandas DataFrame or keep the original dictionary to ensure backward compatibility.
+
+    Args:
+        result: The result from a custom transformation function
+        dataset_name (str): Name of the dataset for error reporting
+
+    Returns:
+        pd.DataFrame or dict: The converted result as a pandas DataFrame or a dictionary
+
+    Raises:
+        TypeError: If the result type is not supported for conversion
+    """
+
+    if isinstance(result, DataFrame) or isinstance(result, dict):
+        return result
+    elif isinstance(result, list):
+        return pd.DataFrame(result)
+    else:
+        raise TypeError(
+            f"Custom transformation for dataset {dataset_name} returned an unsupported type: {type(result)}."
+        )

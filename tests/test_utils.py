@@ -501,3 +501,58 @@ class TestRemoveDuplicatesKeepOrder:
     def test_remove_duplicates_preserves_order(self):
         input_list = ["a", "b", "a", "c", "b", "d"]
         assert utils.remove_duplicates_keep_order(input_list) == ["a", "b", "c", "d"]
+
+
+class TestConvertTransformationResultToDataFrame:
+    """Tests the convert_transformation_result_to_dataframe function
+    with various input types to ensure it correctly converts"""
+
+    def test_convert_transformation_result_to_dataframe_with_df(self):
+        """Test with a pandas DataFrame input"""
+        result = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        output = utils.convert_transformation_result_to_dataframe(
+            result, "test_dataset"
+        )
+        assert isinstance(output, pd.DataFrame)
+        assert output.equals(result)
+
+    def test_convert_transformation_result_to_dataframe_with_dict(self):
+        "Test with a dictionary input"
+        result = {"a": [1, 2], "b": [3, 4]}
+        output = utils.convert_transformation_result_to_dataframe(
+            result, "test_dataset"
+        )
+        assert isinstance(output, dict)
+        assert output == result
+
+    @pytest.mark.parametrize(
+        "result",
+        [
+            [
+                {"model": "LOAD1", "matched_controls": "value", "model_type": "LOAD"},
+                {
+                    "model": "5XFAD",
+                    "matched_controls": ["value1", "value2"],
+                    "model_type": "familial",
+                },
+            ],
+            [{"a": 1, "b": 3}, {"a": 2, "b": 4}],
+        ],
+    )
+    def test_convert_transformation_result_to_dataframe_with_list_of_dicts(
+        self, result
+    ):
+        """Test with a list of dictionaries input"""
+        df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
+        assert isinstance(df, pd.DataFrame)
+        expected_df = pd.DataFrame(result)
+        assert df.equals(expected_df)
+
+    def test_convert_transformation_result_to_dataframe_with_wrong_type(self):
+        """Test with an unsupported type input"""
+        result = True
+        with pytest.raises(
+            TypeError,
+            match="Custom transformation for dataset test_dataset returned an unsupported type",
+        ):
+            utils.convert_transformation_result_to_dataframe(result, "test_dataset")
