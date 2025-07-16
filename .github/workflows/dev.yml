@@ -66,6 +66,7 @@ jobs:
       - run: pip install -U setuptools
       - run: pip install .
       - run: adt test_config.yaml --upload --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
+      - run: adt modelad_test_config.yaml --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
 
   ghcr-publish:
     needs: [build, test]
