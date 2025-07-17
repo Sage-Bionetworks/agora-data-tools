@@ -173,12 +173,14 @@ sexes <-  c("Female", "Male")
 # ------------------------------
 # Gene Expression
 # ------------------------------
-# Dropdown menu options
+# Page dropdowns
 ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
 ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
 ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 
 # Static and dynamic column info
+# - static columns in every view of the page
+# - dynamic columns vary depending on dropdown menu selection
 ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
 ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
 ge_dynamic_names_jax <- c("4 months", "6 months", "8 months", "12 months", "24 months")
@@ -198,12 +200,22 @@ ge_filter_values <- list(
   model_names
 )
 
+# Builds Gene Expression objects based on the specified page, column, and filter info
 build_ge_objects <- function() {
 
-  # Generate objects for every possible combination of dropdown options
+  # Generate filterdefs
+  filters <- Map(function(name, field, values) {
+    list(
+      name = name,
+      field = field,
+      values = values
+    )
+  }, ge_filter_definitions$name, ge_filter_definitions$field, ge_filter_values)
+
+  # Generate every possible combination of dropdown options
   combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
 
-  # Add coldefs to each object
+  # Generate a JSON object for each combo
   lapply(seq_len(nrow(combos)), function(i) {
     row <- combos[i, ]
 
@@ -215,18 +227,10 @@ build_ge_objects <- function() {
     static_column <- make_column(ge_static_row[1], ge_static_row[-1])
     columns <- c(list(static_column), dynamic_columns)
 
-    # Add filterdefs to each object
-    filters <- Map(function(name, field, values) {
-      list(
-        name = name,
-        field = field,
-        values = values
-      )
-    }, ge_filter_definitions$name, ge_filter_definitions$field, ge_filter_values)
-
     # Remove names to ensure JSON is an array, not object
     names(filters) <- NULL
 
+    # Populate the object with page, dropdowns, coldefs, and filterdefs
     list(
       page = "Gene Expression",
       dropdowns = c(row$menu1, row$menu2, row$menu3),
@@ -239,7 +243,7 @@ build_ge_objects <- function() {
 # ------------------------------
 # Disease Correlation
 # ------------------------------
-# Dropdown menu options
+# Page dropdowns
 dc_menu1 <- c("CONSENSUS NETWORK MODULES")
 dc_menu2 <- c(
   "Consensus Cluster A - ECM Organization",
@@ -250,6 +254,8 @@ dc_menu2 <- c(
 )
 
 # Static and dynamic column info
+# - static columns in every view of the page
+# - dynamic columns vary depending on dropdown menu selection
 dc_static_row1 <- c("Age", "text", "", "Sort by Age value")
 dc_static_row2 <- c("Sex", "text", "", "Sort by Sex value")
 dc_dynamic_row <- c("heat_map", "", "Sort by correlation value")
@@ -262,6 +268,7 @@ dc_dynamic_names_E <- c("CBE", "DLPFC", "PHG", "STG", "TCX", "FP")
 
 dc_ages <- c('4 months', '8 months', '12 months')
 
+# Brain region expansion values for tooltips
 dc_tooltip_map <- c(
   CBE = "Cerebellum",
   DLPFC = "Dorsolateral Prefrontal Cortex",
@@ -272,6 +279,8 @@ dc_tooltip_map <- c(
   TCX = "Temporal Cortex"
 )
 
+# Returns a list of dynamic colnames
+# * cluster_label: The Consensus Cluster dropdown option to get dynamic colnames for
 get_dc_dynamic_names <- function(cluster_label) {
   if (grepl("Cluster A", cluster_label)) return(dc_dynamic_names_A)
   if (grepl("Cluster B", cluster_label)) return(dc_dynamic_names_B)
@@ -297,13 +306,28 @@ dc_filter_values <- list(
   sexes
 )
 
+# Builds Disease Correlation objects based on the specified page, column, and filter info
 build_dc_objects <- function() {
+
+  # Generate filterdefs
+  filters <- Map(function(name, field, values) {
+    list(
+      name = name,
+      field = field,
+      values = values
+    )
+  }, dc_filter_definitions$name, dc_filter_definitions$field, dc_filter_values)
+
+  # Remove names to ensure JSON is an array, not an object
+  names(filters) <- NULL
 
   # Generate objects for every possible combination of dropdown options
   combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
 
-  # Add coldefs to each object
+  # Generate a JSON object for each combo
   lapply(seq_len(nrow(combos)), function(i) {
+
+    # Generate coldefs for static & dynamic columns
     row <- combos[i, ]
     dynamic_names <- get_dc_dynamic_names(row$menu2)
     dynamic_columns <- lapply(dynamic_names, function(name) {
@@ -315,18 +339,7 @@ build_dc_objects <- function() {
     static2 <- make_column(dc_static_row2[1], dc_static_row2[-1])
     columns <- c(list(static1, static2), dynamic_columns)
 
-    # Add filterdefs to each object
-    filters <- Map(function(name, field, values) {
-      list(
-        name = name,
-        field = field,
-        values = values
-      )
-    }, dc_filter_definitions$name, dc_filter_definitions$field, dc_filter_values)
-
-    # Remove names to ensure JSON is an array, not object
-    names(filters) <- NULL
-
+    # Populate the object with page, dropdowns, coldefs, and filterdefs
     list(
       page = "Disease Correlation",
       dropdowns = c(row$menu1, row$menu2),
@@ -374,7 +387,20 @@ mo_filter_values <- list(
   modified_genes
 )
 
+# Builds the Model Overview object based on the specified page, column, and filter info
 build_mo_object <- function() {
+
+  # Generate filterdefs
+  filters <- Map(function(name, field, values) {
+    list(
+      name = name,
+      field = field,
+      values = values
+    )
+  }, mo_filter_definitions$name, mo_filter_definitions$field, mo_filter_values)
+
+  # Remove names to ensure JSON is an array, not an object
+  names(filters) <- NULL
 
    # Add coldefs
   columns <- apply(mo_static_definitions, 1, function(row) {
@@ -385,8 +411,8 @@ build_mo_object <- function() {
     column <- make_column(name, metadata)
 
     # For link type columns, handle link_text and link_url fields
-    # Values defined here apply to every CT row in the column
-    # Define values that vary by CT row in the data payload
+    # - Define values here if they apply to every CT row in the column
+    # - Define values that vary by CT row in the data payload
     if (column$type %in% c("link_internal", "link_external")) {
       if (name %in% c("Gene Expression", "Disease Correlation", "Pathology", "Biomarkers")) {
         column$link_text <- "Results"
@@ -405,18 +431,7 @@ build_mo_object <- function() {
     column
   })
 
-  # Add filterdefs
-  filters <- Map(function(name, field, values) {
-    list(
-      name = name,
-      field = field,
-      values = values
-    )
-  }, mo_filter_definitions$name, mo_filter_definitions$field, mo_filter_values)
-
-  # Remove names to ensure JSON is an array, not object
-  names(filters) <- NULL
-
+  # Populate the object with page, dropdowns, coldefs, and filterdefs
   list(
     page = "Model Overview",
     dropdowns = list(),
@@ -435,10 +450,11 @@ json_list <- c(
 )
 
 json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
-cat(json_output)
+# cat(json_output)
 
 # Optionally write to file for debugging
-# write(json_output, "./output/ui_config.json")
+write(json_output, "./output/ui_config.json")
+
 ```
 
 ## Write json file and upload to synapse
