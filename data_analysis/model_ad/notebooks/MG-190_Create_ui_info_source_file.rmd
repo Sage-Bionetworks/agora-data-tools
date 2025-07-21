@@ -14,8 +14,8 @@ ADDING NEW PAGES
 4. Define a vector of values shared by the dynamic columns on the new page (typically all but `name` and possibly `tooltip`); see Disease Correlation for an example that adds column-type-specific tooltips to the dynamic columns
 5. Define a vector of `name` values for each dynamic column on the new page; see Gene Expression for an example that uses a multiple vectors of names to generate unique sets of dynamic columns based on dropdown selection
 6. Define a vector of filterset display names and filterset display values
-6. Create a `build_<page>_objects` function that generates the required columns and filters data
-7. Update the `Combine and Output` section to invoke the new build function
+7. Create a `build_<page>_objects` function that generates the required columns and filters data
+8. Update the `Combine and Output` section to invoke the new build function
 
 
 ## Library setup
@@ -86,6 +86,7 @@ download_file <- function(synId, df_name, type) {
     if (type == 'rds') {data <- readRDS(path)}
     df_name <- as.data.frame(data)
   }
+  df_name
 }
 
 ```
