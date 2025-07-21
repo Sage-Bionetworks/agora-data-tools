@@ -366,7 +366,7 @@ mo_filter_definitions <- data.frame(
     'Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'
     ),
   field = c(
-    'avaliable_data', 'center', 'model_type', 'modified_genes'
+    'available_data', 'center', 'model_type', 'modified_genes'
   ),
   stringsAsFactors = FALSE
 )
