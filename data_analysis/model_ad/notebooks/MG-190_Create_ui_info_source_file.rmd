@@ -76,17 +76,10 @@ download_file <- function(synId, df_name, type) {
   cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
   cat("\npath: ", file$path, "\n")
 
-  if (type == 'f') {
-    data <- read_feather(path)
-  } else {
-    if (type == 'json') { data <- fromJSON(path) }
-    if (type == 'csv' || type == 'table') { data <- read.csv(path) }
-    if (type == 'tsv') { data <- read.csv(path, sep = "\t") }
-    if (type == 'rda') { data <- load(path)}
-    if (type == 'rds') {data <- readRDS(path)}
-    df_name <- as.data.frame(data)
-  }
-  df_name
+  if (type == 'json') { data <- fromJSON(path) }
+  if (type != 'csv'  data <- read.csv(path) }
+
+  as.data.frame(data)
 }
 
 ```
