@@ -77,7 +77,7 @@ download_file <- function(synId, df_name, type) {
   cat("\npath: ", file$path, "\n")
 
   if (type == 'json') { data <- fromJSON(path) }
-  if (type == 'csv'  { data <- read.csv(path) }
+  if (type == 'csv' ) { data <- read.csv(path) }
 
   as.data.frame(data)
 }
@@ -366,7 +366,7 @@ mo_filter_definitions <- data.frame(
     'Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'
     ),
   field = c(
-    'avaliable_data', 'center', 'model_type', 'modified_genes'
+    'available_data', 'center', 'model_type', 'modified_genes'
   ),
   stringsAsFactors = FALSE
 )
