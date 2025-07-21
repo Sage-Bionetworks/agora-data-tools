@@ -18,7 +18,7 @@
       "link_url": "https://jax.org/strain/4807"
     },
     "center": {
-      "link_name": "UCI"
+      "link_text": "UCI"
     },
     "modified_genes": [
       "APP",
@@ -41,7 +41,7 @@
       "link_url": "https://jax.org/strain/8730"
     },
     "center": {
-      "link_name": "UCI"
+      "link_text": "UCI"
     },
     "modified_genes": []
   }

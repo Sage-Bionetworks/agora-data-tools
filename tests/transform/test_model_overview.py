@@ -289,7 +289,7 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
-                "center": {"link_name": "Test Center"},
+                "center": {"link_text": "Test Center"},
                 "modified_genes": ["TestGene"],
             }
         ]
@@ -365,7 +365,7 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
-                "center": {"link_name": "Test Center"},
+                "center": {"link_text": "Test Center"},
                 "modified_genes": [],
             }
         ]
@@ -449,7 +449,7 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/111"},
-                "center": {"link_name": "Center1"},
+                "center": {"link_text": "Center1"},
                 "modified_genes": ["Gene1", "Gene2"],
             },
             {
@@ -466,7 +466,7 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/222"},
-                "center": {"link_name": "Center2"},
+                "center": {"link_text": "Center2"},
                 "modified_genes": ["Gene3"],
             },
         ]
