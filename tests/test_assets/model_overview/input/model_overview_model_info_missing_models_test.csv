@@ -1,3 +1,3 @@
-model,matched_controls,model_type,contributing_group,study_synid,rrid,jax_id,alzforum_id,genotype,aliases
+name,matched_controls,model_type,contributing_group,study_synid,rrid,jax_id,alzforum_id,genotype,aliases
 3xTg-AD,B6129,Familial AD,UCI,syn22964685,MMRRC_034830-JAX,004807,3xtg,"B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",3xTg
 5xFAD (UCI),C57BL6J,Familial AD,UCI,syn16798076,MMRRC_034848-JAX,008730,5xfad-c57bl6,"B6.Cg-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax","5XFAD, 5x-FAD, Tg6799" 

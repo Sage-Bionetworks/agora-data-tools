@@ -163,7 +163,7 @@ class TestTransformModelOverview:
         # Create empty test datasets
         empty_model_info = pd.DataFrame(
             columns=[
-                "model",
+                "name",
                 "matched_controls",
                 "model_type",
                 "contributing_group",
@@ -177,7 +177,7 @@ class TestTransformModelOverview:
         )
         empty_model_results_info = pd.DataFrame(
             columns=[
-                "model",
+                "name",
                 "gene_expression",
                 "disease_correlation",
                 "pathology",
@@ -186,7 +186,7 @@ class TestTransformModelOverview:
         )
         empty_allele_info = pd.DataFrame(
             columns=[
-                "model",
+                "name",
                 "modified_gene",
                 "mgi_gene_id",
                 "gene_ensembl_id",
@@ -223,7 +223,7 @@ class TestTransformModelOverview:
         # Create test datasets with specific boolean values
         model_info = pd.DataFrame(
             {
-                "model": ["test_model"],
+                "name": ["test_model"],
                 "matched_controls": ["C57BL6J"],
                 "model_type": ["Familial AD"],
                 "contributing_group": ["Test Center"],
@@ -237,7 +237,7 @@ class TestTransformModelOverview:
         )
         model_results_info = pd.DataFrame(
             {
-                "model": ["test_model"],
+                "name": ["test_model"],
                 "gene_expression": [True],
                 "disease_correlation": [False],
                 "pathology": [True],
@@ -246,7 +246,7 @@ class TestTransformModelOverview:
         )
         allele_info = pd.DataFrame(
             {
-                "model": ["test_model"],
+                "name": ["test_model"],
                 "modified_gene": ["TestGene"],
                 "mgi_gene_id": [12345],
                 "gene_ensembl_id": ["ENSMUSG00000012345"],
@@ -276,7 +276,7 @@ class TestTransformModelOverview:
         # Expected output
         expected_output = [
             {
-                "model": "test_model",
+                "name": "test_model",
                 "model_type": "Familial AD",
                 "matched_controls": "C57BL6J",
                 "gene_expression": {
@@ -301,7 +301,7 @@ class TestTransformModelOverview:
         # Create test datasets with None values
         model_info = pd.DataFrame(
             {
-                "model": ["test_model"],
+                "name": ["test_model"],
                 "matched_controls": [None],
                 "model_type": ["Familial AD"],
                 "contributing_group": ["Test Center"],
@@ -315,7 +315,7 @@ class TestTransformModelOverview:
         )
         model_results_info = pd.DataFrame(
             {
-                "model": ["test_model"],
+                "name": ["test_model"],
                 "gene_expression": [None],
                 "disease_correlation": [None],
                 "pathology": [None],
@@ -324,7 +324,7 @@ class TestTransformModelOverview:
         )
         allele_info = pd.DataFrame(
             {
-                "model": ["test_model"],
+                "name": ["test_model"],
                 "modified_gene": [None],
                 "mgi_gene_id": [None],
                 "gene_ensembl_id": [None],
@@ -354,7 +354,7 @@ class TestTransformModelOverview:
         # Expected output - None values should be preserved
         expected_output = [
             {
-                "model": "test_model",
+                "name": "test_model",
                 "model_type": "Familial AD",
                 "matched_controls": None,
                 "gene_expression": None,
@@ -377,7 +377,7 @@ class TestTransformModelOverview:
         # Create test datasets with multiple models
         model_info = pd.DataFrame(
             {
-                "model": ["model1", "model2"],
+                "name": ["model1", "model2"],
                 "matched_controls": ["C57BL6J", "B6129"],
                 "model_type": ["Familial AD", "Tauopathy"],
                 "contributing_group": ["Center1", "Center2"],
@@ -391,7 +391,7 @@ class TestTransformModelOverview:
         )
         model_results_info = pd.DataFrame(
             {
-                "model": ["model1", "model2"],
+                "name": ["model1", "model2"],
                 "gene_expression": [True, False],
                 "disease_correlation": [False, True],
                 "pathology": [True, True],
@@ -400,7 +400,7 @@ class TestTransformModelOverview:
         )
         allele_info = pd.DataFrame(
             {
-                "model": ["model1", "model1", "model2"],
+                "name": ["model1", "model1", "model2"],
                 "modified_gene": ["Gene1", "Gene2", "Gene3"],
                 "mgi_gene_id": [11111, 22222, 33333],
                 "gene_ensembl_id": [
@@ -438,7 +438,7 @@ class TestTransformModelOverview:
         # Expected output
         expected_output = [
             {
-                "model": "model1",
+                "name": "model1",
                 "model_type": "Familial AD",
                 "matched_controls": "C57BL6J",
                 "gene_expression": {"link_url": "comparison/expression?model=model1"},
@@ -453,7 +453,7 @@ class TestTransformModelOverview:
                 "modified_genes": ["Gene1", "Gene2"],
             },
             {
-                "model": "model2",
+                "name": "model2",
                 "model_type": "Tauopathy",
                 "matched_controls": "B6129",
                 "gene_expression": None,

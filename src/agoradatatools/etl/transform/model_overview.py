@@ -13,7 +13,7 @@ from agoradatatools.etl.transform.model_details import process_genetic_info
 
 REQUIRED_INPUT = {
     "model_info": [
-        "model",
+        "name",
         "matched_controls",
         "model_type",
         "contributing_group",
@@ -25,14 +25,14 @@ REQUIRED_INPUT = {
         "aliases",
     ],
     "model_results_info": [
-        "model",
+        "name",
         "gene_expression",
         "disease_correlation",
         "pathology",
         "biomarkers",
     ],
     "allele_info": [
-        "model",
+        "name",
         "modified_gene",
         "gene_ensembl_id",
         "allele",
@@ -61,10 +61,10 @@ def transform_model_overview(
         - human_transgene_allele_map: Maps mouse alleles to human Ensembl gene IDs.
 
     The transformation includes:
-        1. Merging model_info and model_results_info on the "model" column.
+        1. Merging model_info and model_results_info on the "name" column.
         2. For each model, extracting genetic information using process_genetic_info, which maps alleles to human Ensembl IDs where possible.
         3. Building a structured dictionary for each model, including:
-            - model metadata (model, model_type, matched_controls, etc.)
+            - model metadata (name, model_type, matched_controls, etc.)
             - links to available results (gene_expression, disease_correlation, pathology, biomarkers)
 
     Args:
@@ -85,9 +85,9 @@ def transform_model_overview(
     allele_info = datasets["allele_info"]
     human_transgene_allele_map = datasets["human_transgene_allele_map"]
 
-    # Merge the two datasets on the "model" column
+    # Merge the two datasets on the "name" column
     merged_df = pd.merge(
-        model_info, model_results_info, on="model", how="left", validate="1:1"
+        model_info, model_results_info, on="name", how="left", validate="1:1"
     )
 
     merged_df = merged_df.replace({float("nan"): None})
@@ -99,7 +99,7 @@ def transform_model_overview(
         # Get genetic info for this model
         genetic_info = process_genetic_info(
             human_transgene_allele_map,
-            model_alleles=allele_info[allele_info["model"] == row["model"]],
+            model_alleles=allele_info[allele_info["name"] == row["name"]],
         )
 
         modified_genes = (
@@ -115,22 +115,22 @@ def transform_model_overview(
 
         # Build the links
         row["gene_expression"] = (
-            {"link_url": f"comparison/expression?model={row['model']}"}
+            {"link_url": f"comparison/expression?model={row['name']}"}
             if row["gene_expression"] is True
             else None
         )
         row["disease_correlation"] = (
-            {"link_url": f"comparison/correlation?model={row['model']}"}
+            {"link_url": f"comparison/correlation?model={row['name']}"}
             if row["disease_correlation"] is True
             else None
         )
         row["pathology"] = (
-            {"link_url": f"models/{row['model']}/pathology"}
+            {"link_url": f"models/{row['name']}/pathology"}
             if row["pathology"] is True
             else None
         )
         row["biomarkers"] = (
-            {"link_url": f"models/{row['model']}/biomarkers"}
+            {"link_url": f"models/{row['name']}/biomarkers"}
             if row["biomarkers"] is True
             else None
         )
@@ -154,7 +154,7 @@ def transform_model_overview(
 
         # Keep only the columns that will be in transformed_records in row
         keep_columns = [
-            "model",
+            "name",
             "model_type",
             "matched_controls",
             "gene_expression",
