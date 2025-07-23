@@ -14,7 +14,7 @@ from agoradatatools.etl.utils import (
 
 REQUIRED_INPUT = {
     "biomarkers": [
-        "model",
+        "name",
         "evidence_type",
         "value",
         "units",
@@ -25,7 +25,7 @@ REQUIRED_INPUT = {
         "individual_id",
     ],
     "pathology": [
-        "model",
+        "name",
         "evidence_type",
         "value",
         "units",
@@ -69,7 +69,7 @@ def immunohisto_transform(
     dataset_name: str,
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
     group_columns: List[str] = [
-        "model",
+        "name",
         "evidence_type",
         "tissue",
         "age",
@@ -82,7 +82,7 @@ def immunohisto_transform(
     Takes a dictionary of dataset DataFrames, extracts the 'dataset_name'
     DataFrame, and transforms it into a DataFrame grouped by group_columns.
     The output is a list of dictionaries, where each dictionary represents a unique combination
-    of the group_columns (by default: model, evidence_type, tissue, age, units). Each dictionary
+    of the group_columns (by default: name, evidence_type, tissue, age, units). Each dictionary
     contains these group-by fields as keys, and an additional key (by default "data") whose value
     is a list of dictionaries. Each dictionary in this list corresponds to an individual measurement
     and contains the extra_columns (by default: genotype, sex, individual_id, value).
@@ -90,7 +90,7 @@ def immunohisto_transform(
     Example output structure:
     [
       {
-        "model": "3xTg-AD",
+        "name": "3xTg-AD",
         "evidence_type": "Insoluble A&beta;40",
         "tissue": "Cerebral Cortex",
         "age": "12 months",
@@ -111,7 +111,7 @@ def immunohisto_transform(
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
         dataset_name (str): The name of the dataset to transform.
-        group_columns (List[str], optional): List of columns to group by. Defaults to ['model', 'evidence_type', 'tissue', 'age', 'units'].
+        group_columns (List[str], optional): List of columns to group by. Defaults to ['name', 'evidence_type', 'tissue', 'age', 'units'].
         extra_columns (List[str], optional): List of columns to include in the group. Defaults to ['genotype', 'sex', 'individual_id', 'value'].
         extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'data'.
 
