@@ -11,7 +11,7 @@ from agoradatatools.etl.transform.immunohisto_transform import immunohisto_trans
 
 REQUIRED_INPUT = {
     "allele_info": [
-        "model",
+        "name",
         "modified_gene",
         "gene_ensembl_id",
         "allele",
@@ -19,7 +19,7 @@ REQUIRED_INPUT = {
         "mgi_allele_id",
     ],
     "model_info": [
-        "model",
+        "name",
         "matched_controls",
         "model_type",
         "contributing_group",
@@ -36,7 +36,7 @@ REQUIRED_INPUT = {
         "human_ensembl_id",
     ],
     "biomarkers": [
-        "model",
+        "name",
         "evidence_type",
         "value",
         "units",
@@ -47,7 +47,7 @@ REQUIRED_INPUT = {
         "individual_id",
     ],
     "pathology": [
-        "model",
+        "name",
         "evidence_type",
         "value",
         "units",
@@ -182,21 +182,21 @@ def transform_model_details(
     # Process each model
     result = []
     for _, model_row in model_info_df.iterrows():
-        model_name = model_row["model"]
+        model_name = model_row["name"]
 
         # Get genetic info for this model
         genetic_info = process_genetic_info(
             human_transgene_allele_map_df,
-            model_alleles=allele_info_df[allele_info_df["model"] == model_name],
+            model_alleles=allele_info_df[allele_info_df["name"] == model_name],
         )
 
         # Process the biomarkers and pathology datasets for this model
-        model_biomarkers = [x for x in grouped_biomarkers if x["model"] == model_name]
-        model_pathology = [x for x in grouped_pathology if x["model"] == model_name]
+        model_biomarkers = [x for x in grouped_biomarkers if x["name"] == model_name]
+        model_pathology = [x for x in grouped_pathology if x["name"] == model_name]
 
         # Build the complete model entry
         model_entry = {
-            "model": model_name,
+            "name": model_name,
             "matched_controls": model_row["matched_controls"],
             "model_type": model_row["model_type"],
             "contributing_group": model_row["contributing_group"],

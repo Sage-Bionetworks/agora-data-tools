@@ -1,6 +1,6 @@
 [
   {
-    "model": "3xTg-AD",
+    "name": "3xTg-AD",
     "matched_controls": [],
     "model_type": "Familial AD",
     "contributing_group": "UCI",
@@ -51,7 +51,7 @@
     ],
     "biomarkers": [
       {
-        "model": "3xTg-AD",
+        "name": "3xTg-AD",
         "evidence_type": "Insoluble &beta;40",
         "tissue": "",
         "age": "8 months",
@@ -66,7 +66,7 @@
         ]
       },
       {
-        "model": "3xTg-AD",
+        "name": "3xTg-AD",
         "evidence_type": "Soluble &beta;40",
         "tissue": "Hippocampus",
         "age": "4 months",
@@ -87,7 +87,7 @@
         ]
       },
       {
-        "model": "3xTg-AD",
+        "name": "3xTg-AD",
         "evidence_type": "Soluble &beta;42",
         "tissue": "Hippocampus",
         "age": "4 months",
@@ -104,7 +104,7 @@
     ],
     "pathology": [
       {
-        "model": "3xTg-AD",
+        "name": "3xTg-AD",
         "evidence_type": "Plaque area",
         "tissue": "Hippocampus",
         "age": "4 months",
@@ -119,7 +119,7 @@
         ]
       },
       {
-        "model": "3xTg-AD",
+        "name": "3xTg-AD",
         "evidence_type": "Plaque count",
         "tissue": "Hippocampus",
         "age": "4 months",
@@ -140,7 +140,7 @@
         ]
       },
       {
-        "model": "3xTg-AD",
+        "name": "3xTg-AD",
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
         "age": "8 months",
@@ -155,7 +155,7 @@
         ]
       },
       {
-        "model": "3xTg-AD",
+        "name": "3xTg-AD",
         "evidence_type": "Tangle count",
         "tissue": "Cortex",
         "age": "8 months",
@@ -172,7 +172,7 @@
     ]
   },
   {
-    "model": "hTau",
+    "name": "hTau",
     "matched_controls": [],
     "model_type": "Tauopathy",
     "contributing_group": "Mayo",
@@ -201,7 +201,7 @@
     "biomarkers": [],
     "pathology": [
       {
-        "model": "hTau",
+        "name": "hTau",
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
         "age": "12 months",
@@ -216,7 +216,7 @@
         ]
       },
       {
-        "model": "hTau",
+        "name": "hTau",
         "evidence_type": "Tangle count",
         "tissue": "Hippocampus",
         "age": "6 months",

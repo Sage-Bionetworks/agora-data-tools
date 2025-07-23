@@ -384,7 +384,7 @@ class TestTransformModelDetails:
         # Create test datasets with various jax_id formats
         model_info_df = pd.DataFrame(
             {
-                "model": ["model1", "model2", "model3", "model4", "model5", "model6"],
+                "name": ["model1", "model2", "model3", "model4", "model5", "model6"],
                 "matched_controls": [
                     "control1",
                     "control2",
@@ -421,7 +421,7 @@ class TestTransformModelDetails:
         # Create minimal required datasets for the transform function
         allele_info_df = pd.DataFrame(
             {
-                "model": ["model1", "model2", "model3", "model4", "model5", "model6"],
+                "name": ["model1", "model2", "model3", "model4", "model5", "model6"],
                 "modified_gene": ["gene1", "gene2", "gene3", "gene4", "gene5", "gene6"],
                 "gene_ensembl_id": ["ens1", "ens2", "ens3", "ens4", "ens5", "ens6"],
                 "allele": [
@@ -447,7 +447,7 @@ class TestTransformModelDetails:
 
         biomarkers_df = pd.DataFrame(
             {
-                "model": pd.Series(dtype="object"),
+                "name": pd.Series(dtype="object"),
                 "evidence_type": pd.Series(dtype="object"),
                 "value": pd.Series(dtype="object"),
                 "units": pd.Series(dtype="object"),
@@ -461,7 +461,7 @@ class TestTransformModelDetails:
 
         pathology_df = pd.DataFrame(
             {
-                "model": pd.Series(dtype="object"),
+                "name": pd.Series(dtype="object"),
                 "evidence_type": pd.Series(dtype="object"),
                 "value": pd.Series(dtype="object"),
                 "units": pd.Series(dtype="object"),
