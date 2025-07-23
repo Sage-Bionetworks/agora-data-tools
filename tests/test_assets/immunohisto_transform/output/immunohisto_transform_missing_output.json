@@ -1,35 +1,38 @@
 [
-    {
-        "model": "ModelA",
-        "type": "TypeA",
-        "age_death": 1,
-        "tissue": "TissueA",
-        "units": "A",
-        "points": [
-            {
-                "genotype": "genotype1",
-                "measurement": 1.0,
-                "sex": "male"
-            },
-            {
-                "genotype": "genotype1",
-                "measurement": "none",
-                "sex": "male"
-            }
-        ]
-    },
-    {
-        "model": "none",
-        "type": "TypeA",
-        "age_death": 1,
-        "tissue": "TissueA",
-        "units": "A",
-        "points": [
-            {
-                "genotype": "genotype1",
-                "measurement": 1.0,
-                "sex": "male"
-            }
-        ]
-    }
+  {
+    "model": "",
+    "evidence_type": "TypeA",
+    "tissue": "Tissuea",
+    "age": "1 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_3",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "model": "ModelA",
+    "evidence_type": "TypeA",
+    "tissue": "Tissuea",
+    "age": "1 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_1",
+        "value": 1
+      },
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_2",
+        "value": ""
+      }
+    ]
+  }
 ]

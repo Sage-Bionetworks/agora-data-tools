@@ -5,6 +5,7 @@ import pytest
 
 from agoradatatools.etl.transform.immunohisto_transform import (
     immunohisto_transform,
+    prepare_immunohisto_data,
 )
 
 
@@ -60,8 +61,11 @@ class TestTransformGeneralModelAD:
         )
         output_df = pd.DataFrame(
             immunohisto_transform(
-                datasets={"immunohisto_transform": immunohisto_transform_df},
-                dataset_name="immunohisto_transform",
+                datasets={
+                    "biomarkers": immunohisto_transform_df,
+                    "pathology": immunohisto_transform_df,
+                },
+                dataset_name="biomarkers",
             )
         )
         expected_df = pd.read_json(
@@ -80,6 +84,96 @@ class TestTransformGeneralModelAD:
         )
         with pytest.raises(error_type):
             immunohisto_transform(
-                datasets={"immunohisto_transform": immunohisto_transform_df},
-                dataset_name="immunohisto_transform",
+                datasets={
+                    "biomarkers": immunohisto_transform_df,
+                    "pathology": immunohisto_transform_df,
+                },
+                dataset_name="biomarkers",
             )
+
+    def test_prepare_immunohisto_data_should_pass(self):
+        # Create test input DataFrame
+        input_df = pd.DataFrame(
+            {
+                "sex": ["male", "female"],
+                "tissue": ["cerebral cortex", "hippocampus"],
+                "evidence_type": ["beta amyloid", "beta amyloid"],
+                "value": [1.0, 2.0],
+                "age": [1, 2],
+            }
+        )
+
+        # Expected output DataFrame
+        expected_df = pd.DataFrame(
+            {
+                "sex": ["Male", "Female"],
+                "tissue": ["Cerebral Cortex", "Hippocampus"],
+                "evidence_type": ["&beta; amyloid", "&beta; amyloid"],
+                "value": [1.0, 2.0],
+                "age": ["1 months", "2 months"],
+            }
+        )
+
+        # Transform data
+        output_df = prepare_immunohisto_data(input_df)
+
+        # Compare output with expected
+        pd.testing.assert_frame_equal(output_df, expected_df)
+
+    def test_prepare_immunohisto_data_with_empty_values(self):
+        # Create test input DataFrame with empty values
+        input_df = pd.DataFrame(
+            {
+                "sex": ["male", ""],
+                "tissue": ["cerebral cortex", ""],
+                "evidence_type": ["beta amyloid", ""],
+                "value": [1.0, 2.0],
+                "age": [1, 2],
+            }
+        )
+
+        # Expected output DataFrame
+        expected_df = pd.DataFrame(
+            {
+                "sex": ["Male", ""],
+                "tissue": ["Cerebral Cortex", ""],
+                "evidence_type": ["&beta; amyloid", ""],
+                "value": [1.0, 2.0],
+                "age": ["1 months", "2 months"],
+            }
+        )
+
+        # Transform data
+        output_df = prepare_immunohisto_data(input_df)
+
+        # Compare output with expected
+        pd.testing.assert_frame_equal(output_df, expected_df)
+
+    def test_prepare_immunohisto_data_with_none_values(self):
+        # Create test input DataFrame with None values
+        input_df = pd.DataFrame(
+            {
+                "sex": ["male", None],
+                "tissue": ["cerebral cortex", None],
+                "evidence_type": ["beta amyloid", None],
+                "value": [1.0, 2.0],
+                "age": [1, 2],
+            }
+        )
+
+        # Expected output DataFrame
+        expected_df = pd.DataFrame(
+            {
+                "sex": ["Male", ""],
+                "tissue": ["Cerebral Cortex", ""],
+                "evidence_type": ["&beta; amyloid", ""],
+                "value": [1.0, 2.0],
+                "age": ["1 months", "2 months"],
+            }
+        )
+
+        # Transform data
+        output_df = prepare_immunohisto_data(input_df)
+
+        # Compare output with expected
+        pd.testing.assert_frame_equal(output_df, expected_df)

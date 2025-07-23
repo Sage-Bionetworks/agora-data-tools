@@ -306,6 +306,21 @@ def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
     return result
 
 
+def convert_numpy_types(obj: Any) -> Any:
+    """Convert numpy types to Python native types for JSON serialization."""
+    if isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    return obj
+
+
 def convert_transformation_result_to_dataframe(
     result: Union[DataFrame, Dict[str, Any], List[Dict[str, Any]], Any],
     dataset_name: str,

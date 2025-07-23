@@ -6,8 +6,6 @@ import pytest
 
 from agoradatatools.etl.transform.model_details import (
     transform_model_details,
-    prepare_biomarker_pathology,
-    process_biomarker_pathology,
     process_genetic_info,
 )
 
@@ -185,221 +183,6 @@ class TestTransformModelDetails:
         # Expect transformation to raise the specified error
         with pytest.raises(error_type):
             transform_model_details(datasets=datasets)
-
-    def test_prepare_biomarker_pathology_should_pass(self):
-        # Create test input DataFrame
-        input_df = pd.DataFrame(
-            {
-                "sex": ["male", "female"],
-                "tissue": ["cerebral cortex", "hippocampus"],
-                "type": ["beta amyloid", "beta amyloid"],
-                "measurement": [1.0, 2.0],
-            }
-        )
-
-        # Expected output DataFrame
-        expected_df = pd.DataFrame(
-            {
-                "sex": ["Male", "Female"],
-                "tissue": ["Cerebral Cortex", "Hippocampus"],
-                "evidence_type": ["&beta; amyloid", "&beta; amyloid"],
-                "value": [1.0, 2.0],
-            }
-        )
-
-        # Transform data
-        output_df = prepare_biomarker_pathology(input_df)
-
-        # Compare output with expected
-        pd.testing.assert_frame_equal(output_df, expected_df)
-
-    def test_prepare_biomarker_pathology_with_empty_values(self):
-        # Create test input DataFrame with empty values
-        input_df = pd.DataFrame(
-            {
-                "sex": ["male", ""],
-                "tissue": ["cerebral cortex", ""],
-                "type": ["beta amyloid", ""],
-                "measurement": [1.0, 2.0],
-            }
-        )
-
-        # Expected output DataFrame
-        expected_df = pd.DataFrame(
-            {
-                "sex": ["Male", ""],
-                "tissue": ["Cerebral Cortex", ""],
-                "evidence_type": ["&beta; amyloid", ""],
-                "value": [1.0, 2.0],
-            }
-        )
-
-        # Transform data
-        output_df = prepare_biomarker_pathology(input_df)
-
-        # Compare output with expected
-        pd.testing.assert_frame_equal(output_df, expected_df)
-
-    def test_prepare_biomarker_pathology_with_none_values(self):
-        # Create test input DataFrame with None values
-        input_df = pd.DataFrame(
-            {
-                "sex": ["male", None],
-                "tissue": ["cerebral cortex", None],
-                "type": ["beta amyloid", None],
-                "measurement": [1.0, 2.0],
-            }
-        )
-
-        # Expected output DataFrame
-        expected_df = pd.DataFrame(
-            {
-                "sex": ["Male", ""],
-                "tissue": ["Cerebral Cortex", ""],
-                "evidence_type": ["&beta; amyloid", ""],
-                "value": [1.0, 2.0],
-            }
-        )
-
-        # Transform data
-        output_df = prepare_biomarker_pathology(input_df)
-
-        # Compare output with expected
-        pd.testing.assert_frame_equal(output_df, expected_df)
-
-    def test_process_biomarker_pathology_should_pass(self):
-        # Create test input DataFrame
-        input_df = pd.DataFrame(
-            {
-                "model": ["model1", "model1", "model2"],
-                "evidence_type": ["type1", "type1", "type2"],
-                "tissue": ["tissue1", "tissue1", "tissue2"],
-                "age_death": [12, 12, 24],
-                "units": ["unit1", "unit1", "unit2"],
-                "genotype": ["geno1", "geno2", "geno3"],
-                "sex": ["Male", "Female", "Male"],
-                "individual_id": ["ind1", "ind2", "ind3"],
-                "value": [1.0, 2.0, 3.0],
-            }
-        )
-
-        # Expected output for model1
-        expected_output = [
-            {
-                "model": "model1",
-                "evidence_type": "type1",
-                "tissue": "tissue1",
-                "age": "12 months",
-                "units": "unit1",
-                "data": [
-                    {
-                        "genotype": "geno1",
-                        "sex": "Male",
-                        "individual_id": "ind1",
-                        "value": 1.0,
-                    },
-                    {
-                        "genotype": "geno2",
-                        "sex": "Female",
-                        "individual_id": "ind2",
-                        "value": 2.0,
-                    },
-                ],
-            }
-        ]
-
-        # Transform data
-        output = process_biomarker_pathology(input_df, "model1")
-
-        # Compare output with expected
-        assert output == expected_output
-
-    def test_process_biomarker_pathology_with_empty_data(self):
-        # Create test input DataFrame with no data for the model
-        input_df = pd.DataFrame(
-            {
-                "model": ["model2"],
-                "evidence_type": ["type2"],
-                "tissue": ["tissue2"],
-                "age_death": [24],
-                "units": ["unit2"],
-                "genotype": ["geno3"],
-                "sex": ["Male"],
-                "individual_id": ["ind3"],
-                "value": [3.0],
-            }
-        )
-
-        # Expected output for model1 (should be empty list since no data for model1)
-        expected_output = []
-
-        # Transform data
-        output = process_biomarker_pathology(input_df, "model1")
-
-        # Compare output with expected
-        assert output == expected_output
-
-    def test_process_biomarker_pathology_with_multiple_groups(self):
-        # Create test input DataFrame with multiple groups
-        input_df = pd.DataFrame(
-            {
-                "model": ["model1", "model1", "model1"],
-                "evidence_type": ["type1", "type1", "type2"],
-                "tissue": ["tissue1", "tissue1", "tissue2"],
-                "age_death": [12, 12, 24],
-                "units": ["unit1", "unit1", "unit2"],
-                "genotype": ["geno1", "geno2", "geno3"],
-                "sex": ["Male", "Female", "Male"],
-                "individual_id": ["ind1", "ind2", "ind3"],
-                "value": [1.0, 2.0, 3.0],
-            }
-        )
-
-        # Expected output for model1
-        expected_output = [
-            {
-                "model": "model1",
-                "evidence_type": "type1",
-                "tissue": "tissue1",
-                "age": "12 months",
-                "units": "unit1",
-                "data": [
-                    {
-                        "genotype": "geno1",
-                        "sex": "Male",
-                        "individual_id": "ind1",
-                        "value": 1.0,
-                    },
-                    {
-                        "genotype": "geno2",
-                        "sex": "Female",
-                        "individual_id": "ind2",
-                        "value": 2.0,
-                    },
-                ],
-            },
-            {
-                "model": "model1",
-                "evidence_type": "type2",
-                "tissue": "tissue2",
-                "age": "24 months",
-                "units": "unit2",
-                "data": [
-                    {
-                        "genotype": "geno3",
-                        "sex": "Male",
-                        "individual_id": "ind3",
-                        "value": 3.0,
-                    }
-                ],
-            },
-        ]
-
-        # Transform data
-        output = process_biomarker_pathology(input_df, "model1")
-
-        # Compare output with expected
-        assert output == expected_output
 
     def test_process_genetic_info_should_pass(self):
         # Create test input DataFrames
@@ -665,10 +448,10 @@ class TestTransformModelDetails:
         biomarkers_df = pd.DataFrame(
             {
                 "model": pd.Series(dtype="object"),
-                "type": pd.Series(dtype="object"),
-                "measurement": pd.Series(dtype="object"),
+                "evidence_type": pd.Series(dtype="object"),
+                "value": pd.Series(dtype="object"),
                 "units": pd.Series(dtype="object"),
-                "age_death": pd.Series(dtype="object"),
+                "age": pd.Series(dtype="object"),
                 "tissue": pd.Series(dtype="object"),
                 "sex": pd.Series(dtype="object"),
                 "genotype": pd.Series(dtype="object"),
@@ -679,10 +462,10 @@ class TestTransformModelDetails:
         pathology_df = pd.DataFrame(
             {
                 "model": pd.Series(dtype="object"),
-                "type": pd.Series(dtype="object"),
-                "measurement": pd.Series(dtype="object"),
+                "evidence_type": pd.Series(dtype="object"),
+                "value": pd.Series(dtype="object"),
                 "units": pd.Series(dtype="object"),
-                "age_death": pd.Series(dtype="object"),
+                "age": pd.Series(dtype="object"),
                 "tissue": pd.Series(dtype="object"),
                 "sex": pd.Series(dtype="object"),
                 "genotype": pd.Series(dtype="object"),
