@@ -1,4 +1,4 @@
-individual_id,specimen_id,model,type,measurement,units,age_death,tissue,sex,genotype
+individual_id,specimen_id,model,evidence_type,value,units,age,tissue,sex,genotype
 mouse1,spec1,3xTg-AD,Soluble beta40,10.5,pg/ml,4,hippocampus,female,
 ,spec2,3xTg-AD,Soluble beta40,12.3,pg/ml,4,hippocampus,male,transgenic
 mouse3,spec3,3xTg-AD,Soluble beta42,15.7,pg/ml,4,hippocampus,,transgenic

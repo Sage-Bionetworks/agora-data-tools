@@ -14,11 +14,11 @@ datasets:
       destination: *dest
       custom_transformations: immunohisto_transform
       column_rename:
-        agedeath: age_death
+        agedeath: age
+        age_death: age
+        measurement: value
+        type: evidence_type
         model: name
-      gx_enabled: true
-      gx_nested_columns:
-        - points
 
   - pathology:
       files:
@@ -31,11 +31,11 @@ datasets:
       destination: *dest
       custom_transformations: immunohisto_transform
       column_rename:
-        agedeath: age_death
+        agedeath: age
+        age_death: age
+        measurement: value
+        type: evidence_type
         model: name
-      gx_enabled: true
-      gx_nested_columns:
-        - points
 
   - model_details:
       files:
@@ -66,6 +66,10 @@ datasets:
       column_rename:
         gene: modified_gene
         ensembl_id: human_ensembl_id
+        agedeath: age
+        age_death: age
+        measurement: value
+        type: evidence_type
         model: name
 
   - disease_correlation:
