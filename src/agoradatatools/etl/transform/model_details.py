@@ -6,11 +6,12 @@ import pandas as pd
 from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 
 
-REQUIRED_INPUT = required_input = {
+REQUIRED_INPUT = {
     "allele_info": [
-        "model",
+        "name",
         "modified_gene",
         "gene_ensembl_id",
         "allele",
@@ -18,7 +19,7 @@ REQUIRED_INPUT = required_input = {
         "mgi_allele_id",
     ],
     "model_info": [
-        "model",
+        "name",
         "matched_controls",
         "model_type",
         "contributing_group",
@@ -35,89 +36,28 @@ REQUIRED_INPUT = required_input = {
         "human_ensembl_id",
     ],
     "biomarkers": [
-        "model",
-        "type",
-        "measurement",
+        "name",
+        "evidence_type",
+        "value",
         "units",
-        "age_death",
+        "age",
         "tissue",
         "sex",
         "genotype",
         "individual_id",
     ],
     "pathology": [
-        "model",
-        "type",
-        "measurement",
+        "name",
+        "evidence_type",
+        "value",
         "units",
-        "age_death",
+        "age",
         "tissue",
         "sex",
         "genotype",
         "individual_id",
     ],
 }
-
-
-def prepare_biomarker_pathology(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    This function prepares the biomarker and pathology dataframes for the Model AD project.
-    It performs the following transformations:
-    1. Fill missing values with an empty string.
-    2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
-    3. Replace 'beta' with '&beta;' in the 'type' column.
-    4. Rename 'type' column to 'evidence_type' and 'measurement' to 'value'.
-    """
-    # Create a copy to avoid modifying the original
-    df = df.copy()
-
-    # Fill missing values and transform text fields
-    df = df.fillna("")
-    df["sex"] = df["sex"].str.title()
-    df["tissue"] = df["tissue"].str.title()
-
-    # Replace 'beta' with '&beta;' in biomarker types
-    df["type"] = df["type"].str.replace("beta", "&beta;")
-
-    # Rename columns
-    return df.rename(columns={"type": "evidence_type", "measurement": "value"})
-
-
-def process_biomarker_pathology(
-    df: pd.DataFrame, model_name: str
-) -> List[Dict[str, Any]]:
-    """
-    Processes the biomarkers and pathology data for a specific model.
-    Group by evidence_type, tissue, and age_death.
-
-    Args:
-        df (pd.DataFrame): The DataFrame containing the data.
-        model_name (str): The name of the model to process.
-    Returns:
-        list[dict]: A list of dictionaries containing the processed data.
-    """
-    # Filter for the specific model
-    model_df = df[df["model"] == model_name]
-
-    # Group by the required columns and aggregate the data
-    grouped = model_df.groupby(["evidence_type", "tissue", "age_death", "units"])
-
-    # Process each group into the required format
-    output = []
-    for (evidence_type, tissue, age, units), group in grouped:
-        df_entry = {
-            "model": model_name,
-            "evidence_type": evidence_type,
-            "tissue": tissue,
-            "age": f"{age} months",
-            "units": units,
-            "data": group[["genotype", "sex", "individual_id", "value"]].to_dict(
-                orient="records"
-            ),
-        }
-        output.append(df_entry)
-
-    return output
 
 
 def process_genetic_info(
@@ -228,8 +168,8 @@ def transform_model_details(
         )
 
     # Prepare biomarker and pathology dataframes
-    biomarkers_df = prepare_biomarker_pathology(datasets["biomarkers"])
-    pathology_df = prepare_biomarker_pathology(datasets["pathology"])
+    grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")
+    grouped_pathology = immunohisto_transform(datasets, dataset_name="pathology")
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
@@ -242,21 +182,21 @@ def transform_model_details(
     # Process each model
     result = []
     for _, model_row in model_info_df.iterrows():
-        model_name = model_row["model"]
+        model_name = model_row["name"]
 
         # Get genetic info for this model
         genetic_info = process_genetic_info(
             human_transgene_allele_map_df,
-            model_alleles=allele_info_df[allele_info_df["model"] == model_name],
+            model_alleles=allele_info_df[allele_info_df["name"] == model_name],
         )
 
         # Process the biomarkers and pathology datasets for this model
-        model_biomarkers = process_biomarker_pathology(biomarkers_df, model_name)
-        model_pathology = process_biomarker_pathology(pathology_df, model_name)
+        model_biomarkers = [x for x in grouped_biomarkers if x["name"] == model_name]
+        model_pathology = [x for x in grouped_pathology if x["name"] == model_name]
 
         # Build the complete model entry
         model_entry = {
-            "model": model_name,
+            "name": model_name,
             "matched_controls": model_row["matched_controls"],
             "model_type": model_row["model_type"],
             "contributing_group": model_row["contributing_group"],

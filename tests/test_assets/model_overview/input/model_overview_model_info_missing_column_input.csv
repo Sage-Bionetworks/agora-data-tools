@@ -1,4 +1,4 @@
-model,matched_controls,model_type,contributing_group,study_synid,rrid,jax_id,alzforum_id
+name,matched_controls,model_type,contributing_group,study_synid,rrid,jax_id,alzforum_id
 3xTg-AD,B6129,Familial AD,UCI,syn22964685,MMRRC_034830-JAX,004807,3xtg
 5xFAD (UCI),C57BL6J,Familial AD,UCI,syn16798076,MMRRC_034848-JAX,008730,5xfad-c57bl6
 APOE4,C57BL6J,Late Onset AD,IU/JAX/PITT,syn17095980,IMSR_JAX:027894,027894,apoe4-knock-jax 

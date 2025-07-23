@@ -1,6 +1,6 @@
 [
   {
-    "model": "3xTg-AD",
+    "name": "3xTg-AD",
     "matched_controls": [
       "B6129"
     ],
@@ -55,7 +55,7 @@
     "pathology": []
   },
   {
-    "model": "hTau",
+    "name": "hTau",
     "matched_controls": [
       "C57BL/6J"
     ],

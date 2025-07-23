@@ -1,68 +1,74 @@
 [
     {
-        "model": "ModelA",
-        "type": "TypeA",
-        "age_death": 1,
-        "tissue": "TissueA",
-        "units": "A",
-        "points": [
-            {
-                "genotype": "genotype1",
-                "measurement": 1,
-                "sex": "male"
-            },
-            {
-                "genotype": "genotype1",
-                "measurement": 2,
-                "sex": "male"
-            }
-        ]
+      "name": "ModelA",
+      "evidence_type": "TypeA",
+      "tissue": "Tissuea",
+      "age": "1 months",
+      "units": "A",
+      "data": [
+        {
+          "genotype": "genotype1",
+          "sex": "Male",
+          "individual_id": "individual_1",
+          "value": 1
+        },
+        {
+          "genotype": "genotype1",
+          "sex": "Male",
+          "individual_id": "individual_2",
+          "value": 2
+        }
+      ]
     },
     {
-        "model": "ModelA",
-        "type": "TypeA",
-        "age_death": 2,
-        "tissue": "TissueA",
-        "units": "A",
-        "points": [
-            {
-                "genotype": "genotype2",
-                "measurement": 3,
-                "sex": "male"
-            }
-        ]
+      "name": "ModelA",
+      "evidence_type": "TypeA",
+      "tissue": "Tissuea",
+      "age": "2 months",
+      "units": "A",
+      "data": [
+        {
+          "genotype": "genotype2",
+          "sex": "Male",
+          "individual_id": "individual_3",
+          "value": 3
+        }
+      ]
     },
     {
-        "model": "ModelA",
-        "type": "TypeB",
-        "age_death": 2,
-        "tissue": "TissueA",
-        "units": "A",
-        "points": [
-            {
-                "genotype": "genotype1",
-                "measurement": 4,
-                "sex": "male"
-            }
-        ]
+      "name": "ModelA",
+      "evidence_type": "TypeB",
+      "tissue": "Tissuea",
+      "age": "2 months",
+      "units": "A",
+      "data": [
+        {
+          "genotype": "genotype1",
+          "sex": "Male",
+          "individual_id": "individual_4",
+          "value": 4
+        }
+      ]
     },
     {
-        "model": "ModelA",
-        "type": "TypeB",
-        "age_death": 3,
-        "tissue": "TissueA",
-        "units": "A",
-        "points": [
-            {
-                "genotype": "genotype1",
-                "measurement": 5,
-                "sex": "male"
-            },
-            {
-                "genotype": "genotype2",
-                "measurement": 6,
-                "sex": "male"
-            }
-        ]
+      "name": "ModelA",
+      "evidence_type": "TypeB",
+      "tissue": "Tissuea",
+      "age": "3 months",
+      "units": "A",
+      "data": [
+        {
+          "genotype": "genotype1",
+          "sex": "Male",
+          "individual_id": "individual_5",
+          "value": 5
+        },
+        {
+          "genotype": "genotype2",
+          "sex": "Male",
+          "individual_id": "individual_6",
+          "value": 6
+        }
+      ]
     }
-]
+  ]

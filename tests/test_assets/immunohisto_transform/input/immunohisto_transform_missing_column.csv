@@ -1,3 +1,3 @@
-model,type,measurement,units,age_death,tissue,sex
-ModelA,TypeA,1,A,1,TissueA,male
-ModelA,TypeA,2,A,1,TissueA,male
+name,evidence_type,value,units,age,tissue,sex,individual_id,specimen_id
+ModelA,TypeA,1,A,1,TissueA,male,individual_1,specimen_1
+ModelA,TypeA,2,A,1,TissueA,male,individual_2,specimen_2

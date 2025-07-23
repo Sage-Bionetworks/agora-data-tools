@@ -25,12 +25,12 @@ REQUIRED_INPUT = {
         "adjusted_p_value",
     ],
     "model_info": [
-        "model",
+        "name",
         "matched_controls",
         "model_type",
     ],
     "allele_info": [
-        "model",
+        "name",
         "gene",
     ],
 }
@@ -73,14 +73,14 @@ def input_validation_model_info(df: pd.DataFrame) -> None:
     Validates that each model has consistent matched_controls and model_type values.
 
     Args:
-        df (pd.DataFrame): DataFrame containing model information with columns 'model',
+        df (pd.DataFrame): DataFrame containing model information with columns 'name',
                           'matched_controls', and 'model_type'
 
     Raises:
         ValueError: If any model has inconsistent matched_controls or model_type values
     """
     # Group by model and check for consistency
-    for model, group in df.groupby("model"):
+    for model, group in df.groupby("name"):
         # Check matched_controls consistency
         unique_matched_controls = group["matched_controls"].unique()
         if len(unique_matched_controls) > 1:
@@ -133,7 +133,7 @@ def process_group(
     group: pd.DataFrame,
     model_info: Dict[str, Any],
     allele_info: Dict[str, Any],
-    model: str,
+    name: str,
     cluster: str,
     age: str,
     sex: str,
@@ -145,7 +145,7 @@ def process_group(
         group (pd.DataFrame): The group of rows to process
         model_info (Dict[str, Any]): Information about the model
         allele_info (Dict[str, Any]): Information about the alleles
-        model (str): The mouse model name
+        name (str): The mouse model name
         cluster (str): The cluster name
         age (str): The age group
         sex (str): The sex
@@ -161,7 +161,7 @@ def process_group(
     results = [create_result_dict(row) for _, row in group.iterrows()]
 
     return {
-        "model": model,
+        "name": name,
         "matched_control": matched_control,
         "model_type": model_info.get("model_type", ""),
         "modified_genes": allele_info.get("gene", ""),
@@ -199,7 +199,7 @@ def transform_disease_correlation(
         List[Dict[str, Any]]: A list of dictionaries containing the transformed data with the
             following structure:
             {
-                "model": str,
+                "name": str,
                 "matched_control": str or list,
                 "model_type": str,
                 "cluster": str,
@@ -225,25 +225,25 @@ def transform_disease_correlation(
         df=model_info_df.applymap(
             lambda x: x.split(", ") if isinstance(x, str) and ", " in x else x
         ),
-        group_by_col="model",
+        group_by_col="name",
     )
 
     model_allele_lookup = create_lookup(
-        df=datasets["allele_info"].fillna(""), group_by_col="model"
+        df=datasets["allele_info"].fillna(""), group_by_col="name"
     )
 
     # Group by all static fields and nest results by module
     output = []
     group_cols = ["mouse_model", "cluster", "age", "sex"]
-    for (model, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
-        model_info = model_info_lookup.get(model, {})
-        allele_info = model_allele_lookup.get(model, {})
+    for (name, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
+        model_info = model_info_lookup.get(name, {})
+        allele_info = model_allele_lookup.get(name, {})
 
         processed_group = process_group(
             group=group,
             model_info=model_info,
             allele_info=allele_info,
-            model=model,
+            name=name,
             cluster=cluster,
             age=age,
             sex=sex,
