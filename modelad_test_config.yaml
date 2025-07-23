@@ -102,8 +102,6 @@ datasets:
       provenance:
         - syn66527739
       destination: *dest
-      column_rename:
-        model: name
 
   - model_overview:
       files:
