@@ -15,6 +15,7 @@ datasets:
       custom_transformations: immunohisto_transform
       column_rename:
         agedeath: age_death
+        model: name
       gx_enabled: true
       gx_nested_columns:
         - points
@@ -31,6 +32,7 @@ datasets:
       custom_transformations: immunohisto_transform
       column_rename:
         agedeath: age_death
+        model: name
       gx_enabled: true
       gx_nested_columns:
         - points
@@ -64,6 +66,7 @@ datasets:
       column_rename:
         gene: modified_gene
         ensembl_id: human_ensembl_id
+        model: name
 
   - disease_correlation:
       files:
@@ -83,6 +86,8 @@ datasets:
         - syn64618791
       destination: *dest
       custom_transformations: transform_disease_correlation
+      column_rename:
+        model: name
 
   - ui_config:
       files:
@@ -93,6 +98,8 @@ datasets:
       provenance:
         - syn66527739
       destination: *dest
+      column_rename:
+        model: name
 
   - model_overview:
       files:
@@ -119,3 +126,4 @@ datasets:
       column_rename:
         gene: modified_gene
         ensembl_id: human_ensembl_id
+        model: name
