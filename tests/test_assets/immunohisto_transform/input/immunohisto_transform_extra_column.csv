@@ -1,3 +1,3 @@
-model,evidence_type,value,units,age,tissue,sex,genotype,individual_id,extra
-ModelA,TypeA,1,A,1,TissueA,male,genotype1,individual_1,extra1
-ModelA,TypeA,2,A,1,TissueA,male,genotype1,individual_2,extra1
+model,evidence_type,value,units,age,tissue,sex,genotype,individual_id,specimen_id,extra
+ModelA,TypeA,1,A,1,TissueA,male,genotype1,individual_1,specimen_1,extra1
+ModelA,TypeA,2,A,1,TissueA,male,genotype1,individual_2,specimen_2,extra1

@@ -1,5 +1,5 @@
-model,evidence_type,value,units,age,tissue,sex,genotype,individual_id
-ModelA,TypeA,1,A,1,TissueA,male,genotype1,individual_1
-ModelA,TypeA,1,A,1,TissueA,male,genotype1,individual_1
-ModelA,TypeA,1,A,1,TissueA,male,genotype2,individual_2
-ModelA,TypeA,1,A,1,TissueA,male,genotype2,individual_2
+model,evidence_type,value,units,age,tissue,sex,genotype,individual_id,specimen_id
+ModelA,TypeA,1,A,1,TissueA,male,genotype1,individual_1,specimen_1
+ModelA,TypeA,1,A,1,TissueA,male,genotype1,individual_1,specimen_1
+ModelA,TypeA,1,A,1,TissueA,male,genotype2,individual_2,specimen_2
+ModelA,TypeA,1,A,1,TissueA,male,genotype2,individual_2,specimen_2
