@@ -147,7 +147,7 @@ def transform_model_overview(
             else None
         )
         row["center"] = (
-            {"link_name": row["contributing_group"]}
+            {"link_text": row["contributing_group"]}
             if row["contributing_group"]
             else None
         )

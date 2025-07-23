@@ -11,28 +11,125 @@ ADDING NEW PAGES
 1. Update the `pages` vector to include the title of the new CT page
 2. Define a vector of menu options for each dropdown menu on the new page
 3. Define a vector of values for each static column on the new page
-4. Define a vector of values shared by the dynamic columns on the new page (typically all but `name` and possibly `tooltip`)
-See Disease Correlation for an example that adds column-specific tooltips to the dynamic columns
-5. Define a vector of `name` values for each dynamic column on the new page
-See Gene Expression for an example that uses a multiple vectors of names to generate unique sets of dynamic columns based on dropdown selection
-6. Create a `build_<page>_objects` function that handles the required input vectors
-7. Update the `Combine and Output` section to invoke the new build function
-
-ADDING NEW DROPDOWN OPTIONS TO EXISTING MENUS
-1. Add the new menu option to the appropriate vector of menu options; each page has a vector of menu options for each dropdown on that page.
-2. That's it, unless there is some custom logic related to that new menu option.
+4. Define a vector of values shared by the dynamic columns on the new page (typically all but `name` and possibly `tooltip`); see Disease Correlation for an example that adds column-type-specific tooltips to the dynamic columns
+5. Define a vector of `name` values for each dynamic column on the new page; see Gene Expression for an example that uses a multiple vectors of names to generate unique sets of dynamic columns based on dropdown selection
+6. Define a vector of filterset display names and filterset display values
+7. Create a `build_<page>_objects` function that generates the required columns and filters data
+8. Update the `Combine and Output` section to invoke the new build function
 
 
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- jsonlite
+- tidyverse
 ```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "https://cloud.r-project.org"))
+}
+if (!require("jsonlite", quietly = TRUE)) {
+  install.packages("jsonlite")
+}
+if (!require("tidyverse", quietly = TRUE)) {
+  install.packages("tidyverse")
+}
+
+
+library(synapser)
 library(jsonlite)
+library(tidyverse)
+```
 
-# ------------------------------
-# Shared: Static column definition helper
-# ------------------------------
-static_colnames <- c("name", "data_type", "tooltip", "sort_tooltip")
+## Synapse helper functions
+```{r}
+# MODEL-AD 2.0 harmonized source file directory
+# ADP Backend > Files > 2.ConsortiumStudies > MODEL-AD Data Explorer > Model AD Explorer 2.0 Source Files
+synapse_folder <- 'syn51498054'
 
+# Vector to store all downloaded synIds for Synapse provenance (populated via download_file function)
+data_sources <- character()
+
+# Download a file from Synapse by synId and read it into a dataframe
+download_file <- function(synId, df_name, type) {
+
+  synLogin()
+
+  # Capture all downloaded synIds for provenance
+  data_sources <<- c(data_sources, synId)
+
+  input_dir <- file.path("./", "input")
+  id_parts <- strsplit(synId, '.', fixed = TRUE)
+  id_value <- id_parts[[1]][1]
+  version_value <- id_parts[[1]][2]
+
+  if (is.na(version_value)) {
+    version_value <- NULL
+  }
+
+  cat(paste0("Downloading ", synId, "..."))
+
+  file <- synGet(id_value, version = version_value, downloadLocation = input_dir, ifcollision='overwrite.local')
+  path <- file$path
+
+  cat("\nDownload on:  ", date())
+  cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
+  cat("\npath: ", file$path, "\n")
+
+  if (type == 'json') { data <- fromJSON(path) }
+  if (type == 'csv' ) { data <- read.csv(path) }
+
+  as.data.frame(data)
+}
+
+```
+
+
+## Download source data from Synapse
+Note that each file's synId and version is added to the data_sources vector via the download_file function.
+The populated data_sources vector is used to populate Synapse provenance when the generated file is uploaded.
+```{r}
+# TODO pin source file versions prior to finalizing MVP data release
+
+# model_names, model_types, model_centers
+model_info <- download_file('syn61378590', type = "csv")
+
+# modified_genes
+model_allele_info <- download_file('syn64618791', type = "csv")
+human_transgene_allele_map <- download_file('syn64846805', type = "csv")
+
+# biodomains
+biodomains_source <- download_file('syn66351272', type = 'csv')
+
+model_allele_info
+human_transgene_allele_map
+biodomains_source
+```
+
+## Extract Modified Gene filter values
+```{r}
+# Include all human genes in the transgene map
+human_genes <- unique(human_transgene_allele_map$gene_symbol)
+
+# Include mouse genes only when not overridden by the transgene map
+join <- model_allele_info %>%
+  left_join(human_transgene_allele_map, by = join_by('mgi_allele_id')) %>% # not pretty, but it works here
+  select(model, gene, gene_symbol)
+
+mouse_genes <- unique(join[is.na(join$gene_symbol),]$gene)
+```
+
+## Create model_overview.json
+```{r}
+# ----------------
+# Shared functions
+# ----------------
+
+# Generates a CT column definition with base fields
+# column_name: the name of the CT column
+# column_info: a vector of the column's type, tooltip, and sort_tooltip values
 make_column <- function(name, metadata, override_tooltip = NULL) {
-  names(metadata) <- static_colnames[-1]
+  names(metadata) <- c("data_type", "tooltip", "sort_tooltip")
   tooltip_value <- if (!is.null(override_tooltip)) override_tooltip else metadata["tooltip"]
 
   list(
@@ -43,31 +140,96 @@ make_column <- function(name, metadata, override_tooltip = NULL) {
   )
 }
 
+# Generates a CT filterset definition
+# filterset_name: The display name of the filterset
+# filter_on_field: the CT data field the filterset targets
+# filter_values: The filter values
+make_filter <- function(filterset_name, filter_on_field, filter_values) {
+    list(
+      name = filterset_name,
+      field = filter_on_field,
+      values = filter_values
+  )
+}
+
+# --------------------
+# Shared filter values
+# --------------------
+
+# Filter values, ordered alphabetically
+model_names <- sort(model_info$model)
+model_types <- sort(unique(model_info$model_type))
+model_centers <- sort(unique(model_info$contributing_group))
+modified_genes <- sort(c(mouse_genes, human_genes))
+biodomains <- sort(unique(biodomains_source$Biodomain))
+sexes <-  c("Female", "Male")
+
 # ------------------------------
 # Gene Expression
 # ------------------------------
+# Page dropdowns
 ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
 ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
 ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
+
+# Static and dynamic column info
+# - static columns in every view of the page
+# - dynamic columns vary depending on dropdown menu selection
 ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
 ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
 ge_dynamic_names_jax <- c("4 months", "6 months", "8 months", "12 months", "24 months")
 ge_dynamic_names_uci <- c("2 months","4 months", "8 months", "12 months", "18 months", "22 months")
 
+# Filterset display names and target data fields
+ge_filter_definitions <- data.frame(
+  name = c('Biological Domain', 'Model Type', 'Mouse Model'),
+  field = c('biodomains', 'model_type', 'name'),
+  stringsAsFactors = FALSE
+)
+
+# Filterset filter value lists
+ge_filter_values <- list(
+  biodomains,
+  model_types,
+  model_names
+)
+
+# Builds Gene Expression objects based on the specified page, column, and filter info
 build_ge_objects <- function() {
+
+  # Generate filterdefs
+  filters <- Map(function(name, field, values) {
+    list(
+      name = name,
+      field = field,
+      values = values
+    )
+  }, ge_filter_definitions$name, ge_filter_definitions$field, ge_filter_values)
+
+  # Generate every possible combination of dropdown options
   combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
 
+  # Generate a JSON object for each combo
   lapply(seq_len(nrow(combos)), function(i) {
     row <- combos[i, ]
+
+    # Use the Tissue value to select the appropriate list of dynamic column names
     dynamic_names <- if (row$menu2 == "Tissue - Hemibrain") ge_dynamic_names_jax else ge_dynamic_names_uci
+
+    # Generate coldefs for static & dynamic columns
     dynamic_columns <- lapply(dynamic_names, function(name) make_column(name, ge_dynamic_row))
     static_column <- make_column(ge_static_row[1], ge_static_row[-1])
     columns <- c(list(static_column), dynamic_columns)
 
+    # Remove names to ensure JSON is an array, not object
+    names(filters) <- NULL
+
+    # Populate the object with page, dropdowns, coldefs, and filterdefs
     list(
       page = "Gene Expression",
       dropdowns = c(row$menu1, row$menu2, row$menu3),
-      columns = columns
+      columns = columns,
+      filters = filters
     )
   })
 }
@@ -75,6 +237,7 @@ build_ge_objects <- function() {
 # ------------------------------
 # Disease Correlation
 # ------------------------------
+# Page dropdowns
 dc_menu1 <- c("CONSENSUS NETWORK MODULES")
 dc_menu2 <- c(
   "Consensus Cluster A - ECM Organization",
@@ -83,6 +246,10 @@ dc_menu2 <- c(
   "Consensus Cluster D - Cell Cycle, NMD",
   "Consensus Cluster E - Organelle Biogenesis, Cellular Stress Response"
 )
+
+# Static and dynamic column info
+# - static columns in every view of the page
+# - dynamic columns vary depending on dropdown menu selection
 dc_static_row1 <- c("Age", "text", "", "Sort by Age value")
 dc_static_row2 <- c("Sex", "text", "", "Sort by Sex value")
 dc_dynamic_row <- c("heat_map", "", "Sort by correlation value")
@@ -93,6 +260,9 @@ dc_dynamic_names_C <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
 dc_dynamic_names_D <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
 dc_dynamic_names_E <- c("CBE", "DLPFC", "PHG", "STG", "TCX", "FP")
 
+dc_ages <- c('4 months', '8 months', '12 months')
+
+# Brain region expansion values for tooltips
 dc_tooltip_map <- c(
   CBE = "Cerebellum",
   DLPFC = "Dorsolateral Prefrontal Cortex",
@@ -103,6 +273,8 @@ dc_tooltip_map <- c(
   TCX = "Temporal Cortex"
 )
 
+# Returns a list of dynamic colnames
+# * cluster_label: The Consensus Cluster dropdown option to get dynamic colnames for
 get_dc_dynamic_names <- function(cluster_label) {
   if (grepl("Cluster A", cluster_label)) return(dc_dynamic_names_A)
   if (grepl("Cluster B", cluster_label)) return(dc_dynamic_names_B)
@@ -112,10 +284,44 @@ get_dc_dynamic_names <- function(cluster_label) {
   character(0)
 }
 
+# Filterset display names and target data fields
+dc_filter_definitions <- data.frame(
+  name = c('Age', 'Model Type', 'Modified Gene', 'Mouse Model', 'Sex'),
+  field = c( 'age', 'model_type', 'modified_genes', 'name', 'sex'),
+  stringsAsFactors = FALSE
+)
+
+# Filterset filter value lists
+dc_filter_values <- list(
+  dc_ages,
+  model_types,
+  modified_genes,
+  model_names,
+  sexes
+)
+
+# Builds Disease Correlation objects based on the specified page, column, and filter info
 build_dc_objects <- function() {
+
+  # Generate filterdefs
+  filters <- Map(function(name, field, values) {
+    list(
+      name = name,
+      field = field,
+      values = values
+    )
+  }, dc_filter_definitions$name, dc_filter_definitions$field, dc_filter_values)
+
+  # Remove names to ensure JSON is an array, not an object
+  names(filters) <- NULL
+
+  # Generate objects for every possible combination of dropdown options
   combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
 
+  # Generate a JSON object for each combo
   lapply(seq_len(nrow(combos)), function(i) {
+
+    # Generate coldefs for static & dynamic columns
     row <- combos[i, ]
     dynamic_names <- get_dc_dynamic_names(row$menu2)
     dynamic_columns <- lapply(dynamic_names, function(name) {
@@ -127,10 +333,12 @@ build_dc_objects <- function() {
     static2 <- make_column(dc_static_row2[1], dc_static_row2[-1])
     columns <- c(list(static1, static2), dynamic_columns)
 
+    # Populate the object with page, dropdowns, coldefs, and filterdefs
     list(
       page = "Disease Correlation",
       dropdowns = c(row$menu1, row$menu2),
-      columns = columns
+      columns = columns,
+      filters = filters
     )
   })
 }
@@ -138,6 +346,7 @@ build_dc_objects <- function() {
 # ------------------------------
 # Model Overview (single static object, no menus)
 # ------------------------------
+# Static column info
 mo_static_definitions <- data.frame(
   name = c(
     "Model Type", "Matched Control", "Gene Expression", "Disease Correlation",
@@ -151,7 +360,43 @@ mo_static_definitions <- data.frame(
   stringsAsFactors = FALSE
 )
 
+# Filterset display names and target data fields
+mo_filter_definitions <- data.frame(
+  name = c(
+    'Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'
+    ),
+  field = c(
+    'available_data', 'center', 'model_type', 'modified_genes'
+  ),
+  stringsAsFactors = FALSE
+)
+
+# Filterset filter value lists
+mo_result_types <- c('Biomarkers', 'Disease Correlation', 'Gene Expression', 'Pathology')
+
+mo_filter_values <- list(
+  mo_result_types,
+  model_centers,
+  model_types,
+  modified_genes
+)
+
+# Builds the Model Overview object based on the specified page, column, and filter info
 build_mo_object <- function() {
+
+  # Generate filterdefs
+  filters <- Map(function(name, field, values) {
+    list(
+      name = name,
+      field = field,
+      values = values
+    )
+  }, mo_filter_definitions$name, mo_filter_definitions$field, mo_filter_values)
+
+  # Remove names to ensure JSON is an array, not an object
+  names(filters) <- NULL
+
+   # Add coldefs
   columns <- apply(mo_static_definitions, 1, function(row) {
     name <- row["name"]
    type <- row["type"]
@@ -159,26 +404,33 @@ build_mo_object <- function() {
     metadata <- c(type, "", paste("Sort by", name, "value"))
     column <- make_column(name, metadata)
 
+    # For link type columns, handle link_text and link_url fields
+    # - Define values here if they apply to every CT row in the column
+    # - Define values that vary by CT row in the data payload
     if (column$type %in% c("link_internal", "link_external")) {
       if (name %in% c("Gene Expression", "Disease Correlation", "Pathology", "Biomarkers")) {
         column$link_text <- "Results"
+        # Omit row-specific link_url
       } else if (name == "Study Data") {
         column$link_text <- "View Data"
+        # Omit row-specific link_url
       } else if (name == "JAX Strain") {
         column$link_text <- "View Strain"
+        # Omit row-specific link_url
       } else if (name == "Center") {
-        # Omit link_text, add link_url instead
+        # Omit row-specific link_text
         column$link_url <- "https://www.model-ad.org/"
       }
     }
-
     column
   })
 
+  # Populate the object with page, dropdowns, coldefs, and filterdefs
   list(
     page = "Model Overview",
     dropdowns = list(),
-    columns = columns
+    columns = columns,
+    filters = filters
   )
 }
 
@@ -192,8 +444,30 @@ json_list <- c(
 )
 
 json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
-cat(json_output)
+# cat(json_output)
 
-# Optionally write to file:
-write(json_output, "./out/ui_config.json")
+# Optionally write to file for debugging
+write(json_output, "./output/ui_config.json")
+
+```
+
+## Write json file and upload to synapse
+```{r}
+# write csv file
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+write(json_output, file.path(output_dir, "ui_config.json"))
+
+# upload to synapse
+syn_file <- File(file.path(output_dir, "ui_config.json"),
+                 parent = synapse_folder)
+
+res <- synStore(syn_file, forceVersion = FALSE,
+                used = data_sources,
+                executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-190_Create_ui_info_source_file.rmd")
+
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
 ```

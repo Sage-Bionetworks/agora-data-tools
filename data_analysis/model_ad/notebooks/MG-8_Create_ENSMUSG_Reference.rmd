@@ -15,7 +15,7 @@ Required packages (will automatically be installed if necessary):
 ```{r}
 if (!require("synapser", quietly = TRUE)) {
   install.packages("synapser", repos = c("http://ran.synapse.org",
-                                         "http://cran.fhcrc.org"))
+                                         "https://cloud.r-project.org"))
 }
 
 if (!require("BiocManager", quietly = TRUE)) {
