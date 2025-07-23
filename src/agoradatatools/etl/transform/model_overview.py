@@ -47,6 +47,31 @@ REQUIRED_INPUT = {
 }
 
 
+def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
+    """
+    Get a list of available data for a given model.
+    This is used to populate the "Available Data" section of the model overview page.
+
+    Args:
+        row (Dict[str, Any]): A dictionary containing the model information.
+
+    Returns:
+        List[str]: A list of available data for the model.
+    """
+    available_data = []
+
+    if "gene_expression" in row and row["gene_expression"]:
+        available_data.append("Gene Expression")
+    if "disease_correlation" in row and row["disease_correlation"]:
+        available_data.append("Disease Correlation")
+    if "pathology" in row and row["pathology"]:
+        available_data.append("Pathology")
+    if "biomarkers" in row and row["biomarkers"]:
+        available_data.append("Biomarkers")
+
+    return available_data
+
+
 def transform_model_overview(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -113,6 +138,8 @@ def transform_model_overview(
             gene for gene in modified_genes if gene is not None and str(gene) != "nan"
         ]
 
+        row["available_data"] = get_list_of_available_data(row)
+
         # Build the links
         row["gene_expression"] = (
             {"link_url": f"comparison/expression?model={row['name']}"}
@@ -165,6 +192,7 @@ def transform_model_overview(
             "jax_strain",
             "center",
             "modified_genes",
+            "available_data"
         ]
 
         transformed_records.append({k: row[k] for k in keep_columns if k in row})

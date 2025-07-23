@@ -43,6 +43,10 @@
     "center": {
       "link_text": "UCI"
     },
-    "modified_genes": []
+    "modified_genes": [],
+    "available_data": [
+      "Gene Expression",
+      "Disease Correlation"
+    ]
   }
 ]

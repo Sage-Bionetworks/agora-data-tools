@@ -473,3 +473,61 @@ class TestTransformModelOverview:
 
         # Compare output with expected
         assert output_data == expected_output
+
+        # INSERT_YOUR_CODE
+
+class TestGetListOfAvailableData:
+    def test_all_data_present(self):
+        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+
+        model = {
+            "gene_expression": True,
+            "disease_correlation": True,
+            "pathology": True,
+            "biomarkers": True,
+        }
+        result = get_list_of_available_data(model)
+        assert set(result) == {"Gene Expression", "Disease Correlation", "Pathology", "Biomarkers"}
+
+    def test_some_data_missing(self):
+        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+
+        model = {
+            "gene_expression": True,
+            "disease_correlation": None,
+            "pathology": True,
+            "biomarkers": None,
+        }
+        result = get_list_of_available_data(model)
+        assert set(result) == {"Gene Expression", "Pathology"}
+
+    def test_all_data_missing(self):
+        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+
+        model = {
+            "gene_expression": None,
+            "disease_correlation": None,
+            "pathology": None,
+            "biomarkers": None,
+        }
+        result = get_list_of_available_data(model)
+        assert result == []
+
+    def test_empty_model(self):
+        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+
+        model = {}
+        result = get_list_of_available_data(model)
+        assert result == []
+
+    def test_partial_keys(self):
+        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+
+        model = {
+            "gene_expression": True,
+            # disease_correlation missing
+            "pathology": None,
+            # biomarkers missing
+        }
+        result = get_list_of_available_data(model)
+        assert result == ["Gene Expression"]

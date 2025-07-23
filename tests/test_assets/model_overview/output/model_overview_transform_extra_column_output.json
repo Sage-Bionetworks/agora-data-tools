@@ -26,6 +26,11 @@
       "App",
       "Mapt",
       "Psen1"
+    ],
+    "available_data": [
+      "Gene Expression",
+      "Pathology",
+      "Biomarkers"
     ]
   },
   {
@@ -51,7 +56,12 @@
     "center": {
       "link_text": "UCI"
     },
-    "modified_genes": []
+    "modified_genes": [],
+    "available_data": [
+      "Gene Expression",
+      "Pathology",
+      "Biomarkers"
+    ]
   },
   {
     "name": "APOE4",
@@ -74,6 +84,10 @@
     "center": {
       "link_text": "IU/JAX/PITT"
     },
-    "modified_genes": []
+    "modified_genes": [],
+    "available_data": [
+      "Gene Expression",
+      "Disease Correlation"
+    ]
   }
 ]
