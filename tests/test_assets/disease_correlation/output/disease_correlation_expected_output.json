@@ -1,6 +1,6 @@
 [
   {
-    "model": "5xFAD",
+    "name": "5xFAD",
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
@@ -24,7 +24,7 @@
     ]
   },
   {
-    "model": "5xFAD",
+    "name": "5xFAD",
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
@@ -48,7 +48,7 @@
     ]
   },
   {
-    "model": "5xFAD",
+    "name": "5xFAD",
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
@@ -72,7 +72,7 @@
     ]
   },
   {
-    "model": "5xFAD",
+    "name": "5xFAD",
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
@@ -96,7 +96,7 @@
     ]
   },
   {
-    "model": "APOE4",
+    "name": "APOE4",
     "matched_control": "C57BL6J",
     "model_type": "Late Onset AD",
     "modified_genes": "Apoe",
@@ -117,7 +117,7 @@
     ]
   },
   {
-    "model": "APOE4",
+    "name": "APOE4",
     "matched_control": "C57BL6J",
     "model_type": "Late Onset AD",
     "modified_genes": "Apoe",
@@ -138,7 +138,7 @@
     ]
   },
   {
-    "model": "APOE4",
+    "name": "APOE4",
     "matched_control": "C57BL6J",
     "model_type": "Late Onset AD",
     "modified_genes": "Apoe",
