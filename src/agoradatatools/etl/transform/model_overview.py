@@ -51,6 +51,7 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     """
     Get a list of available data for a given model.
     This is used to populate the "Available Data" section of the model overview page.
+    If the value is a string (link_url), it is considered available.
 
     Args:
         row (Dict[str, Any]): A dictionary containing the model information.
@@ -60,15 +61,14 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     """
     available_data = []
 
-    # Check if links are present (indicating data is available)
-    if "gene_expression" in row and row["gene_expression"] is not None:
-        available_data.append("Gene Expression")
-    if "disease_correlation" in row and row["disease_correlation"] is not None:
-        available_data.append("Disease Correlation")
-    if "pathology" in row and row["pathology"] is not None:
-        available_data.append("Pathology")
-    if "biomarkers" in row and row["biomarkers"] is not None:
-        available_data.append("Biomarkers")
+    fields = {
+        "gene_expression": "Gene Expression",
+        "disease_correlation": "Disease Correlation",
+        "pathology": "Pathology",
+        "biomarkers": "Biomarkers"
+    }
+
+    available_data = [label for key, label in fields.items() if row.get(key) is not None]
 
     return available_data
 
