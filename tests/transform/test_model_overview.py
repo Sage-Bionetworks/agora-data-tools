@@ -488,10 +488,10 @@ class TestGetListOfAvailableData:
         )
 
         model = {
-            "gene_expression": True,
-            "disease_correlation": True,
-            "pathology": True,
-            "biomarkers": True,
+            "gene_expression": {"link_url": "url1"},
+            "disease_correlation": {"link_url": "url2"},
+            "pathology": {"link_url": "url3"},
+            "biomarkers": {"link_url": "url4"},
         }
         result = get_list_of_available_data(model)
         assert set(result) == {
@@ -507,9 +507,9 @@ class TestGetListOfAvailableData:
         )
 
         model = {
-            "gene_expression": True,
+            "gene_expression": {"link_url": "url1"},
             "disease_correlation": None,
-            "pathology": True,
+            "pathology": {"link_url": "url3"},
             "biomarkers": None,
         }
         result = get_list_of_available_data(model)
@@ -544,7 +544,7 @@ class TestGetListOfAvailableData:
         )
 
         model = {
-            "gene_expression": True,
+            "gene_expression": {"link_url": "url1"},
             # disease_correlation missing
             "pathology": None,
             # biomarkers missing
