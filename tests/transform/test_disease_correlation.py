@@ -97,12 +97,12 @@ class TestTransformDiseaseCorrelation:
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "model": "LOAD1",
+                            "name": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                         {
-                            "model": "LOAD2",
+                            "name": "LOAD2",
                             "matched_controls": "C57BL6J",
                             "model_type": "Early Onset AD",
                         },
@@ -110,9 +110,9 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"model": "LOAD1", "gene": "APOE4"},
-                        {"model": "LOAD1", "gene": "TREM2"},
-                        {"model": "LOAD2", "gene": "APP"},
+                        {"name": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "TREM2"},
+                        {"name": "LOAD2", "gene": "APP"},
                     ]
                 ),
             },
@@ -120,7 +120,7 @@ class TestTransformDiseaseCorrelation:
                 isinstance(output, list)
                 and len(output) == 2
                 and any(
-                    entry["model"] == "LOAD1"
+                    entry["name"] == "LOAD1"
                     and entry["matched_control"] == "C57BL6J"
                     and entry["model_type"] == "Late Onset AD"
                     and entry["modified_genes"] == ["APOE4", "TREM2"]
@@ -164,7 +164,7 @@ class TestTransformDiseaseCorrelation:
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "model": "LOAD1",
+                            "name": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
@@ -172,7 +172,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"model": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4"},
                     ]
                 ),
             },
@@ -201,7 +201,7 @@ class TestTransformDiseaseCorrelation:
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "model": "LOAD1",
+                            "name": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
@@ -209,8 +209,8 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"model": "LOAD1", "gene": "APOE4"},
-                        {"model": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4"},
                     ]
                 ),
             },
@@ -249,7 +249,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"model": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4"},
                     ]
                 ),
             },
@@ -275,12 +275,12 @@ class TestTransformDiseaseCorrelation:
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "model": "LOAD1",
+                            "name": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                         {
-                            "model": "LOAD1",
+                            "name": "LOAD1",
                             "matched_controls": "CTRL2",
                             "model_type": "Wrong",
                         },
@@ -288,7 +288,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"model": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4"},
                     ]
                 ),
             },
@@ -316,7 +316,7 @@ class TestTransformDiseaseCorrelation:
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "model": "LOAD1",
+                            "name": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
@@ -324,7 +324,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"model": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4"},
                     ]
                 ),
             },
@@ -440,14 +440,14 @@ class TestProcessGroup:
             group=group,
             model_info=model_info,
             allele_info=allele_info,
-            model="LOAD1",
+            name="LOAD1",
             cluster="Cluster A",
             age="4 months",
             sex="Female",
         )
 
         assert result == {
-            "model": "LOAD1",
+            "name": "LOAD1",
             "matched_control": "C57BL6J",
             "model_type": "Late Onset AD",
             "modified_genes": ["APOE4", "TREM2"],
@@ -471,14 +471,14 @@ class TestProcessGroup:
             group=group,
             model_info={},
             allele_info={},
-            model="LOAD1",
+            name="LOAD1",
             cluster="Cluster A",
             age="4 months",
             sex="Female",
         )
 
         assert result == {
-            "model": "LOAD1",
+            "name": "LOAD1",
             "matched_control": "",
             "model_type": "",
             "modified_genes": "",
@@ -504,7 +504,7 @@ class TestProcessGroup:
             group=group,
             model_info=model_info,
             allele_info={},
-            model="LOAD1",
+            name="LOAD1",
             cluster="Cluster A",
             age="4 months",
             sex="Female",
@@ -521,12 +521,12 @@ class TestInputValidationModelInfo:
         df = pd.DataFrame(
             [
                 {
-                    "model": "LOAD1",
+                    "name": "LOAD1",
                     "matched_controls": "C57BL6J",
                     "model_type": "Late Onset AD",
                 },
                 {
-                    "model": "LOAD2",
+                    "name": "LOAD2",
                     "matched_controls": "C57BL6J",
                     "model_type": "Early Onset AD",
                 },
@@ -540,12 +540,12 @@ class TestInputValidationModelInfo:
         df = pd.DataFrame(
             [
                 {
-                    "model": "LOAD1",
+                    "name": "LOAD1",
                     "matched_controls": "C57BL6J",
                     "model_type": "Late Onset AD",
                 },
                 {
-                    "model": "LOAD1",
+                    "name": "LOAD1",
                     "matched_controls": "CTRL2",
                     "model_type": "Late Onset AD",
                 },
@@ -561,12 +561,12 @@ class TestInputValidationModelInfo:
         df = pd.DataFrame(
             [
                 {
-                    "model": "LOAD1",
+                    "name": "LOAD1",
                     "matched_controls": "C57BL6J",
                     "model_type": "Late Onset AD",
                 },
                 {
-                    "model": "LOAD1",
+                    "name": "LOAD1",
                     "matched_controls": "C57BL6J",
                     "model_type": "Early Onset AD",
                 },
@@ -579,7 +579,7 @@ class TestInputValidationModelInfo:
 
     def test_empty_dataframe(self):
         """Test that empty dataframe passes validation."""
-        df = pd.DataFrame(columns=["model", "matched_controls", "model_type"])
+        df = pd.DataFrame(columns=["name", "matched_controls", "model_type"])
         # Should not raise any exception
         input_validation_model_info(df)
 
@@ -588,7 +588,7 @@ class TestInputValidationModelInfo:
         df = pd.DataFrame(
             [
                 {
-                    "model": "LOAD1",
+                    "name": "LOAD1",
                     "matched_controls": "C57BL6J",
                     "model_type": "Late Onset AD",
                 }

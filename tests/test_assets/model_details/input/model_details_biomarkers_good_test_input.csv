@@ -1,4 +1,4 @@
-model,evidence_type,value,units,age,tissue,sex,genotype,individual_id,specimen_id
+name,evidence_type,value,units,age,tissue,sex,genotype,individual_id,specimen_id
 3xTg-AD,Insoluble beta40,8.2,pg/ml,8,Cortex,Male,transgenic,mouse4,specimen_1
 3xTg-AD,Insoluble beta42,9.1,pg/ml,8,Cortex,Female,transgenic,mouse5,specimen_2
 3xTg-AD,Soluble beta40,10.5,pg/ml,4,Hippocampus,Female,transgenic,mouse1,specimen_3

@@ -1,1 +1,1 @@
-individual_id,specimen_id,model,evidence_type,value,units,age,tissue,sex,genotype
+individual_id,specimen_id,name,evidence_type,value,units,age,tissue,sex,genotype

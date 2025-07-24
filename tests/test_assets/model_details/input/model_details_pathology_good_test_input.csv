@@ -1,4 +1,4 @@
-individual_id,specimen_id,model,evidence_type,value,units,age,tissue,sex,genotype
+individual_id,specimen_id,name,evidence_type,value,units,age,tissue,sex,genotype
 mouse1,spec1,3xTg-AD,Plaque count,5.3,count/mm²,4,hippocampus,female,transgenic
 mouse2,spec2,3xTg-AD,Plaque count,6.1,count/mm²,4,hippocampus,male,transgenic
 mouse3,spec3,3xTg-AD,Plaque area,3.2,µm²,4,hippocampus,female,transgenic

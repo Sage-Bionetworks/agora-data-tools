@@ -1,6 +1,6 @@
 [
   {
-    "model": "3xTg-AD",
+    "name": "3xTg-AD",
     "model_type": "Familial AD",
     "matched_controls": "B6129",
     "gene_expression": {
@@ -27,7 +27,7 @@
     ]
   },
   {
-    "model": "5xFAD (UCI)",
+    "name": "5xFAD (UCI)",
     "model_type": "Familial AD",
     "matched_controls": "C57BL6J",
     "gene_expression": {
@@ -50,7 +50,7 @@
     "modified_genes": []
   },
   {
-    "model": "APOE4",
+    "name": "APOE4",
     "model_type": "Late Onset AD",
     "matched_controls": "C57BL6J",
     "gene_expression": {

@@ -1,6 +1,6 @@
 [
   {
-    "model": "",
+    "name": "",
     "evidence_type": "TypeA",
     "tissue": "Tissuea",
     "age": "1 months",
@@ -15,7 +15,7 @@
     ]
   },
   {
-    "model": "ModelA",
+    "name": "ModelA",
     "evidence_type": "",
     "tissue": "Tissuea",
     "age": "1 months",
@@ -30,7 +30,7 @@
     ]
   },
   {
-    "model": "ModelA",
+    "name": "ModelA",
     "evidence_type": "TypeA",
     "tissue": "Tissuea",
     "age": "1 months",
@@ -69,7 +69,7 @@
     ]
   },
   {
-    "model": "none",
+    "name": "none",
     "evidence_type": "TypeA",
     "tissue": "Tissuea",
     "age": "1 months",

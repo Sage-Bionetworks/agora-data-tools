@@ -1,4 +1,4 @@
-model,evidence_type,value,units,age,tissue,sex,genotype,individual_id,specimen_id
+name,evidence_type,value,units,age,tissue,sex,genotype,individual_id,specimen_id
 ModelA,TypeA,1,A,1,TissueA,male,genotype1,individual_1,specimen_1
 ModelA,TypeA,,A,1,TissueA,male,genotype1,individual_2,specimen_2
 ,TypeA,1,A,1,TissueA,male,genotype1,individual_3,specimen_3
