@@ -478,8 +478,6 @@ class TestTransformModelOverview:
         # Compare output with expected
         assert output_data == expected_output
 
-        # INSERT_YOUR_CODE
-
 
 class TestGetListOfAvailableData:
     def test_all_data_present(self):
