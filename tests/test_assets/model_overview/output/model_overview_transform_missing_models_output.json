@@ -10,7 +10,9 @@
     "pathology": {
       "link_url": "models/3xTg-AD/pathology"
     },
-    "biomarkers": null,
+    "biomarkers": {
+      "link_url": "models/3xTg-AD/biomarkers"
+    },
     "study_data": {
       "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
     },
@@ -24,6 +26,11 @@
       "APP",
       "Mapt",
       "Psen1"
+    ],
+    "available_data": [
+      "Gene Expression",
+      "Pathology",
+      "Biomarkers"
     ]
   },
   {
@@ -44,9 +51,6 @@
       "link_text": "UCI"
     },
     "modified_genes": [],
-    "available_data": [
-      "Gene Expression",
-      "Disease Correlation"
-    ]
+    "available_data": []
   }
 ]

@@ -10,7 +10,9 @@
     "pathology": {
       "link_url": "models/3xTg-AD/pathology"
     },
-    "biomarkers": null,
+    "biomarkers": {
+      "link_url": "models/3xTg-AD/biomarkers"
+    },
     "study_data": {
       "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
     },
@@ -42,7 +44,9 @@
     "pathology": {
       "link_url": "models/5xFAD (UCI)/pathology"
     },
-    "biomarkers": null,
+    "biomarkers": {
+      "link_url": "models/5xFAD (UCI)/biomarkers"
+    },
     "study_data": {
       "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn16798076"
     },
@@ -55,7 +59,8 @@
     "modified_genes": [],
     "available_data": [
       "Gene Expression",
-      "Pathology"
+      "Pathology",
+      "Biomarkers"
     ]
   },
   {

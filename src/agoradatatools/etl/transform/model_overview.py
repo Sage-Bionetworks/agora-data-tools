@@ -60,13 +60,14 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     """
     available_data = []
 
-    if "gene_expression" in row and row["gene_expression"]:
+    # Check if links are present (indicating data is available)
+    if "gene_expression" in row and row["gene_expression"] is not None:
         available_data.append("Gene Expression")
-    if "disease_correlation" in row and row["disease_correlation"]:
+    if "disease_correlation" in row and row["disease_correlation"] is not None:
         available_data.append("Disease Correlation")
-    if "pathology" in row and row["pathology"]:
+    if "pathology" in row and row["pathology"] is not None:
         available_data.append("Pathology")
-    if "biomarkers" in row and row["biomarkers"]:
+    if "biomarkers" in row and row["biomarkers"] is not None:
         available_data.append("Biomarkers")
 
     return available_data
@@ -138,27 +139,33 @@ def transform_model_overview(
             gene for gene in modified_genes if gene is not None and str(gene) != "nan"
         ]
 
-        row["available_data"] = get_list_of_available_data(row)
+        # Helper function to check if a value is truthy (including string "TRUE")
+        def is_truthy_for_links(value):
+            if value is True:
+                return True
+            if isinstance(value, str) and value.strip().upper() == "TRUE":
+                return True
+            return False
 
-        # Build the links
+        # Build the links first
         row["gene_expression"] = (
             {"link_url": f"comparison/expression?model={row['name']}"}
-            if row["gene_expression"] is True
+            if is_truthy_for_links(row["gene_expression"])
             else None
         )
         row["disease_correlation"] = (
             {"link_url": f"comparison/correlation?model={row['name']}"}
-            if row["disease_correlation"] is True
+            if is_truthy_for_links(row["disease_correlation"])
             else None
         )
         row["pathology"] = (
             {"link_url": f"models/{row['name']}/pathology"}
-            if row["pathology"] is True
+            if is_truthy_for_links(row["pathology"])
             else None
         )
         row["biomarkers"] = (
             {"link_url": f"models/{row['name']}/biomarkers"}
-            if row["biomarkers"] is True
+            if is_truthy_for_links(row["biomarkers"])
             else None
         )
         row["study_data"] = (
@@ -179,6 +186,9 @@ def transform_model_overview(
             else None
         )
 
+        # Calculate available_data based on which links are actually present
+        row["available_data"] = get_list_of_available_data(row)
+
         # Keep only the columns that will be in transformed_records in row
         keep_columns = [
             "name",
@@ -192,7 +202,7 @@ def transform_model_overview(
             "jax_strain",
             "center",
             "modified_genes",
-            "available_data"
+            "available_data",
         ]
 
         transformed_records.append({k: row[k] for k in keep_columns if k in row})

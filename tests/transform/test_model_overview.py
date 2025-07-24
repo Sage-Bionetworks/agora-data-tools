@@ -291,6 +291,7 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": {"link_text": "Test Center"},
                 "modified_genes": ["TestGene"],
+                "available_data": ["Gene Expression", "Pathology"],
             }
         ]
 
@@ -367,6 +368,7 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": {"link_text": "Test Center"},
                 "modified_genes": [],
+                "available_data": [],
             }
         ]
 
@@ -451,6 +453,7 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/111"},
                 "center": {"link_text": "Center1"},
                 "modified_genes": ["Gene1", "Gene2"],
+                "available_data": ["Gene Expression", "Pathology"],
             },
             {
                 "name": "model2",
@@ -468,6 +471,7 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/222"},
                 "center": {"link_text": "Center2"},
                 "modified_genes": ["Gene3"],
+                "available_data": ["Disease Correlation", "Pathology", "Biomarkers"],
             },
         ]
 
@@ -476,9 +480,12 @@ class TestTransformModelOverview:
 
         # INSERT_YOUR_CODE
 
+
 class TestGetListOfAvailableData:
     def test_all_data_present(self):
-        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
 
         model = {
             "gene_expression": True,
@@ -487,10 +494,17 @@ class TestGetListOfAvailableData:
             "biomarkers": True,
         }
         result = get_list_of_available_data(model)
-        assert set(result) == {"Gene Expression", "Disease Correlation", "Pathology", "Biomarkers"}
+        assert set(result) == {
+            "Gene Expression",
+            "Disease Correlation",
+            "Pathology",
+            "Biomarkers",
+        }
 
     def test_some_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
 
         model = {
             "gene_expression": True,
@@ -502,7 +516,9 @@ class TestGetListOfAvailableData:
         assert set(result) == {"Gene Expression", "Pathology"}
 
     def test_all_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
 
         model = {
             "gene_expression": None,
@@ -514,14 +530,18 @@ class TestGetListOfAvailableData:
         assert result == []
 
     def test_empty_model(self):
-        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
 
         model = {}
         result = get_list_of_available_data(model)
         assert result == []
 
     def test_partial_keys(self):
-        from agoradatatools.etl.transform.model_overview import get_list_of_available_data
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
 
         model = {
             "gene_expression": True,
