@@ -65,10 +65,12 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
         "gene_expression": "Gene Expression",
         "disease_correlation": "Disease Correlation",
         "pathology": "Pathology",
-        "biomarkers": "Biomarkers"
+        "biomarkers": "Biomarkers",
     }
 
-    available_data = [label for key, label in fields.items() if row.get(key) is not None]
+    available_data = [
+        label for key, label in fields.items() if row.get(key) is not None
+    ]
 
     return available_data
 
@@ -139,33 +141,25 @@ def transform_model_overview(
             gene for gene in modified_genes if gene is not None and str(gene) != "nan"
         ]
 
-        # Helper function to check if a value is truthy (including string "TRUE")
-        def is_truthy_for_links(value):
-            if value is True:
-                return True
-            if isinstance(value, str) and value.strip().upper() == "TRUE":
-                return True
-            return False
-
         # Build the links first
         row["gene_expression"] = (
             {"link_url": f"comparison/expression?model={row['name']}"}
-            if is_truthy_for_links(row["gene_expression"])
+            if bool(row["gene_expression"])
             else None
         )
         row["disease_correlation"] = (
             {"link_url": f"comparison/correlation?model={row['name']}"}
-            if is_truthy_for_links(row["disease_correlation"])
+            if bool(row["disease_correlation"])
             else None
         )
         row["pathology"] = (
             {"link_url": f"models/{row['name']}/pathology"}
-            if is_truthy_for_links(row["pathology"])
+            if bool(row["pathology"])
             else None
         )
         row["biomarkers"] = (
             {"link_url": f"models/{row['name']}/biomarkers"}
-            if is_truthy_for_links(row["biomarkers"])
+            if bool(row["biomarkers"])
             else None
         )
         row["study_data"] = (
