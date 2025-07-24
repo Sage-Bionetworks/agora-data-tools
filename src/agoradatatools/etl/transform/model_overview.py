@@ -59,8 +59,6 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     Returns:
         List[str]: A list of available data for the model.
     """
-    available_data = []
-
     fields = {
         "gene_expression": "Gene Expression",
         "disease_correlation": "Disease Correlation",
