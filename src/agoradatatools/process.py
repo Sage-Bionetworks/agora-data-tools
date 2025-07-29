@@ -272,7 +272,8 @@ def create_data_manifest(
             "id": file["id"],
             "version": (
                 file["versionNumber"] + 1
-                if file["name"] == "data_manifest.csv" or file["name"] == "dataversion.json"
+                if file["name"] == "data_manifest.csv"
+                or file["name"] == "dataversion.json"
                 else file["versionNumber"]
             ),
         }
