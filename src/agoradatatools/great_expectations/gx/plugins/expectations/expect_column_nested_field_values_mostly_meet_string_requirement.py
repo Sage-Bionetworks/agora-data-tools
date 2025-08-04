@@ -115,22 +115,29 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
         selected_operator: str,
         length_threshold: int,
     ) -> dict[str, int]:
+        """
+        Recursively flattens a nested list of dictionaries and counts how many
+        dictionaries have a target field that have the right string length.
+
+        Arguments:
+            list_object: a list of nested dictionaries or a single dictionary.
+            target_field: the field in the dictionary to check the string length.
+            selected_operator: the operator to use for comparison (e.g., ">", "<", ">=", "<=", "==", "!=").
+            length_threshold: the length threshold to compare against.
+        Returns:
+            A dictionary with counts of total invalid and total dictionaries.
+        Note:
+            A value is considered valid if it is a string and meets the length requirement. If the target field does not exist, it is considered invalid.
+        """
         counts = {"total_valid": 0, "total_dict": 0}
 
         def _flatten(object: DictOrNestedList) -> dict[str, int]:
             """
             Recursively flattens a nested list of dictionaries and counts how many
-            dictionaries have a target field that have the right string length.
+            dictionaries have a null value for the specified target field.
 
             Arguments:
-                list_object: a list of nested dictionaries or a single dictionary.
-                target_field: the field in the dictionary to check the string length.
-                selected_operator: the operator to use for comparison (e.g., ">", "<", ">=", "<=", "==", "!=").
-                length_threshold: the length threshold to compare against.
-            Returns:
-                A dictionary with counts of total invalid and total dictionaries.
-            Note:
-                A value is considered valid if it is a string and meets the length requirement. If the target field does not exist, it is considered invalid.
+                object: a list of nested dictionaries or a single dictionary.
             """
             # if this only contains empty list
             for item in object:
