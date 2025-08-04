@@ -301,9 +301,9 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
                 "`valid_string_threshold` is required and must be a float strictly between 0 and 1."
             )
 
-        if not isinstance(length_threshold, int) or length_threshold <= 0:
+        if not isinstance(length_threshold, int) or length_threshold < 0:
             raise InvalidExpectationConfigurationError(
-                "`length_threshold` is required and must be a positive integer."
+                "`length_threshold` is required and must be a non-negative integer."
             )
         if not operator or operator not in OPS:
             raise InvalidExpectationConfigurationError(
