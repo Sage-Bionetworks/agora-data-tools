@@ -294,17 +294,17 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
         length_threshold = kwargs.get("length_threshold")
         operator = kwargs.get("operator")
 
-        if not target_field:
+        if target_field is None:
             raise InvalidExpectationConfigurationError("`target_field` is required.")
 
-        if not 0 < valid_string_threshold < 1:
+        if valid_string_threshold is None or not 0 < valid_string_threshold < 1:
             raise InvalidExpectationConfigurationError(
                 "`valid_string_threshold` is required and must be a float strictly between 0 and 1."
             )
 
-        if length_threshold < 0 or not isinstance(length_threshold, int):
+        if not isinstance(length_threshold, int) or length_threshold < 0:
             raise InvalidExpectationConfigurationError(
-                "`length_threshold` is required and must be a non-negative integer."
+                "`length_threshold` is required and must be a non-negative integer (zero or greater)."
             )
         if not operator or operator not in OPS:
             raise InvalidExpectationConfigurationError(
