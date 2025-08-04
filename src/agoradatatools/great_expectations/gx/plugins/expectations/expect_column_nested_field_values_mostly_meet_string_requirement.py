@@ -36,6 +36,9 @@ OPS = {
 
 # This class defines a Metric to support your Expectation.
 class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
+    """Metric provider for calculating the ratio of dictionaries in a list
+    that have a specified field meeting a string length requirement."""
+
     metric_name = METRIC_NAME
     value_keys = (
         "length_threshold",
@@ -69,7 +72,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
             raise ValueError(f"Invalid JSON string: {value}") from e
 
     @column_aggregate_value(engine=PandasExecutionEngine)
-    def _pandas(cls, column: pd.Series, **kwargs):
+    def _pandas(cls, column: pd.Series, **kwargs) -> float:
         target_field = kwargs.get("target_field")
         selected_operator = kwargs.get("operator")
         length_threshold = kwargs.get("length_threshold")
@@ -294,14 +297,12 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
         if not target_field:
             raise InvalidExpectationConfigurationError("`target_field` is required.")
 
-        if not isinstance(valid_string_threshold, float) or not (
-            0 < valid_string_threshold < 1
-        ):
+        if not 0 < valid_string_threshold < 1:
             raise InvalidExpectationConfigurationError(
                 "`valid_string_threshold` is required and must be a float strictly between 0 and 1."
             )
 
-        if not isinstance(length_threshold, int) or length_threshold < 0:
+        if length_threshold < 0 or not isinstance(length_threshold, int):
             raise InvalidExpectationConfigurationError(
                 "`length_threshold` is required and must be a non-negative integer."
             )
