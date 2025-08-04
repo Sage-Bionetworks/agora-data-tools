@@ -297,11 +297,19 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
         if target_field is None:
             raise InvalidExpectationConfigurationError("`target_field` is required.")
 
-        if not isinstance(valid_string_threshold, float) or not (
-            0 < valid_string_threshold < 1
-        ):
+        if valid_string_threshold is None:
             raise InvalidExpectationConfigurationError(
-                "`valid_string_threshold` is required and must be a float strictly between 0 and 1."
+                "`valid_string_threshold` is required."
+            )
+
+        if not isinstance(valid_string_threshold, float):
+            raise InvalidExpectationConfigurationError(
+                "`valid_string_threshold` must be a float."
+            )
+
+        if valid_string_threshold < 0 or valid_string_threshold > 1:
+            raise InvalidExpectationConfigurationError(
+                "`valid_string_threshold` must be strictly between 0 and 1."
             )
 
         if not isinstance(length_threshold, int) or (length_threshold < 0):
