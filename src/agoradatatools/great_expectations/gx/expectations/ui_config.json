@@ -1,0 +1,21 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "ui_config",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_mostly_string_length",
+      "kwargs": {
+        "column": "columns",
+        "length_threshold": 0,
+        "operator": ">",
+        "target_field": "tooltip",
+        "valid_string_threshold": 0.35
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}
