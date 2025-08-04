@@ -73,6 +73,22 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
 
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float:
+        """
+        Calculate the ratio of dictionaries in a list that have a specified field
+        meeting a string length requirement.
+
+        Arguments:
+            column (pd.Series): The column to analyze.
+            **kwargs:
+                - target_field (str): The field in the dictionary to check the string length.
+                - operator (str): The operator to use for comparison (e.g., ">", "<", ">=", "<=", "==", "!=").
+                - length_threshold (int): The length threshold to compare against.
+        Raises:
+            ValueError: if no json object to be evaluated
+
+        Returns:
+            float: The ratio of valid dictionaries to total dictionaries.
+        """
         target_field = kwargs.get("target_field")
         selected_operator = kwargs.get("operator")
         length_threshold = kwargs.get("length_threshold")
@@ -113,6 +129,8 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
                 length_threshold: the length threshold to compare against.
             Returns:
                 A dictionary with counts of total invalid and total dictionaries.
+            Note:
+                A value is considered valid if it is a string and meets the length requirement. If the target field does not exist, it is considered invalid.
             """
             # if this only contains empty list
             for item in object:
