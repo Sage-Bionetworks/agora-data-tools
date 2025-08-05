@@ -131,7 +131,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
         """
         counts = {"total_valid": 0, "total_dict": 0}
 
-        def _flatten(object: DictOrNestedList) -> dict[str, int]:
+        def _traverse_and_count(obj: DictOrNestedList) -> dict[str, int]:
             """
             Recursively flattens a nested list of dictionaries and counts how many
             dictionaries have a null value for the specified target field.
@@ -139,18 +139,19 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
             Arguments:
                 object: a list of nested dictionaries or a single dictionary.
             """
-            # if this only contains empty list
-            for item in object:
-                if isinstance(item, list):
-                    _flatten(item)
-                elif isinstance(item, dict):
-                    if isinstance(item.get(target_field), str) and OPS[
-                        selected_operator
-                    ](len(item.get(target_field)), length_threshold):
-                        counts["total_valid"] += 1
-                    counts["total_dict"] += 1
+            if isinstance(obj, list):
+                for item in obj:
+                    _traverse_and_count(item)
 
-        _flatten(list_object)
+            elif isinstance(obj, dict):
+                counts["total_dict"] += 1
+                value = obj.get(target_field)
+                if isinstance(value, str) and OPS[selected_operator](
+                    len(value), length_threshold
+                ):
+                    counts["total_valid"] += 1
+
+        _traverse_and_count(list_object)
         return counts
 
 
