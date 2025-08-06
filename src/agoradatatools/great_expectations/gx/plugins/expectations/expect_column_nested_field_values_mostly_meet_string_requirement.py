@@ -44,7 +44,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
         "length_threshold",
         "target_field",
         "operator",
-        "valid_string_threshold",
+        "valid_threshold",
     )
 
     @staticmethod
@@ -210,7 +210,7 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
                         "target_field": "targeted",
                         "operator": ">=",
                         "length_threshold": 5,
-                        "valid_string_threshold": 0.99,
+                        "valid_threshold": 0.99,
                     },
                     "out": {"success": True},
                 },
@@ -224,7 +224,7 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
                         "target_field": "targeted",
                         "operator": ">=",
                         "length_threshold": 5,
-                        "valid_string_threshold": 0.1,
+                        "valid_threshold": 0.1,
                     },
                     "out": {"success": False},
                 },
@@ -238,7 +238,7 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
                         "target_field": "targeted",
                         "operator": ">=",
                         "length_threshold": 10,
-                        "valid_string_threshold": 0.1,
+                        "valid_threshold": 0.1,
                     },
                     "out": {"success": False},
                 },
@@ -252,7 +252,7 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
                         "target_field": "targeted",
                         "operator": ">=",
                         "length_threshold": 3,
-                        "valid_string_threshold": 0.4,
+                        "valid_threshold": 0.4,
                     },
                     "out": {"success": True},
                 },
@@ -266,7 +266,7 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
                         "target_field": "targeted",
                         "operator": "<=",
                         "length_threshold": 2,
-                        "valid_string_threshold": 0.8,
+                        "valid_threshold": 0.8,
                     },
                     "out": {"success": False},
                 },
@@ -280,7 +280,7 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
                         "target_field": "targeted",
                         "operator": "==",
                         "length_threshold": 5,
-                        "valid_string_threshold": 0.3,
+                        "valid_threshold": 0.3,
                     },
                     "out": {"success": False},
                 },
@@ -290,7 +290,7 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
 
     metric_dependencies = (METRIC_NAME,)
     success_keys = (
-        "valid_string_threshold",
+        "valid_threshold",
         "target_field",
         "operator",
         "length_threshold",
@@ -315,7 +315,7 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
         configuration = configuration or self.configuration
 
         kwargs = configuration.kwargs
-        valid_string_threshold = kwargs.get("valid_string_threshold")
+        valid_threshold = kwargs.get("valid_threshold")
         target_field = kwargs.get("target_field")
         length_threshold = kwargs.get("length_threshold")
         operator = kwargs.get("operator")
@@ -323,19 +323,17 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
         if target_field is None:
             raise InvalidExpectationConfigurationError("`target_field` is required.")
 
-        if valid_string_threshold is None:
+        if valid_threshold is None:
+            raise InvalidExpectationConfigurationError("`valid_threshold` is required.")
+
+        if not isinstance(valid_threshold, float):
             raise InvalidExpectationConfigurationError(
-                "`valid_string_threshold` is required."
+                "`valid_threshold` must be a float."
             )
 
-        if not isinstance(valid_string_threshold, float):
+        if valid_threshold < 0 or valid_threshold > 1:
             raise InvalidExpectationConfigurationError(
-                "`valid_string_threshold` must be a float."
-            )
-
-        if valid_string_threshold < 0 or valid_string_threshold > 1:
-            raise InvalidExpectationConfigurationError(
-                "`valid_string_threshold` must be strictly between 0 and 1."
+                "`valid_threshold` must be strictly between 0 and 1."
             )
 
         if not isinstance(length_threshold, int) or (length_threshold < 0):
@@ -360,11 +358,11 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
         """
         _ = runtime_configuration
         _ = execution_engine
-        valid_string_threshold = configuration["kwargs"]["valid_string_threshold"]
+        valid_threshold = configuration["kwargs"]["valid_threshold"]
         valid_ratio = metrics[METRIC_NAME]
         # if the null ratio is less than the allowed null ratio, return True; else return False
         return {
-            "success": valid_ratio >= valid_string_threshold,
+            "success": valid_ratio >= valid_threshold,
             "result": {"observed_valid_ratio": valid_ratio},
         }
 
