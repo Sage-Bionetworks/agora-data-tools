@@ -33,11 +33,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
     that have a specified field matching a regex pattern."""
 
     metric_name = METRIC_NAME
-    value_keys = (
-        "regex_pattern",
-        "target_field",
-        "valid_threshold"
-    )
+    value_keys = ("regex_pattern", "target_field", "valid_threshold")
 
     @staticmethod
     def safe_parse(value: str) -> List[Dict[str, Any]]:
@@ -62,7 +58,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
                 return []
         except (json.JSONDecodeError, TypeError) as e:
             raise ValueError(f"Invalid JSON string: {value}") from e
-        
+
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float:
         """
@@ -96,7 +92,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
             return round((counts["total_valid"]) / counts["total_dict"], 2)
         else:
             raise ValueError("There are no JSON objects to validate.")
-        
+
     @staticmethod
     def _flatten_nested_object_regex_match(
         list_object: list[DictOrNestedList],
@@ -218,14 +214,13 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
                     },
                     "out": {"success": False},
                 },
-                ]
+            ],
         }
     ]
 
     metric_dependencies = (METRIC_NAME,)
     success_keys = ("regex_pattern", "target_field", "valid_threshold")
     default_kwarg_values = {}
-    
 
     def validate_configuration(
         self, configuration: Optional[ExpectationConfiguration]
@@ -249,15 +244,11 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
         target_field = kwargs.get("target_field")
         regex_pattern = kwargs.get("regex_pattern")
 
-
-
         if target_field is None:
             raise InvalidExpectationConfigurationError("`target_field` is required.")
 
         if valid_threshold is None:
-            raise InvalidExpectationConfigurationError(
-                "`valid_threshold` is required."
-            )
+            raise InvalidExpectationConfigurationError("`valid_threshold` is required.")
 
         if not isinstance(valid_threshold, float):
             raise InvalidExpectationConfigurationError(
@@ -268,7 +259,7 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
             raise InvalidExpectationConfigurationError(
                 "`valid_threshold` must be strictly between 0 and 1."
             )
-        
+
         if regex_pattern is None:
             raise InvalidExpectationConfigurationError("`regex_pattern` is required.")
 
