@@ -3,7 +3,7 @@
   "expectation_suite_name": "ui_config",
   "expectations": [
     {
-      "expectation_type": "expect_column_mostly_string_length",
+      "expectation_type": "expect_column_nested_object_string_length",
       "kwargs": {
         "column": "columns",
         "length_threshold": 0,

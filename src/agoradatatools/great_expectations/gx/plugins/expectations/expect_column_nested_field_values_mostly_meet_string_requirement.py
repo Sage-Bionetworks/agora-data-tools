@@ -155,7 +155,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
         return counts
 
 
-class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
+class ExpectColumnNestedObjectStringLength(ColumnAggregateExpectation):
     """Expect the proportion of string values for the specified field
     across all dictionaries in each list to meet or exceed the `string_threshold`."""
 
@@ -376,4 +376,4 @@ class ExpectColumnMostlyStringLength(ColumnAggregateExpectation):
 
 
 if __name__ == "__main__":
-    ExpectColumnMostlyStringLength().print_diagnostic_checklist()
+    ExpectColumnNestedObjectStringLength().print_diagnostic_checklist()
