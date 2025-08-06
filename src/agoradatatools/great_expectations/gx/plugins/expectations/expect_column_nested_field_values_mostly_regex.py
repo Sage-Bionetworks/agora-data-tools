@@ -294,4 +294,4 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
 
 
 if __name__ == "__main__":
-    ExpectColumnMostlyRegexRule().print_diagnostic_checklist()
+    ExpectColumnNestedObjectRegexRule().print_diagnostic_checklist()
