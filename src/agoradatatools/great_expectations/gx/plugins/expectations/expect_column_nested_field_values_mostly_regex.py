@@ -133,7 +133,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
         return counts
 
 
-class ExpectColumnMostlyRegexRule(ColumnAggregateExpectation):
+class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
     """Expect the proportion of string values for the specified field
     across all dictionaries in each list to match a user-provided regex pattern"""
 
