@@ -273,6 +273,7 @@ def create_data_manifest(
             "version": (
                 file["versionNumber"] + 1
                 if file["name"] == "data_manifest.csv"
+                or file["name"] == "dataversion.json"
                 else file["versionNumber"]
             ),
         }
