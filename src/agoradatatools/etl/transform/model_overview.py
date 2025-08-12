@@ -51,7 +51,7 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     """
     Get a list of available data for a given model.
     This is used to populate the "Available Data" section of the model overview page.
-    If the value is a string (link_url), it is considered available.
+    If the value is not None, it is considered available.
 
     Args:
         row (Dict[str, Any]): A dictionary containing the model information.
