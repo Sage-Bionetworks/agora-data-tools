@@ -117,10 +117,10 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
 
         def _traverse_and_count(obj: DictOrNestedList) -> dict[str, int]:
             """
-            Recursively flattens a nested list of dictionaries and counts how many
-            dictionaries have a null value for the specified target field.
+            Recursively traverses a nested list of dictionaries and counts how many
+            dictionaries have a target field whose value is a string matching the specified regex pattern.
             Arguments:
-                object: a list of nested dictionaries or a single dictionary.
+                obj: a nested dictionary or list of nested dictionaries to traverse.
             """
             if isinstance(obj, list):
                 for item in obj:
