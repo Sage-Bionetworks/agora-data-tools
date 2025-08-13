@@ -118,6 +118,8 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
     """Expect the proportion of string values for the specified field
     across all dictionaries in each list to match a user-provided regex pattern"""
 
+    LETTER_ONLY_REGEX = r"^[a-zA-Z]+$"
+
     examples = [
         {
             "data": {
@@ -155,7 +157,7 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
                     "in": {
                         "column": "a",
                         "target_field": "targeted",
-                        "regex_pattern": r"^[a-zA-Z]+$",
+                        "regex_pattern": LETTER_ONLY_REGEX,
                         "valid_threshold": 0.5,
                     },
                     "out": {"success": False},
@@ -168,7 +170,7 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
                     "in": {
                         "column": "b",
                         "target_field": "targeted",
-                        "regex_pattern": r"^[a-zA-Z]+$",
+                        "regex_pattern": LETTER_ONLY_REGEX,
                         "valid_threshold": 0.99,
                     },
                     "out": {"success": True},
@@ -181,7 +183,7 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
                     "in": {
                         "column": "c",
                         "target_field": "targeted",
-                        "regex_pattern": r"^[a-zA-Z]+$",
+                        "regex_pattern": LETTER_ONLY_REGEX,
                         "valid_threshold": 0.5,
                     },
                     "out": {"success": True},

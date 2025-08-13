@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 import json
 
+
 def safe_parse(value: str) -> List[Dict[str, Any]]:
     """
     Load a JSON string and return a list of dictionaries.
