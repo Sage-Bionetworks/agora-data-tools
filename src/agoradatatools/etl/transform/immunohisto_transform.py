@@ -140,6 +140,8 @@ def immunohisto_transform(
 
     grouped = dataset.groupby(group_columns)
 
+    model_age = {}
+
     for group_key, group in grouped:
         # This for loop iterates over each group produced by grouping the dataset by the specified group_columns.
         # For each group:
@@ -152,6 +154,27 @@ def immunohisto_transform(
         entry = dict(zip(group_columns, group_key))
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
+        # Add the age to the model_age dictionary so we can check for missing ages
+        if entry["name"] not in model_age:
+            model_age[entry["name"]] = [entry["age"]]
+        model_age[entry["name"]].append(entry["age"])
+
+    # Get all the ages from the data_rows
+    available_ages = list(set(x["age"] for x in data_rows))
+
+    # For each model, check if there are any ages that are not in the model_age dictionary
+    for name in model_age.keys():
+        missing_ages = [age for age in available_ages if age not in model_age[name]]
+        if len(missing_ages) > 0:
+            for age in missing_ages:
+                data_rows.append({
+                    "name": name,
+                    "evidence_type": "",
+                    "tissue": "",
+                    "age": age,
+                    "units": "",
+                    "data": []
+                })
 
     data_rows = convert_numpy_types(data_rows)
 
