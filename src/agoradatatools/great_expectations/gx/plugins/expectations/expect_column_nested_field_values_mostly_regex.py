@@ -4,10 +4,13 @@ across all dictionaries in each list, match a user-provided regular expression p
 and that this proportion meets or exceeds a specified valid string threshold.
 """
 
-from typing import Dict, Optional, List, Any, Union
-import json
+from typing import Dict, Optional, List, Union
+
 import re
 import pandas as pd
+from agoradatatools.great_expectations.gx.plugins.expectations.utils.utils import (
+    safe_parse,
+)
 
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
 from great_expectations.execution_engine import (
@@ -35,30 +38,6 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
     metric_name = METRIC_NAME
     value_keys = ("regex_pattern", "target_field", "valid_threshold")
 
-    @staticmethod
-    def safe_parse(value: str) -> List[Dict[str, Any]]:
-        """
-        Load a JSON string and return a list of dictionaries.
-        If the input is not a valid JSON, return an empty list.
-
-        Parameters:
-            value[str]: the json string to be parsed. If input is not a valid json string, return an empty list
-
-        Returns:
-            Parsed json object or fall back to an empty list
-        """
-        # Fallback if it's "null"
-        if value == "null":
-            return []
-        try:
-            parsed = json.loads(value)
-            if isinstance(parsed, list):
-                return parsed
-            else:
-                return []
-        except (json.JSONDecodeError, TypeError) as e:
-            raise ValueError(f"Invalid JSON string: {value}") from e
-
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float:
         """
@@ -80,7 +59,7 @@ class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
         regex_pattern = kwargs.get("regex_pattern")
 
         # parse json in the column
-        series_parsed = column.apply(cls.safe_parse)
+        series_parsed = column.apply(safe_parse)
 
         counts = cls._flatten_nested_object_regex_match(
             list_object=list(series_parsed),

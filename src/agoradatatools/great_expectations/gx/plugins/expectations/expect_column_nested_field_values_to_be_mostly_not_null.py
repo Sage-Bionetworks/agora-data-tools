@@ -1,8 +1,10 @@
 "Custom expectation rule that counts the percentage of nulls in a targeted field"
 
-from typing import Dict, Optional, List, Any, Union
+from typing import Dict, Optional, List, Union
 import pandas as pd
-import json
+from agoradatatools.great_expectations.gx.plugins.expectations.utils.utils import (
+    safe_parse,
+)
 
 from great_expectations.core.expectation_configuration import ExpectationConfiguration
 from great_expectations.execution_engine import (
@@ -30,30 +32,6 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
     metric_name = METRIC_NAME
     value_keys = ("non_null_threshold", "target_field")
 
-    @staticmethod
-    def safe_parse(value: str) -> List[Dict[str, Any]]:
-        """
-        Load a JSON string and return a list of dictionaries.
-        If the input is not a valid JSON, return an empty list.
-
-        Parameters:
-            value[str]: the json string to be parsed. If input is not a valid json string, return an empty list
-
-        Returns:
-            Parsed json object or fall back to an empty list
-        """
-        # Fallback if it's "null"
-        if value == "null":
-            return []
-        try:
-            parsed = json.loads(value)
-            if isinstance(parsed, list):
-                return parsed
-            else:
-                return []
-        except (json.JSONDecodeError, TypeError) as e:
-            raise ValueError(f"Invalid JSON string: {value}") from e
-
     @column_aggregate_value(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.Series, **kwargs) -> float:
         """
@@ -77,7 +55,7 @@ class ColumnNestedObjectNotNull(ColumnAggregateMetricProvider):
         target_field = kwargs.get("target_field")
 
         # parse json in the column
-        series_parsed = column.apply(cls.safe_parse)
+        series_parsed = column.apply(safe_parse)
 
         counts = cls._flatten_nested_object_count_nulls(
             list_object=list(series_parsed), target_field=target_field
