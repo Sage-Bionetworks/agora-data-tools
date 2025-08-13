@@ -181,7 +181,7 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
                     },
                     "out": {"success": False},
                 },
-                # Passses: 4 of 4 values match the regex, satisfying the 0.99 valid threshold.
+                # Passes: 4 of 4 values match the regex, satisfying the 0.99 valid threshold.
                 {
                     "title": "target_meet_threshold",
                     "exact_match_out": False,
