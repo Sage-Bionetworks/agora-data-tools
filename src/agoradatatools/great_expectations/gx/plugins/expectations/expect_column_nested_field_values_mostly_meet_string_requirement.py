@@ -34,6 +34,7 @@ OPS = {
     "!=": operator.ne,
 }
 
+
 # This class defines a Metric to support your Expectation.
 class ColumnMostlyStringLength(ColumnAggregateMetricProvider):
     """Metric provider for calculating the ratio of dictionaries in a list
@@ -333,7 +334,7 @@ class ExpectColumnNestedObjectStringLength(ColumnAggregateExpectation):
 
         if valid_threshold < 0 or valid_threshold > 1:
             raise InvalidExpectationConfigurationError(
-                "`valid_threshold` must be strictly between 0 and 1."
+                "`valid_threshold` must be strictly between 0 and 1 (0 < valid_threshold < 1)"
             )
 
         if not isinstance(length_threshold, int) or (length_threshold < 0):
