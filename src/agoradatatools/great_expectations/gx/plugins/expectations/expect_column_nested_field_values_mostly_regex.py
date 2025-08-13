@@ -261,9 +261,9 @@ class ExpectColumnNestedObjectRegexRule(ColumnAggregateExpectation):
                 "`valid_threshold` must be a float."
             )
 
-        if valid_threshold < 0 or valid_threshold > 1:
+        if valid_threshold <= 0 or valid_threshold >= 1:
             raise InvalidExpectationConfigurationError(
-                "`valid_threshold` must be strictly between 0 and 1."
+                "``valid_threshold` must be strictly between 0 and 1 (0 < valid_threshold < 1)"
             )
 
         if regex_pattern is None:
