@@ -140,8 +140,6 @@ def immunohisto_transform(
 
     grouped = dataset.groupby(group_columns)
 
-    model_age = {}
-
     for group_key, group in grouped:
         # This for loop iterates over each group produced by grouping the dataset by the specified group_columns.
         # For each group:
@@ -154,23 +152,22 @@ def immunohisto_transform(
         entry = dict(zip(group_columns, group_key))
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
-        # Add the age to the model_age dictionary so we can check for missing ages
-        if entry["name"] not in model_age:
-            model_age[entry["name"]] = [entry["age"]]
-        model_age[entry["name"]].append(entry["age"])
-
-    # Get all the ages from the data_rows
+    
+    # Check for missing ages in data_rows and add them to the data_rows list
     available_ages = list(set(x["age"] for x in data_rows))
-
-    # For each model, check if there are any ages that are not in the model_age dictionary
-    for name in model_age.keys():
-        missing_ages = [age for age in available_ages if age not in model_age[name]]
+    missing_ages_group_columns = ["name","evidence_type","tissue"]
+    grouped_missing_ages = dataset.groupby(missing_ages_group_columns)
+    
+    for group_key, group in grouped_missing_ages:
+        entry = dict(zip(missing_ages_group_columns, group_key))
+        group_ages = group["age"].unique().tolist()
+        missing_ages = [age for age in available_ages if age not in group_ages]
         if len(missing_ages) > 0:
             for age in missing_ages:
                 data_rows.append({
-                    "name": name,
-                    "evidence_type": "",
-                    "tissue": "",
+                    "name": entry["name"],
+                    "evidence_type": entry["evidence_type"],
+                    "tissue": entry["tissue"],
                     "age": age,
                     "units": "",
                     "data": []
