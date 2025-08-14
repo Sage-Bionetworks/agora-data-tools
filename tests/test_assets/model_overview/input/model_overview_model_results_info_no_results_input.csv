@@ -1,4 +1,4 @@
 name,gene_expression,disease_correlation,pathology,biomarkers
 3xTg-AD,TRUE,,TRUE,TRUE
 5xFAD (UCI),TRUE,,TRUE,TRUE
-APOE4,TRUE,TRUE,, 
+APOE4,TRUE,TRUE,,

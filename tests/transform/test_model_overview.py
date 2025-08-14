@@ -291,6 +291,7 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": {"link_text": "Test Center"},
                 "modified_genes": ["TestGene"],
+                "available_data": ["Gene Expression", "Pathology"],
             }
         ]
 
@@ -367,6 +368,7 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": {"link_text": "Test Center"},
                 "modified_genes": [],
+                "available_data": [],
             }
         ]
 
@@ -451,6 +453,7 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/111"},
                 "center": {"link_text": "Center1"},
                 "modified_genes": ["Gene1", "Gene2"],
+                "available_data": ["Gene Expression", "Pathology"],
             },
             {
                 "name": "model2",
@@ -468,8 +471,81 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/222"},
                 "center": {"link_text": "Center2"},
                 "modified_genes": ["Gene3"],
+                "available_data": ["Disease Correlation", "Pathology", "Biomarkers"],
             },
         ]
 
         # Compare output with expected
         assert output_data == expected_output
+
+
+class TestGetListOfAvailableData:
+    def test_all_data_present(self):
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
+
+        model = {
+            "gene_expression": {"link_url": "url1"},
+            "disease_correlation": {"link_url": "url2"},
+            "pathology": {"link_url": "url3"},
+            "biomarkers": {"link_url": "url4"},
+        }
+        result = get_list_of_available_data(model)
+        assert set(result) == {
+            "Gene Expression",
+            "Disease Correlation",
+            "Pathology",
+            "Biomarkers",
+        }
+
+    def test_some_data_missing(self):
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
+
+        model = {
+            "gene_expression": {"link_url": "url1"},
+            "disease_correlation": None,
+            "pathology": {"link_url": "url3"},
+            "biomarkers": None,
+        }
+        result = get_list_of_available_data(model)
+        assert set(result) == {"Gene Expression", "Pathology"}
+
+    def test_all_data_missing(self):
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
+
+        model = {
+            "gene_expression": None,
+            "disease_correlation": None,
+            "pathology": None,
+            "biomarkers": None,
+        }
+        result = get_list_of_available_data(model)
+        assert result == []
+
+    def test_empty_model(self):
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
+
+        model = {}
+        result = get_list_of_available_data(model)
+        assert result == []
+
+    def test_partial_keys(self):
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
+
+        model = {
+            "gene_expression": {"link_url": "url1"},
+            # disease_correlation missing
+            "pathology": None,
+            # biomarkers missing
+        }
+        result = get_list_of_available_data(model)
+        assert result == ["Gene Expression"]

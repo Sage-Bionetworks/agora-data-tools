@@ -47,6 +47,32 @@ REQUIRED_INPUT = {
 }
 
 
+def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
+    """
+    Get a list of available data for a given model.
+    This is used to populate the "Available Data" section of the model overview page.
+    If the value is not None, it is considered available.
+
+    Args:
+        row (Dict[str, Any]): A dictionary containing the model information.
+
+    Returns:
+        List[str]: A list of available data for the model.
+    """
+    fields = {
+        "gene_expression": "Gene Expression",
+        "disease_correlation": "Disease Correlation",
+        "pathology": "Pathology",
+        "biomarkers": "Biomarkers",
+    }
+
+    available_data = [
+        label for key, label in fields.items() if row.get(key) is not None
+    ]
+
+    return available_data
+
+
 def transform_model_overview(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -113,25 +139,25 @@ def transform_model_overview(
             gene for gene in modified_genes if gene is not None and str(gene) != "nan"
         ]
 
-        # Build the links
+        # Build the links first
         row["gene_expression"] = (
             {"link_url": f"comparison/expression?model={row['name']}"}
-            if row["gene_expression"] is True
+            if bool(row["gene_expression"])
             else None
         )
         row["disease_correlation"] = (
             {"link_url": f"comparison/correlation?model={row['name']}"}
-            if row["disease_correlation"] is True
+            if bool(row["disease_correlation"])
             else None
         )
         row["pathology"] = (
             {"link_url": f"models/{row['name']}/pathology"}
-            if row["pathology"] is True
+            if bool(row["pathology"])
             else None
         )
         row["biomarkers"] = (
             {"link_url": f"models/{row['name']}/biomarkers"}
-            if row["biomarkers"] is True
+            if bool(row["biomarkers"])
             else None
         )
         row["study_data"] = (
@@ -152,6 +178,9 @@ def transform_model_overview(
             else None
         )
 
+        # Calculate available_data based on which links are actually present
+        row["available_data"] = get_list_of_available_data(row)
+
         # Keep only the columns that will be in transformed_records in row
         keep_columns = [
             "name",
@@ -165,6 +194,7 @@ def transform_model_overview(
             "jax_strain",
             "center",
             "modified_genes",
+            "available_data",
         ]
 
         transformed_records.append({k: row[k] for k in keep_columns if k in row})
