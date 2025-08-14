@@ -70,5 +70,21 @@
           "value": 6
         }
       ]
+    },
+    {
+      "name": "ModelA",
+      "evidence_type": "TypeA",
+      "tissue": "Tissuea",
+      "age": "3 months",
+      "units": "",
+      "data": []
+    },
+    {
+      "name": "ModelA",
+      "evidence_type": "TypeB",
+      "tissue": "Tissuea",
+      "age": "1 months",
+      "units": "",
+      "data": []
     }
   ]

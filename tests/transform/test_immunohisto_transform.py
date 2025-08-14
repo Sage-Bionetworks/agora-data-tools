@@ -37,6 +37,11 @@ class TestTransformGeneralModelAD:
             "immunohisto_transform_extra_column.csv",
             "immunohisto_transform_extra_column_output.json",
         ),
+        (
+            # Pass with missing ages
+            "immunohisto_transform_missing_ages_input.csv",
+            "immunohisto_transform_missing_ages_output.json",
+        ),
     ]
     pass_test_ids = [
         "Pass with good fake data",
@@ -44,6 +49,7 @@ class TestTransformGeneralModelAD:
         "Pass with none data",
         "Pass with missing data",
         "Pass with extra column",
+        "Pass with missing ages",
     ]
     fail_test_data = [("immunohisto_transform_missing_column.csv")]
     fail_test_ids = [("Fail with missing column")]
@@ -177,3 +183,65 @@ class TestTransformGeneralModelAD:
 
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
+
+    def test_immunohisto_transform_missing_ages_functionality(self):
+        """Test that the transform adds missing age entries for each name/evidence_type/tissue combination."""
+        # Create test input with missing ages
+        input_df = pd.DataFrame(
+            {
+                "name": ["ModelA", "ModelA", "ModelA", "ModelB"],
+                "evidence_type": ["TypeA", "TypeA", "TypeA", "TypeA"],
+                "tissue": ["TissueA", "TissueA", "TissueA", "TissueB"],
+                "age": [1, 2, 3, 1],  # ModelB/TypeA/TissueB missing age 2 and 3
+                "units": ["A", "A", "A", "A"],
+                "sex": ["male", "male", "male", "male"],
+                "genotype": ["genotype1", "genotype1", "genotype1", "genotype1"],
+                "individual_id": ["individual_1", "individual_2", "individual_3", "individual_4"],
+                "value": [1.0, 2.0, 3.0, 4.0],
+            }
+        )
+
+        # Run the transform
+        result = immunohisto_transform(
+            datasets={"biomarkers": input_df},
+            dataset_name="biomarkers",
+        )
+
+        # Check that we have entries for all ages
+        ages = [entry["age"] for entry in result]
+        names = [entry["name"] for entry in result]
+        evidence_types = [entry["evidence_type"] for entry in result]
+        tissues = [entry["tissue"] for entry in result]
+
+        # Should have entries for all combinations
+        assert "1 months" in ages
+        assert "2 months" in ages
+        assert "3 months" in ages
+
+        # Check that missing age entries have empty data arrays
+        missing_age_entries = [
+            entry for entry in result 
+            if entry["data"] == [] and entry["units"] == ""
+        ]
+        assert len(missing_age_entries) == 2  # Two missing age combinations
+
+        # Verify specific missing entries
+        missing_entries_found = 0
+        for entry in missing_age_entries:
+            if (entry["name"] == "ModelA" and 
+                entry["evidence_type"] == "TypeA" and 
+                entry["tissue"] == "Tissuea" and 
+                entry["age"] == "2 months"):
+                missing_entries_found += 1
+            elif (entry["name"] == "ModelB" and 
+                  entry["evidence_type"] == "TypeA" and 
+                  entry["tissue"] == "Tissueb" and 
+                  entry["age"] == "2 months"):
+                missing_entries_found += 1
+            elif (entry["name"] == "ModelB" and 
+                  entry["evidence_type"] == "TypeA" and 
+                  entry["tissue"] == "Tissueb" and 
+                  entry["age"] == "3 months"):
+                missing_entries_found += 1
+
+        assert missing_entries_found == 2
