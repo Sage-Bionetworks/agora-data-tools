@@ -164,6 +164,15 @@ class TestTransformModelDetails:
         ) as f:
             expected_data = json.load(f)
 
+        # Sort biomarkers and pathology by age to make comparison deterministic
+        for model in output_data:
+            model['biomarkers'] = sorted(model['biomarkers'], key=lambda x: (x['name'], x['evidence_type'], x['tissue'], x['age']))
+            model['pathology'] = sorted(model['pathology'], key=lambda x: (x['name'], x['evidence_type'], x['tissue'], x['age']))
+        
+        for model in expected_data:
+            model['biomarkers'] = sorted(model['biomarkers'], key=lambda x: (x['name'], x['evidence_type'], x['tissue'], x['age']))
+            model['pathology'] = sorted(model['pathology'], key=lambda x: (x['name'], x['evidence_type'], x['tissue'], x['age']))
+
         # Compare output with expected
         assert output_data == expected_data
 
