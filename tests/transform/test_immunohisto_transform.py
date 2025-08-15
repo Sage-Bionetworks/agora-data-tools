@@ -196,7 +196,12 @@ class TestTransformGeneralModelAD:
                 "units": ["A", "A", "A", "A"],
                 "sex": ["male", "male", "male", "male"],
                 "genotype": ["genotype1", "genotype1", "genotype1", "genotype1"],
-                "individual_id": ["individual_1", "individual_2", "individual_3", "individual_4"],
+                "individual_id": [
+                    "individual_1",
+                    "individual_2",
+                    "individual_3",
+                    "individual_4",
+                ],
                 "value": [1.0, 2.0, 3.0, 4.0],
             }
         )
@@ -209,9 +214,9 @@ class TestTransformGeneralModelAD:
 
         # Check that we have entries for all ages
         ages = [entry["age"] for entry in result]
-        names = [entry["name"] for entry in result]
-        evidence_types = [entry["evidence_type"] for entry in result]
-        tissues = [entry["tissue"] for entry in result]
+        [entry["name"] for entry in result]
+        [entry["evidence_type"] for entry in result]
+        [entry["tissue"] for entry in result]
 
         # Should have entries for all combinations
         assert "1 months" in ages
@@ -220,28 +225,33 @@ class TestTransformGeneralModelAD:
 
         # Check that missing age entries have empty data arrays
         missing_age_entries = [
-            entry for entry in result 
-            if entry["data"] == [] and entry["units"] == ""
+            entry for entry in result if entry["data"] == [] and entry["units"] == ""
         ]
         assert len(missing_age_entries) == 2  # Two missing age combinations
 
         # Verify specific missing entries
         missing_entries_found = 0
         for entry in missing_age_entries:
-            if (entry["name"] == "ModelA" and 
-                entry["evidence_type"] == "TypeA" and 
-                entry["tissue"] == "Tissuea" and 
-                entry["age"] == "2 months"):
+            if (
+                entry["name"] == "ModelA"
+                and entry["evidence_type"] == "TypeA"
+                and entry["tissue"] == "Tissuea"
+                and entry["age"] == "2 months"
+            ):
                 missing_entries_found += 1
-            elif (entry["name"] == "ModelB" and 
-                  entry["evidence_type"] == "TypeA" and 
-                  entry["tissue"] == "Tissueb" and 
-                  entry["age"] == "2 months"):
+            elif (
+                entry["name"] == "ModelB"
+                and entry["evidence_type"] == "TypeA"
+                and entry["tissue"] == "Tissueb"
+                and entry["age"] == "2 months"
+            ):
                 missing_entries_found += 1
-            elif (entry["name"] == "ModelB" and 
-                  entry["evidence_type"] == "TypeA" and 
-                  entry["tissue"] == "Tissueb" and 
-                  entry["age"] == "3 months"):
+            elif (
+                entry["name"] == "ModelB"
+                and entry["evidence_type"] == "TypeA"
+                and entry["tissue"] == "Tissueb"
+                and entry["age"] == "3 months"
+            ):
                 missing_entries_found += 1
 
         assert missing_entries_found == 2

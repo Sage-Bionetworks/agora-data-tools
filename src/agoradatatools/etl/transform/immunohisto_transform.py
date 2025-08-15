@@ -152,42 +152,44 @@ def immunohisto_transform(
         entry = dict(zip(group_columns, group_key))
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
-    
+
     # Ensure data completeness by filling in missing age combinations
-    # This section handles cases where some combinations of (name, evidence_type, tissue) 
+    # This section handles cases where some combinations of (name, evidence_type, tissue)
     # don't have data for all available ages in the dataset. We create placeholder entries
     # with empty data arrays to maintain consistent structure across all age groups.
-    
+
     # Get all unique ages that exist in the dataset
     available_ages = list(set(x["age"] for x in data_rows))
-    
+
     # Group by the key dimensions that should have consistent age coverage
     # (excluding 'age' and 'units' since we're checking for missing ages)
     missing_ages_group_columns = ["name", "evidence_type", "tissue"]
     grouped_missing_ages = dataset.groupby(missing_ages_group_columns)
-    
+
     # For each unique combination of (name, evidence_type, tissue)
     for group_key, group in grouped_missing_ages:
         # Create a dictionary with the group's key values
         entry = dict(zip(missing_ages_group_columns, group_key))
-        
+
         # Get the ages that currently exist for this group
         group_ages = group["age"].unique().tolist()
-        
+
         # Find which ages are missing from this group
         missing_ages = [age for age in available_ages if age not in group_ages]
-        
+
         # If there are missing ages, create placeholder entries for each missing age
         if len(missing_ages) > 0:
             for age in missing_ages:
-                data_rows.append({
-                    "name": entry["name"],
-                    "evidence_type": entry["evidence_type"],
-                    "tissue": entry["tissue"],
-                    "age": age,
-                    "units": "",  # Empty units since there's no actual data
-                    "data": []    # Empty data array since there are no measurements for this age
-                })
+                data_rows.append(
+                    {
+                        "name": entry["name"],
+                        "evidence_type": entry["evidence_type"],
+                        "tissue": entry["tissue"],
+                        "age": age,
+                        "units": "",  # Empty units since there's no actual data
+                        "data": [],  # Empty data array since there are no measurements for this age
+                    }
+                )
 
     data_rows = convert_numpy_types(data_rows)
 
