@@ -159,7 +159,7 @@ def immunohisto_transform(
     # with empty data arrays to maintain consistent structure across all age groups.
 
     # Get all unique ages that exist in the dataset
-    available_ages = list(set(x["age"] for x in data_rows))
+    available_ages = list(set([x["age"] for x in data_rows]))
 
     # Group by the key dimensions that should have consistent age coverage
     # (excluding 'age' and 'units' since we're checking for missing ages)
