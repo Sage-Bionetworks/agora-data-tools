@@ -1,0 +1,20 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "model_details",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_nested_object_regex_rule",
+      "kwargs": {
+        "column": "genetic_info",
+        "regex_pattern": "^ENSMUSG",
+        "target_field": "ensembl_gene_id",
+        "valid_threshold": 0.4
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}
