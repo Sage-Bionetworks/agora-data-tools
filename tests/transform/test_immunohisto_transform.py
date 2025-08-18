@@ -37,6 +37,11 @@ class TestTransformGeneralModelAD:
             "immunohisto_transform_extra_column.csv",
             "immunohisto_transform_extra_column_output.json",
         ),
+        (
+            # Pass with missing ages
+            "immunohisto_transform_missing_ages_input.csv",
+            "immunohisto_transform_missing_ages_output.json",
+        ),
     ]
     pass_test_ids = [
         "Pass with good fake data",
@@ -44,6 +49,7 @@ class TestTransformGeneralModelAD:
         "Pass with none data",
         "Pass with missing data",
         "Pass with extra column",
+        "Pass with missing ages",
     ]
     fail_test_data = [("immunohisto_transform_missing_column.csv")]
     fail_test_ids = [("Fail with missing column")]
