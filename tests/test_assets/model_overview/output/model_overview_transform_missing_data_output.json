@@ -20,7 +20,8 @@
       "link_url": "https://jax.org/strain/4807"
     },
     "center": {
-      "link_text": "UCI"
+      "link_text": "UCI",
+      "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
     },
     "modified_genes": [
       "Psen1"
@@ -50,7 +51,8 @@
       "link_url": "https://jax.org/strain/8730"
     },
     "center": {
-      "link_text": "UCI"
+      "link_text": "UCI",
+      "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
     },
     "modified_genes": [],
     "available_data": [
