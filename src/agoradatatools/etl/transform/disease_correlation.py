@@ -145,7 +145,7 @@ def process_group(
         "modified_genes": allele_info.get("gene", ""),
         "cluster": cluster,
         "age": age,
-        "sex": sex
+        "sex": sex,
     }
 
     for _, row in group.iterrows():
@@ -155,13 +155,18 @@ def process_group(
             )
 
         module_dict = {
-            "correlation": float(row["correlation"]) if row["correlation"] != "" else None,
+            "correlation": float(row["correlation"])
+            if row["correlation"] != ""
+            else None,
             "adj_p_val": float(row["adjusted_p_value"])
             if row["adjusted_p_value"] != ""
-            else None
+            else None,
         }
         # Only add the module if it has valid data (not all None values)
-        if module_dict["correlation"] is not None or module_dict["adj_p_val"] is not None:
+        if (
+            module_dict["correlation"] is not None
+            or module_dict["adj_p_val"] is not None
+        ):
             output[extract_module_name(row["module"])] = module_dict
 
     return output

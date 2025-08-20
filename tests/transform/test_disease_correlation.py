@@ -327,7 +327,11 @@ class TestTransformDiseaseCorrelation:
         ),
     ]
 
-    dataset_error_test_ids = ["Missing model_info", "Duplicate results in disease_correlation_results", "Inconsistent model_info"]
+    dataset_error_test_ids = [
+        "Missing model_info",
+        "Duplicate results in disease_correlation_results",
+        "Inconsistent model_info",
+    ]
     column_error_test_ids = ["Missing required column in disease_correlation_results"]
 
     @pytest.mark.parametrize(
@@ -387,6 +391,7 @@ class TestExtractModuleName:
     def test_extract_module_name(self, input_module, expected):
         assert extract_module_name(input_module) == expected
 
+
 class TestProcessGroup:
     def test_process_group_with_valid_data(self):
         # Create test data
@@ -428,7 +433,7 @@ class TestProcessGroup:
             "age": "4 months",
             "sex": "Female",
             "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
-            "PHG": {"correlation": 0.6, "adj_p_val": 0.02}
+            "PHG": {"correlation": 0.6, "adj_p_val": 0.02},
         }
 
     def test_process_group_with_empty_model_info(self):
@@ -456,7 +461,7 @@ class TestProcessGroup:
             "cluster": "Cluster A",
             "age": "4 months",
             "sex": "Female",
-            "IFG": {"correlation": 0.5, "adj_p_val": 0.01}
+            "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
         }
 
     def test_process_group_with_list_matched_controls(self):
