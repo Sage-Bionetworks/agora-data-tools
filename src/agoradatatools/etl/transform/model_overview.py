@@ -73,6 +73,18 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     return available_data
 
 
+def get_center_link_url(contributing_group: str) -> str:
+    """
+    Get the link URL for the center.
+    """
+    if contributing_group == "UCI":
+        return "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+    elif contributing_group == "IU/Jax/Pitt":
+        return "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+    else:
+        raise ValueError(f"Invalid contributing group: {contributing_group}")
+
+
 def transform_model_overview(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -173,7 +185,10 @@ def transform_model_overview(
             else None
         )
         row["center"] = (
-            {"link_text": row["contributing_group"]}
+            {
+                "link_text": row["contributing_group"],
+                "link_url": get_center_link_url(row["contributing_group"]),
+            }
             if row["contributing_group"]
             else None
         )
