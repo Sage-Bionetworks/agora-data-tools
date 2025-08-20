@@ -14,7 +14,7 @@
       "link_url": "models/3xTg-AD/biomarkers"
     },
     "study_data": {
-      "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
     },
     "jax_strain": {
       "link_url": "https://jax.org/strain/4807"
@@ -44,7 +44,7 @@
     },
     "biomarkers": null,
     "study_data": {
-      "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn16798076"
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn16798076"
     },
     "jax_strain": {
       "link_url": "https://jax.org/strain/8730"
@@ -71,7 +71,7 @@
     "pathology": null,
     "biomarkers": null,
     "study_data": {
-      "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn17095980"
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn17095980"
     },
     "jax_strain": {
       "link_url": "https://jax.org/strain/27894"

@@ -286,7 +286,7 @@ class TestTransformModelOverview:
                 "pathology": {"link_url": "models/test_model/pathology"},
                 "biomarkers": None,
                 "study_data": {
-                    "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
+                    "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": {"link_text": "Test Center"},
@@ -363,7 +363,7 @@ class TestTransformModelOverview:
                 "pathology": None,
                 "biomarkers": None,
                 "study_data": {
-                    "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
+                    "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": {"link_text": "Test Center"},
@@ -448,7 +448,7 @@ class TestTransformModelOverview:
                 "pathology": {"link_url": "models/model1/pathology"},
                 "biomarkers": None,
                 "study_data": {
-                    "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
+                    "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/111"},
                 "center": {"link_text": "Center1"},
@@ -466,7 +466,7 @@ class TestTransformModelOverview:
                 "pathology": {"link_url": "models/model2/pathology"},
                 "biomarkers": {"link_url": "models/model2/biomarkers"},
                 "study_data": {
-                    "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
+                    "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/222"},
                 "center": {"link_text": "Center2"},
