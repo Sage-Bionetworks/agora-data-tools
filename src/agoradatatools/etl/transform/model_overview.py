@@ -79,7 +79,9 @@ def get_center_link_url(contributing_group: str) -> str:
     """
     if isinstance(contributing_group, str):
         if contributing_group.upper() == "UCI":
-            return "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+            return (
+                "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+            )
         elif contributing_group.upper() == "IU/JAX/PITT":
             return "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
     raise ValueError(f"Invalid contributing group: {contributing_group}")

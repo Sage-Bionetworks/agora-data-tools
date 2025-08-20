@@ -289,7 +289,10 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
-                "center": {"link_text": "UCI", "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"},
+                "center": {
+                    "link_text": "UCI",
+                    "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/",
+                },
                 "modified_genes": ["TestGene"],
                 "available_data": ["Gene Expression", "Pathology"],
             }
@@ -366,7 +369,10 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
-                "center": {"link_text": "IU/Jax/Pitt", "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"},
+                "center": {
+                    "link_text": "IU/Jax/Pitt",
+                    "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/",
+                },
                 "modified_genes": [],
                 "available_data": [],
             }
@@ -451,7 +457,10 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/111"},
-                "center": {"link_text": "UCI", "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"},
+                "center": {
+                    "link_text": "UCI",
+                    "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/",
+                },
                 "modified_genes": ["Gene1", "Gene2"],
                 "available_data": ["Gene Expression", "Pathology"],
             },
@@ -469,7 +478,10 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/222"},
-                "center": {"link_text": "IU/Jax/Pitt", "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"},
+                "center": {
+                    "link_text": "IU/Jax/Pitt",
+                    "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/",
+                },
                 "modified_genes": ["Gene3"],
                 "available_data": ["Disease Correlation", "Pathology", "Biomarkers"],
             },
@@ -556,16 +568,20 @@ class TestGetCenterLinkUrl:
         from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("UCI")
-        expected = "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        expected = (
+            "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        )
         assert result == expected
-    
+
     def test_uci_contributing_group_lowercase(self):
         from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("uci")
-        expected = "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        expected = (
+            "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        )
         assert result == expected
-    
+
     def test_iu_jax_pitt_contributing_group_lowercase(self):
         from agoradatatools.etl.transform.model_overview import get_center_link_url
 
@@ -583,7 +599,9 @@ class TestGetCenterLinkUrl:
     def test_invalid_contributing_group_raises_value_error(self):
         from agoradatatools.etl.transform.model_overview import get_center_link_url
 
-        with pytest.raises(ValueError, match="Invalid contributing group: InvalidCenter"):
+        with pytest.raises(
+            ValueError, match="Invalid contributing group: InvalidCenter"
+        ):
             get_center_link_url("InvalidCenter")
 
     def test_empty_string_raises_value_error(self):
@@ -604,6 +622,6 @@ class TestGetCenterLinkUrl:
         # Test partial matches that should not work
         with pytest.raises(ValueError, match="Invalid contributing group: IU/Jax"):
             get_center_link_url("IU/Jax")
-        
+
         with pytest.raises(ValueError, match="Invalid contributing group: IU/JAX"):
             get_center_link_url("IU/JAX")
