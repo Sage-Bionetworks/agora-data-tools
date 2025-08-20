@@ -77,12 +77,12 @@ def get_center_link_url(contributing_group: str) -> str:
     """
     Get the link URL for the center.
     """
-    if contributing_group == "UCI":
-        return "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
-    elif contributing_group == "IU/Jax/Pitt" or contributing_group == "IU/JAX/PITT":
-        return "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
-    else:
-        raise ValueError(f"Invalid contributing group: {contributing_group}")
+    if isinstance(contributing_group, str):
+        if contributing_group.upper() == "UCI":
+            return "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        elif contributing_group.upper() == "IU/JAX/PITT":
+            return "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+    raise ValueError(f"Invalid contributing group: {contributing_group}")
 
 
 def transform_model_overview(

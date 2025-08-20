@@ -558,8 +558,15 @@ class TestGetCenterLinkUrl:
         result = get_center_link_url("UCI")
         expected = "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
         assert result == expected
+    
+    def test_uci_contributing_group_lowercase(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
-    def test_iu_jax_pitt_contributing_group(self):
+        result = get_center_link_url("uci")
+        expected = "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        assert result == expected
+    
+    def test_iu_jax_pitt_contributing_group_lowercase(self):
         from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("IU/Jax/Pitt")
@@ -590,16 +597,6 @@ class TestGetCenterLinkUrl:
 
         with pytest.raises(ValueError, match="Invalid contributing group: None"):
             get_center_link_url(None)
-
-    def test_case_sensitive_uci_variations(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
-
-        # Test that only exact "UCI" works
-        with pytest.raises(ValueError, match="Invalid contributing group: uci"):
-            get_center_link_url("uci")
-        
-        with pytest.raises(ValueError, match="Invalid contributing group: Uci"):
-            get_center_link_url("Uci")
 
     def test_partial_matches_raise_value_error(self):
         from agoradatatools.etl.transform.model_overview import get_center_link_url
