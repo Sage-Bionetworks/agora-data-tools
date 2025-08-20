@@ -549,3 +549,64 @@ class TestGetListOfAvailableData:
         }
         result = get_list_of_available_data(model)
         assert result == ["Gene Expression"]
+
+
+class TestGetCenterLinkUrl:
+    def test_uci_contributing_group(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        result = get_center_link_url("UCI")
+        expected = "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        assert result == expected
+
+    def test_iu_jax_pitt_contributing_group(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        result = get_center_link_url("IU/Jax/Pitt")
+        expected = "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+        assert result == expected
+
+    def test_iu_jax_pitt_uppercase_contributing_group(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        result = get_center_link_url("IU/JAX/PITT")
+        expected = "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+        assert result == expected
+
+    def test_invalid_contributing_group_raises_value_error(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        with pytest.raises(ValueError, match="Invalid contributing group: InvalidCenter"):
+            get_center_link_url("InvalidCenter")
+
+    def test_empty_string_raises_value_error(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        with pytest.raises(ValueError, match="Invalid contributing group: "):
+            get_center_link_url("")
+
+    def test_none_contributing_group_raises_value_error(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        with pytest.raises(ValueError, match="Invalid contributing group: None"):
+            get_center_link_url(None)
+
+    def test_case_sensitive_uci_variations(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        # Test that only exact "UCI" works
+        with pytest.raises(ValueError, match="Invalid contributing group: uci"):
+            get_center_link_url("uci")
+        
+        with pytest.raises(ValueError, match="Invalid contributing group: Uci"):
+            get_center_link_url("Uci")
+
+    def test_partial_matches_raise_value_error(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        # Test partial matches that should not work
+        with pytest.raises(ValueError, match="Invalid contributing group: IU/Jax"):
+            get_center_link_url("IU/Jax")
+        
+        with pytest.raises(ValueError, match="Invalid contributing group: IU/JAX"):
+            get_center_link_url("IU/JAX")
