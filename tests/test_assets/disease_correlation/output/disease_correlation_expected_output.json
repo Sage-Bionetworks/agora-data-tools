@@ -10,18 +10,14 @@
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
     "sex": "Female",
-    "results": [
-      {
-        "module": "IFG",
-        "correlation": 0.0970533422952034,
-        "adj_p_val": 0.3887199748614661
-      },
-      {
-        "module": "PHG",
-        "correlation": 0.0842956381835789,
-        "adj_p_val": 0.4092310755529078
-      }
-    ]
+    "IFG": {
+      "correlation": 0.0970533422952034,
+      "adj_p_val": 0.3887199748614661
+    },
+    "PHG": {
+      "correlation": 0.0842956381835789,
+      "adj_p_val": 0.4092310755529078
+    }
   },
   {
     "name": "5xFAD",
@@ -34,18 +30,14 @@
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
     "sex": "Male",
-    "results": [
-      {
-        "module": "IFG",
-        "correlation": 0.1802025471199635,
-        "adj_p_val": 0.1074363436735284
-      },
-      {
-        "module": "PHG",
-        "correlation": 0.1200005481929605,
-        "adj_p_val": 0.2392109312864642
-      }
-    ]
+    "IFG": {
+      "correlation": 0.1802025471199635,
+      "adj_p_val": 0.1074363436735284
+    },
+    "PHG": {
+      "correlation": 0.1200005481929605,
+      "adj_p_val": 0.2392109312864642
+    }
   },
   {
     "name": "5xFAD",
@@ -58,18 +50,14 @@
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
     "sex": "Female",
-    "results": [
-      {
-        "module": "IFG",
-        "correlation": 0.0829228557717283,
-        "adj_p_val": 0.4617459764146099
-      },
-      {
-        "module": "PHG",
-        "correlation": 0.0555691060937462,
-        "adj_p_val": 0.5868075423762884
-      }
-    ]
+    "IFG": {
+      "correlation": 0.0829228557717283,
+      "adj_p_val": 0.4617459764146099
+    },
+    "PHG": {
+      "correlation": 0.0555691060937462,
+      "adj_p_val": 0.5868075423762884
+    }
   },
   {
     "name": "5xFAD",
@@ -82,18 +70,14 @@
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
     "sex": "Male",
-    "results": [
-      {
-        "module": "IFG",
-        "correlation": 0.0341639955699389,
-        "adj_p_val": 0.7620534740342116
-      },
-      {
-        "module": "PHG",
-        "correlation": 0.0748918760876007,
-        "adj_p_val": 0.4636136814997038
-      }
-    ]
+    "IFG": {
+      "correlation": 0.0341639955699389,
+      "adj_p_val": 0.7620534740342116
+    },
+    "PHG": {
+      "correlation": 0.0748918760876007,
+      "adj_p_val": 0.4636136814997038
+    }
   },
   {
     "name": "APOE4",
@@ -103,18 +87,14 @@
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
     "sex": "Female",
-    "results": [
-      {
-        "module": "IFG",
-        "correlation": 0.0827022307818794,
+    "IFG": {
+      "correlation": 0.0827022307818794,
         "adj_p_val": 0.4629426405554373
       },
-      {
-        "module": "PHG",
-        "correlation": 0.0189281634597879,
-        "adj_p_val": 0.8532356007363054
-      }
-    ]
+    "PHG": {
+      "correlation": 0.0189281634597879,
+      "adj_p_val": 0.8532356007363054
+    }
   },
   {
     "name": "APOE4",
@@ -124,18 +104,14 @@
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
     "sex": "Female",
-    "results": [
-      {
-        "module": "IFG",
+      "IFG": {
         "correlation": 0.070482336169501,
         "adj_p_val": 0.5318004865047494
       },
-      {
-        "module": "PHG",
+      "PHG": {
         "correlation": 0.0794770495092502,
         "adj_p_val": 0.4366165051976555
       }
-    ]
   },
   {
     "name": "APOE4",
@@ -145,17 +121,13 @@
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "8 months",
     "sex": "Female",
-    "results": [
-      {
-        "module": "IFG",
-        "correlation": 0.0695648292036998,
+    "IFG": {
+      "correlation": 0.0695648292036998,
         "adj_p_val": 0.5371683491780308
-      },
-      {
-        "module": "PHG",
-        "correlation": 0.0136311661990827,
-        "adj_p_val": 0.8940221987653201
-      }
-    ]
+    },
+    "PHG": {
+      "correlation": 0.0136311661990827,
+      "adj_p_val": 0.8940221987653201
+    }
   }
 ]

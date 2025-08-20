@@ -6,7 +6,6 @@ from agoradatatools.etl.transform.disease_correlation import (
     transform_disease_correlation,
     create_lookup,
     extract_module_name,
-    create_result_dict,
     process_group,
     input_validation_model_info,
 )
@@ -127,14 +126,86 @@ class TestTransformDiseaseCorrelation:
                     and entry["cluster"] == "Cluster A"
                     and entry["age"] == "4 months"
                     and entry["sex"] == "Female"
-                    and len(entry["results"]) == 2
-                    and entry["results"][0]["module"] == "IFG"
-                    and entry["results"][1]["module"] == "PHG"
-                    and isinstance(entry["results"][0]["correlation"], float)
-                    and isinstance(entry["results"][0]["adj_p_val"], float)
+                    and len(entry["IFG"]) == 2
+                    and len(entry["PHG"]) == 2
+                    and isinstance(entry["IFG"]["correlation"], float)
+                    and isinstance(entry["PHG"]["adj_p_val"], float)
                     for entry in output
                 )
             ),
+        ),
+        # Duplicate allele_info
+        (
+            {
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
+                        },
+                    ]
+                ),
+                "model_info": pd.DataFrame(
+                    [
+                        {
+                            "name": "LOAD1",
+                            "matched_controls": "C57BL6J",
+                            "model_type": "Late Onset AD",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"name": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4"},
+                    ]
+                ),
+            },
+            lambda output: output[0]["modified_genes"] == "APOE4",
+        ),
+    ]
+    pass_test_ids = [
+        "Basic valid input should pass",
+        "Duplicate allele_info includes all genes should pass",
+    ]
+
+    @pytest.mark.parametrize(
+        "datasets, assertion_fn", pass_test_data, ids=pass_test_ids
+    )
+    def test_transform_disease_correlation_should_pass(self, datasets, assertion_fn):
+        output = transform_disease_correlation(datasets)
+        assert assertion_fn(output)
+
+    dataset_error_test_data = [
+        # Missing model_info
+        (
+            {
+                "disease_correlation_results": pd.DataFrame(
+                    [
+                        {
+                            "cluster": "Cluster A",
+                            "module": "IFGyellow",
+                            "mouse_model": "LOAD1",
+                            "sex": "Female",
+                            "age": "4 months",
+                            "correlation": "0.5",
+                            "adjusted_p_value": "0.01",
+                        },
+                    ]
+                ),
+                "allele_info": pd.DataFrame(
+                    [
+                        {"name": "LOAD1", "gene": "APOE4"},
+                    ]
+                ),
+            },
+            ValueError,
+            "Missing required datasets: model_info",
         ),
         # Duplicate results in disease_correlation_results
         (
@@ -176,85 +247,8 @@ class TestTransformDiseaseCorrelation:
                     ]
                 ),
             },
-            lambda output: (
-                len(output) == 1
-                and len(output[0]["results"]) == 2
-                and output[0]["results"][0] == output[0]["results"][1]
-            ),
-        ),
-        # Duplicate allele_info
-        (
-            {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
-                ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"name": "LOAD1", "gene": "APOE4"},
-                        {"name": "LOAD1", "gene": "APOE4"},
-                    ]
-                ),
-            },
-            lambda output: output[0]["modified_genes"] == "APOE4",
-        ),
-    ]
-    pass_test_ids = [
-        "Basic valid input should pass",
-        "Duplicate results in disease_correlation_results should pass",
-        "Duplicate allele_info includes all genes should pass",
-    ]
-
-    @pytest.mark.parametrize(
-        "datasets, assertion_fn", pass_test_data, ids=pass_test_ids
-    )
-    def test_transform_disease_correlation_should_pass(self, datasets, assertion_fn):
-        output = transform_disease_correlation(datasets)
-        assert assertion_fn(output)
-
-    dataset_error_test_data = [
-        # Missing model_info
-        (
-            {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"name": "LOAD1", "gene": "APOE4"},
-                    ]
-                ),
-            },
             ValueError,
-            "Missing required datasets: model_info",
+            "Module IFG already exists for LOAD1",
         ),
         # Inconsistent model_info
         (
@@ -333,7 +327,7 @@ class TestTransformDiseaseCorrelation:
         ),
     ]
 
-    dataset_error_test_ids = ["Missing model_info", "Inconsistent model_info"]
+    dataset_error_test_ids = ["Missing model_info", "Duplicate results in disease_correlation_results", "Inconsistent model_info"]
     column_error_test_ids = ["Missing required column in disease_correlation_results"]
 
     @pytest.mark.parametrize(
@@ -393,27 +387,6 @@ class TestExtractModuleName:
     def test_extract_module_name(self, input_module, expected):
         assert extract_module_name(input_module) == expected
 
-
-class TestCreateResultDict:
-    def test_create_result_dict_with_valid_data(self):
-
-        row = pd.Series(
-            {"module": "IFGyellow", "correlation": "0.5", "adjusted_p_value": "0.01"}
-        )
-
-        result = create_result_dict(row)
-        assert result == {"module": "IFG", "correlation": 0.5, "adj_p_val": 0.01}
-
-    def test_create_result_dict_with_empty_values(self):
-
-        row = pd.Series(
-            {"module": "IFGyellow", "correlation": "", "adjusted_p_value": ""}
-        )
-
-        result = create_result_dict(row)
-        assert result == {"module": "IFG", "correlation": None, "adj_p_val": None}
-
-
 class TestProcessGroup:
     def test_process_group_with_valid_data(self):
         # Create test data
@@ -454,10 +427,8 @@ class TestProcessGroup:
             "cluster": "Cluster A",
             "age": "4 months",
             "sex": "Female",
-            "results": [
-                {"module": "IFG", "correlation": 0.5, "adj_p_val": 0.01},
-                {"module": "PHG", "correlation": 0.6, "adj_p_val": 0.02},
-            ],
+            "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
+            "PHG": {"correlation": 0.6, "adj_p_val": 0.02}
         }
 
     def test_process_group_with_empty_model_info(self):
@@ -485,7 +456,7 @@ class TestProcessGroup:
             "cluster": "Cluster A",
             "age": "4 months",
             "sex": "Female",
-            "results": [{"module": "IFG", "correlation": 0.5, "adj_p_val": 0.01}],
+            "IFG": {"correlation": 0.5, "adj_p_val": 0.01}
         }
 
     def test_process_group_with_list_matched_controls(self):
