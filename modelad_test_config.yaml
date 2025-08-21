@@ -54,6 +54,9 @@ datasets:
         - name: human_transgene_allele_map
           id: syn64846805
           format: csv
+        - name: model_results_info
+          id: syn68377668
+          format: csv
       final_format: json
       provenance:
         - syn61378590

@@ -3,6 +3,7 @@ This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
 import pandas as pd
+import numpy as np
 from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns
@@ -29,6 +30,13 @@ REQUIRED_INPUT = {
         "alzforum_id",
         "genotype",
         "aliases",
+    ],
+    "model_results_info": [
+        "name",
+        "gene_expression",
+        "disease_correlation",
+        "pathology",
+        "biomarkers",
     ],
     "human_transgene_allele_map": [
         "mgi_allele_id",
@@ -160,6 +168,7 @@ def transform_model_details(
     allele_info_df = datasets["allele_info"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
+    model_results_info_df = datasets["model_results_info"].fillna({np.nan: None})
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
     if "jax_id" in model_info_df.columns:
@@ -210,6 +219,23 @@ def transform_model_details(
             "biomarkers": model_biomarkers,
             "pathology": model_pathology,
         }
+
+        model_results_info_row_dict = model_results_info_df[
+            model_results_info_df["name"] == model_name
+        ].to_dict("records")[0]
+
+        model_entry["gene_expression"] = (
+            {"link_url": f"comparison/expression?model={model_name}"}
+            if bool(model_results_info_row_dict["gene_expression"])
+            else None
+        )
+        model_entry["disease_correlation"] = (
+            {"link_url": f"comparison/correlation?model={model_name}"}
+            if bool(model_results_info_row_dict["disease_correlation"])
+            else None
+        )
+        model_entry["allen_institute"] = None
+
         result.append(model_entry)
 
     return result
