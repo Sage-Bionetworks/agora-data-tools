@@ -278,7 +278,7 @@ class TestTransformModelOverview:
             {
                 "name": "test_model",
                 "model_type": "Familial AD",
-                "matched_controls": "C57BL6J",
+                "matched_controls": ["C57BL6J"],
                 "gene_expression": {
                     "link_url": "comparison/expression?model=test_model"
                 },
@@ -357,7 +357,7 @@ class TestTransformModelOverview:
             {
                 "name": "test_model",
                 "model_type": "Familial AD",
-                "matched_controls": None,
+                "matched_controls": [],
                 "gene_expression": None,
                 "disease_correlation": None,
                 "pathology": None,
@@ -380,7 +380,7 @@ class TestTransformModelOverview:
         model_info = pd.DataFrame(
             {
                 "name": ["model1", "model2"],
-                "matched_controls": ["C57BL6J", "B6129"],
+                "matched_controls": ["C57BL6J", "B6129,B6130"],
                 "model_type": ["Familial AD", "Tauopathy"],
                 "contributing_group": ["Center1", "Center2"],
                 "study_synid": ["syn111", "syn222"],
@@ -442,7 +442,7 @@ class TestTransformModelOverview:
             {
                 "name": "model1",
                 "model_type": "Familial AD",
-                "matched_controls": "C57BL6J",
+                "matched_controls": ["C57BL6J"],
                 "gene_expression": {"link_url": "comparison/expression?model=model1"},
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/model1/pathology"},
@@ -458,7 +458,7 @@ class TestTransformModelOverview:
             {
                 "name": "model2",
                 "model_type": "Tauopathy",
-                "matched_controls": "B6129",
+                "matched_controls": ["B6129", "B6130"],
                 "gene_expression": None,
                 "disease_correlation": {
                     "link_url": "comparison/correlation?model=model2"
