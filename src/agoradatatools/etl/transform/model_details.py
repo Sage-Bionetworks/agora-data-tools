@@ -225,12 +225,12 @@ def transform_model_details(
         ].to_dict("records")[0]
 
         model_entry["gene_expression"] = (
-            {"link_url": f"comparison/expression?model={model_name}"}
+            f"comparison/expression?model={model_name}"
             if bool(model_results_info_row_dict["gene_expression"])
             else None
         )
         model_entry["disease_correlation"] = (
-            {"link_url": f"comparison/correlation?model={model_name}"}
+            f"comparison/correlation?model={model_name}"
             if bool(model_results_info_row_dict["disease_correlation"])
             else None
         )
