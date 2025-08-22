@@ -21,6 +21,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_good_test_input.csv",
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             "model_details_transform_good_test_output.json",
         ),
@@ -32,6 +33,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_good_test_input.csv",
                 "model_info": "model_details_model_info_missing_data_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             "model_details_transform_missing_data_output.json",
         ),
@@ -43,6 +45,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_good_test_input.csv",
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_empty_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             "model_details_transform_empty_measurements_output.json",
         ),
@@ -54,6 +57,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_good_test_input.csv",
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             "model_details_transform_extra_column_output.json",
         ),
@@ -65,6 +69,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_good_test_input.csv",
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             "model_details_transform_no_human_match_output.json",
         ),
@@ -76,6 +81,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_missing_data_input.csv",
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             "model_details_transform_missing_allele_info_output.json",
         ),
@@ -87,6 +93,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_missing_models_test.csv",
                 "model_info": "model_details_model_info_missing_models_test.csv",
                 "pathology": "model_details_pathology_missing_models_test.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             "model_details_transform_missing_models_output.json",
         ),
@@ -108,6 +115,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_good_test_input.csv",
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             ValueError,
         ),
@@ -119,6 +127,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_good_test_input.csv",
                 "model_info": "model_details_model_info_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             ValueError,
         ),
@@ -130,6 +139,7 @@ class TestTransformModelDetails:
                 "allele_info": "model_details_allele_info_good_test_input.csv",
                 "model_info": "model_details_model_info_missing_column_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_good_test_input.csv",
             },
             ValueError,
         ),
@@ -281,12 +291,23 @@ class TestTransformModelDetails:
             }
         )
 
+        model_results_info_df = pd.DataFrame(
+            {
+                "name": pd.Series(dtype="object"),
+                "gene_expression": pd.Series(dtype="object"),
+                "disease_correlation": pd.Series(dtype="object"),
+                "pathology": pd.Series(dtype="object"),
+                "biomarkers": pd.Series(dtype="object"),
+            }
+        )
+
         datasets = {
             "model_info": model_info_df,
             "allele_info": allele_info_df,
             "human_transgene_allele_map": human_transgene_allele_map_df,
             "biomarkers": biomarkers_df,
             "pathology": pathology_df,
+            "model_results_info": model_results_info_df,
         }
 
         # Transform data

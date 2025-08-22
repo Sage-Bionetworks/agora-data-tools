@@ -14,6 +14,9 @@
     "aliases": [
       "3xTg"
     ],
+    "gene_expression": "comparison/expression?model=3xTg-AD",
+    "disease_correlation": null,
+    "allen_institute": null,
     "genetic_info": [
       {
         "modified_gene": "APP",
@@ -190,6 +193,9 @@
       "hTau",
       "Mapt-/-"
     ],
+    "gene_expression": null,
+    "disease_correlation": null,
+    "allen_institute": null,
     "genetic_info": [
       {
         "modified_gene": "MAPT",
@@ -298,6 +304,9 @@
     "aliases": [
       "New1"
     ],
+    "gene_expression": null,
+    "disease_correlation": null,
+    "allen_institute": null,
     "genetic_info": [
       {
         "modified_gene": "APP",
@@ -341,6 +350,9 @@
     "aliases": [
       "New2"
     ],
+    "gene_expression": null,
+    "disease_correlation": null,
+    "allen_institute": null,
     "genetic_info": [
       {
         "modified_gene": "MAPT",

@@ -215,26 +215,30 @@ def transform_model_details(
             "alzforum_id": model_row["alzforum_id"],
             "genotype": model_row["genotype"],
             "aliases": model_row["aliases"],
+            "gene_expression": None,
+            "disease_correlation": None,
+            "allen_institute": None,
             "genetic_info": genetic_info,
             "biomarkers": model_biomarkers,
             "pathology": model_pathology,
         }
 
-        model_results_info_row_dict = model_results_info_df[
-            model_results_info_df["name"] == model_name
-        ].to_dict("records")[0]
+        # Add gene expression and disease correlation links if they exist
+        if model_name in model_results_info_df["name"].values:
+            model_results_info_row_dict = model_results_info_df[
+                model_results_info_df["name"] == model_name
+            ].to_dict("records")[0]
 
-        model_entry["gene_expression"] = (
-            f"comparison/expression?model={model_name}"
-            if bool(model_results_info_row_dict["gene_expression"])
-            else None
-        )
-        model_entry["disease_correlation"] = (
-            f"comparison/correlation?model={model_name}"
-            if bool(model_results_info_row_dict["disease_correlation"])
-            else None
-        )
-        model_entry["allen_institute"] = None
+            model_entry["gene_expression"] = (
+                f"comparison/expression?model={model_name}"
+                if pd.notna(model_results_info_row_dict["gene_expression"]) and bool(model_results_info_row_dict["gene_expression"])
+                else None
+            )
+            model_entry["disease_correlation"] = (
+                f"comparison/correlation?model={model_name}"
+                if pd.notna(model_results_info_row_dict["disease_correlation"]) and bool(model_results_info_row_dict["disease_correlation"])
+                else None
+            )
 
         result.append(model_entry)
 
