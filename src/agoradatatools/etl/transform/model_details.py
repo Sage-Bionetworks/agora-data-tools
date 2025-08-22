@@ -231,12 +231,14 @@ def transform_model_details(
 
             model_entry["gene_expression"] = (
                 f"comparison/expression?model={model_name}"
-                if pd.notna(model_results_info_row_dict["gene_expression"]) and bool(model_results_info_row_dict["gene_expression"])
+                if pd.notna(model_results_info_row_dict["gene_expression"])
+                and bool(model_results_info_row_dict["gene_expression"])
                 else None
             )
             model_entry["disease_correlation"] = (
                 f"comparison/correlation?model={model_name}"
-                if pd.notna(model_results_info_row_dict["disease_correlation"]) and bool(model_results_info_row_dict["disease_correlation"])
+                if pd.notna(model_results_info_row_dict["disease_correlation"])
+                and bool(model_results_info_row_dict["disease_correlation"])
                 else None
             )
 
