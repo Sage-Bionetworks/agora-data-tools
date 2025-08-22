@@ -78,7 +78,7 @@ class GreatExpectationsRunner:
         from expectations.expect_column_nested_field_values_mostly_meet_string_requirement import (
             ExpectColumnNestedObjectStringLength,
         )
-        from expectations.expect_column_nested_field_values_mostly_meet_string_requirement import (
+        from expectations.expect_column_nested_field_values_mostly_regex import (
             ExpectColumnNestedObjectRegexRule,
         )
 
