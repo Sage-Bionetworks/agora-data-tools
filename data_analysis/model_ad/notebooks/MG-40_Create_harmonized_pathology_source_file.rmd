@@ -270,17 +270,13 @@ https://docs.google.com/spreadsheets/d/1B3ZMReC7nR2CGgpFNJuxJTj__lF2h6dt/edit?gi
 threex_pathology <- threex_pathology_source %>%
 
         # Filter out rows with unused 'Stain' values
-        filter(stain %in% stain_keeps)
+        filter(stain %in% stain_keeps
 
-threex_pathology
+        # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "3xTg-AD", keeps_with_pool_join_field
 
-# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-threex_pathology <- transform_results(threex_pathology, c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "3xTg-AD", keeps_with_pool_join_field)
-threex_pathology
-
-# Drop rows with NA measurements
-threex_pathology <-  filter(threex_pathology, !is.na(measurement))
-threex_pathology
+        # Drop rows with NA measurements
+        ) %>% filter(!is.na(measurement))
 ```
 
 
@@ -288,14 +284,14 @@ threex_pathology
 ### 5xFAD
 fivex_source_keeps <- c("IndividualID", "SpecimenID", "Stain")
 
-# 5xFAD colnames aren't consistent with other source data
+# 5xFAD colnames aren't consistent with other models
 fivex_rename_cols <- function (results) {
   results %>% dplyr::rename(c('stain' = 'Stain',
                        'individualID' = 'IndividualID',
                        'specimenID' = 'SpecimenID'))
 }
 
-# Filter source files to select desired rows by 'Stain' value, drop unneeded columns
+# Filter each source file to select desired rows by 'Stain' value, drop unneeded columns, and rename the remaining columns
 fivex_gfap_s100b <- fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain %in% c('GFAP', 'S100B'),] %>%
   select(c(fivex_source_keeps, "X.objects..sqmm"))  %>%
   fivex_rename_cols()
@@ -313,12 +309,12 @@ fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'ThioS',
   mutate(X.objects..sqmm = ifelse(X.objects..sqmm == "N/A", 0, X.objects..sqmm)) %>%
   fivex_rename_cols()
 
+# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
 model = "5xFAD (UCI)"
 fivex_gfap_s100b_pivot <- transform_results(fivex_gfap_s100b, c('X.objects..sqmm'), model, keeps_with_join_fields)
 fivex_lamp1_pivot <- transform_results(fivex_lamp1, c('Area..'), model, keeps_with_join_fields)
 fivex_iba1_pivot <- transform_results(fivex_iba1, c('X.objects..sqmm'), model, keeps_with_join_fields)
 fivex_thios_pivot <- transform_results(fivex_thios, c('X.objects..sqmm', 'mean.object.area..squm.'), model, keeps_with_join_fields)
-
 
 # Merge all results into a single data frame
 fivex_pathology <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_iba1_pivot, fivex_thios_pivot
@@ -331,8 +327,6 @@ fivex_pathology <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_ib
     ) %>% mutate(
             measurement = ifelse(is.na(measurement), 0, measurement)
 )
-
-fivex_pathology
 ```
 
 ### Trem2-R47H_NSS
@@ -340,17 +334,13 @@ fivex_pathology
 nss_pathology <- nss_pathology_source %>%
 
         # Filter out rows with unused 'Stain' values
-        filter(stain %in% stain_keeps)
+        filter(stain %in% stain_keeps
 
-nss_pathology
+        # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "Trem2-R47H_NSS", keeps_with_pool_join_field
 
-# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-nss_pathology <- transform_results(nss_pathology, c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "Trem2-R47H_NSS", keeps_with_pool_join_field)
-nss_pathology
-
-# Drop rows with NA measurements
-nss_pathology <-  filter(nss_pathology, !is.na(measurement))
-nss_pathology
+        # Drop rows with NA measurements
+        ) %>% filter(!is.na(measurement))
 ```
 
 ### Abca7*V1599M
@@ -358,21 +348,16 @@ nss_pathology
 abca7_pathology <- abca7_pathology_source %>%
 
         # Filter out rows with unused 'Stain' values
-        filter(stain %in% stain_keeps)
+        filter(stain %in% stain_keeps
 
-abca7_pathology
+        # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "Abca7*V1599M", keeps_with_pool_join_field
 
-# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-abca7_pathology <- transform_results(abca7_pathology, c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "Abca7*V1599M", keeps_with_pool_join_field)
-abca7_pathology
+        # Drop rows with NA measurements
+        ) %>% filter(!is.na(measurement)
 
-# Drop rows with NA measurements
-abca7_pathology <-  filter(abca7_pathology, !is.na(measurement))
-
-# Drop LAMP1 rows with measurements other than total object volume (cubic mm)
-abca7_pathology <-  filter(abca7_pathology, !(type == LAMP1_display_name & (units == objectDensity_display_name | units == averageObjectVolume_display_name)))
-
-abca7_pathology
+        # Drop LAMP1 rows with measurements other than total object volume (cubic mm)
+        ) %>% filter(!(type == LAMP1_display_name & (units == objectDensity_display_name | units == averageObjectVolume_display_name)))
 ```
 
 ## Sanity check generated files
