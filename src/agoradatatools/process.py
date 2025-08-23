@@ -407,7 +407,7 @@ upload_opt = Option(
     False,
     "--upload",
     "-u",
-    help="Boolean value that toggles whether or not files will be uploaded to Synapse. The absence of this option means "
+    help="Boolean value that toggles whether or not files or GX reports will be uploaded to Synapse. The absence of this option means "
     "`False` - that neither output data files nor GX reports will be uploaded to Synapse. Setting "
     "`--upload` in the command will cause both to be uploaded. (Optional, defaults to False)",
     show_default=True,

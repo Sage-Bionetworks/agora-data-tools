@@ -71,6 +71,11 @@ datasets:
         measurement: value
         type: evidence_type
         model: name
+      gx_nested_columns:
+        - genetic_info
+        - biomarkers
+        - pathology
+      gx_enabled: true
 
   - disease_correlation:
       files:
@@ -102,6 +107,9 @@ datasets:
       provenance:
         - syn66527739
       destination: *dest
+      gx_enabled: true
+      gx_nested_columns:
+        - columns
 
   - model_overview:
       files:
