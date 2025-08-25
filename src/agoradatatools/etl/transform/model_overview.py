@@ -162,7 +162,7 @@ def transform_model_overview(
         )
         row["study_data"] = (
             {
-                "link_url": f"https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study={row['study_synid']}"
+                "link_url": f"https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study={row['study_synid']}"
             }
             if row["study_synid"]
             else None
