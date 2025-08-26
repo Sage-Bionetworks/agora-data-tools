@@ -106,7 +106,9 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def rename_columns(data: Union[pd.DataFrame, list, dict], column_map: dict) -> Union[pd.DataFrame, list, dict]:
+def rename_columns(
+    data: Union[pd.DataFrame, list, dict], column_map: dict
+) -> Union[pd.DataFrame, list, dict]:
     """Takes in a dataframe, list of dictionaries, or dictionary and renames columns according to the mapping provided
 
     Args:
@@ -116,6 +118,7 @@ def rename_columns(data: Union[pd.DataFrame, list, dict], column_map: dict) -> U
     Returns:
         pd.DataFrame, list, dict: DataFrame, list of dictionaries, or dictionary with new columns names
     """
+
     def _rename_dict(d: dict, column_map: dict) -> None:
         """
         Rename keys in a dictionary in place.
@@ -123,7 +126,7 @@ def rename_columns(data: Union[pd.DataFrame, list, dict], column_map: dict) -> U
         for old_key, new_key in column_map.items():
             if old_key in d:
                 d[new_key] = d.pop(old_key)
-    
+
     try:
         if isinstance(data, list):
             for item in data:
@@ -135,7 +138,7 @@ def rename_columns(data: Union[pd.DataFrame, list, dict], column_map: dict) -> U
     except TypeError:
         print("Column mapping must be a dictionary")
         return data
-    
+
     return data
 
 

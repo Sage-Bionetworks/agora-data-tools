@@ -476,7 +476,9 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
-            data_as_df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
@@ -690,7 +692,9 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
-            data_as_df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
@@ -724,7 +728,9 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
-            data_as_df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
@@ -758,7 +764,9 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
-            data_as_df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()

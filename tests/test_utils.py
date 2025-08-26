@@ -203,6 +203,139 @@ class TestRenameColumns:
         assert "Column mapping must be a dictionary" in captured_output.getvalue()
         assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
 
+    def test_rename_columns_with_dict_input(self):
+        """Test renaming columns in a dictionary input"""
+        input_dict = {"a": "value1", "b": "value2", "c": "value3"}
+        column_map = {"a": "x", "b": "y", "c": "z"}
+
+        result = utils.rename_columns(data=input_dict, column_map=column_map)
+
+        expected = {"x": "value1", "y": "value2", "z": "value3"}
+        assert result == expected
+        # Verify the original dict was modified in place
+        assert input_dict == expected
+
+    def test_rename_columns_with_list_of_dicts_input(self):
+        """Test renaming columns in a list of dictionaries input"""
+        input_list = [
+            {"a": "value1", "b": "value2", "c": "value3"},
+            {"a": "value4", "b": "value5", "c": "value6"},
+            {"a": "value7", "b": "value8", "c": "value9"},
+        ]
+        column_map = {"a": "x", "b": "y", "c": "z"}
+
+        result = utils.rename_columns(data=input_list, column_map=column_map)
+
+        expected = [
+            {"x": "value1", "y": "value2", "z": "value3"},
+            {"x": "value4", "y": "value5", "z": "value6"},
+            {"x": "value7", "y": "value8", "z": "value9"},
+        ]
+        assert result == expected
+        # Verify the original list was modified in place
+        assert input_list == expected
+
+    def test_rename_columns_with_partial_mapping(self):
+        """Test renaming only some columns, leaving others unchanged"""
+        input_dict = {"a": "value1", "b": "value2", "c": "value3", "d": "value4"}
+        column_map = {"a": "x", "c": "z"}  # Only rename 'a' and 'c'
+
+        result = utils.rename_columns(data=input_dict, column_map=column_map)
+
+        expected = {"x": "value1", "b": "value2", "z": "value3", "d": "value4"}
+        assert result == expected
+
+    def test_rename_columns_with_nonexistent_keys(self):
+        """Test renaming when column_map contains keys that don't exist in the data"""
+        input_dict = {"a": "value1", "b": "value2"}
+        column_map = {"a": "x", "c": "z", "d": "w"}  # 'c' and 'd' don't exist
+
+        result = utils.rename_columns(data=input_dict, column_map=column_map)
+
+        expected = {"x": "value1", "b": "value2"}  # Only 'a' was renamed
+        assert result == expected
+
+    def test_rename_columns_with_empty_dict(self):
+        """Test renaming with an empty column mapping"""
+        input_dict = {"a": "value1", "b": "value2"}
+        column_map = {}
+
+        result = utils.rename_columns(data=input_dict, column_map=column_map)
+
+        # Should return unchanged data
+        assert result == {"a": "value1", "b": "value2"}
+
+    def test_rename_columns_with_empty_list(self):
+        """Test renaming with an empty list of dictionaries"""
+        input_list = []
+        column_map = {"a": "x", "b": "y"}
+
+        result = utils.rename_columns(data=input_list, column_map=column_map)
+
+        # Should return unchanged empty list
+        assert result == []
+
+    def test_rename_columns_with_mixed_list_content(self):
+        """Test renaming with a list containing dictionaries with different keys"""
+        input_list = [
+            {"a": "value1", "b": "value2"},
+            {"a": "value3", "c": "value4"},  # Missing 'b', has 'c'
+            {"b": "value5", "d": "value6"},  # Missing 'a', has 'd'
+        ]
+        column_map = {"a": "x", "b": "y"}
+
+        result = utils.rename_columns(data=input_list, column_map=column_map)
+
+        expected = [
+            {"x": "value1", "y": "value2"},
+            {"x": "value3", "c": "value4"},  # Only 'a' was renamed
+            {"y": "value5", "d": "value6"},  # Only 'b' was renamed
+        ]
+        assert result == expected
+
+    def test_rename_columns_preserves_dataframe_values(self):
+        """Test that DataFrame values are preserved after renaming"""
+        df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"], "c": [1.5, 2.5, 3.5]})
+        column_map = {"a": "x", "b": "y", "c": "z"}
+
+        result = utils.rename_columns(data=df.copy(), column_map=column_map)
+
+        # Check column names
+        assert list(result.columns) == ["x", "y", "z"]
+        # Check values are preserved
+        pd.testing.assert_frame_equal(
+            result,
+            pd.DataFrame({"x": [1, 2, 3], "y": ["x", "y", "z"], "z": [1.5, 2.5, 3.5]}),
+        )
+
+    def test_rename_columns_preserves_dict_values(self):
+        """Test that dictionary values are preserved after renaming"""
+        input_dict = {"a": [1, 2, 3], "b": {"nested": "value"}, "c": None, "d": 42}
+        column_map = {"a": "x", "b": "y", "c": "z", "d": "w"}
+
+        result = utils.rename_columns(data=input_dict, column_map=column_map)
+
+        expected = {"x": [1, 2, 3], "y": {"nested": "value"}, "z": None, "w": 42}
+        assert result == expected
+
+    def test_rename_columns_with_complex_nested_structures(self):
+        """Test renaming with complex nested data structures"""
+        input_dict = {
+            "a": {"nested": {"deep": "value"}},
+            "b": [{"inner": "data"}, {"inner": "more_data"}],
+            "c": "simple_string",
+        }
+        column_map = {"a": "x", "b": "y", "c": "z"}
+
+        result = utils.rename_columns(data=input_dict, column_map=column_map)
+
+        expected = {
+            "x": {"nested": {"deep": "value"}},
+            "y": [{"inner": "data"}, {"inner": "more_data"}],
+            "z": "simple_string",
+        }
+        assert result == expected
+
 
 class TestNestFields:
     """Tests the nest_fields function using a dataframe that has multiple rows per group and

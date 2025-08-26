@@ -155,7 +155,10 @@ def dict_to_json(data_as_dict: dict, staging_path: str, filename: str) -> str:
     """
 
     output = [  # TODO explore the df.to_dict() function for this case
-        {d: remove_non_values(v) if isinstance(v, dict) else v for d, v in data_as_dict.items()}
+        {
+            d: remove_non_values(v) if isinstance(v, dict) else v
+            for d, v in data_as_dict.items()
+        }
     ]
     temp_json = open(os.path.join(staging_path, filename), "w+")
     json.dump(output, temp_json, cls=NumpyEncoder, indent=2)

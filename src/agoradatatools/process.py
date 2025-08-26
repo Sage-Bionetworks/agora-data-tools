@@ -108,7 +108,9 @@ def upload_dataversion_metadata(
         dataversion_dict["team_images_id"] = team_images_id
 
     dataversion_json_path = load.dict_to_json(
-        data_as_dict=dataversion_dict, staging_path=staging_path, filename="dataversion.json"
+        data_as_dict=dataversion_dict,
+        staging_path=staging_path,
+        filename="dataversion.json",
     )
     load.load(
         file_path=dataversion_json_path,
