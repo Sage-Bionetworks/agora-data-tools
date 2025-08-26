@@ -217,7 +217,7 @@ def transform_model_details(
             "aliases": model_row["aliases"],
             "gene_expression": None,
             "disease_correlation": None,
-            "allen_institute": None,
+            "spatial_transcriptomics": None,
             "genetic_info": genetic_info,
             "biomarkers": model_biomarkers,
             "pathology": model_pathology,

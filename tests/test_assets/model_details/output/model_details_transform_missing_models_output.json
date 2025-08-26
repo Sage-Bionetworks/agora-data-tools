@@ -16,7 +16,7 @@
     ],
     "gene_expression": "comparison/expression?model=3xTg-AD",
     "disease_correlation": null,
-    "allen_institute": null,
+    "spatial_transcriptomics": null,
     "genetic_info": [
       {
         "modified_gene": "APP",
@@ -195,7 +195,7 @@
     ],
     "gene_expression": null,
     "disease_correlation": null,
-    "allen_institute": null,
+    "spatial_transcriptomics": null,
     "genetic_info": [
       {
         "modified_gene": "MAPT",
@@ -306,7 +306,7 @@
     ],
     "gene_expression": null,
     "disease_correlation": null,
-    "allen_institute": null,
+    "spatial_transcriptomics": null,
     "genetic_info": [
       {
         "modified_gene": "APP",
@@ -352,7 +352,7 @@
     ],
     "gene_expression": null,
     "disease_correlation": null,
-    "allen_institute": null,
+    "spatial_transcriptomics": null,
     "genetic_info": [
       {
         "modified_gene": "MAPT",
