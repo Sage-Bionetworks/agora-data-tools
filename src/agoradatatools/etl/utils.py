@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
-from pandas import DataFrame
 
 
 # TODO remove "_" - these utils functions are not only used internally
@@ -336,4 +335,3 @@ def convert_numpy_types(obj: Any) -> Any:
     elif isinstance(obj, list):
         return [convert_numpy_types(item) for item in obj]
     return obj
-
