@@ -106,23 +106,37 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
-    """Takes in a dataframe and renames columns according to the mapping provided
+def rename_columns(data: Union[pd.DataFrame, list, dict], column_map: dict) -> Union[pd.DataFrame, list, dict]:
+    """Takes in a dataframe, list of dictionaries, or dictionary and renames columns according to the mapping provided
 
     Args:
-        df (pd.DataFrame): DataFrame with columns to be renamed
+        data (pd.DataFrame, list, dict): DataFrame, list of dictionaries, or dictionary with columns to be renamed
         column_map (dict): Dictionary mapping original column names to new columns
 
     Returns:
-        pd.DataFrame: DataFrame with new columns names
+        pd.DataFrame, list, dict: DataFrame, list of dictionaries, or dictionary with new columns names
     """
+    def _rename_dict(d: dict, column_map: dict) -> None:
+        """
+        Rename keys in a dictionary in place.
+        """
+        for old_key, new_key in column_map.items():
+            if old_key in d:
+                d[new_key] = d.pop(old_key)
+    
     try:
-        df.rename(columns=column_map, inplace=True)
+        if isinstance(data, list):
+            for item in data:
+                _rename_dict(item, column_map)
+        elif isinstance(data, dict):
+            _rename_dict(data, column_map)
+        else:
+            data.rename(columns=column_map, inplace=True)
     except TypeError:
         print("Column mapping must be a dictionary")
-        return df
-
-    return df
+        return data
+    
+    return data
 
 
 def nest_fields(

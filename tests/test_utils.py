@@ -190,7 +190,7 @@ class TestRenameColumns:
 
     def test_rename_columns_success(self):
         renamed_df = utils.rename_columns(
-            df=self.df.copy(), column_map=self.good_column_map
+            data=self.df.copy(), column_map=self.good_column_map
         )
         assert list(renamed_df.columns) == list(self.good_column_map.values())
 
@@ -198,7 +198,7 @@ class TestRenameColumns:
         captured_output = StringIO()
         sys.stdout = captured_output
         bad_renamed_df = utils.rename_columns(
-            df=self.df.copy(), column_map=self.bad_column_map
+            data=self.df.copy(), column_map=self.bad_column_map
         )
         assert "Column mapping must be a dictionary" in captured_output.getvalue()
         assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())

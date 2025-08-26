@@ -104,11 +104,11 @@ def load(file_path: str, provenance: list, destination: str, syn: Synapse) -> tu
     return (file.id, file.versionNumber)
 
 
-def df_to_json(df: pd.DataFrame, staging_path: str, filename: str) -> str:
+def df_to_json(data_as_df: pd.DataFrame, staging_path: str, filename: str) -> str:
     """Converts a data frame into a json file.
 
     Args:
-        df (pd.DataFrame): DataFrame to be converted to JSON
+        data_as_df (pd.DataFrame): DataFrame to be converted to JSON
         staging_path (str): Path to staging directory
         filename (str): name of JSON file to be created
 
@@ -116,8 +116,8 @@ def df_to_json(df: pd.DataFrame, staging_path: str, filename: str) -> str:
        str: Returns a string containing the name of the new JSON file
     """
 
-    df = df.replace({np.nan: None})
-    df_as_dict = df.to_dict(orient="records")
+    data_as_df = data_as_df.replace({np.nan: None})
+    df_as_dict = data_as_df.to_dict(orient="records")
     temp_json = open(os.path.join(staging_path, filename), "w+")
     json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
     temp_json.close()
@@ -142,11 +142,11 @@ def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> str:
     return temp_csv.name
 
 
-def dict_to_json(df: dict, staging_path: str, filename: str) -> str:
+def dict_to_json(data_as_dict: dict, staging_path: str, filename: str) -> str:
     """Converts a data dictionary into a JSON file.
 
     Args:
-        df (dict): Dictionary to be converted to a JSON file
+        data_as_dict (dict): Dictionary to be converted to a JSON file
         staging_path (str): Path to staging directory
         filename (str): name of JSON file to be created
 
@@ -154,22 +154,22 @@ def dict_to_json(df: dict, staging_path: str, filename: str) -> str:
         str: Returns a string containing the name of the new JSON file
     """
 
-    df_as_dict = [  # TODO explore the df.to_dict() function for this case
-        {d: remove_non_values(v) if isinstance(v, dict) else v for d, v in df.items()}
+    output = [  # TODO explore the df.to_dict() function for this case
+        {d: remove_non_values(v) if isinstance(v, dict) else v for d, v in data_as_dict.items()}
     ]
     temp_json = open(os.path.join(staging_path, filename), "w+")
-    json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)
+    json.dump(output, temp_json, cls=NumpyEncoder, indent=2)
     temp_json.close()
     return temp_json.name
 
 
 def list_to_json(
-    df_as_list: List[Dict[str, Any]], staging_path: str, filename: str
+    data_as_list: List[Dict[str, Any]], staging_path: str, filename: str
 ) -> str:
     """Converts a data list into a JSON file.
 
     Args:
-        df (list): List to be converted to a JSON file
+        data_as_list (list): List to be converted to a JSON file
         staging_path (str): Path to staging directory
         filename (str): name of JSON file to be created
 
@@ -178,5 +178,5 @@ def list_to_json(
     """
 
     with open(os.path.join(staging_path, filename), "w+") as temp_json:
-        json.dump(df_as_list, temp_json, cls=NumpyEncoder, indent=2)
+        json.dump(data_as_list, temp_json, cls=NumpyEncoder, indent=2)
     return os.path.join(staging_path, filename)
