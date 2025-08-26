@@ -137,7 +137,7 @@ class TestDictToJSON:
 
     def test_dict_to_json_success(self):
         json_name = load.dict_to_json(
-            df=self.df_dict, staging_path="./staging", filename="test.json"
+            data_as_dict=self.df_dict, staging_path="./staging", filename="test.json"
         )
         self.patch_remove_non_values.assert_called_once_with({"d": "e"})
         self.patch_json_dump.assert_called_once_with(
