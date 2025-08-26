@@ -419,11 +419,6 @@ class TestProcessDataset:
         self.patch_custom_transform = patch.object(
             process, "apply_custom_transformations", return_value=pd.DataFrame()
         ).start()
-        self.patch_convert_transformation_result_to_dataframe = patch.object(
-            utils,
-            "convert_transformation_result_to_dataframe",
-            return_value=pd.DataFrame(),
-        ).start()
         self.patch_dict_to_json = patch.object(
             load, "dict_to_json", return_value="path/to/json"
         ).start()
