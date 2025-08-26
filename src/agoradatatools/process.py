@@ -159,11 +159,12 @@ def process_dataset(
         entities_as_df[entity_name] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
-        df = apply_custom_transformations(
+        result = apply_custom_transformations(
             datasets=entities_as_df,
             dataset_name=dataset_name,
             dataset_obj=dataset_obj[dataset_name],
         )
+        df = utils.convert_transformation_result_to_dataframe(result, dataset_name)
 
     else:
         df = entities_as_df[list(entities_as_df)[0]]
