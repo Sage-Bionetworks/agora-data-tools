@@ -89,7 +89,7 @@ class TestDFToJSON:
 
     def test_df_to_json_success(self):
         json_name = load.df_to_json(
-            df=pd.DataFrame(), staging_path="./staging", filename="test.json"
+            data_as_df=pd.DataFrame(), staging_path="./staging", filename="test.json"
         )
         self.patch_replace.assert_called_once_with({np.nan: None})
         self.patch_to_dict.assert_called_once_with(orient="records")
