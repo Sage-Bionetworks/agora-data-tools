@@ -195,10 +195,10 @@ transform_results <- function(results, measurement_columns, model_name, fields_t
 
 
 # Join a data file to a pair of metadata files to get required age, sex, ageDeath, and genotype values
+# - df: A dataframe containing result rows
 # - individual_metadata: A dataframe containing individual-level metadata
 # - biospecimen_metadata: A dataframe containing specimen metadata
-# - df: A dataframe containing result rows
-join_to_metadata <- function(individual_metadata, biospecimen_metadata, df) {
+join_to_metadata <- function(df, individual_metadata, biospecimen_metadata) {
 
   individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
   biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
@@ -506,18 +506,18 @@ stopifnot(nrow(abca7_pathology[abca7_pathology$type == ThioS_density_display_nam
 ## Join source files to metadata to populate age, tissue, and genotype values
 ```{r}
 # 3xTG-AD
-threex_final <- join_to_metadata(threex_individual, threex_biospecimen, threex_pathology)[keeps]
+threex_final <- join_to_metadata(threex_pathology, threex_individual, threex_biospecimen)[keeps]
 
 # 5xFAD
-fivex_with_8mo <- join_to_metadata(fivex_individual, fivex_biospecimen, fivex_pathology)[keeps]
+fivex_with_8mo <- join_to_metadata(fivex_pathology, fivex_individual, fivex_biospecimen)[keeps]
 # drop unwanted 8 month samples from 5xFAD
 fivex_final <- fivex_with_8mo[fivex_with_8mo$ageDeath != 8,]
 
 # Trem2-R47H_NSS
-nss_final <- join_to_metadata(nss_individual, nss_biospecimen, nss_pathology)[keeps]
+nss_final <- join_to_metadata(nss_pathology, nss_individual, nss_biospecimen)[keeps]
 
 # Abca7*V1599M
-abca7_final <- join_to_metadata(abca7_individual, abca7_biospecimen, abca7_pathology)[keeps]
+abca7_final <- join_to_metadata(abca7_pathology, abca7_individual, abca7_biospecimen)[keeps]
 ```
 
 
