@@ -198,6 +198,13 @@ def transform_model_overview(
         # Calculate available_data based on which links are actually present
         row["available_data"] = get_list_of_available_data(row)
 
+        # Convert matched_controlss from comma-delimited strings to lists
+        row["matched_controls"] = (
+            [x.strip() for x in str(row["matched_controls"]).split(",")]
+            if pd.notna(row["matched_controls"]) and row["matched_controls"] != ""
+            else []
+        )
+
         # Keep only the columns that will be in transformed_records in row
         keep_columns = [
             "name",
