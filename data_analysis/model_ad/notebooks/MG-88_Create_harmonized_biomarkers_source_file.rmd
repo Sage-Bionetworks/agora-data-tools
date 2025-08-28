@@ -70,12 +70,14 @@ library(tidyverse)
 # Harmonized column spec for intermediate per-model files
 intermediate_keeps <- c('specimenID', 'individualID', 'model', 'type', 'measurement', 'units')
 
-# Vector to store all downloaded synIds for Synapse provenance
+# Vector to store all downloaded synIds for Synapse provenance (populated via download_csv function)
 data_sources <- character()
 
 
-# Download a file from Synapse by synId and read it into a dataframe
-download_file <- function(synId, df_name, type) {
+# Download a csv file from Synapse by synId and read it into a dataframe
+# - synId: synapse ID of the file to download
+# - df_name: the name to use for the resulting dataframe
+download_csv <- function(synId, df_name) {
 
   synLogin()
 
@@ -93,7 +95,6 @@ download_file <- function(synId, df_name, type) {
 
   cat(paste0("Downloading ", synId, "..."))
 
-
   file <- synGet(id_value, version = version_value, downloadLocation = input_dir, ifcollision='overwrite.local')
   path <- file$path
 
@@ -101,16 +102,8 @@ download_file <- function(synId, df_name, type) {
   cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
   cat("\npath: ", file$path, "\n")
 
-  if (type == 'f') {
-    data <- read_feather(path)
-  } else {
-    if (type == 'json') { data <- fromJSON(path) }
-    if (type == 'csv' || type == 'table') { data <- read.csv(path) }
-    if (type == 'tsv') { data <- read.csv(path, sep = "\t") }
-    if (type == 'rda') { data <- load(path)}
-    if (type == 'rds') {data <- readRDS(path)}
-    df_name <- as.data.frame(data)
-  }
+  data <- read.csv(path)
+  df_name <- as.data.frame(data)
 }
 
 # Join a data file to a pair of metadata files to get required age, sex, ageDeath, and genotype values
@@ -128,52 +121,52 @@ join_to_metadata <- function(df, individual_metadata, biospecimen_metadata) {
 
 
 ## Download data and metadata files from Synapse
-Note that each file's synId and version is added to the data_sources vector via the download_file function.
+Note that each file's synId and version is added to the data_sources vector via the download_csv function.
 The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
 ```{r}
 # 3xTG-AD
 # metadata
-threex_biospecimen <- download_file('syn23532198.3', type = "csv")
-threex_individual <- download_file('syn23532199.4', type = "csv")
+threex_biospecimen <- download_csv('syn23532198.3')
+threex_individual <- download_csv('syn23532199.4')
 # Abetas
-threex_abs_sol_source <- download_file('syn25913411.7', type = "csv")
-threex_abs_insol_source <- download_file('syn25913418.8', type = "csv")
+threex_abs_sol_source <- download_csv('syn25913411.7')
+threex_abs_insol_source <- download_csv('syn25913418.8')
 # NO NFL DATA
 
 # 5xFAD
 # metadata
-fivex_biospecimen <- download_file('syn18876530.10', type = "csv")
-fivex_individual <- download_file('syn18880070.14', type = "csv")
+fivex_biospecimen <- download_csv('syn18876530.10')
+fivex_individual <- download_csv('syn18880070.14')
 # Abetas
-fivex_abs_sol_source <- download_file('syn22101767.3', type = "csv")
-fivex_abs_insol_source <- download_file('syn22101766.1', type = "csv")
+fivex_abs_sol_source <- download_csv('syn22101767.3')
+fivex_abs_insol_source <- download_csv('syn22101766.1')
 # NO NFL DATA
 
 #NSS
 # metadata
-nss_biospecimen <- download_file('syn29568452.3', type = "csv")
-nss_individual <- download_file('syn27147690.3', type = "csv")
+nss_biospecimen <- download_csv('syn29568452.3')
+nss_individual <- download_csv('syn27147690.3')
 # Abetas
-nss_abs_sol_4mo_source <- download_file('syn29568621.2', type = "csv")
-nss_abs_sol_12mo_source <- download_file('syn29568624.2', type = "csv")
-nss_abs_insol_4mo_source <- download_file('syn29568619.1', type = "csv")
-nss_abs_insol_12mo_source <- download_file('syn29568622.1', type = "csv")
+nss_abs_sol_4mo_source <- download_csv('syn29568621.2')
+nss_abs_sol_12mo_source <- download_csv('syn29568624.2')
+nss_abs_insol_4mo_source <- download_csv('syn29568619.1')
+nss_abs_insol_12mo_source <- download_csv('syn29568622.1')
 # NFL
-nss_nfl_cortex_source <- download_file('syn29568489.2', type = "csv")
-nss_nfl_plasma_source <- download_file('syn29568490.1', type = "csv")
+nss_nfl_cortex_source <- download_csv('syn29568489.2')
+nss_nfl_plasma_source <- download_csv('syn29568490.1')
 
 #Abca7
 # metadata
-abca7_biospecimen <- download_file('syn30859390.2', type = "csv")
-abca7_individual <- download_file('syn30859394.2', type = "csv")
+abca7_biospecimen <- download_csv('syn30859390.2')
+abca7_individual <- download_csv('syn30859394.2')
 # Abetas
-abca7_abs_sol_4mo_source <- download_file('syn30859386.1', type = "csv")
-abca7_abs_sol_12mo_source <- download_file('syn30859377.1', type = "csv")
-abca7_abs_insol_4mo_source <- download_file('syn30859383.1', type = "csv")
-abca7_abs_insol_12mo_source <- download_file('syn30859387.1', type = "csv")
+abca7_abs_sol_4mo_source <- download_csv('syn30859386.1')
+abca7_abs_sol_12mo_source <- download_csv('syn30859377.1')
+abca7_abs_insol_4mo_source <- download_csv('syn30859383.1')
+abca7_abs_insol_12mo_source <- download_csv('syn30859387.1')
 # NFL
-abca7_nfl_cortex_source <- download_file('syn30859379.1', type = "csv")
-abca7_nfl_plasma_source <- download_file('syn30859380.1', type = "csv")
+abca7_nfl_cortex_source <- download_csv('syn30859379.1')
+abca7_nfl_plasma_source <- download_csv('syn30859380.1')
 ```
 
 
