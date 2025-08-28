@@ -377,6 +377,8 @@ class TestTransformModelOverview:
 
     def test_model_overview_transform_multiple_models(self):
         # Create test datasets with multiple models
+        # A column where one row has a single control and one has two.
+        # Testing that the "B6129,B6130" entry is properly split into a list in the JSON output.
         model_info = pd.DataFrame(
             {
                 "name": ["model1", "model2"],
