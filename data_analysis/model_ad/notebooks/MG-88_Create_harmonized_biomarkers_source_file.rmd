@@ -106,7 +106,37 @@ download_csv <- function(synId, df_name) {
   df_name <- as.data.frame(data)
 }
 
+transform_results <- function(results, measurement_columns, model_name, fields_to_keep) {
+
+# If no fraction_type column, add one with empty strings
+if (!"fraction_type" %in% names(results)) { results$fraction_type <- "" }
+
+results %>% pivot_longer(
+                cols = measurement_columns,
+                names_to = "type",
+                values_to = "measurement"
+
+       #
+       ) %>% mutate(type = if_else(type %in% c("Abeta40", "Abeta42"), paste(fraction_type, type), type)
+
+        # drop rows with no measurement
+        ) %>% filter(
+                !is.na(measurement)
+
+        # Populate model column
+        ) %>% add_column(
+                model = model_name
+
+        # Drop unused columns
+        ) %>% select(
+                all_of(fields_to_keep)
+        )
+}
+
 # Join a data file to a pair of metadata files to get required age, sex, ageDeath, and genotype values
+# - df: A dataframe containing result rows
+# - individual_metadata: A dataframe containing individual-level metadata
+# - biospecimen_metadata: A dataframe containing specimen metadata
 join_to_metadata <- function(df, individual_metadata, biospecimen_metadata) {
 
   individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
@@ -180,26 +210,9 @@ threex_abs_sol <- threex_abs_sol_source %>% mutate(fraction_type = 'Soluble')
 threex_abs_insol <- threex_abs_insol_source %>% mutate(fraction_type = 'Insoluble')
 threex_abs_merged <- bind_rows(threex_abs_sol, threex_abs_insol)
 
-# populate 'model' column
-threex_abs_merged$model <- '3xTG-AD'
-
-# Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
-threex_abs_pivot <- threex_abs_merged %>%
-        pivot_longer(
-                cols = c(Abeta40, Abeta42),
-                names_to = "abeta_type",
-                values_to = "measurement"
-        )
-
-# Concatenate 'fraction_type' and 'abeta_type' columns to populate target 'type' column values
-threex_abs_pivot$type <- paste(threex_abs_pivot$fraction_type, threex_abs_pivot$abeta_type)
-
-# Drop unwanted columns and rows with no measurement value
-threex_abs_with_nas <- threex_abs_pivot[intermediate_keeps]
-threex_abs <- threex_abs_with_nas[!is.na(threex_abs_with_nas$measurement),]
+threex_abs <- transform_results(threex_abs_merged, c("Abeta40", "Abeta42"), '3xTg-AD', intermediate_keeps)
 
 # No NfL measures for this model
-
 threex_biomarkers <- threex_abs
 ```
 
@@ -211,24 +224,7 @@ fivex_abs_sol <- fivex_abs_sol_source %>% mutate(fraction_type = 'Soluble')
 fivex_abs_insol <- fivex_abs_insol_source %>% mutate(fraction_type = 'Insoluble')
 fivex_abs_merged <- bind_rows(fivex_abs_sol, fivex_abs_insol)
 
-# populate 'model' column
-# Since only UCI contributes pathology/biomarker data, we can assign all 5xFAD results to that center.
-fivex_abs_merged$model <- '5xFAD (UCI)'
-
-# Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
-fivex_abs_pivot <- fivex_abs_merged %>%
-        pivot_longer(
-                cols = c(Abeta40, Abeta42),
-                names_to = "abeta_type",
-                values_to = "measurement"
-        )
-
-# Concatenate 'fraction_type' and 'abeta_type' columns to populate target 'type' column values
-fivex_abs_pivot$type <- paste(fivex_abs_pivot$fraction_type, fivex_abs_pivot$abeta_type)
-
-# Drop unwanted columns and rows with no measurement value
-fivex_abs_with_nas <- fivex_abs_pivot[intermediate_keeps]
-fivex_abs <- fivex_abs_with_nas[!is.na(fivex_abs_with_nas$measurement),]
+fivex_abs <- transform_results(fivex_abs_merged, c("Abeta40", "Abeta42"), '5xFAD (UCI)', intermediate_keeps)
 
 # No NfL measures for this model
 fivex_biomarkers <- fivex_abs
@@ -236,7 +232,6 @@ fivex_biomarkers <- fivex_abs
 
 ### Trem2-R47H_NSS
 ```{r}
-
 # Abeta measures
 # Convert columns to consistent types
 nss_abs_sol_12mo_source$individualID <- as.character(nss_abs_sol_12mo_source$individualID)
@@ -250,46 +245,16 @@ nss_abs_insol_4mo <- nss_abs_insol_4mo_source %>% mutate(fraction_type = 'Insolu
 nss_abs_insol_12mo <- nss_abs_insol_12mo_source %>% mutate(fraction_type = 'Insoluble')
 nss_abs_merged <- bind_rows(nss_abs_sol_4mo, nss_abs_sol_12mo, nss_abs_insol_4mo, nss_abs_insol_12mo)
 
-# populate 'model' column
-nss_abs_merged$model <- 'Trem2-R47H_NSS'
-
-# Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
-nss_abs_pivot <- nss_abs_merged %>%
-        pivot_longer(
-                cols = c(Abeta40, Abeta42),
-                names_to = "abeta_type",
-                values_to = "measurement"
-        )
-
-# Concatenate 'fraction_type' and 'abeta_type' columns to populate target 'type' column values
-nss_abs_pivot$type <- paste(nss_abs_pivot$fraction_type, nss_abs_pivot$abeta_type)
-
-# Drop unwanted columns and rows with no measurement value
-nss_abs_with_nas <- nss_abs_pivot[intermediate_keeps]
-nss_abs <- nss_abs_with_nas[!is.na(nss_abs_with_nas$measurement),]
+nss_abs <- transform_results(nss_abs_merged, c("Abeta40", "Abeta42"), 'Trem2-R47H_NSS', intermediate_keeps)
 
 # NfL measures
 # Merge source dfs
 nss_nfl_merged <- bind_rows(nss_nfl_cortex_source, nss_nfl_plasma_source)
 
-# Populate 'model' column
-nss_nfl_merged$model <- 'Trem2-R47H_NSS'
-
-# Pivot nfl column and populate the target 'measurement' column
-nss_nfl_pivot <- nss_nfl_merged %>%
-        pivot_longer(
-                cols = c(NfL),
-                names_to = "type",
-                values_to = "measurement"
-        )
-
-# Drop unwanted columns and rows with no measurement value
-nss_nfl_with_nas <- nss_nfl_pivot[intermediate_keeps]
-nss_nfl <- nss_nfl_with_nas[!is.na(nss_nfl_with_nas$measurement),]
+nss_nfl <- transform_results(nss_nfl_merged, c("NfL"), 'Trem2-R47H_NSS', intermediate_keeps)
 
 # Merge Abetas and NfL
 nss_biomarkers <- bind_rows(nss_abs, nss_nfl)
-
 ```
 
 ### Abca7*V1599M
@@ -302,47 +267,19 @@ abca7_abs_insol_4mo <- abca7_abs_insol_4mo_source %>% mutate(fraction_type = 'In
 abca7_abs_insol_12mo <- abca7_abs_insol_12mo_source %>% mutate(fraction_type = 'Insoluble')
 abca7_abs_merged <- bind_rows(abca7_abs_sol_4mo, abca7_abs_sol_12mo, abca7_abs_insol_4mo, abca7_abs_insol_12mo)
 
-# populate 'model' column
-abca7_abs_merged$model <- 'Abca7*V1599M'
-
-# Pivot Abeta columns; capture temp 'abeta_type' values and populate the target 'measurement' column
-abca7_abs_pivot <- abca7_abs_merged %>%
-        pivot_longer(
-                cols = c(Abeta40, Abeta42),
-                names_to = "abeta_type",
-                values_to = "measurement"
-        )
-
-# Concatenate 'fraction_type' and 'abeta_type' columns to populate target 'type' column values
-abca7_abs_pivot$type <- paste(abca7_abs_pivot$fraction_type, abca7_abs_pivot$abeta_type)
-
-# Drop unwanted columns and rows with no measurement value
-abca7_abs_with_nas <- abca7_abs_pivot[intermediate_keeps]
-abca7_abs <- abca7_abs_with_nas[!is.na(abca7_abs_with_nas$measurement),]
+# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+abca7_abs <- transform_results(abca7_abs_merged, c("Abeta40", "Abeta42"), 'Abca7*V1599M', intermediate_keeps)
 
 # NfL measures
 # Merge source dfs
 abca7_nfl_merged <- bind_rows(abca7_nfl_cortex_source, abca7_nfl_plasma_source)
 
-# Populate 'model' column
-abca7_nfl_merged$model <- 'Abca7*V1599M'
+# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
+abca7_nfl <- transform_results(abca7_nfl_merged, c("NfL"), 'Abca7*V1599M', intermediate_keeps)
 
-# Pivot nfl column and populate the target 'measurement' column
-abca7_nfl_pivot <- abca7_nfl_merged %>%
-        pivot_longer(
-                cols = c(NfL),
-                names_to = "type",
-                values_to = "measurement"
-        )
-
-# Drop unwanted columns and rows with no measurement value
-abca7_nfl_with_nas <- abca7_nfl_pivot[intermediate_keeps]
-abca7_nfl <- abca7_nfl_with_nas[!is.na(abca7_nfl_with_nas$measurement),]
-
-# Merge abs and nfl
+# Merge Abeta and NfL measures
 abca7_biomarkers <- bind_rows(abca7_abs, abca7_nfl)
 ```
-
 
 ## Join source files to metadata to populate age, tissue, and genotype values
 ```{r}
@@ -404,24 +341,27 @@ stopifnot(nrow(abca7_biomarkers) == nrow(abca7_final))
 
 ## Merge files and make final adjustments to colnames and values
 ```{r}
+# Merge results for all models
 biomarkers_merged <- bind_rows(
-  threex_final %>% mutate(individualID = as.character(individualID)),
-  fivex_final %>% mutate(individualID = as.character(individualID)),
-  nss_final %>% mutate(individualID = as.character(individualID)),
-  abca7_final %>% mutate(individualID = as.character(individualID))
-) %>% dplyr::rename(
+      threex_final %>% mutate(individualID = as.character(individualID)),
+      fivex_final %>% mutate(individualID = as.character(individualID)),
+      nss_final %>% mutate(individualID = as.character(individualID)),
+      abca7_final %>% mutate(individualID = as.character(individualID))
+
+  # Rename columns
+  ) %>% dplyr::rename(
     individual_id = individualID,
     specimen_id = specimenID,
     age_death = ageDeath
   )
 
 
-# standardize genotype values for display
+# Standardize genotype values for display
 biomarkers_final <- mutate(biomarkers_merged,
                            genotype = case_when(
 
                                    # 3xTG-AD genotypes
-                                   genotype == "3xTg-AD_homozygous"  ~ "3xTG-AD",
+                                   genotype == "3xTg-AD_homozygous"  ~ "3xTg-AD",
                                    genotype == "3XTg-AD_noncarrier" ~ "B6129",
 
                                    # 5xFAD genotypes
@@ -430,18 +370,14 @@ biomarkers_final <- mutate(biomarkers_merged,
 
                                    # NSS genotypes
                                    genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
-                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "5xFADTrem2-R47H_NSS",
+                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS.5xFAD",
 
                                    # Abca7 genotypes
                                    genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
-                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "5xFADAbca7*V1599M",
+                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "Abca7*V1559M.5xFAD",
 
                                    TRUE ~ genotype))
 
-
-#Correct typos
-biomarkers_final$model <- gsub("3xTG-AD", "3xTg-AD", biomarkers_final$model)
-biomarkers_final$genotype <- gsub("3xTG-AD", "3xTg-AD", biomarkers_final$genotype)
 
 # print final data frame below
 biomarkers_final
