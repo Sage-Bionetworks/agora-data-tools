@@ -67,12 +67,17 @@ library(tidyverse)
 
 ## Utility functions & variables
 ```{r}
-# Harmonized column spec for intermediate per-model files
+# column spec for intermediate per-model result files
 intermediate_keeps <- c('specimenID', 'individualID', 'model', 'type', 'measurement', 'units')
+
+# column specs for final harmonized output file
+keeps <- c('individual_id', 'model', 'type', 'measurement', 'units', 'age_death', 'tissue', 'sex', 'genotype')
+
+# ages that we want to display results for
+age_keeps <- c(4, 12, 18)
 
 # Vector to store all downloaded synIds for Synapse provenance (populated via download_csv function)
 data_sources <- character()
-
 
 # Download a csv file from Synapse by synId and read it into a dataframe
 # - synId: synapse ID of the file to download
@@ -137,15 +142,56 @@ results %>% pivot_longer(
 # - df: A dataframe containing result rows
 # - individual_metadata: A dataframe containing individual-level metadata
 # - biospecimen_metadata: A dataframe containing specimen metadata
-join_to_metadata <- function(df, individual_metadata, biospecimen_metadata) {
+join_to_metadata <- function(results, individual_metadata, biospecimen_metadata) {
 
+  # Join metadata files by individualID
   individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
   biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
   metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
-  df_out <- merge(df, metadata)
+  # Join results to metadata
+  results %>% left_join(metadata, by = c('individualID', 'specimenID')
 
-  df_out
+            # Print out nrow of results before age filtering
+            ) %>% { print(nrow(.)) ;.
+
+            # Filter out results for unwanted ages
+            } %>% filter(ageDeath %in% age_keeps
+
+            # Print out nrow of results after age filtering
+            ) %>% { print(nrow(.)) ;.
+
+            # Convert all individualID columns to string type
+            } %>% mutate(individualID = as.character(individualID)
+
+            # Rename columns
+            ) %>% rename(., c('individualID' = 'individual_id',
+                              'ageDeath' = 'age_death')
+
+            # Drop unneeded columns
+            ) %>% select(keeps
+
+            # Correct genotypes to align with target display values
+            ) %>% mutate(biomarkers_merged,
+                           genotype = case_when(
+
+                                   # 3xTG-AD genotypes
+                                   genotype == "3xTg-AD_homozygous"  ~ "3xTg-AD",
+                                   genotype == "3XTg-AD_noncarrier" ~ "B6129",
+
+                                   # 5xFAD genotypes
+                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
+                                   genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
+
+                                   # NSS genotypes
+                                   genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
+                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS.5xFAD",
+
+                                   # Abca7 genotypes
+                                   genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
+                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "Abca7*V1559M.5xFAD",
+
+                                   TRUE ~ genotype))
 }
 ```
 
@@ -210,10 +256,14 @@ threex_abs_sol <- threex_abs_sol_source %>% mutate(fraction_type = 'Soluble')
 threex_abs_insol <- threex_abs_insol_source %>% mutate(fraction_type = 'Insoluble')
 threex_abs_merged <- bind_rows(threex_abs_sol, threex_abs_insol)
 
+# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
 threex_abs <- transform_results(threex_abs_merged, c("Abeta40", "Abeta42"), '3xTg-AD', intermediate_keeps)
 
 # No NfL measures for this model
 threex_biomarkers <- threex_abs
+
+# Join results to metadata
+threex_final <- join_to_metadata(threex_biomarkers, threex_individual, threex_biospecimen)
 ```
 
 ### 5xFAD
@@ -222,13 +272,24 @@ threex_biomarkers <- threex_abs
 # Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
 fivex_abs_sol <- fivex_abs_sol_source %>% mutate(fraction_type = 'Soluble')
 fivex_abs_insol <- fivex_abs_insol_source %>% mutate(fraction_type = 'Insoluble')
-fivex_abs_merged <- bind_rows(fivex_abs_sol, fivex_abs_insol)
+fivex_abs_merged <- bind_rows(fivex_abs_sol, fivex_abs_insol
 
+    # MG-268: Replace N/A measurement values with 0s
+    ) %>% mutate(
+            Abeta40 = ifelse(is.na(Abeta40), 0, Abeta40),
+            Abeta42 = ifelse(is.na(Abeta42), 0, Abeta42)
+)
+
+# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
 fivex_abs <- transform_results(fivex_abs_merged, c("Abeta40", "Abeta42"), '5xFAD (UCI)', intermediate_keeps)
 
 # No NfL measures for this model
 fivex_biomarkers <- fivex_abs
+
+# Join results to metadata
+fivex_final <- join_to_metadata(fivex_biomarkers, fivex_individual, fivex_biospecimen)
 ```
+
 
 ### Trem2-R47H_NSS
 ```{r}
@@ -245,16 +306,21 @@ nss_abs_insol_4mo <- nss_abs_insol_4mo_source %>% mutate(fraction_type = 'Insolu
 nss_abs_insol_12mo <- nss_abs_insol_12mo_source %>% mutate(fraction_type = 'Insoluble')
 nss_abs_merged <- bind_rows(nss_abs_sol_4mo, nss_abs_sol_12mo, nss_abs_insol_4mo, nss_abs_insol_12mo)
 
+# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
 nss_abs <- transform_results(nss_abs_merged, c("Abeta40", "Abeta42"), 'Trem2-R47H_NSS', intermediate_keeps)
 
 # NfL measures
 # Merge source dfs
 nss_nfl_merged <- bind_rows(nss_nfl_cortex_source, nss_nfl_plasma_source)
 
+# Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
 nss_nfl <- transform_results(nss_nfl_merged, c("NfL"), 'Trem2-R47H_NSS', intermediate_keeps)
 
 # Merge Abetas and NfL
 nss_biomarkers <- bind_rows(nss_abs, nss_nfl)
+
+# Join results to metadata
+nss_final <- join_to_metadata(nss_biomarkers, nss_individual, nss_biospecimen)
 ```
 
 ### Abca7*V1599M
@@ -279,114 +345,63 @@ abca7_nfl <- transform_results(abca7_nfl_merged, c("NfL"), 'Abca7*V1599M', inter
 
 # Merge Abeta and NfL measures
 abca7_biomarkers <- bind_rows(abca7_abs, abca7_nfl)
+
+# Join results to metadata
+abca7_final <- join_to_metadata(abca7_biomarkers, abca7_individual, abca7_biospecimen)
 ```
 
-## Join source files to metadata to populate age, tissue, and genotype values
-```{r}
-keeps <- c('individualID', 'specimenID', 'model', 'type', 'measurement', 'units', 'ageDeath', 'tissue', 'sex', 'genotype')
+## Sanity check generated files
+Checks that ensure that the processed data includes the expected number of results per model, per result type:
+1. Source data vs processed data: nrow(filtered_source_data) == nrow(processed_data)
+2. Source data vs expected rows: nrow(nrow(processed_data)) == nrow(legacy_explorer_data)
+   - Expected row values are calculated in the 'Immunohisto expected row counts' notebook
 
-# 3xTG-AD
-threex_final <- join_to_metadata(threex_biomarkers, threex_individual, threex_biospecimen)[keeps]
-
-# 5xFAD
-fivex_with_8mo <- join_to_metadata(fivex_biomarkers, fivex_individual, fivex_biospecimen)[keeps]
-# drop unwanted 8 month samples from 5xFAD
-fivex_final <- fivex_with_8mo[fivex_with_8mo$ageDeath != 8,]
-
-# Trem2-R47H_NSS
-nss_final <- join_to_metadata(nss_biomarkers, nss_individual, nss_biospecimen)[keeps]
-
-# Abca7*V1599M
-abca7_final <- join_to_metadata(abca7_biomarkers, abca7_individual, abca7_biospecimen)[keeps]
-```
-
-## Sanity check nrow in generated files
 ```{r}
 # 3xTG-AD
-# before dropping NA values
-stopifnot(nrow(threex_abs_sol) + nrow(threex_abs_insol) == nrow(threex_abs_merged))
-stopifnot(nrow(threex_abs_merged) * 2 == nrow(threex_abs_pivot))
-# after dropping NA values
-stopifnot(nrow(threex_abs) == nrow(threex_biomarkers))
-stopifnot(nrow(threex_biomarkers) == nrow(threex_final))
+# Correct for NA values in source data
+threex_expected <- nrow(threex_abs_merged[!is.na(threex_abs_merged$Abeta40),]) + nrow(threex_abs_merged[!is.na(threex_abs_merged$Abeta42),])
+# Check corrected source data vs processed data
+stopifnot(threex_expected == nrow(threex_final))
+# Source data vs Expected rows
+stopifnot(nrow(threex_final) == 439) # 3xTg-AD + B6129: 439
 
 # 5xFAD
-# before dropping NA values
-stopifnot(nrow(fivex_abs_sol) + nrow(fivex_abs_insol) == nrow(fivex_abs_merged))
-stopifnot(nrow(fivex_abs_merged) * 2 == nrow(fivex_abs_with_nas))
-# after dropping NA values
-stopifnot(nrow(fivex_abs) == nrow(fivex_biomarkers))
-# correct for rows lost due to MG-12 (missing biospecimen metadata) and 8mo age filtering
-stopifnot(nrow(fivex_biomarkers) == nrow(fivex_final) + 4 + nrow(fivex_with_8mo[fivex_with_8mo$ageDeath == 8,]))
+# Correct for 104 rows removed via age filtering (from join_to_metadata print statement)
+fivex_expected <- nrow(fivex_abs_merged) * 2 - 104
+# Check corrected source data vs processed data
+stopifnot(fivex_expected == nrow(fivex_final))
+# Source data vs Expected rows
+stopifnot(nrow(fivex_final) == 288) # 5xFAD + C57BL/6J (w/o 8mo): 288
 
 # Trem2-R47H_NSS
-# before dropping NA values
-stopifnot(nrow(nss_abs_sol_4mo) + nrow(nss_abs_sol_12mo) + nrow(nss_abs_insol_4mo) + nrow(nss_abs_insol_12mo) == nrow(nss_abs_merged))
-stopifnot(nrow(nss_abs_merged) * 2 == nrow(nss_abs_with_nas))
-stopifnot(nrow(nss_nfl_cortex_source) + nrow(nss_nfl_plasma_source) == nrow(nss_nfl_with_nas))
-stopifnot(nrow(nss_nfl_cortex_source) + nrow(nss_nfl_plasma_source) == nrow(nss_nfl_with_nas))
-# after dropping NA values
-stopifnot(nrow(nss_nfl) + nrow(nss_abs) == nrow(nss_biomarkers))
-stopifnot(nrow(nss_biomarkers) == nrow(nss_final))
+# Correct for NA values in source data
+nss_expected_abs <- nrow(nss_abs_merged[!is.na(nss_abs_merged$Abeta40),]) + nrow(nss_abs_merged[!is.na(nss_abs_merged$Abeta42),])
+nss_expected_nfl <- nrow(nss_nfl_merged[!is.na(nss_nfl_merged$NfL),])
+# Check corrected source data vs processed data
+stopifnot(nss_expected_abs + nss_expected_nfl == nrow(nss_final))
+# Source data vs Expected rows
+stopifnot(nrow(nss_final) == 493) # 5xFADTrem2-R47H_NSS + 5xFAD + Trem2-R47H_NSS + C57BL/6J: 493
 
 # Abca7*V1599M
-# before dropping NA values
-stopifnot(nrow(abca7_abs_sol_4mo) + nrow(abca7_abs_sol_12mo) + nrow(abca7_abs_insol_4mo) + nrow(abca7_abs_insol_12mo) == nrow(abca7_abs_merged))
-stopifnot(nrow(abca7_abs_merged) * 2 == nrow(abca7_abs_with_nas))
-stopifnot(nrow(abca7_nfl_cortex_source) + nrow(abca7_nfl_plasma_source) == nrow(abca7_nfl_with_nas))
-# after dropping NA values
-stopifnot(nrow(abca7_nfl) + nrow(abca7_abs) == nrow(abca7_biomarkers))
-stopifnot(nrow(abca7_biomarkers) == nrow(abca7_final))
+# Correct for NA values in source data
+abca7_expected_abs <- nrow(abca7_abs_merged[!is.na(abca7_abs_merged$Abeta40),]) + nrow(abca7_abs_merged[!is.na(abca7_abs_merged$Abeta42),])
+abca7_expected_nfl <- nrow(abca7_nfl_merged)
+# Check corrected source data vs processed data
+stopifnot(abca7_expected_abs + abca7_expected_nfl == nrow(abca7_final))
+# Source data vs Expected rows
+stopifnot(nrow(abca7_final) == 543) # 5xFADAbca7*V1599M + 5xFAD + Abca7*V1599M + C57BL/6J: 543
 ```
 
-## Merge files and make final adjustments to colnames and values
+## Merge model-specific results files & write csv file and upload to synapse
 ```{r}
 # Merge results for all models
-biomarkers_merged <- bind_rows(
-      threex_final %>% mutate(individualID = as.character(individualID)),
-      fivex_final %>% mutate(individualID = as.character(individualID)),
-      nss_final %>% mutate(individualID = as.character(individualID)),
-      abca7_final %>% mutate(individualID = as.character(individualID))
+biomarkers_final <- bind_rows(
+      threex_final,
+      fivex_final,
+      nss_final,
+      abca7_final
+)
 
-  # Rename columns
-  ) %>% dplyr::rename(
-    individual_id = individualID,
-    specimen_id = specimenID,
-    age_death = ageDeath
-  )
-
-
-# Standardize genotype values for display
-biomarkers_final <- mutate(biomarkers_merged,
-                           genotype = case_when(
-
-                                   # 3xTG-AD genotypes
-                                   genotype == "3xTg-AD_homozygous"  ~ "3xTg-AD",
-                                   genotype == "3XTg-AD_noncarrier" ~ "B6129",
-
-                                   # 5xFAD genotypes
-                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
-                                   genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
-
-                                   # NSS genotypes
-                                   genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
-                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS.5xFAD",
-
-                                   # Abca7 genotypes
-                                   genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
-                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "Abca7*V1559M.5xFAD",
-
-                                   TRUE ~ genotype))
-
-
-# print final data frame below
-biomarkers_final
-
-```
-
-
-## Write csv file and upload to synapse
-```{r}
 # write csv file
 output_dir <- file.path("./", "output")
 if(!dir.exists(output_dir)){
