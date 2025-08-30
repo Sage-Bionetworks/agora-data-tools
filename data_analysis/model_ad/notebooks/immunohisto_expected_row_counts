@@ -1,0 +1,306 @@
+---
+title: "Immunohisto expected row counts"
+---
+This notebook determines the expected number of rows of pathology and biomarker data per model, based on data exported from the legacy explorer.
+
+Legacy data export files are stored in: syn68930581
+
+# Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- tidyverse
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "https://cloud.r-project.org"))
+}
+
+if (!require("tidyverse", quietly = TRUE)) {
+  install.packages("tidyverse")
+}
+
+library(synapser)
+library(tidyverse)
+```
+
+# Utility functions & variables
+```{r}
+# Download a csv file from Synapse by synId and read it into a dataframe
+# - synId: synapse ID of the file to download
+# - df_name: the name to use for the resulting dataframe
+download_csv <- function(synId, df_name) {
+
+  synLogin()
+
+  # Capture all downloaded synIds for provenance
+  data_sources <<- c(data_sources, synId)
+
+  input_dir <- file.path("./", "input")
+  id_parts <- strsplit(synId, '.', fixed = TRUE)
+  id_value <- id_parts[[1]][1]
+  version_value <- id_parts[[1]][2]
+
+  if (is.na(version_value)) {
+    version_value <- NULL
+  }
+
+  cat(paste0("Downloading ", synId, "..."))
+
+  file <- synGet(id_value, version = version_value, downloadLocation = input_dir, ifcollision='overwrite.local')
+  path <- file$path
+
+  cat("\nDownload on:  ", date())
+  cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
+  cat("\npath: ", file$path, "\n")
+
+  data <- read.csv(path)
+  df_name <- as.data.frame(data)
+}
+
+# Count the number of rows for the specified model and it's matched control
+# - model: the Mouse.model value for model's results
+# - control: the Mouse.model value for matched control's results
+# - legacy_data: A dataframe containing exported legacy data
+# - label: The measurement type in legacy_data
+count_legacy_rows <- function(model, control, legacy_data, label) {
+  legacy_rows <- bind_rows(legacy_data[legacy_data$Mouse.Model== model,], legacy_data[legacy_data$Mouse.Model== control,])
+  cat("\n", label, ": ", model, "+", control, " == ", nrow(legacy_rows))
+}
+
+```
+
+# Determine expected number of results based on legacy explorer
+
+## Download legacy data exports from Synapse
+Data was exported from the legacy shiny app:
+- per measure
+- per model, for Abca7*V1559M and Trem2R47H_NSS (to avoid mixing results for shared control genotypes)
+- grouped, for 5xFAD and 3xTg-AD (models have unique control genotypes)
+
+Legacy data is stored in syn68930581.
+
+```{r}
+# *********
+# PATHOLOGY
+# *********
+
+# IBA1
+iba1_legacy_cc <- download_csv("syn68930649")
+iba1_legacy_h <- download_csv("syn68930647")
+iba1_legacy <- bind_rows(iba1_legacy_cc, iba1_legacy_h)
+
+# GFAP
+gfap_legacy_cc <- download_csv("syn68930637")
+gfap_legacy_h <- download_csv("syn68930640")
+gfap_legacy <- bind_rows(gfap_legacy_cc, gfap_legacy_h)
+
+# S100B
+s100b_legacy_cc <- download_csv("syn68930642")
+s100b_legacy_h <- download_csv("syn68930639")
+s100b_legacy <- bind_rows(s100b_legacy_cc, s100b_legacy_h)
+
+# LAMP1
+lamp1_legacy_cc <- download_csv("syn68930641")
+lamp1_legacy_h <- download_csv("syn68930638")
+lamp1_legacy <- bind_rows(lamp1_legacy_cc, lamp1_legacy_h)
+
+# AT8
+at8_legacy <- download_csv("syn68930651")
+
+# HT7
+ht7_legacy <- download_csv("syn68930659")
+
+# ThioS size
+thioss_legacy_cc <- download_csv("syn68930655")
+thioss_legacy_h <- download_csv("syn68930658")
+thioss_legacy <- bind_rows(thioss_legacy_cc, thioss_legacy_h)
+
+# ThioS density
+thiosd_legacy_cc <- download_csv("syn68930648")
+thiosd_legacy_h <- download_csv("syn68930657")
+thiosd_legacy <- bind_rows(thiosd_legacy_cc, thiosd_legacy_h)
+
+# **********
+# BIOMARKERS
+# **********
+# Abetas (5x, 3x)
+insol_ab40_legacy_cc <- download_csv("syn69075668")
+insol_ab40_legacy_h <- download_csv("syn69075651")
+insol_ab40_legacy <- bind_rows(insol_ab40_legacy_cc, insol_ab40_legacy_h)
+
+insol_ab42_legacy_cc <- download_csv("syn69075669")
+insol_ab42_legacy_h <- download_csv("syn69075650")
+insol_ab42_legacy <- bind_rows(insol_ab42_legacy_cc, insol_ab42_legacy_h)
+
+sol_ab40_legacy_cc <- download_csv("syn69075671")
+sol_ab40_legacy_h <- download_csv("syn69075659")
+sol_ab40_legacy <- bind_rows(sol_ab40_legacy_cc, sol_ab40_legacy_h)
+
+sol_ab42_legacy_cc <- download_csv("syn69075670")
+sol_ab42_legacy_h <- download_csv("syn69075663")
+sol_ab42_legacy <- bind_rows(sol_ab42_legacy_cc, sol_ab42_legacy_h)
+
+# have to keep these separate by model to avoid mixing control rows
+
+# Abetas (abca7)
+insol_ab40_legacy_cc_abca7 <- download_csv("syn69075654")
+insol_ab40_legacy_h_abca7 <- download_csv("syn69075649")
+insol_ab40_legacy_abca7 <- bind_rows(insol_ab40_legacy_cc_abca7, insol_ab40_legacy_h_abca7)
+
+insol_ab42_legacy_cc_abca7 <- download_csv("syn69075652")
+insol_ab42_legacy_h_abca7 <- download_csv("syn69075653")
+insol_ab42_legacy_abca7 <- bind_rows(insol_ab42_legacy_cc_abca7, insol_ab42_legacy_h_abca7)
+
+sol_ab40_legacy_cc_abca7 <- download_csv("syn69075660")
+sol_ab40_legacy_h_abca7 <- download_csv("syn69075657")
+sol_ab40_legacy_abca7 <- bind_rows(sol_ab40_legacy_cc_abca7, sol_ab40_legacy_h_abca7)
+
+sol_ab42_legacy_cc_abca7 <- download_csv("syn69075656")
+sol_ab42_legacy_h_abca7 <- download_csv("syn69075661")
+sol_ab42_legacy_abca7 <- bind_rows(sol_ab42_legacy_cc_abca7, sol_ab42_legacy_h_abca7)
+
+# NfL (abca7)
+nfl_legacy_cc_abca7 <- download_csv("syn68930938")
+nfl_legacy_p_abca7 <- download_csv("syn68930937")
+nfl_legacy_abca7 <- bind_rows(nfl_legacy_cc_abca7, nfl_legacy_p_abca7)
+
+# Abetas (nss)
+insol_ab40_legacy_cc_nss <- download_csv("syn69075677")
+insol_ab40_legacy_h_nss <- download_csv("syn69075648")
+insol_ab40_legacy_nss <- bind_rows(insol_ab40_legacy_cc_nss, insol_ab40_legacy_h_nss)
+
+insol_ab42_legacy_cc_nss <- download_csv("syn69075674")
+insol_ab42_legacy_h_nss <- download_csv("syn69075655")
+insol_ab42_legacy_nss <- bind_rows(insol_ab42_legacy_cc_nss, insol_ab42_legacy_h_nss)
+
+sol_ab40_legacy_cc_nss <- download_csv("syn69075675")
+sol_ab40_legacy_h_nss <- download_csv("syn69075662")
+sol_ab40_legacy_nss <- bind_rows(sol_ab40_legacy_cc_nss, sol_ab40_legacy_h_nss)
+
+sol_ab42_legacy_cc_nss <- download_csv("syn69075676")
+sol_ab42_legacy_h_nss <- download_csv("syn69075658")
+sol_ab42_legacy_nss <- bind_rows(sol_ab42_legacy_cc_nss, sol_ab42_legacy_h_nss)
+
+# NfL (nss)
+nfl_legacy_cc_nss <- download_csv("syn68930936")
+nfl_legacy_p_nss <- download_csv("syn68930939")
+nfl_legacy_nss <- bind_rows(nfl_legacy_cc_nss, nfl_legacy_p_nss)
+
+```
+
+## Legacy file Mouse.model (genotype) values
+
+```{r}
+# *********
+# PATHOLOGY
+# *********
+cat("\n\nPathology")
+cat("\nIBA1: ", unique(iba1_legacy$Mouse.Model), sep=", ")
+cat("\nGFAP: ", unique(gfap_legacy$Mouse.Model), sep=", ")
+cat("\nS100B: ", unique(s100b_legacy$Mouse.Model), sep=", ")
+cat("\nLAMP1: ", unique(lamp1_legacy$Mouse.Model), sep=", ")
+cat("\nAT8: ", unique(at8_legacy$Mouse.Model), sep=", ")
+cat("\nHT7: ", unique(ht7_legacy$Mouse.Model), sep=", ")
+cat("\nThioS-size: ", unique(thioss_legacy$Mouse.Model), sep=", ")
+cat("\nThioS-density: ", unique(thiosd_legacy$Mouse.Model), sep=", ")
+
+# **********
+# BIOMARKERS
+# **********
+cat("\n\nBiomarkers: 3xTg-AD + 5xFAD")
+cat("\nInsoluble Abeta40 (5x/3x): ", unique(insol_ab40_legacy$Mouse.Model), sep=", ")
+cat("\nInsoluble Abeta42 (5x/3x): ", unique(insol_ab42_legacy$Mouse.Model), sep=", ")
+cat("\nSoluble Abeta40 (5x/3x): ", unique(sol_ab40_legacy$Mouse.Model), sep=", ")
+cat("\nSoluble Abeta42 (5x/3x): ", unique(sol_ab42_legacy$Mouse.Model), sep=", ")
+
+cat("\n\nBiomarkers: Abca7")
+cat("\nInsoluble Abeta40 (abca7): ", unique(insol_ab40_legacy_abca7$Mouse.Model), sep=", ")
+cat("\nInsoluble Abeta42 (abca7): ", unique(insol_ab42_legacy_abca7$Mouse.Model), sep=", ")
+cat("\nSoluble Abeta40 (abca7): ", unique(sol_ab40_legacy_abca7$Mouse.Model), sep=", ")
+cat("\nSoluble Abeta42 (abca7): ", unique(sol_ab42_legacy_abca7$Mouse.Model), sep=", ")
+cat("\nNfL (abca7): ", unique(nfl_legacy_abca7$Mouse.Model), sep=", ")
+
+cat("\n\nBiomarkers: NSS")
+cat("\nInsoluble Abeta40 (nss): ", unique(insol_ab40_legacy_nss$Mouse.Model), sep=", ")
+cat("\nInsoluble Abeta42 (nss): ", unique(insol_ab42_legacy_nss$Mouse.Model), sep=", ")
+cat("\nSoluble Abeta40 (nss): ", unique(sol_ab40_legacy_nss$Mouse.Model), sep=", ")
+cat("\nSoluble Abeta42 (nss): ", unique(sol_ab42_legacy_nss$Mouse.Model), sep=", ")
+cat("\nNfL (nss): ", unique(nfl_legacy_nss$Mouse.Model), sep=", ")
+```
+
+## Determine number of legacy results per model for pathology & biomarkers
+These values are used to validate that the correct results are included in the harmonized source files generated via the 'MG-88-biomarkers' notebook.
+
+```{r}
+# *********
+# PATHOLOGY
+# *********
+cat("\n\nPATHOLOGY")
+# 3xTg-AD
+cat("\n\n3xTg-AD")
+count_legacy_rows("3xTg-AD", "B6129", iba1_legacy, "IBA1")
+count_legacy_rows("3xTg-AD", "B6129", gfap_legacy, "GFAP")
+count_legacy_rows("3xTg-AD", "B6129", s100b_legacy, "S100B")
+count_legacy_rows("3xTg-AD", "B6129", lamp1_legacy, "LAMP1")
+count_legacy_rows("3xTg-AD", "B6129", at8_legacy, "AT8")
+count_legacy_rows("3xTg-AD", "B6129", ht7_legacy, "HT7")
+count_legacy_rows("3xTg-AD", "B6129", thioss_legacy, "ThioS size")
+count_legacy_rows("3xTg-AD", "B6129", thiosd_legacy, "ThioS density")
+
+# 5xFAD
+cat("\n\n5xFAD")
+count_legacy_rows("5xFAD", "C57BL/6J", iba1_legacy, "IBA1")
+count_legacy_rows("5xFAD", "C57BL/6J", gfap_legacy, "GFAP")
+count_legacy_rows("5xFAD", "C57BL/6J", s100b_legacy, "S100B")
+count_legacy_rows("5xFAD", "C57BL/6J", lamp1_legacy, "LAMP1")
+count_legacy_rows("5xFAD", "C57BL/6J", thioss_legacy, "ThioS size")
+count_legacy_rows("5xFAD", "C57BL/6J", thiosd_legacy, "ThioS density")
+
+# **********
+# BIOMARKERS
+# **********
+cat("\n\nBIOMARKERS")
+# 3xTg-AD
+cat("\n\n3xTg-AD")
+count_legacy_rows("3xTg-AD", "B6129", insol_ab40_legacy, "Insoluble Abeta40")
+count_legacy_rows("3xTg-AD", "B6129", insol_ab42_legacy, "Insoluble Abeta42")
+count_legacy_rows("3xTg-AD", "B6129", sol_ab40_legacy, "Soluble Abeta40")
+count_legacy_rows("3xTg-AD", "B6129", sol_ab42_legacy, "Soluble Abeta42")
+
+# 5xFAD
+cat("\n\n5xFAD")
+# filter out 8mo results
+insol_ab40_legacy_5x <- insol_ab40_legacy[insol_ab40_legacy$Age != 8,]
+insol_ab42_legacy_5x <- insol_ab40_legacy[insol_ab40_legacy$Age != 8,]
+sol_ab40_legacy_5x <- insol_ab40_legacy[insol_ab40_legacy$Age != 8,]
+sol_ab42_legacy_5x <- insol_ab40_legacy[insol_ab40_legacy$Age != 8,]
+
+count_legacy_rows("5xFAD", "C57BL/6J", insol_ab40_legacy_5x, "Insoluble Abeta40")
+count_legacy_rows("5xFAD", "C57BL/6J", insol_ab42_legacy_5x, "Insoluble Abeta42")
+count_legacy_rows("5xFAD", "C57BL/6J", sol_ab40_legacy_5x, "Soluble Abeta40")
+count_legacy_rows("5xFAD", "C57BL/6J", sol_ab42_legacy_5x, "Soluble Abeta42")
+
+# NSS
+cat("\n\nNSS")
+count_legacy_rows("5xFADTrem2-R47H_NSS", "5xFAD", insol_ab40_legacy_nss, "Insoluble Abeta40")
+count_legacy_rows("5xFADTrem2-R47H_NSS", "5xFAD", insol_ab42_legacy_nss, "Insoluble Abeta42")
+count_legacy_rows("5xFADTrem2-R47H_NSS", "5xFAD", sol_ab40_legacy_nss, "Soluble Abeta40")
+count_legacy_rows("5xFADTrem2-R47H_NSS", "5xFAD", sol_ab42_legacy_nss, "Soluble Abeta42")
+
+count_legacy_rows("Trem2-R47H_NSS", "C57BL/6J", nfl_legacy_nss, "NfL (nss)")
+count_legacy_rows("5xFADTrem2-R47H_NSS", "5xFAD", nfl_legacy_nss, "NfL (nss)")
+
+# Abca7
+cat("\n\nAbca7")
+count_legacy_rows("5xFADAbca7*V1599M", "5xFAD", insol_ab40_legacy_abca7, "Insoluble Abeta40")
+count_legacy_rows("5xFADAbca7*V1599M", "5xFAD", insol_ab42_legacy_abca7, "Insoluble Abeta42")
+count_legacy_rows("5xFADAbca7*V1599M", "5xFAD", sol_ab40_legacy_abca7, "Soluble Abeta40")
+count_legacy_rows("5xFADAbca7*V1599M", "5xFAD", sol_ab42_legacy_abca7, "Soluble Abeta42")
+
+count_legacy_rows("Abca7*V1599M", "C57BL/6J", nfl_legacy_abca7, "NfL (abca7)")
+count_legacy_rows("5xFADAbca7*V1599M", "5xFAD", nfl_legacy_abca7, "NfL (abca7)")
+```
+
+
+
+
