@@ -74,6 +74,10 @@ library(tidyverse)
 ## Utility functions & variables
 Run this to initialize shared variables and functions.
 ```{r}
+# *******
+# FILTERS
+# *******
+
 # Measures (stain values) that we want to include
 stain_keeps <- c("GFAP", "S100B", "LAMP1", "IBA1", "ThioS", "HT7", "AT8")
 
@@ -88,6 +92,24 @@ keeps_with_join_fields <- c('individualID', 'specimenID', 'model', 'type', 'meas
 
 # column spec for final harmonized output file
 keeps <- c('individual_id', 'model', 'type', 'measurement', 'units', 'age_death', 'tissue', 'sex', 'genotype')
+
+# **************
+# DISPLAY LABELS
+# **************
+
+# Model and genotype display names (rnaseq_genotype_label_map.csv)
+threex_display_name <- '3xTg-AD'
+threex_control_display_name <- 'B6129'
+fivex_display_name <- '5xFAD (UCI)'
+fivex_control_display_name <- "C57BL/6J"
+abca7_display_name <- 'Abca7*V1599M'
+abca7_control_display_name <- "C57BL/6J"
+abca7fivex_display_name <- "Abca7*V1599M.5xFAD"
+abca7fivex_control_display_name <- '5xFAD'
+nss_display_name <- 'Trem2-R47H_NSS'
+nss_control_display_name <- "C57BL/6J"
+nssfivex_display_name <- "Trem2-R47H_NSS.5xFAD"
+nssfivex_control_display_name <- '5xFAD'
 
 # Pathology display names
 IBA1_display_name <- 'Microglia Cell Density (IBA1)'
@@ -105,6 +127,10 @@ averageObjectVolume_display_name <- 'mean object volume (cubic mm)'
 totalObjectVolume_display_name <- 'total object volume (cubic mm)'
 meanObjectArea_display_name <- 'mean object area (square mm)'
 areaPercent_display_name <- 'area %'
+
+# *********
+# FUNCTIONS
+# *********
 
 # Vector to store all downloaded synIds for Synapse provenance (populated via download_csv function)
 data_sources <- character()
@@ -201,6 +227,7 @@ transform_results <- function(results, measurement_columns, model_name, fields_t
 # - df: A dataframe containing result rows
 # - individual_metadata: A dataframe containing individual-level metadata
 # - biospecimen_metadata: A dataframe containing specimen metadata
+# This function prints out the number of rows before and after filtering results by age, which is useful for validation.
 join_to_metadata <- function(results, individual_metadata, biospecimen_metadata) {
 
   # Join metadata files by individualID
@@ -243,20 +270,20 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
                            genotype = case_when(
 
                                    # 3xTG-AD genotypes
-                                   genotype == "3xTg-AD_homozygous"  ~ "3xTg-AD",
-                                   genotype == "3XTg-AD_noncarrier" ~ "B6129",
+                                   genotype == "3xTg-AD_homozygous"  ~ threex_display_name,
+                                   genotype == "3XTg-AD_noncarrier" ~ threex_control_display_name,
 
                                    # 5xFAD genotypes
-                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
-                                   genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
+                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ fivex_display_name,
+                                   genotype == "5XFAD_noncarrier"  ~ fivex_control_display_name,
 
                                    # NSS genotypes
-                                   genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
-                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS.5xFAD",
+                                   genotype == "Trem2-R47H_NSS_homozygous"  ~ nss_display_name,
+                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ nssfivex_display_name,
 
                                    # Abca7 genotypes
-                                   genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
-                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "Abca7*V1559M.5xFAD",
+                                   genotype == "Abca7-V1599M_homozygous"  ~ abca7_display_name,
+                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ abca7fivex_display_name,
 
                                    TRUE ~ genotype))
 }
@@ -299,7 +326,7 @@ abca7_pathology_source <- download_csv('syn53127289.1')
 ```
 
 
-## Generate model-specific intermediate files
+## Generate model-specific files & join to metadata
 File-measurement-unit and display value mappings for legacy models are from the v1 data spreadsheet here:
 https://docs.google.com/spreadsheets/d/1B3ZMReC7nR2CGgpFNJuxJTj__lF2h6dt/edit?gid=1108411940#gid=1108411940
 
@@ -311,7 +338,7 @@ threex_final <- threex_pathology_source %>%
         filter(stain %in% stain_keeps
 
         # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "3xTg-AD", keeps_with_pool_join_field
+        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), threex_display_name, keeps_with_pool_join_field
 
         # Drop rows with NA measurements
         ) %>% filter(!is.na(measurement)
@@ -351,11 +378,10 @@ fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'ThioS',
   fivex_rename_cols()
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-model = "5xFAD (UCI)"
-fivex_gfap_s100b_pivot <- transform_results(fivex_gfap_s100b, c('X.objects..sqmm'), model, keeps_with_join_fields)
-fivex_lamp1_pivot <- transform_results(fivex_lamp1, c('Area..'), model, keeps_with_join_fields)
-fivex_iba1_pivot <- transform_results(fivex_iba1, c('X.objects..sqmm'), model, keeps_with_join_fields)
-fivex_thios_pivot <- transform_results(fivex_thios, c('X.objects..sqmm', 'mean.object.area..squm.'), model, keeps_with_join_fields)
+fivex_gfap_s100b_pivot <- transform_results(fivex_gfap_s100b, c('X.objects..sqmm'), fivex_display_name, keeps_with_join_fields)
+fivex_lamp1_pivot <- transform_results(fivex_lamp1, c('Area..'), fivex_display_name, keeps_with_join_fields)
+fivex_iba1_pivot <- transform_results(fivex_iba1, c('X.objects..sqmm'), fivex_display_name, keeps_with_join_fields)
+fivex_thios_pivot <- transform_results(fivex_thios, c('X.objects..sqmm', 'mean.object.area..squm.'), fivex_display_name, keeps_with_join_fields)
 
 # Merge all results into a single data frame
 fivex_final <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_iba1_pivot, fivex_thios_pivot
@@ -380,7 +406,7 @@ nss_final <- nss_pathology_source %>%
         filter(stain %in% stain_keeps
 
         # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "Trem2-R47H_NSS", keeps_with_pool_join_field
+        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), nss_display_name, keeps_with_pool_join_field
 
         # Drop rows with NA measurements
         ) %>% filter(!is.na(measurement)
@@ -397,7 +423,7 @@ abca7_final <- abca7_pathology_source %>%
         filter(stain %in% stain_keeps
 
         # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), "Abca7*V1599M", keeps_with_pool_join_field
+        ) %>% transform_results(c('objectDensity', 'averageObjectVolume', 'totalObjectVolume'), abca7_display_name, keeps_with_pool_join_field
 
         # Drop rows with NA measurements
         ) %>% filter(!is.na(measurement)
@@ -517,8 +543,9 @@ stopifnot(nrow(nss_final[nss_final$type == LAMP1_display_name,]) == nrow(nss_lam
 
 # ThioS size & density
 nss_thios <- nss_pathology_source[nss_pathology_source$stain == 'ThioS',]
-nss_thioss <-  filter(nss_thios, !is.na(nss_thios$averageObjectVolume)) # Remove source rows with NA measurements
-nss_thiosd <-  filter(nss_thios, !is.na(nss_thios$objectDensity)) # Remove sourcerows with NA measurements
+# Remove source rows with NA measurements
+nss_thioss <-  filter(nss_thios, !is.na(nss_thios$averageObjectVolume))
+nss_thiosd <-  filter(nss_thios, !is.na(nss_thios$objectDensity))
 stopifnot(nrow(nss_final[nss_final$type == ThioS_size_display_name,]) == nrow(nss_thioss))
 stopifnot(nrow(nss_final[nss_final$type == ThioS_density_display_name,]) == nrow(nss_thiosd))
 # results not in legacy explorer
@@ -573,7 +600,7 @@ if(!dir.exists(output_dir)){
   dir.create(output_dir)
 }
 write.csv(pathology_final, file.path(output_dir, "pathology.csv"), row.names = FALSE)
-
+```
 # upload to synapse
 syn_file <- File(file.path(output_dir, "pathology.csv"),
                  description = "Harmonized Pathology data for Model-AD Explorer 2.0.",

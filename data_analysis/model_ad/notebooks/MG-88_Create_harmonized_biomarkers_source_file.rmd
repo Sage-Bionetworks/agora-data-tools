@@ -67,6 +67,10 @@ library(tidyverse)
 
 ## Utility functions & variables
 ```{r}
+# *******
+# FILTERS
+# *******
+
 # column spec for intermediate per-model result files
 intermediate_keeps <- c('specimenID', 'individualID', 'model', 'type', 'measurement', 'units')
 
@@ -75,6 +79,28 @@ keeps <- c('individual_id', 'model', 'type', 'measurement', 'units', 'age_death'
 
 # ages that we want to display results for
 age_keeps <- c(4, 12, 18)
+
+# **************
+# DISPLAY LABELS
+# **************
+
+# Model and genotype display names (rnaseq_genotype_label_map.csv)
+threex_display_name <- '3xTg-AD'
+threex_control_display_name <- 'B6129'
+fivex_display_name <- '5xFAD (UCI)'
+fivex_control_display_name <- "C57BL/6J"
+abca7_display_name <- 'Abca7*V1599M'
+abca7_control_display_name <- "C57BL/6J"
+abca7fivex_display_name <- "Abca7*V1599M.5xFAD"
+abca7fivex_control_display_name <- '5xFAD'
+nss_display_name <- 'Trem2-R47H_NSS'
+nss_control_display_name <- "C57BL/6J"
+nssfivex_display_name <- "Trem2-R47H_NSS.5xFAD"
+nssfivex_control_display_name <- '5xFAD'
+
+# *********
+# FUNCTIONS
+# *********
 
 # Vector to store all downloaded synIds for Synapse provenance (populated via download_csv function)
 data_sources <- character()
@@ -175,21 +201,21 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
             ) %>% mutate(biomarkers_merged,
                            genotype = case_when(
 
-                                   # 3xTG-AD genotypes
-                                   genotype == "3xTg-AD_homozygous"  ~ "3xTg-AD",
-                                   genotype == "3XTg-AD_noncarrier" ~ "B6129",
+                                   # 3xTg-AD genotypes
+                                   genotype == "3xTg-AD_homozygous"  ~ threex_display_name,
+                                   genotype == "3XTg-AD_noncarrier" ~ threex_control_display_name,
 
                                    # 5xFAD genotypes
-                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ "5xFAD",
-                                   genotype == "5XFAD_noncarrier"  ~ "C57BL/6J",
+                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ fivex_display_name,
+                                   genotype == "5XFAD_noncarrier"  ~ fivex_control_display_name,
 
                                    # NSS genotypes
-                                   genotype == "Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS",
-                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ "Trem2-R47H_NSS.5xFAD",
+                                   genotype == "Trem2-R47H_NSS_homozygous"  ~ nss_display_name,
+                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ nssfivex_control_display_name,
 
                                    # Abca7 genotypes
-                                   genotype == "Abca7-V1599M_homozygous"  ~ "Abca7*V1599M",
-                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ "Abca7*V1559M.5xFAD",
+                                   genotype == "Abca7-V1599M_homozygous"  ~ abca7_display_name,
+                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ abca7fivex_display_name,
 
                                    TRUE ~ genotype))
 }
@@ -257,7 +283,7 @@ threex_abs_insol <- threex_abs_insol_source %>% mutate(fraction_type = 'Insolubl
 threex_abs_merged <- bind_rows(threex_abs_sol, threex_abs_insol)
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-threex_abs <- transform_results(threex_abs_merged, c("Abeta40", "Abeta42"), '3xTg-AD', intermediate_keeps)
+threex_abs <- transform_results(threex_abs_merged, c("Abeta40", "Abeta42"), threex_display_name, intermediate_keeps)
 
 # No NfL measures for this model
 threex_biomarkers <- threex_abs
@@ -281,7 +307,7 @@ fivex_abs_merged <- bind_rows(fivex_abs_sol, fivex_abs_insol
 )
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-fivex_abs <- transform_results(fivex_abs_merged, c("Abeta40", "Abeta42"), '5xFAD (UCI)', intermediate_keeps)
+fivex_abs <- transform_results(fivex_abs_merged, c("Abeta40", "Abeta42"), fivex_display_name, intermediate_keeps)
 
 # No NfL measures for this model
 fivex_biomarkers <- fivex_abs
@@ -307,14 +333,14 @@ nss_abs_insol_12mo <- nss_abs_insol_12mo_source %>% mutate(fraction_type = 'Inso
 nss_abs_merged <- bind_rows(nss_abs_sol_4mo, nss_abs_sol_12mo, nss_abs_insol_4mo, nss_abs_insol_12mo)
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-nss_abs <- transform_results(nss_abs_merged, c("Abeta40", "Abeta42"), 'Trem2-R47H_NSS', intermediate_keeps)
+nss_abs <- transform_results(nss_abs_merged, c("Abeta40", "Abeta42"), nss_display_name, intermediate_keeps)
 
 # NfL measures
 # Merge source dfs
 nss_nfl_merged <- bind_rows(nss_nfl_cortex_source, nss_nfl_plasma_source)
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-nss_nfl <- transform_results(nss_nfl_merged, c("NfL"), 'Trem2-R47H_NSS', intermediate_keeps)
+nss_nfl <- transform_results(nss_nfl_merged, c("NfL"), nss_display_name, intermediate_keeps)
 
 # Merge Abetas and NfL
 nss_biomarkers <- bind_rows(nss_abs, nss_nfl)
@@ -334,14 +360,14 @@ abca7_abs_insol_12mo <- abca7_abs_insol_12mo_source %>% mutate(fraction_type = '
 abca7_abs_merged <- bind_rows(abca7_abs_sol_4mo, abca7_abs_sol_12mo, abca7_abs_insol_4mo, abca7_abs_insol_12mo)
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-abca7_abs <- transform_results(abca7_abs_merged, c("Abeta40", "Abeta42"), 'Abca7*V1599M', intermediate_keeps)
+abca7_abs <- transform_results(abca7_abs_merged, c("Abeta40", "Abeta42"), abca7_display_name, intermediate_keeps)
 
 # NfL measures
 # Merge source dfs
 abca7_nfl_merged <- bind_rows(abca7_nfl_cortex_source, abca7_nfl_plasma_source)
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-abca7_nfl <- transform_results(abca7_nfl_merged, c("NfL"), 'Abca7*V1599M', intermediate_keeps)
+abca7_nfl <- transform_results(abca7_nfl_merged, c("NfL"), abca7_display_name, intermediate_keeps)
 
 # Merge Abeta and NfL measures
 abca7_biomarkers <- bind_rows(abca7_abs, abca7_nfl)
@@ -392,7 +418,7 @@ stopifnot(abca7_expected_abs + abca7_expected_nfl == nrow(abca7_final))
 stopifnot(nrow(abca7_final) == 543) # 5xFADAbca7*V1599M + 5xFAD + Abca7*V1599M + C57BL/6J: 543
 ```
 
-## Merge model-specific results files & write csv file and upload to synapse
+## Merge model-specific results files & write csv file to synapse
 ```{r}
 # Merge results for all models
 biomarkers_final <- bind_rows(
@@ -408,7 +434,7 @@ if(!dir.exists(output_dir)){
   dir.create(output_dir)
 }
 write.csv(biomarkers_final, file.path(output_dir, "biomarkers.csv"), row.names = FALSE)
-
+```
 # upload to synapse
 syn_file <- File(file.path(output_dir, "biomarkers.csv"),
                  description = "Harmonized Biomarker data for Model-AD Explorer 2.0.",
@@ -421,4 +447,3 @@ res <- synStore(syn_file, forceVersion = FALSE,
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 
 ```
-
