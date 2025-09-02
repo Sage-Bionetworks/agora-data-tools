@@ -229,7 +229,9 @@ cat("\nNfL (nss): ", unique(nfl_legacy_nss$Mouse.Model), sep=", ")
 ```
 
 ## Determine number of legacy results per model for pathology & biomarkers
-These values are used to validate that the correct results are included in the harmonized source files generated via the 'MG-88-biomarkers' notebook.
+These values are used to validate that the correct results are included in the harmonized source files generated via these notebooks:
+* MG-40_pathology
+* MG-88_biomarkers
 
 ```{r}
 # *********
@@ -300,7 +302,3 @@ count_legacy_rows("5xFADAbca7*V1599M", "5xFAD", sol_ab42_legacy_abca7, "Soluble 
 count_legacy_rows("Abca7*V1599M", "C57BL/6J", nfl_legacy_abca7, "NfL (abca7)")
 count_legacy_rows("5xFADAbca7*V1599M", "5xFAD", nfl_legacy_abca7, "NfL (abca7)")
 ```
-
-
-
-
