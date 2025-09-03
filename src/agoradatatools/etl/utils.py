@@ -108,7 +108,8 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
 def rename_columns(
     data: Union[pd.DataFrame, list[dict], dict], column_map: dict
 ) -> Union[pd.DataFrame, list[dict], dict]:
-    """Takes in a dataframe, list of dictionaries, or dictionary and renames columns according to the mapping provided
+    """Takes in a dataframe, list of dictionaries, or dictionary and renames columns according to the mapping provided.
+    If the input type is a dictionary or a list of dictionaries, the input is modified in place.
 
     Args:
         data (pd.DataFrame, list, dict): DataFrame, list of dictionaries, or dictionary with columns to be renamed
