@@ -147,3 +147,26 @@ class TestDictToJSON:
             indent=2,
         )
         assert json_name == "./staging/test.json"
+
+
+class TestListToJSON:
+    test_list = [{"a": "b", "c": "d"}, {"e": "f", "g": "h"}]
+
+    def setup_method(self):
+        self.patch_json_dump = patch.object(json, "dump", return_value=None).start()
+        self.patch_NumpyEncoder = patch.object(load, "NumpyEncoder").start()
+
+    def teardown_method(self):
+        mock.patch.stopall()
+
+    def test_list_to_json_success(self):
+        json_name = load.list_to_json(
+            data_as_list=self.test_list, staging_path="./staging", filename="test.json"
+        )
+        self.patch_json_dump.assert_called_once_with(
+            self.test_list,
+            ANY,  # without mocking open() I was unable to get anything equating to `temp_json` to go here
+            cls=self.patch_NumpyEncoder,
+            indent=2,
+        )
+        assert json_name == "./staging/test.json"
