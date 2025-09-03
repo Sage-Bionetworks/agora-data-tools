@@ -106,8 +106,8 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def rename_columns(
-    data: Union[pd.DataFrame, list, dict], column_map: dict
-) -> Union[pd.DataFrame, list, dict]:
+    data: Union[pd.DataFrame, list[dict], dict], column_map: dict
+) -> Union[pd.DataFrame, list[dict], dict]:
     """Takes in a dataframe, list of dictionaries, or dictionary and renames columns according to the mapping provided
 
     Args:
@@ -120,23 +120,36 @@ def rename_columns(
 
     def _rename_dict(d: dict, column_map: dict) -> None:
         """
-        Rename keys in a dictionary in place.
+        Rename keys in a dictionary in place and will therefore return None.
+        If the old key is not in the dictionary to be renamed, the dictionary is not modified.
+        If the old key is in the dictionary to be renamed, the key is removed and the new key is added.
+        The order of the keys in the dictionary is not preserved.
+
+        Args:
+            d (dict): Dictionary to be renamed
+            column_map (dict): Dictionary mapping original column names to new columns
+
+        Returns:
+            None
         """
         for old_key, new_key in column_map.items():
             if old_key in d:
                 d[new_key] = d.pop(old_key)
 
-    try:
-        if isinstance(data, list):
-            for item in data:
-                _rename_dict(item, column_map)
-        elif isinstance(data, dict):
-            _rename_dict(data, column_map)
-        else:
-            data.rename(columns=column_map, inplace=True)
-    except TypeError:
-        print("Column mapping must be a dictionary")
-        return data
+    if not isinstance(column_map, dict):
+        raise TypeError("Column mapping must be a dictionary.")
+
+    if isinstance(data, list[dict]):
+        for item in data:
+            _rename_dict(item, column_map)
+    elif isinstance(data, dict):
+        _rename_dict(data, column_map)
+    elif isinstance(data, pd.DataFrame):
+        data.rename(columns=column_map, inplace=True)
+    else:
+        raise TypeError(
+            "Data must be a pandas DataFrame, list of dictionaries, or dictionary."
+        )
 
     return data
 
