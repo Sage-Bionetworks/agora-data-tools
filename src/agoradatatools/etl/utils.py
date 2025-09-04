@@ -137,6 +137,7 @@ def rename_columns(
             if old_key in d:
                 d[new_key] = d.pop(old_key)
 
+
     if not isinstance(column_map, dict):
         raise TypeError("Column mapping must be a dictionary.")
 
