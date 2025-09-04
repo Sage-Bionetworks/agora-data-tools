@@ -192,7 +192,7 @@ def immunohisto_transform(
                 )
 
     # Sort data_rows by the numeric value in the "age" field (e.g., "6 months" -> 6)
-    def extract_age_num(entry):
+    def extract_age_num(entry: dict) -> int:
         """
         Sorts the data_rows list by the numeric value in the "age" field (e.g., "6 months" -> 6)
 
