@@ -17,8 +17,7 @@ def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     Returns:
         synapseclient.Synapse: authenticated Synapse client session
     """
-    version_number = synapseclient.__version__
-    agent_str = f"agora-data-tools/{version_number}"
+    agent_str="my_agent = 'agora-data-tools/0.0.0'"
     syn = synapseclient.Synapse(user_agent=agent_str)
     if token is None:
         syn.login()
