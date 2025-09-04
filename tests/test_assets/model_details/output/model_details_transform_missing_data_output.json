@@ -13,7 +13,7 @@
       "3xTg"
     ],
     "gene_expression": "comparison/expression?model=3xTg-AD",
-    "disease_correlation": null,
+    "disease_correlation": "comparison/correlation?model=3xTg-AD",
     "spatial_transcriptomics": null,
     "genetic_info": [
       {

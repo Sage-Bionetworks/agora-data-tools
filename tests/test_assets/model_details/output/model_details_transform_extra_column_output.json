@@ -14,7 +14,7 @@
     "aliases": [
       "3xTg"
     ],
-    "gene_expression": "comparison/expression?model=3xTg-AD",
+    "gene_expression": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [
