@@ -207,6 +207,7 @@ def immunohisto_transform(
             return int(age_str.split()[0])
         except (ValueError, IndexError, AttributeError):
             return float("inf")
+
     data_rows.sort(key=extract_age_num)
 
     data_rows = convert_numpy_types(data_rows)
