@@ -42,6 +42,11 @@ class TestTransformGeneralModelAD:
             "immunohisto_transform_missing_ages_input.csv",
             "immunohisto_transform_missing_ages_output.json",
         ),
+        (
+            # Pass with invalid age data that triggers float("inf") error handling
+            "immunohisto_transform_invalid_age_input.csv",
+            "immunohisto_transform_invalid_age_output.json",
+        ),
     ]
     pass_test_ids = [
         "Pass with good fake data",
@@ -50,6 +55,7 @@ class TestTransformGeneralModelAD:
         "Pass with missing data",
         "Pass with extra column",
         "Pass with missing ages",
+        "Pass with invalid age data that triggers float(inf) error handling",
     ]
     fail_test_data = [("immunohisto_transform_missing_column.csv")]
     fail_test_ids = [("Fail with missing column")]
