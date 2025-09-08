@@ -215,6 +215,20 @@ class TestRenameColumnsDataFrame:
             pd.DataFrame({"x": [1, 2, 3], "y": ["x", "y", "z"], "z": [1.5, 2.5, 3.5]}),
         )
 
+    def test_rename_columns_with_empty_dataframe(self):
+        """Test renaming columns in an empty DataFrame"""
+        empty_df = pd.DataFrame()
+        column_map = {"a": "x", "b": "y", "c": "z"}
+
+        result = utils.rename_columns(data=empty_df, column_map=column_map)
+
+        # Check that columns are renamed correctly
+        assert list(result.columns) == []
+        # Check that the DataFrame is still empty
+        assert len(result) == 0
+        # Verify the original DataFrame was modified in place
+        assert list(empty_df.columns) == []
+
 
 class TestRenameColumnsDict:
     input_dict = {"a": "value1", "b": "value2", "c": "value3"}
