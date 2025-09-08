@@ -64,7 +64,7 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def round_y_axis_max(y_axis_max: float) -> float:
+def round_y_axis_max(y_axis_max) -> float:
     """
     This function rounds the y_axis_max value to the nearest sensible nice round number.
 
@@ -84,6 +84,13 @@ def round_y_axis_max(y_axis_max: float) -> float:
     - 1.616 rounds up to 2.0
     """
     import math
+
+    # Convert to float if it's a string or other type
+    try:
+        y_axis_max = float(y_axis_max)
+    except (ValueError, TypeError):
+        # If conversion fails, return 10 (default case)
+        return 10.0
 
     # Special case: if max is 0, return 10
     if y_axis_max == 0:
@@ -216,7 +223,15 @@ def immunohisto_transform(
     key_dimensions = ["name", "evidence_type", "tissue"]
     y_axis_max_map = {}
     for key, group in dataset.groupby(key_dimensions):
-        y_axis_max_map[tuple(key)] = group["value"].max() if len(group) > 0 else 0
+        if len(group) > 0:
+            # Convert value column to numeric, coercing errors to NaN, then drop NaN values
+            numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
+            if len(numeric_values) > 0:
+                y_axis_max_map[tuple(key)] = numeric_values.max()
+            else:
+                y_axis_max_map[tuple(key)] = 0
+        else:
+            y_axis_max_map[tuple(key)] = 0
 
     grouped = dataset.groupby(group_columns)
 
