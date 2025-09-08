@@ -40,6 +40,14 @@
   },
   {
     "name": "ModelA",
+    "evidence_type": "TypeA",
+    "tissue": "Tissuea",
+    "age": "3 months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
     "evidence_type": "TypeB",
     "tissue": "Tissuea",
     "age": "3 months",
@@ -55,14 +63,6 @@
   },
   {
     "name": "ModelA",
-    "evidence_type": "TypeA",
-    "tissue": "Tissuea",
-    "age": "3 months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
     "evidence_type": "TypeC",
     "tissue": "Tissuea",
     "age": "3 months",
@@ -74,6 +74,45 @@
     "evidence_type": "TypeD",
     "tissue": "Tissuea",
     "age": "3 months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeA",
+    "tissue": "Tissuea",
+    "age": "12.5 months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeB",
+    "tissue": "Tissuea",
+    "age": "12.5 months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeC",
+    "tissue": "Tissuea",
+    "age": "12.5 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_7",
+        "value": 7
+      }
+    ]
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeD",
+    "tissue": "Tissuea",
+    "age": "12.5 months",
     "units": "",
     "data": []
   },
@@ -94,63 +133,19 @@
   },
   {
     "name": "ModelA",
-    "evidence_type": "TypeA",
-    "tissue": "Tissuea",
-    "age": "invalid_text months",
-    "units": "A",
-    "data": [
-      {
-        "genotype": "genotype1",
-        "sex": "Male",
-        "individual_id": "individual_1",
-        "value": 1
-      }
-    ]
-  },
-  {
-    "name": "ModelA",
     "evidence_type": "TypeB",
     "tissue": "Tissuea",
-    "age": "not_a_number months",
-    "units": "A",
-    "data": [
-      {
-        "genotype": "genotype1",
-        "sex": "Male",
-        "individual_id": "individual_4",
-        "value": 4
-      }
-    ]
+    "age": " months",
+    "units": "",
+    "data": []
   },
   {
     "name": "ModelA",
     "evidence_type": "TypeC",
     "tissue": "Tissuea",
-    "age": "12.5 months",
-    "units": "A",
-    "data": [
-      {
-        "genotype": "genotype1",
-        "sex": "Male",
-        "individual_id": "individual_7",
-        "value": 7
-      }
-    ]
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeC",
-    "tissue": "Tissuea",
-    "age": "abc123 months",
-    "units": "A",
-    "data": [
-      {
-        "genotype": "genotype1",
-        "sex": "Male",
-        "individual_id": "individual_6",
-        "value": 6
-      }
-    ]
+    "age": " months",
+    "units": "",
+    "data": []
   },
   {
     "name": "ModelA",
@@ -171,7 +166,38 @@
     "name": "ModelA",
     "evidence_type": "TypeA",
     "tissue": "Tissuea",
-    "age": "12.5 months",
+    "age": "abc123 months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeB",
+    "tissue": "Tissuea",
+    "age": "abc123 months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeC",
+    "tissue": "Tissuea",
+    "age": "abc123 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_6",
+        "value": 6
+      }
+    ]
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeD",
+    "tissue": "Tissuea",
+    "age": "abc123 months",
     "units": "",
     "data": []
   },
@@ -179,7 +205,38 @@
     "name": "ModelA",
     "evidence_type": "TypeA",
     "tissue": "Tissuea",
-    "age": "abc123 months",
+    "age": "invalid_text months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_1",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeB",
+    "tissue": "Tissuea",
+    "age": "invalid_text months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeC",
+    "tissue": "Tissuea",
+    "age": "invalid_text months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
+    "evidence_type": "TypeD",
+    "tissue": "Tissuea",
+    "age": "invalid_text months",
     "units": "",
     "data": []
   },
@@ -195,79 +252,22 @@
     "name": "ModelA",
     "evidence_type": "TypeB",
     "tissue": "Tissuea",
-    "age": "12.5 months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeB",
-    "tissue": "Tissuea",
-    "age": "invalid_text months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeB",
-    "tissue": "Tissuea",
-    "age": "abc123 months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeB",
-    "tissue": "Tissuea",
-    "age": " months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeC",
-    "tissue": "Tissuea",
-    "age": "invalid_text months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeC",
-    "tissue": "Tissuea",
-    "age": " months",
-    "units": "",
-    "data": []
+    "age": "not_a_number months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_4",
+        "value": 4
+      }
+    ]
   },
   {
     "name": "ModelA",
     "evidence_type": "TypeC",
     "tissue": "Tissuea",
     "age": "not_a_number months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeD",
-    "tissue": "Tissuea",
-    "age": "12.5 months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeD",
-    "tissue": "Tissuea",
-    "age": "invalid_text months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeD",
-    "tissue": "Tissuea",
-    "age": "abc123 months",
     "units": "",
     "data": []
   },

@@ -201,15 +201,17 @@ def immunohisto_transform(
             entry (dict): A dictionary containing the "age" field.
 
         Returns:
-            tuple: (numeric_value, age_string) for consistent sorting
+            tuple: (numeric_value, age_string, evidence_type) for consistent sorting
         """
         age_str = entry.get("age", "")
+        evidence_type = entry.get("evidence_type", "")
         try:
             numeric_value = float(age_str.split()[0])
-            return (numeric_value, age_str)
+            return (numeric_value, age_str, evidence_type)
         except (ValueError, IndexError, AttributeError):
             # For invalid ages, use a large number and the age string for consistent sorting
-            return (float("inf"), age_str)
+            # Include evidence_type to ensure deterministic ordering when ages are invalid
+            return (float("inf"), age_str, evidence_type)
 
     data_rows.sort(key=extract_age_num)
 
