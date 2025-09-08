@@ -177,6 +177,16 @@ def immunohisto_transform(
         # Find which ages are missing from this group
         missing_ages = [age for age in available_ages if age not in group_ages]
 
+        # Calculate y_axis_max from the group data
+        y_axis_max = group["value"].max() if len(group) > 0 else 0
+        
+        # Update existing data_rows with y_axis_max for matching entries
+        for x in data_rows:
+            if (x["name"] == entry["name"] and 
+                x["evidence_type"] == entry["evidence_type"] and 
+                x["tissue"] == entry["tissue"]):
+                x["y_axis_max"] = y_axis_max
+
         # If there are missing ages, create placeholder entries for each missing age
         if len(missing_ages) > 0:
             for age in missing_ages:
@@ -187,6 +197,7 @@ def immunohisto_transform(
                         "tissue": entry["tissue"],
                         "age": age,
                         "units": "",  # Empty units since there's no actual data
+                        "y_axis_max": y_axis_max,
                         "data": [],  # Empty data array since there are no measurements for this age
                     }
                 )
