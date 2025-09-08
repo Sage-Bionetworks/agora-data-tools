@@ -6,6 +6,7 @@ import pytest
 from agoradatatools.etl.transform.immunohisto_transform import (
     immunohisto_transform,
     prepare_immunohisto_data,
+    round_y_axis_max,
 )
 
 
@@ -183,3 +184,126 @@ class TestTransformGeneralModelAD:
 
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
+
+
+class TestRoundYAxisMax:
+    """Test class for the round_y_axis_max function."""
+
+    def test_round_y_axis_max_zero_case(self):
+        """Test that 0 returns 10."""
+        result = round_y_axis_max(0)
+        assert result == 10.0
+
+    def test_round_y_axis_max_negative_case(self):
+        """Test that negative values return 0."""
+        result = round_y_axis_max(-5.0)
+        assert result == 0.0
+
+    def test_round_y_axis_max_jira_examples(self):
+        """Test all examples from the Jira ticket."""
+        test_cases = [
+            # (input, expected_output, description)
+            (0.0021, 0.0025, "0.0021 rounds up to 0.0025"),
+            (0.0004, 0.00045, "0.0004 rounds up to 0.00045"),
+            (0.329486078, 0.35, "0.329486078 rounds up to 0.35"),
+            (0.089, 0.090, "0.089 rounds up to 0.090"),
+            (1094, 1500, "1094 rounds up to 1500"),
+            (1322498, 1500000, "1322498 rounds up to 1500000"),
+            (728591, 750000, "728591 rounds up to 750000"),
+            (3973, 4000, "3973 rounds up to 4000"),
+            (1.616, 2.0, "1.616 rounds up to 2.0"),
+        ]
+
+        for input_val, expected, description in test_cases:
+            result = round_y_axis_max(input_val)
+            assert abs(result - expected) < 1e-6, f"Failed for {description}: input={input_val}, expected={expected}, got={result}"
+
+    def test_round_y_axis_max_edge_cases(self):
+        """Test edge cases and boundary conditions."""
+        # Test very small numbers
+        assert abs(round_y_axis_max(0.0001) - 0.00015) < 1e-6
+        assert abs(round_y_axis_max(0.00001) - 0.000015) < 1e-6
+        
+        # Test numbers that are already "nice"
+        assert round_y_axis_max(1.0) == 1.5  # Should round up to next nice number
+        assert round_y_axis_max(1.5) == 1.5  # Already nice, but we round UP, so stays 1.5
+        assert round_y_axis_max(2.0) == 2.5  # Should round up to next nice number
+        
+        # Test large numbers
+        assert round_y_axis_max(1000000) == 1500000
+        assert round_y_axis_max(5000000) == 5500000  # 5.0 -> 5.5, not next magnitude
+
+    def test_round_y_axis_max_second_digit_logic(self):
+        """Test the second digit rounding logic specifically."""
+        # Second digit 0-2 should round to 0 (but we round UP, so to 5)
+        assert round_y_axis_max(1.0) == 1.5
+        assert round_y_axis_max(1.1) == 1.5
+        assert round_y_axis_max(1.2) == 1.5
+        
+        # Second digit 3-7 should round to 5
+        assert round_y_axis_max(1.3) == 1.5
+        assert round_y_axis_max(1.4) == 1.5
+        assert round_y_axis_max(1.5) == 1.5  # Already 5, stays 1.5
+        assert round_y_axis_max(1.6) == 2.0
+        assert round_y_axis_max(1.7) == 2.0
+        
+        # Second digit 8-9 should round to next first digit with 0
+        assert round_y_axis_max(1.8) == 2.0
+        assert round_y_axis_max(1.9) == 2.0
+
+    def test_round_y_axis_max_magnitude_handling(self):
+        """Test that the function handles different magnitudes correctly."""
+        # Test different magnitudes with same pattern
+        assert abs(round_y_axis_max(0.1) - 0.15) < 1e-6
+        assert round_y_axis_max(1.0) == 1.5
+        assert round_y_axis_max(10.0) == 15.0
+        assert round_y_axis_max(100.0) == 150.0
+        assert round_y_axis_max(1000.0) == 1500.0
+
+    def test_round_y_axis_max_floating_point_precision(self):
+        """Test that floating point precision issues are handled correctly."""
+        # Test numbers that might have floating point precision issues
+        assert abs(round_y_axis_max(0.1 + 0.2) - 0.35) < 1e-6  # 0.30000000000000004 -> 0.35
+        assert abs(round_y_axis_max(1.0 / 3.0) - 0.35) < 1e-6  # 0.3333333333333333 -> 0.35
+        assert abs(round_y_axis_max(2.0 / 3.0) - 0.7) < 1e-6  # 0.6666666666666666 -> 0.7
+
+    def test_round_y_axis_max_return_type(self):
+        """Test that the function returns a float."""
+        result = round_y_axis_max(1.5)
+        assert isinstance(result, float)
+
+    def test_round_y_axis_max_consistency(self):
+        """Test that the function is consistent across multiple calls."""
+        test_values = [0.0021, 1094, 1.616, 0.0, 0.089]
+        
+        for value in test_values:
+            result1 = round_y_axis_max(value)
+            result2 = round_y_axis_max(value)
+            assert result1 == result2, f"Inconsistent results for {value}: {result1} vs {result2}"
+
+    def test_round_y_axis_max_monotonicity(self):
+        """Test that the function maintains monotonicity (larger inputs should give larger or equal outputs)."""
+        test_values = [0.001, 0.002, 0.003, 0.004, 0.005]
+        results = [round_y_axis_max(val) for val in test_values]
+        
+        # Results should be non-decreasing
+        for i in range(1, len(results)):
+            assert results[i] >= results[i-1], f"Non-monotonic: {test_values[i-1]} -> {results[i-1]}, {test_values[i]} -> {results[i]}"
+
+    @pytest.mark.parametrize("input_val,expected", [
+        (0, 10.0),
+        (-1, 0.0),
+        (0.0021, 0.0025),
+        (0.0004, 0.00045),
+        (0.329486078, 0.35),
+        (0.089, 0.090),
+        (1094, 1500),
+        (1322498, 1500000),
+        (728591, 750000),
+        (3973, 4000),
+        (1.616, 2.0),
+    ])
+    def test_round_y_axis_max_parametrized(self, input_val, expected):
+        """Parametrized test for the main examples."""
+        result = round_y_axis_max(input_val)
+        assert abs(result - expected) < 1e-6, f"input={input_val}, expected={expected}, got={result}"
