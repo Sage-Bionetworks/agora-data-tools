@@ -108,7 +108,9 @@ def upload_dataversion_metadata(
         dataversion_dict["team_images_id"] = team_images_id
 
     dataversion_json_path = load.dict_to_json(
-        df=dataversion_dict, staging_path=staging_path, filename="dataversion.json"
+        data_as_dict=dataversion_dict,
+        staging_path=staging_path,
+        filename="dataversion.json",
     )
     load.load(
         file_path=dataversion_json_path,
@@ -153,42 +155,41 @@ def process_dataset(
 
         if "column_rename" in dataset_obj[dataset_name].keys():
             df = utils.rename_columns(
-                df=df, column_map=dataset_obj[dataset_name]["column_rename"]
+                data=df, column_map=dataset_obj[dataset_name]["column_rename"]
             )
 
         entities_as_df[entity_name] = df
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
-        result = apply_custom_transformations(
+        transform_result = apply_custom_transformations(
             datasets=entities_as_df,
             dataset_name=dataset_name,
             dataset_obj=dataset_obj[dataset_name],
         )
-        df = utils.convert_transformation_result_to_dataframe(result, dataset_name)
 
     else:
-        df = entities_as_df[list(entities_as_df)[0]]
+        transform_result = entities_as_df[list(entities_as_df)[0]]
 
     if "agora_rename" in dataset_obj[dataset_name].keys():
-        df = utils.rename_columns(
-            df=df, column_map=dataset_obj[dataset_name]["agora_rename"]
+        transform_result = utils.rename_columns(
+            data=transform_result, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
-    if isinstance(df, dict):
+    if isinstance(transform_result, dict):
         json_path = load.dict_to_json(
-            df=df,
+            data_as_dict=transform_result,
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
-    elif isinstance(df, list):
+    elif isinstance(transform_result, list):
         json_path = load.list_to_json(
-            df_as_list=df,
+            data_as_list=transform_result,
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
     else:
         json_path = load.df_to_json(
-            df=df,
+            data_as_df=transform_result,
             staging_path=staging_path,
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
@@ -407,7 +408,7 @@ upload_opt = Option(
     False,
     "--upload",
     "-u",
-    help="Boolean value that toggles whether or not files will be uploaded to Synapse. The absence of this option means "
+    help="Boolean value that toggles whether or not files or GX reports will be uploaded to Synapse. The absence of this option means "
     "`False` - that neither output data files nor GX reports will be uploaded to Synapse. Setting "
     "`--upload` in the command will cause both to be uploaded. (Optional, defaults to False)",
     show_default=True,

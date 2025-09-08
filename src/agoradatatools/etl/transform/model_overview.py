@@ -73,6 +73,20 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     return available_data
 
 
+def get_center_link_url(contributing_group: str) -> str:
+    """
+    Get the link URL for the center.
+    """
+    if isinstance(contributing_group, str):
+        if contributing_group.upper() == "UCI":
+            return (
+                "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+            )
+        elif contributing_group.upper() == "IU/JAX/PITT":
+            return "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+    raise ValueError(f"Invalid contributing group: {contributing_group}")
+
+
 def transform_model_overview(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -162,7 +176,7 @@ def transform_model_overview(
         )
         row["study_data"] = (
             {
-                "link_url": f"https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study={row['study_synid']}"
+                "link_url": f"https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study={row['study_synid']}"
             }
             if row["study_synid"]
             else None
@@ -173,7 +187,10 @@ def transform_model_overview(
             else None
         )
         row["center"] = (
-            {"link_text": row["contributing_group"]}
+            {
+                "link_text": row["contributing_group"],
+                "link_url": get_center_link_url(row["contributing_group"]),
+            }
             if row["contributing_group"]
             else None
         )

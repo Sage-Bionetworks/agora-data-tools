@@ -226,7 +226,7 @@ class TestTransformModelOverview:
                 "name": ["test_model"],
                 "matched_controls": ["C57BL6J"],
                 "model_type": ["Familial AD"],
-                "contributing_group": ["Test Center"],
+                "contributing_group": ["UCI"],
                 "study_synid": ["syn123456"],
                 "rrid": ["IMSR_JAX:123456"],
                 "jax_id": [123456],
@@ -286,10 +286,13 @@ class TestTransformModelOverview:
                 "pathology": {"link_url": "models/test_model/pathology"},
                 "biomarkers": None,
                 "study_data": {
-                    "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
+                    "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
-                "center": {"link_text": "Test Center"},
+                "center": {
+                    "link_text": "UCI",
+                    "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/",
+                },
                 "modified_genes": ["TestGene"],
                 "available_data": ["Gene Expression", "Pathology"],
             }
@@ -305,7 +308,7 @@ class TestTransformModelOverview:
                 "name": ["test_model"],
                 "matched_controls": [None],
                 "model_type": ["Familial AD"],
-                "contributing_group": ["Test Center"],
+                "contributing_group": ["IU/Jax/Pitt"],
                 "study_synid": ["syn123456"],
                 "rrid": ["IMSR_JAX:123456"],
                 "jax_id": [123456],
@@ -363,10 +366,13 @@ class TestTransformModelOverview:
                 "pathology": None,
                 "biomarkers": None,
                 "study_data": {
-                    "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
+                    "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
-                "center": {"link_text": "Test Center"},
+                "center": {
+                    "link_text": "IU/Jax/Pitt",
+                    "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/",
+                },
                 "modified_genes": [],
                 "available_data": [],
             }
@@ -382,7 +388,7 @@ class TestTransformModelOverview:
                 "name": ["model1", "model2"],
                 "matched_controls": ["C57BL6J", "B6129"],
                 "model_type": ["Familial AD", "Tauopathy"],
-                "contributing_group": ["Center1", "Center2"],
+                "contributing_group": ["UCI", "IU/Jax/Pitt"],
                 "study_synid": ["syn111", "syn222"],
                 "rrid": ["IMSR_JAX:111", "IMSR_JAX:222"],
                 "jax_id": [111, 222],
@@ -448,10 +454,13 @@ class TestTransformModelOverview:
                 "pathology": {"link_url": "models/model1/pathology"},
                 "biomarkers": None,
                 "study_data": {
-                    "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
+                    "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/111"},
-                "center": {"link_text": "Center1"},
+                "center": {
+                    "link_text": "UCI",
+                    "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/",
+                },
                 "modified_genes": ["Gene1", "Gene2"],
                 "available_data": ["Gene Expression", "Pathology"],
             },
@@ -466,10 +475,13 @@ class TestTransformModelOverview:
                 "pathology": {"link_url": "models/model2/pathology"},
                 "biomarkers": {"link_url": "models/model2/biomarkers"},
                 "study_data": {
-                    "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
+                    "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/222"},
-                "center": {"link_text": "Center2"},
+                "center": {
+                    "link_text": "IU/Jax/Pitt",
+                    "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/",
+                },
                 "modified_genes": ["Gene3"],
                 "available_data": ["Disease Correlation", "Pathology", "Biomarkers"],
             },
@@ -549,3 +561,67 @@ class TestGetListOfAvailableData:
         }
         result = get_list_of_available_data(model)
         assert result == ["Gene Expression"]
+
+
+class TestGetCenterLinkUrl:
+    def test_uci_contributing_group(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        result = get_center_link_url("UCI")
+        expected = (
+            "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        )
+        assert result == expected
+
+    def test_uci_contributing_group_lowercase(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        result = get_center_link_url("uci")
+        expected = (
+            "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+        )
+        assert result == expected
+
+    def test_iu_jax_pitt_contributing_group_lowercase(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        result = get_center_link_url("IU/Jax/Pitt")
+        expected = "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+        assert result == expected
+
+    def test_iu_jax_pitt_uppercase_contributing_group(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        result = get_center_link_url("IU/JAX/PITT")
+        expected = "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+        assert result == expected
+
+    def test_invalid_contributing_group_raises_value_error(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        with pytest.raises(
+            ValueError, match="Invalid contributing group: InvalidCenter"
+        ):
+            get_center_link_url("InvalidCenter")
+
+    def test_empty_string_raises_value_error(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        with pytest.raises(ValueError, match="Invalid contributing group: "):
+            get_center_link_url("")
+
+    def test_none_contributing_group_raises_value_error(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        with pytest.raises(ValueError, match="Invalid contributing group: None"):
+            get_center_link_url(None)
+
+    def test_partial_matches_raise_value_error(self):
+        from agoradatatools.etl.transform.model_overview import get_center_link_url
+
+        # Test partial matches that should not work
+        with pytest.raises(ValueError, match="Invalid contributing group: IU/Jax"):
+            get_center_link_url("IU/Jax")
+
+        with pytest.raises(ValueError, match="Invalid contributing group: IU/JAX"):
+            get_center_link_url("IU/JAX")

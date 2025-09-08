@@ -14,13 +14,14 @@
       "link_url": "models/3xTg-AD/biomarkers"
     },
     "study_data": {
-      "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
     },
     "jax_strain": {
       "link_url": "https://jax.org/strain/4807"
     },
     "center": {
-      "link_text": "UCI"
+      "link_text": "UCI",
+      "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
     },
     "modified_genes": [
       "App",
@@ -48,13 +49,14 @@
       "link_url": "models/5xFAD (UCI)/biomarkers"
     },
     "study_data": {
-      "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn16798076"
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn16798076"
     },
     "jax_strain": {
       "link_url": "https://jax.org/strain/8730"
     },
     "center": {
-      "link_text": "UCI"
+      "link_text": "UCI",
+      "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
     },
     "modified_genes": [],
     "available_data": [
@@ -76,13 +78,14 @@
     "pathology": null,
     "biomarkers": null,
     "study_data": {
-      "link_url": "https://adknowledgeportal.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn17095980"
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn17095980"
     },
     "jax_strain": {
       "link_url": "https://jax.org/strain/27894"
     },
     "center": {
-      "link_text": "IU/JAX/PITT"
+      "link_text": "IU/JAX/PITT",
+      "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
     },
     "modified_genes": [],
     "available_data": [

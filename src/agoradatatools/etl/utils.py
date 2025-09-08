@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
-from pandas import DataFrame
 
 
 # TODO remove "_" - these utils functions are not only used internally
@@ -106,23 +105,57 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def rename_columns(df: pd.DataFrame, column_map: dict) -> pd.DataFrame:
-    """Takes in a dataframe and renames columns according to the mapping provided
+def rename_columns(
+    data: Union[pd.DataFrame, list[dict], dict], column_map: dict
+) -> Union[pd.DataFrame, list[dict], dict]:
+    """Takes in a dataframe, list of dictionaries, or dictionary and renames columns according to the mapping provided.
+    If the input type is a dictionary or a list of dictionaries, the input is modified in place.
 
     Args:
-        df (pd.DataFrame): DataFrame with columns to be renamed
+        data (pd.DataFrame, list, dict): DataFrame, list of dictionaries, or dictionary with columns to be renamed
         column_map (dict): Dictionary mapping original column names to new columns
 
     Returns:
-        pd.DataFrame: DataFrame with new columns names
+        pd.DataFrame, list, dict: DataFrame, list of dictionaries, or dictionary with new columns names
     """
-    try:
-        df.rename(columns=column_map, inplace=True)
-    except TypeError:
-        print("Column mapping must be a dictionary")
-        return df
 
-    return df
+    def _rename_dict(d: dict, column_map: dict) -> None:
+        """
+        Rename keys in a dictionary in place and will therefore return None.
+        If the old key is not in the dictionary to be renamed, the dictionary is not modified.
+        If the old key is in the dictionary to be renamed, the key is removed and the new key is added.
+        The order of the keys in the dictionary is not preserved.
+
+        Args:
+            d (dict): Dictionary to be renamed
+            column_map (dict): Dictionary mapping original column names to new columns
+
+        Returns:
+            None
+        """
+        for old_key, new_key in column_map.items():
+            if old_key in d:
+                d[new_key] = d.pop(old_key)
+
+    if not isinstance(column_map, dict):
+        print("Column mapping must be a dictionary.")
+        return data
+
+    if isinstance(data, list):
+        for item in data:
+            if not isinstance(item, dict):
+                raise TypeError("List must contain dictionaries.")
+            _rename_dict(item, column_map)
+    elif isinstance(data, dict):
+        _rename_dict(data, column_map)
+    elif isinstance(data, pd.DataFrame):
+        data.rename(columns=column_map, inplace=True)
+    else:
+        raise TypeError(
+            "Data must be a pandas DataFrame, list of dictionaries, or dictionary."
+        )
+
+    return data
 
 
 def nest_fields(
@@ -319,31 +352,3 @@ def convert_numpy_types(obj: Any) -> Any:
     elif isinstance(obj, list):
         return [convert_numpy_types(item) for item in obj]
     return obj
-
-
-def convert_transformation_result_to_dataframe(
-    result: Union[DataFrame, Dict[str, Any], List[Dict[str, Any]], Any],
-    dataset_name: str,
-) -> Union[DataFrame, Dict[str, Any]]:
-    """
-    Convert the result of a custom transformation to a pandas DataFrame or keep the original dictionary to ensure backward compatibility.
-
-    Args:
-        result: The result from a custom transformation function
-        dataset_name (str): Name of the dataset for error reporting
-
-    Returns:
-        pd.DataFrame or dict: The converted result as a pandas DataFrame or a dictionary
-
-    Raises:
-        TypeError: If the result type is not supported for conversion
-    """
-
-    if isinstance(result, DataFrame) or isinstance(result, dict):
-        return result
-    elif isinstance(result, list):
-        return pd.DataFrame(result)
-    else:
-        raise TypeError(
-            f"Custom transformation for dataset {dataset_name} returned an unsupported type: {type(result)}."
-        )

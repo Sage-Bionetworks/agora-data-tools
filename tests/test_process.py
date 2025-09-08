@@ -54,7 +54,7 @@ class TestUploadDataversionMetadata:
         )
         # THEN I expect the dict_to_json function to be called with the correct arguments
         self.patch_dict_to_json.assert_called_once_with(
-            df=self.dataversion_dict_with_team_images_id,
+            data_as_dict=self.dataversion_dict_with_team_images_id,
             staging_path=STAGING_PATH,
             filename="dataversion.json",
         )
@@ -78,7 +78,7 @@ class TestUploadDataversionMetadata:
         )
         # THEN I expect the dict_to_json function to be called with the correct arguments
         self.patch_dict_to_json.assert_called_once_with(
-            df=self.dataversion_dict_without_team_images_id,
+            data_as_dict=self.dataversion_dict_without_team_images_id,
             staging_path=STAGING_PATH,
             filename="dataversion.json",
         )
@@ -419,11 +419,6 @@ class TestProcessDataset:
         self.patch_custom_transform = patch.object(
             process, "apply_custom_transformations", return_value=pd.DataFrame()
         ).start()
-        self.patch_convert_transformation_result_to_dataframe = patch.object(
-            utils,
-            "convert_transformation_result_to_dataframe",
-            return_value=pd.DataFrame(),
-        ).start()
         self.patch_dict_to_json = patch.object(
             load, "dict_to_json", return_value="path/to/json"
         ).start()
@@ -476,7 +471,9 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
-            df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
@@ -505,7 +502,7 @@ class TestProcessDataset:
             df=self.patch_standardize_column_names.return_value
         )
         self.patch_rename_columns.assert_called_once_with(
-            df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
+            data=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
         )
         self.patch_custom_transform.assert_not_called()
 
@@ -514,7 +511,7 @@ class TestProcessDataset:
 
         assert kwargs["staging_path"] == STAGING_PATH
         assert kwargs["filename"] == "neuropath_corr.json"
-        df = kwargs["df"]
+        df = kwargs["data_as_df"]
         pd.testing.assert_frame_equal(df(), pd.DataFrame())
 
         self.patch_dict_to_json.assert_not_called()
@@ -561,7 +558,7 @@ class TestProcessDataset:
 
         assert kwargs["staging_path"] == STAGING_PATH
         assert kwargs["filename"] == "neuropath_corr.json"
-        pd.testing.assert_frame_equal(kwargs["df"], pd.DataFrame())
+        pd.testing.assert_frame_equal(kwargs["data_as_df"], pd.DataFrame())
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
         self.patch_gx_runner_run.assert_not_called()
@@ -591,7 +588,7 @@ class TestProcessDataset:
             df=self.patch_standardize_column_names.return_value
         )
         self.patch_rename_columns.assert_called_once_with(
-            df=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
+            data=pd.DataFrame, column_map={"col_1": "new_col_1", "col_2": "new_col_2"}
         )
         self.patch_custom_transform.assert_not_called()
 
@@ -600,7 +597,7 @@ class TestProcessDataset:
 
         assert kwargs["staging_path"] == STAGING_PATH
         assert kwargs["filename"] == "neuropath_corr.json"
-        df = kwargs["df"]
+        df = kwargs["data_as_df"]
         pd.testing.assert_frame_equal(df(), pd.DataFrame())
 
         self.patch_dict_to_json.assert_not_called()
@@ -633,7 +630,7 @@ class TestProcessDataset:
         self.patch_df_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
         self.patch_dict_to_json.assert_called_once_with(
-            df={}, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_dict={}, staging_path=STAGING_PATH, filename="neuropath_corr.json"
         )
         self.patch_gx_runner_run.assert_not_called()
         self.patch_set_attributes.assert_not_called()
@@ -663,7 +660,7 @@ class TestProcessDataset:
         self.patch_df_to_json.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_called_once_with(
-            df_as_list=[], staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_list=[], staging_path=STAGING_PATH, filename="neuropath_corr.json"
         )
         self.patch_gx_runner_run.assert_not_called()
         self.patch_set_attributes.assert_not_called()
@@ -690,7 +687,9 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
-            df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
@@ -724,7 +723,9 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
-            df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
@@ -758,7 +759,9 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_called_once_with(
-            df=pd.DataFrame, staging_path=STAGING_PATH, filename="neuropath_corr.json"
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
