@@ -192,21 +192,24 @@ def immunohisto_transform(
                 )
 
     # Sort data_rows by the numeric value in the "age" field (e.g., "6 months" -> 6)
-    def extract_age_num(entry: dict) -> int:
+    def extract_age_num(entry: dict) -> tuple:
         """
         Sorts the data_rows list by the numeric value in the "age" field (e.g., "6 months" -> 6)
+        For invalid ages, uses the age string itself for consistent sorting
 
         Args:
             entry (dict): A dictionary containing the "age" field.
 
         Returns:
-            int: The numeric value in the "age" field.
+            tuple: (numeric_value, age_string) for consistent sorting
         """
         age_str = entry.get("age", "")
         try:
-            return int(age_str.split()[0])
+            numeric_value = float(age_str.split()[0])
+            return (numeric_value, age_str)
         except (ValueError, IndexError, AttributeError):
-            return float("inf")
+            # For invalid ages, use a large number and the age string for consistent sorting
+            return (float("inf"), age_str)
 
     data_rows.sort(key=extract_age_num)
 
