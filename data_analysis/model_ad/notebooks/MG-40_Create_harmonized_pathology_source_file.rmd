@@ -102,6 +102,7 @@ threex_display_name <- '3xTg-AD'
 threex_control_display_name <- 'B6129'
 fivex_display_name <- '5xFAD (UCI)'
 fivex_control_display_name <- "C57BL/6J"
+fivex_genotype_display_value <- '5xFAD' # genotype != display name due to '(UCI)' qualifier
 abca7_display_name <- 'Abca7*V1599M'
 abca7_control_display_name <- "C57BL/6J"
 abca7fivex_display_name <- "Abca7*V1599M.5xFAD"
@@ -274,7 +275,7 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
                                    genotype == "3XTg-AD_noncarrier" ~ threex_control_display_name,
 
                                    # 5xFAD genotypes
-                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ fivex_display_name,
+                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ fivex_genotype_display_value,
                                    genotype == "5XFAD_noncarrier"  ~ fivex_control_display_name,
 
                                    # NSS genotypes
@@ -378,10 +379,10 @@ fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'ThioS',
   fivex_rename_cols()
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-fivex_gfap_s100b_pivot <- transform_results(fivex_gfap_s100b, c('X.objects..sqmm'), fivex_display_name, keeps_with_join_fields)
-fivex_lamp1_pivot <- transform_results(fivex_lamp1, c('Area..'), fivex_display_name, keeps_with_join_fields)
-fivex_iba1_pivot <- transform_results(fivex_iba1, c('X.objects..sqmm'), fivex_display_name, keeps_with_join_fields)
-fivex_thios_pivot <- transform_results(fivex_thios, c('X.objects..sqmm', 'mean.object.area..squm.'), fivex_display_name, keeps_with_join_fields)
+fivex_gfap_s100b_pivot <- transform_results(fivex_gfap_s100b, all_of(c('X.objects..sqmm')), fivex_display_name, keeps_with_join_fields)
+fivex_lamp1_pivot <- transform_results(fivex_lamp1, all_of(c('Area..')), fivex_display_name, keeps_with_join_fields)
+fivex_iba1_pivot <- transform_results(fivex_iba1, all_of(c('X.objects..sqmm')), fivex_display_name, keeps_with_join_fields)
+fivex_thios_pivot <- transform_results(fivex_thios, all_of(c('X.objects..sqmm', 'mean.object.area..squm.')), fivex_display_name, keeps_with_join_fields)
 
 # Merge all results into a single data frame
 fivex_final <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_iba1_pivot, fivex_thios_pivot
@@ -613,4 +614,3 @@ res <- synStore(syn_file, forceVersion = FALSE,
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 
 ```
-
