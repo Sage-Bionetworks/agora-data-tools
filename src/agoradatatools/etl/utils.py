@@ -137,12 +137,14 @@ def rename_columns(
             if old_key in d:
                 d[new_key] = d.pop(old_key)
 
-
     if not isinstance(column_map, dict):
-        raise TypeError("Column mapping must be a dictionary.")
+        print("Column mapping must be a dictionary.")
+        return data
 
-    if isinstance(data, list[dict]):
+    if isinstance(data, list):
         for item in data:
+            if not isinstance(item, dict):
+                raise TypeError("List must contain dictionaries.")
             _rename_dict(item, column_map)
     elif isinstance(data, dict):
         _rename_dict(data, column_map)
