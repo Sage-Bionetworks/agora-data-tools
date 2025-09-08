@@ -335,6 +335,43 @@ class TestRenameColumnsList:
         ]
         assert result == expected
 
+    def test_rename_columns_with_non_dict_items_in_list(self):
+        """Test that TypeError is raised when list contains non-dictionary items"""
+        input_list = [
+            {"a": "value1", "b": "value2"},
+            "not_a_dict",  # This should cause the error
+            {"a": "value3", "b": "value4"},
+        ]
+        column_map = {"a": "x", "b": "y"}
+
+        with pytest.raises(TypeError, match="List must contain dictionaries."):
+            utils.rename_columns(data=input_list, column_map=column_map)
+
+    def test_rename_columns_with_invalid_data_type(self):
+        """Test that TypeError is raised when data is not a DataFrame, list, or dict"""
+        column_map = {"a": "x", "b": "y"}
+
+        # Test with string data
+        with pytest.raises(
+            TypeError,
+            match="Data must be a pandas DataFrame, list of dictionaries, or dictionary.",
+        ):
+            utils.rename_columns(data="invalid_string", column_map=column_map)
+
+        # Test with integer data
+        with pytest.raises(
+            TypeError,
+            match="Data must be a pandas DataFrame, list of dictionaries, or dictionary.",
+        ):
+            utils.rename_columns(data=123, column_map=column_map)
+
+        # Test with None data
+        with pytest.raises(
+            TypeError,
+            match="Data must be a pandas DataFrame, list of dictionaries, or dictionary.",
+        ):
+            utils.rename_columns(data=None, column_map=column_map)
+
 
 class TestNestFields:
     """Tests the nest_fields function using a dataframe that has multiple rows per group and
