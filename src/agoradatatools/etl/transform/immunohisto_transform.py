@@ -67,11 +67,11 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
 def round_y_axis_max(y_axis_max: float) -> float:
     """
     This function rounds the y_axis_max value to the nearest sensible nice round number.
-    
+
     Logic:
     - If max == 0, then y_axis_max == 10
     - Else, round UP to the next "nice" number where the second digit is 0 or 5
-    
+
     Examples:
     - 0.0021 rounds up to 0.0025
     - 0.0004 rounds up to 0.00045
@@ -84,35 +84,35 @@ def round_y_axis_max(y_axis_max: float) -> float:
     - 1.616 rounds up to 2.0
     """
     import math
-    
+
     # Special case: if max is 0, return 10
     if y_axis_max == 0:
         return 10.0
-    
+
     # Handle negative values (though they shouldn't occur in this context)
     if y_axis_max < 0:
         return 0.0
-    
+
     # Find the order of magnitude of the number
     magnitude = int(math.floor(math.log10(y_axis_max)))
-    
+
     # Scale the number so the first digit is in the ones place
-    scaled = y_axis_max / (10 ** magnitude)
-    
+    scaled = y_axis_max / (10**magnitude)
+
     # Extract first digit (leftmost) and second digit
     first_digit = int(scaled)
-    
+
     # Use string method to avoid floating point precision issues
     scaled_str = f"{scaled:.10f}"
-    if '.' in scaled_str:
-        decimal_part = scaled_str.split('.')[1]
+    if "." in scaled_str:
+        decimal_part = scaled_str.split(".")[1]
         if len(decimal_part) >= 1:
             second_digit = int(decimal_part[0])
         else:
             second_digit = 0
     else:
         second_digit = 0
-    
+
     # Always round UP to the next "nice" number
     # Nice numbers have second digit of 0 or 5
     if second_digit == 0:
@@ -126,17 +126,16 @@ def round_y_axis_max(y_axis_max: float) -> float:
         # Round up to next first digit with 0
         rounded_second = 0
         first_digit += 1
-    
+
     # Handle edge case where first digit rounded up to 10
     if first_digit >= 10:
         first_digit = 1
         magnitude += 1
-    
-    # Construct the result
-    result = (first_digit + rounded_second / 10.0) * (10 ** magnitude)
-    
-    return result
 
+    # Construct the result
+    result = (first_digit + rounded_second / 10.0) * (10**magnitude)
+
+    return result
 
 
 def immunohisto_transform(
@@ -232,12 +231,12 @@ def immunohisto_transform(
         #   - This entry is then appended to the data_rows list.
         # The result is that data_rows will contain one dictionary per group, with group-level metadata and a list of per-individual data.
         entry = dict(zip(group_columns, group_key))
-        
+
         # Get the y_axis_max for this combination of (name, evidence_type, tissue)
         key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
         raw_y_axis_max = y_axis_max_map.get(key_for_y_axis, 0)
         entry["y_axis_max"] = round_y_axis_max(raw_y_axis_max)
-        
+
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
 
@@ -248,6 +247,12 @@ def immunohisto_transform(
 
     # Get all unique ages that exist in the dataset
     available_ages = list(set([x["age"] for x in data_rows]))
+
+    # Create a lookup map for y_axis_max values from already processed entries
+    y_axis_max_lookup = {}
+    for entry in data_rows:
+        key = (entry["name"], entry["evidence_type"], entry["tissue"])
+        y_axis_max_lookup[key] = entry["y_axis_max"]
 
     # Group by the key dimensions that should have consistent age coverage
     # (excluding 'age' and 'units' since we're checking for missing ages)
@@ -266,9 +271,9 @@ def immunohisto_transform(
         missing_ages = [age for age in available_ages if age not in group_ages]
 
         # Get the y_axis_max for this combination of (name, evidence_type, tissue)
+        # We can reuse the already calculated value from the main loop
         key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
-        raw_y_axis_max = y_axis_max_map.get(key_for_y_axis, 0)
-        y_axis_max = round_y_axis_max(raw_y_axis_max)
+        y_axis_max = y_axis_max_lookup.get(key_for_y_axis, 0)
 
         # If there are missing ages, create placeholder entries for each missing age
         if len(missing_ages) > 0:
