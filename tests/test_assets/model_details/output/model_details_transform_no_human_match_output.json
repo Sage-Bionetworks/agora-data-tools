@@ -14,6 +14,9 @@
     "aliases": [
       "3xTg"
     ],
+    "gene_expression": "comparison/expression?model=3xTg-AD",
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
     "genetic_info": [
       {
         "modified_gene": "App",
@@ -428,6 +431,9 @@
       "hTau",
       "Mapt-/-"
     ],
+    "gene_expression": null,
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
     "genetic_info": [
       {
         "modified_gene": "Mapt",
