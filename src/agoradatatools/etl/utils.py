@@ -106,7 +106,7 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def rename_columns(
-    data: Union[pd.DataFrame, list[dict], dict], column_map: dict
+    data: Union[pd.DataFrame, list[dict], dict], column_map: dict[str, str]
 ) -> Union[pd.DataFrame, list[dict], dict]:
     """Takes in a dataframe, list of dictionaries, or dictionary and renames columns according to the mapping provided.
     If the input type is a dictionary or a list of dictionaries, the input is modified in place.
@@ -139,6 +139,17 @@ def rename_columns(
 
     if not isinstance(column_map, dict):
         print("Column mapping must be a dictionary.")
+        return data
+
+    if not all(isinstance(key, str) for key in column_map.keys()):
+        print("Column mapping must be a dictionary with string keys.")
+        return data
+    if not all(
+        isinstance(value, str) and value is not None for value in column_map.values()
+    ):
+        print(
+            "Column mapping must be a dictionary with string values that are not None."
+        )
         return data
 
     if isinstance(data, list):
