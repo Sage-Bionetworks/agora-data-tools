@@ -200,6 +200,48 @@ class TestRenameColumnsDataFrame:
         assert "Column mapping must be a dictionary." in captured_output.getvalue()
         assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
 
+    def test_rename_columns_non_string_keys(self):
+        """Test that non-string keys in column_map are handled with error message"""
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        bad_column_map = {1: "e", "b": "f"}  # Key '1' is not a string
+        bad_renamed_df = utils.rename_columns(
+            data=self.df.copy(), column_map=bad_column_map
+        )
+        assert (
+            "Column mapping must be a dictionary with string keys."
+            in captured_output.getvalue()
+        )
+        assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
+
+    def test_rename_columns_not_none_values(self):
+        """Test that None values in column_map are handled with error message"""
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        bad_column_map = {"a": None, "b": "f"}
+        bad_renamed_df = utils.rename_columns(
+            data=self.df.copy(), column_map=bad_column_map
+        )
+        assert (
+            "Column mapping must be a dictionary with string values that are not None."
+            in captured_output.getvalue()
+        )
+        assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
+
+    def test_rename_columns_non_string_values(self):
+        """Test that non-string values in column_map are handled with error message"""
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        bad_column_map = {"a": 1, "b": [], "c": None, "d": "h"}
+        bad_renamed_df = utils.rename_columns(
+            data=self.df.copy(), column_map=bad_column_map
+        )
+        assert (
+            "Column mapping must be a dictionary with string values that are not None."
+            in captured_output.getvalue()
+        )
+        assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
+
     def test_rename_columns_preserves_dataframe_values(self):
         """Test that DataFrame values are preserved after renaming"""
         df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"], "c": [1.5, 2.5, 3.5]})
