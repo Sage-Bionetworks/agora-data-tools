@@ -89,7 +89,7 @@ class TestDFToJSON:
 
     def test_df_to_json_success(self):
         json_name = load.df_to_json(
-            df=pd.DataFrame(), staging_path="./staging", filename="test.json"
+            data_as_df=pd.DataFrame(), staging_path="./staging", filename="test.json"
         )
         self.patch_replace.assert_called_once_with({np.nan: None})
         self.patch_to_dict.assert_called_once_with(orient="records")
@@ -137,11 +137,34 @@ class TestDictToJSON:
 
     def test_dict_to_json_success(self):
         json_name = load.dict_to_json(
-            df=self.df_dict, staging_path="./staging", filename="test.json"
+            data_as_dict=self.df_dict, staging_path="./staging", filename="test.json"
         )
         self.patch_remove_non_values.assert_called_once_with({"d": "e"})
         self.patch_json_dump.assert_called_once_with(
             [{"a": "b", "c": {}}],
+            ANY,  # without mocking open() I was unable to get anything equating to `temp_json` to go here
+            cls=self.patch_NumpyEncoder,
+            indent=2,
+        )
+        assert json_name == "./staging/test.json"
+
+
+class TestListToJSON:
+    test_list = [{"a": "b", "c": "d"}, {"e": "f", "g": "h"}]
+
+    def setup_method(self):
+        self.patch_json_dump = patch.object(json, "dump", return_value=None).start()
+        self.patch_NumpyEncoder = patch.object(load, "NumpyEncoder").start()
+
+    def teardown_method(self):
+        mock.patch.stopall()
+
+    def test_list_to_json_success(self):
+        json_name = load.list_to_json(
+            data_as_list=self.test_list, staging_path="./staging", filename="test.json"
+        )
+        self.patch_json_dump.assert_called_once_with(
+            self.test_list,
             ANY,  # without mocking open() I was unable to get anything equating to `temp_json` to go here
             cls=self.patch_NumpyEncoder,
             indent=2,
