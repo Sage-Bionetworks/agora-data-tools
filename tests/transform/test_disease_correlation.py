@@ -194,19 +194,23 @@ class TestTransformDiseaseCorrelation:
                     ]
                 ),
             },
-            # Assertion: duplicate genes should be deduplicated
-            # This lambda function asserts that the output contains a
-            # single entry for "LOAD1" with the "modified_genes" field
-            # deduplicated to "APOE4" (as a string, not a list), and that
-            # the "IFG" field contains the correct correlation and
+            # Expected output: duplicate genes should be deduplicated
+            # The output should contain a single entry for "LOAD1" with the
+            # "modified_genes" field deduplicated to "APOE4" (as a string, not a list),
+            # and the "IFG" field should contain the correct correlation and
             # adjusted p-value values (0.5 and 0.01, respectively).
-            lambda output: (
-                len(output) == 1
-                and output[0]["name"] == "LOAD1"
-                and output[0]["modified_genes"] == "APOE4"
-                and output[0]["IFG"]["correlation"] == 0.5
-                and output[0]["IFG"]["adj_p_val"] == 0.01
-            ),
+            [
+                {
+                    "name": "LOAD1",
+                    "matched_control": "C57BL6J",
+                    "model_type": "Late Onset AD",
+                    "modified_genes": "APOE4",  # Deduplicated from duplicate entries
+                    "cluster": "Cluster A",
+                    "age": "4 months",
+                    "sex": "Female",
+                    "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
+                }
+            ],
         ),
     ]
     pass_test_ids = [
