@@ -70,7 +70,7 @@ model_name_filter_vals <- c('3xTg-AD',
                             '5xFAD (IU/Jax/Pitt)',
                             '5xFAD (UCI)',
                             'Abca7*V1599M',
-                            'APOE4', 'hAbKI',
+                            'APOE4',
                             'LOAD1',
                             'LOAD1.Abca7A1527G',
                             'LOAD1.Ceacam1KO',
@@ -80,13 +80,25 @@ model_name_filter_vals <- c('3xTg-AD',
                             'LOAD1.MthfrC677T',
                             'LOAD1.Plcg2M28L',
                             'LOAD1.Snx1D465N',
-                            'LOAD2',
-                            'Trem2 KO',
                             'Trem2-R47H_NSS',
                             'Trem2R47H')
+modified_gene_filter_vals <- c('Abca7',
+                               'APOE',
+                               'App',
+                               'APP',
+                               'Ceacam1',
+                               'Clasp2',
+                               'CR1',
+                               'CR2',
+                               'Il1rap',
+                               'MAPT',
+                               'Mthfr',
+                               'Plcg2',
+                               'Psen1',
+                               'PSEN1',
+                               'Snx1',
+                               'Trem2')
 sex_filter_vals <- c('Female', 'Male')
-
-
 
 # ****************
 # SHARED FUNCTIONS
@@ -143,7 +155,7 @@ ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 # -------------------------
 ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
 ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
-ge_dynamic_names_jax <- c("4 months", "12 months") # MG-367: This is currently aligned with the source data
+ge_dynamic_names_jax <- c("4 months", "12 months")
 ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 
 
@@ -249,16 +261,11 @@ dc_filter_defs <- data.frame(
 # ---------------------------------
 dc_filter_values <- list(
   c('4 months', '8 months', '12 months'),
-  c('Familial AD', 'Late Onset AD'),
-  c('Abca7', 'APOE', 'App', 'APP', 'Ceacam1', 'Clasp2', 'CR1', 'CR2',
-    'Il1rap', 'MAPT', 'Mthfr', 'Plcg2', 'Psen1', 'PSEN1', 'Snx1', 'Trem2'),
-  c('3xTg-AD', '5xFAD (IU/Jax/Pitt)', '5xFAD (UCI)', 'Abca7*V1599M', 'APOE4', 'hAbKI', 'LOAD1', 'LOAD1.Abca7A1527G', 'LOAD1.Ceacam1KO',
-    'LOAD1.Clasp2L163P', 'LOAD1.CR1long', 'LOAD1.Il1rapExon2KO', 'LOAD1.MthfrC677T', 'LOAD1.Plcg2M28L', 'LOAD1.Snx1D465N', 'LOAD2', 'Trem2 KO',
-    'Trem2-R47H_NSS', 'Trem2R47H'),
-  c("Female", "Male")
+  model_type_filter_vals,
+  modified_gene_filter_vals,
+  model_name_filter_vals,
+  sex_filter_vals
 )
-
-
 
 build_dc_objects <- function() {
   combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
@@ -319,9 +326,8 @@ mo_filters <- data.frame(
 mo_filter_values <- list(
   c('Biomarkers', 'Disease Correlation', 'Gene Expression', 'Pathology'),
   c('IU/Jax/Pitt', 'UCI'),
-  c('Familial AD', 'Late Onset AD'),
-  c('Abca7', 'APOE', 'App', 'APP', 'Ceacam1', 'Clasp2', 'CR1', 'CR2',
-    'Il1rap', 'MAPT', 'Mthfr', 'Plcg2', 'Psen1', 'PSEN1', 'Snx1', 'Trem2')
+  model_type_filter_vals,
+  model_name_filter_vals
 )
 
 build_mo_object <- function() {
