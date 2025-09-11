@@ -1,0 +1,346 @@
+---
+title: "MG-402: Create ui_config source file"
+---
+
+
+TODO
+- refactor
+- comments
+
+```{r}
+library(jsonlite)
+
+# ------------------------------
+# Shared: Static column definition helper
+# ------------------------------
+static_colnames <- c("name", "data_type", "tooltip", "sort_tooltip")
+
+
+# *************
+# FILTER VALUES
+# *************
+biodomain_filter_vals <- c('Apoptosis',
+                           'APP Metabolism',
+                           'Autophagy',
+                           'Cell Cycle',
+                           'DNA Repair',
+                           'Endolysosome',
+                           'Epigenetic',
+                           'Immune Response',
+                           'Lipid Metabolism',
+                           'Metal Binding and Homeostasis',
+                           'Mitochondrial Metabolism',
+                           'Myelination',
+                           'Oxidative Stress',
+                           'Proteostasis',
+                           'RNA Spliceosome',
+                           'Structural Stabilization',
+                           'Synapse',
+                           'Tau Homeostasis',
+                           'Vasculature')
+model_type_filter_vals <- c('Familial AD',
+                            'Late Onset AD')
+model_name_filter_vals <- c('3xTg-AD',
+                            '5xFAD (IU/Jax/Pitt)',
+                            '5xFAD (UCI)',
+                            'Abca7*V1599M',
+                            'APOE4', 'hAbKI',
+                            'LOAD1',
+                            'LOAD1.Abca7A1527G',
+                            'LOAD1.Ceacam1KO',
+                            'LOAD1.Clasp2L163P',
+                            'LOAD1.CR1long',
+                            'LOAD1.Il1rapExon2KO',
+                            'LOAD1.MthfrC677T',
+                            'LOAD1.Plcg2M28L',
+                            'LOAD1.Snx1D465N',
+                            'LOAD2',
+                            'Trem2 KO',
+                            'Trem2-R47H_NSS',
+                            'Trem2R47H')
+sex_filter_vals <- c('Female', 'Male')
+
+
+
+# ****************
+# SHARED FUNCTIONS
+# ****************
+
+# Builds a column definition object
+# - name: The column display name
+# - metadata: An object specifying the column's data_type, tooltip, and sort_tooltip value
+# override_tooltip: If specified, this value is used in place of metadata.tooltip
+make_column <- function(name, metadata, override_tooltip = NULL) {
+  names(metadata) <- static_colnames[-1]
+  tooltip_value <- if (!is.null(override_tooltip)) override_tooltip else metadata["tooltip"]
+
+  list(
+    name = name,
+    type = metadata["data_type"],
+    tooltip = tooltip_value,
+    sort_tooltip = metadata["sort_tooltip"]
+  )
+}
+
+
+# Builds a list of filter definitions
+# - filter_defs: A dataframe defining
+# -filter_vals:
+make_filters <- function(filter_defs, filter_vals) {
+
+  # Construct list of filters
+  filters <- Map(function(name, field, values) {
+    list(
+      name = name,
+      field = field,
+      values = values
+      )
+    }, filter_defs$name, filter_defs$field, filter_vals)
+
+  # Remove names to ensure JSON is an array, not object
+  names(filters) <- NULL
+
+  filters
+}
+
+# ------------------------------
+# Gene Expression
+# ------------------------------
+ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
+ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
+ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
+ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
+ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
+ge_dynamic_names_jax <- c("4 months", "6 months", "8 months", "12 months", "24 months")
+ge_dynamic_names_uci <- c("2 months","4 months", "8 months", "12 months", "18 months", "22 months")
+
+
+# Gene Expression Filters
+ge_filter_defs <- data.frame(
+  name = c('Biological Domain', 'Model Type', 'Mouse Model'),
+  field = c('biodomains', 'model_type', 'name'),
+  stringsAsFactors = FALSE
+)
+
+# Gene Expression Filter values
+ge_filter_values <- list(
+  biodomain_filter_vals,
+  model_type_filter_vals,
+  model_name_filter_vals
+)
+
+build_ge_objects <- function() {
+  combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
+
+  lapply(seq_len(nrow(combos)), function(i) {
+
+    # Build column_defs
+    row <- combos[i, ]
+    static_column <- make_column(ge_static_row[1], ge_static_row[-1])
+
+    # Age columns vary by contributing center; use Tissue value as a proxy, since values are unique per center
+    dynamic_names <- if (row$menu2 == "Tissue - Hemibrain") ge_dynamic_names_jax else ge_dynamic_names_uci
+    dynamic_columns <- lapply(dynamic_names, function(name) make_column(name, ge_dynamic_row))
+
+    columns <- c(list(static_column), dynamic_columns)
+
+    # Build filter_defs
+    filters <- make_filters(ge_filter_defs, ge_filter_values)
+
+    list(
+      page = "Gene Expression",
+      dropdowns = c(row$menu1, row$menu2, row$menu3),
+      columns = columns,
+      filters = filters
+    )
+  })
+}
+
+
+# ------------------------------
+# Disease Correlation
+# ------------------------------
+# Disease Correlation Dropdown Menus
+dc_menu1 <- c("CONSENSUS NETWORK MODULES")
+dc_menu2 <- c(
+  "Consensus Cluster A - ECM Organization",
+  "Consensus Cluster B - Immune System",
+  "Consensus Cluster C - Neuronal System",
+  "Consensus Cluster D - Cell Cycle, NMD",
+  "Consensus Cluster E - Organelle Biogenesis, Cellular Stress Response"
+)
+
+# Disease Correlation Columns
+dc_static_row1 <- c("Age", "text", "", "Sort by Age value")
+dc_static_row2 <- c("Sex", "text", "", "Sort by Sex value")
+dc_dynamic_row <- c("heat_map", "", "Sort by correlation value")
+
+dc_dynamic_names_A <- c("IFG", "PHG", "TCX")
+dc_dynamic_names_B <- c("CBE", "DLPFC", "PHG", "TCX", "FP", "IFG", "STG")
+dc_dynamic_names_C <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
+dc_dynamic_names_D <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
+dc_dynamic_names_E <- c("CBE", "DLPFC", "PHG", "STG", "TCX", "FP")
+
+dc_tooltip_map <- c(
+  CBE = "Cerebellum",
+  DLPFC = "Dorsolateral Prefrontal Cortex",
+  FP = "Frontal Pole",
+  IFG = "Inferior Frontal Gyrus",
+  PHG = "Parahippocampal Gyrus",
+  STG = "Superior Frontal Gyrus",
+  TCX = "Temporal Cortex"
+)
+
+get_dc_dynamic_names <- function(cluster_label) {
+  if (grepl("Cluster A", cluster_label)) return(dc_dynamic_names_A)
+  if (grepl("Cluster B", cluster_label)) return(dc_dynamic_names_B)
+  if (grepl("Cluster C", cluster_label)) return(dc_dynamic_names_C)
+  if (grepl("Cluster D", cluster_label)) return(dc_dynamic_names_D)
+  if (grepl("Cluster E", cluster_label)) return(dc_dynamic_names_E)
+  character(0)
+}
+
+# Disease Correlation Filters
+dc_filter_defs <- data.frame(
+  name = c('Age', 'Model Type', 'Modified Gene', 'Mouse Model', 'Sex'),
+  field = c('age', 'model_type', 'modified_genes', 'name', 'sex'),
+  stringsAsFactors = FALSE
+)
+
+# Disease Correlation Filter values
+dc_filter_values <- list(
+  c('4 months', '8 months', '12 months'),
+  c('Familial AD', 'Late Onset AD'),
+  c('Abca7', 'APOE', 'App', 'APP', 'Ceacam1', 'Clasp2', 'CR1', 'CR2',
+    'Il1rap', 'MAPT', 'Mthfr', 'Plcg2', 'Psen1', 'PSEN1', 'Snx1', 'Trem2'),
+  c('3xTg-AD', '5xFAD (IU/Jax/Pitt)', '5xFAD (UCI)', 'Abca7*V1599M', 'APOE4', 'hAbKI', 'LOAD1', 'LOAD1.Abca7A1527G', 'LOAD1.Ceacam1KO',
+    'LOAD1.Clasp2L163P', 'LOAD1.CR1long', 'LOAD1.Il1rapExon2KO', 'LOAD1.MthfrC677T', 'LOAD1.Plcg2M28L', 'LOAD1.Snx1D465N', 'LOAD2', 'Trem2 KO',
+    'Trem2-R47H_NSS', 'Trem2R47H'),
+  c("Female", "Male")
+)
+
+
+
+build_dc_objects <- function() {
+  combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
+
+  lapply(seq_len(nrow(combos)), function(i) {
+    row <- combos[i, ]
+    dynamic_names <- get_dc_dynamic_names(row$menu2)
+    dynamic_columns <- lapply(dynamic_names, function(name) {
+      tooltip_text <- dc_tooltip_map[[name]]
+      make_column(name, dc_dynamic_row, override_tooltip = tooltip_text)
+    })
+
+    static1 <- make_column(dc_static_row1[1], dc_static_row1[-1])
+    static2 <- make_column(dc_static_row2[1], dc_static_row2[-1])
+    columns <- c(list(static1, static2), dynamic_columns)
+
+    filters <- make_filters(dc_filter_defs, dc_filter_values)
+
+    list(
+      page = "Disease Correlation",
+      dropdowns = c(row$menu1, row$menu2),
+      columns = columns,
+      filters = filters
+    )
+  })
+}
+
+
+# ***********************************************
+# Model Overview (single static object, no menus)
+# ***********************************************
+
+# Model Overview Columns
+mo_columns <- data.frame(
+  name = c(
+    "Model Type", "Matched Control", "Gene Expression", "Disease Correlation",
+    "Pathology", "Biomarkers", "Study Data", "JAX Strain", "Center"
+  ),
+  type = c(
+    "text", "text",
+    "link_internal", "link_internal", "link_internal", "link_internal",
+    "link_external", "link_external", "link_external"
+  ),
+  stringsAsFactors = FALSE
+)
+
+# Model Overview Filters
+mo_filters <- data.frame(
+  name = c('Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'),
+  field = c('available_data', 'center', 'model_type', 'modified_genes'),
+  stringsAsFactors = FALSE
+)
+
+# Model Overview Filter values
+mo_filter_values <- list(
+  c('Biomarkers', 'Disease Correlation', 'Gene Expression', 'Pathology'),
+  c('IU/Jax/Pitt', 'UCI'),
+  c('Familial AD', 'Late Onset AD'),
+  c('Abca7', 'APOE', 'App', 'APP', 'Ceacam1', 'Clasp2', 'CR1', 'CR2',
+    'Il1rap', 'MAPT', 'Mthfr', 'Plcg2', 'Psen1', 'PSEN1', 'Snx1', 'Trem2')
+)
+
+build_mo_object <- function() {
+  columns <- apply(mo_columns, 1, function(row) {
+    name <- row["name"]
+    type <- row["type"]
+
+    metadata <- c(type, "", paste("Sort by", name, "value"))
+    column <- make_column(name, metadata)
+
+    if (column$type %in% c("link_internal", "link_external")) {
+      if (name %in% c("Gene Expression", "Disease Correlation", "Pathology", "Biomarkers")) {
+        column$link_text <- "Results"
+      } else if (name == "Study Data") {
+        column$link_text <- "View Data"
+      } else if (name == "JAX Strain") {
+        column$link_text <- "View Strain"
+      } else if (name == "Center") {
+        # Omit link_text, add link_url instead
+        column$link_url <- "https://www.model-ad.org/"
+      }
+    }
+    column
+  })
+
+  # Construct list of filters
+  filters <- Map(function(name, field, values) {
+    list(
+      name = name,
+      field = field,
+      values = values
+      )
+    }, mo_filters$name, mo_filters$field, mo_filter_values)
+
+  # Remove names to ensure JSON is an array, not object
+  names(filters) <- NULL
+
+  # Assemble the ui_config object
+  list(
+    page = "Model Overview",
+    dropdowns = list(),
+    columns = columns,
+    filters = filters
+  )
+}
+
+# *********************************************
+# Generate ui_config.json and upload to Synapse
+# *********************************************
+json_list <- c(
+  build_ge_objects(),
+  build_dc_objects(),
+  list(build_mo_object())
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+cat(json_output)
+
+# Optionally write to file:
+write(json_output, "./output/ui_config.json")
+
+# TODO write to synapse
+
+```
