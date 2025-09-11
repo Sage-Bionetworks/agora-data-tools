@@ -143,8 +143,8 @@ ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 # -------------------------
 ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
 ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
-ge_dynamic_names_jax <- c("4 months", "6 months", "8 months", "12 months", "24 months")
-ge_dynamic_names_uci <- c("2 months","4 months", "8 months", "12 months", "18 months", "22 months")
+ge_dynamic_names_jax <- c("4 months", "12 months") # MG-367: This is currently aligned with the source data
+ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 
 
 # Gene Expression Filters
