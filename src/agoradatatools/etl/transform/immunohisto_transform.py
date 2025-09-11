@@ -58,8 +58,9 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     # Replace 'beta' with '&beta;' in biomarker evidence_type
     df["evidence_type"] = df["evidence_type"].str.replace("beta", "&beta;")
 
-    # Append "months" to age values
-    df["age"] = df["age"].astype(str) + " months"
+    # Append "months" to age values if not already present
+    df["age"] = df["age"].astype(str)
+    df["age"] = df["age"].apply(lambda x: x if x.endswith("months") else x + " months")
 
     return df
 
