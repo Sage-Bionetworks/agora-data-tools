@@ -210,10 +210,9 @@ class TestTransformGeneralModelAD:
         # This should not raise an exception, but handle ValueError gracefully
         # by sorting invalid ages to the end with float("inf")
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df},
-            dataset_name="biomarkers"
+            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
         )
-        
+
         # Verify the function completed successfully
         assert isinstance(result, list)
         assert len(result) > 0
@@ -238,10 +237,9 @@ class TestTransformGeneralModelAD:
         # This should not raise an exception, but handle IndexError gracefully
         # by sorting invalid ages to the end with float("inf")
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df},
-            dataset_name="biomarkers"
+            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
         )
-        
+
         # Verify the function completed successfully
         assert isinstance(result, list)
         assert len(result) > 0
@@ -266,10 +264,9 @@ class TestTransformGeneralModelAD:
         # This should not raise an exception, but handle AttributeError gracefully
         # by sorting invalid ages to the end with float("inf")
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df},
-            dataset_name="biomarkers"
+            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
         )
-        
+
         # Verify the function completed successfully
         assert isinstance(result, list)
         assert len(result) > 0
@@ -284,10 +281,10 @@ class TestTransformGeneralModelAD:
                 "tissue": ["test_tissue"] * 5,
                 "age": [
                     "unknown months",  # ValueError
-                    "",                # IndexError
-                    None,              # AttributeError
-                    "12 months",       # Valid age
-                    "   ",             # IndexError (whitespace)
+                    "",  # IndexError
+                    None,  # AttributeError
+                    "12 months",  # Valid age
+                    "   ",  # IndexError (whitespace)
                 ],
                 "units": ["test_units"] * 5,
                 "sex": ["Male", "Female", "Male", "Female", "Male"],
@@ -300,20 +297,25 @@ class TestTransformGeneralModelAD:
         # This should not raise an exception, but handle all errors gracefully
         # Valid ages should be sorted normally, invalid ones should go to the end
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df},
-            dataset_name="biomarkers"
+            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
         )
-        
+
         # Verify the function completed successfully
         assert isinstance(result, list)
         assert len(result) > 0
-        
+
         # Verify that the valid age (12 months) comes before invalid ages in sorting
-        valid_age_entry = next((entry for entry in result if entry["age"] == "12 months"), None)
-        invalid_age_entries = [entry for entry in result if entry["age"] in ["unknown months", " months", "    months"]]
-        
+        valid_age_entry = next(
+            (entry for entry in result if entry["age"] == "12 months"), None
+        )
+        invalid_age_entries = [
+            entry
+            for entry in result
+            if entry["age"] in ["unknown months", " months", "    months"]
+        ]
+
         # The valid age should be present
         assert valid_age_entry is not None
-        
+
         # Invalid ages should also be present (they get sorted to the end)
         assert len(invalid_age_entries) > 0
