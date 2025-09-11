@@ -106,8 +106,8 @@ sex_filter_vals <- c('Female', 'Male')
 
 # Builds a column definition object
 # - name: The column display name
-# - metadata: An object specifying the column's data_type, tooltip, and sort_tooltip value
-# override_tooltip: If specified, this value is used in place of metadata.tooltip
+# - metadata: An object specifying the column's data_type, tooltip value, and sort_tooltip value
+# - override_tooltip: If specified, this value is used in place of metadata.tooltip
 make_column <- function(name, metadata, override_tooltip = NULL) {
   names(metadata) <- static_colnames[-1]
   tooltip_value <- if (!is.null(override_tooltip)) override_tooltip else metadata["tooltip"]
@@ -122,8 +122,8 @@ make_column <- function(name, metadata, override_tooltip = NULL) {
 
 
 # Builds a list of filter definitions
-# - filter_defs: A dataframe defining
-# -filter_vals:
+# - filter_defs: A dataframe of filterset names and linked data fields
+# -filter_vals: A list of lists specifying the filter values for each filterset
 make_filters <- function(filter_defs, filter_vals) {
 
   # Construct list of filters
@@ -175,6 +175,7 @@ ge_filter_values <- list(
   model_name_filter_vals
 )
 
+# Generates Gene Expression ui_config objects
 build_ge_objects <- function() {
   combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
 
@@ -267,6 +268,7 @@ dc_filter_values <- list(
   sex_filter_vals
 )
 
+# Generates Disease Correlation ui_config objects
 build_dc_objects <- function() {
   combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
 
@@ -330,6 +332,7 @@ mo_filter_values <- list(
   model_name_filter_vals
 )
 
+# Generates Model Overview ui_config objects
 build_mo_object <- function() {
   columns <- apply(mo_columns, 1, function(row) {
     name <- row["name"]
