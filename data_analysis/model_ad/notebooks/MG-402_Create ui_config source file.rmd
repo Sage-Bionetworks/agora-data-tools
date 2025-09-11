@@ -1,18 +1,44 @@
 ---
 title: "MG-402: Create ui_config source file"
 ---
+This notebook generates the ui_config.json source file (syn66527739) containing the data required to construct Comparison Tool interfaces for the Model-AD Explorer MVP.
+
+Interfaces that are currently handled by this notebook:
+* Gene Expression
+* Disease Correlation
+* Model Overview
+
+This notebook must be updated when the Explorer is updated to:
+* Add a new CT interface
+* Add or modify a column of an existing CT interface
+* Add or modify a CT dropdown menu or dropdown value
+* Add or modify a filterset or filter value
+
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- jsonlite
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "https://cloud.r-project.org"))
+}
+
+if (!require("jsonlite", quietly = TRUE)) {
+  install.packages("jsonlite")
+}
+
+library(synapser)
+library(jsonlite)
+```
 
 
-TODO
-- refactor
-- comments
 
 ```{r}
-library(jsonlite)
 
-# ------------------------------
-# Shared: Static column definition helper
-# ------------------------------
+# *******************************
+# STATIC COLUMN DEFINITION FIELDS
+# *******************************
 static_colnames <- c("name", "data_type", "tooltip", "sort_tooltip")
 
 
@@ -103,12 +129,18 @@ make_filters <- function(filter_defs, filter_vals) {
   filters
 }
 
-# ------------------------------
+# ***************
 # Gene Expression
+# ***************
+
+# Gene Expression Dropdown Menus
 # ------------------------------
 ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
 ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
 ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
+
+# Gene Expression Columns
+# -------------------------
 ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
 ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
 ge_dynamic_names_jax <- c("4 months", "6 months", "8 months", "12 months", "24 months")
@@ -116,6 +148,7 @@ ge_dynamic_names_uci <- c("2 months","4 months", "8 months", "12 months", "18 mo
 
 
 # Gene Expression Filters
+# -----------------------
 ge_filter_defs <- data.frame(
   name = c('Biological Domain', 'Model Type', 'Mouse Model'),
   field = c('biodomains', 'model_type', 'name'),
@@ -123,6 +156,7 @@ ge_filter_defs <- data.frame(
 )
 
 # Gene Expression Filter values
+# -----------------------------
 ge_filter_values <- list(
   biodomain_filter_vals,
   model_type_filter_vals,
@@ -157,10 +191,12 @@ build_ge_objects <- function() {
 }
 
 
-# ------------------------------
+# *******************
 # Disease Correlation
-# ------------------------------
-# Disease Correlation Dropdown Menus
+# *******************
+
+# Disease Correlation Dropdowns Menus
+# -----------------------------------
 dc_menu1 <- c("CONSENSUS NETWORK MODULES")
 dc_menu2 <- c(
   "Consensus Cluster A - ECM Organization",
@@ -171,6 +207,7 @@ dc_menu2 <- c(
 )
 
 # Disease Correlation Columns
+# ---------------------------
 dc_static_row1 <- c("Age", "text", "", "Sort by Age value")
 dc_static_row2 <- c("Sex", "text", "", "Sort by Sex value")
 dc_dynamic_row <- c("heat_map", "", "Sort by correlation value")
@@ -201,6 +238,7 @@ get_dc_dynamic_names <- function(cluster_label) {
 }
 
 # Disease Correlation Filters
+# ------------------------------
 dc_filter_defs <- data.frame(
   name = c('Age', 'Model Type', 'Modified Gene', 'Mouse Model', 'Sex'),
   field = c('age', 'model_type', 'modified_genes', 'name', 'sex'),
@@ -208,6 +246,7 @@ dc_filter_defs <- data.frame(
 )
 
 # Disease Correlation Filter values
+# ---------------------------------
 dc_filter_values <- list(
   c('4 months', '8 months', '12 months'),
   c('Familial AD', 'Late Onset AD'),
@@ -248,11 +287,12 @@ build_dc_objects <- function() {
 }
 
 
-# ***********************************************
-# Model Overview (single static object, no menus)
-# ***********************************************
+# **************
+# Model Overview
+# **************
 
 # Model Overview Columns
+# ----------------------
 mo_columns <- data.frame(
   name = c(
     "Model Type", "Matched Control", "Gene Expression", "Disease Correlation",
@@ -267,13 +307,15 @@ mo_columns <- data.frame(
 )
 
 # Model Overview Filters
+# ----------------------
 mo_filters <- data.frame(
   name = c('Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'),
   field = c('available_data', 'center', 'model_type', 'modified_genes'),
   stringsAsFactors = FALSE
 )
 
-# Model Overview Filter values
+# Model Overview Filter Values
+# ----------------------------
 mo_filter_values <- list(
   c('Biomarkers', 'Disease Correlation', 'Gene Expression', 'Pathology'),
   c('IU/Jax/Pitt', 'UCI'),
@@ -338,9 +380,22 @@ json_list <- c(
 json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
 cat(json_output)
 
-# Optionally write to file:
-write(json_output, "./output/ui_config.json")
+# write json file
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
 
-# TODO write to synapse
+write(json_output, file.path(output_dir, "ui_config.json"))
+
+# upload to synapse
+syn_file <- File(file.path(output_dir, "ui_config.json"),
+                 description = "ui_config.json for Model-AD Explorer 2.0.",
+                 parent = "syn51498054")
+
+res <- synStore(syn_file, forceVersion = FALSE,
+                executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd")
+
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 
 ```
