@@ -102,7 +102,7 @@ print(head(genes))
 ```{r}
 genes_df <- genes %>% group_by(ensembl_gene_id, external_gene_name) %>%
               summarise(alias = list(unique(external_synonym))) %>%
-              rename(gene_symbol = external_gene_name) %>%
+              dplyr::rename(gene_symbol = external_gene_name) %>%
               arrange(ensembl_gene_id)
 
 output_dir <- file.path("..", "output")

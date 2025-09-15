@@ -298,7 +298,7 @@ def _extract_ensembl_ids(
 
     # Use column_renames from the config to convert most Ensembl ID column names to "ensembl_gene_id".
     df = utils.standardize_column_names(df=df)
-    df = utils.rename_columns(df=df, column_map=column_renames)
+    df = utils.rename_columns(data=df, column_map=column_renames)
 
     # Exception to the above comment: the 'networks' file has two ID columns (genea_ and geneb_ ensembl_gene_id)
     # which do not get renamed
