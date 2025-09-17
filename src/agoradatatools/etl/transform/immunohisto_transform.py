@@ -4,7 +4,7 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Union
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
@@ -64,7 +64,7 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def round_y_axis_max(y_axis_max) -> float:
+def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     """
     This function rounds the y_axis_max value to the nearest sensible nice round number.
 
