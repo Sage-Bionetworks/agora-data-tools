@@ -15,32 +15,17 @@
     ]
   },
   {
-    "name": "ModelA",
+    "name": "ModelB",
     "evidence_type": "TypeA",
-    "tissue": "Tissuea",
-    "age": "2 months",
+    "tissue": "Tissueb",
+    "age": "1 months",
     "units": "A",
     "data": [
       {
         "genotype": "genotype1",
         "sex": "Male",
-        "individual_id": "individual_2",
-        "value": 2
-      }
-    ]
-  },
-  {
-    "name": "ModelA",
-    "evidence_type": "TypeA",
-    "tissue": "Tissuea",
-    "age": "3 months",
-    "units": "A",
-    "data": [
-      {
-        "genotype": "genotype1",
-        "sex": "Male",
-        "individual_id": "individual_3",
-        "value": 3
+        "individual_id": "individual_6",
+        "value": 6
       }
     ]
   },
@@ -61,6 +46,29 @@
   },
   {
     "name": "ModelA",
+    "evidence_type": "TypeA",
+    "tissue": "Tissuea",
+    "age": "2 months",
+    "units": "A",
+    "data": [
+      {
+        "genotype": "genotype1",
+        "sex": "Male",
+        "individual_id": "individual_2",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "name": "ModelB",
+    "evidence_type": "TypeA",
+    "tissue": "Tissueb",
+    "age": "2 months",
+    "units": "",
+    "data": []
+  },
+  {
+    "name": "ModelA",
     "evidence_type": "TypeB",
     "tissue": "Tissuea",
     "age": "2 months",
@@ -75,17 +83,17 @@
     ]
   },
   {
-    "name": "ModelB",
+    "name": "ModelA",
     "evidence_type": "TypeA",
-    "tissue": "Tissueb",
-    "age": "1 months",
+    "tissue": "Tissuea",
+    "age": "3 months",
     "units": "A",
     "data": [
       {
         "genotype": "genotype1",
         "sex": "Male",
-        "individual_id": "individual_6",
-        "value": 6
+        "individual_id": "individual_3",
+        "value": 3
       }
     ]
   },
@@ -109,14 +117,6 @@
     "evidence_type": "TypeB",
     "tissue": "Tissuea",
     "age": "3 months",
-    "units": "",
-    "data": []
-  },
-  {
-    "name": "ModelB",
-    "evidence_type": "TypeA",
-    "tissue": "Tissueb",
-    "age": "2 months",
     "units": "",
     "data": []
   }

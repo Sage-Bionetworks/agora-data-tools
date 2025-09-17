@@ -58,8 +58,9 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     # Replace 'beta' with '&beta;' in biomarker evidence_type
     df["evidence_type"] = df["evidence_type"].str.replace("beta", "&beta;")
 
-    # Append "months" to age values
-    df["age"] = df["age"].astype(str) + " months"
+    # Append "months" to age values if not already present
+    df["age"] = df["age"].astype(str)
+    df["age"] = df["age"].apply(lambda x: x if x.endswith("months") else x + " months")
 
     return df
 
@@ -190,6 +191,30 @@ def immunohisto_transform(
                         "data": [],  # Empty data array since there are no measurements for this age
                     }
                 )
+
+    # Sort data_rows by the numeric value in the "age" field (e.g., "6 months" -> 6)
+    def extract_age_num(entry: dict) -> tuple:
+        """
+        Sorts the data_rows list by the numeric value in the "age" field (e.g., "6 months" -> 6)
+        For invalid ages, uses the age string itself for consistent sorting
+
+        Args:
+            entry (dict): A dictionary containing the "age" field.
+
+        Returns:
+            tuple: (numeric_value, age_string, evidence_type) for consistent sorting
+        """
+        age_str = entry.get("age", "")
+        evidence_type = entry.get("evidence_type", "")
+        try:
+            numeric_value = float(age_str.split()[0])
+            return (numeric_value, age_str, evidence_type)
+        except (ValueError, IndexError, AttributeError):
+            # For invalid ages, use a large number and the age string for consistent sorting
+            # Include evidence_type to ensure deterministic ordering when ages are invalid
+            return (float("inf"), age_str, evidence_type)
+
+    data_rows.sort(key=extract_age_num)
 
     data_rows = convert_numpy_types(data_rows)
 
