@@ -93,13 +93,9 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
         # If conversion fails, return 10 (default case)
         return 10.0
 
-    # Special case: if max is 0, return 10
-    if y_axis_max == 0:
-        return 10.0
-
-    # Handle negative values (though they shouldn't occur in this context)
-    if y_axis_max < 0:
-        return 0.0
+    # Handle special cases: zero or negative values
+    if y_axis_max <= 0:
+        return 10.0 if y_axis_max == 0 else 0.0
 
     # Find the order of magnitude of the number
     magnitude = int(math.floor(math.log10(y_axis_max)))
