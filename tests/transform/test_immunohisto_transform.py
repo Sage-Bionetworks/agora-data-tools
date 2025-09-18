@@ -71,8 +71,8 @@ class TestTransformGeneralModelAD:
         ids=pass_test_ids,
     )
     def test_immunohisto_transform_should_pass(
-        self, immunohisto_transform_file, expected_output_file
-    ):
+        self, immunohisto_transform_file: str, expected_output_file: str
+    ) -> None:
         immunohisto_transform_df = pd.read_csv(
             os.path.join(self.data_files_path, "input", immunohisto_transform_file)
         )
@@ -94,8 +94,8 @@ class TestTransformGeneralModelAD:
         "immunohisto_transform_file", fail_test_data, ids=fail_test_ids
     )
     def test_immunohisto_transform_should_fail(
-        self, immunohisto_transform_file, error_type: BaseException = ValueError
-    ):
+        self, immunohisto_transform_file: str, error_type: BaseException = ValueError
+    ) -> None:
         immunohisto_transform_df = pd.read_csv(
             os.path.join(self.data_files_path, "input", immunohisto_transform_file)
         )
@@ -108,7 +108,7 @@ class TestTransformGeneralModelAD:
                 dataset_name="biomarkers",
             )
 
-    def test_prepare_immunohisto_data_should_pass(self):
+    def test_prepare_immunohisto_data_should_pass(self) -> None:
         # Create test input DataFrame
         input_df = pd.DataFrame(
             {
@@ -137,7 +137,7 @@ class TestTransformGeneralModelAD:
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    def test_prepare_immunohisto_data_with_empty_values(self):
+    def test_prepare_immunohisto_data_with_empty_values(self) -> None:
         # Create test input DataFrame with empty values
         input_df = pd.DataFrame(
             {
@@ -166,7 +166,7 @@ class TestTransformGeneralModelAD:
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    def test_prepare_immunohisto_data_with_none_values(self):
+    def test_prepare_immunohisto_data_with_none_values(self) -> None:
         # Create test input DataFrame with None values
         input_df = pd.DataFrame(
             {
@@ -199,17 +199,17 @@ class TestTransformGeneralModelAD:
 class TestRoundYAxisMax:
     """Test class for the round_y_axis_max function."""
 
-    def test_round_y_axis_max_zero_case(self):
+    def test_round_y_axis_max_zero_case(self) -> None:
         """Test that 0 returns 10."""
         result = round_y_axis_max(0)
         assert result == 10.0
 
-    def test_round_y_axis_max_negative_case(self):
+    def test_round_y_axis_max_negative_case(self) -> None:
         """Test that negative values return 0."""
         result = round_y_axis_max(-5.0)
         assert result == 0.0
 
-    def test_round_y_axis_max_jira_examples(self):
+    def test_round_y_axis_max_jira_examples(self) -> None:
         """Test all examples from the Jira ticket."""
         test_cases = [
             # (input, expected_output, description)
@@ -230,7 +230,7 @@ class TestRoundYAxisMax:
                 abs(result - expected) < 1e-6
             ), f"Failed for {description}: input={input_val}, expected={expected}, got={result}"
 
-    def test_round_y_axis_max_edge_cases(self):
+    def test_round_y_axis_max_edge_cases(self) -> None:
         """Test edge cases and boundary conditions."""
         # Test very small numbers
         assert abs(round_y_axis_max(0.0001) - 0.00015) < 1e-6
@@ -247,7 +247,7 @@ class TestRoundYAxisMax:
         assert round_y_axis_max(1000000) == 1500000
         assert round_y_axis_max(5000000) == 5500000  # 5.0 -> 5.5, not next magnitude
 
-    def test_round_y_axis_max_second_digit_logic(self):
+    def test_round_y_axis_max_second_digit_logic(self) -> None:
         """Test the second digit rounding logic specifically."""
         # Second digit 0-2 should round to 0 (but we round UP, so to 5)
         assert round_y_axis_max(1.0) == 1.5
@@ -265,7 +265,7 @@ class TestRoundYAxisMax:
         assert round_y_axis_max(1.8) == 2.0
         assert round_y_axis_max(1.9) == 2.0
 
-    def test_round_y_axis_max_magnitude_handling(self):
+    def test_round_y_axis_max_magnitude_handling(self) -> None:
         """Test that the function handles different magnitudes correctly."""
         # Test different magnitudes with same pattern
         assert abs(round_y_axis_max(0.1) - 0.15) < 1e-6
@@ -274,7 +274,7 @@ class TestRoundYAxisMax:
         assert round_y_axis_max(100.0) == 150.0
         assert round_y_axis_max(1000.0) == 1500.0
 
-    def test_round_y_axis_max_floating_point_precision(self):
+    def test_round_y_axis_max_floating_point_precision(self) -> None:
         """Test that floating point precision issues are handled correctly."""
         # Test numbers that might have floating point precision issues
         assert (
@@ -287,12 +287,12 @@ class TestRoundYAxisMax:
             abs(round_y_axis_max(2.0 / 3.0) - 0.7) < 1e-6
         )  # 0.6666666666666666 -> 0.7
 
-    def test_round_y_axis_max_return_type(self):
+    def test_round_y_axis_max_return_type(self) -> None:
         """Test that the function returns a float."""
         result = round_y_axis_max(1.5)
         assert isinstance(result, float)
 
-    def test_round_y_axis_max_consistency(self):
+    def test_round_y_axis_max_consistency(self) -> None:
         """Test that the function is consistent across multiple calls."""
         test_values = [0.0021, 1094, 1.616, 0.0, 0.089]
 
@@ -303,7 +303,7 @@ class TestRoundYAxisMax:
                 result1 == result2
             ), f"Inconsistent results for {value}: {result1} vs {result2}"
 
-    def test_round_y_axis_max_monotonicity(self):
+    def test_round_y_axis_max_monotonicity(self) -> None:
         """Test that the function maintains monotonicity (larger inputs should give larger or equal outputs)."""
         test_values = [0.001, 0.002, 0.003, 0.004, 0.005]
         results = [round_y_axis_max(val) for val in test_values]
@@ -330,14 +330,16 @@ class TestRoundYAxisMax:
             (1.616, 2.0),
         ],
     )
-    def test_round_y_axis_max_parametrized(self, input_val, expected):
+    def test_round_y_axis_max_parametrized(
+        self, input_val: float, expected: float
+    ) -> None:
         """Parametrized test for the main examples."""
         result = round_y_axis_max(input_val)
         assert (
             abs(result - expected) < 1e-6
         ), f"input={input_val}, expected={expected}, got={result}"
 
-    def test_extract_age_num_valueerror_handling(self):
+    def test_extract_age_num_valueerror_handling(self) -> None:
         """Test that ValueError is handled when age contains non-numeric text."""
         # Create test input DataFrame with non-numeric age values
         input_df = pd.DataFrame(
@@ -364,7 +366,7 @@ class TestRoundYAxisMax:
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_extract_age_num_indexerror_handling(self):
+    def test_extract_age_num_indexerror_handling(self) -> None:
         """Test that IndexError is handled when age is empty or whitespace-only."""
         # Create test input DataFrame with empty/whitespace age values
         input_df = pd.DataFrame(
@@ -391,7 +393,7 @@ class TestRoundYAxisMax:
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_extract_age_num_attributeerror_handling(self):
+    def test_extract_age_num_attributeerror_handling(self) -> None:
         """Test that AttributeError is handled when age is not a string."""
         # Create test input DataFrame with non-string age values
         input_df = pd.DataFrame(
@@ -418,7 +420,7 @@ class TestRoundYAxisMax:
         assert isinstance(result, list)
         assert len(result) > 0
 
-    def test_extract_age_num_mixed_error_handling(self):
+    def test_extract_age_num_mixed_error_handling(self) -> None:
         """Test that all three error types are handled together in one dataset."""
         # Create test input DataFrame with various problematic age values
         input_df = pd.DataFrame(
@@ -471,7 +473,7 @@ class TestRoundYAxisMax:
 class TestCalculateYAxisMaxMap:
     """Test class for the _calculate_y_axis_max_map function."""
 
-    def test_calculate_y_axis_max_map_basic(self):
+    def test_calculate_y_axis_max_map_basic(self) -> None:
         """Test basic functionality with valid data."""
         # Create test dataset
         dataset = pd.DataFrame(
@@ -495,7 +497,7 @@ class TestCalculateYAxisMaxMap:
 
         assert result == expected
 
-    def test_calculate_y_axis_max_map_empty_groups(self):
+    def test_calculate_y_axis_max_map_empty_groups(self) -> None:
         """Test with empty groups."""
         # Create dataset with empty groups
         dataset = pd.DataFrame(
@@ -514,7 +516,7 @@ class TestCalculateYAxisMaxMap:
         expected = {("Model1", "Type1", "Tissue1"): 1.0}
         assert result == expected
 
-    def test_calculate_y_axis_max_map_non_numeric_values(self):
+    def test_calculate_y_axis_max_map_non_numeric_values(self) -> None:
         """Test with non-numeric values that should be coerced."""
         dataset = pd.DataFrame(
             {
@@ -533,7 +535,7 @@ class TestCalculateYAxisMaxMap:
         expected = {("Model1", "Type1", "Tissue1"): 1.0}
         assert result == expected
 
-    def test_calculate_y_axis_max_map_all_invalid_values(self):
+    def test_calculate_y_axis_max_map_all_invalid_values(self) -> None:
         """Test with all invalid values."""
         dataset = pd.DataFrame(
             {
@@ -552,7 +554,7 @@ class TestCalculateYAxisMaxMap:
         expected = {("Model1", "Type1", "Tissue1"): 0}
         assert result == expected
 
-    def test_calculate_y_axis_max_map_mixed_data_types(self):
+    def test_calculate_y_axis_max_map_mixed_data_types(self) -> None:
         """Test with mixed numeric and non-numeric values."""
         dataset = pd.DataFrame(
             {
@@ -575,7 +577,7 @@ class TestCalculateYAxisMaxMap:
 class TestCreateDataRowsFromGroups:
     """Test class for the _create_data_rows_from_groups function."""
 
-    def test_create_data_rows_from_groups_basic(self):
+    def test_create_data_rows_from_groups_basic(self) -> None:
         """Test basic functionality."""
         dataset = pd.DataFrame(
             {
@@ -622,7 +624,7 @@ class TestCreateDataRowsFromGroups:
         six_month_entry = next(entry for entry in result if entry["age"] == "6 months")
         assert six_month_entry["data"][0]["genotype"] == "WT"
 
-    def test_create_data_rows_from_groups_custom_columns(self):
+    def test_create_data_rows_from_groups_custom_columns(self) -> None:
         """Test with custom group and extra columns."""
         dataset = pd.DataFrame(
             {
@@ -654,7 +656,7 @@ class TestCreateDataRowsFromGroups:
         assert "measurements" in entry
         assert entry["measurements"][0]["extra_field"] == "extra_value"
 
-    def test_create_data_rows_from_groups_empty_y_axis_map(self):
+    def test_create_data_rows_from_groups_empty_y_axis_map(self) -> None:
         """Test with empty y_axis_max_map."""
         dataset = pd.DataFrame(
             {
@@ -683,7 +685,7 @@ class TestCreateDataRowsFromGroups:
 class TestAddMissingAgeEntries:
     """Test class for the _add_missing_age_entries function."""
 
-    def test_add_missing_age_entries_basic(self):
+    def test_add_missing_age_entries_basic(self) -> None:
         """Test basic missing age detection and addition."""
         # Existing data rows with multiple ages for the same group
         data_rows = [
@@ -725,7 +727,7 @@ class TestAddMissingAgeEntries:
         assert len(result) == 2
         assert result == data_rows
 
-    def test_add_missing_age_entries_with_missing_ages(self):
+    def test_add_missing_age_entries_with_missing_ages(self) -> None:
         """Test actual missing age detection and addition."""
         # Data rows with ages that exist in the data_rows but not in all groups
         data_rows = [
@@ -789,7 +791,7 @@ class TestAddMissingAgeEntries:
         assert missing_entry["units"] == ""
         assert missing_entry["y_axis_max"] == 5.0
 
-    def test_add_missing_age_entries_no_missing_ages(self):
+    def test_add_missing_age_entries_no_missing_ages(self) -> None:
         """Test when no ages are missing."""
         data_rows = [
             {
@@ -821,7 +823,7 @@ class TestAddMissingAgeEntries:
         assert len(result) == 1
         assert result == data_rows
 
-    def test_add_missing_age_entries_multiple_groups(self):
+    def test_add_missing_age_entries_multiple_groups(self) -> None:
         """Test with multiple model/type/tissue combinations."""
         # Data rows with multiple ages for one group but not the other
         data_rows = [
@@ -887,7 +889,7 @@ class TestAddMissingAgeEntries:
 class TestExtractAgeNum:
     """Test class for the _extract_age_num function."""
 
-    def test_extract_age_num_valid_ages(self):
+    def test_extract_age_num_valid_ages(self) -> None:
         """Test with valid age strings."""
         test_cases = [
             ({"age": "6 months", "evidence_type": "Type1"}, (6.0, "6 months", "Type1")),
@@ -909,7 +911,7 @@ class TestExtractAgeNum:
             result = _extract_age_num(entry)
             assert result == expected
 
-    def test_extract_age_num_invalid_ages_valueerror(self):
+    def test_extract_age_num_invalid_ages_valueerror(self) -> None:
         """Test with ages that cause ValueError."""
         test_cases = [
             {"age": "unknown months", "evidence_type": "Type1"},
@@ -924,7 +926,7 @@ class TestExtractAgeNum:
             assert result[1] == entry["age"]
             assert result[2] == entry["evidence_type"]
 
-    def test_extract_age_num_invalid_ages_indexerror(self):
+    def test_extract_age_num_invalid_ages_indexerror(self) -> None:
         """Test with ages that cause IndexError."""
         test_cases = [
             {"age": "", "evidence_type": "Type1"},
@@ -939,7 +941,7 @@ class TestExtractAgeNum:
             assert result[1] == entry["age"]
             assert result[2] == entry["evidence_type"]
 
-    def test_extract_age_num_invalid_ages_attributeerror(self):
+    def test_extract_age_num_invalid_ages_attributeerror(self) -> None:
         """Test with ages that cause AttributeError."""
         test_cases = [
             {"age": None, "evidence_type": "Type1"},
@@ -954,7 +956,7 @@ class TestExtractAgeNum:
             assert result[1] == entry["age"]
             assert result[2] == entry["evidence_type"]
 
-    def test_extract_age_num_missing_fields(self):
+    def test_extract_age_num_missing_fields(self) -> None:
         """Test with missing age or evidence_type fields."""
         test_cases = [
             ({}, (float("inf"), "", "")),
@@ -966,7 +968,7 @@ class TestExtractAgeNum:
             result = _extract_age_num(entry)
             assert result == expected
 
-    def test_extract_age_num_sorting_behavior(self):
+    def test_extract_age_num_sorting_behavior(self) -> None:
         """Test that the function produces sortable results."""
         entries = [
             {"age": "12 months", "evidence_type": "Type1"},
