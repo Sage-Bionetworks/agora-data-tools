@@ -332,6 +332,7 @@ class TestRoundYAxisMax:
         assert (
             abs(result - expected) < 1e-6
         ), f"input={input_val}, expected={expected}, got={result}"
+
     def test_extract_age_num_valueerror_handling(self):
         """Test that ValueError is handled when age contains non-numeric text."""
         # Create test input DataFrame with non-numeric age values

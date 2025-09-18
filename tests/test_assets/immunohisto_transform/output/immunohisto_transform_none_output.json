@@ -1,21 +1,5 @@
 [
   {
-    "name": "",
-    "evidence_type": "TypeA",
-    "tissue": "Tissuea",
-    "age": "1 months",
-    "units": "A",
-    "y_axis_max": 1.5,
-    "data": [
-      {
-        "genotype": "genotype1",
-        "sex": "Male",
-        "individual_id": "individual_8",
-        "value": "1"
-      }
-    ]
-  },
-  {
     "name": "ModelA",
     "evidence_type": "",
     "tissue": "Tissuea",
@@ -37,6 +21,7 @@
     "tissue": "Tissuea",
     "age": "1 months",
     "units": "A",
+    "y_axis_max": 1.5,
     "data": [
       {
         "genotype": "genotype1",

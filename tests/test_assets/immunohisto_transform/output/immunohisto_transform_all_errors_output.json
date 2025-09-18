@@ -5,6 +5,7 @@
     "tissue": "Tissuea",
     "age": "2 months",
     "units": "A",
+    "y_axis_max": 3.5,
     "data": [
       {
         "genotype": "genotype2",
@@ -20,6 +21,7 @@
     "tissue": "Tissuea",
     "age": "2 months",
     "units": "",
+    "y_axis_max": 5.5,
     "data": []
   },
   {
@@ -28,6 +30,7 @@
     "tissue": "Tissuea",
     "age": "2 months",
     "units": "",
+    "y_axis_max": 7.5,
     "data": []
   },
   {
@@ -36,6 +39,7 @@
     "tissue": "Tissuea",
     "age": "2 months",
     "units": "",
+    "y_axis_max": 8.5,
     "data": []
   },
   {
@@ -44,6 +48,7 @@
     "tissue": "Tissuea",
     "age": "3 months",
     "units": "",
+    "y_axis_max": 3.5,
     "data": []
   },
   {
@@ -52,6 +57,7 @@
     "tissue": "Tissuea",
     "age": "3 months",
     "units": "A",
+    "y_axis_max": 5.5,
     "data": [
       {
         "genotype": "genotype1",
@@ -67,6 +73,7 @@
     "tissue": "Tissuea",
     "age": "3 months",
     "units": "",
+    "y_axis_max": 7.5,
     "data": []
   },
   {
@@ -75,6 +82,7 @@
     "tissue": "Tissuea",
     "age": "3 months",
     "units": "",
+    "y_axis_max": 8.5,
     "data": []
   },
   {
@@ -83,6 +91,7 @@
     "tissue": "Tissuea",
     "age": "12.5 months",
     "units": "",
+    "y_axis_max": 3.5,
     "data": []
   },
   {
@@ -91,6 +100,7 @@
     "tissue": "Tissuea",
     "age": "12.5 months",
     "units": "",
+    "y_axis_max": 5.5,
     "data": []
   },
   {
@@ -99,6 +109,7 @@
     "tissue": "Tissuea",
     "age": "12.5 months",
     "units": "A",
+    "y_axis_max": 7.5,
     "data": [
       {
         "genotype": "genotype1",
@@ -114,6 +125,7 @@
     "tissue": "Tissuea",
     "age": "12.5 months",
     "units": "",
+    "y_axis_max": 8.5,
     "data": []
   },
   {
@@ -122,6 +134,7 @@
     "tissue": "Tissuea",
     "age": " months",
     "units": "A",
+    "y_axis_max": 3.5,
     "data": [
       {
         "genotype": "genotype1",
@@ -137,6 +150,7 @@
     "tissue": "Tissuea",
     "age": " months",
     "units": "",
+    "y_axis_max": 5.5,
     "data": []
   },
   {
@@ -145,6 +159,7 @@
     "tissue": "Tissuea",
     "age": " months",
     "units": "",
+    "y_axis_max": 7.5,
     "data": []
   },
   {
@@ -153,6 +168,7 @@
     "tissue": "Tissuea",
     "age": " months",
     "units": "A",
+    "y_axis_max": 8.5,
     "data": [
       {
         "genotype": "genotype1",
@@ -168,6 +184,7 @@
     "tissue": "Tissuea",
     "age": "abc123 months",
     "units": "",
+    "y_axis_max": 3.5,
     "data": []
   },
   {
@@ -176,6 +193,7 @@
     "tissue": "Tissuea",
     "age": "abc123 months",
     "units": "",
+    "y_axis_max": 5.5,
     "data": []
   },
   {
@@ -184,6 +202,7 @@
     "tissue": "Tissuea",
     "age": "abc123 months",
     "units": "A",
+    "y_axis_max": 7.5,
     "data": [
       {
         "genotype": "genotype1",
@@ -199,6 +218,7 @@
     "tissue": "Tissuea",
     "age": "abc123 months",
     "units": "",
+    "y_axis_max": 8.5,
     "data": []
   },
   {
@@ -207,6 +227,7 @@
     "tissue": "Tissuea",
     "age": "invalid_text months",
     "units": "A",
+    "y_axis_max": 3.5,
     "data": [
       {
         "genotype": "genotype1",
@@ -222,6 +243,7 @@
     "tissue": "Tissuea",
     "age": "invalid_text months",
     "units": "",
+    "y_axis_max": 5.5,
     "data": []
   },
   {
@@ -230,6 +252,7 @@
     "tissue": "Tissuea",
     "age": "invalid_text months",
     "units": "",
+    "y_axis_max": 7.5,
     "data": []
   },
   {
@@ -238,6 +261,7 @@
     "tissue": "Tissuea",
     "age": "invalid_text months",
     "units": "",
+    "y_axis_max": 8.5,
     "data": []
   },
   {
@@ -246,6 +270,7 @@
     "tissue": "Tissuea",
     "age": "not_a_number months",
     "units": "",
+    "y_axis_max": 3.5,
     "data": []
   },
   {
@@ -254,6 +279,7 @@
     "tissue": "Tissuea",
     "age": "not_a_number months",
     "units": "A",
+    "y_axis_max": 5.5,
     "data": [
       {
         "genotype": "genotype1",
@@ -269,6 +295,7 @@
     "tissue": "Tissuea",
     "age": "not_a_number months",
     "units": "",
+    "y_axis_max": 7.5,
     "data": []
   },
   {
@@ -277,6 +304,7 @@
     "tissue": "Tissuea",
     "age": "not_a_number months",
     "units": "",
+    "y_axis_max": 8.5,
     "data": []
   }
 ]
