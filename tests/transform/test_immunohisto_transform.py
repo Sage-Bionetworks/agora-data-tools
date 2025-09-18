@@ -202,12 +202,12 @@ class TestRoundYAxisMax:
     def test_round_y_axis_max_zero_case(self) -> None:
         """Test that 0 returns 10."""
         result = round_y_axis_max(0)
-        assert result == 10.0
+        assert result == pytest.approx(10.0)
 
     def test_round_y_axis_max_negative_case(self) -> None:
         """Test that negative values return 0."""
         result = round_y_axis_max(-5.0)
-        assert result == 0.0
+        assert result == pytest.approx(0.0)
 
     def test_round_y_axis_max_jira_examples(self) -> None:
         """Test all examples from the Jira ticket."""
@@ -237,42 +237,48 @@ class TestRoundYAxisMax:
         assert abs(round_y_axis_max(0.00001) - 0.000015) < 1e-6
 
         # Test numbers that are already "nice"
-        assert round_y_axis_max(1.0) == 1.5  # Should round up to next nice number
-        assert (
-            round_y_axis_max(1.5) == 1.5
+        assert round_y_axis_max(1.0) == pytest.approx(
+            1.5
+        )  # Should round up to next nice number
+        assert round_y_axis_max(1.5) == pytest.approx(
+            1.5
         )  # Already nice, but we round UP, so stays 1.5
-        assert round_y_axis_max(2.0) == 2.5  # Should round up to next nice number
+        assert round_y_axis_max(2.0) == pytest.approx(
+            2.5
+        )  # Should round up to next nice number
 
         # Test large numbers
-        assert round_y_axis_max(1000000) == 1500000
-        assert round_y_axis_max(5000000) == 5500000  # 5.0 -> 5.5, not next magnitude
+        assert round_y_axis_max(1000000) == pytest.approx(1500000)
+        assert round_y_axis_max(5000000) == pytest.approx(
+            5500000
+        )  # 5.0 -> 5.5, not next magnitude
 
     def test_round_y_axis_max_second_digit_logic(self) -> None:
         """Test the second digit rounding logic specifically."""
         # Second digit 0-2 should round to 0 (but we round UP, so to 5)
-        assert round_y_axis_max(1.0) == 1.5
-        assert round_y_axis_max(1.1) == 1.5
-        assert round_y_axis_max(1.2) == 1.5
+        assert round_y_axis_max(1.0) == pytest.approx(1.5)
+        assert round_y_axis_max(1.1) == pytest.approx(1.5)
+        assert round_y_axis_max(1.2) == pytest.approx(1.5)
 
         # Second digit 3-7 should round to 5
-        assert round_y_axis_max(1.3) == 1.5
-        assert round_y_axis_max(1.4) == 1.5
-        assert round_y_axis_max(1.5) == 1.5  # Already 5, stays 1.5
-        assert round_y_axis_max(1.6) == 2.0
-        assert round_y_axis_max(1.7) == 2.0
+        assert round_y_axis_max(1.3) == pytest.approx(1.5)
+        assert round_y_axis_max(1.4) == pytest.approx(1.5)
+        assert round_y_axis_max(1.5) == pytest.approx(1.5)  # Already 5, stays 1.5
+        assert round_y_axis_max(1.6) == pytest.approx(2.0)
+        assert round_y_axis_max(1.7) == pytest.approx(2.0)
 
         # Second digit 8-9 should round to next first digit with 0
-        assert round_y_axis_max(1.8) == 2.0
-        assert round_y_axis_max(1.9) == 2.0
+        assert round_y_axis_max(1.8) == pytest.approx(2.0)
+        assert round_y_axis_max(1.9) == pytest.approx(2.0)
 
     def test_round_y_axis_max_magnitude_handling(self) -> None:
         """Test that the function handles different magnitudes correctly."""
         # Test different magnitudes with same pattern
         assert abs(round_y_axis_max(0.1) - 0.15) < 1e-6
-        assert round_y_axis_max(1.0) == 1.5
-        assert round_y_axis_max(10.0) == 15.0
-        assert round_y_axis_max(100.0) == 150.0
-        assert round_y_axis_max(1000.0) == 1500.0
+        assert round_y_axis_max(1.0) == pytest.approx(1.5)
+        assert round_y_axis_max(10.0) == pytest.approx(15.0)
+        assert round_y_axis_max(100.0) == pytest.approx(150.0)
+        assert round_y_axis_max(1000.0) == pytest.approx(1500.0)
 
     def test_round_y_axis_max_floating_point_precision(self) -> None:
         """Test that floating point precision issues are handled correctly."""
@@ -617,7 +623,7 @@ class TestCreateDataRowsFromGroups:
             assert entry["tissue"] == "Tissue1"
             assert entry["units"] == "mg"
             # round_y_axis_max(3.0) returns 3.5 (rounds up to next nice number)
-            assert entry["y_axis_max"] == 3.5
+            assert entry["y_axis_max"] == pytest.approx(3.5)
             assert len(entry["data"]) == 1
 
         # Find the 6 months entry specifically
@@ -679,7 +685,7 @@ class TestCreateDataRowsFromGroups:
         )
 
         # Should use default y_axis_max of 0 when key not found, but round_y_axis_max(0) returns 10.0
-        assert result[0]["y_axis_max"] == 10.0
+        assert result[0]["y_axis_max"] == pytest.approx(10.0)
 
 
 class TestAddMissingAgeEntries:
@@ -789,7 +795,7 @@ class TestAddMissingAgeEntries:
         assert missing_entry is not None
         assert missing_entry["data"] == []
         assert missing_entry["units"] == ""
-        assert missing_entry["y_axis_max"] == 5.0
+        assert missing_entry["y_axis_max"] == pytest.approx(5.0)
 
     def test_add_missing_age_entries_no_missing_ages(self) -> None:
         """Test when no ages are missing."""
@@ -881,7 +887,7 @@ class TestAddMissingAgeEntries:
         ]
 
         assert len(model2_missing) == 1
-        assert model2_missing[0]["y_axis_max"] == 5.0
+        assert model2_missing[0]["y_axis_max"] == pytest.approx(5.0)
         assert model2_missing[0]["data"] == []
         assert model2_missing[0]["units"] == ""
 
@@ -993,7 +999,11 @@ class TestExtractAgeNum:
         ]
 
         # Check valid ages are sorted numerically
-        assert [age_num[0] for age_num in valid_ages] == [3.0, 6.0, 12.0, 18.0]
+        expected_ages = [3.0, 6.0, 12.0, 18.0]
+        actual_ages = [age_num[0] for age_num in valid_ages]
+        assert len(actual_ages) == len(expected_ages)
+        for actual, expected in zip(actual_ages, expected_ages):
+            assert actual == pytest.approx(expected)
 
         # Check invalid ages come last
         assert len(invalid_ages) == 1
