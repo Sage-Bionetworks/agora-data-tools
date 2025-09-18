@@ -4,7 +4,7 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-from typing import Dict, List, Any, Union
+from typing import Dict, List, Any, Union, Tuple
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
@@ -142,7 +142,9 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     return result
 
 
-def _calculate_y_axis_max_map(dataset: pd.DataFrame) -> Dict[tuple, float]:
+def _calculate_y_axis_max_map(
+    dataset: pd.DataFrame,
+) -> Dict[Tuple[str, str, str], float]:
     """
     Calculate y_axis_max for each combination of (name, evidence_type, tissue) across all ages.
 
@@ -174,7 +176,7 @@ def _create_data_rows_from_groups(
     group_columns: List[str],
     extra_columns: List[str],
     extra_column_name: str,
-    y_axis_max_map: Dict[tuple, float],
+    y_axis_max_map: Dict[Tuple[str, str, str], float],
 ) -> List[Dict[str, Any]]:
     """
     Create data rows by grouping the dataset and adding y_axis_max values.
@@ -264,7 +266,7 @@ def _add_missing_age_entries(
     return data_rows
 
 
-def _extract_age_num(entry: dict) -> tuple:
+def _extract_age_num(entry: Dict[str, Any]) -> Tuple[float, str, str]:
     """
     Extract numeric age value for sorting purposes.
 
@@ -272,7 +274,7 @@ def _extract_age_num(entry: dict) -> tuple:
         entry: A dictionary containing the "age" field.
 
     Returns:
-        tuple: (numeric_value, age_string, evidence_type) for consistent sorting
+        Tuple[float, str, str]: (numeric_value, age_string, evidence_type) for consistent sorting
     """
     age_str = entry.get("age", "")
     evidence_type = entry.get("evidence_type", "")
