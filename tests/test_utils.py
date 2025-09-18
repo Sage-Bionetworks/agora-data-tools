@@ -176,7 +176,7 @@ class TestStandardizeValues:
         assert result_df.loc[9, "aliases"] == "Normal text"  # Should be preserved
 
 
-class TestRenameColumns:
+class TestRenameColumnsDataFrame:
     df = pd.DataFrame(
         {
             "a": ["test_value"],
@@ -186,22 +186,247 @@ class TestRenameColumns:
         }
     )
     good_column_map = {"a": "e", "b": "f", "c": "g", "d": "h"}
-    bad_column_map = []
 
     def test_rename_columns_success(self):
         renamed_df = utils.rename_columns(
-            df=self.df.copy(), column_map=self.good_column_map
+            data=self.df.copy(), column_map=self.good_column_map
         )
         assert list(renamed_df.columns) == list(self.good_column_map.values())
 
     def test_rename_columns_TypeError(self):
         captured_output = StringIO()
         sys.stdout = captured_output
-        bad_renamed_df = utils.rename_columns(
-            df=self.df.copy(), column_map=self.bad_column_map
-        )
-        assert "Column mapping must be a dictionary" in captured_output.getvalue()
+        bad_renamed_df = utils.rename_columns(data=self.df.copy(), column_map=[])
+        assert "Column mapping must be a dictionary." in captured_output.getvalue()
         assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
+
+    def test_rename_columns_non_string_keys(self):
+        """Test that non-string keys in column_map are handled with error message"""
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        bad_column_map = {1: "e", "b": "f"}  # Key '1' is not a string
+        bad_renamed_df = utils.rename_columns(
+            data=self.df.copy(), column_map=bad_column_map
+        )
+        assert (
+            "Column mapping must be a dictionary with string keys."
+            in captured_output.getvalue()
+        )
+        assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
+
+    def test_rename_columns_not_none_values(self):
+        """Test that None values in column_map are handled with error message"""
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        bad_column_map = {"a": None, "b": "f"}
+        bad_renamed_df = utils.rename_columns(
+            data=self.df.copy(), column_map=bad_column_map
+        )
+        assert (
+            "Column mapping must be a dictionary with string values that are not None."
+            in captured_output.getvalue()
+        )
+        assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
+
+    def test_rename_columns_non_string_values(self):
+        """Test that non-string values in column_map are handled with error message"""
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        bad_column_map = {"a": 1, "b": [], "c": None, "d": "h"}
+        bad_renamed_df = utils.rename_columns(
+            data=self.df.copy(), column_map=bad_column_map
+        )
+        assert (
+            "Column mapping must be a dictionary with string values that are not None."
+            in captured_output.getvalue()
+        )
+        assert list(bad_renamed_df.columns) == list(self.good_column_map.keys())
+
+    def test_rename_columns_preserves_dataframe_values(self):
+        """Test that DataFrame values are preserved after renaming"""
+        df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"], "c": [1.5, 2.5, 3.5]})
+        column_map = {"a": "x", "b": "y", "c": "z"}
+
+        result = utils.rename_columns(data=df.copy(), column_map=column_map)
+
+        # Check column names
+        assert list(result.columns) == ["x", "y", "z"]
+        # Check values are preserved
+        pd.testing.assert_frame_equal(
+            result,
+            pd.DataFrame({"x": [1, 2, 3], "y": ["x", "y", "z"], "z": [1.5, 2.5, 3.5]}),
+        )
+
+    def test_rename_columns_with_empty_dataframe(self):
+        """Test renaming columns in an empty DataFrame"""
+        empty_df = pd.DataFrame()
+        column_map = {"a": "x", "b": "y", "c": "z"}
+
+        result = utils.rename_columns(data=empty_df, column_map=column_map)
+
+        # Check that columns are renamed correctly
+        assert list(result.columns) == []
+        # Check that the DataFrame is still empty
+        assert len(result) == 0
+        # Verify the original DataFrame was modified in place
+        assert list(empty_df.columns) == []
+
+
+class TestRenameColumnsDict:
+    input_dict = {"a": "value1", "b": "value2", "c": "value3"}
+    column_map = {"a": "x", "b": "y", "c": "z"}
+
+    def test_rename_columns_with_dict_input(self):
+        """Test renaming columns in a dictionary input"""
+        result = utils.rename_columns(
+            data=self.input_dict.copy(), column_map=self.column_map
+        )
+        assert result == {"x": "value1", "y": "value2", "z": "value3"}
+
+    def test_rename_columns_with_partial_mapping(self):
+        """Test renaming only some columns, leaving others unchanged"""
+        partial_column_map = {"a": "x", "c": "z"}
+        result = utils.rename_columns(
+            data=self.input_dict.copy(), column_map=partial_column_map
+        )
+        assert result == {"x": "value1", "b": "value2", "z": "value3"}
+
+    def test_rename_columns_with_nonexistent_keys(self):
+        """Test renaming when column_map contains keys that don't exist in the data"""
+        nonexistent_column_map = {
+            "a": "x",
+            "d": "z",
+            "e": "w",
+        }  # 'c' and 'd' don't exist
+        result = utils.rename_columns(
+            data=self.input_dict.copy(), column_map=nonexistent_column_map
+        )
+        assert result == {"x": "value1", "b": "value2", "c": "value3"}
+
+    def test_rename_columns_with_empty_dict(self):
+        """Test renaming with an empty column mapping"""
+        empty_column_map = {}
+        result = utils.rename_columns(
+            data=self.input_dict.copy(), column_map=empty_column_map
+        )
+        # Should return unchanged data
+        assert result == {"a": "value1", "b": "value2", "c": "value3"}
+
+    def test_rename_columns_preserves_dict_values(self):
+        """Test that dictionary values are preserved after renaming"""
+        input_dict = {"a": [1, 2, 3], "b": {"nested": "value"}, "c": None, "d": 42}
+        column_map = {"a": "x", "b": "y", "c": "z", "d": "w"}
+
+        result = utils.rename_columns(data=input_dict.copy(), column_map=column_map)
+
+        expected = {"x": [1, 2, 3], "y": {"nested": "value"}, "z": None, "w": 42}
+        assert result == expected
+
+    def test_rename_columns_with_complex_nested_structures(self):
+        """Test renaming with complex nested data structures"""
+        input_dict = {
+            "a": {"nested": {"deep": "value"}},
+            "b": [{"inner": "data"}, {"inner": "more_data"}],
+            "c": "simple_string",
+        }
+        column_map = {"a": "x", "b": "y", "c": "z"}
+
+        result = utils.rename_columns(data=input_dict.copy(), column_map=column_map)
+
+        expected = {
+            "x": {"nested": {"deep": "value"}},
+            "y": [{"inner": "data"}, {"inner": "more_data"}],
+            "z": "simple_string",
+        }
+        assert result == expected
+
+
+class TestRenameColumnsList:
+    input_list = [
+        {"a": "value1", "b": "value2", "c": "value3"},
+        {"a": "value4", "b": "value5", "c": "value6"},
+        {"a": "value7", "b": "value8", "c": "value9"},
+    ]
+    column_map = {"a": "x", "b": "y", "c": "z"}
+
+    def test_rename_columns_with_list_of_dicts_input(self):
+        """Test renaming columns in a list of dictionaries input"""
+        result = utils.rename_columns(
+            data=self.input_list.copy(), column_map=self.column_map
+        )
+
+        expected = [
+            {"x": "value1", "y": "value2", "z": "value3"},
+            {"x": "value4", "y": "value5", "z": "value6"},
+            {"x": "value7", "y": "value8", "z": "value9"},
+        ]
+        assert result == expected
+        # Verify the original list was modified in place
+        assert self.input_list == expected
+
+    def test_rename_columns_with_empty_list(self):
+        """Test renaming with an empty list of dictionaries"""
+        input_list = []
+        result = utils.rename_columns(
+            data=input_list.copy(), column_map=self.column_map
+        )
+        # Should return unchanged empty list
+        assert result == []
+
+    def test_rename_columns_with_mixed_list_content(self):
+        """Test renaming with a list containing dictionaries with different keys"""
+        input_list = [
+            {"a": "value1", "b": "value2"},
+            {"a": "value3", "c": "value4"},  # Missing 'b', has 'c'
+            {"b": "value5", "d": "value6"},  # Missing 'a', has 'd'
+        ]
+        column_map = {"a": "x", "b": "y"}
+
+        result = utils.rename_columns(data=input_list.copy(), column_map=column_map)
+
+        expected = [
+            {"x": "value1", "y": "value2"},
+            {"x": "value3", "c": "value4"},  # Only 'a' was renamed
+            {"y": "value5", "d": "value6"},  # Only 'b' was renamed
+        ]
+        assert result == expected
+
+    def test_rename_columns_with_non_dict_items_in_list(self):
+        """Test that TypeError is raised when list contains non-dictionary items"""
+        input_list = [
+            {"a": "value1", "b": "value2"},
+            "not_a_dict",  # This should cause the error
+            {"a": "value3", "b": "value4"},
+        ]
+        column_map = {"a": "x", "b": "y"}
+
+        with pytest.raises(TypeError, match="List must contain dictionaries."):
+            utils.rename_columns(data=input_list, column_map=column_map)
+
+    def test_rename_columns_with_invalid_data_type(self):
+        """Test that TypeError is raised when data is not a DataFrame, list, or dict"""
+        column_map = {"a": "x", "b": "y"}
+
+        # Test with string data
+        with pytest.raises(
+            TypeError,
+            match="Data must be a pandas DataFrame, list of dictionaries, or dictionary.",
+        ):
+            utils.rename_columns(data="invalid_string", column_map=column_map)
+
+        # Test with integer data
+        with pytest.raises(
+            TypeError,
+            match="Data must be a pandas DataFrame, list of dictionaries, or dictionary.",
+        ):
+            utils.rename_columns(data=123, column_map=column_map)
+
+        # Test with None data
+        with pytest.raises(
+            TypeError,
+            match="Data must be a pandas DataFrame, list of dictionaries, or dictionary.",
+        ):
+            utils.rename_columns(data=None, column_map=column_map)
 
 
 class TestNestFields:
@@ -501,58 +726,3 @@ class TestRemoveDuplicatesKeepOrder:
     def test_remove_duplicates_preserves_order(self):
         input_list = ["a", "b", "a", "c", "b", "d"]
         assert utils.remove_duplicates_keep_order(input_list) == ["a", "b", "c", "d"]
-
-
-class TestConvertTransformationResultToDataFrame:
-    """Tests the convert_transformation_result_to_dataframe function
-    with various input types to ensure it correctly converts"""
-
-    def test_convert_transformation_result_to_dataframe_with_df(self):
-        """Test with a pandas DataFrame input"""
-        result = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
-        output = utils.convert_transformation_result_to_dataframe(
-            result, "test_dataset"
-        )
-        assert isinstance(output, pd.DataFrame)
-        assert output.equals(result)
-
-    def test_convert_transformation_result_to_dataframe_with_dict(self):
-        "Test with a dictionary input"
-        result = {"a": [1, 2], "b": [3, 4]}
-        output = utils.convert_transformation_result_to_dataframe(
-            result, "test_dataset"
-        )
-        assert isinstance(output, dict)
-        assert output == result
-
-    @pytest.mark.parametrize(
-        "result",
-        [
-            [
-                {"model": "LOAD1", "matched_controls": "value", "model_type": "LOAD"},
-                {
-                    "model": "5XFAD",
-                    "matched_controls": ["value1", "value2"],
-                    "model_type": "familial",
-                },
-            ],
-            [{"a": 1, "b": 3}, {"a": 2, "b": 4}],
-        ],
-    )
-    def test_convert_transformation_result_to_dataframe_with_list_of_dicts(
-        self, result
-    ):
-        """Test with a list of dictionaries input"""
-        df = utils.convert_transformation_result_to_dataframe(result, "test_dataset")
-        assert isinstance(df, pd.DataFrame)
-        expected_df = pd.DataFrame(result)
-        assert df.equals(expected_df)
-
-    def test_convert_transformation_result_to_dataframe_with_wrong_type(self):
-        """Test with an unsupported type input"""
-        result = True
-        with pytest.raises(
-            TypeError,
-            match="Custom transformation for dataset test_dataset returned an unsupported type",
-        ):
-            utils.convert_transformation_result_to_dataframe(result, "test_dataset")

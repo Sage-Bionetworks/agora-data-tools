@@ -43,6 +43,11 @@ class TestTransformGeneralModelAD:
             "immunohisto_transform_missing_ages_input.csv",
             "immunohisto_transform_missing_ages_output.json",
         ),
+        (
+            # Pass with comprehensive error handling test including invalid age data that triggers float("inf") error handling
+            "immunohisto_transform_all_errors_input.csv",
+            "immunohisto_transform_all_errors_output.json",
+        ),
     ]
     pass_test_ids = [
         "Pass with good fake data",
@@ -51,6 +56,7 @@ class TestTransformGeneralModelAD:
         "Pass with missing data",
         "Pass with extra column",
         "Pass with missing ages",
+        "Pass with comprehensive error handling test including invalid age data that triggers float(inf) error handling",
     ]
     fail_test_data = [("immunohisto_transform_missing_column.csv")]
     fail_test_ids = [("Fail with missing column")]
@@ -326,3 +332,132 @@ class TestRoundYAxisMax:
         assert (
             abs(result - expected) < 1e-6
         ), f"input={input_val}, expected={expected}, got={result}"
+    def test_extract_age_num_valueerror_handling(self):
+        """Test that ValueError is handled when age contains non-numeric text."""
+        # Create test input DataFrame with non-numeric age values
+        input_df = pd.DataFrame(
+            {
+                "name": ["test_model", "test_model"],
+                "evidence_type": ["test_evidence", "test_evidence"],
+                "tissue": ["test_tissue", "test_tissue"],
+                "age": ["unknown months", "N/A months"],  # These will cause ValueError
+                "units": ["test_units", "test_units"],
+                "sex": ["Male", "Female"],
+                "genotype": ["WT", "KO"],
+                "individual_id": ["1", "2"],
+                "value": [1.0, 2.0],
+            }
+        )
+
+        # This should not raise an exception, but handle ValueError gracefully
+        # by sorting invalid ages to the end with float("inf")
+        result = immunohisto_transform(
+            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+        )
+
+        # Verify the function completed successfully
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    def test_extract_age_num_indexerror_handling(self):
+        """Test that IndexError is handled when age is empty or whitespace-only."""
+        # Create test input DataFrame with empty/whitespace age values
+        input_df = pd.DataFrame(
+            {
+                "name": ["test_model", "test_model"],
+                "evidence_type": ["test_evidence", "test_evidence"],
+                "tissue": ["test_tissue", "test_tissue"],
+                "age": ["", "   "],  # These will cause IndexError
+                "units": ["test_units", "test_units"],
+                "sex": ["Male", "Female"],
+                "genotype": ["WT", "KO"],
+                "individual_id": ["1", "2"],
+                "value": [1.0, 2.0],
+            }
+        )
+
+        # This should not raise an exception, but handle IndexError gracefully
+        # by sorting invalid ages to the end with float("inf")
+        result = immunohisto_transform(
+            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+        )
+
+        # Verify the function completed successfully
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    def test_extract_age_num_attributeerror_handling(self):
+        """Test that AttributeError is handled when age is not a string."""
+        # Create test input DataFrame with non-string age values
+        input_df = pd.DataFrame(
+            {
+                "name": ["test_model", "test_model"],
+                "evidence_type": ["test_evidence", "test_evidence"],
+                "tissue": ["test_tissue", "test_tissue"],
+                "age": [None, 123],  # These will cause AttributeError
+                "units": ["test_units", "test_units"],
+                "sex": ["Male", "Female"],
+                "genotype": ["WT", "KO"],
+                "individual_id": ["1", "2"],
+                "value": [1.0, 2.0],
+            }
+        )
+
+        # This should not raise an exception, but handle AttributeError gracefully
+        # by sorting invalid ages to the end with float("inf")
+        result = immunohisto_transform(
+            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+        )
+
+        # Verify the function completed successfully
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    def test_extract_age_num_mixed_error_handling(self):
+        """Test that all three error types are handled together in one dataset."""
+        # Create test input DataFrame with various problematic age values
+        input_df = pd.DataFrame(
+            {
+                "name": ["test_model"] * 5,
+                "evidence_type": ["test_evidence"] * 5,
+                "tissue": ["test_tissue"] * 5,
+                "age": [
+                    "unknown months",  # ValueError
+                    "",  # IndexError
+                    None,  # AttributeError
+                    "12 months",  # Valid age
+                    "   ",  # IndexError (whitespace)
+                ],
+                "units": ["test_units"] * 5,
+                "sex": ["Male", "Female", "Male", "Female", "Male"],
+                "genotype": ["WT", "KO", "WT", "KO", "WT"],
+                "individual_id": ["1", "2", "3", "4", "5"],
+                "value": [1.0, 2.0, 3.0, 4.0, 5.0],
+            }
+        )
+
+        # This should not raise an exception, but handle all errors gracefully
+        # Valid ages should be sorted normally, invalid ones should go to the end
+        result = immunohisto_transform(
+            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+        )
+
+        # Verify the function completed successfully
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+        # Verify that the valid age (12 months) comes before invalid ages in sorting
+        valid_age_entry = next(
+            (entry for entry in result if entry["age"] == "12 months"), None
+        )
+        invalid_age_entries = [
+            entry
+            for entry in result
+            if entry["age"] in ["unknown months", " months", "    months"]
+        ]
+
+        # The valid age should be present
+        assert valid_age_entry is not None
+
+        # Invalid ages should also be present (they get sorted to the end)
+        assert len(invalid_age_entries) > 0

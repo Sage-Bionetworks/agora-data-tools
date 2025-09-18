@@ -110,25 +110,6 @@ def extract_module_name(module: str) -> str:
     return match.group(0) if match else module
 
 
-def create_result_dict(row: pd.Series) -> Dict[str, Any]:
-    """
-    Creates a result dictionary for a single module's correlation data.
-
-    Args:
-        row (pd.Series): A row from the disease correlation DataFrame
-
-    Returns:
-        Dict[str, Any]: A dictionary containing the module name, correlation, and adjusted p-value
-    """
-    return {
-        "module": extract_module_name(row["module"]),
-        "correlation": float(row["correlation"]) if row["correlation"] != "" else None,
-        "adj_p_val": float(row["adjusted_p_value"])
-        if row["adjusted_p_value"] != ""
-        else None,
-    }
-
-
 def process_group(
     group: pd.DataFrame,
     model_info: Dict[str, Any],
@@ -157,10 +138,7 @@ def process_group(
     mc = model_info.get("matched_controls", "")
     matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
 
-    # Process results for all modules in this group
-    results = [create_result_dict(row) for _, row in group.iterrows()]
-
-    return {
+    output = {
         "name": name,
         "matched_control": matched_control,
         "model_type": model_info.get("model_type", ""),
@@ -168,8 +146,30 @@ def process_group(
         "cluster": cluster,
         "age": age,
         "sex": sex,
-        "results": results,
     }
+
+    for _, row in group.iterrows():
+        if extract_module_name(row["module"]) in output:
+            raise ValueError(
+                f"Module {extract_module_name(row['module'])} already exists for {output['name']}"
+            )
+
+        module_dict = {
+            "correlation": float(row["correlation"])
+            if row["correlation"] != ""
+            else None,
+            "adj_p_val": float(row["adjusted_p_value"])
+            if row["adjusted_p_value"] != ""
+            else None,
+        }
+        # Only add the module if it has valid data (not all None values)
+        if (
+            module_dict["correlation"] is not None
+            or module_dict["adj_p_val"] is not None
+        ):
+            output[extract_module_name(row["module"])] = module_dict
+
+    return output
 
 
 def transform_disease_correlation(
@@ -205,7 +205,7 @@ def transform_disease_correlation(
                 "cluster": str,
                 "age": str,
                 "sex": str,
-                "results": List[Dict] containing module, correlation and adj_p_val
+                "<module name>": Dict[str, float] correlation and adj_p_val
             }
 
     Raises:
@@ -232,7 +232,7 @@ def transform_disease_correlation(
         df=datasets["allele_info"].fillna(""), group_by_col="name"
     )
 
-    # Group by all static fields and nest results by module
+    # Group by all static fields
     output = []
     group_cols = ["mouse_model", "cluster", "age", "sex"]
     for (name, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
