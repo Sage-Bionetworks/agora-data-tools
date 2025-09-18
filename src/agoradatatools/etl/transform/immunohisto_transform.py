@@ -146,6 +146,150 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     return result
 
 
+def _calculate_y_axis_max_map(dataset: pd.DataFrame) -> Dict[tuple, float]:
+    """
+    Calculate y_axis_max for each combination of (name, evidence_type, tissue) across all ages.
+    
+    Args:
+        dataset: The prepared dataset
+        
+    Returns:
+        Dictionary mapping (name, evidence_type, tissue) tuples to their max values
+    """
+    key_dimensions = ["name", "evidence_type", "tissue"]
+    y_axis_max_map = {}
+    
+    for key, group in dataset.groupby(key_dimensions):
+        if len(group) > 0:
+            # Convert value column to numeric, coercing errors to NaN, then drop NaN values
+            numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
+            if len(numeric_values) > 0:
+                y_axis_max_map[tuple(key)] = numeric_values.max()
+            else:
+                y_axis_max_map[tuple(key)] = 0
+        else:
+            y_axis_max_map[tuple(key)] = 0
+    
+    return y_axis_max_map
+
+
+def _create_data_rows_from_groups(
+    dataset: pd.DataFrame, 
+    group_columns: List[str], 
+    extra_columns: List[str], 
+    extra_column_name: str, 
+    y_axis_max_map: Dict[tuple, float]
+) -> List[Dict[str, Any]]:
+    """
+    Create data rows by grouping the dataset and adding y_axis_max values.
+    
+    Args:
+        dataset: The prepared dataset
+        group_columns: Columns to group by
+        extra_columns: Columns to include in the data
+        extra_column_name: Name of the extra column
+        y_axis_max_map: Pre-calculated y_axis_max values
+        
+    Returns:
+        List of data rows with y_axis_max values
+    """
+    data_rows = []
+    grouped = dataset.groupby(group_columns)
+
+    for group_key, group in grouped:
+        entry = dict(zip(group_columns, group_key))
+
+        # Get the y_axis_max for this combination of (name, evidence_type, tissue)
+        key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
+        raw_y_axis_max = y_axis_max_map.get(key_for_y_axis, 0)
+        entry["y_axis_max"] = round_y_axis_max(raw_y_axis_max)
+
+        entry[extra_column_name] = group[extra_columns].to_dict("records")
+        data_rows.append(entry)
+    
+    return data_rows
+
+
+def _add_missing_age_entries(
+    data_rows: List[Dict[str, Any]], 
+    dataset: pd.DataFrame
+) -> List[Dict[str, Any]]:
+    """
+    Add placeholder entries for missing age combinations to ensure data completeness.
+    
+    Args:
+        data_rows: Existing data rows
+        dataset: The original dataset
+        
+    Returns:
+        Updated data_rows with missing age entries added
+    """
+    # Get all unique ages that exist in the dataset
+    available_ages = list(set([x["age"] for x in data_rows]))
+
+    # Create a lookup map for y_axis_max values from already processed entries
+    y_axis_max_lookup = {}
+    for entry in data_rows:
+        key = (entry["name"], entry["evidence_type"], entry["tissue"])
+        y_axis_max_lookup[key] = entry["y_axis_max"]
+
+    # Group by the key dimensions that should have consistent age coverage
+    missing_ages_group_columns = ["name", "evidence_type", "tissue"]
+    grouped_missing_ages = dataset.groupby(missing_ages_group_columns)
+
+    # For each unique combination of (name, evidence_type, tissue)
+    for group_key, group in grouped_missing_ages:
+        entry = dict(zip(missing_ages_group_columns, group_key))
+
+        # Get the ages that currently exist for this group
+        group_ages = group["age"].unique().tolist()
+
+        # Find which ages are missing from this group
+        missing_ages = [age for age in available_ages if age not in group_ages]
+
+        # Get the y_axis_max for this combination
+        key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
+        y_axis_max = y_axis_max_lookup.get(key_for_y_axis, 0)
+
+        # If there are missing ages, create placeholder entries for each missing age
+        if len(missing_ages) > 0:
+            for age in missing_ages:
+                data_rows.append(
+                    {
+                        "name": entry["name"],
+                        "evidence_type": entry["evidence_type"],
+                        "tissue": entry["tissue"],
+                        "age": age,
+                        "units": "",  # Empty units since there's no actual data
+                        "y_axis_max": y_axis_max,
+                        "data": [],  # Empty data array since there are no measurements for this age
+                    }
+                )
+    
+    return data_rows
+
+
+def _extract_age_num(entry: dict) -> tuple:
+    """
+    Extract numeric age value for sorting purposes.
+    
+    Args:
+        entry: A dictionary containing the "age" field.
+        
+    Returns:
+        tuple: (numeric_value, age_string, evidence_type) for consistent sorting
+    """
+    age_str = entry.get("age", "")
+    evidence_type = entry.get("evidence_type", "")
+    try:
+        numeric_value = float(age_str.split()[0])
+        return (numeric_value, age_str, evidence_type)
+    except (ValueError, IndexError, AttributeError):
+        # For invalid ages, use a large number and the age string for consistent sorting
+        # Include evidence_type to ensure deterministic ordering when ages are invalid
+        return (float("inf"), age_str, evidence_type)
+
+
 def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
     dataset_name: str,
@@ -218,117 +362,19 @@ def immunohisto_transform(
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
 
-    data_rows = []
+    # Calculate y_axis_max values for all combinations
+    y_axis_max_map = _calculate_y_axis_max_map(dataset)
 
-    # First, calculate y_axis_max for each combination of (name, evidence_type, tissue) across all ages
-    key_dimensions = ["name", "evidence_type", "tissue"]
-    y_axis_max_map = {}
-    for key, group in dataset.groupby(key_dimensions):
-        if len(group) > 0:
-            # Convert value column to numeric, coercing errors to NaN, then drop NaN values
-            numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
-            if len(numeric_values) > 0:
-                y_axis_max_map[tuple(key)] = numeric_values.max()
-            else:
-                y_axis_max_map[tuple(key)] = 0
-        else:
-            y_axis_max_map[tuple(key)] = 0
+    # Create initial data rows from groups
+    data_rows = _create_data_rows_from_groups(
+        dataset, group_columns, extra_columns, extra_column_name, y_axis_max_map
+    )
 
-    grouped = dataset.groupby(group_columns)
+    # Add missing age entries for completeness
+    data_rows = _add_missing_age_entries(data_rows, dataset)
 
-    for group_key, group in grouped:
-        # This for loop iterates over each group produced by grouping the dataset by the specified group_columns.
-        # For each group:
-        #   - It creates a dictionary (entry) by zipping group_columns (list of column names) with the values from group_key (tuple containing the actual values for those columns) for this group.
-        #   - It gets the y_axis_max value from the pre-calculated map
-        #   - It then adds a new key to this dictionary, named according to extra_column_name (default 'data'), whose value is a list of dictionaries.
-        #     Each dictionary in this list corresponds to a row in the group, containing only the columns specified in extra_columns
-        #     (by default: ['genotype', 'sex', 'individual_id', 'value']).
-        #   - This entry is then appended to the data_rows list.
-        # The result is that data_rows will contain one dictionary per group, with group-level metadata and a list of per-individual data.
-        entry = dict(zip(group_columns, group_key))
-
-        # Get the y_axis_max for this combination of (name, evidence_type, tissue)
-        key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
-        raw_y_axis_max = y_axis_max_map.get(key_for_y_axis, 0)
-        entry["y_axis_max"] = round_y_axis_max(raw_y_axis_max)
-
-        entry[extra_column_name] = group[extra_columns].to_dict("records")
-        data_rows.append(entry)
-
-    # Ensure data completeness by filling in missing age combinations
-    # This section handles cases where some combinations of (name, evidence_type, tissue)
-    # don't have data for all available ages in the dataset. We create placeholder entries
-    # with empty data arrays to maintain consistent structure across all age groups.
-
-    # Get all unique ages that exist in the dataset
-    available_ages = list(set([x["age"] for x in data_rows]))
-
-    # Create a lookup map for y_axis_max values from already processed entries
-    y_axis_max_lookup = {}
-    for entry in data_rows:
-        key = (entry["name"], entry["evidence_type"], entry["tissue"])
-        y_axis_max_lookup[key] = entry["y_axis_max"]
-
-    # Group by the key dimensions that should have consistent age coverage
-    # (excluding 'age' and 'units' since we're checking for missing ages)
-    missing_ages_group_columns = ["name", "evidence_type", "tissue"]
-    grouped_missing_ages = dataset.groupby(missing_ages_group_columns)
-
-    # For each unique combination of (name, evidence_type, tissue)
-    for group_key, group in grouped_missing_ages:
-        # Create a dictionary with the group's key values
-        entry = dict(zip(missing_ages_group_columns, group_key))
-
-        # Get the ages that currently exist for this group
-        group_ages = group["age"].unique().tolist()
-
-        # Find which ages are missing from this group
-        missing_ages = [age for age in available_ages if age not in group_ages]
-
-        # Get the y_axis_max for this combination of (name, evidence_type, tissue)
-        # We can reuse the already calculated value from the main loop
-        key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
-        y_axis_max = y_axis_max_lookup.get(key_for_y_axis, 0)
-
-        # If there are missing ages, create placeholder entries for each missing age
-        if len(missing_ages) > 0:
-            for age in missing_ages:
-                data_rows.append(
-                    {
-                        "name": entry["name"],
-                        "evidence_type": entry["evidence_type"],
-                        "tissue": entry["tissue"],
-                        "age": age,
-                        "units": "",  # Empty units since there's no actual data
-                        "y_axis_max": y_axis_max,
-                        "data": [],  # Empty data array since there are no measurements for this age
-                    }
-                )
-
-    # Sort data_rows by the numeric value in the "age" field (e.g., "6 months" -> 6)
-    def extract_age_num(entry: dict) -> tuple:
-        """
-        Sorts the data_rows list by the numeric value in the "age" field (e.g., "6 months" -> 6)
-        For invalid ages, uses the age string itself for consistent sorting
-
-        Args:
-            entry (dict): A dictionary containing the "age" field.
-
-        Returns:
-            tuple: (numeric_value, age_string, evidence_type) for consistent sorting
-        """
-        age_str = entry.get("age", "")
-        evidence_type = entry.get("evidence_type", "")
-        try:
-            numeric_value = float(age_str.split()[0])
-            return (numeric_value, age_str, evidence_type)
-        except (ValueError, IndexError, AttributeError):
-            # For invalid ages, use a large number and the age string for consistent sorting
-            # Include evidence_type to ensure deterministic ordering when ages are invalid
-            return (float("inf"), age_str, evidence_type)
-
-    data_rows.sort(key=extract_age_num)
+    # Sort data_rows by the numeric value in the "age" field
+    data_rows.sort(key=_extract_age_num)
 
     data_rows = convert_numpy_types(data_rows)
 
