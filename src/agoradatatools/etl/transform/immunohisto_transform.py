@@ -149,16 +149,16 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
 def _calculate_y_axis_max_map(dataset: pd.DataFrame) -> Dict[tuple, float]:
     """
     Calculate y_axis_max for each combination of (name, evidence_type, tissue) across all ages.
-    
+
     Args:
         dataset: The prepared dataset
-        
+
     Returns:
         Dictionary mapping (name, evidence_type, tissue) tuples to their max values
     """
     key_dimensions = ["name", "evidence_type", "tissue"]
     y_axis_max_map = {}
-    
+
     for key, group in dataset.groupby(key_dimensions):
         if len(group) > 0:
             # Convert value column to numeric, coercing errors to NaN, then drop NaN values
@@ -169,27 +169,27 @@ def _calculate_y_axis_max_map(dataset: pd.DataFrame) -> Dict[tuple, float]:
                 y_axis_max_map[tuple(key)] = 0
         else:
             y_axis_max_map[tuple(key)] = 0
-    
+
     return y_axis_max_map
 
 
 def _create_data_rows_from_groups(
-    dataset: pd.DataFrame, 
-    group_columns: List[str], 
-    extra_columns: List[str], 
-    extra_column_name: str, 
-    y_axis_max_map: Dict[tuple, float]
+    dataset: pd.DataFrame,
+    group_columns: List[str],
+    extra_columns: List[str],
+    extra_column_name: str,
+    y_axis_max_map: Dict[tuple, float],
 ) -> List[Dict[str, Any]]:
     """
     Create data rows by grouping the dataset and adding y_axis_max values.
-    
+
     Args:
         dataset: The prepared dataset
         group_columns: Columns to group by
         extra_columns: Columns to include in the data
         extra_column_name: Name of the extra column
         y_axis_max_map: Pre-calculated y_axis_max values
-        
+
     Returns:
         List of data rows with y_axis_max values
     """
@@ -206,21 +206,20 @@ def _create_data_rows_from_groups(
 
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
-    
+
     return data_rows
 
 
 def _add_missing_age_entries(
-    data_rows: List[Dict[str, Any]], 
-    dataset: pd.DataFrame
+    data_rows: List[Dict[str, Any]], dataset: pd.DataFrame
 ) -> List[Dict[str, Any]]:
     """
     Add placeholder entries for missing age combinations to ensure data completeness.
-    
+
     Args:
         data_rows: Existing data rows
         dataset: The original dataset
-        
+
     Returns:
         Updated data_rows with missing age entries added
     """
@@ -265,17 +264,17 @@ def _add_missing_age_entries(
                         "data": [],  # Empty data array since there are no measurements for this age
                     }
                 )
-    
+
     return data_rows
 
 
 def _extract_age_num(entry: dict) -> tuple:
     """
     Extract numeric age value for sorting purposes.
-    
+
     Args:
         entry: A dictionary containing the "age" field.
-        
+
     Returns:
         tuple: (numeric_value, age_string, evidence_type) for consistent sorting
     """
