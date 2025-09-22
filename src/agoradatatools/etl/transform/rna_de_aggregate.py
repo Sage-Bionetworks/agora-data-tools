@@ -6,31 +6,15 @@ from agoradatatools.etl.extract import get_entity_as_df
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     input_validation_model_info,
-    _login_to_synapse
+    _login_to_synapse,
 )
 
 
 REQUIRED_INPUT = {
-    "rna_de_aggregate_data_files": [
-        "file_name",
-        "syn_id"
-    ],
-    "rnaseq_genotype_label_map": [
-        "model",
-        "model_group",
-        "display_label",
-        "genotype"
-    ],
-    "mouse_gene_metadata": [
-        "ensembl_gene_id",
-        "gene_symbol",
-        "alias"
-    ],
-    "model_info": [
-        "name",
-        "matched_controls",
-        "model_type"
-    ],
+    "rna_de_aggregate_data_files": ["file_name", "syn_id"],
+    "rnaseq_genotype_label_map": ["model", "model_group", "display_label", "genotype"],
+    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
+    "model_info": ["name", "matched_controls", "model_type"],
     "biodom_genes_mm": [
         "Biodomain",
         "abbr",
@@ -40,15 +24,25 @@ REQUIRED_INPUT = {
         "GOterm_Name",
         "n_symbol",
         "symbol",
-        "ensembl_id"
+        "ensembl_id",
     ],
 }
 
 
 def get_data_files(
     df: pd.DataFrame,
-    required_columns: List[str] = ["ensembl_gene_id", "log2FoldChange", "padj", "model", "case", "control", "age", "sex","tissue"]
-    ) -> Dict[str, pd.DataFrame]:
+    required_columns: List[str] = [
+        "ensembl_gene_id",
+        "log2FoldChange",
+        "padj",
+        "model",
+        "case",
+        "control",
+        "age",
+        "sex",
+        "tissue",
+    ],
+) -> Dict[str, pd.DataFrame]:
     """
     Download the data files from Synapse and return a dictionary of dataframes.
 
@@ -90,7 +84,7 @@ def transform_rna_de_aggregate(
     check_required_datasets_and_columns(datasets, required_input)
 
     data_files = get_data_files(datasets["rna_de_aggregate_data_files"])
-    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
+    datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
     biodom_genes_mm_df = datasets["biodom_genes_mm"].fillna("")
@@ -100,50 +94,67 @@ def transform_rna_de_aggregate(
 
     output = []
     for file_name, data_file in data_files.items():
+        # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
+        data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
+
         # Group by gene, model, tissue, and sex to create one entry per group
         grouped = data_file.groupby(["ensembl_gene_id", "model", "tissue", "sex"])
         for (ensembl_gene_id, model, tissue, sex), group in grouped:
-            
+
             # Get gene metadata
-            gene_symbol = mouse_gene_metadata_df.loc[
-                mouse_gene_metadata_df["ensembl_gene_id"] == ensembl_gene_id, "gene_symbol"
-            ].values[0] if len(mouse_gene_metadata_df.loc[
-                mouse_gene_metadata_df["ensembl_gene_id"] == ensembl_gene_id, "gene_symbol"
-            ].values) > 0 else ""
-            
+            gene_symbol = (
+                mouse_gene_metadata_df.loc[
+                    mouse_gene_metadata_df["ensembl_gene_id"] == ensembl_gene_id,
+                    "gene_symbol",
+                ].values[0]
+                if len(
+                    mouse_gene_metadata_df.loc[
+                        mouse_gene_metadata_df["ensembl_gene_id"] == ensembl_gene_id,
+                        "gene_symbol",
+                    ].values
+                )
+                > 0
+                else ""
+            )
+
             # Get biodomains
             biodomains = biodom_genes_mm_df.loc[
                 biodom_genes_mm_df["ensembl_id"] == ensembl_gene_id, "Biodomain"
             ].tolist()
-            
+
             # Get model info
             model_row = model_info_df.loc[model_info_df["name"] == model]
-            matched_control = model_row["matched_controls"].values[0] if len(model_row) > 0 else ""
-            model_group = model_row["model_group"].values[0] if len(model_row) > 0 else None
+            matched_control = (
+                model_row["matched_controls"].values[0] if len(model_row) > 0 else ""
+            )
+            model_group = (
+                model_row["model_group"].values[0] if len(model_row) > 0 else None
+            )
             model_type = model_row["model_type"].values[0] if len(model_row) > 0 else ""
-            
+
             # Create age-based entries
             age_entries = {}
             for _, row in group.iterrows():
                 age = str(row["age"])
                 age_entries[age] = {
-                    "log2_fc": float(row["log2FoldChange"]),
-                    "adj_p_val": float(row["padj"])
+                    "log2_fc": float(f"{float(row['log2FoldChange']):.5g}"),
+                    "adj_p_val": float(f"{float(row['padj']):.5g}"),
                 }
-            
+
             # Create the output entry
-            output.append({
-                "ensembl_gene_id": ensembl_gene_id,
-                "gene_symbol": gene_symbol,
-                "biodomains": biodomains,
-                "name": model,
-                "matched_control": matched_control,
-                "model_group": model_group,
-                "model_type": model_type,
-                "tissue": tissue,
-                "sex": sex,
-                **age_entries  # Add all age entries as separate keys
-            })
+            output.append(
+                {
+                    "ensembl_gene_id": ensembl_gene_id,
+                    "gene_symbol": gene_symbol,
+                    "biodomains": biodomains,
+                    "name": model,
+                    "matched_control": matched_control,
+                    "model_group": model_group,
+                    "model_type": model_type,
+                    "tissue": tissue,
+                    "sex": sex,
+                    **age_entries,  # Add all age entries as separate keys
+                }
+            )
 
     return output
-
