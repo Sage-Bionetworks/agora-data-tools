@@ -139,6 +139,12 @@ def transform_rna_de_aggregate(
                 else model
             )
 
+            # Get model group
+            label_map_row_control_group = rnaseq_genotype_label_map_df.loc[rnaseq_genotype_label_map_df["model"] == model]
+            model_group = (
+                label_map_row_control_group["model_group"].values[0] if len(label_map_row_control_group) > 0 else None
+            )
+
             # Get biodomains
             biodomains = biodom_genes_mm_df.loc[
                 biodom_genes_mm_df["ensembl_id"] == ensembl_gene_id, "Biodomain"
@@ -146,9 +152,6 @@ def transform_rna_de_aggregate(
 
             # Get model info
             model_row = model_info_df.loc[model_info_df["name"] == model]
-            model_group = (
-                model_row["model_group"].values[0] if len(model_row) > 0 else None
-            )
             model_type = model_row["model_type"].values[0] if len(model_row) > 0 else ""
 
             # Create age-based entries
