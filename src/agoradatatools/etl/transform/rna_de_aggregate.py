@@ -84,7 +84,7 @@ def transform_rna_de_aggregate(
     check_required_datasets_and_columns(datasets, required_input)
 
     data_files = get_data_files(datasets["rna_de_aggregate_data_files"])
-    datasets["rnaseq_genotype_label_map"].fillna("")
+    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
     biodom_genes_mm_df = datasets["biodom_genes_mm"].fillna("")
@@ -117,6 +117,28 @@ def transform_rna_de_aggregate(
                 else ""
             )
 
+            # Join on model and case (from data) with genotype (from label map)
+            label_map_row_name = rnaseq_genotype_label_map_df.loc[
+                (rnaseq_genotype_label_map_df["model"] == model) & 
+                (rnaseq_genotype_label_map_df["genotype"] == group.iloc[0]["case"])
+            ]
+            name = (
+                label_map_row_name["display_label"].values[0] 
+                if len(label_map_row_name) > 0 
+                else model
+            )
+
+            # Join on model and control (from data) with genotype (from label map)
+            label_map_row_control = rnaseq_genotype_label_map_df.loc[
+                (rnaseq_genotype_label_map_df["model"] == model) & 
+                (rnaseq_genotype_label_map_df["genotype"] == group.iloc[0]["control"])
+            ]
+            matched_control = (
+                label_map_row_control["display_label"].values[0] 
+                if len(label_map_row_control) > 0 
+                else model
+            )
+
             # Get biodomains
             biodomains = biodom_genes_mm_df.loc[
                 biodom_genes_mm_df["ensembl_id"] == ensembl_gene_id, "Biodomain"
@@ -124,9 +146,6 @@ def transform_rna_de_aggregate(
 
             # Get model info
             model_row = model_info_df.loc[model_info_df["name"] == model]
-            matched_control = (
-                model_row["matched_controls"].values[0] if len(model_row) > 0 else ""
-            )
             model_group = (
                 model_row["model_group"].values[0] if len(model_row) > 0 else None
             )
@@ -147,7 +166,7 @@ def transform_rna_de_aggregate(
                     "ensembl_gene_id": ensembl_gene_id,
                     "gene_symbol": gene_symbol,
                     "biodomains": biodomains,
-                    "name": model,
+                    "name": name,
                     "matched_control": matched_control,
                     "model_group": model_group,
                     "model_type": model_type,
