@@ -127,7 +127,7 @@ objectDensity_display_name <- '# objects / square mm'
 averageObjectVolume_display_name <- 'mean object volume (cubic mm)'
 totalObjectVolume_display_name <- 'total object volume (cubic mm)'
 meanObjectArea_display_name <- 'mean object area (square mm)'
-areaPercent_display_name <- 'area %'
+areaPercent_display_name <- '%'
 
 # *********
 # FUNCTIONS
