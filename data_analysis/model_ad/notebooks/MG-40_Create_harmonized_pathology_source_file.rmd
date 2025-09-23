@@ -264,7 +264,7 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
                               'ageDeath' = 'age_death')
 
             # Drop unneeded columns
-            ) %>% select(keeps
+            ) %>% select(all_of(keeps)
 
             # Correct genotypes to align with target display values
             ) %>% mutate(biomarkers_merged,
@@ -362,19 +362,19 @@ fivex_rename_cols <- function (results) {
 
 # Filter each source file to select desired rows by 'Stain' value, drop unneeded columns, and rename the remaining columns
 fivex_gfap_s100b <- fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain %in% c('GFAP', 'S100B'),] %>%
-  select(c(fivex_source_keeps, "X.objects..sqmm"))  %>%
+  select(all_of(c(fivex_source_keeps, "X.objects..sqmm")))  %>%
   fivex_rename_cols()
 
 fivex_lamp1 <- fivex_lamp1_source[fivex_lamp1_source$Stain == 'LAMP1',] %>%
-  select(c(fivex_source_keeps, "Area..")) %>%
+  select(all_of(c(fivex_source_keeps, "Area.."))) %>%
   fivex_rename_cols()
 
 fivex_iba1 <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'Iba1',] %>%
-  select(c(fivex_source_keeps, "X.objects..sqmm")) %>%
+  select(all_of(c(fivex_source_keeps, "X.objects..sqmm"))) %>%
   fivex_rename_cols()
 
 fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'ThioS',] %>%
-  select(c(fivex_source_keeps, "X.objects..sqmm", "mean.object.area..squm.")) %>%
+  select(all_of(c(fivex_source_keeps, "X.objects..sqmm", "mean.object.area..squm."))) %>%
   mutate(X.objects..sqmm = ifelse(X.objects..sqmm == "N/A", 0, X.objects..sqmm)) %>%
   fivex_rename_cols()
 
