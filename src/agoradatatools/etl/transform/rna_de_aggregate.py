@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import Dict, List, Any
 import logging
+import gc
 
 from agoradatatools.etl.extract import get_entity_as_df
 
@@ -107,10 +108,6 @@ def transform_rna_de_aggregate(
         biodom_genes_mm_df.groupby("ensembl_id")["biodomain"].apply(list).to_dict()
     )
 
-    # Validate model info
-    # Temporarily commenting this out because I thought model info had "name" column instead of "model"
-    # input_validation_model_info(model_info_df)
-
     output = []
 
     # Process files one at a time to reduce memory usage
@@ -185,8 +182,6 @@ def transform_rna_de_aggregate(
 
         # Clean up memory by deleting the processed file
         del data_file
-        import gc
-
         gc.collect()
 
     logger.info(f"Transform rna_de_aggregate total output entries: {len(output)}")
