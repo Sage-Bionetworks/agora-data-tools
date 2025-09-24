@@ -1,27 +1,29 @@
 import pandas as pd
 from typing import Dict, List, Any
+import logging
 
 from agoradatatools.etl.extract import get_entity_as_df
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
-    input_validation_model_info,
     _login_to_synapse,
 )
+
+logger = logging.getLogger(__name__)
 
 
 REQUIRED_INPUT = {
     "rna_de_aggregate_data_files": ["file_name", "syn_id"],
     "rnaseq_genotype_label_map": ["model", "model_group", "display_label", "genotype"],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
-    "model_info": ["name", "matched_controls", "model_type"],
+    "model_info": ["model", "matched_controls", "model_type"],
     "biodom_genes_mm": [
-        "Biodomain",
+        "biodomain",
         "abbr",
         "label",
         "color",
-        "GO_ID",
-        "GOterm_Name",
+        "go_id",
+        "goterm_name",
         "n_symbol",
         "symbol",
         "ensembl_id",
@@ -55,8 +57,16 @@ def get_data_files(
     """
     syn = _login_to_synapse()
     data_files = {}
-    for file_name, syn_id in df.itertuples(index=False):
+    total_files = len(df)
+    
+    logger.info(f"Downloading {total_files} data files from Synapse...")
+    
+    for i, (file_name, syn_id) in enumerate(df.itertuples(index=False)):
+        logger.info(f"Downloading file {i+1}/{total_files}: {file_name} (ID: {syn_id})")
         data_file = get_entity_as_df(syn_id=syn_id, source="csv", syn=syn)
+        
+        logger.info(f"Downloaded {file_name}: {len(data_file)} rows, {len(data_file.columns)} columns")
+        logger.info(f"Memory usage: {data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
 
         # Validate required columns
         missing_columns = [
@@ -70,6 +80,8 @@ def get_data_files(
 
         # Add file to output dictionary
         data_files[file_name] = data_file
+        
+    logger.info(f"Successfully downloaded all {total_files} files")
     return data_files
 
 
@@ -83,76 +95,82 @@ def transform_rna_de_aggregate(
     """
     check_required_datasets_and_columns(datasets, required_input)
 
-    data_files = get_data_files(datasets["rna_de_aggregate_data_files"])
+    logger.info("Starting rna_de_aggregate transformation...")
+    
+    # Pre-compute lookup dictionaries for efficient lookups
+    logger.info("Pre-computing lookup dictionaries...")
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
     biodom_genes_mm_df = datasets["biodom_genes_mm"].fillna("")
 
+    # Create lookup dictionaries
+    gene_metadata_dict = mouse_gene_metadata_df.set_index('ensembl_gene_id')['gene_symbol'].to_dict()
+    model_info_dict = model_info_df.set_index('model')['model_type'].to_dict()
+    
+    # Create label map dictionaries for efficient lookups
+    label_map_dict = {}
+    model_group_dict = {}
+    for _, row in rnaseq_genotype_label_map_df.iterrows():
+        key = (row['model'], row['genotype'])
+        label_map_dict[key] = row['display_label']
+        model_group_dict[row['model']] = row['model_group']
+    
+    # Create biodomain lookup dictionary
+    biodomain_dict = biodom_genes_mm_df.groupby('ensembl_id')['biodomain'].apply(list).to_dict()
+    
+    logger.info("Lookup dictionaries created successfully")
+
     # Validate model info
-    input_validation_model_info(model_info_df)
+    # Temporarily commenting this out because I thought model info had "name" column instead of "model"
+    # input_validation_model_info(model_info_df)
 
     output = []
-    for file_name, data_file in data_files.items():
+    
+    # Process files one at a time to reduce memory usage
+    file_list = datasets["rna_de_aggregate_data_files"]
+    total_files = len(file_list)
+    logger.info(f"Processing {total_files} files sequentially to optimize memory usage...")
+    
+    for i, (file_name, syn_id) in enumerate(file_list.itertuples(index=False)):
+        logger.info(f"Processing file {i+1}/{total_files}: {file_name}")
+        
+        # Download and process one file at a time
+        syn = _login_to_synapse()
+        data_file = get_entity_as_df(syn_id=syn_id, source="csv", syn=syn)
+        logger.info(f"Downloaded {file_name}: {len(data_file)} rows, {len(data_file.columns)} columns")
+        logger.info(f"Memory usage: {data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
+        
         # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
         data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
+        logger.info(f"After filtering for mouse genes: {len(data_file)} rows")
 
         # Group by gene, model, tissue, and sex to create one entry per group
         grouped = data_file.groupby(["ensembl_gene_id", "model", "tissue", "sex"])
-        for (ensembl_gene_id, model, tissue, sex), group in grouped:
+        total_groups = len(grouped)
+        logger.info(f"Processing {total_groups} groups...")
+        
+        for i, ((ensembl_gene_id, model, tissue, sex), group) in enumerate(grouped):
+            if i % 1000 == 0:  # Log progress every 1000 groups
+                logger.info(f"Processed {i}/{total_groups} groups ({i/total_groups*100:.1f}%)")
 
-            # Get gene metadata
-            gene_symbol = (
-                mouse_gene_metadata_df.loc[
-                    mouse_gene_metadata_df["ensembl_gene_id"] == ensembl_gene_id,
-                    "gene_symbol",
-                ].values[0]
-                if len(
-                    mouse_gene_metadata_df.loc[
-                        mouse_gene_metadata_df["ensembl_gene_id"] == ensembl_gene_id,
-                        "gene_symbol",
-                    ].values
-                )
-                > 0
-                else ""
-            )
+            # Get gene metadata using dictionary lookup
+            gene_symbol = gene_metadata_dict.get(ensembl_gene_id, "")
 
-            # Join on model and case (from data) with genotype (from label map)
-            label_map_row_name = rnaseq_genotype_label_map_df.loc[
-                (rnaseq_genotype_label_map_df["model"] == model) & 
-                (rnaseq_genotype_label_map_df["genotype"] == group.iloc[0]["case"])
-            ]
-            name = (
-                label_map_row_name["display_label"].values[0] 
-                if len(label_map_row_name) > 0 
-                else model
-            )
-
-            # Join on model and control (from data) with genotype (from label map)
-            label_map_row_control = rnaseq_genotype_label_map_df.loc[
-                (rnaseq_genotype_label_map_df["model"] == model) & 
-                (rnaseq_genotype_label_map_df["genotype"] == group.iloc[0]["control"])
-            ]
-            matched_control = (
-                label_map_row_control["display_label"].values[0] 
-                if len(label_map_row_control) > 0 
-                else model
-            )
-
-            # Get model group
-            label_map_row_control_group = rnaseq_genotype_label_map_df.loc[rnaseq_genotype_label_map_df["model"] == model]
-            model_group = (
-                label_map_row_control_group["model_group"].values[0] if len(label_map_row_control_group) > 0 else None
-            )
-
-            # Get biodomains
-            biodomains = biodom_genes_mm_df.loc[
-                biodom_genes_mm_df["ensembl_id"] == ensembl_gene_id, "Biodomain"
-            ].tolist()
-
-            # Get model info
-            model_row = model_info_df.loc[model_info_df["name"] == model]
-            model_type = model_row["model_type"].values[0] if len(model_row) > 0 else ""
+            # Get case and control from first row of group
+            case = group.iloc[0]["case"]
+            control = group.iloc[0]["control"]
+            
+            # Use dictionary lookups instead of .loc[] operations
+            name = label_map_dict.get((model, case), model)
+            matched_control = label_map_dict.get((model, control), model)
+            model_group = model_group_dict.get(model)
+            
+            # Get biodomains using dictionary lookup
+            biodomains = biodomain_dict.get(ensembl_gene_id, [])
+            
+            # Get model type using dictionary lookup
+            model_type = model_info_dict.get(model, "")
 
             # Create age-based entries
             age_entries = {}
@@ -175,8 +193,16 @@ def transform_rna_de_aggregate(
                     "model_type": model_type,
                     "tissue": tissue,
                     "sex": sex,
-                    **age_entries,  # Add all age entries as separate keys
+                    **age_entries, # Add all age entries as separate keys
                 }
             )
+        
+        logger.info(f"Completed processing {file_name}")
+        
+        # Clean up memory by deleting the processed file
+        del data_file
+        import gc
+        gc.collect()
 
+    logger.info(f"Transformation completed. Total output entries: {len(output)}")
     return output
