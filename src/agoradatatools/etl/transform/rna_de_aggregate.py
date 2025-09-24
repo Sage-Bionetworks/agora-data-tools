@@ -31,8 +31,9 @@ REQUIRED_INPUT = {
 }
 
 
-def get_data_files(
-    df: pd.DataFrame,
+def _quick_validate_data_file(
+    file_name: str,
+    data_file: pd.DataFrame,
     required_columns: List[str] = [
         "ensembl_gene_id",
         "log2FoldChange",
@@ -44,49 +45,31 @@ def get_data_files(
         "sex",
         "tissue",
     ],
-) -> Dict[str, pd.DataFrame]:
+) -> None:
     """
-    Download the data files from Synapse and return a dictionary of dataframes.
+    Quick validate the data file. Only validates the required columns.
 
     Args:
-        df (pd.DataFrame): The dataframe containing the data files.
-        required_columns (List[str]): The required columns for the data files.
+        file_name (str): The name of the file.
+        data_file (pd.DataFrame): The data file to validate.
+        required_columns (List[str]): The required columns to validate.
+
+    Raises:
+        ValueError: If the data file is empty or if the required columns are missing.
 
     Returns:
-        Dict[str, pd.DataFrame]: A dictionary of dataframes.
+        None
     """
-    syn = _login_to_synapse()
-    data_files = {}
-    total_files = len(df)
+    if data_file.empty:
+        raise ValueError("Data file is empty")
 
-    logger.info(f"Downloading {total_files} data files from Synapse...")
-
-    for i, (file_name, syn_id) in enumerate(df.itertuples(index=False)):
-        logger.info(f"Downloading file {i+1}/{total_files}: {file_name} (ID: {syn_id})")
-        data_file = get_entity_as_df(syn_id=syn_id, source="csv", syn=syn)
-
-        logger.info(
-            f"Downloaded {file_name}: {len(data_file)} rows, {len(data_file.columns)} columns"
+    # Validate required columns
+    missing_columns = [col for col in required_columns if col not in data_file.columns]
+    if missing_columns:
+        raise ValueError(
+            f"Missing required columns in {file_name} dataset: {', '.join(missing_columns)}. "
+            f"Please ensure the {file_name} dataset contains all required columns: {', '.join(required_columns)}."
         )
-        logger.info(
-            f"Memory usage: {data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
-        )
-
-        # Validate required columns
-        missing_columns = [
-            col for col in required_columns if col not in data_file.columns
-        ]
-        if missing_columns:
-            raise ValueError(
-                f"Missing required columns in {file_name} dataset: {', '.join(missing_columns)}. "
-                f"Please ensure the {file_name} dataset contains all required columns: {', '.join(required_columns)}."
-            )
-
-        # Add file to output dictionary
-        data_files[file_name] = data_file
-
-    logger.info(f"Successfully downloaded all {total_files} files")
-    return data_files
 
 
 def transform_rna_de_aggregate(
@@ -99,10 +82,7 @@ def transform_rna_de_aggregate(
     """
     check_required_datasets_and_columns(datasets, required_input)
 
-    logger.info("Starting rna_de_aggregate transformation...")
-
     # Pre-compute lookup dictionaries for efficient lookups
-    logger.info("Pre-computing lookup dictionaries...")
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
@@ -127,8 +107,6 @@ def transform_rna_de_aggregate(
         biodom_genes_mm_df.groupby("ensembl_id")["biodomain"].apply(list).to_dict()
     )
 
-    logger.info("Lookup dictionaries created successfully")
-
     # Validate model info
     # Temporarily commenting this out because I thought model info had "name" column instead of "model"
     # input_validation_model_info(model_info_df)
@@ -138,38 +116,24 @@ def transform_rna_de_aggregate(
     # Process files one at a time to reduce memory usage
     file_list = datasets["rna_de_aggregate_data_files"]
     total_files = len(file_list)
-    logger.info(
-        f"Processing {total_files} files sequentially to optimize memory usage..."
-    )
+    syn = _login_to_synapse()
 
     for i, (file_name, syn_id) in enumerate(file_list.itertuples(index=False)):
-        logger.info(f"Processing file {i+1}/{total_files}: {file_name}")
-
         # Download and process one file at a time
-        syn = _login_to_synapse()
         data_file = get_entity_as_df(syn_id=syn_id, source="csv", syn=syn)
         logger.info(
-            f"Downloaded {file_name}: {len(data_file)} rows, {len(data_file.columns)} columns"
+            f"Processing {file_name} ({i+1}/{total_files}): {len(data_file)} rows, {len(data_file.columns)} columns, {data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
         )
-        logger.info(
-            f"Memory usage: {data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
-        )
+
+        _quick_validate_data_file(file_name, data_file)
 
         # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
         data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
-        logger.info(f"After filtering for mouse genes: {len(data_file)} rows")
 
         # Group by gene, model, tissue, and sex to create one entry per group
         grouped = data_file.groupby(["ensembl_gene_id", "model", "tissue", "sex"])
-        total_groups = len(grouped)
-        logger.info(f"Processing {total_groups} groups...")
 
         for i, ((ensembl_gene_id, model, tissue, sex), group) in enumerate(grouped):
-            if i % 1000 == 0:  # Log progress every 1000 groups
-                logger.info(
-                    f"Processed {i}/{total_groups} groups ({i/total_groups*100:.1f}%)"
-                )
-
             # Get gene metadata using dictionary lookup
             gene_symbol = gene_metadata_dict.get(ensembl_gene_id, "")
 
@@ -217,13 +181,11 @@ def transform_rna_de_aggregate(
                 }
             )
 
-        logger.info(f"Completed processing {file_name}")
-
         # Clean up memory by deleting the processed file
         del data_file
         import gc
 
         gc.collect()
 
-    logger.info(f"Transformation completed. Total output entries: {len(output)}")
+    logger.info(f"Transform rna_de_aggregate total output entries: {len(output)}")
     return output
