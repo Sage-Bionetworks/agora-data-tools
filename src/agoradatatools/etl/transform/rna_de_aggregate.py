@@ -177,7 +177,9 @@ def transform_rna_de_aggregate(
                     "model_type": model_type,
                     "tissue": tissue,
                     "sex": sex,
-                    **age_entries,  # Add all age entries as separate keys
+                    **dict(
+                        sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
+                    ),  # Sort by numerical value of age
                 }
             )
 

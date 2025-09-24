@@ -1,0 +1,3 @@
+biodomain,abbr,label,color,go_id,goterm_name,n_symbol,symbol,ensembl_id
+Synaptic,Axon,Axon Function,#FF6B6B,GO:0030424,axon,2,App;Mapt,ENSMUSG00000022892;ENSMUSG00000018411
+Neuronal,Neuro,Neuronal Function,#4ECDC4,GO:0030425,dendrite,1,Psen1,ENSMUSG00000019969
