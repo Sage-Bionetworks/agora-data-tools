@@ -209,7 +209,7 @@ def transform_rna_de_aggregate(
                     "biodomains": biodomains,
                     "name": name,
                     "matched_control": matched_control,
-                    "model_group": model_group,
+                    "model_group": model_group if model_group != "" else None,
                     "model_type": model_type,
                     "tissue": tissue,
                     "sex": sex,
