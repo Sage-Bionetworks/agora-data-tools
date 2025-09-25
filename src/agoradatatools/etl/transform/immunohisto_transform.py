@@ -4,6 +4,7 @@ This is for the Model AD project.
 """
 
 import pandas as pd
+import math
 from typing import Dict, List, Any, Union, Tuple
 
 from agoradatatools.etl.utils import (
@@ -84,8 +85,6 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     - 3973 rounds up to 4000
     - 1.616 rounds up to 2.0
     """
-    import math
-
     # Convert to float if it's a string or other type
     try:
         y_axis_max = float(y_axis_max)
