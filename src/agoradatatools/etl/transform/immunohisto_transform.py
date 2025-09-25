@@ -106,7 +106,12 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     first_digit = int(scaled)
 
     # Use string method to avoid floating point precision issues
-    scaled_str = f"{scaled:.10f}"
+    # Use a robust approach that adapts to the number's precision needs
+    # For very small numbers, we need more decimal places to capture the second digit accurately
+    # Use a precision that's sufficient for the expected range of values
+    precision = max(15, int(-math.log10(abs(scaled)) + 5)) if scaled != 0 else 15
+    scaled_str = f"{scaled:.{precision}f}"
+
     if "." in scaled_str:
         decimal_part = scaled_str.split(".")[1]
         if len(decimal_part) >= 1:
