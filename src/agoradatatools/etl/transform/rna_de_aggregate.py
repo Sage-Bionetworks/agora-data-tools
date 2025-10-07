@@ -3,9 +3,7 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns
-)
+from agoradatatools.etl.utils import check_required_datasets_and_columns
 
 logger = logging.getLogger(__name__)
 
