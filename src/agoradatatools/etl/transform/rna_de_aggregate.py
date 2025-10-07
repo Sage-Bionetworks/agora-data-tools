@@ -3,18 +3,13 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.extract import get_entity_as_df
-
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    _login_to_synapse,
+    check_required_datasets_and_columns
 )
 
 logger = logging.getLogger(__name__)
 
-
 REQUIRED_INPUT = {
-    "rna_de_aggregate_data_files": ["file_name", "syn_id"],
     "rnaseq_genotype_label_map": ["model", "model_group", "display_label", "genotype"],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
     "model_info": ["model", "matched_controls", "model_type"],
@@ -37,7 +32,7 @@ def _quick_validate_data_file(
     data_file: pd.DataFrame,
     required_columns: List[str] = [
         "ensembl_gene_id",
-        "log2FoldChange",
+        "log2foldchange",
         "padj",
         "model",
         "case",
@@ -111,13 +106,15 @@ def transform_rna_de_aggregate(
     output = []
 
     # Process files one at a time to reduce memory usage
-    file_list = datasets["rna_de_aggregate_data_files"]
+    file_list = [k for k in datasets.keys() if k not in required_input]
     total_files = len(file_list)
-    syn = _login_to_synapse()
 
-    for i, (file_name, syn_id) in enumerate(file_list.itertuples(index=False)):
+    logger.info(f"Transform rna_de_aggregate total data files: {total_files}")
+    logger.info(f"Data files list: {file_list}")
+
+    for i, file_name in enumerate(file_list):
         # Download and process one file at a time
-        data_file = get_entity_as_df(syn_id=syn_id, source="csv", syn=syn)
+        data_file = datasets[file_name]
         logger.info(
             f"Processing {file_name} ({i+1}/{total_files}): {len(data_file)} rows, {len(data_file.columns)} columns, {data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
         )
@@ -154,7 +151,7 @@ def transform_rna_de_aggregate(
             for _, row in group.iterrows():
                 age = str(row["age"])
                 age_entries[age] = {
-                    "log2_fc": float(f"{float(row['log2FoldChange']):.5g}"),
+                    "log2_fc": float(f"{float(row['log2foldchange']):.5g}"),
                     "adj_p_val": float(f"{float(row['padj']):.5g}"),
                 }
 

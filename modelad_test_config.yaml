@@ -143,9 +143,6 @@ datasets:
 
   - rna_de_aggregate:
       files:
-        - name: rna_de_aggregate_data_files
-          id: syn69904462
-          format: csv
         - name: rnaseq_genotype_label_map
           id: syn69014401
           format: csv
@@ -158,11 +155,35 @@ datasets:
         - name: biodom_genes_mm
           id: syn66351272
           format: csv
+        - name: Jax.IU.Pitt_5XFAD_differential_expression
+          id: syn69058660
+          format: csv
+        - name: Jax.IU.Pitt_APOE4.Trem2.R47H_differential_expression
+          id: syn69693082
+          format: csv
+        - name: UCI_3xTg-AD_differential_expression
+          id: syn69058661
+          format: csv
+        - name: UCI_5XFAD_differential_expression
+          id: syn69058664
+          format: csv
+        - name: UCI_ABCA7_differential_expression
+          id: syn69058663
+          format: csv
+        - name: UCI_Trem2-R47H_NSS_differential_expression
+          id: syn69058662
+          format: csv
       final_format: json
       provenance:
         - syn69014401
         - syn51615422
         - syn61378590
         - syn66351272
+        - syn69058660
+        - syn69693082
+        - syn69058661
+        - syn69058664
+        - syn69058663
+        - syn69058662
       destination: *dest
       custom_transformations: transform_rna_de_aggregate
