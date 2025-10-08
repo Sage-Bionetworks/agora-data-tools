@@ -125,7 +125,7 @@ biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(axis = "index", subset =
         data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
 
         # Group by gene, model, tissue, and sex to create one entry per group
-        grouped = data_file.groupby(["ensembl_gene_id", "model", "tissue", "sex"])
+        grouped = data_file.groupby(["ensembl_gene_id", "model", "tissue", "sex", "case", "control"])
 
         for i, ((ensembl_gene_id, model, tissue, sex), group) in enumerate(grouped):
             # Get gene metadata using dictionary lookup
