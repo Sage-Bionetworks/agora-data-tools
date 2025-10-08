@@ -114,7 +114,9 @@ def transform_rna_de_aggregate(
         # Download and process one file at a time
         data_file = datasets[file_name]
         logger.info(
-            f"Processing {file_name} ({i+1}/{total_files}): {len(data_file)} rows, {len(data_file.columns)} columns, {data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
+            f"Processing {file_name} ({i+1}/{total_files}): {len(data_file)} rows, "
+            f"{len(data_file.columns)} columns, "
+            f"{data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
         )
 
         _quick_validate_data_file(file_name, data_file)
