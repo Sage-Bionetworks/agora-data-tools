@@ -155,7 +155,8 @@ def transform_rna_de_aggregate(
                     "adj_p_val": float(f"{float(row['padj']):.5g}"),
                 }
 
-            # If "name" includes "Jax" (case-insensitive) and tissue is "Right Cerebral Hemisphere", change tissue to "Hemibrain"
+            # If "name" includes "Jax" (case-insensitive) and tissue is "Right Cerebral Hemisphere",
+            # change tissue to "Hemibrain"
             if "jax" in str(name).lower() and tissue == "Right Cerebral Hemisphere":
                 tissue = "Hemibrain"
 
