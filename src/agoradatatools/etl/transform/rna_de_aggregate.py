@@ -98,7 +98,7 @@ biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(axis = "index", subset =
 
     # Create biodomain lookup dictionary
     biodomain_dict = (
-        biodom_genes_mm_df.groupby("ensembl_id")["biodomain"].apply(list).to_dict()
+        biodom_genes_mm_df[["ensembl_id", "biodomain"]].drop_duplicates().groupby("ensembl_id")["biodomain"].apply(list).to_dict()
     )
 
     output = []
