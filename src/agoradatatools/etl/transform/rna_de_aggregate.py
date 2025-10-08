@@ -80,7 +80,7 @@ def transform_rna_de_aggregate(
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
-    biodom_genes_mm_df = datasets["biodom_genes_mm"].fillna("")
+biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(axis = "index", subset = "ensembl_id").fillna("")
 
     # Create lookup dictionaries
     gene_metadata_dict = mouse_gene_metadata_df.set_index("ensembl_gene_id")[
