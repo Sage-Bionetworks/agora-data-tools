@@ -80,7 +80,9 @@ def transform_rna_de_aggregate(
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
-biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(axis = "index", subset = "ensembl_id").fillna("")
+    biodom_genes_mm_df = (
+        datasets["biodom_genes_mm"].dropna(axis="index", subset="ensembl_id").fillna("")
+    )
 
     # Create lookup dictionaries
     gene_metadata_dict = mouse_gene_metadata_df.set_index("ensembl_gene_id")[
@@ -98,7 +100,11 @@ biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(axis = "index", subset =
 
     # Create biodomain lookup dictionary
     biodomain_dict = (
-        biodom_genes_mm_df[["ensembl_id", "biodomain"]].drop_duplicates().groupby("ensembl_id")["biodomain"].apply(list).to_dict()
+        biodom_genes_mm_df[["ensembl_id", "biodomain"]]
+        .drop_duplicates()
+        .groupby("ensembl_id")["biodomain"]
+        .apply(list)
+        .to_dict()
     )
 
     output = []
@@ -125,7 +131,9 @@ biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(axis = "index", subset =
         data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
 
         # Group by gene, model, tissue, and sex to create one entry per group
-        grouped = data_file.groupby(["ensembl_gene_id", "model", "tissue", "sex", "case", "control"])
+        grouped = data_file.groupby(
+            ["ensembl_gene_id", "model", "tissue", "sex", "case", "control"]
+        )
 
         for i, ((ensembl_gene_id, model, tissue, sex), group) in enumerate(grouped):
             # Get gene metadata using dictionary lookup
