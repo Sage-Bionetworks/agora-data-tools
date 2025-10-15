@@ -153,7 +153,7 @@ def _calculate_y_axis_max_map(
     Calculate y_axis_max for each combination of (name, evidence_type, tissue) across all ages.
 
     Args:
-        dataset: The prepared dataset
+        dataset: The prepared dataset. It must have columns "name", "evidence_type", "tissue", and "value".
 
     Returns:
         Dictionary mapping (name, evidence_type, tissue) tuples to their max values
