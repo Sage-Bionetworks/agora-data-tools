@@ -100,48 +100,17 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     magnitude = int(math.floor(math.log10(y_axis_max)))
 
     # Scale the number so the first digit is in the ones place
-    scaled = y_axis_max / (10**magnitude)
+    scaled = y_axis_max / (
+        10 ** (magnitude - 1)
+    )  # 1st and 2nd digits are now in the tens and 1s place
+    # Round UP to the next 5 or 0 (add small epsilon to ensure we always round up)
+    rounded_scaled = 5 * math.ceil((scaled + 1e-10) / 5)
 
-    # Extract first digit (leftmost) and second digit
-    first_digit = int(scaled)
+    # Put back to the right magnitude
+    result = rounded_scaled * (10 ** (magnitude - 1))
 
-    # Use string method to avoid floating point precision issues
-    # Use a robust approach that adapts to the number's precision needs
-    # For very small numbers, we need more decimal places to capture the second digit accurately
-    # Use a precision that's sufficient for the expected range of values
-    precision = max(15, int(-math.log10(abs(scaled)) + 5)) if scaled != 0 else 15
-    scaled_str = f"{scaled:.{precision}f}"
-
-    if "." in scaled_str:
-        decimal_part = scaled_str.split(".")[1]
-        if len(decimal_part) >= 1:
-            second_digit = int(decimal_part[0])
-        else:
-            second_digit = 0
-    else:
-        second_digit = 0
-
-    # Always round UP to the next "nice" number
-    # Nice numbers have second digit of 0 or 5
-    if second_digit == 0:
-        # Already a nice number, but we need to round UP
-        # So we go to the next nice number
-        rounded_second = 5
-    elif second_digit <= 5:
-        # Round up to 5
-        rounded_second = 5
-    else:
-        # Round up to next first digit with 0
-        rounded_second = 0
-        first_digit += 1
-
-    # Handle edge case where first digit rounded up to 10
-    if first_digit >= 10:
-        first_digit = 1
-        magnitude += 1
-
-    # Construct the result
-    result = (first_digit + rounded_second / 10.0) * (10**magnitude)
+    # remove float precision issues
+    result = round(result, 15)
 
     return result
 

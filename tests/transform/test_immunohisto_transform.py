@@ -241,8 +241,8 @@ class TestRoundYAxisMax:
             1.5
         )  # Should round up to next nice number
         assert round_y_axis_max(1.5) == pytest.approx(
-            1.5
-        )  # Already nice, but we round UP, so stays 1.5
+            2.0
+        )  # According to JIRA instructions, always round UP to next 5 or 0
         assert round_y_axis_max(2.0) == pytest.approx(
             2.5
         )  # Should round up to next nice number
@@ -263,7 +263,7 @@ class TestRoundYAxisMax:
         # Second digit 3-7 should round to 5
         assert round_y_axis_max(1.3) == pytest.approx(1.5)
         assert round_y_axis_max(1.4) == pytest.approx(1.5)
-        assert round_y_axis_max(1.5) == pytest.approx(1.5)  # Already 5, stays 1.5
+        assert round_y_axis_max(1.5) == pytest.approx(2.0)
         assert round_y_axis_max(1.6) == pytest.approx(2.0)
         assert round_y_axis_max(1.7) == pytest.approx(2.0)
 
