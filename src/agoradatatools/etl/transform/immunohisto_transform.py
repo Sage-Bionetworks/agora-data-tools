@@ -134,13 +134,10 @@ def _calculate_raw_max_values_map(
     raw_max_values_map = {}
 
     for key, group in dataset.groupby(key_dimensions):
-        if len(group) > 0:
-            # Convert value column to numeric, coercing errors to NaN, then drop NaN values
-            numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
-            if len(numeric_values) > 0:
-                raw_max_values_map[tuple(key)] = numeric_values.max()
-            else:
-                raw_max_values_map[tuple(key)] = 0
+        # Convert value column to numeric, coercing errors to NaN, then drop NaN values
+        numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
+        if len(numeric_values) > 0:
+            raw_max_values_map[tuple(key)] = numeric_values.max()
         else:
             raw_max_values_map[tuple(key)] = 0
 
