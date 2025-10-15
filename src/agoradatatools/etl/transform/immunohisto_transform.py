@@ -115,33 +115,36 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     return result
 
 
-def _calculate_y_axis_max_map(
+def _calculate_raw_max_values_map(
     dataset: pd.DataFrame,
 ) -> Dict[Tuple[str, str, str], float]:
     """
-    Calculate y_axis_max for each combination of (name, evidence_type, tissue) across all ages.
+    Calculate raw maximum values for each combination of (name, evidence_type, tissue) across all ages.
+
+    This function finds the raw maximum values from the dataset. The final y_axis_max values
+    (with proper rounding) are calculated later using round_y_axis_max().
 
     Args:
         dataset: The prepared dataset. It must have columns "name", "evidence_type", "tissue", and "value".
 
     Returns:
-        Dictionary mapping (name, evidence_type, tissue) tuples to their max values
+        Dictionary mapping (name, evidence_type, tissue) tuples to their raw max values
     """
     key_dimensions = ["name", "evidence_type", "tissue"]
-    y_axis_max_map = {}
+    raw_max_values_map = {}
 
     for key, group in dataset.groupby(key_dimensions):
         if len(group) > 0:
             # Convert value column to numeric, coercing errors to NaN, then drop NaN values
             numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
             if len(numeric_values) > 0:
-                y_axis_max_map[tuple(key)] = numeric_values.max()
+                raw_max_values_map[tuple(key)] = numeric_values.max()
             else:
-                y_axis_max_map[tuple(key)] = 0
+                raw_max_values_map[tuple(key)] = 0
         else:
-            y_axis_max_map[tuple(key)] = 0
+            raw_max_values_map[tuple(key)] = 0
 
-    return y_axis_max_map
+    return raw_max_values_map
 
 
 def _create_data_rows_from_groups(
@@ -149,7 +152,7 @@ def _create_data_rows_from_groups(
     group_columns: List[str],
     extra_columns: List[str],
     extra_column_name: str,
-    y_axis_max_map: Dict[Tuple[str, str, str], float],
+    raw_max_values_map: Dict[Tuple[str, str, str], float],
 ) -> List[Dict[str, Any]]:
     """
     Create data rows by grouping the dataset and adding y_axis_max values.
@@ -159,7 +162,7 @@ def _create_data_rows_from_groups(
         group_columns: Columns to group by
         extra_columns: Columns to include in the data
         extra_column_name: Name of the extra column
-        y_axis_max_map: Pre-calculated y_axis_max values
+        raw_max_values_map: Pre-calculated raw maximum values
 
     Returns:
         List of data rows with y_axis_max values
@@ -170,10 +173,10 @@ def _create_data_rows_from_groups(
     for group_key, group in grouped:
         entry = dict(zip(group_columns, group_key))
 
-        # Get the y_axis_max for this combination of (name, evidence_type, tissue)
+        # Get the raw maximum value for this combination of (name, evidence_type, tissue)
         key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
-        raw_y_axis_max = y_axis_max_map.get(key_for_y_axis, 0)
-        entry["y_axis_max"] = round_y_axis_max(raw_y_axis_max)
+        raw_max_value = raw_max_values_map.get(key_for_y_axis, 0)
+        entry["y_axis_max"] = round_y_axis_max(raw_max_value)
 
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
@@ -332,12 +335,12 @@ def immunohisto_transform(
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
 
-    # Calculate y_axis_max values for all combinations
-    y_axis_max_map = _calculate_y_axis_max_map(dataset)
+    # Calculate raw maximum values for all combinations
+    raw_max_values_map = _calculate_raw_max_values_map(dataset)
 
     # Create initial data rows from groups
     data_rows = _create_data_rows_from_groups(
-        dataset, group_columns, extra_columns, extra_column_name, y_axis_max_map
+        dataset, group_columns, extra_columns, extra_column_name, raw_max_values_map
     )
 
     # Add missing age entries for completeness
