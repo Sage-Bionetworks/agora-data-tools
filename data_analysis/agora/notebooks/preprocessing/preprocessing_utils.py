@@ -213,9 +213,9 @@ def get_all_adt_ensembl_ids(
     list with the exclude_files argument.
 
     Args:
-        config_filename: full or relative file path to the ADT config.yaml file
+        config_filename: full or relative file path to the ADT configs/agora_prod.yaml file
         exclude_files: list of file names to exclude when searching files for IDs. These names must
-                       match what is in "name" field of the file specification in the config.yaml
+                       match what is in "name" field of the file specification in the configs/agora_prod.yaml
                        file. Typical values are "gene_metadata" and "druggability".
         token: a Synapse auth token, or None if the user has Synapse credentials saved.
 
