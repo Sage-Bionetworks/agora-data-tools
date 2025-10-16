@@ -1,0 +1,142 @@
+destination: &dest syn51498092
+staging_path: ./staging
+gx_folder: syn63141015
+gx_table: syn63891939
+datasets:
+  - biomarkers:
+      files:
+        - name: biomarkers
+          id: syn61250724
+          format: csv
+      final_format: json
+      provenance:
+        - syn61250724
+      destination: *dest
+      custom_transformations: immunohisto_transform
+      column_rename:
+        agedeath: age
+        age_death: age
+        measurement: value
+        type: evidence_type
+        model: name
+
+  - pathology:
+      files:
+        - name: pathology
+          id: syn61357279
+          format: csv
+      final_format: json
+      provenance:
+        - syn61357279
+      destination: *dest
+      custom_transformations: immunohisto_transform
+      column_rename:
+        agedeath: age
+        age_death: age
+        measurement: value
+        type: evidence_type
+        model: name
+
+  - model_details:
+      files:
+        - name: model_info
+          id: syn61378590
+          format: csv
+        - name: allele_info
+          id: syn64618791
+          format: csv
+        - name: pathology
+          id: syn61357279
+          format: csv
+        - name: biomarkers
+          id: syn61250724
+          format: csv
+        - name: human_transgene_allele_map
+          id: syn64846805
+          format: csv
+        - name: model_results_info
+          id: syn68377668
+          format: csv
+      final_format: json
+      provenance:
+        - syn61378590
+        - syn64618791
+        - syn61357279
+        - syn61250724
+        - syn64846805
+      destination: *dest
+      custom_transformations: transform_model_details
+      column_rename:
+        gene: modified_gene
+        ensembl_id: human_ensembl_id
+        agedeath: age
+        age_death: age
+        measurement: value
+        type: evidence_type
+        model: name
+      gx_nested_columns:
+        - genetic_info
+        - biomarkers
+        - pathology
+      gx_enabled: true
+
+  - disease_correlation:
+      files:
+        - name: disease_correlation_results
+          id: syn65467849
+          format: csv
+        - name: model_info
+          id: syn61378590
+          format: csv
+        - name: allele_info
+          id: syn64618791
+          format: csv
+      final_format: json
+      provenance:
+        - syn65467849
+        - syn61378590
+        - syn64618791
+      destination: *dest
+      custom_transformations: transform_disease_correlation
+      column_rename:
+        model: name
+
+  - ui_config:
+      files:
+        - name: ui_config
+          id: syn66527739
+          format: json
+      final_format: json
+      provenance:
+        - syn66527739
+      destination: *dest
+      gx_enabled: true
+      gx_nested_columns:
+        - columns
+
+  - model_overview:
+      files:
+        - name: model_info
+          id: syn61378590
+          format: csv
+        - name: model_results_info
+          id: syn68377668
+          format: csv
+        - name: allele_info
+          id: syn64618791
+          format: csv
+        - name: human_transgene_allele_map
+          id: syn64846805
+          format: csv
+      final_format: json
+      provenance:
+        - syn61378590
+        - syn68377668
+        - syn64618791
+        - syn64846805
+      destination: *dest
+      custom_transformations: transform_model_overview
+      column_rename:
+        gene: modified_gene
+        ensembl_id: human_ensembl_id
+        model: name
