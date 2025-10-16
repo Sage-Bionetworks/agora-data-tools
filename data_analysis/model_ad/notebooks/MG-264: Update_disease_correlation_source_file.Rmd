@@ -79,13 +79,22 @@ The populated data_sources vector is used to populate Synapse provenance when th
 ```{r}
 disease_correlation_source <- download_file('syn65467849.1', type = "csv")
 ```
-
+## Update Cluster values (MG-445)
+Update the Cluster labels to the new display format, and fix 'Biogenesis' typo from legacy explorer data
+```{r}
+disease_correlation_final <- disease_correlation_source %>% mutate(Cluster = case_when(
+  Cluster == "Consensus Cluster A (ECM organization)" ~ "Consensus Cluster A - ECM Organization",
+  Cluster == "Consensus Cluster B (Immune system)" ~ "Consensus Cluster B - Immune system",
+  Cluster == "Consensus Cluster C (Neuronal system)" ~ "Consensus Cluster C - Neuronal system",
+  Cluster == "Consensus Cluster D (Cell Cycle, NMD)" ~ "Consensus Cluster D - Cell Cycle, NMD",
+  Cluster == "Consensus Cluster E (Organelle Biogensis, Cellular stress response)" ~ "Consensus Cluster E - Organelle Biogenesis, Cellular stress response"
+))
+```
 
 ## Update 5xFAD model_name to include center info
 Since only IU/Jax/Pitt contributed disease_correlation data, we can assign all 5xFAD results to that center.
 
 ```{r}
-disease_correlation_final <- copy(disease_correlation_source)
 disease_correlation_final$Mouse.Model[disease_correlation_final$Mouse.Model == '5xFAD'] <- '5xFAD (IU/Jax/Pitt)'
 ```
 
@@ -110,4 +119,3 @@ res <- synStore(syn_file, forceVersion = FALSE,
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 
 ```
-
