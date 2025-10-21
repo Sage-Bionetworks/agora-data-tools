@@ -91,12 +91,12 @@ def transform_rna_de_aggregate(
     model_info_dict = model_info_df.set_index("model")["model_type"].to_dict()
 
     # Create label map dictionaries for efficient lookups
-    label_map_dict = {}
-    model_group_dict = {}
-    for _, row in rnaseq_genotype_label_map_df.iterrows():
-        key = (row["model"], row["genotype"])
-        label_map_dict[key] = row["display_label"]
-        model_group_dict[row["model"]] = row["model_group"]
+    label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
+        "display_label"
+    ].to_dict()
+    model_group_dict = rnaseq_genotype_label_map_df.set_index("model")[
+        "model_group"
+    ].to_dict()
 
     # Create biodomain lookup dictionary
     biodomain_dict = (
