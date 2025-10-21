@@ -166,10 +166,9 @@ def transform_rna_de_aggregate(
                     "adj_p_val": float(f"{float(row['padj']):.5g}"),
                 }
 
-            # If "name" includes "Jax" (case-insensitive) and tissue is "Right Cerebral Hemisphere",
-            # change tissue to "Hemibrain"
-            if "jax" in str(name).lower() and tissue == "Right Cerebral Hemisphere":
-                tissue = "Hemibrain"
+            # If tissue is "Right Cerebral Hemisphere", change tissue to "Hemibrain"
+            # Only expected for JAX models
+            tissue = "Hemibrain" if tissue == "Right Cerebral Hemisphere" else tissue
 
             # Create the output entry
             output.append(
