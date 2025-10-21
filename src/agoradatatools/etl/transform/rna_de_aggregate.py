@@ -25,47 +25,6 @@ REQUIRED_INPUT = {
 }
 
 
-def _quick_validate_data_file(
-    file_name: str,
-    data_file: pd.DataFrame,
-    required_columns: List[str] = [
-        "ensembl_gene_id",
-        "log2foldchange",
-        "padj",
-        "model",
-        "case",
-        "control",
-        "age",
-        "sex",
-        "tissue",
-    ],
-) -> None:
-    """
-    Quick validate the data file. Only validates the required columns.
-
-    Args:
-        file_name (str): The name of the file.
-        data_file (pd.DataFrame): The data file to validate.
-        required_columns (List[str]): The required columns to validate.
-
-    Raises:
-        ValueError: If the data file is empty or if the required columns are missing.
-
-    Returns:
-        None
-    """
-    if data_file.empty:
-        raise ValueError("Data file is empty")
-
-    # Validate required columns
-    missing_columns = [col for col in required_columns if col not in data_file.columns]
-    if missing_columns:
-        raise ValueError(
-            f"Missing required columns in {file_name} dataset: {', '.join(missing_columns)}. "
-            f"Please ensure the {file_name} dataset contains all required columns: {', '.join(required_columns)}."
-        )
-
-
 def transform_rna_de_aggregate(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -113,6 +72,18 @@ def transform_rna_de_aggregate(
     file_list = [k for k in datasets.keys() if k not in required_input]
     total_files = len(file_list)
 
+    data_file_required_columns = [
+        "ensembl_gene_id",
+        "log2foldchange",
+        "padj",
+        "model",
+        "case",
+        "control",
+        "age",
+        "sex",
+        "tissue",
+    ]
+
     logger.info(f"Transform rna_de_aggregate total data files: {total_files}")
     logger.info(f"Data files list: {file_list}")
 
@@ -125,7 +96,9 @@ def transform_rna_de_aggregate(
             f"{data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
         )
 
-        _quick_validate_data_file(file_name, data_file)
+        check_required_datasets_and_columns(
+            {file_name: data_file}, {file_name: data_file_required_columns}
+        )
 
         # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
         data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]

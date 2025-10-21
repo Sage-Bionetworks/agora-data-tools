@@ -4,10 +4,7 @@ import json
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform.rna_de_aggregate import (
-    transform_rna_de_aggregate,
-    _quick_validate_data_file,
-)
+from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggregate
 
 
 class TestTransformRnaDeAggregate:
@@ -326,74 +323,3 @@ class TestTransformRnaDeAggregate:
         ]
         # Age keys should be in numerical order: 3 months, 6 months, 12 months
         assert age_keys == ["3 months", "6 months", "12 months"]
-
-
-class TestQuickValidateDataFile:
-    """Test class for the _quick_validate_data_file function."""
-
-    def test_quick_validate_data_file_should_pass(self):
-        """Test validation with good data file."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000022892"],
-                "log2foldchange": [1.234567],
-                "padj": [0.001],
-                "model": ["APP/PS1"],
-                "case": ["Tg"],
-                "control": ["Wt"],
-                "age": ["6 months"],
-                "sex": ["Female"],
-                "tissue": ["Hippocampus"],
-            }
-        )
-
-        # Should not raise any exception
-        _quick_validate_data_file("test_file.csv", data_file)
-
-    def test_quick_validate_data_file_empty_dataframe(self):
-        """Test validation with empty data file."""
-        data_file = pd.DataFrame()
-
-        with pytest.raises(ValueError, match="Data file is empty"):
-            _quick_validate_data_file("test_file.csv", data_file)
-
-    def test_quick_validate_data_file_missing_columns(self):
-        """Test validation with missing required columns."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000022892"],
-                "log2foldchange": [1.234567],
-                "model": ["APP/PS1"],
-                "case": ["Tg"],
-                "control": ["Wt"],
-                "age": ["6 months"],
-                "sex": ["Female"],
-                "tissue": ["Hippocampus"]
-                # Missing 'padj' column
-            }
-        )
-
-        with pytest.raises(ValueError, match="Missing required columns"):
-            _quick_validate_data_file("test_file.csv", data_file)
-
-    def test_quick_validate_data_file_custom_required_columns(self):
-        """Test validation with custom required columns."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000022892"],
-                "log2foldchange": [1.234567],
-                "padj": [0.001],
-                "model": ["APP/PS1"],
-                "case": ["Tg"],
-                "control": ["Wt"],
-                "age": ["6 months"],
-                "sex": ["Female"],
-                "tissue": ["Hippocampus"],
-                "extra_column": ["extra_value"],
-            }
-        )
-
-        custom_required_columns = ["ensembl_gene_id", "log2foldchange", "model"]
-
-        # Should not raise any exception
-        _quick_validate_data_file("test_file.csv", data_file, custom_required_columns)
