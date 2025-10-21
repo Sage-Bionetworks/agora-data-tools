@@ -153,7 +153,7 @@ ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 
 # Gene Expression Columns
 # -------------------------
-ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
+ge_static_row <- c("Model", "link_internal", "Mouse Model", "Sort by Model value")
 ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
 ge_dynamic_names_jax <- c("4 months", "12 months")
 ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
