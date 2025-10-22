@@ -103,6 +103,9 @@ def transform_rna_de_aggregate(
         # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
         data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
 
+        # Round numeric columns to 5 decimal places for consistency
+        data_file = data_file.round(decimals=5)
+
         # Group by gene, model, tissue, and sex to create one entry per group
         grouped = data_file.groupby(
             ["ensembl_gene_id", "model", "tissue", "sex", "case", "control"]
@@ -135,8 +138,8 @@ def transform_rna_de_aggregate(
             for _, row in group.iterrows():
                 age = str(row["age"])
                 age_entries[age] = {
-                    "log2_fc": float(f"{float(row['log2foldchange']):.5g}"),
-                    "adj_p_val": float(f"{float(row['padj']):.5g}"),
+                    "log2_fc": float(row["log2foldchange"]),
+                    "adj_p_val": float(row["padj"]),
                 }
 
             # If tissue is "Right Cerebral Hemisphere", change tissue to "Hemibrain"
