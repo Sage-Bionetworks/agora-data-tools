@@ -1,0 +1,2 @@
+ensembl_gene_id,log2foldchange,padj,model,case,control,age,sex
+ENSMUSG00000000001,1.00000,0.01000,Model_A,Tg,Wt,3 months,Female

@@ -1,0 +1,21 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000004",
+    "gene_symbol": "Gene_D",
+    "biodomains": ["Metabolic"],
+    "name": "JAX_Model (Tg)",
+    "matched_control": "JAX_Model (Wt)",
+    "model_group": "AD",
+    "model_type": "Transgenic",
+    "tissue": "Hemibrain",
+    "sex": "Male",
+    "3 months": {
+      "log2_fc": 3.0,
+      "adj_p_val": 0.3
+    },
+    "6 months": {
+      "log2_fc": 4.0,
+      "adj_p_val": 0.4
+    }
+  }
+]

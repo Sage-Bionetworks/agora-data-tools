@@ -1,0 +1,32 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000005",
+    "gene_symbol": "Gene_E",
+    "biodomains": [],
+    "name": "Model_D (Tg)",
+    "matched_control": "Model_D (Wt)",
+    "model_group": "AD",
+    "model_type": "Transgenic",
+    "tissue": "Brain",
+    "sex": "Female",
+    "3 months": {
+      "log2_fc": 1.5,
+      "adj_p_val": 0.15
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000006",
+    "gene_symbol": "Gene_F",
+    "biodomains": [],
+    "name": "Model_D (Tg)",
+    "matched_control": "Model_D (Wt)",
+    "model_group": "AD",
+    "model_type": "Transgenic",
+    "tissue": "Brain",
+    "sex": "Male",
+    "6 months": {
+      "log2_fc": -1.0,
+      "adj_p_val": 0.1
+    }
+  }
+]

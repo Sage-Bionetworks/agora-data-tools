@@ -1,0 +1,2 @@
+ensembl_gene_id,log2foldchange,padj,model,case,control,age,sex,tissue
+ENSMUSG00000000008,5.00000,0.50000,Model_F,Tg,Wt,9 months,Male,Striatum

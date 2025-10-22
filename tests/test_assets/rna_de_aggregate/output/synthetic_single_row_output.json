@@ -1,0 +1,17 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000008",
+    "gene_symbol": "",
+    "biodomains": [],
+    "name": "Model_F (Tg)",
+    "matched_control": "Model_F (Wt)",
+    "model_group": "AD",
+    "model_type": "Transgenic",
+    "tissue": "Striatum",
+    "sex": "Male",
+    "9 months": {
+      "log2_fc": 5.0,
+      "adj_p_val": 0.5
+    }
+  }
+]

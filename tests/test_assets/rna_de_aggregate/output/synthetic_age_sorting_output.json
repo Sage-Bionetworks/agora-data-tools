@@ -1,0 +1,25 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000007",
+    "gene_symbol": "Gene_G",
+    "biodomains": [],
+    "name": "Model_E (Tg)",
+    "matched_control": "Model_E (Wt)",
+    "model_group": "AD",
+    "model_type": "Transgenic",
+    "tissue": "Brain",
+    "sex": "Female",
+    "3 months": {
+      "log2_fc": 2.0,
+      "adj_p_val": 0.2
+    },
+    "6 months": {
+      "log2_fc": 3.0,
+      "adj_p_val": 0.3
+    },
+    "12 months": {
+      "log2_fc": 1.0,
+      "adj_p_val": 0.1
+    }
+  }
+]
