@@ -1,1 +1,1 @@
-ensembl_gene_id,log2FoldChange,padj,model,case,control,age,sex,tissue
+ensembl_gene_id,log2foldchange,padj,model,case,control,age,sex,tissue

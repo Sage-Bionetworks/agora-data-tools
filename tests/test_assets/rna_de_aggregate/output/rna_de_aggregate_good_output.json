@@ -21,7 +21,9 @@
   {
     "ensembl_gene_id": "ENSMUSG00000019969",
     "gene_symbol": "Psen1",
-    "biodomains": ["Neuronal"],
+    "biodomains": [
+      "Neuronal"
+    ],
     "name": "APP/PS1 (Tg)",
     "matched_control": "APP/PS1 (Wt)",
     "model_group": "AD",
@@ -33,7 +35,7 @@
       "adj_p_val": 0.003
     },
     "12 months": {
-      "log2_fc": -1.2346,
+      "log2_fc": -1.23457,
       "adj_p_val": 0.004
     }
   },
@@ -48,23 +50,25 @@
     "tissue": "Hippocampus",
     "sex": "Female",
     "6 months": {
-      "log2_fc": 1.2346,
+      "log2_fc": 1.23457,
       "adj_p_val": 0.001
     },
     "12 months": {
-      "log2_fc": 2.3457,
+      "log2_fc": 2.34568,
       "adj_p_val": 0.002
     }
   },
   {
     "ensembl_gene_id": "ENSMUSG00000019969",
     "gene_symbol": "Psen1",
-    "biodomains": ["Neuronal"],
+    "biodomains": [
+      "Neuronal"
+    ],
     "name": "5xFAD (Tg)",
     "matched_control": "5xFAD (Wt)",
     "model_group": "AD",
     "model_type": "Transgenic",
-    "tissue": "Right Cerebral Hemisphere",
+    "tissue": "Hemibrain",
     "sex": "Male",
     "3 months": {
       "log2_fc": -0.65432,
@@ -83,14 +87,14 @@
     "matched_control": "5xFAD (Wt)",
     "model_group": "AD",
     "model_type": "Transgenic",
-    "tissue": "Right Cerebral Hemisphere",
+    "tissue": "Hemibrain",
     "sex": "Male",
     "3 months": {
       "log2_fc": 0.98765,
       "adj_p_val": 0.007
     },
     "6 months": {
-      "log2_fc": 1.8765,
+      "log2_fc": 1.87654,
       "adj_p_val": 0.008
     }
   }

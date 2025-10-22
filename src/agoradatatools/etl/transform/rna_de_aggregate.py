@@ -100,6 +100,10 @@ def transform_rna_de_aggregate(
             {file_name: data_file}, {file_name: data_file_required_columns}
         )
 
+        # Check if data file is empty
+        if len(data_file) == 0:
+            raise ValueError(f"Data file {file_name} is empty")
+
         # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
         data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
 
@@ -117,10 +121,6 @@ def transform_rna_de_aggregate(
         ) in enumerate(grouped):
             # Get gene metadata using dictionary lookup
             gene_symbol = gene_metadata_dict.get(ensembl_gene_id, "")
-
-            # Get case and control from first row of group
-            case = group.iloc[0]["case"]
-            control = group.iloc[0]["control"]
 
             # Use dictionary lookups instead of .loc[] operations
             name = label_map_dict.get((model, case), model)

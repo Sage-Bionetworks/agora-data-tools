@@ -123,7 +123,7 @@ class TestTransformRnaDeAggregate:
         )
 
         # Should raise ValueError for empty data file
-        with pytest.raises(ValueError, match="Data file is empty"):
+        with pytest.raises(ValueError, match="Data file .* is empty"):
             transform_rna_de_aggregate(datasets=datasets)
 
     def test_transform_rna_de_aggregate_missing_columns_in_data_file(self):
