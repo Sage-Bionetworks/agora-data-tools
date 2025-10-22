@@ -99,7 +99,7 @@ adt configs/agora_preprod.yaml
 If your changes have to do with the way that files are uploaded to Synapse and/or uploading new records to the ADT GX Synapse table, create a new configuration file by copying `configs/agora_preprod.yaml` and changing the `destination`, `gx_folder`, and `gx_table` fields to testing locations that you own. The command will change to be:
 
 ```
-adt my_dev_config.yaml --upload
+adt configs/my_dev_config.yaml --upload
 ```
 
 1. Once you have completed all the steps above, create a pull request from the feature branch to the `dev` branch of the Sage-Bionetworks/agora-data-tools repo.
