@@ -64,6 +64,41 @@ Ages: 12 months, 3 months, 6 months (input order)
 Expected: Sorted as 3 months, 6 months, 12 months
 ```
 
+## Data Grouping and Case/Control Logic
+
+### Grouping Strategy
+The transform function groups data by the following key dimensions:
+- `ensembl_gene_id`: Mouse gene identifier (ENSMUSG*)
+- `model`: Model identifier (e.g., Model_A, APP/PS1, 5xFAD)
+- `tissue`: Tissue type (e.g., Brain, Hippocampus, Cortex)
+- `sex`: Sex (Male/Female)
+- `case`: Case genotype (e.g., Tg, Wt)
+- `control`: Control genotype (e.g., Tg, Wt)
+
+**Important**: Each unique combination of these 6 dimensions creates **one output entry**. Multiple ages within the same group are aggregated as age-based entries within that single output object.
+
+### Case/Control Mapping
+The `case` and `control` columns in the input data represent the comparison being made:
+- **Case**: The experimental condition (e.g., transgenic "Tg")
+- **Control**: The control condition (e.g., wild-type "Wt")
+
+The `rnaseq_genotype_label_map.csv` file maps these genotypes to human-readable display labels:
+- `case` → `name` (e.g., "Model_A (Tg)")
+- `control` → `matched_control` (e.g., "Model_A (Wt)")
+
+### Example Grouping
+Given input data:
+```
+ensembl_gene_id,model,case,control,age,sex,tissue
+ENSMUSG00000000001,Model_A,Tg,Wt,3 months,Female,Brain
+ENSMUSG00000000001,Model_A,Tg,Wt,6 months,Female,Brain
+ENSMUSG00000000001,Model_A,Tg,Wt,3 months,Male,Brain
+```
+
+This creates **2 output entries**:
+1. Gene + Model_A + Female + Brain + Tg/Wt → contains ages 3 months, 6 months
+2. Gene + Model_A + Male + Brain + Tg/Wt → contains age 3 months
+
 ## Validation Points
 
 When testing, verify:
@@ -73,6 +108,8 @@ When testing, verify:
 4. **Biodomain assignment**: Correct biodomains from metadata
 5. **Label mapping**: Correct display labels from genotype map
 6. **Model metadata**: Correct model type and matched controls
+7. **Grouping logic**: One output entry per unique gene+model+tissue+sex+case+control combination
+8. **Case/control mapping**: Correct name and matched_control values from genotype labels
 
 ## File Structure
 ```
