@@ -25,27 +25,6 @@ This directory contains human-readable synthetic datasets designed to test the `
 ### Output Files
 - **`synthetic_*_output.json`**: Expected output for each test case
 
-## Key Features of Synthetic Data
-
-### 1. **Human-Readable Values**
-- Gene IDs: `ENSMUSG00000000001`, `ENSMUSG00000000002`, etc.
-- Gene symbols: `Gene_A`, `Gene_B`, `Gene_C`, etc.
-- Models: `Model_A`, `Model_B`, `Model_C`, etc.
-- Simple numeric values: `1.0`, `2.0`, `-1.5`, etc.
-
-### 2. **Easy to Track**
-- Sequential gene IDs and symbols
-- Round numbers for log2foldchange and padj values
-- Clear model naming convention
-- Predictable tissue and age values
-
-### 3. **Comprehensive Test Coverage**
-- **Basic functionality**: Simple 2-gene, 2-age case
-- **Multi-model**: Different models with different tissues
-- **JAX tissue mapping**: Tests "Right Cerebral Hemisphere" → "Hemibrain" conversion
-- **Gene filtering**: Tests human gene (ENSG*) filtering
-- **Age sorting**: Tests numerical age sorting
-- **Edge cases**: Empty data, missing columns, single row
 
 ## Test Scenarios
 
@@ -85,58 +64,6 @@ Ages: 12 months, 3 months, 6 months (input order)
 Expected: Sorted as 3 months, 6 months, 12 months
 ```
 
-## Usage
-
-### Running the Test Script
-```bash
-cd /path/to/agora-data-tools
-python tests/test_assets/rna_de_aggregate/test_synthetic_data.py
-```
-
-### Manual Testing
-```python
-from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggregate
-import pandas as pd
-
-# Load synthetic datasets
-datasets = {
-    "synthetic_basic_data": pd.read_csv("tests/test_assets/rna_de_aggregate/input/synthetic_basic_data.csv"),
-    "rnaseq_genotype_label_map": pd.read_csv("tests/test_assets/rna_de_aggregate/input/synthetic_rnaseq_genotype_label_map.csv"),
-    "mouse_gene_metadata": pd.read_csv("tests/test_assets/rna_de_aggregate/input/synthetic_mouse_gene_metadata.csv"),
-    "model_info": pd.read_csv("tests/test_assets/rna_de_aggregate/input/synthetic_model_info.csv"),
-    "biodom_genes_mm": pd.read_csv("tests/test_assets/rna_de_aggregate/input/synthetic_biodom_genes_mm.csv"),
-}
-
-# Transform data
-output = transform_rna_de_aggregate(datasets)
-print(f"Generated {len(output)} output entries")
-```
-
-## Expected Output Structure
-
-Each output entry contains:
-```json
-{
-  "ensembl_gene_id": "ENSMUSG00000000001",
-  "gene_symbol": "Gene_A",
-  "biodomains": ["Synaptic"],
-  "name": "Model_A (Tg)",
-  "matched_control": "Model_A (Wt)",
-  "model_group": "AD",
-  "model_type": "Transgenic",
-  "tissue": "Brain",
-  "sex": "Female",
-  "3 months": {
-    "log2_fc": 1.0,
-    "adj_p_val": 0.01
-  },
-  "6 months": {
-    "log2_fc": 2.0,
-    "adj_p_val": 0.02
-  }
-}
-```
-
 ## Validation Points
 
 When testing, verify:
@@ -170,6 +97,5 @@ tests/test_assets/rna_de_aggregate/
 │   ├── synthetic_mixed_genes_output.json
 │   ├── synthetic_age_sorting_output.json
 │   └── synthetic_single_row_output.json
-├── test_synthetic_data.py
 └── README_synthetic_datasets.md
 ```
