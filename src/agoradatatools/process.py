@@ -384,7 +384,7 @@ def process_all_files(
     reporter.update_table()
 
 
-app = Typer()
+app = Typer(add_completion=False)
 
 input_path_arg = Argument(
     ..., help="Path to configuration file for processing run (Required)."

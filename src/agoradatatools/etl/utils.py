@@ -29,7 +29,7 @@ def _get_config(
     config_path: str = None,
 ) -> Dict[str, Any]:
     """Takes config_path and opens yaml file path points to, loads configuration from file.
-    If no config_path is supplied, defaults to "./config.yaml"
+    If no config_path is supplied, defaults to "./configs/agora_prod.yaml"
 
     Args:
         config_path (str, optional): Path to config file. Defaults to None.
@@ -38,7 +38,7 @@ def _get_config(
         dict: Dictionary containing configuration from yaml file
     """
     if config_path is None:
-        config_path = "./config.yaml"
+        config_path = "./configs/agora_prod.yaml"
 
     file = None
     config = None
