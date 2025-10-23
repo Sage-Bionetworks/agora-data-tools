@@ -93,13 +93,13 @@ The agora-data-tools project follows the standard [trunk based development](http
 1. Test your changes by running `agora-data-tools` locally.
 
 ```
-adt test_config.yaml
+adt configs/agora_preprod.yaml
 ```
 
-If your changes have to do with the way that files are uploaded to Synapse and/or uploading new records to the ADT GX Synapse table, create a new configuration file by copying `test_config.yaml` and changing the `destination`, `gx_folder`, and `gx_table` fields to testing locations that you own. The command will change to be:
+If your changes have to do with the way that files are uploaded to Synapse and/or uploading new records to the ADT GX Synapse table, create a new configuration file by copying `configs/agora_preprod.yaml` and changing the `destination`, `gx_folder`, and `gx_table` fields to testing locations that you own. The command will change to be:
 
 ```
-adt my_dev_config.yaml --upload
+adt configs/my_dev_config.yaml --upload
 ```
 
 1. Once you have completed all the steps above, create a pull request from the feature branch to the `dev` branch of the Sage-Bionetworks/agora-data-tools repo.
@@ -165,7 +165,7 @@ This package has a `src/agoradatatools/etl/transform` submodule. This folder hou
 
 1. Create new script in the transform submodule that matches the dataset name and name the function `transform_...`. For example, if you have a dataset named `genome_variants`, your new script would be `src/agoradatatools/etl/transform/transform_genome_variants.py`.
 1. Register the new transform function in `src/agoradatatools/etl/transform/__init__.py`. Look in that file for examples.
-1. Add your transform function in `test_config.yaml` and `config.yaml`. As an example, the block here means that `transform_team_info` function will be applied to team_info dataset:
+1. Add your transform function in `configs/agora_preprod.yaml` and `configs/agora_prod.yaml`. As an example, the block here means that `transform_team_info` function will be applied to team_info dataset:
 ```
   - team_info:
       files:
@@ -192,10 +192,10 @@ Note: **Only one custom transform per dataset is supported at this time**
 This package uses [Great Expectations](https://greatexpectations.io/) to validate output data. The `src/agoradatatools/great_expectations` folder houses our file system data context and Great Expectations-specific configuration files. Eventually, our goal is for each `agora-data-tools` dataset to be convered by an expectation suite. To add data validation for more datasets, follow these steps:
 
 1. Create a new expectation suite by defining the expectations for the dataset in a Jupyter Notebook inside the `gx_suite_definitions` folder. Use `metabolomics.ipynb` as an example. You can find a catalog of existing expectations [here](https://greatexpectations.io/expectations/).
-1. Run the notebook to generate the new expectation suite. It should populate as a JSON file in the `/great_expectations/expectations` folder.
-1. Add support for running Great Expectations on a dataset by adding `gx_enabled: true` to the configuration for the datatset in both `test_config.yaml` and `config.yaml`. Ensure that the `gx_folder` and `gx_table` keys are present in the configuration file and contain valid Synapse IDs for the GX reports and GX table, respectively.
+2. Run the notebook to generate the new expectation suite. It should populate as a JSON file in the `/great_expectations/expectations` folder.
+3. Add support for running Great Expectations on a dataset by adding `gx_enabled: true` to the configuration for the datatset in both `configs/agora_preprod.yaml` and `configs/agora_prod.yaml`. Ensure that the `gx_folder` and `gx_table` keys are present in the configuration file and contain valid Synapse IDs for the GX reports and GX table, respectively.
    - You can prevent Great Expectations from running for a dataset by setting `gx_enabled: false` in the configuration for the dataset.
-1. Test data processing by running `adt test_config.yaml --upload` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
+4. Test data processing by running `adt configs/agora_preprod.yaml --upload` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
 
 **Note:** If you are adding a new expectation and you want to allow for "fuzzy validation" (e.g. you expect X% of the values in a column to match the expectation, but the remaining Y% are allowed to not match), you will need to make use of the `mostly` [parameter](https://docs.greatexpectations.io/docs/0.18/reference/learn/expectations/standard_arguments/#mostly). This package is set up to surface "warnings" for instances where the `mostly` parameter is used to show users which expectations have some failed values although the overall validation still passes.
 

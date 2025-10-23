@@ -66,7 +66,7 @@ def test_get_config_with_no_config_path():
 
 
 def test_get_config_with_config_path():
-    config = utils._get_config(config_path="./test_config.yaml")
+    config = utils._get_config(config_path="./configs/agora_preprod.yaml")
     assert config["destination"] == "syn17015333"
 
 
