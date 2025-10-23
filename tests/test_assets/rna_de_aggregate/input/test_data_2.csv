@@ -1,5 +1,0 @@
-ensembl_gene_id,log2FoldChange,padj,model,case,control,age,sex,tissue
-ENSMUSG00000022892,0.987654,0.007,5xFAD,Tg,Wt,3 months,Male,Right Cerebral Hemisphere
-ENSMUSG00000022892,1.876543,0.008,5xFAD,Tg,Wt,6 months,Male,Right Cerebral Hemisphere
-ENSMUSG00000019969,-0.654321,0.009,5xFAD,Tg,Wt,3 months,Male,Right Cerebral Hemisphere
-ENSMUSG00000019969,-0.876543,0.010,5xFAD,Tg,Wt,6 months,Male,Right Cerebral Hemisphere

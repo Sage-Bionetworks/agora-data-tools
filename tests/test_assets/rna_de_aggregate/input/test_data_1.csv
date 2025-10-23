@@ -1,7 +1,0 @@
-ensembl_gene_id,log2FoldChange,padj,model,case,control,age,sex,tissue
-ENSMUSG00000022892,1.234567,0.001,APP/PS1,Tg,Wt,6 months,Female,Hippocampus
-ENSMUSG00000022892,2.345678,0.002,APP/PS1,Tg,Wt,12 months,Female,Hippocampus
-ENSMUSG00000019969,-0.876543,0.003,APP/PS1,Tg,Wt,6 months,Female,Hippocampus
-ENSMUSG00000019969,-1.234567,0.004,APP/PS1,Tg,Wt,12 months,Female,Hippocampus
-ENSMUSG00000018411,0.543210,0.005,APP/PS1,Tg,Wt,6 months,Female,Hippocampus
-ENSMUSG00000018411,0.654321,0.006,APP/PS1,Tg,Wt,12 months,Female,Hippocampus

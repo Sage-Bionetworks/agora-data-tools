@@ -10,67 +10,31 @@ from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggre
 class TestTransformRnaDeAggregate:
     data_files_path = "tests/test_assets/rna_de_aggregate"
 
-    def _load_test_data(self, data_files):
-        """Load test data files as DataFrames."""
-        datasets = {}
-        input_path = os.path.join(self.data_files_path, "input")
-
-        # Mapping from file names to expected dataset keys
-        file_to_key_mapping = {
-            "rnaseq_genotype_label_map_good.csv": "rnaseq_genotype_label_map",
-            "mouse_gene_metadata_good.csv": "mouse_gene_metadata",
-            "model_info_good.csv": "model_info",
-            "biodom_genes_mm_good.csv": "biodom_genes_mm",
-        }
-
-        for file_name in data_files:
-            if file_name.endswith(".csv"):
-                # Load CSV files
-                file_path = os.path.join(input_path, file_name)
-                df = pd.read_csv(file_path)
-
-                # Fix column name mismatch: log2FoldChange -> log2foldchange
-                if "log2FoldChange" in df.columns:
-                    df = df.rename(columns={"log2FoldChange": "log2foldchange"})
-
-                # Use the mapped key if available, otherwise use file name without extension
-                key = file_to_key_mapping.get(file_name, file_name.replace(".csv", ""))
-                datasets[key] = df
-
-        return datasets
-
     def test_transform_rna_de_aggregate_should_pass(self):
-        """Test transformation with good test data."""
-        # Load test data
-        datasets = self._load_test_data(
+        """Test transformation with synthetic basic data."""
+        # Load synthetic test data
+        datasets = self._load_synthetic_test_data(
             [
-                "test_data_1.csv",
-                "test_data_2.csv",
-                "rnaseq_genotype_label_map_good.csv",
-                "mouse_gene_metadata_good.csv",
-                "model_info_good.csv",
-                "biodom_genes_mm_good.csv",
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
             ]
         )
 
         # Load expected output
         with open(
-            os.path.join(
-                self.data_files_path, "output", "rna_de_aggregate_good_output.json"
-            )
+            os.path.join(self.data_files_path, "output", "synthetic_basic_output.json")
         ) as f:
             expected_data = json.load(f)
 
         # Transform data
         output_data = transform_rna_de_aggregate(datasets=datasets)
 
-        # Sort output data by ensembl_gene_id and name for deterministic comparison
-        output_data_sorted = sorted(
-            output_data, key=lambda x: (x["ensembl_gene_id"], x["name"])
-        )
-        expected_data_sorted = sorted(
-            expected_data, key=lambda x: (x["ensembl_gene_id"], x["name"])
-        )
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
 
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
@@ -78,13 +42,13 @@ class TestTransformRnaDeAggregate:
     def test_transform_rna_de_aggregate_missing_required_dataset(self):
         """Test that missing required datasets raise ValueError."""
         # Load datasets without one required dataset (model_info)
-        datasets = self._load_test_data(
+        datasets = self._load_synthetic_test_data(
             [
-                "test_data_1.csv",
-                "rnaseq_genotype_label_map_good.csv",
-                "mouse_gene_metadata_good.csv",
-                "biodom_genes_mm_good.csv"
-                # Missing model_info_good.csv
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_biodom_genes_mm.csv"
+                # Missing synthetic_model_info.csv
             ]
         )
 
@@ -95,13 +59,13 @@ class TestTransformRnaDeAggregate:
     def test_transform_rna_de_aggregate_missing_required_columns(self):
         """Test that data files with missing required columns raise ValueError."""
         # Load datasets with a data file missing required columns
-        datasets = self._load_test_data(
+        datasets = self._load_synthetic_test_data(
             [
-                "test_data_missing_columns.csv",
-                "rnaseq_genotype_label_map_good.csv",
-                "mouse_gene_metadata_good.csv",
-                "model_info_good.csv",
-                "biodom_genes_mm_good.csv",
+                "synthetic_missing_columns_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
             ]
         )
 
@@ -112,24 +76,19 @@ class TestTransformRnaDeAggregate:
     def test_transform_rna_de_aggregate_empty_data_file(self):
         """Test handling of empty data files."""
         # Load datasets with empty data file
-        datasets = self._load_test_data(
+        datasets = self._load_synthetic_test_data(
             [
-                "test_data_empty.csv",
-                "rnaseq_genotype_label_map_good.csv",
-                "mouse_gene_metadata_good.csv",
-                "model_info_good.csv",
-                "biodom_genes_mm_good.csv",
+                "synthetic_empty_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
             ]
         )
 
         # Should raise ValueError for empty data file
         with pytest.raises(ValueError, match="Data file .* is empty"):
             transform_rna_de_aggregate(datasets=datasets)
-
-    def test_transform_rna_de_aggregate_missing_columns_in_data_file(self):
-        """Test handling of data files with missing required columns."""
-        # This test is already covered by test_transform_rna_de_aggregate_missing_required_columns
-        # so we can remove this duplicate test
 
     def test_transform_rna_de_aggregate_human_genes_filtered(self):
         """Test that human genes (ENSG*) are filtered out, keeping only mouse genes (ENSMUSG*)."""
@@ -153,12 +112,12 @@ class TestTransformRnaDeAggregate:
         )
 
         # Load required datasets
-        datasets = self._load_test_data(
+        datasets = self._load_synthetic_test_data(
             [
-                "rnaseq_genotype_label_map_good.csv",
-                "mouse_gene_metadata_good.csv",
-                "model_info_good.csv",
-                "biodom_genes_mm_good.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
             ]
         )
 
