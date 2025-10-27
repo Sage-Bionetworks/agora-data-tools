@@ -156,15 +156,23 @@ def _create_data_rows_from_groups(
     """
     Create data rows by grouping the dataset and adding y_axis_max values.
 
+    Groups the dataset by the specified columns and creates dictionary entries
+    where each entry represents a unique group. Each data row contains the group
+    key values, a y_axis_max value calculated for that group, and aggregated
+    data from the extra columns.
+
     Args:
-        dataset: The prepared dataset
-        group_columns: Columns to group by
-        extra_columns: Columns to include in the data
-        extra_column_name: Name of the extra column
-        y_axis_max_map: Pre-calculated final y_axis_max values
+        dataset: The prepared dataset to group and process
+        group_columns: Columns to group by (e.g., ['name', 'evidence_type', 'tissue'])
+        extra_columns: Other columns in addition to group_columns to include in the returned data
+        extra_column_name: Name of the key in each returned dictionary that will contain the aggregated extra_columns data
+        y_axis_max_map: Pre-calculated final y_axis_max values for each group combination
 
     Returns:
-        List of data rows with y_axis_max values
+        List of dictionary entries (data rows), where each entry contains:
+        - Group key values from group_columns
+        - y_axis_max value for the group
+        - Aggregated data from extra_columns under the key specified by extra_column_name
     """
     data_rows = []
     grouped = dataset.groupby(group_columns)
