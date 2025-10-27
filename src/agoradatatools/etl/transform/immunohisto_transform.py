@@ -191,7 +191,9 @@ def _create_data_rows_from_groups(
 
 
 def _add_missing_age_entries(
-    data_rows: List[Dict[str, Any]], dataset: pd.DataFrame
+    data_rows: List[Dict[str, Any]],
+    dataset: pd.DataFrame,
+    y_axis_max_map: Dict[Tuple[str, str, str], float],
 ) -> List[Dict[str, Any]]:
     """
     Add placeholder entries for missing age combinations to ensure data completeness.
@@ -208,18 +210,13 @@ def _add_missing_age_entries(
     Args:
         data_rows: Existing data rows
         dataset: The original dataset
+        y_axis_max_map: Pre-calculated final y_axis_max values for each group combination
 
     Returns:
         Updated data_rows with missing age entries added
     """
     # Get all unique ages that exist in the dataset
     available_ages = list(set([x["age"] for x in data_rows]))
-
-    # Create a lookup map for y_axis_max values from already processed entries
-    y_axis_max_lookup = {}
-    for entry in data_rows:
-        key = (entry["name"], entry["evidence_type"], entry["tissue"])
-        y_axis_max_lookup[key] = entry["y_axis_max"]
 
     # Group by the key dimensions that should have consistent age coverage
     missing_ages_group_columns = ["name", "evidence_type", "tissue"]
@@ -237,7 +234,7 @@ def _add_missing_age_entries(
 
         # Get the y_axis_max for this combination
         key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
-        y_axis_max = y_axis_max_lookup.get(key_for_y_axis, 0)
+        y_axis_max = y_axis_max_map.get(key_for_y_axis, 0)
 
         # If there are missing ages, create placeholder entries for each missing age
         if len(missing_ages) > 0:
@@ -359,7 +356,7 @@ def immunohisto_transform(
     )
 
     # Add missing age entries for completeness
-    data_rows = _add_missing_age_entries(data_rows, dataset)
+    data_rows = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
 
     # Sort data_rows by the numeric value in the "age" field
     data_rows.sort(key=_extract_age_num)

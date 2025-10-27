@@ -727,7 +727,12 @@ class TestAddMissingAgeEntries:
             }
         )
 
-        result = _add_missing_age_entries(data_rows, dataset)
+        # Create y_axis_max_map for the test
+        y_axis_max_map = {
+            ("Model1", "Type1", "Tissue1"): 3.0,
+        }
+
+        result = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
 
         # Should not add any missing entries since all ages in data_rows are present in dataset
         assert len(result) == 2
@@ -778,7 +783,13 @@ class TestAddMissingAgeEntries:
             }
         )
 
-        result = _add_missing_age_entries(data_rows, dataset)
+        # Create y_axis_max_map for the test
+        y_axis_max_map = {
+            ("Model1", "Type1", "Tissue1"): 3.0,
+            ("Model2", "Type2", "Tissue2"): 5.0,
+        }
+
+        result = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
 
         # Should add one missing entry for Model2/Type2/Tissue2 at 12 months
         assert len(result) == 4
@@ -823,7 +834,12 @@ class TestAddMissingAgeEntries:
             }
         )
 
-        result = _add_missing_age_entries(data_rows, dataset)
+        # Create y_axis_max_map for the test
+        y_axis_max_map = {
+            ("Model1", "Type1", "Tissue1"): 3.0,
+        }
+
+        result = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
 
         # Should return original data_rows unchanged
         assert len(result) == 1
@@ -874,7 +890,13 @@ class TestAddMissingAgeEntries:
             }
         )
 
-        result = _add_missing_age_entries(data_rows, dataset)
+        # Create y_axis_max_map for the test
+        y_axis_max_map = {
+            ("Model1", "Type1", "Tissue1"): 3.0,
+            ("Model2", "Type2", "Tissue2"): 5.0,
+        }
+
+        result = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
 
         # Should have 4 entries total (3 original + 1 missing age)
         assert len(result) == 4
