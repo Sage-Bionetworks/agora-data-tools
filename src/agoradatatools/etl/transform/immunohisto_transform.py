@@ -196,6 +196,15 @@ def _add_missing_age_entries(
     """
     Add placeholder entries for missing age combinations to ensure data completeness.
 
+    This function ensures that all tissue/evidence_type combinations have data entries
+    for all available ages in the dataset, filling in missing time points with empty
+    placeholder entries.
+
+    Example:
+        If the dataset has ages 4, 8, and 12 months but one tissue is missing 8 month
+        data, this function adds to data_rows to fill in the missing time point with
+        an entry containing empty data arrays and units.
+
     Args:
         data_rows: Existing data rows
         dataset: The original dataset
