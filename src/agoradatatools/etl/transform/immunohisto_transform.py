@@ -112,7 +112,8 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     # remove float precision issues
     result = round(result, 15)
 
-    return result
+    # Ensure we always return a float, even for whole numbers
+    return float(result)
 
 
 def _calculate_raw_max_values_map(
