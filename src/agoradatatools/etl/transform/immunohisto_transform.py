@@ -116,33 +116,34 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     return float(result)
 
 
-def _calculate_raw_max_values_map(
+def _calculate_y_axis_max_map(
     dataset: pd.DataFrame,
 ) -> Dict[Tuple[str, str, str], float]:
     """
-    Calculate raw maximum values for each combination of (name, evidence_type, tissue) across all ages.
+    Calculate final y_axis_max values for each combination of (name, evidence_type, tissue) across all ages.
 
-    This function finds the raw maximum values from the dataset. The final y_axis_max values
-    (with proper rounding) are calculated later using round_y_axis_max().
+    This function finds the raw maximum values from the dataset and applies rounding
+    to get the final y_axis_max values using round_y_axis_max().
 
     Args:
         dataset: The prepared dataset. It must have columns "name", "evidence_type", "tissue", and "value".
 
     Returns:
-        Dictionary mapping (name, evidence_type, tissue) tuples to their raw max values
+        Dictionary mapping (name, evidence_type, tissue) tuples to their final rounded y_axis_max values
     """
     key_dimensions = ["name", "evidence_type", "tissue"]
-    raw_max_values_map = {}
+    y_axis_max_map = {}
 
     for key, group in dataset.groupby(key_dimensions):
         # Convert value column to numeric, coercing errors to NaN, then drop NaN values
         numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
         if len(numeric_values) > 0:
-            raw_max_values_map[tuple(key)] = numeric_values.max()
+            raw_max = numeric_values.max()
+            y_axis_max_map[tuple(key)] = round_y_axis_max(raw_max)
         else:
-            raw_max_values_map[tuple(key)] = 0
+            y_axis_max_map[tuple(key)] = round_y_axis_max(0)
 
-    return raw_max_values_map
+    return y_axis_max_map
 
 
 def _create_data_rows_from_groups(
@@ -150,7 +151,7 @@ def _create_data_rows_from_groups(
     group_columns: List[str],
     extra_columns: List[str],
     extra_column_name: str,
-    raw_max_values_map: Dict[Tuple[str, str, str], float],
+    y_axis_max_map: Dict[Tuple[str, str, str], float],
 ) -> List[Dict[str, Any]]:
     """
     Create data rows by grouping the dataset and adding y_axis_max values.
@@ -160,7 +161,7 @@ def _create_data_rows_from_groups(
         group_columns: Columns to group by
         extra_columns: Columns to include in the data
         extra_column_name: Name of the extra column
-        raw_max_values_map: Pre-calculated raw maximum values
+        y_axis_max_map: Pre-calculated final y_axis_max values
 
     Returns:
         List of data rows with y_axis_max values
@@ -171,10 +172,9 @@ def _create_data_rows_from_groups(
     for group_key, group in grouped:
         entry = dict(zip(group_columns, group_key))
 
-        # Get the raw maximum value for this combination of (name, evidence_type, tissue)
+        # Get the final y_axis_max value for this combination of (name, evidence_type, tissue)
         key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
-        raw_max_value = raw_max_values_map.get(key_for_y_axis, 0)
-        entry["y_axis_max"] = round_y_axis_max(raw_max_value)
+        entry["y_axis_max"] = y_axis_max_map.get(key_for_y_axis, round_y_axis_max(0))
 
         entry[extra_column_name] = group[extra_columns].to_dict("records")
         data_rows.append(entry)
@@ -333,12 +333,12 @@ def immunohisto_transform(
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
 
-    # Calculate raw maximum values for all combinations
-    raw_max_values_map = _calculate_raw_max_values_map(dataset)
+    # Calculate final y_axis_max values for all combinations
+    y_axis_max_map = _calculate_y_axis_max_map(dataset)
 
     # Create initial data rows from groups
     data_rows = _create_data_rows_from_groups(
-        dataset, group_columns, extra_columns, extra_column_name, raw_max_values_map
+        dataset, group_columns, extra_columns, extra_column_name, y_axis_max_map
     )
 
     # Add missing age entries for completeness

@@ -5,7 +5,7 @@ import pytest
 
 from agoradatatools.etl.transform.immunohisto_transform import (
     _add_missing_age_entries,
-    _calculate_raw_max_values_map,
+    _calculate_y_axis_max_map,
     _create_data_rows_from_groups,
     _extract_age_num,
     immunohisto_transform,
@@ -476,10 +476,10 @@ class TestRoundYAxisMax:
         assert len(invalid_age_entries) > 0
 
 
-class TestCalculateRawMaxValuesMap:
-    """Test class for the _calculate_raw_max_values_map function."""
+class TestCalculateYAxisMaxMap:
+    """Test class for the _calculate_y_axis_max_map function."""
 
-    def test_calculate_raw_max_values_map_basic(self) -> None:
+    def test_calculate_y_axis_max_map_basic(self) -> None:
         """Test basic functionality with valid data."""
         # Create test dataset
         dataset = pd.DataFrame(
@@ -493,17 +493,17 @@ class TestCalculateRawMaxValuesMap:
             }
         )
 
-        result = _calculate_raw_max_values_map(dataset)
+        result = _calculate_y_axis_max_map(dataset)
 
-        # Expected: (Model1, Type1, Tissue1) -> 3.0, (Model2, Type2, Tissue2) -> 5.0
+        # Expected: (Model1, Type1, Tissue1) -> round_y_axis_max(3.0) = 3.5, (Model2, Type2, Tissue2) -> round_y_axis_max(5.0) = 5.5
         expected = {
-            ("Model1", "Type1", "Tissue1"): 3.0,
-            ("Model2", "Type2", "Tissue2"): 5.0,
+            ("Model1", "Type1", "Tissue1"): 3.5,
+            ("Model2", "Type2", "Tissue2"): 5.5,
         }
 
         assert result == expected
 
-    def test_calculate_raw_max_values_map_empty_groups(self) -> None:
+    def test_calculate_y_axis_max_map_empty_groups(self) -> None:
         """Test with empty groups."""
         # Create dataset with empty groups
         dataset = pd.DataFrame(
@@ -517,12 +517,12 @@ class TestCalculateRawMaxValuesMap:
             }
         )
 
-        result = _calculate_raw_max_values_map(dataset)
+        result = _calculate_y_axis_max_map(dataset)
 
-        expected = {("Model1", "Type1", "Tissue1"): 1.0}
+        expected = {("Model1", "Type1", "Tissue1"): 1.5}  # round_y_axis_max(1.0) = 1.5
         assert result == expected
 
-    def test_calculate_raw_max_values_map_non_numeric_values(self) -> None:
+    def test_calculate_y_axis_max_map_non_numeric_values(self) -> None:
         """Test with non-numeric values that should be coerced."""
         dataset = pd.DataFrame(
             {
@@ -535,13 +535,13 @@ class TestCalculateRawMaxValuesMap:
             }
         )
 
-        result = _calculate_raw_max_values_map(dataset)
+        result = _calculate_y_axis_max_map(dataset)
 
-        # Should only consider the valid numeric value (1.0)
-        expected = {("Model1", "Type1", "Tissue1"): 1.0}
+        # Should only consider the valid numeric value (1.0) and round it
+        expected = {("Model1", "Type1", "Tissue1"): 1.5}  # round_y_axis_max(1.0) = 1.5
         assert result == expected
 
-    def test_calculate_raw_max_values_map_all_invalid_values(self) -> None:
+    def test_calculate_y_axis_max_map_all_invalid_values(self) -> None:
         """Test with all invalid values."""
         dataset = pd.DataFrame(
             {
@@ -554,13 +554,13 @@ class TestCalculateRawMaxValuesMap:
             }
         )
 
-        result = _calculate_raw_max_values_map(dataset)
+        result = _calculate_y_axis_max_map(dataset)
 
-        # Should return 0 for all invalid numeric values
-        expected = {("Model1", "Type1", "Tissue1"): 0}
+        # Should return round_y_axis_max(0) = 10.0 for all invalid numeric values
+        expected = {("Model1", "Type1", "Tissue1"): 10.0}
         assert result == expected
 
-    def test_calculate_raw_max_values_map_mixed_data_types(self) -> None:
+    def test_calculate_y_axis_max_map_mixed_data_types(self) -> None:
         """Test with mixed numeric and non-numeric values."""
         dataset = pd.DataFrame(
             {
@@ -573,10 +573,10 @@ class TestCalculateRawMaxValuesMap:
             }
         )
 
-        result = _calculate_raw_max_values_map(dataset)
+        result = _calculate_y_axis_max_map(dataset)
 
-        # Should handle mixed types and find max of valid values
-        expected = {("Model1", "Type1", "Tissue1"): 3.0}
+        # Should handle mixed types and find max of valid values, then round it
+        expected = {("Model1", "Type1", "Tissue1"): 3.5}  # round_y_axis_max(3.0) = 3.5
         assert result == expected
 
 
@@ -602,7 +602,7 @@ class TestCreateDataRowsFromGroups:
         group_columns = ["name", "evidence_type", "tissue", "age", "units"]
         extra_columns = ["genotype", "sex", "individual_id", "value"]
         extra_column_name = "data"
-        y_axis_max_map = {("Model1", "Type1", "Tissue1"): 3.0}
+        y_axis_max_map = {("Model1", "Type1", "Tissue1"): 3.5}  # Final rounded value
 
         result = _create_data_rows_from_groups(
             dataset, group_columns, extra_columns, extra_column_name, y_axis_max_map
@@ -622,7 +622,7 @@ class TestCreateDataRowsFromGroups:
             assert entry["evidence_type"] == "Type1"
             assert entry["tissue"] == "Tissue1"
             assert entry["units"] == "mg"
-            # round_y_axis_max(3.0) returns 3.5 (rounds up to next nice number)
+            # The lookup table now contains the final rounded value directly
             assert entry["y_axis_max"] == pytest.approx(3.5)
             assert len(entry["data"]) == 1
 
