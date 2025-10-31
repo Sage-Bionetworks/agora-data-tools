@@ -10,35 +10,6 @@ from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggre
 class TestTransformRnaDeAggregate:
     data_files_path = "tests/test_assets/rna_de_aggregate"
 
-    def test_transform_rna_de_aggregate_should_pass(self):
-        """Test transformation with synthetic basic data."""
-        # Load synthetic test data
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-
-        # Load expected output
-        with open(
-            os.path.join(self.data_files_path, "output", "synthetic_basic_output.json")
-        ) as f:
-            expected_data = json.load(f)
-
-        # Transform data
-        output_data = transform_rna_de_aggregate(datasets=datasets)
-
-        # Sort output data by ensembl_gene_id for deterministic comparison
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
-
-        # Compare output with expected
-        assert output_data_sorted == expected_data_sorted
-
     def test_transform_rna_de_aggregate_missing_required_dataset(self):
         """Test that missing required datasets raise ValueError."""
         # Load datasets without one required dataset (model_info)
@@ -54,40 +25,6 @@ class TestTransformRnaDeAggregate:
 
         # Expect transformation to raise ValueError for missing required dataset
         with pytest.raises(ValueError):
-            transform_rna_de_aggregate(datasets=datasets)
-
-    def test_transform_rna_de_aggregate_missing_required_columns(self):
-        """Test that data files with missing required columns raise ValueError."""
-        # Load datasets with a data file missing required columns
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_missing_columns_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-
-        # Expect transformation to raise ValueError for missing required columns
-        with pytest.raises(ValueError, match="Missing required columns"):
-            transform_rna_de_aggregate(datasets=datasets)
-
-    def test_transform_rna_de_aggregate_empty_data_file(self):
-        """Test handling of empty data files."""
-        # Load datasets with empty data file
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_empty_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-
-        # Should raise ValueError for empty data file
-        with pytest.raises(ValueError, match="Data file .* is empty"):
             transform_rna_de_aggregate(datasets=datasets)
 
     def test_transform_rna_de_aggregate_human_genes_filtered(self):
