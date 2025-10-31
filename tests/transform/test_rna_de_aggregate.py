@@ -201,22 +201,7 @@ class TestTransformRnaDeAggregate:
         # Should have ages sorted numerically
         assert len(output_data) == 1
         entry = output_data[0]
-        age_keys = [
-            key
-            for key in entry.keys()
-            if key
-            not in [
-                "ensembl_gene_id",
-                "gene_symbol",
-                "biodomains",
-                "name",
-                "matched_control",
-                "model_group",
-                "model_type",
-                "tissue",
-                "sex",
-            ]
-        ]
+        age_keys = [key for key in entry.keys() if "months" in key]
         # Age keys should be in numerical order: 3 months, 6 months, 12 months
         assert age_keys == ["3 months", "6 months", "12 months"]
 
