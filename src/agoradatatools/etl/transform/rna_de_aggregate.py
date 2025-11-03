@@ -1,3 +1,28 @@
+"""
+RNA Differential Expression Aggregate Transform Module
+
+This module transforms RNA differential expression (RNA-DE) aggregate data for Model AD.
+It combines multiple datasets including gene metadata, model information, genotype labels,
+and biodomain annotations to create a structured output format.
+
+The transformation:
+- Groups differential expression data by gene, model, tissue, and sex
+- Creates age-based entries containing log2 fold change and adjusted p-values
+- Enriches data with gene symbols, biodomains, and model metadata
+- Maps genotypes to display labels for better readability
+- Processes multiple data files efficiently to minimize memory usage
+
+Key Functions:
+    transform_rna_de_aggregate: Main transformation function that orchestrates the data processing
+
+Required Inputs:
+    - rnaseq_genotype_label_map: Maps models and genotypes to display labels
+    - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
+    - model_info: Model types and matched controls
+    - biodom_genes_mm: Biodomain annotations for mouse genes
+    - Data files: One or more CSV files containing differential expression results
+"""
+
 import pandas as pd
 from typing import Dict, List, Any
 import logging
