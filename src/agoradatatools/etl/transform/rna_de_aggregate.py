@@ -115,7 +115,7 @@ def transform_rna_de_aggregate(
             ["ensembl_gene_id", "model", "tissue", "sex", "case", "control"]
         )
 
-        for i, (
+        for j, (
             (ensembl_gene_id, model, tissue, sex, case, control),
             group,
         ) in enumerate(grouped):
