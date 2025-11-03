@@ -735,7 +735,7 @@ class TestInputValidationModelInfo:
     multiple rows for the same model name.
     """
 
-    def test_valid_model_info(self):
+    def test_valid_model_info(self) -> None:
         """
         Test that valid model info with consistent data passes validation.
         Different models can have different values, but the same model
@@ -758,7 +758,7 @@ class TestInputValidationModelInfo:
         # Should not raise any exception
         utils.input_validation_model_info(df)
 
-    def test_inconsistent_matched_controls(self):
+    def test_inconsistent_matched_controls(self) -> None:
         """
         Test that inconsistent matched_controls values for the same model
         raise a ValueError with appropriate error message.
@@ -782,7 +782,7 @@ class TestInputValidationModelInfo:
         ):
             utils.input_validation_model_info(df)
 
-    def test_inconsistent_model_type(self):
+    def test_inconsistent_model_type(self) -> None:
         """
         Test that inconsistent model_type values for the same model
         raise a ValueError with appropriate error message.
@@ -806,7 +806,7 @@ class TestInputValidationModelInfo:
         ):
             utils.input_validation_model_info(df)
 
-    def test_empty_dataframe(self):
+    def test_empty_dataframe(self) -> None:
         """
         Test that an empty dataframe passes validation without errors.
         """
@@ -814,7 +814,7 @@ class TestInputValidationModelInfo:
         # Should not raise any exception
         utils.input_validation_model_info(df)
 
-    def test_single_row(self):
+    def test_single_row(self) -> None:
         """
         Test that a dataframe with a single row passes validation.
         Single rows cannot have inconsistencies by definition.
