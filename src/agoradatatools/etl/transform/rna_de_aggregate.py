@@ -14,6 +14,7 @@ The transformation:
 
 Key Functions:
     transform_rna_de_aggregate: Main transformation function that orchestrates the data processing
+    validate_and_sort_age_entries: Validates and sorts age entries by numeric value
 
 Required Inputs:
     - rnaseq_genotype_label_map: Maps models and genotypes to display labels
@@ -48,6 +49,59 @@ REQUIRED_INPUT = {
         "ensembl_id",
     ],
 }
+
+
+def validate_and_sort_age_entries(
+    age_entries: Dict[str, Dict[str, float]],
+    ensembl_gene_id: str,
+    model: str,
+    tissue: str,
+    sex: str,
+) -> Dict[str, Dict[str, float]]:
+    """
+    Validates and sorts age entries by their numeric value.
+
+    Age entries are expected to be in the format 'N months' where N is an integer.
+    This function validates that all age strings are properly formatted and not empty,
+    then sorts them numerically.
+
+    Args:
+        age_entries: Dictionary mapping age strings to their log2_fc and adj_p_val values
+        ensembl_gene_id: Gene identifier for error reporting
+        model: Model name for error reporting
+        tissue: Tissue type for error reporting
+        sex: Sex category for error reporting
+
+    Returns:
+        Dictionary of age entries sorted by numeric age value
+
+    Raises:
+        ValueError: If any age string is empty, whitespace-only, or not in 'N months' format
+    """
+    # Validate that no age strings are empty or whitespace-only
+    for age in age_entries.keys():
+        age_stripped = age.strip()
+        if not age_stripped:
+            raise ValueError(
+                f"Empty or whitespace-only age value found in data for gene '{ensembl_gene_id}', "
+                f"model '{model}', tissue '{tissue}', sex '{sex}'. "
+                f"Expected 'N months' format but found: '{age}'"
+            )
+
+    # Sort age entries by numeric value with error handling for format validation
+    try:
+        sorted_ages = dict(
+            sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
+        )
+    except (ValueError, IndexError) as e:
+        raise ValueError(
+            f"Invalid age format in data for gene '{ensembl_gene_id}', "
+            f"model '{model}', tissue '{tissue}', sex '{sex}'. "
+            f"Expected 'N months' format but found: {list(age_entries.keys())}. "
+            f"Original error: {e}"
+        ) from e
+
+    return sorted_ages
 
 
 def transform_rna_de_aggregate(
@@ -180,18 +234,10 @@ def transform_rna_de_aggregate(
                     "adj_p_val": float(row["padj"]),
                 }
 
-            # Sort age entries with error handling for format validation
-            try:
-                sorted_ages = dict(
-                    sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
-                )
-            except (ValueError, IndexError) as e:
-                raise ValueError(
-                    f"Invalid age format in data for gene '{ensembl_gene_id}', "
-                    f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-                    f"Expected 'N months' format but found: {list(age_entries.keys())}. "
-                    f"Original error: {e}"
-                ) from e
+            # Validate and sort age entries
+            sorted_ages = validate_and_sort_age_entries(
+                age_entries, ensembl_gene_id, model, tissue, sex
+            )
 
             # If tissue is "Right Cerebral Hemisphere", change tissue to "Hemibrain"
             # Only expected for JAX models

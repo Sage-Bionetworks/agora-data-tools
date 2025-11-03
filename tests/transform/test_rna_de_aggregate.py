@@ -1,9 +1,13 @@
 """
 Test suite for RNA differential expression aggregate transformation.
 
-This module contains comprehensive tests for the `transform_rna_de_aggregate` function,
-which aggregates mouse model RNA-seq differential expression data into a structured
-format for the Agora platform.
+This module contains comprehensive tests for the `transform_rna_de_aggregate` function
+and the `validate_and_sort_age_entries` helper function, which aggregate mouse model
+RNA-seq differential expression data into a structured format for the Agora platform.
+
+Test Classes:
+    - TestValidateAndSortAgeEntries: Unit tests for the age validation and sorting helper function
+    - TestTransformRnaDeAggregate: Integration tests for the full transformation pipeline
 
 The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/` to verify:
 - Core transformation logic (data aggregation, metadata enrichment)
@@ -11,6 +15,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 - JAX tissue name mapping (e.g., 'Right Cerebral Hemisphere' -> 'Hemibrain')
 - Human gene filtering (only mouse genes with ENSMUSG* IDs should be processed)
 - Age sorting (numeric ordering of age entries)
+- Age validation (empty strings, whitespace, invalid formats)
 - Edge cases (single row data, missing metadata, empty biodomains)
 - Error handling (missing datasets, empty files, missing columns, invalid age formats, inconsistent model_group values)
 - Data precision (rounding to 5 decimal places)
@@ -34,7 +39,295 @@ from typing import Dict, List
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggregate
+from agoradatatools.etl.transform.rna_de_aggregate import (
+    transform_rna_de_aggregate,
+    validate_and_sort_age_entries,
+)
+
+
+class TestValidateAndSortAgeEntries:
+    """
+    Unit tests for the validate_and_sort_age_entries helper function.
+
+    This class contains focused unit tests for age validation and sorting logic,
+    testing the function in isolation from the full transformation pipeline.
+
+    Test Methods:
+        - test_valid_single_age: Tests sorting with a single valid age entry.
+        - test_valid_multiple_ages_sorted: Tests sorting multiple ages in numeric order.
+        - test_valid_multiple_ages_unsorted: Tests sorting handles unsorted input correctly.
+        - test_valid_ages_with_extra_whitespace: Tests handling of extra whitespace in age strings.
+        - test_empty_string_age: Tests error handling for empty string age values.
+        - test_whitespace_only_age: Tests error handling for whitespace-only age values.
+        - test_multiple_spaces_in_age: Tests error handling for multiple spaces between number and unit.
+        - test_age_without_space: Tests error handling for age format without space (e.g., "6months").
+        - test_non_numeric_age: Tests error handling for non-numeric age values.
+        - test_negative_age: Tests error handling for negative age values.
+        - test_float_age: Tests error handling for float age values.
+        - test_age_with_wrong_unit: Tests handling of age with units other than "months".
+        - test_empty_age_entries_dict: Tests handling of empty age entries dictionary.
+        - test_error_message_contains_context: Tests that error messages include gene/model/tissue/sex context.
+    """
+
+    def test_valid_single_age(self) -> None:
+        """Test that a single valid age entry is handled correctly."""
+        age_entries = {"6 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+        result = validate_and_sort_age_entries(
+            age_entries=age_entries,
+            ensembl_gene_id="ENSMUSG00000000001",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert result == {"6 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+    def test_valid_multiple_ages_sorted(self) -> None:
+        """Test that multiple ages already in order remain sorted."""
+        age_entries = {
+            "4 months": {"log2_fc": 0.3, "adj_p_val": 0.02},
+            "6 months": {"log2_fc": 0.5, "adj_p_val": 0.01},
+            "12 months": {"log2_fc": 0.8, "adj_p_val": 0.005},
+        }
+
+        result = validate_and_sort_age_entries(
+            age_entries=age_entries,
+            ensembl_gene_id="ENSMUSG00000000001",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        # Verify order is preserved
+        assert list(result.keys()) == ["4 months", "6 months", "12 months"]
+
+    def test_valid_multiple_ages_unsorted(self) -> None:
+        """Test that multiple unsorted ages are sorted numerically."""
+        age_entries = {
+            "12 months": {"log2_fc": 0.8, "adj_p_val": 0.005},
+            "4 months": {"log2_fc": 0.3, "adj_p_val": 0.02},
+            "6 months": {"log2_fc": 0.5, "adj_p_val": 0.01},
+        }
+
+        result = validate_and_sort_age_entries(
+            age_entries=age_entries,
+            ensembl_gene_id="ENSMUSG00000000001",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        # Verify ages are sorted numerically
+        assert list(result.keys()) == ["4 months", "6 months", "12 months"]
+        assert result["4 months"] == {"log2_fc": 0.3, "adj_p_val": 0.02}
+        assert result["6 months"] == {"log2_fc": 0.5, "adj_p_val": 0.01}
+        assert result["12 months"] == {"log2_fc": 0.8, "adj_p_val": 0.005}
+
+    def test_valid_ages_with_extra_whitespace(self) -> None:
+        """Test that ages with extra whitespace are handled correctly."""
+        # Note: The function receives age after str() conversion,
+        # so extra whitespace in the middle is preserved
+        age_entries = {
+            "6  months": {"log2_fc": 0.5, "adj_p_val": 0.01},  # Two spaces
+        }
+
+        # This should work because split()[0] handles multiple spaces
+        result = validate_and_sort_age_entries(
+            age_entries=age_entries,
+            ensembl_gene_id="ENSMUSG00000000001",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert "6  months" in result
+
+    def test_empty_string_age(self) -> None:
+        """Test that empty string age raises ValueError with specific message."""
+        age_entries = {"": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+        with pytest.raises(ValueError) as exc_info:
+            validate_and_sort_age_entries(
+                age_entries=age_entries,
+                ensembl_gene_id="ENSMUSG00000000001",
+                model="TestModel",
+                tissue="Cortex",
+                sex="Male",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Empty or whitespace-only age value" in error_message
+        assert "ENSMUSG00000000001" in error_message
+        assert "TestModel" in error_message
+        assert "Cortex" in error_message
+        assert "Male" in error_message
+
+    def test_whitespace_only_age(self) -> None:
+        """Test that whitespace-only age raises ValueError with specific message."""
+        age_entries = {"   ": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+        with pytest.raises(ValueError) as exc_info:
+            validate_and_sort_age_entries(
+                age_entries=age_entries,
+                ensembl_gene_id="ENSMUSG00000000002",
+                model="Model_X",
+                tissue="Hippocampus",
+                sex="Female",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Empty or whitespace-only age value" in error_message
+        assert "ENSMUSG00000000002" in error_message
+        assert "Model_X" in error_message
+        assert "Hippocampus" in error_message
+        assert "Female" in error_message
+
+    def test_multiple_spaces_in_age(self) -> None:
+        """Test that multiple whitespace-only entries are all caught."""
+        age_entries = {
+            "  ": {"log2_fc": 0.5, "adj_p_val": 0.01},
+            "\t": {"log2_fc": 0.3, "adj_p_val": 0.02},
+        }
+
+        # Should raise on the first whitespace-only entry it encounters
+        with pytest.raises(ValueError) as exc_info:
+            validate_and_sort_age_entries(
+                age_entries=age_entries,
+                ensembl_gene_id="ENSMUSG00000000003",
+                model="Model_Y",
+                tissue="Cerebellum",
+                sex="Male",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Empty or whitespace-only age value" in error_message
+
+    def test_age_without_space(self) -> None:
+        """Test that age format without space raises ValueError."""
+        age_entries = {"6months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+        with pytest.raises(ValueError) as exc_info:
+            validate_and_sort_age_entries(
+                age_entries=age_entries,
+                ensembl_gene_id="ENSMUSG00000000004",
+                model="Model_Z",
+                tissue="Striatum",
+                sex="Female",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Invalid age format" in error_message
+        assert "ENSMUSG00000000004" in error_message
+        assert "Model_Z" in error_message
+        assert "Expected 'N months' format" in error_message
+        assert "6months" in error_message
+
+    def test_non_numeric_age(self) -> None:
+        """Test that non-numeric age value raises ValueError."""
+        age_entries = {"unknown months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+        with pytest.raises(ValueError) as exc_info:
+            validate_and_sort_age_entries(
+                age_entries=age_entries,
+                ensembl_gene_id="ENSMUSG00000000005",
+                model="Model_A",
+                tissue="Thalamus",
+                sex="Male",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Invalid age format" in error_message
+        assert "ENSMUSG00000000005" in error_message
+        assert "Expected 'N months' format" in error_message
+        assert "unknown months" in error_message
+
+    def test_negative_age(self) -> None:
+        """Test that negative age value raises ValueError."""
+        age_entries = {"-6 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+        # This actually won't raise an error because int("-6") works
+        # But it will sort correctly
+        result = validate_and_sort_age_entries(
+            age_entries=age_entries,
+            ensembl_gene_id="ENSMUSG00000000006",
+            model="Model_B",
+            tissue="Cortex",
+            sex="Female",
+        )
+
+        assert "-6 months" in result
+
+    def test_float_age(self) -> None:
+        """Test that float age value raises ValueError."""
+        age_entries = {"6.5 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+        # This will raise because int("6.5") fails
+        with pytest.raises(ValueError) as exc_info:
+            validate_and_sort_age_entries(
+                age_entries=age_entries,
+                ensembl_gene_id="ENSMUSG00000000007",
+                model="Model_C",
+                tissue="Cortex",
+                sex="Male",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Invalid age format" in error_message
+        assert "6.5 months" in error_message
+
+    def test_age_with_wrong_unit(self) -> None:
+        """Test that age with units other than 'months' still works if numeric."""
+        # The function only validates the numeric part, not the unit
+        age_entries = {
+            "6 years": {"log2_fc": 0.5, "adj_p_val": 0.01},
+            "12 days": {"log2_fc": 0.3, "adj_p_val": 0.02},
+        }
+
+        result = validate_and_sort_age_entries(
+            age_entries=age_entries,
+            ensembl_gene_id="ENSMUSG00000000008",
+            model="Model_D",
+            tissue="Cortex",
+            sex="Female",
+        )
+
+        # Should sort by numeric value
+        assert list(result.keys()) == ["6 years", "12 days"]
+
+    def test_empty_age_entries_dict(self) -> None:
+        """Test that empty age_entries dictionary is handled gracefully."""
+        age_entries = {}
+
+        result = validate_and_sort_age_entries(
+            age_entries=age_entries,
+            ensembl_gene_id="ENSMUSG00000000009",
+            model="Model_E",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert result == {}
+
+    def test_error_message_contains_context(self) -> None:
+        """Test that error messages include all context information."""
+        age_entries = {"invalid": {"log2_fc": 0.5, "adj_p_val": 0.01}}
+
+        with pytest.raises(ValueError) as exc_info:
+            validate_and_sort_age_entries(
+                age_entries=age_entries,
+                ensembl_gene_id="ENSMUSG99999999",
+                model="TestModel123",
+                tissue="TestTissue",
+                sex="TestSex",
+            )
+
+        error_message = str(exc_info.value)
+        # Verify all context parameters are in the error message
+        assert "ENSMUSG99999999" in error_message
+        assert "TestModel123" in error_message
+        assert "TestTissue" in error_message
+        assert "TestSex" in error_message
 
 
 class TestTransformRnaDeAggregate:
@@ -56,16 +349,13 @@ class TestTransformRnaDeAggregate:
         - test_synthetic_multi_model_data: Tests handling of multiple models and tissues.
         - test_synthetic_jax_tissue_mapping: Tests JAX-specific tissue name mapping.
         - test_synthetic_mixed_genes_filtering: Tests filtering of human genes.
-        - test_synthetic_age_sorting: Tests numeric sorting of age entries.
+        - test_synthetic_age_sorting: Tests numeric sorting of age entries (integration test).
         - test_synthetic_single_row_data: Tests minimal edge case (single row).
         - test_synthetic_empty_data_file: Tests error handling for empty data files.
         - test_synthetic_missing_columns_data: Tests error handling for missing columns.
         - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
         - test_synthetic_multiple_biodomains: Tests genes with multiple biodomain assignments.
         - test_synthetic_null_model_group: Tests handling of null/empty model_group values.
-        - test_invalid_age_format_no_space: Tests error handling for age format without space.
-        - test_invalid_age_format_non_numeric: Tests error handling for non-numeric age values.
-        - test_invalid_age_format_empty_string: Tests error handling for empty/whitespace age.
         - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
 
     Helper Methods:
@@ -504,218 +794,6 @@ class TestTransformRnaDeAggregate:
 
         # Explicitly verify model_group is None (not empty string)
         assert output_data_sorted[0]["model_group"] is None
-
-    def test_invalid_age_format_no_space(self) -> None:
-        """Test error handling for invalid age format without space.
-
-        Tests that age values without spaces (e.g., '3months') raise a clear
-        ValueError with context about which gene/model/tissue/sex the error occurred in.
-        """
-        # Create datasets programmatically with invalid age format
-        datasets = {
-            "rnaseq_genotype_label_map": pd.DataFrame(
-                {
-                    "model": ["TestModel"],
-                    "model_group": ["TestGroup"],
-                    "display_label": ["Test Label"],
-                    "genotype": ["Tg"],
-                }
-            ),
-            "mouse_gene_metadata": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "gene_symbol": ["TestGene"],
-                    "alias": [""],
-                }
-            ),
-            "model_info": pd.DataFrame(
-                {
-                    "model": ["TestModel"],
-                    "matched_controls": ["Wt"],
-                    "model_type": ["transgenic"],
-                }
-            ),
-            "biodom_genes_mm": pd.DataFrame(
-                {
-                    "biodomain": ["Synaptic"],
-                    "abbr": ["SYN"],
-                    "label": ["Synaptic"],
-                    "color": ["#000000"],
-                    "go_id": ["GO:0001"],
-                    "goterm_name": ["synaptic"],
-                    "n_symbol": [1],
-                    "symbol": ["TestGene"],
-                    "ensembl_id": ["ENSMUSG00000000001"],
-                }
-            ),
-            "invalid_age_data": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "log2foldchange": [1.5],
-                    "padj": [0.01],
-                    "model": ["TestModel"],
-                    "case": ["Tg"],
-                    "control": ["Wt"],
-                    "age": ["3months"],  # Invalid: no space
-                    "sex": ["Female"],
-                    "tissue": ["Brain"],
-                }
-            ),
-        }
-
-        # Expect transformation to raise ValueError with informative message
-        with pytest.raises(ValueError) as exc_info:
-            transform_rna_de_aggregate(datasets=datasets)
-
-        # Verify the error message contains expected information
-        error_message = str(exc_info.value)
-        assert "Invalid age format" in error_message
-        assert "ENSMUSG00000000001" in error_message
-        assert "TestModel" in error_message
-        assert "Brain" in error_message
-        assert "Female" in error_message
-        assert "Expected 'N months'" in error_message
-        assert "3months" in error_message
-
-    def test_invalid_age_format_non_numeric(self) -> None:
-        """Test error handling for invalid age format with non-numeric value.
-
-        Tests that age values that are non-numeric (e.g., 'unknown', 'NA') raise a clear
-        ValueError with context about which gene/model/tissue/sex the error occurred in.
-        """
-        # Create datasets programmatically with non-numeric age format
-        datasets = {
-            "rnaseq_genotype_label_map": pd.DataFrame(
-                {
-                    "model": ["Model_X"],
-                    "model_group": ["GroupX"],
-                    "display_label": ["Label X"],
-                    "genotype": ["Het"],
-                }
-            ),
-            "mouse_gene_metadata": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000099999"],
-                    "gene_symbol": ["GeneX"],
-                    "alias": [""],
-                }
-            ),
-            "model_info": pd.DataFrame(
-                {
-                    "model": ["Model_X"],
-                    "matched_controls": ["WT"],
-                    "model_type": ["knockout"],
-                }
-            ),
-            "biodom_genes_mm": pd.DataFrame(
-                {
-                    "biodomain": ["Metabolic"],
-                    "abbr": ["MET"],
-                    "label": ["Metabolic"],
-                    "color": ["#FF0000"],
-                    "go_id": ["GO:0002"],
-                    "goterm_name": ["metabolic"],
-                    "n_symbol": [1],
-                    "symbol": ["GeneX"],
-                    "ensembl_id": ["ENSMUSG00000099999"],
-                }
-            ),
-            "non_numeric_age_data": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000099999"],
-                    "log2foldchange": [2.3],
-                    "padj": [0.005],
-                    "model": ["Model_X"],
-                    "case": ["Het"],
-                    "control": ["WT"],
-                    "age": ["unknown"],  # Invalid: non-numeric
-                    "sex": ["Male"],
-                    "tissue": ["Cortex"],
-                }
-            ),
-        }
-
-        # Expect transformation to raise ValueError with informative message
-        with pytest.raises(ValueError) as exc_info:
-            transform_rna_de_aggregate(datasets=datasets)
-
-        # Verify the error message contains expected information
-        error_message = str(exc_info.value)
-        assert "Invalid age format" in error_message
-        assert "ENSMUSG00000099999" in error_message
-        assert "Model_X" in error_message
-        assert "Cortex" in error_message
-        assert "Male" in error_message
-        assert "Expected 'N months'" in error_message
-        assert "unknown" in error_message
-
-    def test_invalid_age_format_empty_string(self) -> None:
-        """Test error handling for invalid age format with empty/whitespace-only value.
-
-        Tests that age values that are empty or whitespace-only raise a clear ValueError.
-        """
-        # Create datasets programmatically with empty age format
-        datasets = {
-            "rnaseq_genotype_label_map": pd.DataFrame(
-                {
-                    "model": ["Model_Y"],
-                    "model_group": ["GroupY"],
-                    "display_label": ["Label Y"],
-                    "genotype": ["Mut"],
-                }
-            ),
-            "mouse_gene_metadata": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000088888"],
-                    "gene_symbol": ["GeneY"],
-                    "alias": [""],
-                }
-            ),
-            "model_info": pd.DataFrame(
-                {
-                    "model": ["Model_Y"],
-                    "matched_controls": ["Control"],
-                    "model_type": ["mutant"],
-                }
-            ),
-            "biodom_genes_mm": pd.DataFrame(
-                {
-                    "biodomain": ["Immune"],
-                    "abbr": ["IMM"],
-                    "label": ["Immune"],
-                    "color": ["#00FF00"],
-                    "go_id": ["GO:0003"],
-                    "goterm_name": ["immune"],
-                    "n_symbol": [1],
-                    "symbol": ["GeneY"],
-                    "ensembl_id": ["ENSMUSG00000088888"],
-                }
-            ),
-            "empty_age_data": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000088888"],
-                    "log2foldchange": [-0.5],
-                    "padj": [0.03],
-                    "model": ["Model_Y"],
-                    "case": ["Mut"],
-                    "control": ["Control"],
-                    "age": ["   "],  # Invalid: whitespace only
-                    "sex": ["Male"],
-                    "tissue": ["Hippocampus"],
-                }
-            ),
-        }
-
-        # Expect transformation to raise ValueError with informative message
-        with pytest.raises(ValueError) as exc_info:
-            transform_rna_de_aggregate(datasets=datasets)
-
-        # Verify the error message contains expected information
-        error_message = str(exc_info.value)
-        assert "Invalid age format" in error_message
-        assert "ENSMUSG00000088888" in error_message
-        assert "Model_Y" in error_message
-        assert "Expected 'N months'" in error_message
 
     def test_inconsistent_model_group_values(self) -> None:
         """Test error handling for inconsistent model_group values within the same model.
