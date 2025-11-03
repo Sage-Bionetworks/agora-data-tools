@@ -101,9 +101,13 @@ class TestTransformRnaDeAggregate:
         # Mapping from file names to expected dataset keys
         file_to_key_mapping = {
             "synthetic_rnaseq_genotype_label_map.csv": "rnaseq_genotype_label_map",
+            "synthetic_rnaseq_genotype_label_map_no_group.csv": "rnaseq_genotype_label_map",
             "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
+            "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
             "synthetic_model_info.csv": "model_info",
+            "synthetic_model_info_no_group.csv": "model_info",
             "synthetic_biodom_genes_mm.csv": "biodom_genes_mm",
+            "synthetic_biodom_genes_mm_multiple.csv": "biodom_genes_mm",
         }
 
         for file_name in data_files:
@@ -437,12 +441,6 @@ class TestTransformRnaDeAggregate:
             ]
         )
 
-        # Override the biodom_genes_mm dataset with the multi-biodomain version
-        datasets["biodom_genes_mm"] = datasets.pop("synthetic_biodom_genes_mm_multiple")
-        datasets["mouse_gene_metadata"] = datasets.pop(
-            "synthetic_mouse_gene_metadata_multi"
-        )
-
         # Load expected output
         with open(
             os.path.join(
@@ -483,12 +481,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
-
-        # Override the datasets with the no_group versions
-        datasets["rnaseq_genotype_label_map"] = datasets.pop(
-            "synthetic_rnaseq_genotype_label_map_no_group"
-        )
-        datasets["model_info"] = datasets.pop("synthetic_model_info_no_group")
 
         # Load expected output
         with open(
