@@ -1,3 +1,33 @@
+"""
+Test suite for RNA differential expression aggregate transformation.
+
+This module contains comprehensive tests for the `transform_rna_de_aggregate` function,
+which aggregates mouse model RNA-seq differential expression data into a structured
+format for the Agora platform.
+
+The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/` to verify:
+- Core transformation logic (data aggregation, metadata enrichment)
+- Multi-model and multi-tissue handling
+- JAX tissue name mapping (e.g., 'Right Cerebral Hemisphere' -> 'Hemibrain')
+- Human gene filtering (only mouse genes with ENSMUSG* IDs should be processed)
+- Age sorting (numeric ordering of age entries)
+- Edge cases (single row data, missing metadata, empty biodomains)
+- Error handling (missing datasets, empty files, missing columns)
+- Data precision (rounding to 5 decimal places)
+- Multiple biodomain assignments per gene
+- Null/empty model_group handling
+
+Test Data Structure:
+    Input files include:
+    - RNA-seq differential expression data (*.csv)
+    - rnaseq_genotype_label_map.csv (maps genotypes to model labels)
+    - mouse_gene_metadata.csv (gene symbols and metadata)
+    - model_info.csv (model metadata including tissue and group)
+    - biodom_genes_mm.csv (biodomain assignments for mouse genes)
+
+    Output files are JSON-formatted expected results for comparison.
+"""
+
 import os
 import json
 
