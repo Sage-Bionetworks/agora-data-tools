@@ -226,12 +226,13 @@ def transform_rna_de_aggregate(
             model_type = model_info_dict.get(model, "")
 
             # Create age-based entries
+            # Using itertuples() instead of iterrows() for better performance (10-100x faster)
             age_entries = {}
-            for _, row in group.iterrows():
-                age = str(row["age"])
+            for row in group.itertuples(index=False):
+                age = str(row.age)
                 age_entries[age] = {
-                    "log2_fc": float(row["log2foldchange"]),
-                    "adj_p_val": float(row["padj"]),
+                    "log2_fc": float(row.log2foldchange),
+                    "adj_p_val": float(row.padj),
                 }
 
             # Validate and sort age entries
