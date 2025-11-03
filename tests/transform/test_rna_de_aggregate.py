@@ -12,7 +12,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 - Human gene filtering (only mouse genes with ENSMUSG* IDs should be processed)
 - Age sorting (numeric ordering of age entries)
 - Edge cases (single row data, missing metadata, empty biodomains)
-- Error handling (missing datasets, empty files, missing columns, invalid age formats)
+- Error handling (missing datasets, empty files, missing columns, invalid age formats, inconsistent model_group values)
 - Data precision (rounding to 5 decimal places)
 - Multiple biodomain assignments per gene
 - Null/empty model_group handling
@@ -66,6 +66,7 @@ class TestTransformRnaDeAggregate:
         - test_invalid_age_format_no_space: Tests error handling for age format without space.
         - test_invalid_age_format_non_numeric: Tests error handling for non-numeric age values.
         - test_invalid_age_format_empty_string: Tests error handling for empty/whitespace age.
+        - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
 
     Helper Methods:
         - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
@@ -102,6 +103,7 @@ class TestTransformRnaDeAggregate:
         file_to_key_mapping = {
             "synthetic_rnaseq_genotype_label_map.csv": "rnaseq_genotype_label_map",
             "synthetic_rnaseq_genotype_label_map_no_group.csv": "rnaseq_genotype_label_map",
+            "synthetic_rnaseq_genotype_label_map_inconsistent.csv": "rnaseq_genotype_label_map",
             "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
             "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
             "synthetic_model_info.csv": "model_info",
@@ -714,3 +716,34 @@ class TestTransformRnaDeAggregate:
         assert "ENSMUSG00000088888" in error_message
         assert "Model_Y" in error_message
         assert "Expected 'N months'" in error_message
+
+    def test_inconsistent_model_group_values(self) -> None:
+        """Test error handling for inconsistent model_group values within the same model.
+
+        Tests that when a model has different model_group values across multiple rows
+        (e.g., different genotypes), a clear ValueError is raised identifying which
+        models have inconsistent values. Uses synthetic_rnaseq_genotype_label_map_inconsistent.csv
+        where Model_A has GroupX for Tg genotype and GroupY for Wt genotype.
+        """
+        # Load synthetic test data with inconsistent model_group values
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map_inconsistent.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        # Expect transformation to raise ValueError with informative message
+        with pytest.raises(ValueError) as exc_info:
+            transform_rna_de_aggregate(datasets=datasets)
+
+        # Verify the error message contains expected information
+        error_message = str(exc_info.value)
+        assert "Each model must have a consistent model_group value" in error_message
+        assert "rnaseq_genotype_label_map" in error_message
+        assert "Model_A" in error_message
+        # Model_B should not be in the error since it's consistent
+        assert "Model_B" not in error_message

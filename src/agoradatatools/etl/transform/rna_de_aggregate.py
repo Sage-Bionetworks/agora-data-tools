@@ -78,6 +78,19 @@ def transform_rna_de_aggregate(
     label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
         "display_label"
     ].to_dict()
+
+    # Validate that each model has consistent model_group values
+    inconsistent_models = (
+        rnaseq_genotype_label_map_df.groupby("model")["model_group"]
+        .nunique()
+        .pipe(lambda x: x[x > 1].index.tolist())
+    )
+    if inconsistent_models:
+        raise ValueError(
+            f"Each model must have a consistent model_group value in rnaseq_genotype_label_map. "
+            f"Models with inconsistent model_group values: {inconsistent_models}"
+        )
+
     model_group_dict = (
         rnaseq_genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
     )

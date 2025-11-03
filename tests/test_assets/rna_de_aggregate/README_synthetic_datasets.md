@@ -27,6 +27,7 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_biodom_genes_mm_multiple.csv`**: Biodomain assignments with genes having multiple biodomains
 - **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
 - **`synthetic_rnaseq_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
+- **`synthetic_rnaseq_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
 - **`synthetic_model_info_no_group.csv`**: Model metadata with model having no model_group
 
 ### Output Files
@@ -102,6 +103,18 @@ Expected: model_group=null (not empty string)
 Tests: Empty string to null conversion for model_group field
 ```
 
+### Scenario 10: Inconsistent Model Group (`synthetic_rnaseq_genotype_label_map_inconsistent.csv`)
+```
+Model: Model_A with inconsistent model_group values
+  - Tg genotype → GroupX
+  - Wt genotype → GroupY
+Model: Model_B with consistent model_group values
+  - Tg genotype → GroupZ
+  - Wt genotype → GroupZ
+Expected: ValueError raised identifying Model_A as having inconsistent model_group values
+Tests: Validation of model_group consistency across genotypes within same model
+```
+
 ## Data Grouping and Case/Control Logic
 
 ### Grouping Strategy
@@ -152,6 +165,7 @@ When testing, verify:
 10. **Multiple biodomains**: Genes can have multiple biodomain assignments in a list
 11. **Missing metadata**: Gene not in metadata → gene_symbol="" and biodomains=[]
 12. **Null model_group**: Empty model_group converted to null in output
+13. **Model group consistency**: Each model must have consistent model_group values across all genotypes (raises ValueError if inconsistent)
 
 ## File Structure
 ```
@@ -177,6 +191,7 @@ tests/test_assets/rna_de_aggregate/
 │       ├── synthetic_biodom_genes_mm_multiple.csv
 │       ├── synthetic_mouse_gene_metadata_multi.csv
 │       ├── synthetic_rnaseq_genotype_label_map_no_group.csv
+│       ├── synthetic_rnaseq_genotype_label_map_inconsistent.csv
 │       └── synthetic_model_info_no_group.csv
 ├── output/
 │   ├── synthetic_basic_output.json
