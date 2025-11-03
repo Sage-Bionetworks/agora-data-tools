@@ -71,68 +71,24 @@ class TestTransformRnaDeAggregate:
 
     def test_transform_rna_de_aggregate_jax_tissue_mapping(self):
         """Test that JAX models with 'Right Cerebral Hemisphere' tissue are mapped to 'Hemibrain'."""
-        # Create test data with JAX model and Right Cerebral Hemisphere tissue
-        jax_data = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000022892"],
-                "log2foldchange": [1.234567],
-                "padj": [0.001],
-                "model": ["JAX_model"],
-                "case": ["Tg"],
-                "control": ["Wt"],
-                "age": ["6 months"],
-                "sex": ["Female"],
-                "tissue": ["Right Cerebral Hemisphere"],
-            }
+        # Load synthetic test data - already has JAX_Model with Right Cerebral Hemisphere tissue
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_jax_tissue_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
         )
-
-        # Create JAX-specific datasets
-        datasets = {
-            "test_data_jax": jax_data,
-            "rnaseq_genotype_label_map": pd.DataFrame(
-                {
-                    "model": ["JAX_model"],
-                    "model_group": ["AD"],
-                    "display_label": ["JAX_model (Tg)"],
-                    "genotype": ["Tg"],
-                }
-            ),
-            "mouse_gene_metadata": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000022892"],
-                    "gene_symbol": ["App"],
-                    "alias": [""],
-                }
-            ),
-            "model_info": pd.DataFrame(
-                {
-                    "model": ["JAX_model"],
-                    "matched_controls": ["JAX_model (Wt)"],
-                    "model_type": ["Transgenic"],
-                }
-            ),
-            "biodom_genes_mm": pd.DataFrame(
-                {
-                    "biodomain": ["Synaptic"],
-                    "abbr": ["Axon"],
-                    "label": ["Axon Function"],
-                    "color": ["#FF6B6B"],
-                    "go_id": ["GO:0030424"],
-                    "goterm_name": ["axon"],
-                    "n_symbol": [1],
-                    "symbol": ["App"],
-                    "ensembl_id": ["ENSMUSG00000022892"],
-                }
-            ),
-        }
 
         # Transform data
         output_data = transform_rna_de_aggregate(datasets=datasets)
 
-        # Should map tissue from "Right Cerebral Hemisphere" to "Hemibrain"
+        # Verify tissue mapping: "Right Cerebral Hemisphere" -> "Hemibrain"
         assert len(output_data) == 1
         assert output_data[0]["tissue"] == "Hemibrain"
-        assert "jax" in output_data[0]["name"].lower()
+        assert "JAX_Model" in output_data[0]["name"]
 
     def test_transform_rna_de_aggregate_age_sorting(self):
         """Test that age entries are sorted numerically."""
