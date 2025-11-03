@@ -92,73 +92,24 @@ class TestTransformRnaDeAggregate:
 
     def test_transform_rna_de_aggregate_age_sorting(self):
         """Test that age entries are sorted numerically."""
-        # Create test data with ages in non-numerical order
-        age_data = pd.DataFrame(
-            {
-                "ensembl_gene_id": [
-                    "ENSMUSG00000022892",
-                    "ENSMUSG00000022892",
-                    "ENSMUSG00000022892",
-                ],
-                "log2foldchange": [1.234567, 2.345678, 0.876543],
-                "padj": [0.001, 0.002, 0.003],
-                "model": ["APP/PS1", "APP/PS1", "APP/PS1"],
-                "case": ["Tg", "Tg", "Tg"],
-                "control": ["Wt", "Wt", "Wt"],
-                "age": ["12 months", "3 months", "6 months"],  # Non-numerical order
-                "sex": ["Female", "Female", "Female"],
-                "tissue": ["Hippocampus", "Hippocampus", "Hippocampus"],
-            }
+        # Load synthetic test data - has ages in non-numerical order (12, 3, 6 months)
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_age_sorting_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
         )
-
-        # Create datasets with age data
-        datasets = {
-            "test_data_age": age_data,
-            "rnaseq_genotype_label_map": pd.DataFrame(
-                {
-                    "model": ["APP/PS1"],
-                    "model_group": ["AD"],
-                    "display_label": ["APP/PS1 (Tg)"],
-                    "genotype": ["Tg"],
-                }
-            ),
-            "mouse_gene_metadata": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000022892"],
-                    "gene_symbol": ["App"],
-                    "alias": [""],
-                }
-            ),
-            "model_info": pd.DataFrame(
-                {
-                    "model": ["APP/PS1"],
-                    "matched_controls": ["APP/PS1 (Wt)"],
-                    "model_type": ["Transgenic"],
-                }
-            ),
-            "biodom_genes_mm": pd.DataFrame(
-                {
-                    "biodomain": ["Synaptic"],
-                    "abbr": ["Axon"],
-                    "label": ["Axon Function"],
-                    "color": ["#FF6B6B"],
-                    "go_id": ["GO:0030424"],
-                    "goterm_name": ["axon"],
-                    "n_symbol": [1],
-                    "symbol": ["App"],
-                    "ensembl_id": ["ENSMUSG00000022892"],
-                }
-            ),
-        }
 
         # Transform data
         output_data = transform_rna_de_aggregate(datasets=datasets)
 
-        # Should have ages sorted numerically
+        # Verify ages are sorted numerically: 3, 6, 12 months (not input order 12, 3, 6)
         assert len(output_data) == 1
         entry = output_data[0]
         age_keys = [key for key in entry.keys() if "months" in key]
-        # Age keys should be in numerical order: 3 months, 6 months, 12 months
         assert age_keys == ["3 months", "6 months", "12 months"]
 
     def _load_synthetic_test_data(self, data_files):
