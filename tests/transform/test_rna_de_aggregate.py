@@ -59,14 +59,12 @@ class TestValidateAndSortAgeEntries:
         - test_valid_ages_with_extra_whitespace: Tests handling of extra whitespace in age strings.
         - test_empty_string_age: Tests error handling for empty string age values.
         - test_whitespace_only_age: Tests error handling for whitespace-only age values.
-        - test_multiple_spaces_in_age: Tests error handling for multiple spaces between number and unit.
         - test_age_without_space: Tests error handling for age format without space (e.g., "6months").
         - test_non_numeric_age: Tests error handling for non-numeric age values.
         - test_negative_age: Tests error handling for negative age values.
         - test_float_age: Tests error handling for float age values.
         - test_age_with_wrong_unit: Tests handling of age with units other than "months".
         - test_empty_age_entries_dict: Tests handling of empty age entries dictionary.
-        - test_error_message_contains_context: Tests that error messages include gene/model/tissue/sex context.
     """
 
     def test_valid_single_age(self) -> None:
@@ -183,26 +181,6 @@ class TestValidateAndSortAgeEntries:
         assert "Hippocampus" in error_message
         assert "Female" in error_message
 
-    def test_multiple_spaces_in_age(self) -> None:
-        """Test that multiple whitespace-only entries are all caught."""
-        age_entries = {
-            "  ": {"log2_fc": 0.5, "adj_p_val": 0.01},
-            "\t": {"log2_fc": 0.3, "adj_p_val": 0.02},
-        }
-
-        # Should raise on the first whitespace-only entry it encounters
-        with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
-                age_entries=age_entries,
-                ensembl_gene_id="ENSMUSG00000000003",
-                model="Model_Y",
-                tissue="Cerebellum",
-                sex="Male",
-            )
-
-        error_message = str(exc_info.value)
-        assert "Empty or whitespace-only age value" in error_message
-
     def test_age_without_space(self) -> None:
         """Test that age format without space raises ValueError."""
         age_entries = {"6months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
@@ -308,26 +286,6 @@ class TestValidateAndSortAgeEntries:
         )
 
         assert result == {}
-
-    def test_error_message_contains_context(self) -> None:
-        """Test that error messages include all context information."""
-        age_entries = {"invalid": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-        with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
-                age_entries=age_entries,
-                ensembl_gene_id="ENSMUSG99999999",
-                model="TestModel123",
-                tissue="TestTissue",
-                sex="TestSex",
-            )
-
-        error_message = str(exc_info.value)
-        # Verify all context parameters are in the error message
-        assert "ENSMUSG99999999" in error_message
-        assert "TestModel123" in error_message
-        assert "TestTissue" in error_message
-        assert "TestSex" in error_message
 
 
 class TestTransformRnaDeAggregate:
