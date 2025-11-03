@@ -10,6 +10,7 @@ from typing import Dict, List, Any, Union, Tuple
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     convert_numpy_types,
+    nest_fields,
 )
 
 
@@ -144,50 +145,6 @@ def _calculate_y_axis_max_map(
             y_axis_max_map[tuple(key)] = round_y_axis_max(0)
 
     return y_axis_max_map
-
-
-def _create_data_rows_from_groups(
-    dataset: pd.DataFrame,
-    group_columns: List[str],
-    extra_columns: List[str],
-    extra_column_name: str,
-    y_axis_max_map: Dict[Tuple[str, str, str], float],
-) -> List[Dict[str, Any]]:
-    """
-    Create data rows by grouping the dataset and adding y_axis_max values.
-
-    Groups the dataset by the specified columns and creates dictionary entries
-    where each entry represents a unique group. Each data row contains the group
-    key values, a y_axis_max value calculated for that group, and aggregated
-    data from the extra columns.
-
-    Args:
-        dataset: The prepared dataset to group and process
-        group_columns: Columns to group by (e.g., ['name', 'evidence_type', 'tissue'])
-        extra_columns: Other columns in addition to group_columns to include in the returned data
-        extra_column_name: Name of the key in each returned dictionary that will contain the aggregated extra_columns data
-        y_axis_max_map: Pre-calculated final y_axis_max values for each group combination
-
-    Returns:
-        List of dictionary entries (data rows), where each entry contains:
-        - Group key values from group_columns
-        - y_axis_max value for the group
-        - Aggregated data from extra_columns under the key specified by extra_column_name
-    """
-    data_rows = []
-    grouped = dataset.groupby(group_columns)
-
-    for group_key, group in grouped:
-        entry = dict(zip(group_columns, group_key))
-
-        # Get the final y_axis_max value for this combination of (name, evidence_type, tissue)
-        key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
-        entry["y_axis_max"] = y_axis_max_map.get(key_for_y_axis, round_y_axis_max(0))
-
-        entry[extra_column_name] = group[extra_columns].to_dict("records")
-        data_rows.append(entry)
-
-    return data_rows
 
 
 def _add_missing_age_entries(
@@ -347,13 +304,38 @@ def immunohisto_transform(
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
 
+    # Handle empty datasets - return empty list immediately
+    if dataset.empty:
+        return []
+
     # Calculate final y_axis_max values for all combinations
     y_axis_max_map = _calculate_y_axis_max_map(dataset)
 
-    # Create initial data rows from groups
-    data_rows = _create_data_rows_from_groups(
-        dataset, group_columns, extra_columns, extra_column_name, y_axis_max_map
+    # Create initial data rows from groups using nest_fields
+    # We need to drop columns that are not in group_columns or extra_columns
+    columns_to_keep = set(group_columns + extra_columns)
+    columns_to_drop = [col for col in dataset.columns if col not in columns_to_keep]
+
+    grouped = nest_fields(
+        dataset.copy(),
+        grouping=group_columns,
+        new_column=extra_column_name,
+        drop_columns=group_columns + columns_to_drop,
     )
+
+    grouped["y_axis_max"] = grouped.apply(
+        lambda entry: y_axis_max_map.get(
+            (entry["name"], entry["evidence_type"], entry["tissue"]),
+            round_y_axis_max(0),
+        ),
+        axis=1,
+    )
+
+    # Reorder columns to match expected output: group_columns + y_axis_max + extra_column_name
+    column_order = group_columns + ["y_axis_max", extra_column_name]
+    grouped = grouped[column_order]
+
+    data_rows = grouped.to_dict("records")
 
     # Add missing age entries for completeness
     data_rows = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)

@@ -6,7 +6,6 @@ import pytest
 from agoradatatools.etl.transform.immunohisto_transform import (
     _add_missing_age_entries,
     _calculate_y_axis_max_map,
-    _create_data_rows_from_groups,
     _extract_age_num,
     immunohisto_transform,
     prepare_immunohisto_data,
@@ -578,114 +577,6 @@ class TestCalculateYAxisMaxMap:
         # Should handle mixed types and find max of valid values, then round it
         expected = {("Model1", "Type1", "Tissue1"): 3.5}  # round_y_axis_max(3.0) = 3.5
         assert result == expected
-
-
-class TestCreateDataRowsFromGroups:
-    """Test class for the _create_data_rows_from_groups function."""
-
-    def test_create_data_rows_from_groups_basic(self) -> None:
-        """Test basic functionality."""
-        dataset = pd.DataFrame(
-            {
-                "name": ["Model1", "Model1"],
-                "evidence_type": ["Type1", "Type1"],
-                "tissue": ["Tissue1", "Tissue1"],
-                "age": ["6 months", "12 months"],
-                "units": ["mg", "mg"],
-                "genotype": ["WT", "KO"],
-                "sex": ["Male", "Female"],
-                "individual_id": ["1", "2"],
-                "value": [1.0, 3.0],
-            }
-        )
-
-        group_columns = ["name", "evidence_type", "tissue", "age", "units"]
-        extra_columns = ["genotype", "sex", "individual_id", "value"]
-        extra_column_name = "data"
-        y_axis_max_map = {("Model1", "Type1", "Tissue1"): 3.5}  # Final rounded value
-
-        result = _create_data_rows_from_groups(
-            dataset, group_columns, extra_columns, extra_column_name, y_axis_max_map
-        )
-
-        # Should create one entry per age group
-        assert len(result) == 2
-
-        # Check that both entries exist (order may vary due to grouping)
-        ages_found = [entry["age"] for entry in result]
-        assert "6 months" in ages_found
-        assert "12 months" in ages_found
-
-        # Check common properties
-        for entry in result:
-            assert entry["name"] == "Model1"
-            assert entry["evidence_type"] == "Type1"
-            assert entry["tissue"] == "Tissue1"
-            assert entry["units"] == "mg"
-            # The lookup table now contains the final rounded value directly
-            assert entry["y_axis_max"] == pytest.approx(3.5)
-            assert len(entry["data"]) == 1
-
-        # Find the 6 months entry specifically
-        six_month_entry = next(entry for entry in result if entry["age"] == "6 months")
-        assert six_month_entry["data"][0]["genotype"] == "WT"
-
-    def test_create_data_rows_from_groups_custom_columns(self) -> None:
-        """Test with custom group and extra columns."""
-        dataset = pd.DataFrame(
-            {
-                "name": ["Model1"],
-                "evidence_type": ["Type1"],
-                "tissue": ["Tissue1"],
-                "age": ["6 months"],
-                "units": ["mg"],
-                "genotype": ["WT"],
-                "sex": ["Male"],
-                "individual_id": ["1"],
-                "value": [1.0],
-                "extra_field": ["extra_value"],
-            }
-        )
-
-        # Note: The function requires "tissue" to be in group_columns for y_axis_max lookup
-        group_columns = ["name", "evidence_type", "tissue"]
-        extra_columns = ["genotype", "extra_field"]
-        extra_column_name = "measurements"
-        y_axis_max_map = {("Model1", "Type1", "Tissue1"): 1.0}
-
-        result = _create_data_rows_from_groups(
-            dataset, group_columns, extra_columns, extra_column_name, y_axis_max_map
-        )
-
-        assert len(result) == 1
-        entry = result[0]
-        assert "measurements" in entry
-        assert entry["measurements"][0]["extra_field"] == "extra_value"
-
-    def test_create_data_rows_from_groups_empty_y_axis_map(self) -> None:
-        """Test with empty y_axis_max_map."""
-        dataset = pd.DataFrame(
-            {
-                "name": ["Model1"],
-                "evidence_type": ["Type1"],
-                "tissue": ["Tissue1"],
-                "age": ["6 months"],
-                "units": ["mg"],
-                "genotype": ["WT"],
-                "value": [1.0],
-            }
-        )
-
-        result = _create_data_rows_from_groups(
-            dataset,
-            ["name", "evidence_type", "tissue", "age", "units"],
-            ["genotype", "value"],
-            "data",
-            {},
-        )
-
-        # Should use default y_axis_max of 0 when key not found, but round_y_axis_max(0) returns 10.0
-        assert result[0]["y_axis_max"] == pytest.approx(10.0)
 
 
 class TestAddMissingAgeEntries:
