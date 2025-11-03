@@ -412,10 +412,10 @@ class TestTransformRnaDeAggregate:
         assert output_data_sorted == expected_data_sorted
 
         # Explicitly verify rounding
-        assert output_data[0]["3 months"]["log2_fc"] == pytest.approx(1.12346)
-        assert output_data[0]["3 months"]["adj_p_val"] == pytest.approx(0.01235)
-        assert output_data[0]["6 months"]["log2_fc"] == pytest.approx(2.98765)
-        assert output_data[0]["6 months"]["adj_p_val"] == pytest.approx(0.98765)
+        assert output_data_sorted[0]["3 months"]["log2_fc"] == pytest.approx(1.12346)
+        assert output_data_sorted[0]["3 months"]["adj_p_val"] == pytest.approx(0.01235)
+        assert output_data_sorted[0]["6 months"]["log2_fc"] == pytest.approx(2.98765)
+        assert output_data_sorted[0]["6 months"]["adj_p_val"] == pytest.approx(0.98765)
 
     def test_synthetic_multiple_biodomains(self) -> None:
         """Test handling of genes with multiple biodomain assignments.
