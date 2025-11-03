@@ -12,7 +12,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 - Human gene filtering (only mouse genes with ENSMUSG* IDs should be processed)
 - Age sorting (numeric ordering of age entries)
 - Edge cases (single row data, missing metadata, empty biodomains)
-- Error handling (missing datasets, empty files, missing columns)
+- Error handling (missing datasets, empty files, missing columns, invalid age formats)
 - Data precision (rounding to 5 decimal places)
 - Multiple biodomain assignments per gene
 - Null/empty model_group handling
@@ -63,6 +63,9 @@ class TestTransformRnaDeAggregate:
         - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
         - test_synthetic_multiple_biodomains: Tests genes with multiple biodomain assignments.
         - test_synthetic_null_model_group: Tests handling of null/empty model_group values.
+        - test_invalid_age_format_no_space: Tests error handling for age format without space.
+        - test_invalid_age_format_non_numeric: Tests error handling for non-numeric age values.
+        - test_invalid_age_format_empty_string: Tests error handling for empty/whitespace age.
 
     Helper Methods:
         - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
@@ -507,3 +510,215 @@ class TestTransformRnaDeAggregate:
 
         # Explicitly verify model_group is None (not empty string)
         assert output_data_sorted[0]["model_group"] is None
+
+    def test_invalid_age_format_no_space(self) -> None:
+        """Test error handling for invalid age format without space.
+
+        Tests that age values without spaces (e.g., '3months') raise a clear
+        ValueError with context about which gene/model/tissue/sex the error occurred in.
+        """
+        # Create datasets programmatically with invalid age format
+        datasets = {
+            "rnaseq_genotype_label_map": pd.DataFrame(
+                {
+                    "model": ["TestModel"],
+                    "model_group": ["TestGroup"],
+                    "display_label": ["Test Label"],
+                    "genotype": ["Tg"],
+                }
+            ),
+            "mouse_gene_metadata": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000000001"],
+                    "gene_symbol": ["TestGene"],
+                    "alias": [""],
+                }
+            ),
+            "model_info": pd.DataFrame(
+                {
+                    "model": ["TestModel"],
+                    "matched_controls": ["Wt"],
+                    "model_type": ["transgenic"],
+                }
+            ),
+            "biodom_genes_mm": pd.DataFrame(
+                {
+                    "biodomain": ["Synaptic"],
+                    "abbr": ["SYN"],
+                    "label": ["Synaptic"],
+                    "color": ["#000000"],
+                    "go_id": ["GO:0001"],
+                    "goterm_name": ["synaptic"],
+                    "n_symbol": [1],
+                    "symbol": ["TestGene"],
+                    "ensembl_id": ["ENSMUSG00000000001"],
+                }
+            ),
+            "invalid_age_data": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000000001"],
+                    "log2foldchange": [1.5],
+                    "padj": [0.01],
+                    "model": ["TestModel"],
+                    "case": ["Tg"],
+                    "control": ["Wt"],
+                    "age": ["3months"],  # Invalid: no space
+                    "sex": ["Female"],
+                    "tissue": ["Brain"],
+                }
+            ),
+        }
+
+        # Expect transformation to raise ValueError with informative message
+        with pytest.raises(ValueError) as exc_info:
+            transform_rna_de_aggregate(datasets=datasets)
+
+        # Verify the error message contains expected information
+        error_message = str(exc_info.value)
+        assert "Invalid age format" in error_message
+        assert "ENSMUSG00000000001" in error_message
+        assert "TestModel" in error_message
+        assert "Brain" in error_message
+        assert "Female" in error_message
+        assert "Expected 'N months'" in error_message
+        assert "3months" in error_message
+
+    def test_invalid_age_format_non_numeric(self) -> None:
+        """Test error handling for invalid age format with non-numeric value.
+
+        Tests that age values that are non-numeric (e.g., 'unknown', 'NA') raise a clear
+        ValueError with context about which gene/model/tissue/sex the error occurred in.
+        """
+        # Create datasets programmatically with non-numeric age format
+        datasets = {
+            "rnaseq_genotype_label_map": pd.DataFrame(
+                {
+                    "model": ["Model_X"],
+                    "model_group": ["GroupX"],
+                    "display_label": ["Label X"],
+                    "genotype": ["Het"],
+                }
+            ),
+            "mouse_gene_metadata": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000099999"],
+                    "gene_symbol": ["GeneX"],
+                    "alias": [""],
+                }
+            ),
+            "model_info": pd.DataFrame(
+                {
+                    "model": ["Model_X"],
+                    "matched_controls": ["WT"],
+                    "model_type": ["knockout"],
+                }
+            ),
+            "biodom_genes_mm": pd.DataFrame(
+                {
+                    "biodomain": ["Metabolic"],
+                    "abbr": ["MET"],
+                    "label": ["Metabolic"],
+                    "color": ["#FF0000"],
+                    "go_id": ["GO:0002"],
+                    "goterm_name": ["metabolic"],
+                    "n_symbol": [1],
+                    "symbol": ["GeneX"],
+                    "ensembl_id": ["ENSMUSG00000099999"],
+                }
+            ),
+            "non_numeric_age_data": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000099999"],
+                    "log2foldchange": [2.3],
+                    "padj": [0.005],
+                    "model": ["Model_X"],
+                    "case": ["Het"],
+                    "control": ["WT"],
+                    "age": ["unknown"],  # Invalid: non-numeric
+                    "sex": ["Male"],
+                    "tissue": ["Cortex"],
+                }
+            ),
+        }
+
+        # Expect transformation to raise ValueError with informative message
+        with pytest.raises(ValueError) as exc_info:
+            transform_rna_de_aggregate(datasets=datasets)
+
+        # Verify the error message contains expected information
+        error_message = str(exc_info.value)
+        assert "Invalid age format" in error_message
+        assert "ENSMUSG00000099999" in error_message
+        assert "Model_X" in error_message
+        assert "Cortex" in error_message
+        assert "Male" in error_message
+        assert "Expected 'N months'" in error_message
+        assert "unknown" in error_message
+
+    def test_invalid_age_format_empty_string(self) -> None:
+        """Test error handling for invalid age format with empty/whitespace-only value.
+
+        Tests that age values that are empty or whitespace-only raise a clear ValueError.
+        """
+        # Create datasets programmatically with empty age format
+        datasets = {
+            "rnaseq_genotype_label_map": pd.DataFrame(
+                {
+                    "model": ["Model_Y"],
+                    "model_group": ["GroupY"],
+                    "display_label": ["Label Y"],
+                    "genotype": ["Mut"],
+                }
+            ),
+            "mouse_gene_metadata": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000088888"],
+                    "gene_symbol": ["GeneY"],
+                    "alias": [""],
+                }
+            ),
+            "model_info": pd.DataFrame(
+                {
+                    "model": ["Model_Y"],
+                    "matched_controls": ["Control"],
+                    "model_type": ["mutant"],
+                }
+            ),
+            "biodom_genes_mm": pd.DataFrame(
+                {
+                    "biodomain": ["Immune"],
+                    "abbr": ["IMM"],
+                    "label": ["Immune"],
+                    "color": ["#00FF00"],
+                    "go_id": ["GO:0003"],
+                    "goterm_name": ["immune"],
+                    "n_symbol": [1],
+                    "symbol": ["GeneY"],
+                    "ensembl_id": ["ENSMUSG00000088888"],
+                }
+            ),
+            "empty_age_data": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000088888"],
+                    "log2foldchange": [-0.5],
+                    "padj": [0.03],
+                    "model": ["Model_Y"],
+                    "case": ["Mut"],
+                    "control": ["Control"],
+                    "age": ["   "],  # Invalid: whitespace only
+                    "sex": ["Male"],
+                    "tissue": ["Hippocampus"],
+                }
+            ),
+        }
+
+        # Expect transformation to raise ValueError with informative message
+        with pytest.raises(ValueError) as exc_info:
+            transform_rna_de_aggregate(datasets=datasets)
+
+        # Verify the error message contains expected information
+        error_message = str(exc_info.value)
+        assert "Invalid age format" in error_message
+        assert "ENSMUSG00000088888" in error_message
+        assert "Model_Y" in error_message
+        assert "Expected 'N months'" in error_message

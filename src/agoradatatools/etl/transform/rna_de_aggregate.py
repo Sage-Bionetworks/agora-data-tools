@@ -165,6 +165,19 @@ def transform_rna_de_aggregate(
                     "adj_p_val": float(row["padj"]),
                 }
 
+            # Sort age entries with error handling for format validation
+            try:
+                sorted_ages = dict(
+                    sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
+                )
+            except (ValueError, IndexError) as e:
+                raise ValueError(
+                    f"Invalid age format in data for gene '{ensembl_gene_id}', "
+                    f"model '{model}', tissue '{tissue}', sex '{sex}'. "
+                    f"Expected 'N months' format but found: {list(age_entries.keys())}. "
+                    f"Original error: {e}"
+                ) from e
+
             # If tissue is "Right Cerebral Hemisphere", change tissue to "Hemibrain"
             # Only expected for JAX models
             tissue = "Hemibrain" if tissue == "Right Cerebral Hemisphere" else tissue
@@ -181,9 +194,7 @@ def transform_rna_de_aggregate(
                     "model_type": model_type,
                     "tissue": tissue,
                     "sex": sex,
-                    **dict(
-                        sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
-                    ),  # Sort by numerical value of age
+                    **sorted_ages,
                 }
             )
 
