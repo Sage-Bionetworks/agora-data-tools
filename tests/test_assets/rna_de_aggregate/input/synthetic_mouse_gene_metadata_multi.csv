@@ -1,0 +1,7 @@
+ensembl_gene_id,gene_symbol,alias
+ENSMUSG00000000001,Gene_A,Alias_A
+ENSMUSG00000000002,Gene_B,Alias_B
+ENSMUSG00000000003,Gene_C,Alias_C
+ENSMUSG00000000004,Gene_D,Alias_D
+ENSMUSG00000000005,Gene_MultiDomain,Alias_MultiDomain
+

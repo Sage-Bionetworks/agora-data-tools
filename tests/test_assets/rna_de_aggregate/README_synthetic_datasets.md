@@ -12,7 +12,10 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_jax_tissue_data.csv`**: Tests JAX tissue mapping (Right Cerebral Hemisphere → Hemibrain)
 - **`synthetic_mixed_genes_data.csv`**: Contains both mouse (ENSMUSG*) and human (ENSG*) genes
 - **`synthetic_age_sorting_data.csv`**: Tests age sorting with ages in non-numerical order
-- **`synthetic_single_row_data.csv`**: Single row test case
+- **`synthetic_single_row_data.csv`**: Single row test case (also tests missing gene metadata handling)
+- **`synthetic_rounding_precision_data.csv`**: Tests numeric rounding to 5 decimal places
+- **`synthetic_multiple_biodomains_data.csv`**: Tests genes with multiple biodomain assignments
+- **`synthetic_null_model_group_data.csv`**: Tests empty model_group conversion to null
 - **`synthetic_empty_data.csv`**: Empty data file for error testing
 - **`synthetic_missing_columns_data.csv`**: Missing required columns for error testing
 
@@ -21,6 +24,10 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_mouse_gene_metadata.csv`**: Gene ID to symbol mapping
 - **`synthetic_model_info.csv`**: Model metadata (matched controls, model type)
 - **`synthetic_biodom_genes_mm.csv`**: Biodomain assignments for genes
+- **`synthetic_biodom_genes_mm_multiple.csv`**: Biodomain assignments with genes having multiple biodomains
+- **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
+- **`synthetic_rnaseq_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
+- **`synthetic_model_info_no_group.csv`**: Model metadata with model having no model_group
 
 ### Output Files
 - **`synthetic_*_output.json`**: Expected output for each test case
@@ -62,6 +69,37 @@ Expected: Only mouse genes in output
 ```
 Ages: 12 months, 3 months, 6 months (input order)
 Expected: Sorted as 3 months, 6 months, 12 months
+```
+
+### Scenario 6: Single Row Data (`synthetic_single_row_data.csv`)
+```
+Gene: ENSMUSG00000000008 (not in mouse_gene_metadata.csv)
+Model: Model_F
+Age: 9 months
+Expected: Single output entry with gene_symbol="" and biodomains=[]
+Tests: Minimal dataset + missing gene metadata handling
+```
+
+### Scenario 7: Rounding Precision (`synthetic_rounding_precision_data.csv`)
+```
+Input values: 1.123456789, 0.0123456789, 2.987654321, 0.9876543219
+Expected values: 1.12346, 0.01235, 2.98765, 0.98765
+Tests: Numeric rounding to exactly 5 decimal places
+```
+
+### Scenario 8: Multiple Biodomains (`synthetic_multiple_biodomains_data.csv`)
+```
+Gene: ENSMUSG00000000005 (Gene_MultiDomain)
+Biodomains: Synaptic AND Metabolic
+Expected: biodomains=["Synaptic", "Metabolic"]
+Tests: Genes belonging to multiple biodomains
+```
+
+### Scenario 9: Null Model Group (`synthetic_null_model_group_data.csv`)
+```
+Model: Model_NoGroup (has empty model_group in metadata)
+Expected: model_group=null (not empty string)
+Tests: Empty string to null conversion for model_group field
 ```
 
 ## Data Grouping and Case/Control Logic
@@ -110,29 +148,45 @@ When testing, verify:
 6. **Model metadata**: Correct model type and matched controls
 7. **Grouping logic**: One output entry per unique gene+model+tissue+sex+case+control combination
 8. **Case/control mapping**: Correct name and matched_control values from genotype labels
+9. **Numeric rounding**: log2_fc and adj_p_val rounded to exactly 5 decimal places
+10. **Multiple biodomains**: Genes can have multiple biodomain assignments in a list
+11. **Missing metadata**: Gene not in metadata → gene_symbol="" and biodomains=[]
+12. **Null model_group**: Empty model_group converted to null in output
 
 ## File Structure
 ```
 tests/test_assets/rna_de_aggregate/
 ├── input/
-│   ├── synthetic_basic_data.csv
-│   ├── synthetic_multi_model_data.csv
-│   ├── synthetic_jax_tissue_data.csv
-│   ├── synthetic_mixed_genes_data.csv
-│   ├── synthetic_age_sorting_data.csv
-│   ├── synthetic_single_row_data.csv
-│   ├── synthetic_empty_data.csv
-│   ├── synthetic_missing_columns_data.csv
-│   ├── synthetic_rnaseq_genotype_label_map.csv
-│   ├── synthetic_mouse_gene_metadata.csv
-│   ├── synthetic_model_info.csv
-│   └── synthetic_biodom_genes_mm.csv
+│   ├── Main Data Files:
+│   │   ├── synthetic_basic_data.csv
+│   │   ├── synthetic_multi_model_data.csv
+│   │   ├── synthetic_jax_tissue_data.csv
+│   │   ├── synthetic_mixed_genes_data.csv
+│   │   ├── synthetic_age_sorting_data.csv
+│   │   ├── synthetic_single_row_data.csv
+│   │   ├── synthetic_rounding_precision_data.csv
+│   │   ├── synthetic_multiple_biodomains_data.csv
+│   │   ├── synthetic_null_model_group_data.csv
+│   │   ├── synthetic_empty_data.csv
+│   │   └── synthetic_missing_columns_data.csv
+│   └── Metadata Files:
+│       ├── synthetic_rnaseq_genotype_label_map.csv
+│       ├── synthetic_mouse_gene_metadata.csv
+│       ├── synthetic_model_info.csv
+│       ├── synthetic_biodom_genes_mm.csv
+│       ├── synthetic_biodom_genes_mm_multiple.csv
+│       ├── synthetic_mouse_gene_metadata_multi.csv
+│       ├── synthetic_rnaseq_genotype_label_map_no_group.csv
+│       └── synthetic_model_info_no_group.csv
 ├── output/
 │   ├── synthetic_basic_output.json
 │   ├── synthetic_multi_model_output.json
 │   ├── synthetic_jax_tissue_output.json
 │   ├── synthetic_mixed_genes_output.json
 │   ├── synthetic_age_sorting_output.json
-│   └── synthetic_single_row_output.json
+│   ├── synthetic_single_row_output.json
+│   ├── synthetic_rounding_precision_output.json
+│   ├── synthetic_multiple_biodomains_output.json
+│   └── synthetic_null_model_group_output.json
 └── README_synthetic_datasets.md
 ```

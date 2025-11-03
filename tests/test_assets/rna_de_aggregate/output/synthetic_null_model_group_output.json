@@ -1,0 +1,18 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gene_A",
+    "biodomains": ["Synaptic"],
+    "name": "Model_NoGroup (Tg)",
+    "matched_control": "Model_NoGroup (Wt)",
+    "model_group": null,
+    "model_type": "Transgenic",
+    "tissue": "Brain",
+    "sex": "Female",
+    "3 months": {
+      "log2_fc": 1.0,
+      "adj_p_val": 0.01
+    }
+  }
+]
+

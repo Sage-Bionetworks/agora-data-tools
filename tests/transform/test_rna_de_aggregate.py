@@ -245,6 +245,8 @@ class TestTransformRnaDeAggregate:
 
         Tests edge case handling of minimal input: a single data row representing one gene
         at one age/condition. Verifies the transform can handle the smallest valid dataset.
+        Also tests missing gene metadata handling - the gene (ENSMUSG00000000008) is not in
+        mouse_gene_metadata.csv, so gene_symbol should be "" and biodomains should be [].
         """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
@@ -308,3 +310,137 @@ class TestTransformRnaDeAggregate:
         # Expect transformation to raise ValueError for missing required columns
         with pytest.raises(ValueError, match="Missing required columns"):
             transform_rna_de_aggregate(datasets=datasets)
+
+    def test_synthetic_rounding_precision(self):
+        """Test that log2foldchange and padj values are rounded to 5 decimal places.
+
+        Tests numeric precision by providing values with 7+ decimal places and verifying
+        they are correctly rounded to exactly 5 decimal places in the output.
+        """
+        # Load synthetic test data with high-precision values
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_rounding_precision_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path,
+                "output",
+                "synthetic_rounding_precision_output.json",
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        # Transform data
+        output_data = transform_rna_de_aggregate(datasets=datasets)
+
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+
+        # Compare output with expected
+        assert output_data_sorted == expected_data_sorted
+
+        # Explicitly verify rounding
+        assert output_data[0]["3 months"]["log2_fc"] == 1.12346
+        assert output_data[0]["3 months"]["adj_p_val"] == 0.01235
+        assert output_data[0]["6 months"]["log2_fc"] == 2.98765
+        assert output_data[0]["6 months"]["adj_p_val"] == 0.98765
+
+    def test_synthetic_multiple_biodomains(self):
+        """Test handling of genes with multiple biodomain assignments.
+
+        Verifies that genes assigned to multiple biodomains (e.g., both 'Synaptic' and 'Metabolic')
+        correctly include all biodomains in the output as a list.
+        """
+        # Load synthetic test data with gene having multiple biodomains
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_multiple_biodomains_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata_multi.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm_multiple.csv",
+            ]
+        )
+
+        # Override the biodom_genes_mm dataset with the multi-biodomain version
+        datasets["biodom_genes_mm"] = datasets.pop("synthetic_biodom_genes_mm_multiple")
+        datasets["mouse_gene_metadata"] = datasets.pop(
+            "synthetic_mouse_gene_metadata_multi"
+        )
+
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path,
+                "output",
+                "synthetic_multiple_biodomains_output.json",
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        # Transform data
+        output_data = transform_rna_de_aggregate(datasets=datasets)
+
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+
+        # Compare output with expected
+        assert output_data_sorted == expected_data_sorted
+
+        # Explicitly verify multiple biodomains are present
+        assert len(output_data[0]["biodomains"]) == 2
+        assert set(output_data[0]["biodomains"]) == {"Metabolic", "Synaptic"}
+
+    def test_synthetic_null_model_group(self):
+        """Test that empty/null model_group is converted to None in output.
+
+        Tests the specific logic that converts empty string model_group values to None
+        to maintain JSON null representation in the output.
+        """
+        # Load synthetic test data with model having no model_group
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_null_model_group_data.csv",
+                "synthetic_rnaseq_genotype_label_map_no_group.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info_no_group.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        # Override the datasets with the no_group versions
+        datasets["rnaseq_genotype_label_map"] = datasets.pop(
+            "synthetic_rnaseq_genotype_label_map_no_group"
+        )
+        datasets["model_info"] = datasets.pop("synthetic_model_info_no_group")
+
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path, "output", "synthetic_null_model_group_output.json"
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        # Transform data
+        output_data = transform_rna_de_aggregate(datasets=datasets)
+
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+
+        # Compare output with expected
+        assert output_data_sorted == expected_data_sorted
+
+        # Explicitly verify model_group is None (not empty string)
+        assert output_data[0]["model_group"] is None
