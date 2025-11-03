@@ -5,4 +5,3 @@ Neuronal,Neuro,Neuronal Function,#4ECDC4,GO:0030425,neuron,1,Gene_C,ENSMUSG00000
 Metabolic,Met,Metabolic Function,#45B7D1,GO:0030426,metabolism,1,Gene_D,ENSMUSG00000000004
 Synaptic,Syn,Synaptic Function,#FF6B6B,GO:0030424,synapse,1,Gene_MultiDomain,ENSMUSG00000000005
 Metabolic,Met,Metabolic Function,#45B7D1,GO:0030426,metabolism,1,Gene_MultiDomain,ENSMUSG00000000005
-
