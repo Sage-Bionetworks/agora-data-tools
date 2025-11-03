@@ -78,7 +78,9 @@ def transform_rna_de_aggregate(
     label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
         "display_label"
     ].to_dict()
-    model_group_dict = rnaseq_genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
+    model_group_dict = (
+        rnaseq_genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
+    )
 
     # Create biodomain lookup dictionary
     biodomain_dict = (
