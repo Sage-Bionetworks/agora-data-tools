@@ -461,8 +461,8 @@ class TestTransformRnaDeAggregate:
         assert output_data_sorted == expected_data_sorted
 
         # Explicitly verify multiple biodomains are present
-        assert len(output_data[0]["biodomains"]) == 2
-        assert set(output_data[0]["biodomains"]) == {"Metabolic", "Synaptic"}
+        assert len(output_data_sorted[0]["biodomains"]) == 2
+        assert set(output_data_sorted[0]["biodomains"]) == {"Metabolic", "Synaptic"}
 
     def test_synthetic_null_model_group(self) -> None:
         """Test that empty/null model_group is converted to None in output.
@@ -506,4 +506,4 @@ class TestTransformRnaDeAggregate:
         assert output_data_sorted == expected_data_sorted
 
         # Explicitly verify model_group is None (not empty string)
-        assert output_data[0]["model_group"] is None
+        assert output_data_sorted[0]["model_group"] is None
