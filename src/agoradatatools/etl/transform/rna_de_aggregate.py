@@ -111,6 +111,7 @@ def transform_rna_de_aggregate(
         data_file = data_file.round(decimals=5)
 
         # Group by gene, model, tissue, and sex to create one entry per group
+        # Using groupby rather than pandas merge operations as a performance optimization
         grouped = data_file.groupby(
             ["ensembl_gene_id", "model", "tissue", "sex", "case", "control"]
         )
