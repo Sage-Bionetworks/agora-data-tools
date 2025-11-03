@@ -4,12 +4,12 @@ This is for the Model AD project.
 """
 
 import pandas as pd
+import numpy as np
 import math
 from typing import Dict, List, Any, Union, Tuple
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
-    convert_numpy_types,
     nest_fields,
 )
 
@@ -147,11 +147,7 @@ def _calculate_y_axis_max_map(
     return y_axis_max_map
 
 
-def _add_missing_age_entries(
-    data_rows: List[Dict[str, Any]],
-    dataset: pd.DataFrame,
-    y_axis_max_map: Dict[Tuple[str, str, str], float],
-) -> List[Dict[str, Any]]:
+def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
     """
     Add placeholder entries for missing age combinations to ensure data completeness.
 
@@ -161,75 +157,57 @@ def _add_missing_age_entries(
 
     Example:
         If the dataset has ages 4, 8, and 12 months but one tissue is missing 8 month
-        data, this function adds to data_rows to fill in the missing time point with
-        an entry containing empty data arrays and units.
+        data, this function adds rows to fill in the missing time point with
+        entries containing empty data arrays and units.
 
     Args:
-        data_rows: Existing data rows
-        dataset: The original dataset
-        y_axis_max_map: Pre-calculated final y_axis_max values for each group combination
+        data_rows: DataFrame with grouped data including columns for name, evidence_type,
+                   tissue, age, units, y_axis_max, and data
 
     Returns:
-        Updated data_rows with missing age entries added
+        Updated DataFrame with missing age entries added
     """
-    # Get all unique ages that exist in the dataset
-    available_ages = list(set([x["age"] for x in data_rows]))
+    # Get all unique ages that exist in the data
+    available_ages = list(data_rows["age"].drop_duplicates())
 
-    # Group by the key dimensions that should have consistent age coverage
-    missing_ages_group_columns = ["name", "evidence_type", "tissue"]
-    grouped_missing_ages = dataset.groupby(missing_ages_group_columns)
+    # All unique combinations of groups (name, evidence_type, tissue, y_axis_max)
+    fill_df = (
+        data_rows[["name", "evidence_type", "tissue", "y_axis_max"]]
+        .copy()
+        .drop_duplicates()
+    )
 
-    # For each unique combination of (name, evidence_type, tissue)
-    for group_key, group in grouped_missing_ages:
-        entry = dict(zip(missing_ages_group_columns, group_key))
+    # Make an "age" column where each entry is a list of all possible ages
+    fill_df["age"] = [available_ages] * fill_df.shape[0]
 
-        # Get the ages that currently exist for this group
-        group_ages = group["age"].unique().tolist()
+    # "explode" makes one row per age + group. Then merge back into the data to create new rows for missing ages
+    fill_df = fill_df.explode("age").merge(
+        data_rows, how="outer", validate="one_to_one"
+    )
 
-        # Find which ages are missing from this group
-        missing_ages = [age for age in available_ages if age not in group_ages]
+    # Fill NA values for units. Can't use fillna to make an empty list so we add an extra line
+    fill_df = fill_df.fillna({"units": ""})
+    fill_df["data"] = fill_df["data"].apply(lambda x: [] if x is np.nan else x)
 
-        # Get the y_axis_max for this combination
-        key_for_y_axis = (entry["name"], entry["evidence_type"], entry["tissue"])
-        y_axis_max = y_axis_max_map.get(key_for_y_axis, 0)
-
-        # If there are missing ages, create placeholder entries for each missing age
-        if len(missing_ages) > 0:
-            for age in missing_ages:
-                data_rows.append(
-                    {
-                        "name": entry["name"],
-                        "evidence_type": entry["evidence_type"],
-                        "tissue": entry["tissue"],
-                        "age": age,
-                        "units": "",  # Empty units since there's no actual data
-                        "y_axis_max": y_axis_max,
-                        "data": [],  # Empty data array since there are no measurements for this age
-                    }
-                )
-
-    return data_rows
+    return fill_df
 
 
-def _extract_age_num(entry: Dict[str, Any]) -> Tuple[float, str, str]:
+def _extract_age_num(age_str: str) -> float:
     """
     Extract numeric age value for sorting purposes.
 
     Args:
-        entry: A dictionary containing the "age" field.
+        age_str: A string containing the age value (e.g., "12 months")
 
     Returns:
-        Tuple[float, str, str]: (numeric_value, age_string, evidence_type) for consistent sorting
+        float: The numeric age value, or inf for invalid ages
     """
-    age_str = entry.get("age", "")
-    evidence_type = entry.get("evidence_type", "")
     try:
         numeric_value = float(age_str.split()[0])
-        return (numeric_value, age_str, evidence_type)
+        return numeric_value
     except (ValueError, IndexError, AttributeError):
-        # For invalid ages, use a large number and the age string for consistent sorting
-        # Include evidence_type to ensure deterministic ordering when ages are invalid
-        return (float("inf"), age_str, evidence_type)
+        # For invalid ages, use a large number for consistent sorting
+        return float("inf")
 
 
 def immunohisto_transform(
@@ -316,14 +294,14 @@ def immunohisto_transform(
     columns_to_keep = set(group_columns + extra_columns)
     columns_to_drop = [col for col in dataset.columns if col not in columns_to_keep]
 
-    grouped = nest_fields(
+    data_rows = nest_fields(
         dataset.copy(),
         grouping=group_columns,
         new_column=extra_column_name,
         drop_columns=group_columns + columns_to_drop,
     )
 
-    grouped["y_axis_max"] = grouped.apply(
+    data_rows["y_axis_max"] = data_rows.apply(
         lambda entry: y_axis_max_map.get(
             (entry["name"], entry["evidence_type"], entry["tissue"]),
             round_y_axis_max(0),
@@ -331,18 +309,18 @@ def immunohisto_transform(
         axis=1,
     )
 
+    # Add missing age entries for completeness
+    data_rows = _add_missing_age_entries(data_rows)
+
+    # Sort by age (convert age to numeric for sorting)
+    data_rows["age_numeric"] = data_rows["age"].apply(_extract_age_num)
+    data_rows = data_rows.sort_values(["age_numeric", "age", "evidence_type"]).drop(
+        columns="age_numeric"
+    )
+
     # Reorder columns to match expected output: group_columns + y_axis_max + extra_column_name
     column_order = group_columns + ["y_axis_max", extra_column_name]
-    grouped = grouped[column_order]
+    data_rows = data_rows[column_order]
 
-    data_rows = grouped.to_dict("records")
-
-    # Add missing age entries for completeness
-    data_rows = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
-
-    # Sort data_rows by the numeric value in the "age" field
-    data_rows.sort(key=_extract_age_num)
-
-    data_rows = convert_numpy_types(data_rows)
-
-    return data_rows
+    # Convert to list of dicts at the very end
+    return data_rows.to_dict("records")

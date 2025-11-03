@@ -585,111 +585,86 @@ class TestAddMissingAgeEntries:
     def test_add_missing_age_entries_basic(self) -> None:
         """Test basic missing age detection and addition."""
         # Existing data rows with multiple ages for the same group
-        data_rows = [
-            {
-                "name": "Model1",
-                "evidence_type": "Type1",
-                "tissue": "Tissue1",
-                "age": "6 months",
-                "units": "mg",
-                "y_axis_max": 3.0,
-                "data": [{"genotype": "WT", "value": 1.0}],
-            },
-            {
-                "name": "Model1",
-                "evidence_type": "Type1",
-                "tissue": "Tissue1",
-                "age": "12 months",
-                "units": "mg",
-                "y_axis_max": 3.0,
-                "data": [{"genotype": "WT", "value": 2.0}],
-            },
-        ]
-
-        # Original dataset has the same ages
-        dataset = pd.DataFrame(
-            {
-                "name": ["Model1", "Model1"],
-                "evidence_type": ["Type1", "Type1"],
-                "tissue": ["Tissue1", "Tissue1"],
-                "age": ["6 months", "12 months"],
-                "units": ["mg", "mg"],
-                "value": [1.0, 2.0],
-            }
+        data_rows = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 1.0}],
+                },
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "12 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 2.0}],
+                },
+            ]
         )
 
-        # Create y_axis_max_map for the test
-        y_axis_max_map = {
-            ("Model1", "Type1", "Tissue1"): 3.0,
-        }
+        result = _add_missing_age_entries(data_rows)
 
-        result = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
-
-        # Should not add any missing entries since all ages in data_rows are present in dataset
+        # Should not add any missing entries since all ages are already present for all groups
         assert len(result) == 2
-        assert result == data_rows
+        # Convert to dicts for comparison
+        result_dicts = result.to_dict("records")
+        expected_dicts = data_rows.to_dict("records")
+        assert result_dicts == expected_dicts
 
     def test_add_missing_age_entries_with_missing_ages(self) -> None:
         """Test actual missing age detection and addition."""
         # Data rows with ages that exist in the data_rows but not in all groups
-        data_rows = [
-            {
-                "name": "Model1",
-                "evidence_type": "Type1",
-                "tissue": "Tissue1",
-                "age": "6 months",
-                "units": "mg",
-                "y_axis_max": 3.0,
-                "data": [{"genotype": "WT", "value": 1.0}],
-            },
-            {
-                "name": "Model1",
-                "evidence_type": "Type1",
-                "tissue": "Tissue1",
-                "age": "12 months",
-                "units": "mg",
-                "y_axis_max": 3.0,
-                "data": [{"genotype": "WT", "value": 2.0}],
-            },
-            {
-                "name": "Model2",
-                "evidence_type": "Type2",
-                "tissue": "Tissue2",
-                "age": "6 months",
-                "units": "mg",
-                "y_axis_max": 5.0,
-                "data": [{"genotype": "KO", "value": 3.0}],
-            },
-        ]
-
-        # Dataset where Model2/Type2/Tissue2 doesn't have 12 months data
-        dataset = pd.DataFrame(
-            {
-                "name": ["Model1", "Model1", "Model2"],
-                "evidence_type": ["Type1", "Type1", "Type2"],
-                "tissue": ["Tissue1", "Tissue1", "Tissue2"],
-                "age": ["6 months", "12 months", "6 months"],
-                "units": ["mg", "mg", "mg"],
-                "value": [1.0, 2.0, 3.0],
-            }
+        data_rows = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 1.0}],
+                },
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "12 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 2.0}],
+                },
+                {
+                    "name": "Model2",
+                    "evidence_type": "Type2",
+                    "tissue": "Tissue2",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 5.0,
+                    "data": [{"genotype": "KO", "value": 3.0}],
+                },
+            ]
         )
 
-        # Create y_axis_max_map for the test
-        y_axis_max_map = {
-            ("Model1", "Type1", "Tissue1"): 3.0,
-            ("Model2", "Type2", "Tissue2"): 5.0,
-        }
-
-        result = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
+        result = _add_missing_age_entries(data_rows)
 
         # Should add one missing entry for Model2/Type2/Tissue2 at 12 months
         assert len(result) == 4
+
+        # Convert to dicts for easier inspection
+        result_dicts = result.to_dict("records")
 
         # Find the missing age entry
         missing_entry = next(
             (
                 entry
-                for entry in result
+                for entry in result_dicts
                 if entry["name"] == "Model2" and entry["age"] == "12 months"
             ),
             None,
@@ -701,101 +676,75 @@ class TestAddMissingAgeEntries:
 
     def test_add_missing_age_entries_no_missing_ages(self) -> None:
         """Test when no ages are missing."""
-        data_rows = [
-            {
-                "name": "Model1",
-                "evidence_type": "Type1",
-                "tissue": "Tissue1",
-                "age": "6 months",
-                "units": "mg",
-                "y_axis_max": 3.0,
-                "data": [{"genotype": "WT", "value": 1.0}],
-            }
-        ]
-
-        # Dataset only has the same age
-        dataset = pd.DataFrame(
-            {
-                "name": ["Model1"],
-                "evidence_type": ["Type1"],
-                "tissue": ["Tissue1"],
-                "age": ["6 months"],
-                "units": ["mg"],
-                "value": [1.0],
-            }
+        data_rows = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 1.0}],
+                }
+            ]
         )
 
-        # Create y_axis_max_map for the test
-        y_axis_max_map = {
-            ("Model1", "Type1", "Tissue1"): 3.0,
-        }
+        result = _add_missing_age_entries(data_rows)
 
-        result = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
-
-        # Should return original data_rows unchanged
+        # Should return data_rows unchanged (only one age, so nothing to fill)
         assert len(result) == 1
-        assert result == data_rows
+        result_dicts = result.to_dict("records")
+        expected_dicts = data_rows.to_dict("records")
+        assert result_dicts == expected_dicts
 
     def test_add_missing_age_entries_multiple_groups(self) -> None:
         """Test with multiple model/type/tissue combinations."""
         # Data rows with multiple ages for one group but not the other
-        data_rows = [
-            {
-                "name": "Model1",
-                "evidence_type": "Type1",
-                "tissue": "Tissue1",
-                "age": "6 months",
-                "units": "mg",
-                "y_axis_max": 3.0,
-                "data": [{"genotype": "WT", "value": 1.0}],
-            },
-            {
-                "name": "Model1",
-                "evidence_type": "Type1",
-                "tissue": "Tissue1",
-                "age": "12 months",
-                "units": "mg",
-                "y_axis_max": 3.0,
-                "data": [{"genotype": "WT", "value": 2.0}],
-            },
-            {
-                "name": "Model2",
-                "evidence_type": "Type2",
-                "tissue": "Tissue2",
-                "age": "6 months",
-                "units": "mg",
-                "y_axis_max": 5.0,
-                "data": [{"genotype": "KO", "value": 3.0}],
-            },
-        ]
-
-        # Dataset where Model2/Type2/Tissue2 doesn't have 12 months data
-        dataset = pd.DataFrame(
-            {
-                "name": ["Model1", "Model1", "Model2"],
-                "evidence_type": ["Type1", "Type1", "Type2"],
-                "tissue": ["Tissue1", "Tissue1", "Tissue2"],
-                "age": ["6 months", "12 months", "6 months"],
-                "units": ["mg", "mg", "mg"],
-                "value": [1.0, 2.0, 3.0],
-            }
+        data_rows = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 1.0}],
+                },
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "12 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 2.0}],
+                },
+                {
+                    "name": "Model2",
+                    "evidence_type": "Type2",
+                    "tissue": "Tissue2",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 5.0,
+                    "data": [{"genotype": "KO", "value": 3.0}],
+                },
+            ]
         )
 
-        # Create y_axis_max_map for the test
-        y_axis_max_map = {
-            ("Model1", "Type1", "Tissue1"): 3.0,
-            ("Model2", "Type2", "Tissue2"): 5.0,
-        }
-
-        result = _add_missing_age_entries(data_rows, dataset, y_axis_max_map)
+        result = _add_missing_age_entries(data_rows)
 
         # Should have 4 entries total (3 original + 1 missing age)
         assert len(result) == 4
 
+        # Convert to dicts for inspection
+        result_dicts = result.to_dict("records")
+
         # Check that missing age was added for Model2
         model2_missing = [
             entry
-            for entry in result
+            for entry in result_dicts
             if entry["name"] == "Model2" and entry["age"] == "12 months"
         ]
 
@@ -811,113 +760,87 @@ class TestExtractAgeNum:
     def test_extract_age_num_valid_ages(self) -> None:
         """Test with valid age strings."""
         test_cases = [
-            ({"age": "6 months", "evidence_type": "Type1"}, (6.0, "6 months", "Type1")),
-            (
-                {"age": "12 months", "evidence_type": "Type2"},
-                (12.0, "12 months", "Type2"),
-            ),
-            (
-                {"age": "0.5 months", "evidence_type": "Type3"},
-                (0.5, "0.5 months", "Type3"),
-            ),
-            (
-                {"age": "18.75 months", "evidence_type": "Type4"},
-                (18.75, "18.75 months", "Type4"),
-            ),
+            ("6 months", 6.0),
+            ("12 months", 12.0),
+            ("0.5 months", 0.5),
+            ("18.75 months", 18.75),
         ]
 
-        for entry, expected in test_cases:
-            result = _extract_age_num(entry)
+        for age_str, expected in test_cases:
+            result = _extract_age_num(age_str)
             assert result == expected
 
     def test_extract_age_num_invalid_ages_valueerror(self) -> None:
         """Test with ages that cause ValueError."""
         test_cases = [
-            {"age": "unknown months", "evidence_type": "Type1"},
-            {"age": "N/A months", "evidence_type": "Type2"},
-            {"age": "invalid months", "evidence_type": "Type3"},
+            "unknown months",
+            "N/A months",
+            "invalid months",
         ]
 
-        for entry in test_cases:
-            result = _extract_age_num(entry)
-            # Should return (inf, age_string, evidence_type) for invalid ages
-            assert result[0] == float("inf")
-            assert result[1] == entry["age"]
-            assert result[2] == entry["evidence_type"]
+        for age_str in test_cases:
+            result = _extract_age_num(age_str)
+            # Should return inf for invalid ages
+            assert result == float("inf")
 
     def test_extract_age_num_invalid_ages_indexerror(self) -> None:
         """Test with ages that cause IndexError."""
         test_cases = [
-            {"age": "", "evidence_type": "Type1"},
-            {"age": "   ", "evidence_type": "Type2"},
-            {"age": "months", "evidence_type": "Type3"},  # No number before "months"
+            "",
+            "   ",
+            "months",  # No number before "months"
         ]
 
-        for entry in test_cases:
-            result = _extract_age_num(entry)
-            # Should return (inf, age_string, evidence_type) for invalid ages
-            assert result[0] == float("inf")
-            assert result[1] == entry["age"]
-            assert result[2] == entry["evidence_type"]
+        for age_str in test_cases:
+            result = _extract_age_num(age_str)
+            # Should return inf for invalid ages
+            assert result == float("inf")
 
     def test_extract_age_num_invalid_ages_attributeerror(self) -> None:
         """Test with ages that cause AttributeError."""
         test_cases = [
-            {"age": None, "evidence_type": "Type1"},
-            {"age": 123, "evidence_type": "Type2"},
-            {"age": [], "evidence_type": "Type3"},
+            None,
+            123,
+            [],
         ]
 
-        for entry in test_cases:
-            result = _extract_age_num(entry)
-            # Should return (inf, age_string, evidence_type) for invalid ages
-            assert result[0] == float("inf")
-            assert result[1] == entry["age"]
-            assert result[2] == entry["evidence_type"]
+        for age_value in test_cases:
+            result = _extract_age_num(age_value)
+            # Should return inf for invalid ages
+            assert result == float("inf")
 
-    def test_extract_age_num_missing_fields(self) -> None:
-        """Test with missing age or evidence_type fields."""
-        test_cases = [
-            ({}, (float("inf"), "", "")),
-            ({"age": "6 months"}, (6.0, "6 months", "")),
-            ({"evidence_type": "Type1"}, (float("inf"), "", "Type1")),
-        ]
-
-        for entry, expected in test_cases:
-            result = _extract_age_num(entry)
-            assert result == expected
+    def test_extract_age_num_empty_string(self) -> None:
+        """Test with empty string."""
+        result = _extract_age_num("")
+        assert result == float("inf")
 
     def test_extract_age_num_sorting_behavior(self) -> None:
         """Test that the function produces sortable results."""
-        entries = [
-            {"age": "12 months", "evidence_type": "Type1"},
-            {"age": "6 months", "evidence_type": "Type1"},
-            {"age": "18 months", "evidence_type": "Type1"},
-            {"age": "invalid months", "evidence_type": "Type1"},
-            {"age": "3 months", "evidence_type": "Type1"},
+        age_strings = [
+            "12 months",
+            "6 months",
+            "18 months",
+            "invalid months",
+            "3 months",
         ]
 
         # Extract age numbers for sorting
-        age_nums = [_extract_age_num(entry) for entry in entries]
+        age_nums = [_extract_age_num(age_str) for age_str in age_strings]
 
         # Sort by the extracted values
         sorted_age_nums = sorted(age_nums)
 
         # Valid ages should come first, sorted numerically
-        valid_ages = [
-            age_num for age_num in sorted_age_nums if age_num[0] != float("inf")
-        ]
+        valid_ages = [age_num for age_num in sorted_age_nums if age_num != float("inf")]
         invalid_ages = [
-            age_num for age_num in sorted_age_nums if age_num[0] == float("inf")
+            age_num for age_num in sorted_age_nums if age_num == float("inf")
         ]
 
         # Check valid ages are sorted numerically
         expected_ages = [3.0, 6.0, 12.0, 18.0]
-        actual_ages = [age_num[0] for age_num in valid_ages]
-        assert len(actual_ages) == len(expected_ages)
-        for actual, expected in zip(actual_ages, expected_ages):
+        assert len(valid_ages) == len(expected_ages)
+        for actual, expected in zip(valid_ages, expected_ages):
             assert actual == pytest.approx(expected)
 
         # Check invalid ages come last
         assert len(invalid_ages) == 1
-        assert invalid_ages[0][1] == "invalid months"
