@@ -28,7 +28,11 @@ class TestTransformRnaDeAggregate:
             transform_rna_de_aggregate(datasets=datasets)
 
     def test_transform_rna_de_aggregate_human_genes_filtered(self):
-        """Test that human genes (ENSG*) are filtered out, keeping only mouse genes (ENSMUSG*)."""
+        """Test that human genes (ENSG*) are filtered out, keeping only mouse genes (ENSMUSG*).
+
+        Tests gene ID filtering by creating a dataset with a mix of human (ENSG*) and mouse (ENSMUSG*)
+        genes. Verifies that only mouse genes are processed and appear in the transform output.
+        """
         # Create test data with both human and mouse genes
         mixed_data = pd.DataFrame(
             {
@@ -70,7 +74,11 @@ class TestTransformRnaDeAggregate:
             assert entry["ensembl_gene_id"].startswith("ENSMUSG")
 
     def test_transform_rna_de_aggregate_jax_tissue_mapping(self):
-        """Test that JAX models with 'Right Cerebral Hemisphere' tissue are mapped to 'Hemibrain'."""
+        """Test that JAX models with 'Right Cerebral Hemisphere' tissue are mapped to 'Hemibrain'.
+
+        Tests tissue name mapping for JAX models, ensuring that the specific tissue
+        'Right Cerebral Hemisphere' is correctly transformed to 'Hemibrain' in the output.
+        """
         # Load synthetic test data - already has JAX_Model with Right Cerebral Hemisphere tissue
         datasets = self._load_synthetic_test_data(
             [
@@ -91,7 +99,11 @@ class TestTransformRnaDeAggregate:
         assert "JAX_Model" in output_data[0]["name"]
 
     def test_transform_rna_de_aggregate_age_sorting(self):
-        """Test that age entries are sorted numerically."""
+        """Test that age entries are sorted numerically.
+
+        Verifies that age fields in the output are sorted numerically (e.g., 3, 6, 12 months)
+        rather than alphabetically or in the order they appear in the input data (12, 3, 6 months).
+        """
         # Load synthetic test data - has ages in non-numerical order (12, 3, 6 months)
         datasets = self._load_synthetic_test_data(
             [
@@ -142,7 +154,12 @@ class TestTransformRnaDeAggregate:
         return datasets
 
     def test_synthetic_basic_data(self):
-        """Test transformation with synthetic basic data."""
+        """Test transformation with synthetic basic data.
+
+        Tests a simple case with 2 genes, 2 ages (3 and 6 months), and straightforward values
+        to verify core transform functionality: data aggregation by gene, age sorting,
+        and proper metadata enrichment (biodomains, gene symbols, model labels).
+        """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
@@ -171,7 +188,12 @@ class TestTransformRnaDeAggregate:
         assert output_data_sorted == expected_data_sorted
 
     def test_synthetic_multi_model_data(self):
-        """Test transformation with synthetic multi-model data."""
+        """Test transformation with synthetic multi-model data.
+
+        Tests handling of multiple mouse models (Model_B, Model_C) with different tissues
+        (Hippocampus, Cortex) and varying ages. Verifies that the transform correctly
+        creates separate output entries for each unique combination of gene+model+tissue+sex+case+control.
+        """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
@@ -206,7 +228,11 @@ class TestTransformRnaDeAggregate:
         assert output_data_sorted == expected_data_sorted
 
     def test_synthetic_jax_tissue_mapping(self):
-        """Test JAX tissue mapping with synthetic data."""
+        """Test JAX tissue mapping with synthetic data.
+
+        Verifies that tissue names from JAX models are correctly mapped: specifically that
+        'Right Cerebral Hemisphere' tissue is transformed to 'Hemibrain' in the output.
+        """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
@@ -237,7 +263,12 @@ class TestTransformRnaDeAggregate:
         assert output_data_sorted == expected_data_sorted
 
     def test_synthetic_mixed_genes_filtering(self):
-        """Test human gene filtering with synthetic mixed genes data."""
+        """Test human gene filtering with synthetic mixed genes data.
+
+        Tests that the transform correctly filters out human genes (ENSG*) and only
+        processes mouse genes (ENSMUSG*). The input contains a mix of both human and mouse
+        genes, but only mouse genes should appear in the output.
+        """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
@@ -272,7 +303,11 @@ class TestTransformRnaDeAggregate:
             assert entry["ensembl_gene_id"].startswith("ENSMUSG")
 
     def test_synthetic_age_sorting(self):
-        """Test age sorting with synthetic data."""
+        """Test age sorting with synthetic data.
+
+        Verifies that age entries within each output record are sorted numerically (3, 6, 12 months)
+        rather than alphabetically or in input order. Input ages are deliberately unsorted (12, 3, 6 months).
+        """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
@@ -303,7 +338,11 @@ class TestTransformRnaDeAggregate:
         assert output_data_sorted == expected_data_sorted
 
     def test_synthetic_single_row_data(self):
-        """Test transformation with synthetic single row data."""
+        """Test transformation with synthetic single row data.
+
+        Tests edge case handling of minimal input: a single data row representing one gene
+        at one age/condition. Verifies the transform can handle the smallest valid dataset.
+        """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
