@@ -118,18 +118,19 @@ build_object <- function(page_column_data) {
 
 # Builds a column object
 # - name: The column display name
-#   -- Specify NA for columns with the primary type
+#   -- Specify NA for columns with the primary type, and for hidden columns
 # - type: The column type
 # - tooltip: The tooltip display value for the column name
-#   -- Specify NA for column names that need no explanatory tooltip
+#   -- Specify NA for column names that need no explanatory tooltip, and for hidden columns
 # - sort_tooltip: The tooltip display value for the column sort indicator
-#   -- Specify NA to use the default sort_tooltip value: "Sort by <name> value"
+#   -- This key is always omitted for columns with the primary type, and for hidden columns
+#   -- Specify NA to use the default sort_tooltip value for any other column: "Sort by <name> value"
 # - link_url: The optional default target URL for columns with a link_* type
 #   -- Specify NA for columns with other types
 # - link_text: The optional default link display text for columns with a link_* type
 #   -- Specify NA for columns with other types
 # - is_exported: Whether this column should be included in CSV data exports
-# - is_hidden: Whether this column should be included in the CT table
+# - is_hidden: Whether this column should be displayed in the CT table
 build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden) {
 
   # Use the default sort_tooltip if one isn't specified, for non-primary columns only
