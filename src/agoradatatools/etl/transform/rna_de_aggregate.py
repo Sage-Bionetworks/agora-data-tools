@@ -139,10 +139,7 @@ def transform_rna_de_aggregate(
             ["ensembl_gene_id", "model", "tissue", "sex", "case", "control"]
         )
 
-        for j, (
-            (ensembl_gene_id, model, tissue, sex, case, control),
-            group,
-        ) in enumerate(grouped):
+        for (ensembl_gene_id, model, tissue, sex, case, control), group in grouped:
             # Get gene metadata using dictionary lookup
             gene_symbol = gene_metadata_dict.get(ensembl_gene_id, "")
 
