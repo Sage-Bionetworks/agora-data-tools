@@ -16,8 +16,12 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.immunohisto_transform import (
+    BIOMARKER_MEASURE_ORDER,
+    MEASURE_TYPE_ORDER,
+    PATHOLOGY_MEASURE_ORDER,
     _add_missing_age_entries,
     _calculate_y_axis_max_map,
+    _create_measure_order_key,
     _extract_age_num,
     immunohisto_transform,
     prepare_immunohisto_data,
@@ -338,6 +342,153 @@ class TestTransformGeneralModelAD:
         assert "age" in result[0]
         assert "data" in result[0]
         assert "y_axis_max" in result[0]
+
+    def test_immunohisto_transform_measure_type_ordering_biomarkers(self) -> None:
+        """
+        Test that biomarkers are ordered according to the BIOMARKER_MEASURE_ORDER constant.
+
+        Validates that the transform function correctly orders evidence types
+        for biomarkers according to the measure order constants.
+        """
+        # Create test data with biomarkers in non-alphabetical order
+        # Using the first 3 types from BIOMARKER_MEASURE_ORDER
+        # Note: Using "beta" in raw form since prepare_immunohisto_data will convert it to "&beta;"
+        input_df = pd.DataFrame(
+            {
+                "name": ["ModelA"] * 6,
+                "evidence_type": [
+                    "Soluble Abeta42",
+                    "NfL",
+                    "Soluble Abeta40",
+                    "Soluble Abeta42",
+                    "NfL",
+                    "Soluble Abeta40",
+                ],
+                "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+                "units": ["pg/mg"] * 6,
+                "age": [6, 6, 6, 12, 12, 12],
+                "tissue": ["Brain"] * 6,
+                "sex": ["male"] * 6,
+                "genotype": ["WT"] * 6,
+                "individual_id": ["1", "2", "3", "4", "5", "6"],
+            }
+        )
+
+        # Transform
+        result = immunohisto_transform(
+            datasets={"biomarkers": input_df},
+            dataset_name="biomarkers",
+        )
+
+        # Extract the evidence_type ordering from the result
+        evidence_types = [entry["evidence_type"] for entry in result]
+
+        # Expected order based on BIOMARKER_MEASURE_ORDER:
+        # NfL, Soluble A&beta;40, Soluble A&beta;42 (for both age 6 and 12)
+        expected_order = [
+            "NfL",
+            "Soluble A&beta;40",
+            "Soluble A&beta;42",
+            "NfL",
+            "Soluble A&beta;40",
+            "Soluble A&beta;42",
+        ]
+
+        assert evidence_types == expected_order
+
+    def test_immunohisto_transform_measure_type_ordering_pathology(self) -> None:
+        """
+        Test that pathology measures are ordered according to the PATHOLOGY_MEASURE_ORDER constant.
+
+        Validates that the transform function correctly orders evidence types
+        for pathology according to the measure order constants.
+        """
+        # Create test data with pathology measures in non-alphabetical order
+        # Using the first 3 types from PATHOLOGY_MEASURE_ORDER
+        input_df = pd.DataFrame(
+            {
+                "name": ["ModelA"] * 3,
+                "evidence_type": [
+                    "Tau (HT7)",
+                    "Plaque Density (Thio-S)",
+                    "Plaque Size (Thio-S)",
+                ],
+                "value": [10.0, 20.0, 30.0],
+                "units": ["cells/mm2", "plaques/mm2", "plaques/mm2"],
+                "age": [12, 12, 12],
+                "tissue": ["Hippocampus"] * 3,
+                "sex": ["female"] * 3,
+                "genotype": ["KO"] * 3,
+                "individual_id": ["1", "2", "3"],
+            }
+        )
+
+        # Transform
+        result = immunohisto_transform(
+            datasets={"pathology": input_df},
+            dataset_name="pathology",
+        )
+
+        # Extract the evidence_type ordering from the result
+        evidence_types = [entry["evidence_type"] for entry in result]
+
+        # Expected order based on PATHOLOGY_MEASURE_ORDER:
+        # Plaque Density (Thio-S), Plaque Size (Thio-S), Tau (HT7)
+        expected_order = [
+            "Plaque Density (Thio-S)",
+            "Plaque Size (Thio-S)",
+            "Tau (HT7)",
+        ]
+
+        assert evidence_types == expected_order
+
+    def test_immunohisto_transform_unlisted_measure_types(self) -> None:
+        """
+        Test that unlisted measure types are sorted alphabetically after listed ones.
+
+        Validates that evidence types not in BIOMARKER_MEASURE_ORDER are placed after
+        configured types and sorted alphabetically among themselves.
+        """
+        # Create test data with both listed and unlisted types
+        # Note: Using "beta" in raw form since prepare_immunohisto_data will convert it to "&beta;"
+        input_df = pd.DataFrame(
+            {
+                "name": ["ModelA"] * 4,
+                "evidence_type": [
+                    "Unknown Type B",
+                    "NfL",
+                    "Unknown Type A",
+                    "Soluble Abeta40",
+                ],
+                "value": [1.0, 2.0, 3.0, 4.0],
+                "units": ["pg/mg"] * 4,
+                "age": [12] * 4,
+                "tissue": ["Brain"] * 4,
+                "sex": ["male"] * 4,
+                "genotype": ["WT"] * 4,
+                "individual_id": ["1", "2", "3", "4"],
+            }
+        )
+
+        # Transform
+        result = immunohisto_transform(
+            datasets={"biomarkers": input_df},
+            dataset_name="biomarkers",
+        )
+
+        # Extract the evidence_type ordering from the result
+        evidence_types = [entry["evidence_type"] for entry in result]
+
+        # Expected order: NfL, Soluble A&beta;40 (from BIOMARKER_MEASURE_ORDER),
+        # then Unknown Type A, Unknown Type B (alphabetical)
+        expected_order = [
+            "NfL",
+            "Soluble A&beta;40",
+            "Unknown Type A",
+            "Unknown Type B",
+        ]
+
+        assert evidence_types == expected_order
 
 
 class TestRoundYAxisMax:
@@ -1040,6 +1191,156 @@ class TestAddMissingAgeEntries:
         assert model2_missing[0]["y_axis_max"] == pytest.approx(5.0)
         assert model2_missing[0]["data"] == []
         assert model2_missing[0]["units"] == ""
+
+
+class TestMeasureTypeOrderConstants:
+    """Test class for the measure type order constants."""
+
+    def test_biomarker_measure_order_constant(self) -> None:
+        """
+        Test that BIOMARKER_MEASURE_ORDER constant has the expected values.
+
+        Validates that the biomarker measure order constant contains the
+        expected evidence types in the correct order.
+        """
+        expected_biomarkers = [
+            "NfL",
+            "Soluble A&beta;40",
+            "Soluble A&beta;42",
+            "Insoluble A&beta;40",
+            "Insoluble A&beta;42",
+        ]
+        assert BIOMARKER_MEASURE_ORDER == expected_biomarkers
+
+    def test_pathology_measure_order_constant(self) -> None:
+        """
+        Test that PATHOLOGY_MEASURE_ORDER constant has the expected values.
+
+        Validates that the pathology measure order constant contains the
+        expected evidence types in the correct order.
+        """
+        expected_pathology = [
+            "Plaque Density (Thio-S)",
+            "Plaque Size (Thio-S)",
+            "Tau (HT7)",
+            "Phospho-Tau (AT8)",
+            "Dystrophic Neurites (LAMP1)",
+            "Microgia Cell Density (IBA1)",
+            "Astrocyte Cell Density (GFAP)",
+            "Astrocyte Cell Density (S100B)",
+        ]
+        assert PATHOLOGY_MEASURE_ORDER == expected_pathology
+
+    def test_measure_type_order_dict(self) -> None:
+        """
+        Test that MEASURE_TYPE_ORDER dictionary maps correctly to the constants.
+
+        Validates that the MEASURE_TYPE_ORDER dictionary contains the correct
+        references to the biomarker and pathology order constants.
+        """
+        assert "biomarkers" in MEASURE_TYPE_ORDER
+        assert "pathology" in MEASURE_TYPE_ORDER
+        assert MEASURE_TYPE_ORDER["biomarkers"] == BIOMARKER_MEASURE_ORDER
+        assert MEASURE_TYPE_ORDER["pathology"] == PATHOLOGY_MEASURE_ORDER
+
+
+class TestCreateMeasureOrderKey:
+    """Test class for the _create_measure_order_key function."""
+
+    def test_create_measure_order_key_basic_ordering(self) -> None:
+        """
+        Test basic ordering functionality.
+
+        Validates that the sorting key function correctly orders evidence types
+        according to BIOMARKER_MEASURE_ORDER.
+        """
+        key_func = _create_measure_order_key("biomarkers")
+
+        # Test that the key function returns correct tuples for biomarkers
+        assert key_func("NfL") == (0, "NfL")
+        assert key_func("Soluble A&beta;40") == (1, "Soluble A&beta;40")
+        assert key_func("Soluble A&beta;42") == (2, "Soluble A&beta;42")
+
+    def test_create_measure_order_key_unlisted_types(self) -> None:
+        """
+        Test that unlisted evidence types are sorted after listed ones.
+
+        Validates that types not in BIOMARKER_MEASURE_ORDER get a high index value
+        and are sorted alphabetically among themselves.
+        """
+        key_func = _create_measure_order_key("biomarkers")
+
+        # Unlisted types should get a large index
+        unlisted_key = key_func("Unknown Type")
+        assert unlisted_key[0] > 1000
+        assert unlisted_key[1] == "Unknown Type"
+
+    def test_create_measure_order_key_sorting_behavior(self) -> None:
+        """
+        Test actual sorting behavior with mixed listed and unlisted types.
+
+        Validates that when used with Python's sorted(), the key function
+        produces the correct ordering using BIOMARKER_MEASURE_ORDER.
+        """
+        key_func = _create_measure_order_key("biomarkers")
+
+        # Create a list with both configured and unconfigured types
+        evidence_types = [
+            "Unknown 2",
+            "Soluble A&beta;40",
+            "Unknown 1",
+            "NfL",
+            "Soluble A&beta;42",
+        ]
+
+        sorted_types = sorted(evidence_types, key=key_func)
+
+        # Expected order: configured types first (in BIOMARKER_MEASURE_ORDER),
+        # then alphabetical (Unknown 1, Unknown 2)
+        expected = [
+            "NfL",
+            "Soluble A&beta;40",
+            "Soluble A&beta;42",
+            "Unknown 1",
+            "Unknown 2",
+        ]
+        assert sorted_types == expected
+
+    def test_create_measure_order_key_pathology_dataset(self) -> None:
+        """
+        Test ordering for pathology dataset.
+
+        Validates that the function works correctly when using the 'pathology'
+        dataset name and PATHOLOGY_MEASURE_ORDER constant.
+        """
+        key_func = _create_measure_order_key("pathology")
+
+        # Test that it uses PATHOLOGY_MEASURE_ORDER
+        assert key_func("Plaque Density (Thio-S)") == (0, "Plaque Density (Thio-S)")
+        assert key_func("Plaque Size (Thio-S)") == (1, "Plaque Size (Thio-S)")
+        assert key_func("Tau (HT7)") == (2, "Tau (HT7)")
+
+        # NfL should be unlisted for pathology
+        nfl_key = key_func("NfL")
+        assert nfl_key[0] > 1000
+
+    def test_create_measure_order_key_unknown_dataset(self) -> None:
+        """
+        Test behavior with unknown dataset name.
+
+        Validates that when an unknown dataset name is provided, all types are
+        treated as unlisted and sorted alphabetically.
+        """
+        key_func = _create_measure_order_key("unknown_dataset")
+
+        # All types should be unlisted since the dataset isn't in MEASURE_TYPE_ORDER
+        key1 = key_func("Type A")
+        key2 = key_func("Type B")
+
+        # Both should have the same large index, sorted alphabetically
+        assert key1[0] == key2[0]
+        assert key1[0] >= 1000
+        assert key1[1] < key2[1]  # Alphabetical ordering
 
 
 class TestExtractAgeNum:

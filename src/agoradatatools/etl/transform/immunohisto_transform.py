@@ -39,6 +39,35 @@ REQUIRED_INPUT = {
     ],
 }
 
+# Measure type ordering configuration
+# These constants define the display order for biomarker and pathology evidence types.
+# Evidence types are sorted in the order listed below. Any types not listed will be
+# sorted alphabetically after the listed types.
+
+BIOMARKER_MEASURE_ORDER = [
+    "NfL",
+    "Soluble A&beta;40",
+    "Soluble A&beta;42",
+    "Insoluble A&beta;40",
+    "Insoluble A&beta;42",
+]
+
+PATHOLOGY_MEASURE_ORDER = [
+    "Plaque Density (Thio-S)",
+    "Plaque Size (Thio-S)",
+    "Tau (HT7)",
+    "Phospho-Tau (AT8)",
+    "Dystrophic Neurites (LAMP1)",
+    "Microgia Cell Density (IBA1)",
+    "Astrocyte Cell Density (GFAP)",
+    "Astrocyte Cell Density (S100B)",
+]
+
+MEASURE_TYPE_ORDER = {
+    "biomarkers": BIOMARKER_MEASURE_ORDER,
+    "pathology": PATHOLOGY_MEASURE_ORDER,
+}
+
 
 def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -210,6 +239,44 @@ def _extract_age_num(age_str: str) -> float:
         return float("inf")
 
 
+def _create_measure_order_key(dataset_name: str) -> callable:
+    """
+    Create a sorting key function for evidence_type based on the measure type order constants.
+
+    This function creates a key function that can be used to sort evidence types
+    according to the order specified in MEASURE_TYPE_ORDER. Evidence types listed
+    in the constants will be sorted in that order, while unlisted types will be
+    sorted alphabetically after the listed types.
+
+    Args:
+        dataset_name: Name of the dataset ('biomarkers' or 'pathology')
+
+    Returns:
+        A function that takes an evidence_type string and returns a tuple that
+        can be used for sorting. The tuple is (order_index, evidence_type) where
+        order_index is the position in the measure order list (or a large number for
+        unlisted types to sort them after listed ones).
+
+    Example:
+        >>> key_func = _create_measure_order_key("biomarkers")
+        >>> sorted(["Soluble A&beta;40", "Other Type", "NfL"], key=key_func)
+        ["NfL", "Soluble A&beta;40", "Other Type"]
+    """
+    measure_order = MEASURE_TYPE_ORDER.get(dataset_name, [])
+
+    # Create a mapping of evidence_type to its desired order index
+    order_map = {evidence_type: idx for idx, evidence_type in enumerate(measure_order)}
+
+    def key_func(evidence_type: str) -> Tuple[int, str]:
+        # If the evidence_type is in our config, use its index
+        # Otherwise, use a large number to sort it after all configured types
+        # Also include the evidence_type itself for alphabetical sorting within unlisted types
+        order_idx = order_map.get(evidence_type, len(measure_order) + 1000)
+        return (order_idx, evidence_type)
+
+    return key_func
+
+
 def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
     dataset_name: str,
@@ -232,6 +299,10 @@ def immunohisto_transform(
     contains these group-by fields as keys, and an additional key (by default "data") whose value
     is a list of dictionaries. Each dictionary in this list corresponds to an individual measurement
     and contains the extra_columns (by default: genotype, sex, individual_id, value).
+
+    The output is sorted first by age (numerically), then by evidence_type (measure type) according
+    to the ordering specified in MEASURE_TYPE_ORDER constants. Evidence types not listed in the
+    constants will be sorted alphabetically after the configured types.
 
     Example output structure:
     [
@@ -257,12 +328,13 @@ def immunohisto_transform(
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
         dataset_name (str): The name of the dataset to transform.
+        required_input (Dict[str, List[str]], optional): Required input columns for validation.
         group_columns (List[str], optional): List of columns to group by. Defaults to ['name', 'evidence_type', 'tissue', 'age', 'units'].
         extra_columns (List[str], optional): List of columns to include in the group. Defaults to ['genotype', 'sex', 'individual_id', 'value'].
         extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'data'.
 
     Returns:
-        pd.DataFrame: DataFrame containing all group_columns, plus an extra column named as specified
+        List[Dict[str, Any]]: List of dictionaries containing all group_columns, plus an extra column named as specified
         in extra_column_name. This extra column contains all information from extra_columns, collapsed
         into a single dictionary.
     """
@@ -312,11 +384,17 @@ def immunohisto_transform(
     # Add missing age entries for completeness
     data_rows = _add_missing_age_entries(data_rows)
 
-    # Sort by age (convert age to numeric for sorting)
+    # Create sorting key function for evidence_type based on measure type order
+    measure_order_key = _create_measure_order_key(dataset_name)
+
+    # Sort by age (convert age to numeric for sorting), then by evidence_type using custom order
     data_rows["age_numeric"] = data_rows["age"].apply(_extract_age_num)
-    data_rows = data_rows.sort_values(["age_numeric", "age", "evidence_type"]).drop(
-        columns="age_numeric"
+    data_rows["evidence_type_order"] = data_rows["evidence_type"].apply(
+        measure_order_key
     )
+    data_rows = data_rows.sort_values(
+        ["age_numeric", "age", "evidence_type_order"]
+    ).drop(columns=["age_numeric", "evidence_type_order"])
 
     # Reorder columns to match expected output: group_columns + y_axis_max + extra_column_name
     column_order = group_columns + ["y_axis_max", extra_column_name]
