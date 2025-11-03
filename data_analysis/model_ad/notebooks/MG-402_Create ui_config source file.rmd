@@ -33,14 +33,15 @@ library(jsonlite)
 ```
 
 
-
+## Variables and functions
+Sources the required variables and functions.
 ```{r}
-
 # *******************************
-# STATIC COLUMN DEFINITION FIELDS
+# STATIC ROW COUNTS (MG-384)
 # *******************************
-static_colnames <- c("name", "data_type", "tooltip", "sort_tooltip")
-
+gene_expression_row_count = "over 200000" # THIS IS NOT THE REAL VALUE
+disease_correlation_row_count = "1800" # 1800 source rows/total results, 300 CT rows, 60 rows/cluster, variable results per row
+model_overview_row_count = "16"
 
 # *************
 # FILTER VALUES
@@ -100,46 +101,91 @@ modified_gene_filter_vals <- c('Abca7',
                                'Trem2')
 sex_filter_vals <- c('Female', 'Male')
 
-# ****************
-# SHARED FUNCTIONS
-# ****************
 
-# Builds a column definition object
-# - name: The column display name
-# - metadata: An object specifying the column's data_type, tooltip value, and sort_tooltip value
-# - override_tooltip: If specified, this value is used in place of metadata.tooltip
-make_column <- function(name, metadata, override_tooltip = NULL) {
-  names(metadata) <- static_colnames[-1]
-  tooltip_value <- if (!is.null(override_tooltip)) override_tooltip else metadata["tooltip"]
+# *********
+# FUNCTIONS
+# *********
 
-  list(
-    name = name,
-    type = metadata["data_type"],
-    tooltip = tooltip_value,
-    sort_tooltip = metadata["sort_tooltip"]
-  )
+# Builds a ui_config object from a dataframe containing column info
+# Currently used only by Model Overview.
+# - page_column_data: a csv-compatible dataframe containing a row of values per CT column:
+#    - name, type, data_key, tooltip, sort_tooltip, link_url, link_text
+build_object <- function(page_column_data) {
+
+  columns <- apply(page_column_data, 1, function(row) {
+
+    name <- if (!is.null(row["name"])) row["name"] else ""
+    type <- row["type"]
+    data_key <- row["data_key"]
+    tooltip <- row["tooltip"]
+    sort_tooltip <- row["sort_tooltip"]
+    link_url = row["link_url"]
+    link_text = row["link_text"]
+
+    build_column(name, type, data_key, tooltip, sort_tooltip, link_url, link_text)
+  })
+  columns
 }
 
+# Builds a column object
+# - name: The column display name
+#   -- Specify NA for columns with the primary type
+# - type: The column type
+# - tooltip: The tooltip display value for the column name
+#   -- Specify NA for column names that need no explanatory tooltip
+# - sort_tooltip: The tooltip display value for the column sort indicator
+#   -- Specify NA to use the default sort_tooltip value: "Sort by <name> value"
+# - link_url: The optional default target URL for columns with a link_* type
+#   -- Specify NA for columns with other types
+# - link_text: The optional default link display text for columns with a link_* type
+#   -- Specify NA for columns with other types
+build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text) {
+
+  # Use the default sort_tooltip if one isn't specified, for non-primary columns only
+  if (type == "primary") { sort_tooltip = NA }
+  else { sort_tooltip = if (!is.na(sort_tooltip)) sort_tooltip else paste("Sort by", name, "value") }
+
+  column <- list(
+    name = name,
+    type = type,
+    data_key = data_key,
+    tooltip = tooltip,
+    sort_tooltip = sort_tooltip,
+    link_url = link_url ,
+    link_text = link_text
+  )
+
+  # Omit keys with NA values
+  clean_column <- discard(column, ~ is.null(.x) | all(is.na(.x)))
+  clean_column
+}
 
 # Builds a list of filter definitions
-# - filter_defs: A dataframe of filterset names and linked data fields
-# -filter_vals: A list of lists specifying the filter values for each filterset
-make_filters <- function(filter_defs, filter_vals) {
+# - filter_defs: A dataframe of filterset info
+#   -- name, data_field, short_name, filter_values
+# - filter_vals: A list of lists specifying the filter values for each filterset
+build_filters <- function(filter_defs, filter_values) {
 
   # Construct list of filters
-  filters <- Map(function(name, field, values) {
-    list(
+  filters <- Map(function(name, data_key, short_name, filter_values) {
+
+    filter <- list(
       name = name,
-      field = field,
-      values = values
+      data_key = data_key,
+      short_name = short_name,
+      values = filter_values
       )
-    }, filter_defs$name, filter_defs$field, filter_vals)
+
+      # Omit keys with NA values
+      filter <- discard(filter, ~ is.null(.x) | all(is.na(.x)))
+
+    }, filter_defs$name, filter_defs$data_key, filter_defs$short_name, filter_values)
 
   # Remove names to ensure JSON is an array, not object
   names(filters) <- NULL
-
   filters
 }
+
 
 # ***************
 # Gene Expression
@@ -153,17 +199,26 @@ ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 
 # Gene Expression Columns
 # -------------------------
-ge_static_row <- c("Model", "text", "Mouse Model", "Sort by Model value")
-ge_dynamic_row <- c("heat_map", "", "Sort by log2 fold change value")
+# Static columns are the same across all views
+ge_primary_column <- list(NA, "primary", "gene_symbol", NA, NA, NA, NA)
+ge_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA)
+ge_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA)
+
+# Dynamic columns have the same type and tooltip across all views
+ge_dynamic_column_type <- "heat_map"
+ge_dynamic_column_sort_tooltip <- "Sort by log2 fold change value"
+
+# Dynamic column names vary by contributing center and by tissue, since each center sequences different tissues
 ge_dynamic_names_jax <- c("4 months", "12 months")
 ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 
 
 # Gene Expression Filters
 # -----------------------
-ge_filter_defs <- data.frame(
+ge_filters <- data.frame(
   name = c('Biological Domain', 'Model Type', 'Mouse Model'),
-  field = c('biodomains', 'model_type', 'name'),
+  data_key = c('biodomains', 'model_type', 'name'),
+  short_name = c('Biodomain', 'Type', 'Model'),
   stringsAsFactors = FALSE
 )
 
@@ -177,26 +232,28 @@ ge_filter_values <- list(
 
 # Generates Gene Expression ui_config objects
 build_ge_objects <- function() {
-  combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
 
-  lapply(seq_len(nrow(combos)), function(i) {
+  # Static columns are always the same
+  primary <- do.call(build_column, ge_primary_column)
+  model <- do.call(build_column, ge_model_column)
+  matched_control <- do.call(build_column, ge_matched_control_column)
 
-    # Build column_defs
-    row <- combos[i, ]
-    static_column <- make_column(ge_static_row[1], ge_static_row[-1])
+  # Dynamic columns vary by tissue dropdown
+  dropdown_combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
+  lapply(seq_len(nrow(dropdown_combos)), function(i) {
+    combo <- dropdown_combos[i, ]
+    dynamic_names <- if (combo$menu2 == "Tissue - Hemibrain") ge_dynamic_names_jax else ge_dynamic_names_uci
+    dynamic_columns <- lapply(dynamic_names,function(name) {
+                           build_column(name, ge_dynamic_column_type, name, NA, ge_dynamic_column_sort_tooltip, NA, NA)
+    })
 
-    # Age columns vary by contributing center; use Tissue value as a proxy, since values are unique per center
-    dynamic_names <- if (row$menu2 == "Tissue - Hemibrain") ge_dynamic_names_jax else ge_dynamic_names_uci
-    dynamic_columns <- lapply(dynamic_names, function(name) make_column(name, ge_dynamic_row))
-
-    columns <- c(list(static_column), dynamic_columns)
-
-    # Build filter_defs
-    filters <- make_filters(ge_filter_defs, ge_filter_values)
+    columns <- c(list(primary, model, matched_control), dynamic_columns)
+    filters <- build_filters(ge_filters, ge_filter_values)
 
     list(
       page = "Gene Expression",
-      dropdowns = c(row$menu1, row$menu2, row$menu3),
+      dropdowns = c(combo$menu1, combo$menu2, combo$menu3),
+      row_count = gene_expression_row_count,
       columns = columns,
       filters = filters
     )
@@ -221,25 +278,21 @@ dc_menu2 <- c(
 
 # Disease Correlation Columns
 # ---------------------------
-dc_static_row1 <- c("Age", "text", "", "Sort by Age value")
-dc_static_row2 <- c("Sex", "text", "", "Sort by Sex value")
-dc_dynamic_row <- c("heat_map", "", "Sort by correlation value")
+# All views have the same static column values
+dc_primary_column <- list(NA, "primary", "name", NA, NA, NA, NA)
+dc_age_column <- list("Age", "text", "age", NA, "Sort by Age value", NA, NA)
+dc_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA)
 
+# All views have the same type and tooltip for dynamic columns
+dc_dynamic_column_type <- "heat_map"
+dc_dynamic_column_sort_tooltip <- "Sort by correlation value"
+
+# Dynamic column names vary by consensus cluster option
 dc_dynamic_names_A <- c("IFG", "PHG", "TCX")
 dc_dynamic_names_B <- c("CBE", "DLPFC", "PHG", "TCX", "FP", "IFG", "STG")
 dc_dynamic_names_C <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
 dc_dynamic_names_D <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
 dc_dynamic_names_E <- c("CBE", "DLPFC", "PHG", "STG", "TCX", "FP")
-
-dc_tooltip_map <- c(
-  CBE = "Cerebellum",
-  DLPFC = "Dorsolateral Prefrontal Cortex",
-  FP = "Frontal Pole",
-  IFG = "Inferior Frontal Gyrus",
-  PHG = "Parahippocampal Gyrus",
-  STG = "Superior Frontal Gyrus",
-  TCX = "Temporal Cortex"
-)
 
 get_dc_dynamic_names <- function(cluster_label) {
   if (grepl("Cluster A", cluster_label)) return(dc_dynamic_names_A)
@@ -250,11 +303,23 @@ get_dc_dynamic_names <- function(cluster_label) {
   character(0)
 }
 
+# Brain region acronym expansions for tooltips
+dc_tooltip_map <- c(
+  CBE = "Human gene module: Cerebellum",
+  DLPFC = "Human gene module: Dorsolateral Prefrontal Cortex",
+  FP = "Human gene module: Frontal Pole",
+  IFG = "Human gene module: Inferior Frontal Gyrus",
+  PHG = "Human gene module: Parahippocampal Gyrus",
+  STG = "Human gene module: Superior Frontal Gyrus",
+  TCX = "Human gene module: Temporal Cortex"
+)
+
 # Disease Correlation Filters
 # ------------------------------
-dc_filter_defs <- data.frame(
+dc_filters <- data.frame(
   name = c('Age', 'Model Type', 'Modified Gene', 'Mouse Model', 'Sex'),
-  field = c('age', 'model_type', 'modified_genes', 'name', 'sex'),
+  data_key = c('age', 'model_type', 'modified_genes', 'name', 'sex'),
+  short_name = c(NA, 'Type', 'Gene', 'Model', NA),
   stringsAsFactors = FALSE
 )
 
@@ -268,27 +333,33 @@ dc_filter_values <- list(
   sex_filter_vals
 )
 
-# Generates Disease Correlation ui_config objects
+# Generates Disease Correlation ui_config objects for each possible combination of dropdown menus
 build_dc_objects <- function() {
-  combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
 
-  lapply(seq_len(nrow(combos)), function(i) {
-    row <- combos[i, ]
-    dynamic_names <- get_dc_dynamic_names(row$menu2)
+  # Static columns are always the same
+  primary <- do.call(build_column, dc_primary_column)
+  age <- do.call(build_column, dc_age_column)
+  sex <- do.call(build_column, dc_sex_column)
+
+  # Dynamic columns vary by consensus cluster option
+  dropdown_combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
+  lapply(seq_len(nrow(dropdown_combos)), function(i) {
+    combo <- dropdown_combos[i, ]
+    dynamic_names <- get_dc_dynamic_names(combo$menu2)
     dynamic_columns <- lapply(dynamic_names, function(name) {
       tooltip_text <- dc_tooltip_map[[name]]
-      make_column(name, dc_dynamic_row, override_tooltip = tooltip_text)
+      # The data_key values for the disease_correlation dataset are exact matches to the name value
+      build_column(name, dc_dynamic_column_type, data_key = name, tooltip_text, dc_dynamic_column_sort_tooltip, NA, NA)
     })
 
-    static1 <- make_column(dc_static_row1[1], dc_static_row1[-1])
-    static2 <- make_column(dc_static_row2[1], dc_static_row2[-1])
-    columns <- c(list(static1, static2), dynamic_columns)
 
-    filters <- make_filters(dc_filter_defs, dc_filter_values)
+    columns <- c(list(primary, age, sex), dynamic_columns)
+    filters <- build_filters(dc_filters, dc_filter_values)
 
     list(
       page = "Disease Correlation",
-      dropdowns = c(row$menu1, row$menu2),
+      dropdowns = c(combo$menu1, combo$menu2),
+      row_count = disease_correlation_row_count,
       columns = columns,
       filters = filters
     )
@@ -299,19 +370,22 @@ build_dc_objects <- function() {
 # **************
 # Model Overview
 # **************
-
-# Model Overview Columns
-# ----------------------
 mo_columns <- data.frame(
-  name = c(
-    "Model Type", "Matched Control", "Gene Expression", "Disease Correlation",
-    "Pathology", "Biomarkers", "Study Data", "JAX Strain", "Center"
+  name = c(NA, "Model Type", "Matched Controls",
+           "Gene Expression", "Disease Correlation", "Pathology",
+           "Biomarkers", "Study Data", "JAX Strain", "Center"
   ),
-  type = c(
-    "text", "text",
-    "link_internal", "link_internal", "link_internal", "link_internal",
-    "link_external", "link_external", "link_external"
+  type = c("primary", "text", "text",
+    "link_internal", "link_internal", "link_internal",
+    "link_internal","link_external", "link_external", "link_external"
   ),
+  data_key = c("name", "model_type", "matched_controls", "gene_expression",
+                 "disease_correlation", "pathology", "biomarkers",
+                 "study_data", "jax_strain", "center"),
+  tooltip = rep(NA, times = 10),
+  sort_tooltip = rep(NA, times = 10),
+  link_url = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA),
+  link_text = c(NA, NA, NA, "Results", "Results", "Results", "Results", "View Data", "View Strain", NA),
   stringsAsFactors = FALSE
 )
 
@@ -319,7 +393,8 @@ mo_columns <- data.frame(
 # ----------------------
 mo_filters <- data.frame(
   name = c('Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'),
-  field = c('available_data', 'center', 'model_type', 'modified_genes'),
+  data_key = c('available_data', 'center', 'model_type', 'modified_genes'),
+  short_name = c('Data', 'Center', 'Type', 'Gene'),
   stringsAsFactors = FALSE
 )
 
@@ -334,49 +409,26 @@ mo_filter_values <- list(
 
 # Generates Model Overview ui_config objects
 build_mo_object <- function() {
-  columns <- apply(mo_columns, 1, function(row) {
-    name <- row["name"]
-    type <- row["type"]
-
-    metadata <- c(type, "", paste("Sort by", name, "value"))
-    column <- make_column(name, metadata)
-
-    if (column$type %in% c("link_internal", "link_external")) {
-      if (name %in% c("Gene Expression", "Disease Correlation", "Pathology", "Biomarkers")) {
-        column$link_text <- "Results"
-      } else if (name == "Study Data") {
-        column$link_text <- "View Data"
-      } else if (name == "JAX Strain") {
-        column$link_text <- "View Strain"
-      } else if (name == "Center") {
-        # Omit link_text, add link_url instead
-        column$link_url <- "https://www.model-ad.org/"
-      }
-    }
-    column
-  })
-
-  # Construct list of filters
-  filters <- Map(function(name, field, values) {
-    list(
-      name = name,
-      field = field,
-      values = values
-      )
-    }, mo_filters$name, mo_filters$field, mo_filter_values)
-
-  # Remove names to ensure JSON is an array, not object
-  names(filters) <- NULL
+  columns <- build_object(mo_columns)
+  filters <- build_filters(mo_filters, mo_filter_values)
 
   # Assemble the ui_config object
   list(
     page = "Model Overview",
     dropdowns = list(),
+    row_count = model_overview_row_count,
     columns = columns,
     filters = filters
   )
 }
 
+
+
+```
+
+# Generate and upload ui_config
+
+```{r}
 # *********************************************
 # Generate ui_config.json and upload to Synapse
 # *********************************************
@@ -387,7 +439,7 @@ json_list <- c(
 )
 
 json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
-cat(json_output)
+# cat(json_output)
 
 # write json file
 output_dir <- file.path("./", "output")
@@ -398,13 +450,43 @@ if(!dir.exists(output_dir)){
 write(json_output, file.path(output_dir, "ui_config.json"))
 
 # upload to synapse
-syn_file <- File(file.path(output_dir, "ui_config.json"),
-                 description = "ui_config.json for Model-AD Explorer 2.0.",
-                 parent = "syn51498054")
+syn_file <- File(
+              file.path(output_dir, "ui_config.json"),
+              description = "ui_config.json for Model-AD Explorer 2.0.",
+              parent = "syn51498054"
+            )
 
-res <- synStore(syn_file, forceVersion = FALSE,
-                executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd")
-
+res <- synStore(
+          syn_file,
+          forceVersion = FALSE,
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd"
+        )
+# print synapse_id and new version number
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
+```
+
+
+## Test build_object
+```{r}
+test_input <- data.frame(
+  name = c(NA, "text_name", "link_external_name", "link_internal_name"),
+  type = c("primary", "text", "link_external", "link_internal" ),
+  data_key = c("key1", "key2", "key3", "key4"),
+  tooltip = c(NA, "tooltip2", NA, "tooltip3"),
+  sort_tooltip = c(NA, "sort_tooltip1", NA, "sort_tooltip2"),
+  link_url = c(NA, NA, NA, "https://test/url/here"),
+  link_text = c(NA, NA, "Results", "View Strain"),
+  stringsAsFactors = FALSE
+)
+
+coldefs <- build_object(test_input)
+
+json_list <- c(
+  coldefs
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, na = NULL, null = NULL, auto_unbox = TRUE)
+cat(json_output)
 
 ```
