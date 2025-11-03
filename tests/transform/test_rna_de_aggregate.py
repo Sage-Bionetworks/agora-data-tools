@@ -30,7 +30,7 @@ Test Data Structure:
 
 import os
 import json
-
+from typing import List
 import pandas as pd
 import pytest
 
@@ -38,9 +38,40 @@ from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggre
 
 
 class TestTransformRnaDeAggregate:
+    """
+    Test class for RNA differential expression aggregate transformation.
+
+    This class contains test methods that verify the behavior of the
+    `transform_rna_de_aggregate` function using synthetic datasets designed
+    to test specific functionality and edge cases.
+
+    Attributes:
+        data_files_path (str): Path to the directory containing test assets
+            (synthetic input files and expected output files).
+
+    Test Methods:
+        - test_transform_rna_de_aggregate_missing_required_dataset: Tests error handling
+          when required datasets are missing.
+        - test_synthetic_basic_data: Tests core transformation with simple 2-gene dataset.
+        - test_synthetic_multi_model_data: Tests handling of multiple models and tissues.
+        - test_synthetic_jax_tissue_mapping: Tests JAX-specific tissue name mapping.
+        - test_synthetic_mixed_genes_filtering: Tests filtering of human genes.
+        - test_synthetic_age_sorting: Tests numeric sorting of age entries.
+        - test_synthetic_single_row_data: Tests minimal edge case (single row).
+        - test_synthetic_empty_data_file: Tests error handling for empty data files.
+        - test_synthetic_missing_columns_data: Tests error handling for missing columns.
+        - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
+        - test_synthetic_multiple_biodomains: Tests genes with multiple biodomain assignments.
+        - test_synthetic_null_model_group: Tests handling of null/empty model_group values.
+
+    Helper Methods:
+        - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
+          proper column name normalization and dataset key mapping.
+    """
+
     data_files_path = "tests/test_assets/rna_de_aggregate"
 
-    def test_transform_rna_de_aggregate_missing_required_dataset(self):
+    def test_transform_rna_de_aggregate_missing_required_dataset(self) -> None:
         """Test that missing required datasets raise ValueError."""
         # Load datasets without one required dataset (model_info)
         datasets = self._load_synthetic_test_data(
@@ -57,7 +88,7 @@ class TestTransformRnaDeAggregate:
         with pytest.raises(ValueError):
             transform_rna_de_aggregate(datasets=datasets)
 
-    def _load_synthetic_test_data(self, data_files):
+    def _load_synthetic_test_data(self, data_files: List[str]) -> dict:
         """Load synthetic test data files as DataFrames."""
         datasets = {}
         input_path = os.path.join(self.data_files_path, "input")
@@ -86,7 +117,7 @@ class TestTransformRnaDeAggregate:
 
         return datasets
 
-    def test_synthetic_basic_data(self):
+    def test_synthetic_basic_data(self) -> None:
         """Test transformation with synthetic basic data.
 
         Tests a simple case with 2 genes, 2 ages (3 and 6 months), and straightforward values
@@ -120,7 +151,7 @@ class TestTransformRnaDeAggregate:
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
 
-    def test_synthetic_multi_model_data(self):
+    def test_synthetic_multi_model_data(self) -> None:
         """Test transformation with synthetic multi-model data.
 
         Tests handling of multiple mouse models (Model_B, Model_C) with different tissues
@@ -160,7 +191,7 @@ class TestTransformRnaDeAggregate:
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
 
-    def test_synthetic_jax_tissue_mapping(self):
+    def test_synthetic_jax_tissue_mapping(self) -> None:
         """Test JAX tissue mapping with synthetic data.
 
         Verifies that tissue names from JAX models are correctly mapped: specifically that
@@ -195,7 +226,7 @@ class TestTransformRnaDeAggregate:
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
 
-    def test_synthetic_mixed_genes_filtering(self):
+    def test_synthetic_mixed_genes_filtering(self) -> None:
         """Test human gene filtering with synthetic mixed genes data.
 
         Tests that the transform correctly filters out human genes (ENSG*) and only
@@ -235,7 +266,7 @@ class TestTransformRnaDeAggregate:
         for entry in output_data:
             assert entry["ensembl_gene_id"].startswith("ENSMUSG")
 
-    def test_synthetic_age_sorting(self):
+    def test_synthetic_age_sorting(self) -> None:
         """Test age sorting with synthetic data.
 
         Verifies that age entries within each output record are sorted numerically (3, 6, 12 months)
@@ -270,7 +301,7 @@ class TestTransformRnaDeAggregate:
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
 
-    def test_synthetic_single_row_data(self):
+    def test_synthetic_single_row_data(self) -> None:
         """Test transformation with synthetic single row data.
 
         Tests edge case handling of minimal input: a single data row representing one gene
@@ -307,7 +338,7 @@ class TestTransformRnaDeAggregate:
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
 
-    def test_synthetic_empty_data_file(self):
+    def test_synthetic_empty_data_file(self) -> None:
         """Test handling of synthetic empty data files."""
         # Load datasets with empty synthetic data file
         datasets = self._load_synthetic_test_data(
@@ -324,7 +355,7 @@ class TestTransformRnaDeAggregate:
         with pytest.raises(ValueError, match="Data file .* is empty"):
             transform_rna_de_aggregate(datasets=datasets)
 
-    def test_synthetic_missing_columns_data(self):
+    def test_synthetic_missing_columns_data(self) -> None:
         """Test handling of synthetic data files with missing required columns."""
         # Load datasets with a synthetic data file missing required columns
         datasets = self._load_synthetic_test_data(
@@ -341,7 +372,7 @@ class TestTransformRnaDeAggregate:
         with pytest.raises(ValueError, match="Missing required columns"):
             transform_rna_de_aggregate(datasets=datasets)
 
-    def test_synthetic_rounding_precision(self):
+    def test_synthetic_rounding_precision(self) -> None:
         """Test that log2foldchange and padj values are rounded to 5 decimal places.
 
         Tests numeric precision by providing values with 7+ decimal places and verifying
@@ -384,7 +415,7 @@ class TestTransformRnaDeAggregate:
         assert output_data[0]["6 months"]["log2_fc"] == 2.98765
         assert output_data[0]["6 months"]["adj_p_val"] == 0.98765
 
-    def test_synthetic_multiple_biodomains(self):
+    def test_synthetic_multiple_biodomains(self) -> None:
         """Test handling of genes with multiple biodomain assignments.
 
         Verifies that genes assigned to multiple biodomains (e.g., both 'Synaptic' and 'Metabolic')
@@ -431,7 +462,7 @@ class TestTransformRnaDeAggregate:
         assert len(output_data[0]["biodomains"]) == 2
         assert set(output_data[0]["biodomains"]) == {"Metabolic", "Synaptic"}
 
-    def test_synthetic_null_model_group(self):
+    def test_synthetic_null_model_group(self) -> None:
         """Test that empty/null model_group is converted to None in output.
 
         Tests the specific logic that converts empty string model_group values to None
