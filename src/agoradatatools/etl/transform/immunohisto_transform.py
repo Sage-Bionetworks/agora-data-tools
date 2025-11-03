@@ -110,7 +110,7 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     # Put back to the right magnitude
     result = rounded_scaled * (10 ** (magnitude - 1))
 
-    # remove float precision issues
+    # Remove float precision issues
     result = round(result, 15)
 
     # Ensure we always return a float, even for whole numbers
