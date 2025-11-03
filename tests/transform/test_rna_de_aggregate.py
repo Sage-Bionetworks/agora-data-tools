@@ -30,7 +30,7 @@ Test Data Structure:
 
 import os
 import json
-from typing import List
+from typing import Dict, List
 import pandas as pd
 import pytest
 
@@ -88,7 +88,9 @@ class TestTransformRnaDeAggregate:
         with pytest.raises(ValueError):
             transform_rna_de_aggregate(datasets=datasets)
 
-    def _load_synthetic_test_data(self, data_files: List[str]) -> dict:
+    def _load_synthetic_test_data(
+        self, data_files: List[str]
+    ) -> Dict[str, pd.DataFrame]:
         """Load synthetic test data files as DataFrames."""
         datasets = {}
         input_path = os.path.join(self.data_files_path, "input")
