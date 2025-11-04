@@ -85,6 +85,38 @@ def test_read_json_into_df():
         assert isinstance(df, pd.DataFrame)
 
 
+def test_read_yaml_into_df_if_not_yaml():
+    with pytest.raises(ValueError, match="Please make sure *"):
+        extract.read_yaml_into_df(yaml_path="./tests/test_assets/test_file.csv")
+
+
+def test_read_yaml_into_df():
+    """Test reading YAML file and converting to DataFrame."""
+    df = extract.read_yaml_into_df(
+        yaml_path="./tests/test_assets/immunohisto_transform/input/immunohisto_measure_order.yaml"
+    )
+
+    # Verify it returns a DataFrame
+    assert isinstance(df, pd.DataFrame)
+
+    # Verify it has the expected columns
+    assert "dataset_name" in df.columns
+    assert "evidence_type" in df.columns
+
+    # Verify it has the expected number of rows (5 biomarkers + 8 pathology = 13)
+    assert len(df) == 13
+
+    # Verify the biomarkers are present
+    biomarker_rows = df[df["dataset_name"] == "biomarkers"]
+    assert len(biomarker_rows) == 5
+    assert "NfL" in biomarker_rows["evidence_type"].values
+
+    # Verify the pathology measures are present
+    pathology_rows = df[df["dataset_name"] == "pathology"]
+    assert len(pathology_rows) == 8
+    assert "Tau (HT7)" in pathology_rows["evidence_type"].values
+
+
 @pytest.mark.parametrize(
     "syn_id, version", [("syn1111111", None), ("syn1111111.1", "1")]
 )
@@ -117,6 +149,7 @@ def test_get_entity_as_df_not_supported(syn):
         ("tsv", "read_tsv_into_df"),
         ("feather", "read_feather_into_df"),
         ("json", "read_json_into_df"),
+        ("yaml", "read_yaml_into_df"),
     ],
 )
 # test handling of different formats to df

@@ -1,5 +1,6 @@
 import pandas as pd
 import synapseclient
+import yaml
 
 
 def get_entity_as_df(
@@ -38,6 +39,8 @@ def get_entity_as_df(
         dataset = read_feather_into_df(feather_path=entity.path)
     elif source == "json":
         dataset = read_json_into_df(json_path=entity.path)
+    elif source == "yaml":
+        dataset = read_yaml_into_df(yaml_path=entity.path)
     else:
         raise ValueError("File type not supported.")
 
@@ -156,3 +159,46 @@ def read_json_into_df(json_path: str) -> pd.DataFrame:
         )
 
     return pd.read_json(json_path, orient="records")
+
+
+def read_yaml_into_df(yaml_path: str) -> pd.DataFrame:
+    """
+    Reads provided YAML file into dataframe using file path.
+
+    For YAML files containing measure order configurations (with keys like 'biomarkers'
+    and 'pathology' mapping to lists of evidence types), this function converts the
+    nested structure into a flat DataFrame with 'dataset_name' and 'evidence_type' columns.
+
+    Args:
+        yaml_path (str): path to input YAML file
+
+    Raises:
+        ValueError: If file source is not .yaml or .yml, raise error indicating that the
+        configuration does not match the extension of the file provided
+
+    Returns:
+        pd.DataFrame: data frame created from YAML file path with columns
+                      'dataset_name' and 'evidence_type'
+    """
+
+    file_extension = yaml_path.split(".")[-1]
+    if file_extension not in ["yaml", "yml"]:
+        raise ValueError(
+            "Please make sure the source parameter in the configuration for "
+            + f"{str(yaml_path)} matches the file extension."
+        )
+
+    with open(yaml_path, "r") as f:
+        data = yaml.load(f, Loader=yaml.FullLoader)
+
+    # Convert nested dict structure to flat DataFrame
+    # Expected format: {"biomarkers": [...], "pathology": [...]}
+    rows = []
+    for dataset_name, evidence_types in data.items():
+        if isinstance(evidence_types, list):
+            for evidence_type in evidence_types:
+                rows.append(
+                    {"dataset_name": dataset_name, "evidence_type": evidence_type}
+                )
+
+    return pd.DataFrame(rows)

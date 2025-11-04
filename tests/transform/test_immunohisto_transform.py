@@ -16,9 +16,6 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.immunohisto_transform import (
-    BIOMARKER_MEASURE_ORDER,
-    MEASURE_TYPE_ORDER,
-    PATHOLOGY_MEASURE_ORDER,
     _add_missing_age_entries,
     _calculate_y_axis_max_map,
     _create_measure_order_key,
@@ -27,6 +24,18 @@ from agoradatatools.etl.transform.immunohisto_transform import (
     prepare_immunohisto_data,
     round_y_axis_max,
 )
+
+
+def _load_test_measure_order_config():
+    """Load the test measure order config from test assets as a DataFrame."""
+    from agoradatatools.etl.extract import read_yaml_into_df
+
+    config_path = os.path.join(
+        "tests/test_assets/immunohisto_transform/input",
+        "immunohisto_measure_order.yaml",
+    )
+
+    return read_yaml_into_df(config_path)
 
 
 class TestTransformGeneralModelAD:
@@ -114,6 +123,7 @@ class TestTransformGeneralModelAD:
                 datasets={
                     "biomarkers": immunohisto_transform_df,
                     "pathology": immunohisto_transform_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
                 },
                 dataset_name="biomarkers",
             )
@@ -147,6 +157,7 @@ class TestTransformGeneralModelAD:
                 datasets={
                     "biomarkers": immunohisto_transform_df,
                     "pathology": immunohisto_transform_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
                 },
                 dataset_name="biomarkers",
             )
@@ -271,7 +282,11 @@ class TestTransformGeneralModelAD:
         )
 
         result = immunohisto_transform(
-            datasets={"biomarkers": empty_df}, dataset_name="biomarkers"
+            datasets={
+                "biomarkers": empty_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="biomarkers",
         )
 
         # Should return empty list
@@ -302,7 +317,38 @@ class TestTransformGeneralModelAD:
 
         with pytest.raises(ValueError, match="At least one of"):
             immunohisto_transform(
-                datasets={"other_data": other_df}, dataset_name="other_data"
+                datasets={
+                    "other_data": other_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
+                },
+                dataset_name="other_data",
+            )
+
+    def test_immunohisto_transform_missing_measure_order_config(self) -> None:
+        """
+        Test that ValueError is raised when measure order config is missing.
+
+        Verifies that the function properly validates that the config dataset is provided.
+        """
+        # Create a test DataFrame
+        input_df = pd.DataFrame(
+            {
+                "name": ["test"],
+                "evidence_type": ["test"],
+                "value": [1.0],
+                "units": ["test"],
+                "age": [1],
+                "tissue": ["test"],
+                "sex": ["male"],
+                "genotype": ["test"],
+                "individual_id": ["test"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="immunohisto_measure_order.*required"):
+            immunohisto_transform(
+                datasets={"biomarkers": input_df},
+                dataset_name="biomarkers",
             )
 
     def test_immunohisto_transform_with_pathology_dataset(self) -> None:
@@ -329,7 +375,11 @@ class TestTransformGeneralModelAD:
 
         # Transform using pathology dataset name
         result = immunohisto_transform(
-            datasets={"pathology": input_df}, dataset_name="pathology"
+            datasets={
+                "pathology": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="pathology",
         )
 
         # Should successfully return results
@@ -376,14 +426,17 @@ class TestTransformGeneralModelAD:
 
         # Transform
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df},
+            datasets={
+                "biomarkers": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
             dataset_name="biomarkers",
         )
 
         # Extract the evidence_type ordering from the result
         evidence_types = [entry["evidence_type"] for entry in result]
 
-        # Expected order based on BIOMARKER_MEASURE_ORDER:
+        # Expected order based on measure order config:
         # NfL, Soluble A&beta;40, Soluble A&beta;42 (for both age 6 and 12)
         expected_order = [
             "NfL",
@@ -425,7 +478,10 @@ class TestTransformGeneralModelAD:
 
         # Transform
         result = immunohisto_transform(
-            datasets={"pathology": input_df},
+            datasets={
+                "pathology": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
             dataset_name="pathology",
         )
 
@@ -472,14 +528,17 @@ class TestTransformGeneralModelAD:
 
         # Transform
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df},
+            datasets={
+                "biomarkers": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
             dataset_name="biomarkers",
         )
 
         # Extract the evidence_type ordering from the result
         evidence_types = [entry["evidence_type"] for entry in result]
 
-        # Expected order: NfL, Soluble A&beta;40 (from BIOMARKER_MEASURE_ORDER),
+        # Expected order: NfL, Soluble A&beta;40 (from measure order config),
         # then Unknown Type A, Unknown Type B (alphabetical)
         expected_order = [
             "NfL",
@@ -741,7 +800,11 @@ class TestRoundYAxisMax:
         # This should not raise an exception, but handle ValueError gracefully
         # by sorting invalid ages to the end with float("inf")
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            datasets={
+                "biomarkers": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="biomarkers",
         )
 
         # Verify the function completed successfully
@@ -773,7 +836,11 @@ class TestRoundYAxisMax:
         # This should not raise an exception, but handle IndexError gracefully
         # by sorting invalid ages to the end with float("inf")
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            datasets={
+                "biomarkers": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="biomarkers",
         )
 
         # Verify the function completed successfully
@@ -805,7 +872,11 @@ class TestRoundYAxisMax:
         # This should not raise an exception, but handle AttributeError gracefully
         # by sorting invalid ages to the end with float("inf")
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            datasets={
+                "biomarkers": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="biomarkers",
         )
 
         # Verify the function completed successfully
@@ -846,7 +917,11 @@ class TestRoundYAxisMax:
         # This should not raise an exception, but handle all errors gracefully
         # Valid ages should be sorted normally, invalid ones should go to the end
         result = immunohisto_transform(
-            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            datasets={
+                "biomarkers": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="biomarkers",
         )
 
         # Verify the function completed successfully
@@ -1193,16 +1268,22 @@ class TestAddMissingAgeEntries:
         assert model2_missing[0]["units"] == ""
 
 
-class TestMeasureTypeOrderConstants:
-    """Test class for the measure type order constants."""
+class TestMeasureOrderConfig:
+    """Test class for validating the measure order configuration structure."""
 
-    def test_biomarker_measure_order_constant(self) -> None:
+    def test_measure_order_config_structure(self) -> None:
         """
-        Test that BIOMARKER_MEASURE_ORDER constant has the expected values.
+        Test that the test measure order config has the expected structure.
 
-        Validates that the biomarker measure order constant contains the
-        expected evidence types in the correct order.
+        Validates that the test config file has the required columns and expected evidence types.
         """
+        config = _load_test_measure_order_config()
+
+        assert "dataset_name" in config.columns
+        assert "evidence_type" in config.columns
+
+        # Check biomarkers
+        biomarkers = config[config["dataset_name"] == "biomarkers"]
         expected_biomarkers = [
             "NfL",
             "Soluble A&beta;40",
@@ -1210,15 +1291,10 @@ class TestMeasureTypeOrderConstants:
             "Insoluble A&beta;40",
             "Insoluble A&beta;42",
         ]
-        assert BIOMARKER_MEASURE_ORDER == expected_biomarkers
+        assert biomarkers["evidence_type"].tolist() == expected_biomarkers
 
-    def test_pathology_measure_order_constant(self) -> None:
-        """
-        Test that PATHOLOGY_MEASURE_ORDER constant has the expected values.
-
-        Validates that the pathology measure order constant contains the
-        expected evidence types in the correct order.
-        """
+        # Check pathology
+        pathology = config[config["dataset_name"] == "pathology"]
         expected_pathology = [
             "Plaque Density (Thio-S)",
             "Plaque Size (Thio-S)",
@@ -1229,19 +1305,7 @@ class TestMeasureTypeOrderConstants:
             "Astrocyte Cell Density (GFAP)",
             "Astrocyte Cell Density (S100B)",
         ]
-        assert PATHOLOGY_MEASURE_ORDER == expected_pathology
-
-    def test_measure_type_order_dict(self) -> None:
-        """
-        Test that MEASURE_TYPE_ORDER dictionary maps correctly to the constants.
-
-        Validates that the MEASURE_TYPE_ORDER dictionary contains the correct
-        references to the biomarker and pathology order constants.
-        """
-        assert "biomarkers" in MEASURE_TYPE_ORDER
-        assert "pathology" in MEASURE_TYPE_ORDER
-        assert MEASURE_TYPE_ORDER["biomarkers"] == BIOMARKER_MEASURE_ORDER
-        assert MEASURE_TYPE_ORDER["pathology"] == PATHOLOGY_MEASURE_ORDER
+        assert pathology["evidence_type"].tolist() == expected_pathology
 
 
 class TestCreateMeasureOrderKey:
@@ -1252,9 +1316,18 @@ class TestCreateMeasureOrderKey:
         Test basic ordering functionality.
 
         Validates that the sorting key function correctly orders evidence types
-        according to BIOMARKER_MEASURE_ORDER.
+        according to provided config.
         """
-        key_func = _create_measure_order_key("biomarkers")
+        # Create a config DataFrame
+        config_df = pd.DataFrame(
+            {
+                "dataset_name": ["biomarkers", "biomarkers", "biomarkers"],
+                "evidence_type": ["NfL", "Soluble A&beta;40", "Soluble A&beta;42"],
+            }
+        )
+        datasets = {"immunohisto_measure_order": config_df}
+
+        key_func = _create_measure_order_key(datasets, "biomarkers")
 
         # Test that the key function returns correct tuples for biomarkers
         assert key_func("NfL") == (0, "NfL")
@@ -1265,10 +1338,19 @@ class TestCreateMeasureOrderKey:
         """
         Test that unlisted evidence types are sorted after listed ones.
 
-        Validates that types not in BIOMARKER_MEASURE_ORDER get a high index value
+        Validates that types not in the config get a high index value
         and are sorted alphabetically among themselves.
         """
-        key_func = _create_measure_order_key("biomarkers")
+        # Create a config DataFrame
+        config_df = pd.DataFrame(
+            {
+                "dataset_name": ["biomarkers", "biomarkers"],
+                "evidence_type": ["NfL", "Soluble A&beta;40"],
+            }
+        )
+        datasets = {"immunohisto_measure_order": config_df}
+
+        key_func = _create_measure_order_key(datasets, "biomarkers")
 
         # Unlisted types should get a large index
         unlisted_key = key_func("Unknown Type")
@@ -1280,9 +1362,18 @@ class TestCreateMeasureOrderKey:
         Test actual sorting behavior with mixed listed and unlisted types.
 
         Validates that when used with Python's sorted(), the key function
-        produces the correct ordering using BIOMARKER_MEASURE_ORDER.
+        produces the correct ordering.
         """
-        key_func = _create_measure_order_key("biomarkers")
+        # Create a config DataFrame
+        config_df = pd.DataFrame(
+            {
+                "dataset_name": ["biomarkers", "biomarkers", "biomarkers"],
+                "evidence_type": ["NfL", "Soluble A&beta;40", "Soluble A&beta;42"],
+            }
+        )
+        datasets = {"immunohisto_measure_order": config_df}
+
+        key_func = _create_measure_order_key(datasets, "biomarkers")
 
         # Create a list with both configured and unconfigured types
         evidence_types = [
@@ -1295,7 +1386,7 @@ class TestCreateMeasureOrderKey:
 
         sorted_types = sorted(evidence_types, key=key_func)
 
-        # Expected order: configured types first (in BIOMARKER_MEASURE_ORDER),
+        # Expected order: configured types first (in order),
         # then alphabetical (Unknown 1, Unknown 2)
         expected = [
             "NfL",
@@ -1311,11 +1402,25 @@ class TestCreateMeasureOrderKey:
         Test ordering for pathology dataset.
 
         Validates that the function works correctly when using the 'pathology'
-        dataset name and PATHOLOGY_MEASURE_ORDER constant.
+        dataset name.
         """
-        key_func = _create_measure_order_key("pathology")
+        # Create a config DataFrame
+        config_df = pd.DataFrame(
+            {
+                "dataset_name": ["biomarkers", "pathology", "pathology", "pathology"],
+                "evidence_type": [
+                    "NfL",
+                    "Plaque Density (Thio-S)",
+                    "Plaque Size (Thio-S)",
+                    "Tau (HT7)",
+                ],
+            }
+        )
+        datasets = {"immunohisto_measure_order": config_df}
 
-        # Test that it uses PATHOLOGY_MEASURE_ORDER
+        key_func = _create_measure_order_key(datasets, "pathology")
+
+        # Test that it uses pathology config
         assert key_func("Plaque Density (Thio-S)") == (0, "Plaque Density (Thio-S)")
         assert key_func("Plaque Size (Thio-S)") == (1, "Plaque Size (Thio-S)")
         assert key_func("Tau (HT7)") == (2, "Tau (HT7)")
@@ -1331,9 +1436,18 @@ class TestCreateMeasureOrderKey:
         Validates that when an unknown dataset name is provided, all types are
         treated as unlisted and sorted alphabetically.
         """
-        key_func = _create_measure_order_key("unknown_dataset")
+        # Create a config DataFrame
+        config_df = pd.DataFrame(
+            {
+                "dataset_name": ["biomarkers", "pathology"],
+                "evidence_type": ["NfL", "Tau (HT7)"],
+            }
+        )
+        datasets = {"immunohisto_measure_order": config_df}
 
-        # All types should be unlisted since the dataset isn't in MEASURE_TYPE_ORDER
+        key_func = _create_measure_order_key(datasets, "unknown_dataset")
+
+        # All types should be unlisted since the dataset isn't in the config
         key1 = key_func("Type A")
         key2 = key_func("Type B")
 
@@ -1341,6 +1455,37 @@ class TestCreateMeasureOrderKey:
         assert key1[0] == key2[0]
         assert key1[0] >= 1000
         assert key1[1] < key2[1]  # Alphabetical ordering
+
+    def test_create_measure_order_key_missing_config(self) -> None:
+        """
+        Test that ValueError is raised when config is missing from datasets.
+
+        Validates proper error handling when config dataset is not provided.
+        """
+        datasets = {"biomarkers": pd.DataFrame()}
+
+        with pytest.raises(ValueError, match="Measure order configuration.*not found"):
+            _create_measure_order_key(datasets, "biomarkers")
+
+    def test_create_measure_order_key_invalid_columns(self) -> None:
+        """
+        Test that ValueError is raised when config has wrong columns.
+
+        Validates proper error handling for malformed config.
+        """
+        # Create config with wrong columns
+        config_df = pd.DataFrame(
+            {
+                "wrong_column": ["biomarkers"],
+                "another_wrong_column": ["NfL"],
+            }
+        )
+        datasets = {"immunohisto_measure_order": config_df}
+
+        with pytest.raises(
+            ValueError, match="must have 'dataset_name' and 'evidence_type' columns"
+        ):
+            _create_measure_order_key(datasets, "biomarkers")
 
 
 class TestExtractAgeNum:
