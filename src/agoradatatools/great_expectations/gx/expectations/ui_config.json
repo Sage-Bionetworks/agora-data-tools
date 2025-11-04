@@ -9,7 +9,7 @@
         "length_threshold": 0,
         "operator": ">",
         "target_field": "tooltip",
-        "valid_threshold": 0.35
+        "valid_threshold": 0.20
       },
       "meta": {}
     }
