@@ -180,7 +180,7 @@ class TestProcessProvenance:
         # THEN I expect the load function to be called with file id and provenance from config
         self.patch_load.assert_called_once_with(
             file_path="path/to/json",
-            provenance=["syn11111145", "syn1111111"],
+            provenance=["syn1111111", "syn11111145"],
             destination=self.dataset_object_with_provenance["neuropath_corr"][
                 "destination"
             ],
@@ -195,13 +195,13 @@ class TestProcessProvenance:
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             upload=True,
-            dataset_obj=self.dataset_object_with_duplicated_provenance,
+            dataset_obj=self.dataset_object_with_duplicated_provenance_in_file_id,
         )
         # THEN I expect the load function to be called with file id and unique provenance from config
         self.patch_load.assert_called_once_with(
             file_path="path/to/json",
             provenance=["syn11111145"],
-            destination=self.dataset_object_with_duplicated_provenance[
+            destination=self.dataset_object_with_duplicated_provenance_in_file_id[
                 "neuropath_corr"
             ]["destination"],
             syn=syn,

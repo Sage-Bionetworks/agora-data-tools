@@ -17,6 +17,30 @@ from agoradatatools.constants import Platform
 logger = logging.getLogger(__name__)
 
 
+def get_provenance_ids(dataset_obj: dict, dataset_name: str, file_ids: list) -> list:
+    """Get combined provenance IDs from config and file IDs.
+
+    Args:
+        dataset_obj: Dataset configuration object
+        dataset_name: Name of the dataset
+        file_ids: List of file IDs from the dataset
+
+    Returns:
+        Combined list of provenance IDs (file IDs + config provenance)
+    """
+    provenance_ids = file_ids.copy()
+
+    provenance = dataset_obj[dataset_name].get("provenance", [])
+
+    if provenance:
+        if not isinstance(provenance, list):
+            raise ValueError(f"Provenance for dataset '{dataset_name}' must be a list")
+        provenance_ids.extend(provenance)
+
+    # Remove duplicates while preserving order
+    return list(dict.fromkeys(provenance_ids))
+
+
 def apply_custom_transformations(
     datasets: Dict[str, Any],
     dataset_name: str,
@@ -142,12 +166,7 @@ def process_dataset(
     """
     dataset_name = list(dataset_obj.keys())[0]
     dataset_report = DatasetReport(data_set=dataset_name)
-    provenance_ids = []
-
-    # get provenance if any
-    provenance = dataset_obj[dataset_name].get("provenance", [])
-    if provenance:
-        provenance_ids.extend(provenance)
+    file_ids = []
 
     entities_as_df = {}
     for entity in dataset_obj[dataset_name]["files"]:
@@ -155,9 +174,8 @@ def process_dataset(
         entity_format = entity["format"]
         entity_name = entity["name"]
 
-        # save file ids for provenance
-        if entity_id not in provenance_ids:
-            provenance_ids.append(entity_id)
+        if entity_id not in file_ids:
+            file_ids.append(entity_id)
 
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
         df = utils.standardize_column_names(df=df)
@@ -169,6 +187,10 @@ def process_dataset(
             )
 
         entities_as_df[entity_name] = df
+
+    # get provenance if any
+    provenance_ids = get_provenance_ids(dataset_obj, dataset_name, file_ids)
+
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         transform_result = apply_custom_transformations(
             datasets=entities_as_df,
