@@ -173,9 +173,7 @@ def process_dataset(
         entity_id = entity["id"]
         entity_format = entity["format"]
         entity_name = entity["name"]
-
-        if entity_id not in file_ids:
-            file_ids.append(entity_id)
+        file_ids.append(entity_id)
 
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
         df = utils.standardize_column_names(df=df)
