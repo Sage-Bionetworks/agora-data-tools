@@ -89,6 +89,8 @@ class TestUploadDataversionMetadata:
             destination=self.destination,
             syn=syn,
         )
+
+
 class TestProcessProvenance:
     dataset_object_no_provenance = {
         "neuropath_corr": {
@@ -159,8 +161,10 @@ class TestProcessProvenance:
         self.patch_load.assert_called_once_with(
             file_path="path/to/json",
             provenance=["syn1111111"],
-            destination=self.dataset_object_no_provenance["neuropath_corr"]["destination"],
-            syn=syn
+            destination=self.dataset_object_no_provenance["neuropath_corr"][
+                "destination"
+            ],
+            syn=syn,
         )
 
     def test_upload_data_with_provenance(self, syn: Any):
@@ -177,11 +181,13 @@ class TestProcessProvenance:
         self.patch_load.assert_called_once_with(
             file_path="path/to/json",
             provenance=["syn11111145", "syn1111111"],
-            destination=self.dataset_object_with_provenance["neuropath_corr"]["destination"],
-            syn=syn
+            destination=self.dataset_object_with_provenance["neuropath_corr"][
+                "destination"
+            ],
+            syn=syn,
         )
-    
-    def test_upload_data_with_duplicated_provenance(self, syn:Any):
+
+    def test_upload_data_with_duplicated_provenance(self, syn: Any):
         """Test that when duplicated provenance is provided in the config, unique values are used in the upload."""
         # WHEN I call upload_data_with_duplicated_provenance
         process.process_dataset(
@@ -195,8 +201,10 @@ class TestProcessProvenance:
         self.patch_load.assert_called_once_with(
             file_path="path/to/json",
             provenance=["syn11111145"],
-            destination=self.dataset_object_with_duplicated_provenance["neuropath_corr"]["destination"],
-            syn=syn
+            destination=self.dataset_object_with_duplicated_provenance[
+                "neuropath_corr"
+            ]["destination"],
+            syn=syn,
         )
 
 
