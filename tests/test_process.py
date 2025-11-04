@@ -108,6 +108,16 @@ class TestProcessProvenance:
         }
     }
 
+    dataset_object_with_duplicated_provenance_in_file_id = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn11111145", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn11111145"],
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+
     def setup_method(self):
         self.patch_get_entity_as_df = patch.object(
             extract, "get_entity_as_df", return_value=pd.DataFrame
@@ -136,6 +146,7 @@ class TestProcessProvenance:
         mock.patch.stopall()
 
     def test_upload_data_without_provenance(self, syn: Any):
+        """Test that when no provenance is provided in the config, the file id is used as provenance."""
         # WHEN I call upload_data_without_provenance
         process.process_dataset(
             syn=syn,
@@ -153,7 +164,8 @@ class TestProcessProvenance:
         )
 
     def test_upload_data_with_provenance(self, syn: Any):
-        # WHEN I call upload_data_without_provenance
+        """Test that when provenance is provided in the config, it is used in the upload."""
+        # WHEN I call upload_data_with_provenance
         process.process_dataset(
             syn=syn,
             staging_path=STAGING_PATH,
@@ -168,6 +180,25 @@ class TestProcessProvenance:
             destination=self.dataset_object_with_provenance["neuropath_corr"]["destination"],
             syn=syn
         )
+    
+    def test_upload_data_with_duplicated_provenance(self, syn:Any):
+        """Test that when duplicated provenance is provided in the config, unique values are used in the upload."""
+        # WHEN I call upload_data_with_duplicated_provenance
+        process.process_dataset(
+            syn=syn,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            upload=True,
+            dataset_obj=self.dataset_object_with_duplicated_provenance,
+        )
+        # THEN I expect the load function to be called with file id and unique provenance from config
+        self.patch_load.assert_called_once_with(
+            file_path="path/to/json",
+            provenance=["syn11111145"],
+            destination=self.dataset_object_with_duplicated_provenance["neuropath_corr"]["destination"],
+            syn=syn
+        )
+
 
 class TestApplyCustomTransformations:
     """Test the apply_custom_transformations function."""
