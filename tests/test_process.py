@@ -114,7 +114,7 @@ class TestProcessProvenance:
         "neuropath_corr": {
             "files": [{"name": "test_file_1", "id": "syn11111145", "format": "csv"}],
             "final_format": "json",
-            "provenance": ["syn11111145"],
+            "provenance": ["syn11111145", "syn11111145"],
             "destination": "syn1111113",
             "gx_enabled": False,
         }
