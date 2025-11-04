@@ -20,6 +20,43 @@ STAGING_PATH = "./staging"
 GX_FOLDER = "test_folder"
 
 
+@pytest.fixture
+def dataset_object_no_provenance():
+    """Dataset object without provenance configuration."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+
+@pytest.fixture
+def dataset_object_with_provenance():
+    """Dataset object with provenance configuration."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn11111145"],
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+
+@pytest.fixture
+def dataset_object_with_duplicated_provenance():
+    """Dataset object with duplicated provenance IDs."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn11111145", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn11111145", "syn11111145"],
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
 class TestUploadDataversionMetadata:
     file_id = "syn1111111"
     file_version = "1"
@@ -89,37 +126,45 @@ class TestUploadDataversionMetadata:
             destination=self.destination,
             syn=syn,
         )
+class TestGetProvenanceIds:
+    def test_get_provenance_ids_no_provenance(self, dataset_object_no_provenance):
+        """Test that when no provenance is provided in the config, only file ids are returned."""
+        file_ids = ["syn1111111"]
+        expected_provenance_ids = ["syn1111111"]
+        provenance_ids = process.get_provenance_ids(dataset_object_no_provenance, dataset_name="neuropath_corr", file_ids=file_ids)
+        assert provenance_ids == expected_provenance_ids
+
+    def test_get_provenance_ids_with_provenance(self, dataset_object_with_provenance):
+        """Test that when provenance is provided in the config, both file ids and provenance ids are returned."""
+        file_ids = ["syn1111111"]
+        expected_provenance_ids = ["syn1111111", "syn11111145"]
+        provenance_ids = process.get_provenance_ids(dataset_object_with_provenance, dataset_name="neuropath_corr", file_ids=file_ids)
+        assert sorted(provenance_ids) == sorted(expected_provenance_ids)
+
+    def test_get_provenance_ids_with_duplicated_provenance(self, dataset_object_with_duplicated_provenance):
+        """Test that when duplicated provenance is provided as both file id and provenance, unique values are returned."""
+        file_ids = ["syn11111145"]
+        expected_provenance_ids = ["syn11111145"]
+        provenance_ids = process.get_provenance_ids(dataset_object_with_duplicated_provenance, dataset_name="neuropath_corr", file_ids=file_ids)
+        assert provenance_ids == expected_provenance_ids
+
+    def test_error_get_provenance_ids_empty_dataset(self):
+        """Test that an error is raised when the dataset object is empty."""
+        file_ids = ["syn1111111"]
+        wrong_format_dataset_obj = {
+            "neuropath_corr": {
+                "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+                "final_format": "json",
+                "provenance": "not a list",
+                "destination": "syn1111113",
+                "gx_enabled": False,
+            }
+        }
+        with pytest.raises(ValueError, match="Provenance for dataset 'neuropath_corr' must be a list"):
+            process.get_provenance_ids(wrong_format_dataset_obj, dataset_name="neuropath_corr", file_ids=file_ids)
 
 
 class TestProcessProvenance:
-    dataset_object_no_provenance = {
-        "neuropath_corr": {
-            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
-            "final_format": "json",
-            "destination": "syn1111113",
-            "gx_enabled": False,
-        }
-    }
-    dataset_object_with_provenance = {
-        "neuropath_corr": {
-            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
-            "final_format": "json",
-            "provenance": ["syn11111145"],
-            "destination": "syn1111113",
-            "gx_enabled": False,
-        }
-    }
-
-    dataset_object_with_duplicated_provenance_in_file_id = {
-        "neuropath_corr": {
-            "files": [{"name": "test_file_1", "id": "syn11111145", "format": "csv"}],
-            "final_format": "json",
-            "provenance": ["syn11111145", "syn11111145"],
-            "destination": "syn1111113",
-            "gx_enabled": False,
-        }
-    }
-
     def setup_method(self):
         self.patch_get_entity_as_df = patch.object(
             extract, "get_entity_as_df", return_value=pd.DataFrame
@@ -147,7 +192,7 @@ class TestProcessProvenance:
         self.patch_load.stop()
         mock.patch.stopall()
 
-    def test_upload_data_without_provenance(self, syn: Any):
+    def test_upload_data_without_provenance(self, syn: Any, dataset_object_no_provenance):
         """Test that when no provenance is provided in the config, the file id is used as provenance."""
         # WHEN I call upload_data_without_provenance
         process.process_dataset(
@@ -155,19 +200,19 @@ class TestProcessProvenance:
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             upload=True,
-            dataset_obj=self.dataset_object_no_provenance,
+            dataset_obj=dataset_object_no_provenance,
         )
         # THEN I expect the load function to be called with file id
         self.patch_load.assert_called_once_with(
             file_path="path/to/json",
             provenance=["syn1111111"],
-            destination=self.dataset_object_no_provenance["neuropath_corr"][
+            destination=dataset_object_no_provenance["neuropath_corr"][
                 "destination"
             ],
             syn=syn,
         )
 
-    def test_upload_data_with_provenance(self, syn: Any):
+    def test_upload_data_with_provenance(self, syn: Any, dataset_object_with_provenance):
         """Test that when provenance is provided in the config, it is used in the upload."""
         # WHEN I call upload_data_with_provenance
         process.process_dataset(
@@ -175,19 +220,19 @@ class TestProcessProvenance:
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             upload=True,
-            dataset_obj=self.dataset_object_with_provenance,
+            dataset_obj=dataset_object_with_provenance,
         )
         # THEN I expect the load function to be called with file id and provenance from config
         self.patch_load.assert_called_once_with(
             file_path="path/to/json",
             provenance=["syn1111111", "syn11111145"],
-            destination=self.dataset_object_with_provenance["neuropath_corr"][
+            destination=dataset_object_with_provenance["neuropath_corr"][
                 "destination"
             ],
             syn=syn,
         )
 
-    def test_upload_data_with_duplicated_provenance(self, syn: Any):
+    def test_upload_data_with_duplicated_provenance(self, syn: Any, dataset_object_with_duplicated_provenance):
         """Test that when duplicated provenance is provided in the config, unique values are used in the upload."""
         # WHEN I call upload_data_with_duplicated_provenance
         process.process_dataset(
@@ -195,13 +240,13 @@ class TestProcessProvenance:
             staging_path=STAGING_PATH,
             gx_folder=GX_FOLDER,
             upload=True,
-            dataset_obj=self.dataset_object_with_duplicated_provenance_in_file_id,
+            dataset_obj=dataset_object_with_duplicated_provenance,
         )
         # THEN I expect the load function to be called with file id and unique provenance from config
         self.patch_load.assert_called_once_with(
             file_path="path/to/json",
             provenance=["syn11111145"],
-            destination=self.dataset_object_with_duplicated_provenance_in_file_id[
+            destination=dataset_object_with_duplicated_provenance[
                 "neuropath_corr"
             ]["destination"],
             syn=syn,
