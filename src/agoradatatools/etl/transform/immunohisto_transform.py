@@ -103,14 +103,14 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     # Scale the number so the first digit is in the ones place
     scaled = y_axis_max / (
         10 ** (magnitude - 1)
-    )  # 1st and 2nd digits are now in the tens and 1s place
+    )  # After scaling, the first significant digit is in the tens place and the second in the ones place
     # Round UP to the next 5 or 0 (add small epsilon to ensure we always round up)
     rounded_scaled = 5 * math.ceil((scaled + 1e-10) / 5)
 
     # Put back to the right magnitude
     result = rounded_scaled * (10 ** (magnitude - 1))
 
-    # remove float precision issues
+    # Remove float precision issues
     result = round(result, 15)
 
     # Ensure we always return a float, even for whole numbers
