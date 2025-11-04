@@ -142,12 +142,22 @@ def process_dataset(
     """
     dataset_name = list(dataset_obj.keys())[0]
     dataset_report = DatasetReport(data_set=dataset_name)
+    provenance_ids = []
+
+    # get provenance if any
+    provenance = dataset_obj[dataset_name].get("provenance", [])
+    if provenance:
+        provenance_ids.extend(provenance)
 
     entities_as_df = {}
     for entity in dataset_obj[dataset_name]["files"]:
         entity_id = entity["id"]
         entity_format = entity["format"]
         entity_name = entity["name"]
+
+        # save file ids for provenance
+        if entity_id not in provenance_ids:
+            provenance_ids.append(entity_id)
 
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
         df = utils.standardize_column_names(df=df)
@@ -159,7 +169,6 @@ def process_dataset(
             )
 
         entities_as_df[entity_name] = df
-
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         transform_result = apply_custom_transformations(
             datasets=entities_as_df,
@@ -225,7 +234,7 @@ def process_dataset(
         if upload and not gx_runner.failures:
             file_id, file_version = load.load(
                 file_path=json_path,
-                provenance=dataset_obj[dataset_name]["provenance"],
+                provenance=provenance_ids,
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,
             )
@@ -243,7 +252,7 @@ def process_dataset(
         if upload:
             file_id, file_version = load.load(
                 file_path=json_path,
-                provenance=dataset_obj[dataset_name]["provenance"],
+                provenance=provenance_ids,
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,
             )

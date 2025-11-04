@@ -89,7 +89,85 @@ class TestUploadDataversionMetadata:
             destination=self.destination,
             syn=syn,
         )
+class TestProcessProvenance:
+    dataset_object_no_provenance = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+    dataset_object_with_provenance = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn11111145"],
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
 
+    def setup_method(self):
+        self.patch_get_entity_as_df = patch.object(
+            extract, "get_entity_as_df", return_value=pd.DataFrame
+        ).start()
+        self.patch_standardize_column_names = patch.object(
+            utils, "standardize_column_names", return_value=pd.DataFrame
+        ).start()
+        self.patch_standardize_values = patch.object(
+            utils, "standardize_values", return_value=pd.DataFrame
+        ).start()
+        self.patch_df_to_json = patch.object(
+            load, "df_to_json", return_value="path/to/json"
+        ).start()
+        self.patch_dict_to_json = patch.object(
+            load, "dict_to_json", return_value="path/to/json"
+        ).start()
+        self.patch_load = patch.object(load, "load", return_value=("syn123", 1)).start()
+
+    def teardown_method(self):
+        self.patch_get_entity_as_df.stop()
+        self.patch_standardize_column_names.stop()
+        self.patch_standardize_values.stop()
+        self.patch_df_to_json.stop()
+        self.patch_dict_to_json.stop()
+        self.patch_load.stop()
+        mock.patch.stopall()
+
+    def test_upload_data_without_provenance(self, syn: Any):
+        # WHEN I call upload_data_without_provenance
+        process.process_dataset(
+            syn=syn,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            upload=True,
+            dataset_obj=self.dataset_object_no_provenance,
+        )
+        # THEN I expect the load function to be called with file id
+        self.patch_load.assert_called_once_with(
+            file_path="path/to/json",
+            provenance=["syn1111111"],
+            destination=self.dataset_object_no_provenance["neuropath_corr"]["destination"],
+            syn=syn
+        )
+
+    def test_upload_data_with_provenance(self, syn: Any):
+        # WHEN I call upload_data_without_provenance
+        process.process_dataset(
+            syn=syn,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            upload=True,
+            dataset_obj=self.dataset_object_with_provenance,
+        )
+        # THEN I expect the load function to be called with file id and provenance from config
+        self.patch_load.assert_called_once_with(
+            file_path="path/to/json",
+            provenance=["syn11111145", "syn1111111"],
+            destination=self.dataset_object_with_provenance["neuropath_corr"]["destination"],
+            syn=syn
+        )
 
 class TestApplyCustomTransformations:
     """Test the apply_custom_transformations function."""
