@@ -9,8 +9,6 @@ datasets:
           id: syn61250724
           format: csv
       final_format: json
-      provenance:
-        - syn61250724
       destination: *dest
       custom_transformations: immunohisto_transform
       column_rename:
@@ -26,8 +24,6 @@ datasets:
           id: syn61357279
           format: csv
       final_format: json
-      provenance:
-        - syn61357279
       destination: *dest
       custom_transformations: immunohisto_transform
       column_rename:
@@ -58,12 +54,6 @@ datasets:
           id: syn68377668
           format: csv
       final_format: json
-      provenance:
-        - syn61378590
-        - syn64618791
-        - syn61357279
-        - syn61250724
-        - syn64846805
       destination: *dest
       custom_transformations: transform_model_details
       column_rename:
@@ -92,10 +82,6 @@ datasets:
           id: syn64618791
           format: csv
       final_format: json
-      provenance:
-        - syn65467849
-        - syn61378590
-        - syn64618791
       destination: *dest
       custom_transformations: transform_disease_correlation
       column_rename:
@@ -107,8 +93,6 @@ datasets:
           id: syn66527739
           format: json
       final_format: json
-      provenance:
-        - syn66527739
       destination: *dest
       gx_enabled: true
       gx_nested_columns:
@@ -129,11 +113,6 @@ datasets:
           id: syn64846805
           format: csv
       final_format: json
-      provenance:
-        - syn61378590
-        - syn68377668
-        - syn64618791
-        - syn64846805
       destination: *dest
       custom_transformations: transform_model_overview
       column_rename:
