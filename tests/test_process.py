@@ -293,8 +293,13 @@ class TestProcessProvenance:
         # THEN I expect the load function to be called with file id and provenance from config
         call_args = self.patch_load.call_args
         assert call_args[1]["file_path"] == "path/to/json"
-        assert sorted(call_args[1]["provenance"]) == sorted(["syn1111111", "syn11111145"])
-        assert call_args[1]["destination"] == dataset_object_with_provenance["neuropath_corr"]["destination"]
+        assert sorted(call_args[1]["provenance"]) == sorted(
+            ["syn1111111", "syn11111145"]
+        )
+        assert (
+            call_args[1]["destination"]
+            == dataset_object_with_provenance["neuropath_corr"]["destination"]
+        )
 
     def test_upload_data_with_duplicated_provenance(
         self, syn: Any, dataset_object_with_duplicated_provenance: dict[str, Any]
