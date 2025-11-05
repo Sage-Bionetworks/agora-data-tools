@@ -153,7 +153,7 @@ class TestUploadDataversionMetadata:
 class TestGetProvenanceIds:
     def test_get_provenance_ids_no_provenance(
         self, dataset_object_no_provenance: dict[str, Any]
-    ):
+    ) -> None:
         """Test that when no provenance is provided in the config, only file ids are returned."""
         file_ids = ["syn1111111"]
         expected_provenance_ids = ["syn1111111"]
@@ -166,7 +166,7 @@ class TestGetProvenanceIds:
 
     def test_get_provenance_ids_with_provenance(
         self, dataset_object_with_provenance: dict[str, Any]
-    ):
+    ) -> None:
         """Test that when provenance is provided in the config, both file ids and provenance ids are returned."""
         file_ids = ["syn1111111"]
         expected_provenance_ids = ["syn1111111", "syn11111145"]
@@ -179,7 +179,7 @@ class TestGetProvenanceIds:
 
     def test_get_provenance_ids_with_duplicated_provenance(
         self, dataset_object_with_duplicated_provenance: dict[str, Any]
-    ):
+    ) -> None:
         """Test that when duplicated provenance is provided as both file id and provenance, unique values are returned."""
         file_ids = ["syn11111145"]
         expected_provenance_ids = ["syn11111145"]
@@ -190,7 +190,7 @@ class TestGetProvenanceIds:
         )
         assert provenance_ids == expected_provenance_ids
 
-    def test_error_get_provenance_ids_empty_dataset(self):
+    def test_error_get_provenance_ids_empty_dataset(self) -> None:
         """Test that an error is raised when the dataset object is empty."""
         file_ids = ["syn1111111"]
         wrong_format_dataset_obj = {
@@ -213,7 +213,7 @@ class TestGetProvenanceIds:
 
     def test_get_provenance_ids_mixed_list(
         self, dataset_object_provenance_mix_list: dict[str, Any]
-    ):
+    ) -> None:
         """Test that when provenance is provided as a mix of lists and strings, all values are flattened and returned."""
         file_ids = ["syn1111111"]
         expected_provenance_ids = [
@@ -260,7 +260,7 @@ class TestProcessProvenance:
 
     def test_upload_data_without_provenance(
         self, syn: Any, dataset_object_no_provenance: dict[str, Any]
-    ):
+    ) -> None:
         """Test that when no provenance is provided in the config, the file id is used as provenance."""
         # WHEN I call upload_data_without_provenance
         process.process_dataset(
@@ -280,7 +280,7 @@ class TestProcessProvenance:
 
     def test_upload_data_with_provenance(
         self, syn: Any, dataset_object_with_provenance: dict[str, Any]
-    ):
+    ) -> None:
         """Test that when provenance is provided in the config, it is used in the upload."""
         # WHEN I call upload_data_with_provenance
         process.process_dataset(
@@ -300,7 +300,7 @@ class TestProcessProvenance:
 
     def test_upload_data_with_duplicated_provenance(
         self, syn: Any, dataset_object_with_duplicated_provenance: dict[str, Any]
-    ):
+    ) -> None:
         """Test that when duplicated provenance is provided in the config, unique values are used in the upload."""
         # WHEN I call upload_data_with_duplicated_provenance
         process.process_dataset(
@@ -322,7 +322,7 @@ class TestProcessProvenance:
 
     def test_get_provenance_ids_mixed_list(
         self, dataset_object_provenance_mix_list: dict[str, Any]
-    ):
+    ) -> None:
         """Test that when provenance is provided as a mix of lists and strings, all values are flattened and returned."""
         file_ids = ["syn1111111"]
         expected_provenance_ids = [
