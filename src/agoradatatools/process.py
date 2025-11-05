@@ -31,27 +31,21 @@ def get_provenance_ids(
         Combined list of provenance IDs (file IDs + config provenance)
     """
     provenance = dataset_obj[dataset_name].get("provenance", [])
-    flattened_provenance = []
+    flattened_provenance = set()
 
     if provenance:
         if not isinstance(provenance, list):
             raise ValueError(f"Provenance for dataset '{dataset_name}' must be a list")
         for item in provenance:
             if isinstance(item, list):
-                flattened_provenance.extend(item)
+                flattened_provenance.update(item)
             elif isinstance(item, str):
-                flattened_provenance.append(item)
-        provenance_ids = file_ids + flattened_provenance
+                flattened_provenance.add(item)
+        provenance_ids = set(file_ids).union(flattened_provenance)
     else:
         provenance_ids = file_ids
 
-    # Remove duplicates while preserving order
-    try:
-        return list(dict.fromkeys(provenance_ids))
-    except Exception:
-        raise ValueError(
-            f"Error occurred while getting provenance IDs: {provenance_ids} for this dataset: {dataset_name}"
-        )
+    return list(provenance_ids)
 
 
 def apply_custom_transformations(
