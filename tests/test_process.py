@@ -61,6 +61,24 @@ def dataset_object_with_duplicated_provenance():
     }
 
 
+@pytest.fixture
+def dataset_object_provenance_mix_list():
+    """Dataset object with mixed provenance configuration."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "destination": "syn1111113",
+            "provenance": [
+                ["syn11111145", "syn11111145"],
+                ["syn11111146"],
+                "syn11111147",
+            ],
+            "gx_enabled": False,
+        }
+    }
+
+
 class TestUploadDataversionMetadata:
     file_id = "syn1111111"
     file_version = "1"
@@ -133,7 +151,9 @@ class TestUploadDataversionMetadata:
 
 
 class TestGetProvenanceIds:
-    def test_get_provenance_ids_no_provenance(self, dataset_object_no_provenance):
+    def test_get_provenance_ids_no_provenance(
+        self, dataset_object_no_provenance: dict[str, Any]
+    ):
         """Test that when no provenance is provided in the config, only file ids are returned."""
         file_ids = ["syn1111111"]
         expected_provenance_ids = ["syn1111111"]
@@ -144,7 +164,9 @@ class TestGetProvenanceIds:
         )
         assert provenance_ids == expected_provenance_ids
 
-    def test_get_provenance_ids_with_provenance(self, dataset_object_with_provenance):
+    def test_get_provenance_ids_with_provenance(
+        self, dataset_object_with_provenance: dict[str, Any]
+    ):
         """Test that when provenance is provided in the config, both file ids and provenance ids are returned."""
         file_ids = ["syn1111111"]
         expected_provenance_ids = ["syn1111111", "syn11111145"]
@@ -156,7 +178,7 @@ class TestGetProvenanceIds:
         assert sorted(provenance_ids) == sorted(expected_provenance_ids)
 
     def test_get_provenance_ids_with_duplicated_provenance(
-        self, dataset_object_with_duplicated_provenance
+        self, dataset_object_with_duplicated_provenance: dict[str, Any]
     ):
         """Test that when duplicated provenance is provided as both file id and provenance, unique values are returned."""
         file_ids = ["syn11111145"]
@@ -189,6 +211,24 @@ class TestGetProvenanceIds:
                 file_ids=file_ids,
             )
 
+    def test_get_provenance_ids_mixed_list(
+        self, dataset_object_provenance_mix_list: dict[str, Any]
+    ):
+        """Test that when provenance is provided as a mix of lists and strings, all values are flattened and returned."""
+        file_ids = ["syn1111111"]
+        expected_provenance_ids = [
+            "syn1111111",
+            "syn11111145",
+            "syn11111146",
+            "syn11111147",
+        ]
+        provenance_ids = process.get_provenance_ids(
+            dataset_object_provenance_mix_list,
+            dataset_name="neuropath_corr",
+            file_ids=file_ids,
+        )
+        assert sorted(provenance_ids) == sorted(expected_provenance_ids)
+
 
 class TestProcessProvenance:
     def setup_method(self):
@@ -219,7 +259,7 @@ class TestProcessProvenance:
         mock.patch.stopall()
 
     def test_upload_data_without_provenance(
-        self, syn: Any, dataset_object_no_provenance
+        self, syn: Any, dataset_object_no_provenance: dict[str, Any]
     ):
         """Test that when no provenance is provided in the config, the file id is used as provenance."""
         # WHEN I call upload_data_without_provenance
@@ -239,7 +279,7 @@ class TestProcessProvenance:
         )
 
     def test_upload_data_with_provenance(
-        self, syn: Any, dataset_object_with_provenance
+        self, syn: Any, dataset_object_with_provenance: dict[str, Any]
     ):
         """Test that when provenance is provided in the config, it is used in the upload."""
         # WHEN I call upload_data_with_provenance
@@ -259,7 +299,7 @@ class TestProcessProvenance:
         )
 
     def test_upload_data_with_duplicated_provenance(
-        self, syn: Any, dataset_object_with_duplicated_provenance
+        self, syn: Any, dataset_object_with_duplicated_provenance: dict[str, Any]
     ):
         """Test that when duplicated provenance is provided in the config, unique values are used in the upload."""
         # WHEN I call upload_data_with_duplicated_provenance
@@ -279,6 +319,24 @@ class TestProcessProvenance:
             ],
             syn=syn,
         )
+
+    def test_get_provenance_ids_mixed_list(
+        self, dataset_object_provenance_mix_list: dict[str, Any]
+    ):
+        """Test that when provenance is provided as a mix of lists and strings, all values are flattened and returned."""
+        file_ids = ["syn1111111"]
+        expected_provenance_ids = [
+            "syn1111111",
+            "syn11111145",
+            "syn11111146",
+            "syn11111147",
+        ]
+        provenance_ids = process.get_provenance_ids(
+            dataset_object_provenance_mix_list,
+            dataset_name="neuropath_corr",
+            file_ids=file_ids,
+        )
+        assert sorted(provenance_ids) == sorted(expected_provenance_ids)
 
 
 class TestApplyCustomTransformations:

@@ -17,28 +17,41 @@ from agoradatatools.constants import Platform
 logger = logging.getLogger(__name__)
 
 
-def get_provenance_ids(dataset_obj: dict, dataset_name: str, file_ids: list) -> list:
+def get_provenance_ids(
+    dataset_obj: Dict[str, Any], dataset_name: str, file_ids: list[str]
+) -> list[str]:
     """Get combined provenance IDs from config and file IDs.
 
     Args:
         dataset_obj: Dataset configuration object
         dataset_name: Name of the dataset
-        file_ids: List of file IDs from the dataset
+        file_ids: List of file IDs defined in the configuration
 
     Returns:
         Combined list of provenance IDs (file IDs + config provenance)
     """
-    provenance_ids = file_ids.copy()
-
     provenance = dataset_obj[dataset_name].get("provenance", [])
+    flattened_provenance = []
 
     if provenance:
         if not isinstance(provenance, list):
             raise ValueError(f"Provenance for dataset '{dataset_name}' must be a list")
-        provenance_ids.extend(provenance)
+        for item in provenance:
+            if isinstance(item, list):
+                flattened_provenance.extend(item)
+            elif isinstance(item, str):
+                flattened_provenance.append(item)
+        provenance_ids = file_ids + flattened_provenance
+    else:
+        provenance_ids = file_ids
 
     # Remove duplicates while preserving order
-    return list(dict.fromkeys(provenance_ids))
+    try:
+        return list(dict.fromkeys(provenance_ids))
+    except Exception:
+        raise ValueError(
+            f"Error occurred while getting provenance IDs: {provenance_ids} for this dataset: {dataset_name}"
+        )
 
 
 def apply_custom_transformations(
