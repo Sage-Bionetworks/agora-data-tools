@@ -51,7 +51,6 @@ datasets:
       files: *genes_biodomains_files
       final_format: json
       custom_transformations: transform_biodomain_info
-      provenance: *genes_biodomains_provenance
       column_rename:
         biodomain: name
       destination: *dest
@@ -61,7 +60,6 @@ datasets:
       files: *genes_biodomains_files
       final_format: json
       custom_transformations: transform_genes_biodomains
-      provenance: *genes_biodomains_provenance
       column_rename:
         ensembl_id: ensembl_gene_id
         goterm_name: go_terms
@@ -76,8 +74,6 @@ datasets:
           id: syn22017882.5
           format: csv
       final_format: json
-      provenance:
-        - syn22017882.5
       column_rename:
         ensg: ensembl_gene_id
         gname: hgnc_gene_id
@@ -91,7 +87,6 @@ datasets:
       files: *agora_proteomics_files
       final_format: json
       custom_transformations: transform_proteomics
-      provenance: *agora_proteomics_provenance
       column_rename:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
@@ -102,7 +97,6 @@ datasets:
       files: *agora_proteomics_tmt_files
       final_format: json
       custom_transformations: transform_proteomics
-      provenance: *agora_proteomics_tmt_provenance
       column_rename:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
@@ -113,7 +107,6 @@ datasets:
       files: *agora_proteomics_srm_files
       final_format: json
       custom_transformations: transform_proteomics
-      provenance: *agora_proteomics_srm_provenance
       column_rename:
         genename: hgnc_symbol
         ensg: ensembl_gene_id
@@ -126,8 +119,6 @@ datasets:
           id: syn24184512.9
           format: csv
       final_format: json
-      provenance:
-        - syn24184512.9
       destination: *dest
       gx_enabled: true
 
@@ -137,8 +128,6 @@ datasets:
           id: syn26064497.1
           format: feather
       final_format: json
-      provenance:
-        - syn26064497.1
       destination: *dest
       gx_enabled: true
 
@@ -193,20 +182,6 @@ datasets:
         permalink: ensembl_permalink
         uniprotkb_accession: uniprotkb_accessions
         resource_identifier: ensembl_gene_id
-      provenance:
-        - syn25953363.16
-        - syn12514826.5
-        - syn12514912.3
-        - *agora_proteomics_provenance
-        - *agora_proteomics_tmt_provenance
-        - *agora_proteomics_srm_provenance
-        - *rna_diff_expr_data_provenance
-        - syn12540368.54
-        - syn27211878.2
-        - *genes_biodomains_provenance
-        - syn51942280.6
-        - syn54113663.5
-        - syn64123611.2
       agora_rename:
         symbol: hgnc_symbol
       destination: *dest
@@ -227,9 +202,6 @@ datasets:
           format: csv
       final_format: json
       custom_transformations: transform_team_info
-      provenance:
-        - syn12615624.18
-        - syn12615633.20
       destination: *dest
       gx_enabled: true
       gx_nested_columns:
@@ -241,7 +213,6 @@ datasets:
       custom_transformations: transform_overall_scores
       column_rename:
         genename: hgnc_gene_id
-      provenance: *overall_scores_provenance
       agora_rename:
         ensg: ensembl_gene_id
         hgnc_gene_id: hgnc_symbol
@@ -258,7 +229,6 @@ datasets:
           format: csv
       final_format: json
       provenance:
-        - syn11685347.1
         - syn27211942.1
       agora_rename:
         genea_ensembl_gene_id: geneA_ensembl_gene_id
@@ -273,7 +243,6 @@ datasets:
       files: *rna_diff_expr_data_files
       final_format: json
       custom_transformations: transform_rnaseq_differential_expression
-      provenance: *rna_diff_expr_data_provenance
       destination: *dest
       gx_enabled: true
 
@@ -285,7 +254,6 @@ datasets:
             overall_max_score: 5
             genetics_max_score: 3
             omics_max_score: 2
-      provenance: *overall_scores_provenance
       column_rename:
         overall: target_risk_score
         geneticsscore: genetics_score
@@ -301,7 +269,6 @@ datasets:
       files: *rna_diff_expr_data_files
       final_format: json
       custom_transformations: transform_rna_distribution_data
-      provenance: *rna_diff_expr_data_provenance
       destination: *dest
       gx_enabled: true
 
@@ -312,9 +279,5 @@ datasets:
         - <<: *agora_proteomics_srm_files
       final_format: json
       custom_transformations: transform_proteomics_distribution_data
-      provenance:
-        - *agora_proteomics_provenance
-        - *agora_proteomics_tmt_provenance
-        - *agora_proteomics_srm_provenance
       destination: *dest
       gx_enabled: true
