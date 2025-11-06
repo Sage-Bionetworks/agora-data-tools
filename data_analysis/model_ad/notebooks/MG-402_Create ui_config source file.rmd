@@ -23,12 +23,11 @@ if (!require("synapser", quietly = TRUE)) {
   install.packages("synapser", repos = c("http://ran.synapse.org",
                                          "https://cloud.r-project.org"))
 }
-
-if (!require("jsonlite", quietly = TRUE)) {
-  install.packages("jsonlite")
-}
+if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
+if (!require("purrr")) { install.packages("purrr") }
 
 library(synapser)
+library(purrr)
 library(jsonlite)
 ```
 
@@ -109,40 +108,33 @@ sex_filter_vals <- c('Female', 'Male')
 # Builds a ui_config object from a dataframe containing column info
 # Currently used only by Model Overview.
 # - page_column_data: a csv-compatible dataframe containing a row of values per CT column:
-#    - name, type, data_key, tooltip, sort_tooltip, link_url, link_text
+#    - name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 build_object <- function(page_column_data) {
 
-  columns <- apply(page_column_data, 1, function(row) {
-
-    name <- if (!is.null(row["name"])) row["name"] else ""
-    type <- row["type"]
-    data_key <- row["data_key"]
-    tooltip <- row["tooltip"]
-    sort_tooltip <- row["sort_tooltip"]
-    link_url = row["link_url"]
-    link_text = row["link_text"]
-
-    build_column(name, type, data_key, tooltip, sort_tooltip, link_url, link_text)
-  })
+  columns <- purrr::pmap(page_column_data, build_column)
+  names(columns) <- NULL
   columns
 }
 
 # Builds a column object
 # - name: The column display name
-#   -- Specify NA for columns with the primary type
+#   -- Specify NA for columns with the primary type, and for hidden columns
 # - type: The column type
 # - tooltip: The tooltip display value for the column name
-#   -- Specify NA for column names that need no explanatory tooltip
+#   -- Specify NA for column names that need no explanatory tooltip, and for hidden columns
 # - sort_tooltip: The tooltip display value for the column sort indicator
-#   -- Specify NA to use the default sort_tooltip value: "Sort by <name> value"
+#   -- This key is always omitted for columns with the primary type, and for hidden columns
+#   -- Specify NA to use the default sort_tooltip value for any other column: "Sort by <name> value"
 # - link_url: The optional default target URL for columns with a link_* type
 #   -- Specify NA for columns with other types
 # - link_text: The optional default link display text for columns with a link_* type
 #   -- Specify NA for columns with other types
-build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text) {
+# - is_exported: Whether this column should be included in CSV data exports
+# - is_hidden: Whether this column should be displayed in the CT table
+build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden) {
 
   # Use the default sort_tooltip if one isn't specified, for non-primary columns only
-  if (type == "primary") { sort_tooltip = NA }
+  if (type == "primary" || is_hidden == TRUE) { sort_tooltip = NA }
   else { sort_tooltip = if (!is.na(sort_tooltip)) sort_tooltip else paste("Sort by", name, "value") }
 
   column <- list(
@@ -152,11 +144,13 @@ build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, 
     tooltip = tooltip,
     sort_tooltip = sort_tooltip,
     link_url = link_url ,
-    link_text = link_text
+    link_text = link_text,
+    is_exported = is_exported,
+    is_hidden = is_hidden
   )
 
   # Omit keys with NA values
-  clean_column <- discard(column, ~ is.null(.x) | all(is.na(.x)))
+  clean_column <- purrr::discard(column, ~ is.null(.x) | all(is.na(.x)))
   clean_column
 }
 
@@ -199,19 +193,31 @@ ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 
 # Gene Expression Columns
 # -------------------------
+# name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
+#
 # Static columns are the same across all views
-ge_primary_column <- list(NA, "primary", "gene_symbol", NA, NA, NA, NA)
-ge_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA)
-ge_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA)
+ge_primary_column <- list(NA, "primary", "gene_symbol", NA, NA, NA, NA, TRUE, FALSE)
+ge_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE)
+ge_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA, TRUE, FALSE)
 
-# Dynamic columns have the same type and tooltip across all views
+# Hidden static columns
+ge_tissue_column <- list(NA, "text", "tissue", NA, NA, NA, NA, TRUE, TRUE)
+ge_sex_column <- list(NA, "text", "sex", NA, NA, NA, NA, TRUE, TRUE)
+ge_biodomains_column <- list(NA, "text", "biodomains", NA, NA, NA, NA, TRUE, TRUE)
+ge_model_group_column <- list(NA, "text", "model_group", NA, NA, NA, NA, FALSE, TRUE)
+ge_model_type_column <- list(NA, "text", "model_type", NA, NA, NA, NA, TRUE, TRUE)
+ge_ensembl_gene_id_column <- list(NA, "text", "ensembl_gene_id", NA, NA, NA, NA, TRUE, TRUE)
+
+
+# Variable heatmap columns have the same values across all views for these fields
 ge_dynamic_column_type <- "heat_map"
 ge_dynamic_column_sort_tooltip <- "Sort by log2 fold change value"
+ge_dynamic_column_is_exported <- TRUE
+ge_dynamic_column_is_hidden <- FALSE
 
-# Dynamic column names vary by contributing center and by tissue, since each center sequences different tissues
+# Variable heatmap column names vary by contributing center and by tissue, since each center sequences different tissues
 ge_dynamic_names_jax <- c("4 months", "12 months")
 ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
-
 
 # Gene Expression Filters
 # -----------------------
@@ -235,19 +241,30 @@ build_ge_objects <- function() {
 
   # Static columns are always the same
   primary <- do.call(build_column, ge_primary_column)
+  ensembl_gene_id  <- do.call(build_column, ge_ensembl_gene_id_column)
+  tissue <- do.call(build_column, ge_tissue_column)
+  sex <- do.call(build_column, ge_sex_column)
   model <- do.call(build_column, ge_model_column)
   matched_control <- do.call(build_column, ge_matched_control_column)
+  biodomains <- do.call(build_column, ge_biodomains_column)
+  model_group <- do.call(build_column, ge_model_group_column)
+  model_type <- do.call(build_column, ge_model_type_column)
 
-  # Dynamic columns vary by tissue dropdown
+
+  # Build a ui_config for each possible combination of dropdown menu options
   dropdown_combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
   lapply(seq_len(nrow(dropdown_combos)), function(i) {
     combo <- dropdown_combos[i, ]
+
+    # Dynamic columns vary by tissue dropdown
     dynamic_names <- if (combo$menu2 == "Tissue - Hemibrain") ge_dynamic_names_jax else ge_dynamic_names_uci
     dynamic_columns <- lapply(dynamic_names,function(name) {
-                           build_column(name, ge_dynamic_column_type, name, NA, ge_dynamic_column_sort_tooltip, NA, NA)
+                           build_column(name, ge_dynamic_column_type, name, NA, ge_dynamic_column_sort_tooltip,
+                                        NA, NA, ge_dynamic_column_is_exported, ge_dynamic_column_is_hidden)
     })
 
-    columns <- c(list(primary, model, matched_control), dynamic_columns)
+    # The column ordering is mirrored when a CSV is generated
+    columns <- c(list(primary, ensembl_gene_id, tissue, sex, model, matched_control), dynamic_columns, c(list(biodomains, model_type, model_group)))
     filters <- build_filters(ge_filters, ge_filter_values)
 
     list(
@@ -278,14 +295,24 @@ dc_menu2 <- c(
 
 # Disease Correlation Columns
 # ---------------------------
+# name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
+#
 # All views have the same static column values
-dc_primary_column <- list(NA, "primary", "name", NA, NA, NA, NA)
-dc_age_column <- list("Age", "text", "age", NA, "Sort by Age value", NA, NA)
-dc_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA)
+dc_primary_column <- list(NA, "primary", "name", NA, NA, NA, NA, TRUE, FALSE)
+dc_age_column <- list("Age", "text", "age", NA, "Sort by Age value", NA, NA, TRUE, FALSE)
+dc_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
 
-# All views have the same type and tooltip for dynamic columns
+# Hidden static columns
+dc_cluster_column <- list(NA, "text", "cluster", NA, NA, NA, NA, TRUE, TRUE)
+dc_model_type_column <- list(NA, "text", "model_type", NA, NA, NA, NA, TRUE, TRUE)
+dc_matched_control_column <- list(NA, "text", "matched_control", NA, NA, NA, NA, TRUE, TRUE)
+dc_modified_genes_column <- list(NA, "text", "modified_genes", NA, NA, NA, NA, TRUE, TRUE)
+
+# Variable heatmap columns have the same values across all views for these fields
 dc_dynamic_column_type <- "heat_map"
 dc_dynamic_column_sort_tooltip <- "Sort by correlation value"
+dc_dynamic_column_is_exported <- TRUE
+dc_dynamic_column_is_hidden <- FALSE
 
 # Dynamic column names vary by consensus cluster option
 dc_dynamic_names_A <- c("IFG", "PHG", "TCX")
@@ -340,20 +367,28 @@ build_dc_objects <- function() {
   primary <- do.call(build_column, dc_primary_column)
   age <- do.call(build_column, dc_age_column)
   sex <- do.call(build_column, dc_sex_column)
+  cluster <- do.call(build_column, dc_cluster_column)
+  model_type <- do.call(build_column, dc_model_type_column)
+  matched_control <- do.call(build_column, dc_matched_control_column)
+  modified_genes <- do.call(build_column, dc_modified_genes_column)
 
-  # Dynamic columns vary by consensus cluster option
+  # Build a ui_config for each possible combination of dropdown menu options
   dropdown_combos <- expand.grid(menu1 = dc_menu1, menu2 = dc_menu2, stringsAsFactors = FALSE)
   lapply(seq_len(nrow(dropdown_combos)), function(i) {
     combo <- dropdown_combos[i, ]
+
+    # Dynamic columns vary by consensus cluster option
     dynamic_names <- get_dc_dynamic_names(combo$menu2)
     dynamic_columns <- lapply(dynamic_names, function(name) {
       tooltip_text <- dc_tooltip_map[[name]]
+
       # The data_key values for the disease_correlation dataset are exact matches to the name value
-      build_column(name, dc_dynamic_column_type, data_key = name, tooltip_text, dc_dynamic_column_sort_tooltip, NA, NA)
+      build_column(name, dc_dynamic_column_type, data_key = name, tooltip_text, dc_dynamic_column_sort_tooltip,
+                   NA, NA, dc_dynamic_column_is_exported, dc_dynamic_column_is_hidden)
     })
 
-
-    columns <- c(list(primary, age, sex), dynamic_columns)
+    # The column ordering is mirrored when a CSV is generated
+    columns <- c(list(primary, cluster, age, sex), dynamic_columns, c(list(model_type, matched_control, modified_genes)))
     filters <- build_filters(dc_filters, dc_filter_values)
 
     list(
@@ -370,22 +405,28 @@ build_dc_objects <- function() {
 # **************
 # Model Overview
 # **************
+# name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
+#
 mo_columns <- data.frame(
   name = c(NA, "Model Type", "Matched Controls",
            "Gene Expression", "Disease Correlation", "Pathology",
-           "Biomarkers", "Study Data", "JAX Strain", "Center"
+           "Biomarkers", "Study Data", "JAX Strain",
+           "Center", NA, NA
   ),
   type = c("primary", "text", "text",
     "link_internal", "link_internal", "link_internal",
-    "link_internal","link_external", "link_external", "link_external"
+    "link_internal","link_external", "link_external",
+    "link_external", "text", "text"
   ),
   data_key = c("name", "model_type", "matched_controls", "gene_expression",
                  "disease_correlation", "pathology", "biomarkers",
-                 "study_data", "jax_strain", "center"),
-  tooltip = rep(NA, times = 10),
-  sort_tooltip = rep(NA, times = 10),
-  link_url = c(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA),
-  link_text = c(NA, NA, NA, "Results", "Results", "Results", "Results", "View Data", "View Strain", NA),
+                 "study_data", "jax_strain", "center", "modified_genes", "available_data"),
+  tooltip = rep(NA, times = 12),
+  sort_tooltip = rep(NA, times = 12),
+  link_url = rep(NA, times = 12),
+  link_text = c(NA, NA, NA, "Results", "Results", "Results", "Results", "View Data", "View Strain", NA, NA, NA),
+  is_exported = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+  is_hidden = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE),
   stringsAsFactors = FALSE
 )
 
@@ -422,8 +463,6 @@ build_mo_object <- function() {
   )
 }
 
-
-
 ```
 
 # Generate and upload ui_config
@@ -450,6 +489,7 @@ if(!dir.exists(output_dir)){
 write(json_output, file.path(output_dir, "ui_config.json"))
 
 # upload to synapse
+synLogin()
 syn_file <- File(
               file.path(output_dir, "ui_config.json"),
               description = "ui_config.json for Model-AD Explorer 2.0.",
@@ -467,6 +507,21 @@ print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 ```
 
 
+-----
+TESTS
+-----
+
+## Test build_column
+```{r}
+col_def <- build_column("name_value", "type_value", "data_key_value", "tooltip_value", "sort_tooltip_value", "link_url_value", "link_text_value", TRUE, FALSE)
+
+print(col_def)
+
+json_output <- toJSON(col_def, pretty = TRUE, na = NULL, null = NULL, auto_unbox = TRUE)
+cat(json_output)
+
+```
+
 ## Test build_object
 ```{r}
 test_input <- data.frame(
@@ -477,6 +532,8 @@ test_input <- data.frame(
   sort_tooltip = c(NA, "sort_tooltip1", NA, "sort_tooltip2"),
   link_url = c(NA, NA, NA, "https://test/url/here"),
   link_text = c(NA, NA, "Results", "View Strain"),
+  is_exported = c(TRUE, TRUE, TRUE, FALSE),
+  is_hidden = c(TRUE, FALSE, TRUE, FALSE),
   stringsAsFactors = FALSE
 )
 
@@ -490,3 +547,26 @@ json_output <- toJSON(json_list, pretty = TRUE, na = NULL, null = NULL, auto_unb
 cat(json_output)
 
 ```
+
+# test build_mo_object
+```{r}
+json_list <-  list(build_mo_object())
+
+toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+```
+
+# test build_dc_objects
+```{r}
+json_list <-  build_dc_objects()
+
+toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+```
+
+
+# test build_ge_objects
+```{r}
+json_list <-  build_ge_objects()
+
+toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+```
+
