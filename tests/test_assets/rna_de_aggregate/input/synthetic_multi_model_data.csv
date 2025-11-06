@@ -1,0 +1,6 @@
+ensembl_gene_id,log2foldchange,padj,model,case,control,age,sex,tissue
+ENSMUSG00000000001,1.10000,0.01100,Model_B,Tg,Wt,3 months,Male,Hippocampus
+ENSMUSG00000000001,2.10000,0.02100,Model_B,Tg,Wt,6 months,Male,Hippocampus
+ENSMUSG00000000003,0.50000,0.05000,Model_C,Tg,Wt,3 months,Female,Cortex
+ENSMUSG00000000003,1.50000,0.15000,Model_C,Tg,Wt,6 months,Female,Cortex
+ENSMUSG00000000003,2.50000,0.25000,Model_C,Tg,Wt,12 months,Female,Cortex

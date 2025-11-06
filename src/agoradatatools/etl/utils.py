@@ -364,3 +364,31 @@ def convert_numpy_types(obj: Any) -> Any:
     elif isinstance(obj, list):
         return [convert_numpy_types(item) for item in obj]
     return obj
+
+
+def input_validation_model_info(df: pd.DataFrame) -> None:
+    """
+    Validates that each model has consistent matched_controls and model_type values.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing model information with columns 'name',
+                          'matched_controls', and 'model_type'
+
+    Raises:
+        ValueError: If any model has inconsistent matched_controls or model_type values
+    """
+    # Group by model and check for consistency
+    for model, group in df.groupby("name"):
+        # Check matched_controls consistency
+        unique_matched_controls = group["matched_controls"].unique()
+        if len(unique_matched_controls) > 1:
+            raise ValueError(
+                f"Model {model} has inconsistent matched_controls values: {unique_matched_controls}"
+            )
+
+        # Check model_type consistency
+        unique_model_types = group["model_type"].unique()
+        if len(unique_model_types) > 1:
+            raise ValueError(
+                f"Model {model} has inconsistent model_type values: {unique_model_types}"
+            )

@@ -1,0 +1,15 @@
+model,model_group,display_label,genotype
+Model_A,AD,Model_A (Tg),Tg
+Model_A,AD,Model_A (Wt),Wt
+Model_B,AD,Model_B (Tg),Tg
+Model_B,AD,Model_B (Wt),Wt
+Model_C,AD,Model_C (Tg),Tg
+Model_C,AD,Model_C (Wt),Wt
+JAX_Model,AD,JAX_Model (Tg),Tg
+JAX_Model,AD,JAX_Model (Wt),Wt
+Model_D,AD,Model_D (Tg),Tg
+Model_D,AD,Model_D (Wt),Wt
+Model_E,AD,Model_E (Tg),Tg
+Model_E,AD,Model_E (Wt),Wt
+Model_F,AD,Model_F (Tg),Tg
+Model_F,AD,Model_F (Wt),Wt

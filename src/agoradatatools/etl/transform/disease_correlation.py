@@ -11,6 +11,7 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     flatten_list,
     remove_duplicates_keep_order,
+    input_validation_model_info,
 )
 
 
@@ -66,34 +67,6 @@ def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, An
                         flatten_list([lookup[index][k], row[k]])
                     )
     return lookup
-
-
-def input_validation_model_info(df: pd.DataFrame) -> None:
-    """
-    Validates that each model has consistent matched_controls and model_type values.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing model information with columns 'name',
-                          'matched_controls', and 'model_type'
-
-    Raises:
-        ValueError: If any model has inconsistent matched_controls or model_type values
-    """
-    # Group by model and check for consistency
-    for model, group in df.groupby("name"):
-        # Check matched_controls consistency
-        unique_matched_controls = group["matched_controls"].unique()
-        if len(unique_matched_controls) > 1:
-            raise ValueError(
-                f"Model {model} has inconsistent matched_controls values: {unique_matched_controls}"
-            )
-
-        # Check model_type consistency
-        unique_model_types = group["model_type"].unique()
-        if len(unique_model_types) > 1:
-            raise ValueError(
-                f"Model {model} has inconsistent model_type values: {unique_model_types}"
-            )
 
 
 def extract_module_name(module: str) -> str:
