@@ -8,9 +8,13 @@ datasets:
         - name: biomarkers
           id: syn61250724
           format: csv
+        - name: immunohisto_measure_order
+          id: syn71305327
+          format: yaml
       final_format: json
       provenance:
         - syn61250724
+        - syn71305327
       destination: *dest
       custom_transformations: immunohisto_transform
       column_rename:
@@ -25,9 +29,13 @@ datasets:
         - name: pathology
           id: syn61357279
           format: csv
+        - name: immunohisto_measure_order
+          id: syn71305327
+          format: yaml
       final_format: json
       provenance:
         - syn61357279
+        - syn71305327
       destination: *dest
       custom_transformations: immunohisto_transform
       column_rename:
@@ -57,6 +65,9 @@ datasets:
         - name: model_results_info
           id: syn68377668
           format: csv
+        - name: immunohisto_measure_order
+          id: syn71305327
+          format: yaml
       final_format: json
       provenance:
         - syn61378590
@@ -64,6 +75,7 @@ datasets:
         - syn61357279
         - syn61250724
         - syn64846805
+        - syn71305327
       destination: *dest
       custom_transformations: transform_model_details
       column_rename:
