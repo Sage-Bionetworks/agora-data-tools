@@ -251,8 +251,7 @@ def _create_measure_order_key(
     # Load and validate config from datasets
     if config_key not in datasets:
         raise ValueError(
-            f"Measure order configuration '{config_key}' not found in datasets. "
-            "Please provide the immunohisto_measure_order dataset."
+            "Measure order configuration 'immunohisto_measure_order' is required but not found in datasets"
         )
 
     config_df = datasets[config_key]
@@ -347,12 +346,6 @@ def immunohisto_transform(
     """
 
     # Validate that required datasets are present
-    # We need the measure order config plus at least one of biomarkers or pathology
-    if "immunohisto_measure_order" not in datasets:
-        raise ValueError(
-            "The 'immunohisto_measure_order' dataset is required but not found in datasets"
-        )
-
     # Ensure at least one of "biomarkers" or "pathology" is present
     if not any(key in datasets for key in ["biomarkers", "pathology"]):
         raise ValueError(
@@ -398,11 +391,14 @@ def immunohisto_transform(
     # Add missing age entries for completeness
     data_rows = _add_missing_age_entries(data_rows)
 
+    # Convert age values to numeric early so validation errors surface before
+    # attempting to access the measure order configuration.
+    data_rows["age_numeric"] = data_rows["age"].apply(_extract_age_num)
+
     # Create sorting key function for evidence_type based on measure order config
     measure_order_key = _create_measure_order_key(datasets, dataset_name)
 
-    # Sort by age (convert age to numeric for sorting), then by evidence_type using custom order
-    data_rows["age_numeric"] = data_rows["age"].apply(_extract_age_num)
+    # Sort by age (using the numeric column), then by evidence_type using custom order
     data_rows["evidence_type_order"] = data_rows["evidence_type"].apply(
         measure_order_key
     )
