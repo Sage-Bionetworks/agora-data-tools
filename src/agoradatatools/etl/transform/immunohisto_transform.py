@@ -197,21 +197,23 @@ def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
 
 
 def _extract_age_num(age_str: str) -> float:
-    """
-    Extract numeric age value for sorting purposes.
+    """Extract the numeric portion of an age string.
 
     Args:
-        age_str: A string containing the age value (e.g., "12 months")
+        age_str: A string containing the age value (e.g., "12 months").
 
     Returns:
-        float: The numeric age value, or inf for invalid ages
+        float: The numeric age value.
+
+    Raises:
+        ValueError: If the provided age value cannot be parsed into a number.
     """
+
     try:
         numeric_value = float(age_str.split()[0])
         return numeric_value
-    except (ValueError, IndexError, AttributeError):
-        # For invalid ages, use a large number for consistent sorting
-        return float("inf")
+    except (ValueError, IndexError, AttributeError) as exc:
+        raise ValueError(f"Invalid age value: {age_str!r}") from exc
 
 
 def _create_measure_order_key(
