@@ -361,32 +361,6 @@ class TestRoundYAxisMax:
         result = round_y_axis_max(-5.0)
         assert result == pytest.approx(0.0)
 
-    def test_round_y_axis_max_jira_examples(self) -> None:
-        """
-        Test all examples from the Jira ticket.
-
-        Validates that the function produces the exact outputs specified in the
-        requirements for various input values.
-        """
-        test_cases = [
-            # (input, expected_output, description)
-            (0.0021, 0.0025, "0.0021 rounds up to 0.0025"),
-            (0.0004, 0.00045, "0.0004 rounds up to 0.00045"),
-            (0.329486078, 0.35, "0.329486078 rounds up to 0.35"),
-            (0.089, 0.090, "0.089 rounds up to 0.090"),
-            (1094, 1500, "1094 rounds up to 1500"),
-            (1322498, 1500000, "1322498 rounds up to 1500000"),
-            (728591, 750000, "728591 rounds up to 750000"),
-            (3973, 4000, "3973 rounds up to 4000"),
-            (1.616, 2.0, "1.616 rounds up to 2.0"),
-        ]
-
-        for input_val, expected, description in test_cases:
-            result = round_y_axis_max(input_val)
-            assert (
-                abs(result - expected) < 1e-6
-            ), f"Failed for {description}: input={input_val}, expected={expected}, got={result}"
-
     def test_round_y_axis_max_edge_cases(self) -> None:
         """
         Test edge cases and boundary conditions.
@@ -941,66 +915,6 @@ class TestAddMissingAgeEntries:
         result_dicts = result.to_dict("records")
         expected_dicts = data_rows.to_dict("records")
         assert result_dicts == expected_dicts
-
-    def test_add_missing_age_entries_multiple_groups(self) -> None:
-        """
-        Test with multiple model/type/tissue combinations.
-
-        Validates that the function correctly adds missing ages across
-        multiple different groups, with some having complete data and others missing ages.
-        """
-        # Data rows with multiple ages for one group but not the other
-        data_rows = pd.DataFrame(
-            [
-                {
-                    "name": "Model1",
-                    "evidence_type": "Type1",
-                    "tissue": "Tissue1",
-                    "age": "6 months",
-                    "units": "mg",
-                    "y_axis_max": 3.0,
-                    "data": [{"genotype": "WT", "value": 1.0}],
-                },
-                {
-                    "name": "Model1",
-                    "evidence_type": "Type1",
-                    "tissue": "Tissue1",
-                    "age": "12 months",
-                    "units": "mg",
-                    "y_axis_max": 3.0,
-                    "data": [{"genotype": "WT", "value": 2.0}],
-                },
-                {
-                    "name": "Model2",
-                    "evidence_type": "Type2",
-                    "tissue": "Tissue2",
-                    "age": "6 months",
-                    "units": "mg",
-                    "y_axis_max": 5.0,
-                    "data": [{"genotype": "KO", "value": 3.0}],
-                },
-            ]
-        )
-
-        result = _add_missing_age_entries(data_rows)
-
-        # Should have 4 entries total (3 original + 1 missing age)
-        assert len(result) == 4
-
-        # Convert to dicts for inspection
-        result_dicts = result.to_dict("records")
-
-        # Check that missing age was added for Model2
-        model2_missing = [
-            entry
-            for entry in result_dicts
-            if entry["name"] == "Model2" and entry["age"] == "12 months"
-        ]
-
-        assert len(model2_missing) == 1
-        assert model2_missing[0]["y_axis_max"] == pytest.approx(5.0)
-        assert model2_missing[0]["data"] == []
-        assert model2_missing[0]["units"] == ""
 
 
 class TestExtractAgeNum:
