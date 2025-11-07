@@ -1,0 +1,44 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gene_A",
+    "biodomains": ["Synaptic"],
+    "name": "Model_B (Tg)",
+    "matched_control": "Model_B (Wt)",
+    "model_group": "AD",
+    "model_type": "Transgenic",
+    "tissue": "Hippocampus",
+    "sex": "Male",
+    "3 months": {
+      "log2_fc": 1.1,
+      "adj_p_val": 0.011
+    },
+    "6 months": {
+      "log2_fc": 2.1,
+      "adj_p_val": 0.021
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000003",
+    "gene_symbol": "Gene_C",
+    "biodomains": ["Neuronal"],
+    "name": "Model_C (Tg)",
+    "matched_control": "Model_C (Wt)",
+    "model_group": "AD",
+    "model_type": "Transgenic",
+    "tissue": "Cortex",
+    "sex": "Female",
+    "3 months": {
+      "log2_fc": 0.5,
+      "adj_p_val": 0.05
+    },
+    "6 months": {
+      "log2_fc": 1.5,
+      "adj_p_val": 0.15
+    },
+    "12 months": {
+      "log2_fc": 2.5,
+      "adj_p_val": 0.25
+    }
+  }
+]
