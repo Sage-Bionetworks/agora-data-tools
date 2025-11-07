@@ -2,12 +2,13 @@
 This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
-import pandas as pd
-import numpy as np
 from typing import Any, Dict, List
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+import numpy as np
+import pandas as pd
+
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
+from agoradatatools.etl.utils import check_required_datasets_and_columns
 
 
 REQUIRED_INPUT = {
@@ -162,7 +163,27 @@ def transform_model_details(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    if "immunohisto_measure_order" not in datasets:
+        raise ValueError(
+            "The 'immunohisto_measure_order' dataset is required but not found in datasets"
+        )
+
+    required_with_config = {
+        **required_input,
+        "immunohisto_measure_order": ["dataset_name", "evidence_type"],
+    }
+
+    check_required_datasets_and_columns(datasets, required_with_config)
+
+    if "biomarkers" not in datasets:
+        raise ValueError(
+            "The 'biomarkers' dataset is required but not found in datasets"
+        )
+
+    if "pathology" not in datasets:
+        raise ValueError(
+            "The 'pathology' dataset is required but not found in datasets"
+        )
 
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")
