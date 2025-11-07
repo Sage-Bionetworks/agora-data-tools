@@ -1,0 +1,3 @@
+ensembl_gene_id,log2foldchange,padj,model,case,control,age,sex,tissue
+ENSMUSG00000000004,3.00000,0.30000,JAX_Model,Tg,Wt,3 months,Male,Right Cerebral Hemisphere
+ENSMUSG00000000004,4.00000,0.40000,JAX_Model,Tg,Wt,6 months,Male,Right Cerebral Hemisphere
