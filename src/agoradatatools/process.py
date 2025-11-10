@@ -24,7 +24,7 @@ def check_provenance_id_file_id_consistency(
     If file id and provenance id share the same base id, their versions must match.
 
     Args:
-        dataset_obj: Dataset configuration object
+        provenance_ids: List of provenance IDs defined in the configuration (after flattening)
         file_ids: List of file IDs defined in the configuration
     
     Raises:
