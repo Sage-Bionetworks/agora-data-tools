@@ -17,6 +17,46 @@ from agoradatatools.constants import Platform
 logger = logging.getLogger(__name__)
 
 
+def check_provenance_id_file_id_consistency(
+    provenance_ids: list[str], file_ids: list[str]
+) -> None:
+    """Check that provenance IDs in config are consistent with file IDs.
+    If file id and provenance id share the same base id, their versions must match.
+
+    Args:
+        dataset_obj: Dataset configuration object
+        file_ids: List of file IDs defined in the configuration
+    
+    Raises:
+        ValueError: If any provenance ID has different version than the corresponding file ID
+
+    Example:
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = ["syn123.4", "syn789.1"]  # OK - syn123 versions match
+        provenance_ids = ["syn123.5", "syn789.1"]  # ERROR - syn123 versions differ
+    """
+    if not provenance_ids:
+        return
+    # Build a mapping of base ID to full ID(s) for file IDs
+    file_id_map = {}
+    for file_id in file_ids:
+        base_id = file_id.split(".")[0]
+        if base_id not in file_id_map:
+            file_id_map[base_id] = set()
+        file_id_map[base_id].add(file_id)
+    
+    # Raise error if any provenance ID has different version than the corresponding file ID
+    for prov_id in provenance_ids:
+        base_id = prov_id.split(".")[0]
+        if base_id in file_id_map:
+            if prov_id not in file_id_map[base_id]:
+                file_versions_str = ", ".join(sorted(file_id_map[base_id]))
+                raise ValueError(
+                    f"Version mismatch: Provenance ID '{prov_id}' conflicts with "
+                    f"file ID(s) '{file_versions_str}'. When the same Synapse entity "
+                    f"appears in both provenance and files, their versions must match."
+                )
+
 def get_provenance_ids(
     dataset_obj: Dict[str, Any], dataset_name: str, file_ids: list[str]
 ) -> list[str]:
@@ -42,6 +82,9 @@ def get_provenance_ids(
             elif isinstance(item, str):
                 flattened_provenance.add(item)
         provenance_ids = set(file_ids).union(flattened_provenance)
+        check_provenance_id_file_id_consistency(
+            provenance_ids=list(flattened_provenance), file_ids=file_ids
+        )
     else:
         provenance_ids = file_ids
 
