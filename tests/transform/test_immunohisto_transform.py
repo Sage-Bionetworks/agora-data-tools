@@ -1,15 +1,39 @@
+"""
+Test suite for immunohisto_transform module.
+
+This module contains comprehensive tests for the biomarkers and pathology data
+transformation functions used in the Model AD project. It validates:
+- Data preparation and cleaning (capitalization, beta symbol replacement, age formatting)
+- Y-axis maximum calculation and rounding for visualizations
+- Missing age entry detection and placeholder addition
+- Age value extraction and sorting behavior
+- End-to-end transformation with various data scenarios and edge cases
+"""
+
 import os
 
 import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.immunohisto_transform import (
+    _add_missing_age_entries,
+    _calculate_y_axis_max_map,
+    _extract_age_num,
     immunohisto_transform,
     prepare_immunohisto_data,
+    round_y_axis_max,
 )
 
 
 class TestTransformGeneralModelAD:
+    """
+    Test suite for the main immunohisto_transform function and related data preparation.
+
+    This class tests the end-to-end transformation of biomarkers and pathology data
+    for the Model AD project, including proper handling of various data formats,
+    edge cases, and error conditions.
+    """
+
     data_files_path = "tests/test_assets/immunohisto_transform"
     pass_test_data = [
         (
@@ -42,11 +66,6 @@ class TestTransformGeneralModelAD:
             "immunohisto_transform_missing_ages_input.csv",
             "immunohisto_transform_missing_ages_output.json",
         ),
-        (
-            # Pass with comprehensive error handling test including invalid age data that triggers float("inf") error handling
-            "immunohisto_transform_all_errors_input.csv",
-            "immunohisto_transform_all_errors_output.json",
-        ),
     ]
     pass_test_ids = [
         "Pass with good fake data",
@@ -55,10 +74,15 @@ class TestTransformGeneralModelAD:
         "Pass with missing data",
         "Pass with extra column",
         "Pass with missing ages",
-        "Pass with comprehensive error handling test including invalid age data that triggers float(inf) error handling",
     ]
-    fail_test_data = [("immunohisto_transform_missing_column.csv")]
-    fail_test_ids = [("Fail with missing column")]
+    fail_test_data = [
+        "immunohisto_transform_missing_column.csv",
+        "immunohisto_transform_all_errors_input.csv",
+    ]
+    fail_test_ids = [
+        "Fail with missing column",
+        "Fail with invalid ages",
+    ]
 
     @pytest.mark.parametrize(
         "immunohisto_transform_file, expected_output_file",
@@ -66,8 +90,18 @@ class TestTransformGeneralModelAD:
         ids=pass_test_ids,
     )
     def test_immunohisto_transform_should_pass(
-        self, immunohisto_transform_file, expected_output_file
-    ):
+        self, immunohisto_transform_file: str, expected_output_file: str
+    ) -> None:
+        """
+        Test that immunohisto_transform produces correct output for valid inputs.
+
+        This parametrized test covers multiple scenarios including good data,
+        duplicated entries, missing values, and edge cases.
+
+        Args:
+            immunohisto_transform_file: Name of CSV input file in test_assets
+            expected_output_file: Name of expected JSON output file in test_assets
+        """
         immunohisto_transform_df = pd.read_csv(
             os.path.join(self.data_files_path, "input", immunohisto_transform_file)
         )
@@ -89,8 +123,18 @@ class TestTransformGeneralModelAD:
         "immunohisto_transform_file", fail_test_data, ids=fail_test_ids
     )
     def test_immunohisto_transform_should_fail(
-        self, immunohisto_transform_file, error_type: BaseException = ValueError
-    ):
+        self, immunohisto_transform_file: str, error_type: BaseException = ValueError
+    ) -> None:
+        """
+        Test that immunohisto_transform raises appropriate errors for invalid inputs.
+
+        This parametrized test verifies that the function correctly raises ValueError
+        when required columns are missing from the input data.
+
+        Args:
+            immunohisto_transform_file: Name of CSV input file with missing columns
+            error_type: Expected exception type (defaults to ValueError)
+        """
         immunohisto_transform_df = pd.read_csv(
             os.path.join(self.data_files_path, "input", immunohisto_transform_file)
         )
@@ -103,7 +147,15 @@ class TestTransformGeneralModelAD:
                 dataset_name="biomarkers",
             )
 
-    def test_prepare_immunohisto_data_should_pass(self):
+    def test_prepare_immunohisto_data_should_pass(self) -> None:
+        """
+        Test that prepare_immunohisto_data correctly transforms data.
+
+        Verifies that the function:
+        - Capitalizes 'sex' and 'tissue' columns
+        - Replaces 'beta' with '&beta;' in evidence_type
+        - Appends 'months' to age values
+        """
         # Create test input DataFrame
         input_df = pd.DataFrame(
             {
@@ -132,7 +184,8 @@ class TestTransformGeneralModelAD:
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    def test_prepare_immunohisto_data_with_empty_values(self):
+    def test_prepare_immunohisto_data_with_empty_values(self) -> None:
+        """Test that prepare_immunohisto_data handles empty string values correctly."""
         # Create test input DataFrame with empty values
         input_df = pd.DataFrame(
             {
@@ -161,7 +214,8 @@ class TestTransformGeneralModelAD:
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    def test_prepare_immunohisto_data_with_none_values(self):
+    def test_prepare_immunohisto_data_with_none_values(self) -> None:
+        """Test that prepare_immunohisto_data handles None/NaN values by converting them to empty strings."""
         # Create test input DataFrame with None values
         input_df = pd.DataFrame(
             {
@@ -190,8 +244,303 @@ class TestTransformGeneralModelAD:
         # Compare output with expected
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    def test_extract_age_num_valueerror_handling(self):
-        """Test that ValueError is handled when age contains non-numeric text."""
+    def test_immunohisto_transform_with_empty_dataset(self) -> None:
+        """
+        Test that empty dataset returns empty list.
+
+        Verifies that when an empty DataFrame is provided (with proper column structure),
+        the function returns an empty list rather than failing.
+        """
+        # Create empty DataFrame with required columns
+        empty_df = pd.DataFrame(
+            columns=[
+                "name",
+                "evidence_type",
+                "value",
+                "units",
+                "age",
+                "tissue",
+                "sex",
+                "genotype",
+                "individual_id",
+            ]
+        )
+
+        result = immunohisto_transform(
+            datasets={"biomarkers": empty_df}, dataset_name="biomarkers"
+        )
+
+        # Should return empty list
+        assert result == []
+        assert isinstance(result, list)
+
+    def test_immunohisto_transform_missing_both_datasets(self) -> None:
+        """
+        Test that ValueError is raised when neither biomarkers nor pathology is present.
+
+        Verifies that the function properly validates input datasets and raises an error
+        when the required dataset types (biomarkers or pathology) are not provided.
+        """
+        # Create a dataset that is neither biomarkers nor pathology
+        other_df = pd.DataFrame(
+            {
+                "name": ["test"],
+                "evidence_type": ["test"],
+                "value": [1.0],
+                "units": ["test"],
+                "age": [1],
+                "tissue": ["test"],
+                "sex": ["male"],
+                "genotype": ["test"],
+                "individual_id": ["test"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="At least one of"):
+            immunohisto_transform(
+                datasets={"other_data": other_df}, dataset_name="other_data"
+            )
+
+    def test_immunohisto_transform_with_pathology_dataset(self) -> None:
+        """
+        Test that the transform works with pathology dataset name.
+
+        Verifies that the function correctly processes data when using 'pathology'
+        as the dataset_name parameter instead of 'biomarkers'.
+        """
+        # Create test input DataFrame
+        input_df = pd.DataFrame(
+            {
+                "name": ["ModelA", "ModelA"],
+                "evidence_type": ["TypeA", "TypeA"],
+                "value": [1, 2],
+                "units": ["A", "A"],
+                "age": [1, 1],
+                "tissue": ["TissueA", "TissueA"],
+                "sex": ["male", "male"],
+                "genotype": ["genotype1", "genotype1"],
+                "individual_id": ["individual_1", "individual_2"],
+            }
+        )
+
+        # Transform using pathology dataset name
+        result = immunohisto_transform(
+            datasets={"pathology": input_df}, dataset_name="pathology"
+        )
+
+        # Should successfully return results
+        assert isinstance(result, list)
+        assert len(result) > 0
+        # Verify structure
+        assert "name" in result[0]
+        assert "evidence_type" in result[0]
+        assert "tissue" in result[0]
+        assert "age" in result[0]
+        assert "data" in result[0]
+        assert "y_axis_max" in result[0]
+
+
+class TestRoundYAxisMax:
+    """Test class for the round_y_axis_max function."""
+
+    def test_round_y_axis_max_zero_case(self) -> None:
+        """
+        Test that 0 returns 10.
+
+        Zero is a special case that defaults to 10.0 for visualization purposes.
+        """
+        result = round_y_axis_max(0)
+        assert result == pytest.approx(10.0)
+
+    def test_round_y_axis_max_negative_case(self) -> None:
+        """
+        Test that negative values return 0.
+
+        Negative values are not expected in the data and default to 0.0.
+        """
+        result = round_y_axis_max(-5.0)
+        assert result == pytest.approx(0.0)
+
+    def test_round_y_axis_max_edge_cases(self) -> None:
+        """
+        Test edge cases and boundary conditions.
+
+        Tests very small numbers, "nice" numbers that still need rounding up,
+        and large numbers to ensure the algorithm works across all scales.
+        """
+        # Test very small numbers
+        assert abs(round_y_axis_max(0.0001) - 0.00015) < 1e-6
+        assert abs(round_y_axis_max(0.00001) - 0.000015) < 1e-6
+
+        # Test numbers that are already "nice"
+        assert round_y_axis_max(1.0) == pytest.approx(
+            1.5
+        )  # Should round up to next nice number
+        assert round_y_axis_max(1.5) == pytest.approx(
+            2.0
+        )  # According to JIRA instructions, always round UP to next 5 or 0
+        assert round_y_axis_max(2.0) == pytest.approx(
+            2.5
+        )  # Should round up to next nice number
+
+        # Test large numbers
+        assert round_y_axis_max(1000000) == pytest.approx(1500000)
+        assert round_y_axis_max(5000000) == pytest.approx(
+            5500000
+        )  # 5.0 -> 5.5, not next magnitude
+
+    def test_round_y_axis_max_second_digit_logic(self) -> None:
+        """
+        Test the second digit rounding logic specifically.
+
+        Validates that numbers are always rounded UP to the next value where
+        the second significant digit is 0 or 5.
+        """
+        # Second digit 0-2 should round to 0 (but we round UP, so to 5)
+        assert round_y_axis_max(1.0) == pytest.approx(1.5)
+        assert round_y_axis_max(1.1) == pytest.approx(1.5)
+        assert round_y_axis_max(1.2) == pytest.approx(1.5)
+
+        # Second digit 3-7 should round to 5
+        assert round_y_axis_max(1.3) == pytest.approx(1.5)
+        assert round_y_axis_max(1.4) == pytest.approx(1.5)
+        assert round_y_axis_max(1.5) == pytest.approx(2.0)
+        assert round_y_axis_max(1.6) == pytest.approx(2.0)
+        assert round_y_axis_max(1.7) == pytest.approx(2.0)
+
+        # Second digit 8-9 should round to next first digit with 0
+        assert round_y_axis_max(1.8) == pytest.approx(2.0)
+        assert round_y_axis_max(1.9) == pytest.approx(2.0)
+
+    def test_round_y_axis_max_magnitude_handling(self) -> None:
+        """
+        Test that the function handles different magnitudes correctly.
+
+        Ensures consistent rounding behavior across different orders of magnitude
+        (0.1, 1, 10, 100, 1000, etc.).
+        """
+        # Test different magnitudes with same pattern
+        assert abs(round_y_axis_max(0.1) - 0.15) < 1e-6
+        assert round_y_axis_max(1.0) == pytest.approx(1.5)
+        assert round_y_axis_max(10.0) == pytest.approx(15.0)
+        assert round_y_axis_max(100.0) == pytest.approx(150.0)
+        assert round_y_axis_max(1000.0) == pytest.approx(1500.0)
+
+    def test_round_y_axis_max_floating_point_precision(self) -> None:
+        """
+        Test that floating point precision issues are handled correctly.
+
+        Verifies that common floating point arithmetic issues (like 0.1 + 0.2)
+        don't cause incorrect rounding results.
+        """
+        # Test numbers that might have floating point precision issues
+        assert (
+            abs(round_y_axis_max(0.1 + 0.2) - 0.35) < 1e-6
+        )  # 0.30000000000000004 -> 0.35
+        assert (
+            abs(round_y_axis_max(1.0 / 3.0) - 0.35) < 1e-6
+        )  # 0.3333333333333333 -> 0.35
+        assert (
+            abs(round_y_axis_max(2.0 / 3.0) - 0.7) < 1e-6
+        )  # 0.6666666666666666 -> 0.7
+
+    def test_round_y_axis_max_return_type(self) -> None:
+        """
+        Test that the function returns a float.
+
+        Ensures the return type is always float, even for integer inputs.
+        """
+        result = round_y_axis_max(1.5)
+        assert isinstance(result, float)
+
+    def test_round_y_axis_max_consistency(self) -> None:
+        """
+        Test that the function is consistent across multiple calls.
+
+        Verifies that calling the function multiple times with the same input
+        always produces the same output.
+        """
+        test_values = [0.0021, 1094, 1.616, 0.0, 0.089]
+
+        for value in test_values:
+            result1 = round_y_axis_max(value)
+            result2 = round_y_axis_max(value)
+            assert (
+                result1 == result2
+            ), f"Inconsistent results for {value}: {result1} vs {result2}"
+
+    def test_round_y_axis_max_monotonicity(self) -> None:
+        """
+        Test that the function maintains monotonicity.
+
+        Ensures that larger inputs always produce larger or equal outputs,
+        which is critical for proper data visualization scaling.
+        """
+        test_values = [0.001, 0.002, 0.003, 0.004, 0.005]
+        results = [round_y_axis_max(val) for val in test_values]
+
+        # Results should be non-decreasing
+        for i in range(1, len(results)):
+            assert (
+                results[i] >= results[i - 1]
+            ), f"Non-monotonic: {test_values[i-1]} -> {results[i-1]}, {test_values[i]} -> {results[i]}"
+
+    @pytest.mark.parametrize(
+        "input_val,expected",
+        [
+            (0, 10.0),
+            (-1, 0.0),
+            (0.0021, 0.0025),
+            (0.0004, 0.00045),
+            (0.329486078, 0.35),
+            (0.089, 0.090),
+            (1094, 1500),
+            (1322498, 1500000),
+            (728591, 750000),
+            (3973, 4000),
+            (1.616, 2.0),
+        ],
+    )
+    def test_round_y_axis_max_parametrized(
+        self, input_val: float, expected: float
+    ) -> None:
+        """
+        Parametrized test for the main examples.
+
+        Comprehensive parametrized test covering all key test cases including
+        zero, negative, and various positive values from the JIRA specification.
+
+        Args:
+            input_val: Input value to test
+            expected: Expected rounded output
+        """
+        result = round_y_axis_max(input_val)
+        assert (
+            abs(result - expected) < 1e-6
+        ), f"input={input_val}, expected={expected}, got={result}"
+
+    def test_round_y_axis_max_string_inputs(self) -> None:
+        """
+        Test that string inputs are properly converted and handled.
+
+        Validates that the function accepts string inputs (per type signature)
+        and properly converts valid numeric strings or returns 10.0 for invalid ones.
+        """
+        # Valid string numbers
+        assert abs(round_y_axis_max("1.5") - 2.0) < 1e-6
+        assert abs(round_y_axis_max("100") - 150.0) < 1e-6
+        assert abs(round_y_axis_max("0.0021") - 0.0025) < 1e-6
+
+        # Invalid string (should return 10.0)
+        assert round_y_axis_max("invalid") == pytest.approx(10.0)
+        assert round_y_axis_max("abc123") == pytest.approx(10.0)
+        assert round_y_axis_max("") == pytest.approx(10.0)
+
+        # None input (should return 10.0)
+        assert round_y_axis_max(None) == pytest.approx(10.0)
+
+    def test_extract_age_num_valueerror_handling(self) -> None:
+        """Test that non-numeric age values raise a descriptive error."""
         # Create test input DataFrame with non-numeric age values
         input_df = pd.DataFrame(
             {
@@ -207,18 +556,13 @@ class TestTransformGeneralModelAD:
             }
         )
 
-        # This should not raise an exception, but handle ValueError gracefully
-        # by sorting invalid ages to the end with float("inf")
-        result = immunohisto_transform(
-            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
-        )
+        with pytest.raises(ValueError, match="Invalid age value"):
+            immunohisto_transform(
+                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            )
 
-        # Verify the function completed successfully
-        assert isinstance(result, list)
-        assert len(result) > 0
-
-    def test_extract_age_num_indexerror_handling(self):
-        """Test that IndexError is handled when age is empty or whitespace-only."""
+    def test_extract_age_num_indexerror_handling(self) -> None:
+        """Test that empty or whitespace-only age values raise a descriptive error."""
         # Create test input DataFrame with empty/whitespace age values
         input_df = pd.DataFrame(
             {
@@ -234,18 +578,13 @@ class TestTransformGeneralModelAD:
             }
         )
 
-        # This should not raise an exception, but handle IndexError gracefully
-        # by sorting invalid ages to the end with float("inf")
-        result = immunohisto_transform(
-            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
-        )
+        with pytest.raises(ValueError, match="Invalid age value"):
+            immunohisto_transform(
+                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            )
 
-        # Verify the function completed successfully
-        assert isinstance(result, list)
-        assert len(result) > 0
-
-    def test_extract_age_num_attributeerror_handling(self):
-        """Test that AttributeError is handled when age is not a string."""
+    def test_extract_age_num_attributeerror_handling(self) -> None:
+        """Test that non-string age values raise a descriptive error."""
         # Create test input DataFrame with non-string age values
         input_df = pd.DataFrame(
             {
@@ -261,18 +600,13 @@ class TestTransformGeneralModelAD:
             }
         )
 
-        # This should not raise an exception, but handle AttributeError gracefully
-        # by sorting invalid ages to the end with float("inf")
-        result = immunohisto_transform(
-            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
-        )
+        with pytest.raises(ValueError, match="Invalid age value"):
+            immunohisto_transform(
+                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            )
 
-        # Verify the function completed successfully
-        assert isinstance(result, list)
-        assert len(result) > 0
-
-    def test_extract_age_num_mixed_error_handling(self):
-        """Test that all three error types are handled together in one dataset."""
+    def test_extract_age_num_mixed_error_handling(self) -> None:
+        """Test that datasets with mixed invalid ages raise a descriptive error."""
         # Create test input DataFrame with various problematic age values
         input_df = pd.DataFrame(
             {
@@ -294,28 +628,374 @@ class TestTransformGeneralModelAD:
             }
         )
 
-        # This should not raise an exception, but handle all errors gracefully
-        # Valid ages should be sorted normally, invalid ones should go to the end
-        result = immunohisto_transform(
-            datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+        with pytest.raises(ValueError, match="Invalid age value"):
+            immunohisto_transform(
+                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            )
+
+    def test_immunohisto_transform_invalid_age_error_message(self) -> None:
+        """Ensure the transformation error message includes the invalid age value."""
+
+        input_df = pd.DataFrame(
+            {
+                "name": ["test_model"],
+                "evidence_type": ["test_evidence"],
+                "tissue": ["test_tissue"],
+                "age": ["invalid months"],
+                "units": ["test_units"],
+                "sex": ["Male"],
+                "genotype": ["WT"],
+                "individual_id": ["1"],
+                "value": [1.0],
+            }
         )
 
-        # Verify the function completed successfully
-        assert isinstance(result, list)
-        assert len(result) > 0
+        with pytest.raises(ValueError, match="Invalid age value: 'invalid months'"):
+            immunohisto_transform(
+                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+            )
 
-        # Verify that the valid age (12 months) comes before invalid ages in sorting
-        valid_age_entry = next(
-            (entry for entry in result if entry["age"] == "12 months"), None
+
+class TestCalculateYAxisMaxMap:
+    """Test class for the _calculate_y_axis_max_map function."""
+
+    def test_calculate_y_axis_max_map_basic(self) -> None:
+        """
+        Test basic functionality with valid data.
+
+        Validates that the function correctly calculates y_axis_max values for
+        different combinations of (name, evidence_type, tissue).
+        """
+        # Create test dataset
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1", "Model2", "Model2"],
+                "evidence_type": ["Type1", "Type1", "Type2", "Type2"],
+                "tissue": ["Tissue1", "Tissue1", "Tissue2", "Tissue2"],
+                "age": ["6 months", "12 months", "6 months", "12 months"],
+                "value": [1.0, 3.0, 2.0, 5.0],
+                "units": ["mg", "mg", "mg", "mg"],
+            }
         )
-        invalid_age_entries = [
-            entry
-            for entry in result
-            if entry["age"] in ["unknown months", " months", "    months"]
+
+        result = _calculate_y_axis_max_map(dataset)
+
+        # Expected: (Model1, Type1, Tissue1) -> round_y_axis_max(3.0) = 3.5, (Model2, Type2, Tissue2) -> round_y_axis_max(5.0) = 5.5
+        expected = {
+            ("Model1", "Type1", "Tissue1"): 3.5,
+            ("Model2", "Type2", "Tissue2"): 5.5,
+        }
+
+        assert result == expected
+
+    def test_calculate_y_axis_max_map_empty_groups(self) -> None:
+        """
+        Test with minimal data (single group).
+
+        Validates that the function handles datasets with only one group correctly.
+        """
+        # Create dataset with empty groups
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1"],
+                "evidence_type": ["Type1"],
+                "tissue": ["Tissue1"],
+                "age": ["6 months"],
+                "value": [1.0],
+                "units": ["mg"],
+            }
+        )
+
+        result = _calculate_y_axis_max_map(dataset)
+
+        expected = {("Model1", "Type1", "Tissue1"): 1.5}
+        assert result == expected
+
+    def test_calculate_y_axis_max_map_non_numeric_values(self) -> None:
+        """
+        Test with non-numeric values that should be coerced.
+
+        Validates that the function handles mixed valid/invalid values by
+        coercing non-numeric values to NaN and only considering valid ones.
+        """
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months"],
+                "value": ["1.0", "invalid"],  # One invalid value
+                "units": ["mg", "mg"],
+            }
+        )
+
+        result = _calculate_y_axis_max_map(dataset)
+
+        expected = {("Model1", "Type1", "Tissue1"): 1.5}
+        assert result == expected
+
+    def test_calculate_y_axis_max_map_all_invalid_values(self) -> None:
+        """
+        Test with all invalid values.
+
+        Validates that when all values are non-numeric, the function returns
+        the default y_axis_max of 10.0.
+        """
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months"],
+                "value": ["invalid1", "invalid2"],  # All invalid values
+                "units": ["mg", "mg"],
+            }
+        )
+
+        result = _calculate_y_axis_max_map(dataset)
+
+        # Should return round_y_axis_max(0) = 10.0 for all invalid numeric values
+        expected = {("Model1", "Type1", "Tissue1"): 10.0}
+        assert result == expected
+
+    def test_calculate_y_axis_max_map_mixed_data_types(self) -> None:
+        """
+        Test with mixed numeric and non-numeric values.
+
+        Validates that the function correctly handles values that are numeric,
+        string-numeric, and truly numeric, finding the max and rounding it.
+        """
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months", "18 months"],
+                "value": [1.0, "2.5", 3.0],  # Mixed types
+                "units": ["mg", "mg", "mg"],
+            }
+        )
+
+        result = _calculate_y_axis_max_map(dataset)
+
+        expected = {("Model1", "Type1", "Tissue1"): 3.5}
+        assert result == expected
+
+
+class TestAddMissingAgeEntries:
+    """Test class for the _add_missing_age_entries function."""
+
+    def test_add_missing_age_entries_basic(self) -> None:
+        """
+        Test basic missing age detection when no ages are missing.
+
+        Validates that when all age combinations are already present,
+        no additional entries are added.
+        """
+        # Existing data rows with multiple ages for the same group
+        data_rows = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 1.0}],
+                },
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "12 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 2.0}],
+                },
+            ]
+        )
+
+        result = _add_missing_age_entries(data_rows)
+
+        # Should not add any missing entries since all ages are already present for all groups
+        assert len(result) == 2
+        # Convert to dicts for comparison
+        result_dicts = result.to_dict("records")
+        expected_dicts = data_rows.to_dict("records")
+        assert result_dicts == expected_dicts
+
+    def test_add_missing_age_entries_with_missing_ages(self) -> None:
+        """
+        Test actual missing age detection and addition.
+
+        Validates that when some age time points are missing for certain groups,
+        the function adds placeholder entries with empty data arrays.
+        """
+        # Data rows with ages that exist in the data_rows but not in all groups
+        data_rows = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 1.0}],
+                },
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "12 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 2.0}],
+                },
+                {
+                    "name": "Model2",
+                    "evidence_type": "Type2",
+                    "tissue": "Tissue2",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 5.0,
+                    "data": [{"genotype": "KO", "value": 3.0}],
+                },
+            ]
+        )
+
+        result = _add_missing_age_entries(data_rows)
+
+        # Should add one missing entry for Model2/Type2/Tissue2 at 12 months
+        assert len(result) == 4
+
+        # Convert to dicts for easier inspection
+        result_dicts = result.to_dict("records")
+
+        # Find the missing age entry
+        missing_entry = next(
+            (
+                entry
+                for entry in result_dicts
+                if entry["name"] == "Model2" and entry["age"] == "12 months"
+            ),
+            None,
+        )
+        assert missing_entry is not None
+        assert missing_entry["data"] == []
+        assert missing_entry["units"] == ""
+        assert missing_entry["y_axis_max"] == pytest.approx(5.0)
+
+    def test_add_missing_age_entries_no_missing_ages(self) -> None:
+        """
+        Test when no ages are missing (single age case).
+
+        Validates that when there's only one age in the dataset,
+        no additional entries need to be added.
+        """
+        data_rows = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 1.0}],
+                }
+            ]
+        )
+
+        result = _add_missing_age_entries(data_rows)
+
+        # Should return data_rows unchanged (only one age, so nothing to fill)
+        assert len(result) == 1
+        result_dicts = result.to_dict("records")
+        expected_dicts = data_rows.to_dict("records")
+        assert result_dicts == expected_dicts
+
+
+class TestExtractAgeNum:
+    """Test class for the _extract_age_num function."""
+
+    def test_extract_age_num_valid_ages(self) -> None:
+        """
+        Test with valid age strings.
+
+        Validates that the function correctly extracts numeric values from
+        properly formatted age strings like "6 months" or "12.5 months".
+        """
+        test_cases = [
+            ("6 months", 6.0),
+            ("12 months", 12.0),
+            ("0.5 months", 0.5),
+            ("18.75 months", 18.75),
         ]
 
-        # The valid age should be present
-        assert valid_age_entry is not None
+        for age_str, expected in test_cases:
+            result = _extract_age_num(age_str)
+            assert result == expected
 
-        # Invalid ages should also be present (they get sorted to the end)
-        assert len(invalid_age_entries) > 0
+    def test_extract_age_num_invalid_ages_valueerror(self) -> None:
+        """Test that age strings with non-numeric text raise ValueError."""
+        test_cases = [
+            "unknown months",
+            "N/A months",
+            "invalid months",
+        ]
+
+        for age_str in test_cases:
+            with pytest.raises(ValueError, match="Invalid age value"):
+                _extract_age_num(age_str)
+
+    def test_extract_age_num_invalid_ages_indexerror(self) -> None:
+        """Test that empty strings raise ValueError."""
+        test_cases = [
+            "",
+            "   ",
+            "months",  # No number before "months"
+        ]
+
+        for age_str in test_cases:
+            with pytest.raises(ValueError, match="Invalid age value"):
+                _extract_age_num(age_str)
+
+    def test_extract_age_num_invalid_ages_attributeerror(self) -> None:
+        """Test that non-string types raise ValueError."""
+        test_cases = [
+            None,
+            123,
+            [],
+        ]
+
+        for age_value in test_cases:
+            with pytest.raises(ValueError, match="Invalid age value"):
+                _extract_age_num(age_value)
+
+    def test_extract_age_num_empty_string(self) -> None:
+        """Test that an empty string raises ValueError."""
+
+        with pytest.raises(ValueError, match="Invalid age value"):
+            _extract_age_num("")
+
+    def test_extract_age_num_sorting_behavior(self) -> None:
+        """
+        Test that the function produces sortable results.
+
+        Validates that valid ages sort numerically once converted to floats.
+        """
+        age_strings = ["12 months", "6 months", "18 months", "3 months"]
+
+        # Extract age numbers for sorting
+        age_nums = [_extract_age_num(age_str) for age_str in age_strings]
+
+        # Sort by the extracted values
+        sorted_age_nums = sorted(age_nums)
+
+        # Valid ages should come first, sorted numerically
+        expected_ages = [3.0, 6.0, 12.0, 18.0]
+        assert len(sorted_age_nums) == len(expected_ages)
+        for actual, expected in zip(sorted_age_nums, expected_ages):
+            assert actual == pytest.approx(expected)

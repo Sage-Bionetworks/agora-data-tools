@@ -45,31 +45,19 @@
         "name": "3xTg-AD",
         "evidence_type": "Insoluble &beta;40",
         "tissue": "Cortex",
-        "age": "8 months",
-        "units": "pg/ml",
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Male",
-            "individual_id": "mouse4",
-            "value": 8.2
-          }
-        ]
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 8.5,
+        "data": []
       },
       {
         "name": "3xTg-AD",
         "evidence_type": "Insoluble &beta;42",
         "tissue": "Cortex",
-        "age": "8 months",
-        "units": "pg/ml",
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Female",
-            "individual_id": "mouse5",
-            "value": 9.1
-          }
-        ]
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 9.5,
+        "data": []
       },
       {
         "name": "3xTg-AD",
@@ -77,6 +65,7 @@
         "tissue": "Hippocampus",
         "age": "4 months",
         "units": "pg/ml",
+        "y_axis_max": 15.0,
         "data": [
           {
             "genotype": "transgenic",
@@ -98,6 +87,7 @@
         "tissue": "Hippocampus",
         "age": "4 months",
         "units": "pg/ml",
+        "y_axis_max": 20.0,
         "data": [
           {
             "genotype": "transgenic",
@@ -113,22 +103,7 @@
         "tissue": "Cortex",
         "age": "6 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;40",
-        "tissue": "Cortex",
-        "age": "12 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;40",
-        "tissue": "Cortex",
-        "age": "4 months",
-        "units": "",
+        "y_axis_max": 8.5,
         "data": []
       },
       {
@@ -137,22 +112,7 @@
         "tissue": "Cortex",
         "age": "6 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;42",
-        "tissue": "Cortex",
-        "age": "12 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;42",
-        "tissue": "Cortex",
-        "age": "4 months",
-        "units": "",
+        "y_axis_max": 9.5,
         "data": []
       },
       {
@@ -161,15 +121,49 @@
         "tissue": "Hippocampus",
         "age": "6 months",
         "units": "",
+        "y_axis_max": 15.0,
         "data": []
       },
       {
         "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;40",
+        "evidence_type": "Soluble &beta;42",
         "tissue": "Hippocampus",
-        "age": "12 months",
+        "age": "6 months",
         "units": "",
+        "y_axis_max": 20.0,
         "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Insoluble &beta;40",
+        "tissue": "Cortex",
+        "age": "8 months",
+        "units": "pg/ml",
+        "y_axis_max": 8.5,
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse4",
+            "value": 8.2
+          }
+        ]
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Insoluble &beta;42",
+        "tissue": "Cortex",
+        "age": "8 months",
+        "units": "pg/ml",
+        "y_axis_max": 9.5,
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Female",
+            "individual_id": "mouse5",
+            "value": 9.1
+          }
+        ]
       },
       {
         "name": "3xTg-AD",
@@ -177,22 +171,7 @@
         "tissue": "Hippocampus",
         "age": "8 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;42",
-        "tissue": "Hippocampus",
-        "age": "6 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;42",
-        "tissue": "Hippocampus",
-        "age": "12 months",
-        "units": "",
+        "y_axis_max": 15.0,
         "data": []
       },
       {
@@ -201,6 +180,43 @@
         "tissue": "Hippocampus",
         "age": "8 months",
         "units": "",
+        "y_axis_max": 20.0,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Insoluble &beta;40",
+        "tissue": "Cortex",
+        "age": "12 months",
+        "units": "",
+        "y_axis_max": 8.5,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Insoluble &beta;42",
+        "tissue": "Cortex",
+        "age": "12 months",
+        "units": "",
+        "y_axis_max": 9.5,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Soluble &beta;40",
+        "tissue": "Hippocampus",
+        "age": "12 months",
+        "units": "",
+        "y_axis_max": 15.0,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Soluble &beta;42",
+        "tissue": "Hippocampus",
+        "age": "12 months",
+        "units": "",
+        "y_axis_max": 20.0,
         "data": []
       }
     ],
@@ -211,6 +227,7 @@
         "tissue": "Hippocampus",
         "age": "4 months",
         "units": "\u00b5m\u00b2",
+        "y_axis_max": 3.5,
         "data": [
           {
             "genotype": "transgenic",
@@ -226,6 +243,7 @@
         "tissue": "Hippocampus",
         "age": "4 months",
         "units": "count/mm\u00b2",
+        "y_axis_max": 6.5,
         "data": [
           {
             "genotype": "transgenic",
@@ -245,8 +263,81 @@
         "name": "3xTg-AD",
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 3.0,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Tangle count",
+        "tissue": "Cortex",
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 5.0,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Plaque area",
+        "tissue": "Hippocampus",
+        "age": "6 months",
+        "units": "",
+        "y_axis_max": 3.5,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Plaque count",
+        "tissue": "Hippocampus",
+        "age": "6 months",
+        "units": "",
+        "y_axis_max": 6.5,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Tangle area",
+        "tissue": "Cortex",
+        "age": "6 months",
+        "units": "",
+        "y_axis_max": 3.0,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Tangle count",
+        "tissue": "Cortex",
+        "age": "6 months",
+        "units": "",
+        "y_axis_max": 5.0,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Plaque area",
+        "tissue": "Hippocampus",
+        "age": "8 months",
+        "units": "",
+        "y_axis_max": 3.5,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Plaque count",
+        "tissue": "Hippocampus",
+        "age": "8 months",
+        "units": "",
+        "y_axis_max": 6.5,
+        "data": []
+      },
+      {
+        "name": "3xTg-AD",
+        "evidence_type": "Tangle area",
+        "tissue": "Cortex",
         "age": "8 months",
         "units": "\u00b5m\u00b2",
+        "y_axis_max": 3.0,
         "data": [
           {
             "genotype": "transgenic",
@@ -262,6 +353,7 @@
         "tissue": "Cortex",
         "age": "8 months",
         "units": "count/mm\u00b2",
+        "y_axis_max": 5.0,
         "data": [
           {
             "genotype": "transgenic",
@@ -275,40 +367,9 @@
         "name": "3xTg-AD",
         "evidence_type": "Plaque area",
         "tissue": "Hippocampus",
-        "age": "8 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Plaque area",
-        "tissue": "Hippocampus",
-        "age": "6 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Plaque area",
-        "tissue": "Hippocampus",
         "age": "12 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Plaque count",
-        "tissue": "Hippocampus",
-        "age": "8 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Plaque count",
-        "tissue": "Hippocampus",
-        "age": "6 months",
-        "units": "",
+        "y_axis_max": 3.5,
         "data": []
       },
       {
@@ -317,14 +378,7 @@
         "tissue": "Hippocampus",
         "age": "12 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Tangle area",
-        "tissue": "Cortex",
-        "age": "6 months",
-        "units": "",
+        "y_axis_max": 6.5,
         "data": []
       },
       {
@@ -333,22 +387,7 @@
         "tissue": "Cortex",
         "age": "12 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Tangle area",
-        "tissue": "Cortex",
-        "age": "4 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Tangle count",
-        "tissue": "Cortex",
-        "age": "6 months",
-        "units": "",
+        "y_axis_max": 3.0,
         "data": []
       },
       {
@@ -357,14 +396,7 @@
         "tissue": "Cortex",
         "age": "12 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Tangle count",
-        "tissue": "Cortex",
-        "age": "4 months",
-        "units": "",
+        "y_axis_max": 5.0,
         "data": []
       }
     ]
@@ -409,16 +441,28 @@
         "name": "hTau",
         "evidence_type": "Phospho-tau",
         "tissue": "Cortex",
-        "age": "12 months",
-        "units": "ng/ml",
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Male",
-            "individual_id": "mouse8",
-            "value": 18.3
-          }
-        ]
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 20.0,
+        "data": []
+      },
+      {
+        "name": "hTau",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 25.0,
+        "data": []
+      },
+      {
+        "name": "hTau",
+        "evidence_type": "Phospho-tau",
+        "tissue": "Cortex",
+        "age": "6 months",
+        "units": "",
+        "y_axis_max": 20.0,
+        "data": []
       },
       {
         "name": "hTau",
@@ -426,6 +470,7 @@
         "tissue": "Hippocampus",
         "age": "6 months",
         "units": "ng/ml",
+        "y_axis_max": 25.0,
         "data": [
           {
             "genotype": "transgenic",
@@ -445,25 +490,35 @@
         "name": "hTau",
         "evidence_type": "Phospho-tau",
         "tissue": "Cortex",
-        "age": "6 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "hTau",
-        "evidence_type": "Phospho-tau",
-        "tissue": "Cortex",
         "age": "8 months",
         "units": "",
+        "y_axis_max": 20.0,
+        "data": []
+      },
+      {
+        "name": "hTau",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
+        "age": "8 months",
+        "units": "",
+        "y_axis_max": 25.0,
         "data": []
       },
       {
         "name": "hTau",
         "evidence_type": "Phospho-tau",
         "tissue": "Cortex",
-        "age": "4 months",
-        "units": "",
-        "data": []
+        "age": "12 months",
+        "units": "ng/ml",
+        "y_axis_max": 20.0,
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse8",
+            "value": 18.3
+          }
+        ]
       },
       {
         "name": "hTau",
@@ -471,22 +526,7 @@
         "tissue": "Hippocampus",
         "age": "12 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "hTau",
-        "evidence_type": "Tau",
-        "tissue": "Hippocampus",
-        "age": "8 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "hTau",
-        "evidence_type": "Tau",
-        "tissue": "Hippocampus",
-        "age": "4 months",
-        "units": "",
+        "y_axis_max": 25.0,
         "data": []
       }
     ],
@@ -495,16 +535,28 @@
         "name": "hTau",
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
-        "age": "12 months",
-        "units": "\u00b5m\u00b2",
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Male",
-            "individual_id": "mouse8",
-            "value": 4.6
-          }
-        ]
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 5.0,
+        "data": []
+      },
+      {
+        "name": "hTau",
+        "evidence_type": "Tangle count",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 8.5,
+        "data": []
+      },
+      {
+        "name": "hTau",
+        "evidence_type": "Tangle area",
+        "tissue": "Cortex",
+        "age": "6 months",
+        "units": "",
+        "y_axis_max": 5.0,
+        "data": []
       },
       {
         "name": "hTau",
@@ -512,6 +564,7 @@
         "tissue": "Hippocampus",
         "age": "6 months",
         "units": "count/mm\u00b2",
+        "y_axis_max": 8.5,
         "data": [
           {
             "genotype": "transgenic",
@@ -533,22 +586,7 @@
         "tissue": "Cortex",
         "age": "8 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "hTau",
-        "evidence_type": "Tangle area",
-        "tissue": "Cortex",
-        "age": "6 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "hTau",
-        "evidence_type": "Tangle area",
-        "tissue": "Cortex",
-        "age": "4 months",
-        "units": "",
+        "y_axis_max": 5.0,
         "data": []
       },
       {
@@ -557,7 +595,24 @@
         "tissue": "Hippocampus",
         "age": "8 months",
         "units": "",
+        "y_axis_max": 8.5,
         "data": []
+      },
+      {
+        "name": "hTau",
+        "evidence_type": "Tangle area",
+        "tissue": "Cortex",
+        "age": "12 months",
+        "units": "\u00b5m\u00b2",
+        "y_axis_max": 5.0,
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse8",
+            "value": 4.6
+          }
+        ]
       },
       {
         "name": "hTau",
@@ -565,14 +620,7 @@
         "tissue": "Hippocampus",
         "age": "12 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "hTau",
-        "evidence_type": "Tangle count",
-        "tissue": "Hippocampus",
-        "age": "4 months",
-        "units": "",
+        "y_axis_max": 8.5,
         "data": []
       }
     ]
@@ -610,8 +658,18 @@
         "name": "NewModel1",
         "evidence_type": "Tangle count",
         "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 7.0,
+        "data": []
+      },
+      {
+        "name": "NewModel1",
+        "evidence_type": "Tangle count",
+        "tissue": "Hippocampus",
         "age": "6 months",
         "units": "count/mm\u00b2",
+        "y_axis_max": 7.0,
         "data": [
           {
             "genotype": "transgenic",
@@ -627,6 +685,7 @@
         "tissue": "Hippocampus",
         "age": "8 months",
         "units": "",
+        "y_axis_max": 7.0,
         "data": []
       },
       {
@@ -635,14 +694,7 @@
         "tissue": "Hippocampus",
         "age": "12 months",
         "units": "",
-        "data": []
-      },
-      {
-        "name": "NewModel1",
-        "evidence_type": "Tangle count",
-        "tissue": "Hippocampus",
-        "age": "4 months",
-        "units": "",
+        "y_axis_max": 7.0,
         "data": []
       }
     ]
@@ -679,8 +731,18 @@
         "name": "NewModel2",
         "evidence_type": "Tau",
         "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 25.0,
+        "data": []
+      },
+      {
+        "name": "NewModel2",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
         "age": "6 months",
         "units": "ng/ml",
+        "y_axis_max": 25.0,
         "data": [
           {
             "genotype": "transgenic",
@@ -694,24 +756,18 @@
         "name": "NewModel2",
         "evidence_type": "Tau",
         "tissue": "Hippocampus",
-        "age": "12 months",
-        "units": "",
-        "data": []
-      },
-      {
-        "name": "NewModel2",
-        "evidence_type": "Tau",
-        "tissue": "Hippocampus",
         "age": "8 months",
         "units": "",
+        "y_axis_max": 25.0,
         "data": []
       },
       {
         "name": "NewModel2",
         "evidence_type": "Tau",
         "tissue": "Hippocampus",
-        "age": "4 months",
+        "age": "12 months",
         "units": "",
+        "y_axis_max": 25.0,
         "data": []
       }
     ],

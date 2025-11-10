@@ -172,24 +172,23 @@ def rename_columns(
 
 def nest_fields(
     df: pd.DataFrame,
-    grouping: str,
+    grouping: Union[str, List[str]],
     new_column: str,
     drop_columns: list = [],
     nested_field_is_list: bool = True,
 ) -> pd.DataFrame:
-    """Collapses the provided DataFrame into 2 columns:
-    1. The grouping column
-    2. A column containing a nested dictionary with the data from the rest of the DataFrame. This works as follows:
-        The data frame is grouped by <grouping> (for example, by Ensembl ID). For all rows belonging to each group,
-        each row is turned into a dictionary where the keys are column names and values are the values in that row.
-        The dictionaries are then put into a list and the list becomes a single entry in this new data frame. If there
-        is only one dictionary for every grouping (rather than multiple possible rows per group), this function
-        provides the option to put the dict in this column instead of a list with the single dict in it. See
-        the nested_field_is_list arg.
+    """Collapses the provided DataFrame by grouping and nesting fields.
+
+    The DataFrame is grouped by <grouping> (one or more columns, e.g. by Ensembl ID or by [name, tissue]).
+    For all rows belonging to each group, each row is turned into a dictionary where the keys are column
+    names and values are the values in that row. The dictionaries are then put into a list and the list
+    becomes a single entry in the new column. If there is only one dictionary for every grouping (rather
+    than multiple possible rows per group), this function provides the option to put the dict in this
+    column instead of a list with the single dict in it. See the nested_field_is_list arg.
 
     Args:
         df (pd.DataFrame): DataFrame to be collapsed
-        grouping (str): The column that you want to group by
+        grouping (str or list of str): The column(s) that you want to group by
         new_column (str): the new column created to contain the nested dictionaries created
         drop_columns (list, optional): List of columns to leave out of the new nested dictionary. Defaults to [].
         nested_field_is_list (bool, optional): if True (default), each nested field will be a list of dicts. This
@@ -199,7 +198,7 @@ def nest_fields(
                         Ensembl ID.
 
     Returns:
-        pd.DataFrame: New 2 column DataFrame with group and nested dictionaries
+        pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
     """
     nested = (
         df.groupby(grouping)

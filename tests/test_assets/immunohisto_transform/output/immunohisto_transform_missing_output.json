@@ -5,6 +5,7 @@
     "tissue": "Tissuea",
     "age": "1 months",
     "units": "A",
+    "y_axis_max": 1.5,
     "data": [
       {
         "genotype": "genotype1",
@@ -20,6 +21,7 @@
     "tissue": "Tissuea",
     "age": "1 months",
     "units": "A",
+    "y_axis_max": 1.5,
     "data": [
       {
         "genotype": "genotype1",
