@@ -32,6 +32,7 @@ def dataset_object_no_provenance():
         }
     }
 
+
 @pytest.fixture
 def dataset_provenance_file_ids_mismatch():
     """Dataset object with mismatched provenance and file IDs."""
@@ -44,6 +45,7 @@ def dataset_provenance_file_ids_mismatch():
             "gx_enabled": False,
         }
     }
+
 
 @pytest.fixture
 def dataset_object_with_provenance():
@@ -246,9 +248,7 @@ class TestGetProvenanceIds:
     ) -> None:
         """Test that when file IDs and provenance IDs have mismatched versions, an error is raised."""
         file_ids = ["syn1111111.1"]
-        with pytest.raises(
-            ValueError, match="Version mismatch: "
-        ):
+        with pytest.raises(ValueError, match="Version mismatch: "):
             process.get_provenance_ids(
                 dataset_provenance_file_ids_mismatch,
                 dataset_name="neuropath_corr",

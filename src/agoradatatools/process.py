@@ -26,7 +26,7 @@ def check_provenance_id_file_id_consistency(
     Args:
         provenance_ids: List of provenance IDs defined in the configuration (after flattening)
         file_ids: List of file IDs defined in the configuration
-    
+
     Raises:
         ValueError: If any provenance ID has different version than the corresponding file ID
 
@@ -44,7 +44,7 @@ def check_provenance_id_file_id_consistency(
         if base_id not in file_id_map:
             file_id_map[base_id] = set()
         file_id_map[base_id].add(file_id)
-    
+
     # Raise error if any provenance ID has different version than the corresponding file ID
     for prov_id in provenance_ids:
         base_id = prov_id.split(".")[0]
@@ -56,6 +56,7 @@ def check_provenance_id_file_id_consistency(
                     f"file ID(s) '{file_versions_str}'. When the same Synapse entity "
                     f"appears in both provenance and files, their versions must match."
                 )
+
 
 def get_provenance_ids(
     dataset_obj: Dict[str, Any], dataset_name: str, file_ids: list[str]
