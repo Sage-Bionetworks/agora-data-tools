@@ -42,8 +42,6 @@ def check_provenance_id_file_id_consistency(
     file_id_map = defaultdict(set)
     for file_id in file_ids:
         base_id = file_id.split(".")[0]
-        if base_id not in file_id_map:
-            file_id_map[base_id] = set()
         file_id_map[base_id].add(file_id)
 
     # Raise error if any provenance ID has different version than the corresponding file ID
