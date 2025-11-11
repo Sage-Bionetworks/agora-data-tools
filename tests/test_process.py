@@ -164,6 +164,55 @@ class TestUploadDataversionMetadata:
         )
 
 
+class TestCheckProvenanceIdFileIdConsistency:
+    """Test suite for check_provenance_id_file_id_consistency function."""
+
+    def test_no_provenance_ids(self):
+        """Test that empty provenance list returns without error."""
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = []
+        
+        # Should not raise any exception
+        process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+    def test_both_lists_empty(self):
+        """Test with both lists empty."""
+        file_ids = []
+        provenance_ids = []
+        
+        # Should not raise
+        process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+    def test_matching_versions(self):
+        """Test that matching versions pass validation."""
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = ["syn123.4", "syn789.1"]
+        
+        # Should not raise any exception
+        process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+    def test_no_overlap_between_ids(self):
+        """Test that non-overlapping IDs pass validation."""
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = ["syn789.1", "syn999.3"]  # No overlap
+        
+        # Should not raise any exception
+        process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+    def test_version_mismatch_raises_error(self):
+        """Test that different versions for same entity raise ValueError."""
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = ["syn123.5", "syn789.1"]  # syn123 versions differ
+        
+        with pytest.raises(ValueError) as exc_info:
+            process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+        
+        assert "Version mismatch" in str(exc_info.value)
+        assert "syn123.5" in str(exc_info.value)
+        assert "syn123.4" in str(exc_info.value)
+
+ 
+
 class TestGetProvenanceIds:
     def test_get_provenance_ids_no_provenance(
         self, dataset_object_no_provenance: dict[str, Any]
