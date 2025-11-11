@@ -39,7 +39,7 @@ def check_provenance_id_file_id_consistency(
     if not provenance_ids:
         return
     # Build a mapping of base ID to full ID(s) for file IDs
-    file_id_map = defaultdict(set)  
+    file_id_map = defaultdict(set)
     for file_id in file_ids:
         base_id = file_id.split(".")[0]
         if base_id not in file_id_map:
