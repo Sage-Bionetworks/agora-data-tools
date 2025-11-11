@@ -20,6 +20,79 @@ STAGING_PATH = "./staging"
 GX_FOLDER = "test_folder"
 
 
+@pytest.fixture
+def dataset_object_no_provenance():
+    """Dataset object without provenance configuration."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+
+
+@pytest.fixture
+def dataset_provenance_file_ids_mismatch():
+    """Dataset object with mismatched provenance and file IDs."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111.1", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn1111111.18"],
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+
+
+@pytest.fixture
+def dataset_object_with_provenance():
+    """Dataset object with provenance configuration."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn11111145"],
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+
+
+@pytest.fixture
+def dataset_object_with_duplicated_provenance():
+    """Dataset object with duplicated provenance IDs."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn11111145", "format": "csv"}],
+            "final_format": "json",
+            "provenance": ["syn11111145", "syn11111145"],
+            "destination": "syn1111113",
+            "gx_enabled": False,
+        }
+    }
+
+
+@pytest.fixture
+def dataset_object_provenance_mix_list():
+    """Dataset object with mixed provenance configuration."""
+    return {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "json",
+            "destination": "syn1111113",
+            "provenance": [
+                ["syn11111145", "syn11111145"],
+                ["syn11111146"],
+                "syn11111147",
+            ],
+            "gx_enabled": False,
+        }
+    }
+
+
 class TestUploadDataversionMetadata:
     file_id = "syn1111111"
     file_version = "1"
@@ -89,6 +162,258 @@ class TestUploadDataversionMetadata:
             destination=self.destination,
             syn=syn,
         )
+
+
+class TestCheckProvenanceIdFileIdConsistency:
+    """Test suite for check_provenance_id_file_id_consistency function."""
+
+    def test_no_provenance_ids(self):
+        """Test that empty provenance list returns without error."""
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = []
+
+        # Should not raise any exception
+        process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+    def test_both_lists_empty(self):
+        """Test with both lists empty."""
+        file_ids = []
+        provenance_ids = []
+
+        # Should not raise
+        process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+    def test_matching_versions(self):
+        """Test that matching versions pass validation."""
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = ["syn123.4", "syn789.1"]
+
+        # Should not raise any exception
+        process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+    def test_no_overlap_between_ids(self):
+        """Test that non-overlapping IDs pass validation."""
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = ["syn789.1", "syn999.3"]  # No overlap
+
+        # Should not raise any exception
+        process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+    def test_version_mismatch_raises_error(self):
+        """Test that different versions for same entity raise ValueError."""
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = ["syn123.5", "syn789.1"]  # syn123 versions differ
+
+        with pytest.raises(ValueError) as exc_info:
+            process.check_provenance_id_file_id_consistency(provenance_ids, file_ids)
+
+        assert "Version mismatch" in str(exc_info.value)
+        assert "syn123.5" in str(exc_info.value)
+        assert "syn123.4" in str(exc_info.value)
+
+
+class TestGetProvenanceIds:
+    def test_get_provenance_ids_no_provenance(
+        self, dataset_object_no_provenance: dict[str, Any]
+    ) -> None:
+        """Test that when no provenance is provided in the config, only file ids are returned."""
+        file_ids = ["syn1111111"]
+        expected_provenance_ids = ["syn1111111"]
+        provenance_ids = process.get_provenance_ids(
+            dataset_object_no_provenance,
+            dataset_name="neuropath_corr",
+            file_ids=file_ids,
+        )
+        assert provenance_ids == expected_provenance_ids
+
+    def test_get_provenance_ids_with_provenance(
+        self, dataset_object_with_provenance: dict[str, Any]
+    ) -> None:
+        """Test that when provenance is provided in the config, both file ids and provenance ids are returned."""
+        file_ids = ["syn1111111"]
+        expected_provenance_ids = ["syn1111111", "syn11111145"]
+        provenance_ids = process.get_provenance_ids(
+            dataset_object_with_provenance,
+            dataset_name="neuropath_corr",
+            file_ids=file_ids,
+        )
+        assert sorted(provenance_ids) == sorted(expected_provenance_ids)
+
+    def test_get_provenance_ids_with_duplicated_provenance(
+        self, dataset_object_with_duplicated_provenance: dict[str, Any]
+    ) -> None:
+        """Test that when duplicated provenance is provided as both file id and provenance, unique values are returned."""
+        file_ids = ["syn11111145"]
+        expected_provenance_ids = ["syn11111145"]
+        provenance_ids = process.get_provenance_ids(
+            dataset_object_with_duplicated_provenance,
+            dataset_name="neuropath_corr",
+            file_ids=file_ids,
+        )
+        assert provenance_ids == expected_provenance_ids
+
+    def test_error_get_provenance_ids_empty_dataset(self) -> None:
+        """Test that an error is raised when the dataset object is empty."""
+        file_ids = ["syn1111111"]
+        wrong_format_dataset_obj = {
+            "neuropath_corr": {
+                "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+                "final_format": "json",
+                "provenance": "not a list",
+                "destination": "syn1111113",
+                "gx_enabled": False,
+            }
+        }
+        with pytest.raises(
+            ValueError, match="Provenance for dataset 'neuropath_corr' must be a list"
+        ):
+            process.get_provenance_ids(
+                wrong_format_dataset_obj,
+                dataset_name="neuropath_corr",
+                file_ids=file_ids,
+            )
+
+    def test_get_provenance_ids_mixed_list(
+        self, dataset_object_provenance_mix_list: dict[str, Any]
+    ) -> None:
+        """Test that when provenance is provided as a mix of lists and strings, all values are flattened and returned."""
+        file_ids = ["syn1111111"]
+        expected_provenance_ids = [
+            "syn1111111",
+            "syn11111145",
+            "syn11111146",
+            "syn11111147",
+        ]
+        provenance_ids = process.get_provenance_ids(
+            dataset_object_provenance_mix_list,
+            dataset_name="neuropath_corr",
+            file_ids=file_ids,
+        )
+        assert sorted(provenance_ids) == sorted(expected_provenance_ids)
+
+    def test_get_provenance_ids_mismatch_file_ids_version(
+        self, dataset_provenance_file_ids_mismatch: dict[str, Any]
+    ) -> None:
+        """Test that when file IDs and provenance IDs have mismatched versions, an error is raised."""
+        file_ids = ["syn1111111.1"]
+        with pytest.raises(ValueError, match="Version mismatch: "):
+            process.get_provenance_ids(
+                dataset_provenance_file_ids_mismatch,
+                dataset_name="neuropath_corr",
+                file_ids=file_ids,
+            )
+
+
+class TestProcessProvenance:
+    def setup_method(self):
+        self.patch_get_entity_as_df = patch.object(
+            extract, "get_entity_as_df", return_value=pd.DataFrame
+        ).start()
+        self.patch_standardize_column_names = patch.object(
+            utils, "standardize_column_names", return_value=pd.DataFrame
+        ).start()
+        self.patch_standardize_values = patch.object(
+            utils, "standardize_values", return_value=pd.DataFrame
+        ).start()
+        self.patch_df_to_json = patch.object(
+            load, "df_to_json", return_value="path/to/json"
+        ).start()
+        self.patch_dict_to_json = patch.object(
+            load, "dict_to_json", return_value="path/to/json"
+        ).start()
+        self.patch_load = patch.object(load, "load", return_value=("syn123", 1)).start()
+
+    def teardown_method(self):
+        self.patch_get_entity_as_df.stop()
+        self.patch_standardize_column_names.stop()
+        self.patch_standardize_values.stop()
+        self.patch_df_to_json.stop()
+        self.patch_dict_to_json.stop()
+        self.patch_load.stop()
+        mock.patch.stopall()
+
+    def test_upload_data_without_provenance(
+        self, syn: Any, dataset_object_no_provenance: dict[str, Any]
+    ) -> None:
+        """Test that when no provenance is provided in the config, the file id is used as provenance."""
+        # WHEN I call upload_data_without_provenance
+        process.process_dataset(
+            syn=syn,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            upload=True,
+            dataset_obj=dataset_object_no_provenance,
+        )
+        # THEN I expect the load function to be called with file id
+        self.patch_load.assert_called_once_with(
+            file_path="path/to/json",
+            provenance=["syn1111111"],
+            destination=dataset_object_no_provenance["neuropath_corr"]["destination"],
+            syn=syn,
+        )
+
+    def test_upload_data_with_provenance(
+        self, syn: Any, dataset_object_with_provenance: dict[str, Any]
+    ) -> None:
+        """Test that when provenance is provided in the config, it is used in the upload."""
+        # WHEN I call upload_data_with_provenance
+        process.process_dataset(
+            syn=syn,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            upload=True,
+            dataset_obj=dataset_object_with_provenance,
+        )
+        # THEN I expect the load function to be called with file id and provenance from config
+        call_args = self.patch_load.call_args
+        assert call_args[1]["file_path"] == "path/to/json"
+        assert sorted(call_args[1]["provenance"]) == sorted(
+            ["syn1111111", "syn11111145"]
+        )
+        assert (
+            call_args[1]["destination"]
+            == dataset_object_with_provenance["neuropath_corr"]["destination"]
+        )
+
+    def test_upload_data_with_duplicated_provenance(
+        self, syn: Any, dataset_object_with_duplicated_provenance: dict[str, Any]
+    ) -> None:
+        """Test that when duplicated provenance is provided in the config, unique values are used in the upload."""
+        # WHEN I call upload_data_with_duplicated_provenance
+        process.process_dataset(
+            syn=syn,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            upload=True,
+            dataset_obj=dataset_object_with_duplicated_provenance,
+        )
+        # THEN I expect the load function to be called with file id and unique provenance from config
+        self.patch_load.assert_called_once_with(
+            file_path="path/to/json",
+            provenance=["syn11111145"],
+            destination=dataset_object_with_duplicated_provenance["neuropath_corr"][
+                "destination"
+            ],
+            syn=syn,
+        )
+
+    def test_get_provenance_ids_mixed_list(
+        self, dataset_object_provenance_mix_list: dict[str, Any]
+    ) -> None:
+        """Test that when provenance is provided as a mix of lists and strings, all values are flattened and returned."""
+        file_ids = ["syn1111111"]
+        expected_provenance_ids = [
+            "syn1111111",
+            "syn11111145",
+            "syn11111146",
+            "syn11111147",
+        ]
+        provenance_ids = process.get_provenance_ids(
+            dataset_object_provenance_mix_list,
+            dataset_name="neuropath_corr",
+            file_ids=file_ids,
+        )
+        assert sorted(provenance_ids) == sorted(expected_provenance_ids)
 
 
 class TestApplyCustomTransformations:
