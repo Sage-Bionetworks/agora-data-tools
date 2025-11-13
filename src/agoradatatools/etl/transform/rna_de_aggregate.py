@@ -232,7 +232,7 @@ def transform_rna_de_aggregate(
                 age = str(row.age)
                 age_entries[age] = {
                     "log2_fc": float(row.log2foldchange),
-                    "adj_p_val": float(row.padj),
+                    "adj_p_val": 0.0 if pd.isna(row.padj) else float(row.padj),
                 }
 
             # Validate and sort age entries

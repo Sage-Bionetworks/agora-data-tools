@@ -525,6 +525,84 @@ class TestTransformRnaDeAggregate:
         for entry in output_data:
             assert entry["ensembl_gene_id"].startswith("ENSMUSG")
 
+    def test_nan_adj_p_values_are_coerced_to_zero(self) -> None:
+        """NaN adjusted p-values in source data should be exported as 0."""
+
+        datasets: Dict[str, pd.DataFrame] = {
+            "rnaseq_genotype_label_map": pd.DataFrame(
+                [
+                    {
+                        "model": "ModelA",
+                        "model_group": "Group1",
+                        "display_label": "ModelA Case",
+                        "genotype": "Case",
+                    },
+                    {
+                        "model": "ModelA",
+                        "model_group": "Group1",
+                        "display_label": "ModelA Control",
+                        "genotype": "Control",
+                    },
+                ]
+            ),
+            "mouse_gene_metadata": pd.DataFrame(
+                [
+                    {
+                        "ensembl_gene_id": "ENSMUSG00000012345",
+                        "gene_symbol": "GeneA",
+                        "alias": "",
+                    }
+                ]
+            ),
+            "model_info": pd.DataFrame(
+                [
+                    {
+                        "model": "ModelA",
+                        "matched_controls": "Control",
+                        "model_type": "TypeA",
+                    }
+                ]
+            ),
+            "biodom_genes_mm": pd.DataFrame(
+                [
+                    {
+                        "biodomain": "DomainA",
+                        "abbr": "DA",
+                        "label": "Domain A",
+                        "color": "#ffffff",
+                        "go_id": "GO:0000000",
+                        "goterm_name": "Example Term",
+                        "n_symbol": "NS",
+                        "symbol": "SYMB",
+                        "ensembl_id": "ENSMUSG00000012345",
+                    }
+                ]
+            ),
+            "nan_test_data": pd.DataFrame(
+                [
+                    {
+                        "ensembl_gene_id": "ENSMUSG00000012345",
+                        "log2foldchange": 0.12345,
+                        "padj": float("nan"),
+                        "model": "ModelA",
+                        "case": "Case",
+                        "control": "Control",
+                        "age": "12 months",
+                        "sex": "Females & Males",
+                        "tissue": "Right Cerebral Hemisphere",
+                    }
+                ]
+            ),
+        }
+
+        output_data = transform_rna_de_aggregate(datasets=datasets)
+
+        assert len(output_data) == 1
+        entry = output_data[0]
+        age_entry = entry["12 months"]
+        assert age_entry["adj_p_val"] == 0.0
+        assert entry["tissue"] == "Hemibrain"
+
     def test_synthetic_age_sorting(self) -> None:
         """Test age sorting with synthetic data.
 
