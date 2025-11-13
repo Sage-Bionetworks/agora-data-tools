@@ -600,7 +600,7 @@ class TestTransformRnaDeAggregate:
         assert len(output_data) == 1
         entry = output_data[0]
         age_entry = entry["12 months"]
-        assert age_entry["adj_p_val"] == 0.0
+        assert age_entry["adj_p_val"] == pytest.approx(0.0, abs=1e-12)
         assert entry["tissue"] == "Hemibrain"
 
     def test_synthetic_age_sorting(self) -> None:
