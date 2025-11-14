@@ -230,6 +230,8 @@ def transform_rna_de_aggregate(
             age_entries = {}
             for row in group.itertuples(index=False):
                 age = str(row.age)
+                # Adding 0.0 to avoid -0.0 values
+                # Adding zero to negative zero produces positive zero according to IEEE 754 floating-point arithmetic rules
                 age_entries[age] = {
                     "log2_fc": float(row.log2foldchange) + 0.0,
                     "adj_p_val": 0.0 if pd.isna(row.padj) else float(row.padj) + 0.0,
