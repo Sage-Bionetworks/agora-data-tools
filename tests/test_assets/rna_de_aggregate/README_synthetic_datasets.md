@@ -16,6 +16,7 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_rounding_precision_data.csv`**: Tests numeric rounding to 5 decimal places
 - **`synthetic_multiple_biodomains_data.csv`**: Tests genes with multiple biodomain assignments
 - **`synthetic_null_model_group_data.csv`**: Tests empty model_group conversion to null
+- **`synthetic_nan_negative_zero_data.csv`**: Tests NaN and negative-zero adjusted p-value coercion
 - **`synthetic_empty_data.csv`**: Empty data file for error testing
 - **`synthetic_missing_columns_data.csv`**: Missing required columns for error testing
 
@@ -103,7 +104,16 @@ Expected: model_group=null (not empty string)
 Tests: Empty string to null conversion for model_group field
 ```
 
-### Scenario 10: Inconsistent Model Group (`synthetic_rnaseq_genotype_label_map_inconsistent.csv`)
+### Scenario 10: NaN and Negative Zero Adj P-Values (`synthetic_nan_negative_zero_data.csv`)
+```
+Gene: ENSMUSG00000000003 (Gene_C)
+Model: Model_A
+Ages: 12 months (padj=NaN), 18 months (padj≈-0.0)
+Expected: Both adj_p_val values exported as +0.0 (NaN coerced, negative zero normalized)
+Tests: NaN coercion and IEEE-754 negative zero handling for adjusted p-values
+```
+
+### Scenario 11: Inconsistent Model Group (`synthetic_rnaseq_genotype_label_map_inconsistent.csv`)
 ```
 Model: Model_A with inconsistent model_group values
   - Tg genotype → GroupX
@@ -181,6 +191,7 @@ tests/test_assets/rna_de_aggregate/
 │   │   ├── synthetic_rounding_precision_data.csv
 │   │   ├── synthetic_multiple_biodomains_data.csv
 │   │   ├── synthetic_null_model_group_data.csv
+│   │   ├── synthetic_nan_negative_zero_data.csv
 │   │   ├── synthetic_empty_data.csv
 │   │   └── synthetic_missing_columns_data.csv
 │   └── Metadata Files:
