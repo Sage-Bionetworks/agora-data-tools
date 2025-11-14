@@ -118,7 +118,7 @@ build_object <- function(page_column_data) {
 
 # Builds a column object
 # - name: The column display name
-#   -- Specify NA for columns with the primary type, and for hidden columns
+#   -- Specify NA for columns with the primary type and for hidden columns
 # - type: The column type
 # - tooltip: The tooltip display value for the column name
 #   -- Specify NA for column names that need no explanatory tooltip, and for hidden columns
@@ -178,6 +178,19 @@ build_filters <- function(filter_defs, filter_values) {
   # Remove names to ensure JSON is an array, not object
   names(filters) <- NULL
   filters
+}
+
+# Builds a list of dropdown menu definitions
+# ... A variable number of vectors defining the options for each supported dropdown menu
+build_dropdown_menus <- function(...) {
+
+  menu_options <- list(...)
+
+  # wrap each list in `options`
+  dropdown_menus <- menu_options %>%
+    map(~ list(options = .x))
+
+  dropdown_menus
 }
 
 
@@ -266,13 +279,15 @@ build_ge_objects <- function() {
     # The column ordering is mirrored when a CSV is generated
     columns <- c(list(primary, ensembl_gene_id, tissue, sex, model, matched_control), dynamic_columns, c(list(biodomains, model_type, model_group)))
     filters <- build_filters(ge_filters, ge_filter_values)
+    dropdown_menus <- build_dropdown_menus(ge_menu1, ge_menu2, ge_menu3)
 
     list(
       page = "Gene Expression",
       dropdowns = c(combo$menu1, combo$menu2, combo$menu3),
       row_count = gene_expression_row_count,
       columns = columns,
-      filters = filters
+      filters = filters,
+      dropdown_menus = dropdown_menus
     )
   })
 }
@@ -390,13 +405,15 @@ build_dc_objects <- function() {
     # The column ordering is mirrored when a CSV is generated
     columns <- c(list(primary, cluster, age, sex), dynamic_columns, c(list(model_type, matched_control, modified_genes)))
     filters <- build_filters(dc_filters, dc_filter_values)
+    dropdown_menus <- build_dropdown_menus(dc_menu1, dc_menu2)
 
     list(
       page = "Disease Correlation",
       dropdowns = c(combo$menu1, combo$menu2),
       row_count = disease_correlation_row_count,
       columns = columns,
-      filters = filters
+      filters = filters,
+      dropdown_menus = dropdown_menus
     )
   })
 }
@@ -452,6 +469,7 @@ mo_filter_values <- list(
 build_mo_object <- function() {
   columns <- build_object(mo_columns)
   filters <- build_filters(mo_filters, mo_filter_values)
+  dropdown_menus <- build_dropdown_menus()
 
   # Assemble the ui_config object
   list(
@@ -459,7 +477,8 @@ build_mo_object <- function() {
     dropdowns = list(),
     row_count = model_overview_row_count,
     columns = columns,
-    filters = filters
+    filters = filters,
+    dropdown_menus = dropdown_menus
   )
 }
 
@@ -510,6 +529,18 @@ print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 -----
 TESTS
 -----
+
+## Test build_dropdown_menus
+```{r}
+dropdown_menus_0 <- build_dropdown_menus()
+toJSON(dropdown_menus_0, pretty = TRUE, auto_unbox = FALSE)
+
+dropdown_menus_2 <- build_dropdown_menus(dc_menu1, dc_menu2)
+toJSON(dropdown_menus_2, pretty = TRUE, auto_unbox = FALSE)
+
+dropdown_menus_3 <- build_dropdown_menus(ge_menu1, ge_menu2, ge_menu3)
+toJSON(dropdown_menus_3, pretty = TRUE, auto_unbox = FALSE)
+```
 
 ## Test build_column
 ```{r}
