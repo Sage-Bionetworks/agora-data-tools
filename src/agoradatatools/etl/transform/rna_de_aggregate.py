@@ -231,8 +231,8 @@ def transform_rna_de_aggregate(
             for row in group.itertuples(index=False):
                 age = str(row.age)
                 age_entries[age] = {
-                    "log2_fc": float(row.log2foldchange),
-                    "adj_p_val": 0.0 if pd.isna(row.padj) else float(row.padj),
+                    "log2_fc": float(row.log2foldchange) + 0.0,
+                    "adj_p_val": 0.0 if pd.isna(row.padj) else float(row.padj) + 0.0,
                 }
 
             # Validate and sort age entries

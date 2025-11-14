@@ -35,6 +35,7 @@ Test Data Structure:
 
 import os
 import json
+import math
 from typing import Dict, List
 import pandas as pd
 import pytest
@@ -590,7 +591,18 @@ class TestTransformRnaDeAggregate:
                         "age": "12 months",
                         "sex": "Females & Males",
                         "tissue": "Right Cerebral Hemisphere",
-                    }
+                    },
+                    {
+                        "ensembl_gene_id": "ENSMUSG00000012345",
+                        "log2foldchange": -0.00001,
+                        "padj": -0.000001,
+                        "model": "ModelA",
+                        "case": "Case",
+                        "control": "Control",
+                        "age": "4 months",
+                        "sex": "Females & Males",
+                        "tissue": "Right Cerebral Hemisphere",
+                    },
                 ]
             ),
         }
@@ -599,8 +611,11 @@ class TestTransformRnaDeAggregate:
 
         assert len(output_data) == 1
         entry = output_data[0]
-        age_entry = entry["12 months"]
-        assert age_entry["adj_p_val"] == pytest.approx(0.0, abs=1e-12)
+        twelve_month_entry = entry["12 months"]
+        assert math.isclose(twelve_month_entry["adj_p_val"], 0.0, abs_tol=1e-12)
+
+        four_month_entry = entry["4 months"]
+        assert math.copysign(1.0, four_month_entry["adj_p_val"]) > 0
         assert entry["tissue"] == "Hemibrain"
 
     def test_synthetic_age_sorting(self) -> None:
