@@ -591,18 +591,7 @@ class TestTransformRnaDeAggregate:
                         "age": "12 months",
                         "sex": "Females & Males",
                         "tissue": "Right Cerebral Hemisphere",
-                    },
-                    {
-                        "ensembl_gene_id": "ENSMUSG00000012345",
-                        "log2foldchange": -0.00001,
-                        "padj": -0.000001,
-                        "model": "ModelA",
-                        "case": "Case",
-                        "control": "Control",
-                        "age": "4 months",
-                        "sex": "Females & Males",
-                        "tissue": "Right Cerebral Hemisphere",
-                    },
+                    }
                 ]
             ),
         }
@@ -610,13 +599,84 @@ class TestTransformRnaDeAggregate:
         output_data = transform_rna_de_aggregate(datasets=datasets)
 
         assert len(output_data) == 1
-        entry = output_data[0]
-        twelve_month_entry = entry["12 months"]
+        twelve_month_entry = output_data[0]["12 months"]
         assert math.isclose(twelve_month_entry["adj_p_val"], 0.0, abs_tol=1e-12)
 
-        four_month_entry = entry["4 months"]
-        assert math.copysign(1.0, four_month_entry["adj_p_val"]) > 0
-        assert entry["tissue"] == "Hemibrain"
+    def test_negative_zero_adj_p_values_are_coerced_to_zero(self) -> None:
+        """-0.0 adjusted p-values in source data should be exported as 0."""
+
+        datasets: Dict[str, pd.DataFrame] = {
+            "rnaseq_genotype_label_map": pd.DataFrame(
+                [
+                    {
+                        "model": "ModelA",
+                        "model_group": "Group1",
+                        "display_label": "ModelA Case",
+                        "genotype": "Case",
+                    },
+                    {
+                        "model": "ModelA",
+                        "model_group": "Group1",
+                        "display_label": "ModelA Control",
+                        "genotype": "Control",
+                    },
+                ]
+            ),
+            "mouse_gene_metadata": pd.DataFrame(
+                [
+                    {
+                        "ensembl_gene_id": "ENSMUSG00000012345",
+                        "gene_symbol": "GeneA",
+                        "alias": "",
+                    }
+                ]
+            ),
+            "model_info": pd.DataFrame(
+                [
+                    {
+                        "model": "ModelA",
+                        "matched_controls": "Control",
+                        "model_type": "TypeA",
+                    }
+                ]
+            ),
+            "biodom_genes_mm": pd.DataFrame(
+                [
+                    {
+                        "biodomain": "DomainA",
+                        "abbr": "DA",
+                        "label": "Domain A",
+                        "color": "#ffffff",
+                        "go_id": "GO:0000000",
+                        "goterm_name": "Example Term",
+                        "n_symbol": "NS",
+                        "symbol": "SYMB",
+                        "ensembl_id": "ENSMUSG00000012345",
+                    }
+                ]
+            ),
+            "negative_zero_test_data": pd.DataFrame(
+                [
+                    {
+                        "ensembl_gene_id": "ENSMUSG00000012345",
+                        "log2foldchange": -0.00001,
+                        "padj": -0.000001,
+                        "model": "ModelA",
+                        "case": "Case",
+                        "control": "Control",
+                        "age": "12 months",
+                        "sex": "Females & Males",
+                        "tissue": "Right Cerebral Hemisphere",
+                    }
+                ]
+            ),
+        }
+
+        output_data = transform_rna_de_aggregate(datasets=datasets)
+
+        assert len(output_data) == 1
+        twelve_month_entry = output_data[0]["12 months"]
+        assert math.copysign(1.0, twelve_month_entry["adj_p_val"]) > 0
 
     def test_synthetic_age_sorting(self) -> None:
         """Test age sorting with synthetic data.
