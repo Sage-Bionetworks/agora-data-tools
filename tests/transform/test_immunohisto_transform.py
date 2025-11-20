@@ -1160,7 +1160,7 @@ class TestMeasureOrderConfig:
             "Tau (HT7)",
             "Phospho-Tau (AT8)",
             "Dystrophic Neurites (LAMP1)",
-            "Microgia Cell Density (IBA1)",
+            "Microglia Cell Density (IBA1)",
             "Astrocyte Cell Density (GFAP)",
             "Astrocyte Cell Density (S100B)",
         ]
