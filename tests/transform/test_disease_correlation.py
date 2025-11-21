@@ -203,7 +203,7 @@ class TestTransformDiseaseCorrelation:
                     "name": "LOAD1",
                     "matched_control": "C57BL6J",
                     "model_type": "Late Onset AD",
-                    "modified_genes":[ "APOE4"],  # Deduplicated from duplicate entries
+                    "modified_genes": ["APOE4"],  # Deduplicated from duplicate entries
                     "cluster": "Cluster A",
                     "age": "4 months",
                     "sex": "Female",
