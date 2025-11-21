@@ -198,6 +198,17 @@ python -m pytest tests/transform/
 ```
 You can get detailed test failure information by appending the verbose (`-v`) or very verbose (`-vv`) flag to either command.
 
+## Precommit hooks
+Before pushing code to the repo, run the precommit hooks to ensure that the files you have modified will pass the precommit checks.
+To install precommit:
+```bash
+pip install pre-commit
+```
+To run precommit
+```bash
+ pre-commit run --all-files
+```
+
 ## Pipeline Configuration
 Parameters:
 - `destination`: Defines the default target location (folder) that the generated json files are written to; this value can be overridden on a per-dataset basis

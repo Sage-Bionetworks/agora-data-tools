@@ -153,7 +153,9 @@ class TestTransformDiseaseCorrelation:
                     "name": "LOAD2",
                     "matched_control": "C57BL6J",
                     "model_type": "Early Onset AD",
-                    "modified_genes": ["APP"],  # Single gene is returned as string, not list
+                    "modified_genes": [
+                        "APP"
+                    ],  # Single gene is returned as string, not list
                     "cluster": "Cluster B",
                     "age": "6 months",
                     "sex": "Male",

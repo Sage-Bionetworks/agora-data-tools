@@ -217,7 +217,9 @@ def transform_disease_correlation(
     # Group by all static fields
     output = []
     group_cols = ["mouse_model", "cluster", "age", "sex"]
-    for (name, cluster, age, sex), group in disease_correlation_df.groupby(group_cols, sort=False):
+    for (name, cluster, age, sex), group in disease_correlation_df.groupby(
+        group_cols, sort=False
+    ):
         model_info = model_info_lookup.get(name, {})
         allele_info = model_allele_lookup.get(name, {})
 
