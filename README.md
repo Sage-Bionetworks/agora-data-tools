@@ -192,6 +192,12 @@ Unit tests can be run by calling pytest from the command line.
 ```bash
 python -m pytest
 ```
+## Custom Transform Tests
+Custom transform tests can be run by calling pytest from the command line.
+```bash
+python -m pytest tests/transform/
+```
+You can get detailed test failure information by appending the verbose (`-v`) or very verbose (`-vv`) flag.
 
 ## Pipeline Configuration
 Parameters:

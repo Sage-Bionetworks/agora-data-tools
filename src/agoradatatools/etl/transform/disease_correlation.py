@@ -111,11 +111,20 @@ def process_group(
     mc = model_info.get("matched_controls", "")
     matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
 
+    # Ensure modified_genes is always a list
+    raw_modified_genes = allele_info.get("gene", "")
+    if raw_modified_genes == "":
+        modified_genes = []
+    elif not isinstance(raw_modified_genes, list):
+        modified_genes = [raw_modified_genes]
+    else:
+        modified_genes = raw_modified_genes
+
     output = {
         "name": name,
         "matched_control": matched_control,
         "model_type": model_info.get("model_type", ""),
-        "modified_genes": allele_info.get("gene", ""),
+        "modified_genes": modified_genes,
         "cluster": cluster,
         "age": age,
         "sex": sex,
@@ -208,7 +217,7 @@ def transform_disease_correlation(
     # Group by all static fields
     output = []
     group_cols = ["mouse_model", "cluster", "age", "sex"]
-    for (name, cluster, age, sex), group in disease_correlation_df.groupby(group_cols):
+    for (name, cluster, age, sex), group in disease_correlation_df.groupby(group_cols, sort=False):
         model_info = model_info_lookup.get(name, {})
         allele_info = model_allele_lookup.get(name, {})
 
