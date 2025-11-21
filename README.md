@@ -198,13 +198,13 @@ python -m pytest tests/transform/
 ```
 You can get detailed test failure information by appending the verbose (`-v`) or very verbose (`-vv`) flag to either command.
 
-## Precommit hooks
-Before pushing code to the repo, run the precommit hooks to ensure that the files you have modified will pass the precommit checks.
+## Precommit
+Before pushing code to the repo, run `precommit` and commit any updates it makes to ensure that your PR will pass the precommit checks in CI.
 To install precommit:
 ```bash
 pip install pre-commit
 ```
-To run precommit
+To run precommit:
 ```bash
  pre-commit run --all-files
 ```
