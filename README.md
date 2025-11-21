@@ -188,7 +188,7 @@ act -v --secret-file .secrets
 The repository is currently using Agora's credentials for Synapse.  Those can be found in LastPass in the "Shared-Agora" Folder.
 
 ## Unit and Custom Transform Tests
-Call pytest from the command line to run both the unit tests and the custom transform tests. 
+Call pytest from the command line to run both the unit tests and the custom transform tests.
 ```bash
 python -m pytest
 ```
