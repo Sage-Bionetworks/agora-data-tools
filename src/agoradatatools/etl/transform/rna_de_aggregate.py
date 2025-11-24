@@ -112,17 +112,44 @@ def _create_age_entries_from_group(
     sex: str,
 ) -> Dict[str, Dict[str, float]]:
     """
-    Creates age-based entries from a grouped DataFrame.
+    Creates age-based entries from a grouped DataFrame containing differential expression data.
+
+    This function processes a DataFrame group that has been grouped by gene, model, tissue, and sex.
+    It extracts age-specific differential expression measurements (log2 fold change and adjusted
+    p-values) for each age timepoint in the group. The function performs data normalization and
+    validation, including:
+    - Normalizing zero values in log2 fold change to ensure consistent representation
+    - Converting missing (NA) adjusted p-values to 0.0
+    - Validating that adjusted p-values are non-negative when present
+
+    The resulting dictionary structure allows for easy lookup of differential expression metrics
+    by age timepoint, which is used downstream to create structured output entries.
 
     Args:
-        group: DataFrame group containing age, log2foldchange, and padj columns
-        ensembl_gene_id: Gene identifier for error reporting
-        model: Model name for error reporting
-        tissue: Tissue type for error reporting
-        sex: Sex category for error reporting
+        group: DataFrame group containing age, log2foldchange, and padj columns. Each row
+            represents a single age timepoint measurement for the grouped combination of
+            gene, model, tissue, and sex.
+        ensembl_gene_id: Gene identifier (e.g., 'ENSMUSG00000000001') used for error reporting
+            when validation fails.
+        model: Model name used for error reporting when validation fails.
+        tissue: Tissue type used for error reporting when validation fails.
+        sex: Sex category used for error reporting when validation fails.
 
     Returns:
-        Dictionary mapping age strings to log2_fc and adj_p_val values
+        Dictionary mapping age strings (e.g., '3 months', '6 months') to nested dictionaries
+        containing:
+            - 'log2_fc': float, normalized log2 fold change value (zero values normalized)
+            - 'adj_p_val': float, adjusted p-value (NA values converted to 0.0)
+
+        Example:
+            {
+                '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
+                '6 months': {'log2_fc': 2.456, 'adj_p_val': 0.0}
+            }
+
+    Raises:
+        ValueError: If any adjusted p-value (padj) is negative when not NA. This indicates
+            invalid data that should be caught during processing.
     """
     age_entries = {}
     for row in group.itertuples(index=False):
@@ -151,19 +178,74 @@ def _create_output_entry_from_group(
     model_info_dict: Dict[str, str],
 ) -> Dict[str, Any]:
     """
-    Creates an output entry from a grouped DataFrame.
+    Creates a complete output entry from a grouped DataFrame by enriching it with metadata.
+
+    This function orchestrates the creation of a structured output entry for a single group
+    of differential expression data. It takes a DataFrame group that has been grouped by
+    gene, model, tissue, and sex, and enriches it with:
+    - Gene metadata (symbol, biodomains)
+    - Model information (display labels, model group, model type)
+    - Age-based differential expression measurements (log2 fold change and adjusted p-values)
+
+    The function performs several key operations:
+    1. Extracts metadata from lookup dictionaries for efficient data enrichment
+    2. Creates age-based entries from the grouped DataFrame using helper functions
+    3. Validates and sorts age entries by numeric age value
+    4. Applies special tissue name transformation (JAX models: "Right Cerebral Hemisphere" -> "Hemibrain")
+    5. Constructs a comprehensive output dictionary combining all metadata and age-based data
+
+    The resulting entry represents a complete record for one gene-model-tissue-sex combination
+    with all associated age timepoint measurements, ready for inclusion in the final output.
 
     Args:
         group_key: Tuple containing (ensembl_gene_id, model, tissue, sex, case, control)
-        group: DataFrame group containing age-based differential expression data
-        gene_metadata_dict: Dictionary mapping ensembl_gene_id to gene_symbol
-        label_map_dict: Dictionary mapping (model, genotype) to display_label
-        model_group_dict: Dictionary mapping model to model_group
-        biodomain_dict: Dictionary mapping ensembl_id to list of biodomains
-        model_info_dict: Dictionary mapping model to model_type
+            that uniquely identifies this group. The case and control values represent the
+            genotype labels for the experimental and control conditions.
+        group: DataFrame group containing age-based differential expression data. Each row
+            represents a single age timepoint with columns: age, log2foldchange, padj.
+        gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols. Used to
+            enrich entries with human-readable gene names.
+        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
+            Used to create human-readable names for case and control conditions.
+        model_group_dict: Dictionary mapping model names to model groups. Used to categorize
+            models into groups (e.g., "5XFAD", "APP/PS1").
+        biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
+            Used to annotate genes with their associated biological domains.
+        model_info_dict: Dictionary mapping model names to model types. Used to classify
+            models (e.g., "knockout", "transgenic").
 
     Returns:
-        Dictionary containing the output entry for this group
+        Dictionary containing a complete output entry with the following structure:
+            - 'ensembl_gene_id': str, Ensembl gene identifier
+            - 'gene_symbol': str, Human-readable gene symbol (empty string if not found)
+            - 'biodomains': List[str], List of biodomain names associated with the gene
+            - 'name': str, Display label for the case genotype
+            - 'matched_control': str, Display label for the control genotype
+            - 'model_group': str or None, Model group name (None if empty)
+            - 'model_type': str, Model type classification (empty string if not found)
+            - 'tissue': str, Tissue name (transformed for JAX models if applicable)
+            - 'sex': str, Sex category
+            - Age-based entries: Dictionary keys are age strings (e.g., '3 months', '6 months')
+              with values containing 'log2_fc' and 'adj_p_val' for each age timepoint
+
+        Example:
+            {
+                'ensembl_gene_id': 'ENSMUSG00000000001',
+                'gene_symbol': 'Gapdh',
+                'biodomains': ['Synaptic', 'Metabolic'],
+                'name': '5XFAD',
+                'matched_control': 'Wild-type',
+                'model_group': '5XFAD',
+                'model_type': 'transgenic',
+                'tissue': 'Hemibrain',
+                'sex': 'M',
+                '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
+                '6 months': {'log2_fc': 2.456, 'adj_p_val': 0.0001}
+            }
+
+    Note:
+        Age entries are validated and sorted numerically before being included in the output.
+        Missing values in lookup dictionaries result in empty strings or empty lists, not errors.
     """
     ensembl_gene_id, model, tissue, sex, case, control = group_key
 
@@ -223,22 +305,65 @@ def _process_single_data_file(
     total_files: int,
 ) -> List[Dict[str, Any]]:
     """
-    Processes a single data file and returns output entries.
+    Processes a single differential expression data file and transforms it into output entries.
+
+    This function handles the complete processing pipeline for a single RNA differential
+    expression data file. It performs data validation, filtering, grouping, and enrichment
+    to create structured output entries. The function is designed to process files one at
+    a time to minimize memory usage when handling large datasets.
+
+    The processing pipeline includes:
+    1. Logging file processing information (row count, column count, memory usage)
+    2. Validating that the data file is not empty
+    3. Validating that all required columns are present
+    4. Filtering to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*)
+    5. Rounding numeric columns to 5 decimal places for consistency
+    6. Grouping data by gene, model, tissue, sex, case, and control
+    7. Creating enriched output entries for each group using metadata dictionaries
+    8. Cleaning up memory by deleting the processed DataFrame and running garbage collection
+
+    Each output entry represents a unique combination of gene, model, tissue, and sex,
+    with age-based differential expression measurements and enriched metadata.
 
     Args:
-        file_name: Name of the data file being processed
-        data_file: DataFrame containing the data file contents
-        data_file_required_columns: List of required column names
-        gene_metadata_dict: Dictionary mapping ensembl_gene_id to gene_symbol
-        label_map_dict: Dictionary mapping (model, genotype) to display_label
-        model_group_dict: Dictionary mapping model to model_group
-        biodomain_dict: Dictionary mapping ensembl_id to list of biodomains
-        model_info_dict: Dictionary mapping model to model_type
-        file_index: Current file index (0-based)
-        total_files: Total number of files to process
+        file_name: Name of the data file being processed. Used for logging and error
+            reporting purposes.
+        data_file: DataFrame containing the differential expression data. Expected columns
+            include: ensembl_gene_id, log2foldchange, padj, model, case, control, age,
+            sex, tissue.
+        data_file_required_columns: List of required column names that must be present
+            in the data_file. Used for validation before processing.
+        gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols. Used
+            to enrich output entries with human-readable gene names.
+        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
+            Used to create human-readable names for case and control conditions.
+        model_group_dict: Dictionary mapping model names to model groups. Used to
+            categorize models into groups (e.g., "5XFAD", "APP/PS1").
+        biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
+            Used to annotate genes with their associated biological domains.
+        model_info_dict: Dictionary mapping model names to model types. Used to classify
+            models (e.g., "knockout", "transgenic").
+        file_index: Current file index (0-based) for progress tracking. Used in logging
+            to indicate which file is being processed (e.g., "Processing file 3/10").
+        total_files: Total number of files to process. Used in logging to show progress
+            (e.g., "Processing file 3/10").
 
     Returns:
-        List of output entry dictionaries
+        List of output entry dictionaries. Each dictionary represents a unique combination
+        of gene, model, tissue, and sex, enriched with metadata and containing age-based
+        differential expression measurements. The structure matches the output format from
+        `_create_output_entry_from_group`.
+
+    Raises:
+        ValueError: If the data file is empty or if required columns are missing.
+            The error message includes the file name for debugging purposes.
+
+    Note:
+        This function performs memory cleanup by explicitly deleting the processed DataFrame
+        and calling garbage collection. This is important when processing multiple large
+        files sequentially to prevent memory exhaustion. The function filters out human
+        genes to ensure only mouse (Mus musculus) data is processed, as indicated by
+        Ensembl IDs starting with "ENSMUSG".
     """
     logger.info(
         f"Processing {file_name} ({file_index+1}/{total_files}): {len(data_file)} rows, "
@@ -291,8 +416,81 @@ def transform_rna_de_aggregate(
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
-    Transforms the rna_de_aggregate source files into a structured format for Model AD.
-    Groups by gene, model, tissue, and sex, with age-based entries containing log2_fc and adj_p_val.
+    Main transformation function that orchestrates the processing of RNA differential expression data.
+
+    This function serves as the entry point for transforming RNA differential expression (RNA-DE)
+    aggregate data files into a structured format suitable for Model AD. It coordinates the entire
+    transformation pipeline, from data validation through enrichment to final output generation.
+
+    The transformation workflow:
+    1. Validates that all required input datasets and columns are present
+    2. Pre-computes lookup dictionaries from metadata for efficient data enrichment:
+       - Gene symbols from Ensembl IDs
+       - Display labels for genotypes
+       - Model groups and types
+       - Biodomain annotations
+    3. Validates data consistency (e.g., ensures each model has a consistent model_group)
+    4. Processes one or more differential expression data files sequentially:
+       - Filters to mouse genes only (ENSMUSG*)
+       - Groups data by gene, model, tissue, sex, case, and control
+       - Enriches each group with metadata
+       - Creates age-based entries with log2 fold change and adjusted p-values
+    5. Combines all processed entries into a single output list
+
+    The output format groups differential expression measurements by unique combinations of
+    gene, model, tissue, and sex, with each entry containing age-based measurements as
+    nested dictionaries.
+
+    Args:
+        datasets: Dictionary mapping dataset names to DataFrames. Must include:
+            - 'rnaseq_genotype_label_map': Maps models and genotypes to display labels
+            - 'mouse_gene_metadata': Gene symbols and aliases for Ensembl IDs
+            - 'model_info': Model types and metadata
+            - 'biodom_genes_mm': Biodomain annotations for mouse genes
+            - One or more data files: CSV DataFrames containing differential expression
+              results with columns: ensembl_gene_id, log2foldchange, padj, model, case,
+              control, age, sex, tissue
+        required_input: Dictionary mapping required dataset names to lists of required
+            column names. Defaults to REQUIRED_INPUT constant. Used to validate that all
+            necessary metadata datasets are present with correct structure.
+
+    Returns:
+        List of dictionaries, where each dictionary represents a unique combination of
+        gene, model, tissue, and sex. Each entry contains:
+            - Gene identifiers: ensembl_gene_id, gene_symbol
+            - Model information: name, matched_control, model_group, model_type
+            - Sample information: tissue, sex
+            - Biodomain annotations: biodomains (list)
+            - Age-based measurements: Dictionary keys are age strings (e.g., '3 months')
+              with values containing 'log2_fc' and 'adj_p_val' for each age timepoint
+
+        Example entry structure:
+            {
+                'ensembl_gene_id': 'ENSMUSG00000000001',
+                'gene_symbol': 'Gapdh',
+                'biodomains': ['Synaptic', 'Metabolic'],
+                'name': '5XFAD',
+                'matched_control': 'Wild-type',
+                'model_group': '5XFAD',
+                'model_type': 'transgenic',
+                'tissue': 'Hemibrain',
+                'sex': 'M',
+                '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
+                '6 months': {'log2_fc': 2.456, 'adj_p_val': 0.0001}
+            }
+
+    Raises:
+        ValueError: If required datasets or columns are missing, if any model has
+            inconsistent model_group values, or if any data file is empty or invalid.
+            Error messages include specific details about what validation failed.
+
+    Note:
+        This function processes data files sequentially (one at a time) rather than
+        loading all files into memory simultaneously. This design minimizes memory
+        usage when processing large numbers of files. Each file is processed, its
+        entries are added to the output list, and then the file is deleted from
+        memory before processing the next file. The function also filters out human
+        genes (ENSG*) to ensure only mouse (Mus musculus) data is included in the output.
     """
     check_required_datasets_and_columns(datasets, required_input)
 
