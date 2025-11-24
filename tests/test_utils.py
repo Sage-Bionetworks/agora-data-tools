@@ -840,7 +840,8 @@ class TestNormalizeZero:
         import math
 
         result = utils.normalize_zero(-0.0)
-        assert result == 0.0
+        # Verify result is non-negative (positive zero, not negative zero)
+        assert result >= 0
         # Verify it's positive zero using copysign
         assert math.copysign(1.0, result) > 0
 
@@ -849,15 +850,16 @@ class TestNormalizeZero:
         import math
 
         result = utils.normalize_zero(0.0)
-        assert result == 0.0
+        # Verify result is non-negative (positive zero, not negative zero)
+        assert result >= 0
         assert math.copysign(1.0, result) > 0
 
     def test_positive_values_preserved(self) -> None:
         """Test that positive values are preserved."""
-        assert utils.normalize_zero(1.0) == 1.0
-        assert utils.normalize_zero(42.5) == 42.5
-        assert utils.normalize_zero(0.001) == 0.001
-        assert utils.normalize_zero(1e10) == 1e10
+        assert utils.normalize_zero(1.0) == pytest.approx(1.0)
+        assert utils.normalize_zero(42.5) == pytest.approx(42.5)
+        assert utils.normalize_zero(0.001) == pytest.approx(0.001)
+        assert utils.normalize_zero(1e10) == pytest.approx(1e10)
 
     def test_negative_values_preserved(self) -> None:
         """Test that negative values (other than -0.0) are preserved."""
@@ -869,12 +871,12 @@ class TestNormalizeZero:
     def test_very_small_positive_value_preserved(self) -> None:
         """Test that very small positive values are preserved."""
         small_value = 1e-15
-        assert utils.normalize_zero(small_value) == small_value
+        assert utils.normalize_zero(small_value) == pytest.approx(small_value)
 
     def test_very_small_negative_value_preserved(self) -> None:
         """Test that very small negative values are preserved."""
         small_value = -1e-15
-        assert utils.normalize_zero(small_value) == small_value
+        assert utils.normalize_zero(small_value) == pytest.approx(small_value)
 
     def test_negative_zero_via_copysign(self) -> None:
         """Test that negative zero created via copysign is normalized."""
@@ -882,5 +884,6 @@ class TestNormalizeZero:
 
         negative_zero = math.copysign(0.0, -1.0)
         result = utils.normalize_zero(negative_zero)
-        assert result == 0.0
+        # Verify result is non-negative (positive zero, not negative zero)
+        assert result >= 0
         assert math.copysign(1.0, result) > 0

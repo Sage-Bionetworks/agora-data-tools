@@ -409,4 +409,5 @@ def normalize_zero(value: float) -> float:
         normalize_zero(1.0)
         1.0
     """
-    return 0.0 if value == 0.0 else value
+    # Using a tolerance of 1e-15 to account for floating point precision issues
+    return 0.0 if abs(value) < 1e-15 else value

@@ -142,10 +142,10 @@ def _create_age_entries_from_group(
 
 
 def _create_output_entry_from_group(
-    group_key: tuple,
+    group_key: tuple[str, str, str, str, str, str],
     group: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
-    label_map_dict: Dict[tuple, str],
+    label_map_dict: Dict[tuple[str, str], str],
     model_group_dict: Dict[str, str],
     biodomain_dict: Dict[str, List[str]],
     model_info_dict: Dict[str, str],
@@ -215,7 +215,7 @@ def _process_single_data_file(
     data_file: pd.DataFrame,
     data_file_required_columns: List[str],
     gene_metadata_dict: Dict[str, str],
-    label_map_dict: Dict[tuple, str],
+    label_map_dict: Dict[tuple[str, str], str],
     model_group_dict: Dict[str, str],
     biodomain_dict: Dict[str, List[str]],
     model_info_dict: Dict[str, str],
