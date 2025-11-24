@@ -1,4 +1,4 @@
 ensembl_gene_id,log2foldchange,padj,model,case,control,age,sex,tissue
 ENSMUSG00000000003,0.12345,NaN,Model_A,Tg,Wt,12 months,Female,Right Cerebral Hemisphere
-ENSMUSG00000000003,-0.12345,-0.000001,Model_A,Tg,Wt,18 months,Female,Right Cerebral Hemisphere
+ENSMUSG00000000003,-0.000001,0.0,Model_A,Tg,Wt,18 months,Female,Right Cerebral Hemisphere
 

@@ -29,7 +29,7 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import check_required_datasets_and_columns, normalize_zero
 
 logger = logging.getLogger(__name__)
 
@@ -226,15 +226,19 @@ def transform_rna_de_aggregate(
             model_type = model_info_dict.get(model, "")
 
             # Create age-based entries
-            # Using itertuples() instead of iterrows() for better performance (10-100x faster)
+            # Using itertuples() instead of iterrows() for better performance
             age_entries = {}
             for row in group.itertuples(index=False):
                 age = str(row.age)
-                # Adding 0.0 to avoid -0.0 values
-                # Adding zero to negative zero produces positive zero according to IEEE 754 floating-point arithmetic rules
+                if float(row.padj) < 0.0:
+                    raise ValueError(
+                        f"Negative adjusted p-value found in data for gene '{ensembl_gene_id}', "
+                        f"model '{model}', tissue '{tissue}', sex '{sex}'. "
+                        f"Expected positive adjusted p-value but found: '{row.padj}'"
+                    )
                 age_entries[age] = {
-                    "log2_fc": float(row.log2foldchange) + 0.0,
-                    "adj_p_val": 0.0 if pd.isna(row.padj) else float(row.padj) + 0.0,
+                    "log2_fc": normalize_zero(float(row.log2foldchange)),
+                    "adj_p_val": 0.0 if pd.isna(row.padj) else float(row.padj),
                 }
 
             # Validate and sort age entries

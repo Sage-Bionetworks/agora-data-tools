@@ -546,8 +546,8 @@ class TestTransformRnaDeAggregate:
         twelve_month_entry = result_entry["12 months"]
         assert math.isclose(twelve_month_entry["adj_p_val"], 0.0, abs_tol=1e-12)
 
-    def test_negative_zero_adj_p_values_are_coerced_to_zero(self) -> None:
-        """-0.0 adjusted p-values in source data should be exported as 0."""
+    def test_negative_zero_log2foldchange_are_coerced_to_zero(self) -> None:
+        """-0.0 log in source data should be exported as 0."""
 
         datasets = self._load_synthetic_test_data(
             [
@@ -566,6 +566,47 @@ class TestTransformRnaDeAggregate:
         eighteen_month_entry = result_entry["18 months"]
         assert math.isclose(eighteen_month_entry["adj_p_val"], 0.0, abs_tol=1e-12)
         assert math.copysign(1.0, eighteen_month_entry["adj_p_val"]) > 0
+
+    def test_negative_adj_p_values_raise_error(self) -> None:
+        """Negative adjusted p-values in source data should raise ValueError."""
+
+        # Load required metadata datasets
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        # Create a dataframe with a negative p-value directly
+        negative_padj_data = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "log2foldchange": [1.00000],
+                "padj": [-0.10000],
+                "model": ["Model_A"],
+                "case": ["Tg"],
+                "control": ["Wt"],
+                "age": ["3 months"],
+                "sex": ["Female"],
+                "tissue": ["Brain"],
+            }
+        )
+
+        datasets["negative_padj_data"] = negative_padj_data
+
+        with pytest.raises(ValueError) as exc_info:
+            transform_rna_de_aggregate(datasets=datasets)
+
+        error_message = str(exc_info.value)
+        assert "Negative adjusted p-value found in data" in error_message
+        assert "ENSMUSG00000000001" in error_message
+        assert "Model_A" in error_message
+        assert "Brain" in error_message
+        assert "Female" in error_message
+        assert "-0.10000" in error_message or "-0.1" in error_message
 
     def test_synthetic_age_sorting(self) -> None:
         """Test age sorting with synthetic data.
