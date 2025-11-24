@@ -830,3 +830,57 @@ class TestInputValidationModelInfo:
         )
         # Should not raise any exception
         utils.input_validation_model_info(df)
+
+
+class TestNormalizeZero:
+    """Test class for the normalize_zero function."""
+
+    def test_negative_zero_becomes_positive_zero(self) -> None:
+        """Test that -0.0 is converted to 0.0."""
+        import math
+
+        result = utils.normalize_zero(-0.0)
+        assert result == 0.0
+        # Verify it's positive zero using copysign
+        assert math.copysign(1.0, result) > 0
+
+    def test_positive_zero_stays_positive_zero(self) -> None:
+        """Test that 0.0 remains 0.0."""
+        import math
+
+        result = utils.normalize_zero(0.0)
+        assert result == 0.0
+        assert math.copysign(1.0, result) > 0
+
+    def test_positive_values_preserved(self) -> None:
+        """Test that positive values are preserved."""
+        assert utils.normalize_zero(1.0) == 1.0
+        assert utils.normalize_zero(42.5) == 42.5
+        assert utils.normalize_zero(0.001) == 0.001
+        assert utils.normalize_zero(1e10) == 1e10
+
+    def test_negative_values_preserved(self) -> None:
+        """Test that negative values (other than -0.0) are preserved."""
+        assert utils.normalize_zero(-1.0) == -1.0
+        assert utils.normalize_zero(-42.5) == -42.5
+        assert utils.normalize_zero(-0.001) == -0.001
+        assert utils.normalize_zero(-1e10) == -1e10
+
+    def test_very_small_positive_value_preserved(self) -> None:
+        """Test that very small positive values are preserved."""
+        small_value = 1e-15
+        assert utils.normalize_zero(small_value) == small_value
+
+    def test_very_small_negative_value_preserved(self) -> None:
+        """Test that very small negative values are preserved."""
+        small_value = -1e-15
+        assert utils.normalize_zero(small_value) == small_value
+
+    def test_negative_zero_via_copysign(self) -> None:
+        """Test that negative zero created via copysign is normalized."""
+        import math
+
+        negative_zero = math.copysign(0.0, -1.0)
+        result = utils.normalize_zero(negative_zero)
+        assert result == 0.0
+        assert math.copysign(1.0, result) > 0
