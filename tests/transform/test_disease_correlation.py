@@ -155,7 +155,7 @@ class TestTransformDiseaseCorrelation:
                     "model_type": "Early Onset AD",
                     "modified_genes": [
                         "APP"
-                    ],  # Single gene is returned as string, not list
+                    ],  # Single gene is returned as a list
                     "cluster": "Cluster B",
                     "age": "6 months",
                     "sex": "Male",
