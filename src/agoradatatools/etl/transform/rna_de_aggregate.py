@@ -6,22 +6,31 @@ It combines multiple datasets including gene metadata, model information, genoty
 and biodomain annotations to create a structured output format.
 
 The transformation:
-- Groups differential expression data by gene, model, tissue, and sex
+- Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
+- Groups differential expression data by gene, model, tissue, sex, case, and control
 - Creates age-based entries containing log2 fold change and adjusted p-values
+- Validates and sorts age entries by numeric value
+- Normalizes zero values in log2 fold change for consistent representation
 - Enriches data with gene symbols, biodomains, and model metadata
 - Maps genotypes to display labels for better readability
-- Processes multiple data files efficiently to minimize memory usage
+- Applies special tissue name transformation for JAX models ("Right Cerebral Hemisphere" -> "Hemibrain")
+- Rounds numeric columns to 5 decimal places for consistency
+- Processes multiple data files sequentially to minimize memory usage
 
 Key Functions:
     transform_rna_de_aggregate: Main transformation function that orchestrates the data processing
     validate_and_sort_age_entries: Validates and sorts age entries by numeric value
+    _create_age_entries_from_group: Creates age-based entries from a grouped DataFrame with normalization and validation
+    _create_output_entry_from_group: Creates a complete output entry from a grouped DataFrame by enriching it with metadata
+    _process_single_data_file: Processes a single differential expression data file and transforms it into output entries
 
 Required Inputs:
     - rnaseq_genotype_label_map: Maps models and genotypes to display labels
     - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
     - model_info: Model types and matched controls
     - biodom_genes_mm: Biodomain annotations for mouse genes
-    - Data files: One or more CSV files containing differential expression results
+    - Data files: One or more CSV files containing differential expression results with columns:
+      ensembl_gene_id, log2foldchange, padj, model, case, control, age, sex, tissue
 """
 
 import pandas as pd
@@ -249,26 +258,17 @@ def _create_output_entry_from_group(
     """
     ensembl_gene_id, model, tissue, sex, case, control = group_key
 
-    # Get gene metadata using dictionary lookup
     gene_symbol = gene_metadata_dict.get(ensembl_gene_id, "")
-
-    # Use dictionary lookups instead of .loc[] operations
     name = label_map_dict.get((model, case), model)
     matched_control = label_map_dict.get((model, control), model)
     model_group = model_group_dict.get(model)
-
-    # Get biodomains using dictionary lookup
     biodomains = biodomain_dict.get(ensembl_gene_id, [])
-
-    # Get model type using dictionary lookup
     model_type = model_info_dict.get(model, "")
 
-    # Create age-based entries
     age_entries = _create_age_entries_from_group(
         group, ensembl_gene_id, model, tissue, sex
     )
 
-    # Validate and sort age entries
     sorted_ages = validate_and_sort_age_entries(
         age_entries, ensembl_gene_id, model, tissue, sex
     )
@@ -277,7 +277,6 @@ def _create_output_entry_from_group(
     # Only expected for JAX models
     tissue = "Hemibrain" if tissue == "Right Cerebral Hemisphere" else tissue
 
-    # Create the output entry
     return {
         "ensembl_gene_id": ensembl_gene_id,
         "gene_symbol": gene_symbol,
