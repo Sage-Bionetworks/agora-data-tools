@@ -19,7 +19,7 @@ The transformation:
 
 Key Functions:
     transform_rna_de_aggregate: Main transformation function that orchestrates the data processing
-    validate_and_sort_age_entries: Validates and sorts age entries by numeric value
+    _validate_and_sort_age_entries: Validates and sorts age entries by numeric value
     _create_age_entries_from_group: Creates age-based entries from a grouped DataFrame with normalization and validation
     _create_output_entry_from_group: Creates a complete output entry from a grouped DataFrame by enriching it with metadata
     _process_single_data_file: Processes a single differential expression data file and transforms it into output entries
@@ -60,7 +60,7 @@ REQUIRED_INPUT = {
 }
 
 
-def validate_and_sort_age_entries(
+def _validate_and_sort_age_entries(
     age_entries: Dict[str, Dict[str, float]],
     ensembl_gene_id: str,
     model: str,
@@ -269,7 +269,7 @@ def _create_output_entry_from_group(
         group, ensembl_gene_id, model, tissue, sex
     )
 
-    sorted_ages = validate_and_sort_age_entries(
+    sorted_ages = _validate_and_sort_age_entries(
         age_entries, ensembl_gene_id, model, tissue, sex
     )
 

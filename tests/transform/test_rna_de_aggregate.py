@@ -2,11 +2,14 @@
 Test suite for RNA differential expression aggregate transformation.
 
 This module contains comprehensive tests for the `transform_rna_de_aggregate` function
-and the `validate_and_sort_age_entries` helper function, which aggregate mouse model
-RNA-seq differential expression data into a structured format for the Agora platform.
+and its helper functions, which aggregate mouse model RNA-seq differential expression
+data into a structured format for the Agora platform.
 
 Test Classes:
-    - TestValidateAndSortAgeEntries: Unit tests for the age validation and sorting helper function
+    - TestValidateAndSortAgeEntries: Unit tests for the _validate_and_sort_age_entries helper function
+    - TestCreateAgeEntriesFromGroup: Unit tests for the _create_age_entries_from_group helper function
+    - TestCreateOutputEntryFromGroup: Unit tests for the _create_output_entry_from_group helper function
+    - TestProcessSingleDataFile: Unit tests for the _process_single_data_file helper function
     - TestTransformRnaDeAggregate: Integration tests for the full transformation pipeline
 
 The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/` to verify:
@@ -16,6 +19,9 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 - Human gene filtering (only mouse genes with ENSMUSG* IDs should be processed)
 - Age sorting (numeric ordering of age entries)
 - Age validation (empty strings, whitespace, invalid formats)
+- NaN handling (NaN adjusted p-values are coerced to 0.0)
+- Negative zero handling (negative zero log2foldchange values are normalized to positive zero)
+- Negative p-value validation (negative adjusted p-values raise ValueError)
 - Edge cases (single row data, missing metadata, empty biodomains)
 - Error handling (missing datasets, empty files, missing columns, invalid age formats, inconsistent model_group values)
 - Data precision (rounding to 5 decimal places)
@@ -42,7 +48,7 @@ import pytest
 
 from agoradatatools.etl.transform.rna_de_aggregate import (
     transform_rna_de_aggregate,
-    validate_and_sort_age_entries,
+    _validate_and_sort_age_entries,
     _create_age_entries_from_group,
     _create_output_entry_from_group,
     _process_single_data_file,
@@ -51,7 +57,7 @@ from agoradatatools.etl.transform.rna_de_aggregate import (
 
 class TestValidateAndSortAgeEntries:
     """
-    Unit tests for the validate_and_sort_age_entries helper function.
+    Unit tests for the _validate_and_sort_age_entries helper function.
 
     This class contains focused unit tests for age validation and sorting logic,
     testing the function in isolation from the full transformation pipeline.
@@ -75,7 +81,7 @@ class TestValidateAndSortAgeEntries:
         """Test that a single valid age entry is handled correctly."""
         age_entries = {"6 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000001",
             model="TestModel",
@@ -93,7 +99,7 @@ class TestValidateAndSortAgeEntries:
             "12 months": {"log2_fc": 0.8, "adj_p_val": 0.005},
         }
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000001",
             model="TestModel",
@@ -112,7 +118,7 @@ class TestValidateAndSortAgeEntries:
             "6 months": {"log2_fc": 0.5, "adj_p_val": 0.01},
         }
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000001",
             model="TestModel",
@@ -135,7 +141,7 @@ class TestValidateAndSortAgeEntries:
         }
 
         # This should work because split()[0] handles multiple spaces
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000001",
             model="TestModel",
@@ -150,7 +156,7 @@ class TestValidateAndSortAgeEntries:
         age_entries = {"": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000001",
                 model="TestModel",
@@ -170,7 +176,7 @@ class TestValidateAndSortAgeEntries:
         age_entries = {"   ": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000002",
                 model="Model_X",
@@ -190,7 +196,7 @@ class TestValidateAndSortAgeEntries:
         age_entries = {"6months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000004",
                 model="Model_Z",
@@ -210,7 +216,7 @@ class TestValidateAndSortAgeEntries:
         age_entries = {"unknown months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000005",
                 model="Model_A",
@@ -230,7 +236,7 @@ class TestValidateAndSortAgeEntries:
 
         # This actually won't raise an error because int("-6") works
         # But it will sort correctly
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000006",
             model="Model_B",
@@ -246,7 +252,7 @@ class TestValidateAndSortAgeEntries:
 
         # This will raise because int("6.5") fails
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000007",
                 model="Model_C",
@@ -266,7 +272,7 @@ class TestValidateAndSortAgeEntries:
             "12 days": {"log2_fc": 0.3, "adj_p_val": 0.02},
         }
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000008",
             model="Model_D",
@@ -281,7 +287,7 @@ class TestValidateAndSortAgeEntries:
         """Test that empty age_entries dictionary is handled gracefully."""
         age_entries = {}
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000009",
             model="Model_E",
