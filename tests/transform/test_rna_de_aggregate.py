@@ -360,31 +360,14 @@ class TestCreateAgeEntriesFromGroup:
         assert result["12 months"] == {"log2_fc": 1.5, "adj_p_val": 0.001}
 
     def test_create_age_entries_with_nan_padj(self) -> None:
-        """Test that NaN adjusted p-values are converted to 0.0."""
-        group = pd.DataFrame(
-            {
-                "age": ["6 months"],
-                "log2foldchange": [1.5],
-                "padj": [pd.NA],
-            }
-        )
+        """Test that NaN adjusted p-values are converted to 0.0.
 
-        result = _create_age_entries_from_group(
-            group=group,
-            ensembl_gene_id="ENSMUSG00000000003",
-            model="TestModel",
-            tissue="Cortex",
-            sex="Male",
-        )
-
-        assert math.isclose(result["6 months"]["adj_p_val"], 0.0, abs_tol=1e-12)
-        assert result["6 months"]["log2_fc"] == pytest.approx(1.5)
-
-    def test_create_age_entries_with_nan_padj_does_not_check_negative(self) -> None:
-        """Test that NA padj values don't trigger negative p-value validation check.
-
-        This verifies that the NA check happens before float conversion,
-        preventing TypeError when pd.NA is passed to float().
+        This verifies that:
+        - NA padj values are converted to 0.0
+        - NA values don't trigger negative p-value validation check
+        - The NA check happens before float conversion, preventing TypeError
+          when pd.NA is passed to float()
+        - log2_fc values are still processed correctly when padj is NA
         """
         group = pd.DataFrame(
             {
@@ -405,6 +388,7 @@ class TestCreateAgeEntriesFromGroup:
 
         # NA should be converted to 0.0 without errors
         assert math.isclose(result["6 months"]["adj_p_val"], 0.0, abs_tol=1e-12)
+        assert result["6 months"]["log2_fc"] == pytest.approx(1.5)
 
     def test_create_age_entries_mixed_na_and_valid_padj(self) -> None:
         """Test that groups with both NA and valid padj values are handled correctly.
