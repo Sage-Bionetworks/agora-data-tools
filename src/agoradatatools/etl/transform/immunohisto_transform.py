@@ -342,7 +342,9 @@ def immunohisto_transform(
     # attempting to access the measure order configuration.
     data_rows["age_numeric"] = data_rows["age"].apply(_extract_age_num)
 
-    # Assuming config_df is already .explode()-ed and renamed (handled earlier in function)
+    # Get config DataFrame. Note: read_yaml_into_df() explodes the DataFrame only when
+    # all YAML values are lists (which is the case for the current immunohisto_measure_order.yaml).
+    # If the YAML structure changes, the DataFrame may not be exploded.
     config_df = datasets["immunohisto_measure_order"].copy()
 
     # Filter config for this dataset, reset index to create order column, and merge
