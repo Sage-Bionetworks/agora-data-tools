@@ -8,46 +8,6 @@
       "Psen1"
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
-    "age": "12 months",
-    "sex": "Female",
-    "IFG": {
-      "correlation": 0.0970533422952034,
-      "adj_p_val": 0.3887199748614661
-    },
-    "PHG": {
-      "correlation": 0.0842956381835789,
-      "adj_p_val": 0.4092310755529078
-    }
-  },
-  {
-    "name": "5xFAD",
-    "matched_control": "C57BL6J",
-    "model_type": "Familial AD",
-    "modified_genes": [
-      "App",
-      "Psen1"
-    ],
-    "cluster": "Consensus Cluster A (ECM organization)",
-    "age": "12 months",
-    "sex": "Male",
-    "IFG": {
-      "correlation": 0.1802025471199635,
-      "adj_p_val": 0.1074363436735284
-    },
-    "PHG": {
-      "correlation": 0.1200005481929605,
-      "adj_p_val": 0.2392109312864642
-    }
-  },
-  {
-    "name": "5xFAD",
-    "matched_control": "C57BL6J",
-    "model_type": "Familial AD",
-    "modified_genes": [
-      "App",
-      "Psen1"
-    ],
-    "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
     "sex": "Female",
     "IFG": {
@@ -57,6 +17,26 @@
     "PHG": {
       "correlation": 0.0555691060937462,
       "adj_p_val": 0.5868075423762884
+    }
+  },
+  {
+    "name": "5xFAD",
+    "matched_control": "C57BL6J",
+    "model_type": "Familial AD",
+    "modified_genes": [
+      "App",
+      "Psen1"
+    ],
+    "cluster": "Consensus Cluster A (ECM organization)",
+    "age": "12 months",
+    "sex": "Female",
+    "IFG": {
+      "correlation": 0.0970533422952034,
+      "adj_p_val": 0.3887199748614661
+    },
+    "PHG": {
+      "correlation": 0.0842956381835789,
+      "adj_p_val": 0.4092310755529078
     }
   },
   {
@@ -80,27 +60,32 @@
     }
   },
   {
-    "name": "APOE4",
+    "name": "5xFAD",
     "matched_control": "C57BL6J",
-    "model_type": "Late Onset AD",
-    "modified_genes": "Apoe",
+    "model_type": "Familial AD",
+    "modified_genes": [
+      "App",
+      "Psen1"
+    ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
-    "sex": "Female",
+    "sex": "Male",
     "IFG": {
-      "correlation": 0.0827022307818794,
-        "adj_p_val": 0.4629426405554373
-      },
+      "correlation": 0.1802025471199635,
+      "adj_p_val": 0.1074363436735284
+    },
     "PHG": {
-      "correlation": 0.0189281634597879,
-      "adj_p_val": 0.8532356007363054
+      "correlation": 0.1200005481929605,
+      "adj_p_val": 0.2392109312864642
     }
   },
   {
     "name": "APOE4",
     "matched_control": "C57BL6J",
     "model_type": "Late Onset AD",
-    "modified_genes": "Apoe",
+    "modified_genes": [
+      "Apoe"
+    ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
     "sex": "Female",
@@ -117,7 +102,9 @@
     "name": "APOE4",
     "matched_control": "C57BL6J",
     "model_type": "Late Onset AD",
-    "modified_genes": "Apoe",
+    "modified_genes": [
+      "Apoe"
+    ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "8 months",
     "sex": "Female",
@@ -128,6 +115,219 @@
     "PHG": {
       "correlation": 0.0136311661990827,
       "adj_p_val": 0.8940221987653201
+    }
+  },
+  {
+    "name": "APOE4",
+    "matched_control": "C57BL6J",
+    "model_type": "Late Onset AD",
+    "modified_genes": [
+      "Apoe"
+    ],
+    "cluster": "Consensus Cluster A (ECM organization)",
+    "age": "12 months",
+    "sex": "Female",
+    "IFG": {
+      "correlation": 0.0827022307818794,
+      "adj_p_val": 0.4629426405554373
+    },
+    "PHG": {
+      "correlation": 0.0189281634597879,
+      "adj_p_val": 0.8532356007363054
+    }
+  },
+  {
+    "name": "5xFAD",
+    "matched_control": "C57BL6J",
+    "model_type": "Familial AD",
+    "modified_genes": [
+      "App",
+      "Psen1"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "4 months",
+    "sex": "Female",
+    "CBE": {
+      "correlation": 0.470098530032772,
+      "adj_p_val": 4.09867672659817e-12
+    },
+    "DLPFC": {
+      "correlation": 0.127066588959754,
+      "adj_p_val": 0.0919168388467752
+    }
+  },
+  {
+    "name": "5xFAD",
+    "matched_control": "C57BL6J",
+    "model_type": "Familial AD",
+    "modified_genes": [
+      "App",
+      "Psen1"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "12 months",
+    "sex": "Female",
+    "CBE": {
+      "correlation": 0.449727558161722,
+      "adj_p_val": 4.237963773098e-11
+    },
+    "DLPFC": {
+      "correlation": 0.117538405354737,
+      "adj_p_val": 0.119215942359756
+    }
+  },
+  {
+    "name": "5xFAD",
+    "matched_control": "C57BL6J",
+    "model_type": "Familial AD",
+    "modified_genes": [
+      "App",
+      "Psen1"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "4 months",
+    "sex": "Male",
+    "CBE": {
+      "correlation": 0.379834234698666,
+      "adj_p_val": 4.33475907259916e-08
+    },
+    "DLPFC": {
+      "correlation": 0.0449357539495968,
+      "adj_p_val": 0.552581891005329
+    }
+  },
+  {
+    "name": "5xFAD",
+    "matched_control": "C57BL6J",
+    "model_type": "Familial AD",
+    "modified_genes": [
+      "App",
+      "Psen1"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "12 months",
+    "sex": "Male",
+    "CBE": {
+      "correlation": 0.48792346411812,
+      "adj_p_val": 4.65833045412254e-13
+    },
+    "DLPFC": {
+      "correlation": 0.129484131623328,
+      "adj_p_val": 0.085849961044038
+    }
+  },
+  {
+    "name": "APOE4",
+    "matched_control": "C57BL6J",
+    "model_type": "Late Onset AD",
+    "modified_genes": [
+      "Apoe"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "4 months",
+    "sex": "Female",
+    "CBE": {
+      "correlation": 0.0958176679386717,
+      "adj_p_val": 0.182700411627351
+    },
+    "DLPFC": {
+      "correlation": 0.0759140994526768,
+      "adj_p_val": 0.315250636038407
+    }
+  },
+  {
+    "name": "APOE4",
+    "matched_control": "C57BL6J",
+    "model_type": "Late Onset AD",
+    "modified_genes": [
+      "Apoe"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "8 months",
+    "sex": "Female",
+    "CBE": {
+      "correlation": 0.0390288304703237,
+      "adj_p_val": 0.588018002755214
+    },
+    "DLPFC": {
+      "correlation": 0.0668952881169892,
+      "adj_p_val": 0.376334815143053
+    }
+  },
+  {
+    "name": "APOE4",
+    "matched_control": "C57BL6J",
+    "model_type": "Late Onset AD",
+    "modified_genes": [
+      "Apoe"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "12 months",
+    "sex": "Female",
+    "CBE": {
+      "correlation": 0.0996113320636796,
+      "adj_p_val": 0.165899067863295
+    },
+    "DLPFC": {
+      "correlation": 0.125374991704893,
+      "adj_p_val": 0.0963614690502345
+    }
+  },
+  {
+    "name": "APOE4",
+    "matched_control": "C57BL6J",
+    "model_type": "Late Onset AD",
+    "modified_genes": [
+      "Apoe"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "4 months",
+    "sex": "Male",
+    "CBE": {
+      "correlation": 0.0994513071661718,
+      "adj_p_val": 0.166583645140848
+    },
+    "DLPFC": {
+      "correlation": 0.0846394378165467,
+      "adj_p_val": 0.262676548862633
+    }
+  },
+  {
+    "name": "APOE4",
+    "matched_control": "C57BL6J",
+    "model_type": "Late Onset AD",
+    "modified_genes": [
+      "Apoe"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "8 months",
+    "sex": "Male",
+    "CBE": {
+      "correlation": 0.0068586454130309,
+      "adj_p_val": 0.924186848924089
+    },
+    "DLPFC": {
+      "correlation": 0.021837436519043,
+      "adj_p_val": 0.772960849792616
+    }
+  },
+  {
+    "name": "APOE4",
+    "matched_control": "C57BL6J",
+    "model_type": "Late Onset AD",
+    "modified_genes": [
+      "Apoe"
+    ],
+    "cluster": "Consensus Cluster B (Immune System)",
+    "age": "12 months",
+    "sex": "Male",
+    "CBE": {
+      "correlation": 0.130312470603861,
+      "adj_p_val": 0.0694063334042232
+    },
+    "DLPFC": {
+      "correlation": 0.0599624401195336,
+      "adj_p_val": 0.427888599536628
     }
   }
 ]

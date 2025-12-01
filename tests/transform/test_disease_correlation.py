@@ -153,7 +153,7 @@ class TestTransformDiseaseCorrelation:
                     "name": "LOAD2",
                     "matched_control": "C57BL6J",
                     "model_type": "Early Onset AD",
-                    "modified_genes": "APP",  # Single gene is returned as string, not list
+                    "modified_genes": ["APP"],  # Single gene is returned as a list
                     "cluster": "Cluster B",
                     "age": "6 months",
                     "sex": "Male",
@@ -203,7 +203,7 @@ class TestTransformDiseaseCorrelation:
                     "name": "LOAD1",
                     "matched_control": "C57BL6J",
                     "model_type": "Late Onset AD",
-                    "modified_genes": "APOE4",  # Deduplicated from duplicate entries
+                    "modified_genes": ["APOE4"],  # Deduplicated from duplicate entries
                     "cluster": "Cluster A",
                     "age": "4 months",
                     "sex": "Female",
@@ -582,7 +582,7 @@ class TestProcessGroup:
             "name": "LOAD1",
             "matched_control": "",
             "model_type": "",
-            "modified_genes": "",
+            "modified_genes": [],
             "cluster": "Cluster A",
             "age": "4 months",
             "sex": "Female",

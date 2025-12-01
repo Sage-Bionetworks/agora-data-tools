@@ -187,10 +187,26 @@ act -v --secret-file .secrets
 
 The repository is currently using Agora's credentials for Synapse.  Those can be found in LastPass in the "Shared-Agora" Folder.
 
-## Unit Tests
-Unit tests can be run by calling pytest from the command line.
+## Unit and Custom Transform Tests
+Call pytest from the command line to run both the unit tests and the custom transform tests.
 ```bash
 python -m pytest
+```
+To run only the custom transform tests, use this command.
+```bash
+python -m pytest tests/transform/
+```
+You can get detailed test failure information by appending the verbose (`-v`) or very verbose (`-vv`) flag to either command.
+
+## Precommit
+Before pushing code to the repo, run `precommit` and commit any updates it makes to ensure that your PR will pass the precommit checks in CI.
+To install precommit:
+```bash
+pip install pre-commit
+```
+To run precommit:
+```bash
+ pre-commit run --all-files
 ```
 
 ## Pipeline Configuration
