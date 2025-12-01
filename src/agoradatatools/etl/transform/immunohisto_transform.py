@@ -266,7 +266,6 @@ def immunohisto_transform(
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
-            Can optionally include 'immunohisto_measure_order' key with ordering configuration.
         dataset_name (str): The name of the dataset to transform.
         required_input (Dict[str, List[str]], optional): Required input columns for validation.
         group_columns (List[str], optional): List of columns to group by. Defaults to ['name', 'evidence_type', 'tissue', 'age', 'units'].
