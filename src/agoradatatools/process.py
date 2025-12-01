@@ -1,5 +1,6 @@
 import logging
 import warnings
+from collections import defaultdict
 from typing import Optional, Union, Dict, Any, List
 import inspect
 import synapseclient
@@ -15,6 +16,79 @@ from agoradatatools.constants import Platform
 
 
 logger = logging.getLogger(__name__)
+
+
+def check_provenance_id_file_id_consistency(
+    provenance_ids: list[str], file_ids: list[str]
+) -> None:
+    """Check that provenance IDs in config are consistent with file IDs.
+    If file id and provenance id share the same base id, their versions must match.
+
+    Args:
+        provenance_ids: List of provenance IDs defined in the configuration (after flattening)
+        file_ids: List of file IDs defined in the configuration
+
+    Raises:
+        ValueError: If any provenance ID has different version than the corresponding file ID
+
+    Example:
+        file_ids = ["syn123.4", "syn456.2"]
+        provenance_ids = ["syn123.4", "syn789.1"]  # OK - syn123 versions match
+        provenance_ids = ["syn123.5", "syn789.1"]  # ERROR - syn123 versions differ
+    """
+    if not provenance_ids:
+        return
+    # Build a mapping of base ID to full ID(s) for file IDs
+    file_id_map = defaultdict(set)
+    for file_id in file_ids:
+        base_id = file_id.split(".")[0]
+        file_id_map[base_id].add(file_id)
+
+    # Raise error if any provenance ID has different version than the corresponding file ID
+    for prov_id in provenance_ids:
+        base_id = prov_id.split(".")[0]
+        if base_id in file_id_map:
+            if prov_id not in file_id_map[base_id]:
+                file_versions_str = ", ".join(sorted(file_id_map[base_id]))
+                raise ValueError(
+                    f"Version mismatch: Provenance ID '{prov_id}' conflicts with "
+                    f"file ID(s) '{file_versions_str}'. When the same Synapse entity "
+                    f"appears in both provenance and files, their versions must match."
+                )
+
+
+def get_provenance_ids(
+    dataset_obj: Dict[str, Any], dataset_name: str, file_ids: list[str]
+) -> list[str]:
+    """Get combined provenance IDs from config and file IDs.
+
+    Args:
+        dataset_obj: Dataset configuration object
+        dataset_name: Name of the dataset
+        file_ids: List of file IDs defined in the configuration
+
+    Returns:
+        Combined list of provenance IDs (file IDs + config provenance)
+    """
+    provenance = dataset_obj[dataset_name].get("provenance", [])
+    flattened_provenance = set()
+
+    if provenance:
+        if not isinstance(provenance, list):
+            raise ValueError(f"Provenance for dataset '{dataset_name}' must be a list")
+        for item in provenance:
+            if isinstance(item, list):
+                flattened_provenance.update(item)
+            elif isinstance(item, str):
+                flattened_provenance.add(item)
+        provenance_ids = set(file_ids).union(flattened_provenance)
+        check_provenance_id_file_id_consistency(
+            provenance_ids=list(flattened_provenance), file_ids=file_ids
+        )
+    else:
+        provenance_ids = file_ids
+
+    return list(provenance_ids)
 
 
 def apply_custom_transformations(
@@ -142,12 +216,14 @@ def process_dataset(
     """
     dataset_name = list(dataset_obj.keys())[0]
     dataset_report = DatasetReport(data_set=dataset_name)
+    file_ids = []
 
     entities_as_df = {}
     for entity in dataset_obj[dataset_name]["files"]:
         entity_id = entity["id"]
         entity_format = entity["format"]
         entity_name = entity["name"]
+        file_ids.append(entity_id)
 
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
         df = utils.standardize_column_names(df=df)
@@ -159,6 +235,9 @@ def process_dataset(
             )
 
         entities_as_df[entity_name] = df
+
+    # get provenance if any
+    provenance_ids = get_provenance_ids(dataset_obj, dataset_name, file_ids)
 
     if "custom_transformations" in dataset_obj[dataset_name].keys():
         transform_result = apply_custom_transformations(
@@ -225,7 +304,7 @@ def process_dataset(
         if upload and not gx_runner.failures:
             file_id, file_version = load.load(
                 file_path=json_path,
-                provenance=dataset_obj[dataset_name]["provenance"],
+                provenance=provenance_ids,
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,
             )
@@ -243,7 +322,7 @@ def process_dataset(
         if upload:
             file_id, file_version = load.load(
                 file_path=json_path,
-                provenance=dataset_obj[dataset_name]["provenance"],
+                provenance=provenance_ids,
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,
             )

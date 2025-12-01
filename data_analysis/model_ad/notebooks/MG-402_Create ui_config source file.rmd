@@ -118,7 +118,7 @@ build_object <- function(page_column_data) {
 
 # Builds a column object
 # - name: The column display name
-#   -- Specify NA for columns with the primary type, and for hidden columns
+#   -- Specify NA for hidden columns; if you specify a different value, it will be ignored
 # - type: The column type
 # - tooltip: The tooltip display value for the column name
 #   -- Specify NA for column names that need no explanatory tooltip, and for hidden columns
@@ -133,8 +133,8 @@ build_object <- function(page_column_data) {
 # - is_hidden: Whether this column should be displayed in the CT table
 build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden) {
 
-  # Use the default sort_tooltip if one isn't specified, for non-primary columns only
-  if (type == "primary" || is_hidden == TRUE) { sort_tooltip = NA }
+  # Use the default sort_tooltip if one isn't specified, for non-hidden columns only
+  if (is_hidden == TRUE) { sort_tooltip = NA }
   else { sort_tooltip = if (!is.na(sort_tooltip)) sort_tooltip else paste("Sort by", name, "value") }
 
   column <- list(
@@ -196,7 +196,7 @@ ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
 # Static columns are the same across all views
-ge_primary_column <- list(NA, "primary", "gene_symbol", NA, NA, NA, NA, TRUE, FALSE)
+ge_primary_column <- list("Gene", "primary", "gene_symbol", NA, NA, NA, NA, TRUE, FALSE)
 ge_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE)
 ge_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA, TRUE, FALSE)
 
@@ -298,7 +298,7 @@ dc_menu2 <- c(
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
 # All views have the same static column values
-dc_primary_column <- list(NA, "primary", "name", NA, NA, NA, NA, TRUE, FALSE)
+dc_primary_column <- list("Model", "primary", "name", NA, NA, NA, NA, TRUE, FALSE)
 dc_age_column <- list("Age", "text", "age", NA, "Sort by Age value", NA, NA, TRUE, FALSE)
 dc_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
 
@@ -408,7 +408,7 @@ build_dc_objects <- function() {
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
 mo_columns <- data.frame(
-  name = c(NA, "Model Type", "Matched Controls",
+  name = c("Model", "Model Type", "Matched Controls",
            "Gene Expression", "Disease Correlation", "Pathology",
            "Biomarkers", "Study Data", "JAX Strain",
            "Center", NA, NA
