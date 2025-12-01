@@ -391,3 +391,23 @@ def input_validation_model_info(df: pd.DataFrame) -> None:
             raise ValueError(
                 f"Model {model} has inconsistent model_type values: {unique_model_types}"
             )
+
+
+def normalize_zero(value: float) -> float:
+    """
+    Convert -0.0 to 0.0 while preserving other values.
+
+    Args:
+        value (float): The value to normalize
+
+    Returns:
+        float: The normalized value
+
+    Example:
+        normalize_zero(-0.0)
+        0.0
+        normalize_zero(1.0)
+        1.0
+    """
+    # Using a tolerance of 1e-15 to account for floating point precision issues
+    return 0.0 if abs(value) < 1e-15 else value

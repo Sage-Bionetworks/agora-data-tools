@@ -2,11 +2,14 @@
 Test suite for RNA differential expression aggregate transformation.
 
 This module contains comprehensive tests for the `transform_rna_de_aggregate` function
-and the `validate_and_sort_age_entries` helper function, which aggregate mouse model
-RNA-seq differential expression data into a structured format for the Agora platform.
+and its helper functions, which aggregate mouse model RNA-seq differential expression
+data into a structured format for the Agora platform.
 
 Test Classes:
-    - TestValidateAndSortAgeEntries: Unit tests for the age validation and sorting helper function
+    - TestValidateAndSortAgeEntries: Unit tests for the _validate_and_sort_age_entries helper function
+    - TestCreateAgeEntriesFromGroup: Unit tests for the _create_age_entries_from_group helper function
+    - TestCreateOutputEntryFromGroup: Unit tests for the _create_output_entry_from_group helper function
+    - TestProcessSingleDataFile: Unit tests for the _process_single_data_file helper function
     - TestTransformRnaDeAggregate: Integration tests for the full transformation pipeline
 
 The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/` to verify:
@@ -16,6 +19,9 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 - Human gene filtering (only mouse genes with ENSMUSG* IDs should be processed)
 - Age sorting (numeric ordering of age entries)
 - Age validation (empty strings, whitespace, invalid formats)
+- NaN handling (NaN adjusted p-values are coerced to 0.0)
+- Negative zero handling (negative zero log2foldchange values are normalized to positive zero)
+- Negative p-value validation (negative adjusted p-values raise ValueError)
 - Edge cases (single row data, missing metadata, empty biodomains)
 - Error handling (missing datasets, empty files, missing columns, invalid age formats, inconsistent model_group values)
 - Data precision (rounding to 5 decimal places)
@@ -35,19 +41,23 @@ Test Data Structure:
 
 import os
 import json
+import math
 from typing import Dict, List
 import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.rna_de_aggregate import (
     transform_rna_de_aggregate,
-    validate_and_sort_age_entries,
+    _validate_and_sort_age_entries,
+    _create_age_entries_from_group,
+    _create_output_entry_from_group,
+    _process_single_data_file,
 )
 
 
 class TestValidateAndSortAgeEntries:
     """
-    Unit tests for the validate_and_sort_age_entries helper function.
+    Unit tests for the _validate_and_sort_age_entries helper function.
 
     This class contains focused unit tests for age validation and sorting logic,
     testing the function in isolation from the full transformation pipeline.
@@ -71,7 +81,7 @@ class TestValidateAndSortAgeEntries:
         """Test that a single valid age entry is handled correctly."""
         age_entries = {"6 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000001",
             model="TestModel",
@@ -89,7 +99,7 @@ class TestValidateAndSortAgeEntries:
             "12 months": {"log2_fc": 0.8, "adj_p_val": 0.005},
         }
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000001",
             model="TestModel",
@@ -108,7 +118,7 @@ class TestValidateAndSortAgeEntries:
             "6 months": {"log2_fc": 0.5, "adj_p_val": 0.01},
         }
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000001",
             model="TestModel",
@@ -131,7 +141,7 @@ class TestValidateAndSortAgeEntries:
         }
 
         # This should work because split()[0] handles multiple spaces
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000001",
             model="TestModel",
@@ -146,7 +156,7 @@ class TestValidateAndSortAgeEntries:
         age_entries = {"": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000001",
                 model="TestModel",
@@ -166,7 +176,7 @@ class TestValidateAndSortAgeEntries:
         age_entries = {"   ": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000002",
                 model="Model_X",
@@ -186,7 +196,7 @@ class TestValidateAndSortAgeEntries:
         age_entries = {"6months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000004",
                 model="Model_Z",
@@ -206,7 +216,7 @@ class TestValidateAndSortAgeEntries:
         age_entries = {"unknown months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
 
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000005",
                 model="Model_A",
@@ -226,7 +236,7 @@ class TestValidateAndSortAgeEntries:
 
         # This actually won't raise an error because int("-6") works
         # But it will sort correctly
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000006",
             model="Model_B",
@@ -242,7 +252,7 @@ class TestValidateAndSortAgeEntries:
 
         # This will raise because int("6.5") fails
         with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
+            _validate_and_sort_age_entries(
                 age_entries=age_entries,
                 ensembl_gene_id="ENSMUSG00000000007",
                 model="Model_C",
@@ -262,7 +272,7 @@ class TestValidateAndSortAgeEntries:
             "12 days": {"log2_fc": 0.3, "adj_p_val": 0.02},
         }
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000008",
             model="Model_D",
@@ -277,7 +287,7 @@ class TestValidateAndSortAgeEntries:
         """Test that empty age_entries dictionary is handled gracefully."""
         age_entries = {}
 
-        result = validate_and_sort_age_entries(
+        result = _validate_and_sort_age_entries(
             age_entries=age_entries,
             ensembl_gene_id="ENSMUSG00000000009",
             model="Model_E",
@@ -286,6 +296,671 @@ class TestValidateAndSortAgeEntries:
         )
 
         assert result == {}
+
+
+class TestCreateAgeEntriesFromGroup:
+    """
+    Unit tests for the _create_age_entries_from_group helper function.
+
+    This class contains focused unit tests for age entry creation logic,
+    testing the function in isolation from the full transformation pipeline.
+
+    Test Methods:
+        - test_create_age_entries_single_row: Tests creating age entries from a single row.
+        - test_create_age_entries_multiple_rows: Tests creating age entries from multiple rows.
+        - test_create_age_entries_with_nan_padj: Tests handling of NaN adjusted p-values.
+        - test_create_age_entries_with_negative_zero: Tests handling of negative zero log2foldchange.
+        - test_create_age_entries_negative_padj_raises_error: Tests error handling for negative p-values.
+    """
+
+    def test_create_age_entries_single_row(self) -> None:
+        """Test creating age entries from a single row DataFrame."""
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [0.01],
+            }
+        )
+
+        result = _create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000001",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert result == {"6 months": {"log2_fc": 1.5, "adj_p_val": 0.01}}
+
+    def test_create_age_entries_multiple_rows(self) -> None:
+        """Test creating age entries from multiple rows with different ages."""
+        group = pd.DataFrame(
+            {
+                "age": ["3 months", "6 months", "12 months"],
+                "log2foldchange": [0.5, 1.0, 1.5],
+                "padj": [0.05, 0.01, 0.001],
+            }
+        )
+
+        result = _create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000002",
+            model="TestModel",
+            tissue="Hippocampus",
+            sex="Female",
+        )
+
+        assert len(result) == 3
+        assert "3 months" in result
+        assert "6 months" in result
+        assert "12 months" in result
+        assert result["3 months"] == {"log2_fc": 0.5, "adj_p_val": 0.05}
+        assert result["6 months"] == {"log2_fc": 1.0, "adj_p_val": 0.01}
+        assert result["12 months"] == {"log2_fc": 1.5, "adj_p_val": 0.001}
+
+    def test_create_age_entries_with_nan_padj(self) -> None:
+        """Test that NaN adjusted p-values are converted to 0.0.
+
+        This verifies that:
+        - NA padj values are converted to 0.0
+        - NA values don't trigger negative p-value validation check
+        - The NA check happens before float conversion, preventing TypeError
+          when pd.NA is passed to float()
+        - log2_fc values are still processed correctly when padj is NA
+        """
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [pd.NA],
+            }
+        )
+
+        # Should not raise TypeError or ValueError, should handle NA gracefully
+        result = _create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000003",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        # NA should be converted to 0.0 without errors
+        assert math.isclose(result["6 months"]["adj_p_val"], 0.0, abs_tol=1e-12)
+        assert result["6 months"]["log2_fc"] == pytest.approx(1.5)
+
+    def test_create_age_entries_mixed_na_and_valid_padj(self) -> None:
+        """Test that groups with both NA and valid padj values are handled correctly.
+
+        This verifies that NA values are skipped in negative check but valid
+        negative values still raise errors.
+        """
+        # Group with NA and valid positive values
+        group_valid = pd.DataFrame(
+            {
+                "age": ["3 months", "6 months"],
+                "log2foldchange": [0.5, 1.5],
+                "padj": [pd.NA, 0.01],
+            }
+        )
+
+        result = _create_age_entries_from_group(
+            group=group_valid,
+            ensembl_gene_id="ENSMUSG00000000010",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        # Both entries should be created without errors
+        assert len(result) == 2
+        assert math.isclose(result["3 months"]["adj_p_val"], 0.0, abs_tol=1e-12)
+        assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
+
+        # Group with NA and negative value should still raise error for negative
+        group_negative = pd.DataFrame(
+            {
+                "age": ["3 months", "6 months"],
+                "log2foldchange": [0.5, 1.5],
+                "padj": [pd.NA, -0.01],
+            }
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            _create_age_entries_from_group(
+                group=group_negative,
+                ensembl_gene_id="ENSMUSG00000000011",
+                model="TestModel",
+                tissue="Cortex",
+                sex="Male",
+            )
+
+        # Should still catch negative p-value even when NA is present
+        error_message = str(exc_info.value)
+        assert "Negative adjusted p-value found in data" in error_message
+        assert "ENSMUSG00000000011" in error_message
+
+    def test_create_age_entries_with_negative_zero(self) -> None:
+        """Test that negative zero log2foldchange is normalized to positive zero."""
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [-0.0],
+                "padj": [0.01],
+            }
+        )
+
+        result = _create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000004",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        # normalize_zero should convert -0.0 to 0.0
+        assert math.isclose(result["6 months"]["log2_fc"], 0.0, abs_tol=1e-12)
+        assert math.copysign(1.0, result["6 months"]["log2_fc"]) > 0
+
+    def test_create_age_entries_negative_padj_raises_error(self) -> None:
+        """Test that negative adjusted p-values raise ValueError with informative message."""
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [-0.01],
+            }
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            _create_age_entries_from_group(
+                group=group,
+                ensembl_gene_id="ENSMUSG00000000005",
+                model="TestModel",
+                tissue="Cortex",
+                sex="Female",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Negative adjusted p-value found in data" in error_message
+        assert "ENSMUSG00000000005" in error_message
+        assert "TestModel" in error_message
+        assert "Cortex" in error_message
+        assert "Female" in error_message
+
+
+class TestCreateOutputEntryFromGroup:
+    """
+    Unit tests for the _create_output_entry_from_group helper function.
+
+    This class contains focused unit tests for output entry creation logic,
+    testing the function in isolation from the full transformation pipeline.
+
+    Test Methods:
+        - test_create_output_entry_basic: Tests basic output entry creation.
+        - test_create_output_entry_missing_metadata: Tests handling of missing metadata.
+        - test_create_output_entry_jax_tissue_mapping: Tests JAX tissue name mapping.
+        - test_create_output_entry_empty_model_group: Tests empty model_group conversion to None.
+        - test_create_output_entry_multiple_biodomains: Tests multiple biodomain assignments.
+    """
+
+    def test_create_output_entry_basic(self) -> None:
+        """Test basic output entry creation with all metadata present."""
+        group_key = ("ENSMUSG00000000001", "Model_A", "Cortex", "Male", "Tg", "Wt")
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [0.01],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
+        model_group_dict = {"Model_A": "Group1"}
+        biodomain_dict = {"ENSMUSG00000000001": ["Synaptic"]}
+        model_info_dict = {"Model_A": "knockout"}
+
+        result = _create_output_entry_from_group(
+            group_key=group_key,
+            group=group,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+        )
+
+        assert result["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert result["gene_symbol"] == "Gene1"
+        assert result["biodomains"] == ["Synaptic"]
+        assert result["name"] == "Transgenic"
+        assert result["matched_control"] == "Wildtype"
+        assert result["model_group"] == "Group1"
+        assert result["model_type"] == "knockout"
+        assert result["tissue"] == "Cortex"
+        assert result["sex"] == "Male"
+        assert "6 months" in result
+        assert result["6 months"]["log2_fc"] == pytest.approx(1.5)
+        assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
+
+    def test_create_output_entry_missing_metadata(self) -> None:
+        """Test output entry creation with missing metadata (defaults to empty strings/lists)."""
+        group_key = (
+            "ENSMUSG00000000002",
+            "Model_B",
+            "Hippocampus",
+            "Female",
+            "Tg",
+            "Wt",
+        )
+        group = pd.DataFrame(
+            {
+                "age": ["3 months"],
+                "log2foldchange": [0.5],
+                "padj": [0.05],
+            }
+        )
+
+        # Empty dictionaries simulate missing metadata
+        gene_metadata_dict = {}
+        label_map_dict = {}
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        result = _create_output_entry_from_group(
+            group_key=group_key,
+            group=group,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+        )
+
+        assert result["ensembl_gene_id"] == "ENSMUSG00000000002"
+        assert result["gene_symbol"] == ""  # Default for missing
+        assert result["biodomains"] == []  # Default for missing
+        assert result["name"] == "Model_B"  # Falls back to model name
+        assert result["matched_control"] == "Model_B"  # Falls back to model name
+        assert result["model_group"] is None  # Empty string converted to None
+        assert result["model_type"] == ""  # Default for missing
+        assert result["tissue"] == "Hippocampus"
+        assert result["sex"] == "Female"
+
+    def test_create_output_entry_jax_tissue_mapping(self) -> None:
+        """Test that JAX tissue name 'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
+        group_key = (
+            "ENSMUSG00000000003",
+            "Model_C",
+            "Right Cerebral Hemisphere",
+            "Male",
+            "Tg",
+            "Wt",
+        )
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.0],
+                "padj": [0.01],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000003": "Gene3"}
+        label_map_dict = {}
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        result = _create_output_entry_from_group(
+            group_key=group_key,
+            group=group,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+        )
+
+        assert result["tissue"] == "Hemibrain"  # Should be mapped
+
+    def test_create_output_entry_empty_model_group(self) -> None:
+        """Test that empty string model_group is converted to None."""
+        group_key = ("ENSMUSG00000000004", "Model_D", "Cortex", "Female", "Tg", "Wt")
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [0.01],
+            }
+        )
+
+        gene_metadata_dict = {}
+        label_map_dict = {}
+        model_group_dict = {"Model_D": ""}  # Empty string
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        result = _create_output_entry_from_group(
+            group_key=group_key,
+            group=group,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+        )
+
+        assert result["model_group"] is None  # Empty string should become None
+
+    def test_create_output_entry_multiple_biodomains(self) -> None:
+        """Test output entry with multiple biodomain assignments."""
+        group_key = ("ENSMUSG00000000005", "Model_E", "Cortex", "Male", "Tg", "Wt")
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [0.01],
+            }
+        )
+
+        gene_metadata_dict = {}
+        label_map_dict = {}
+        model_group_dict = {}
+        biodomain_dict = {"ENSMUSG00000000005": ["Synaptic", "Metabolic"]}
+        model_info_dict = {}
+
+        result = _create_output_entry_from_group(
+            group_key=group_key,
+            group=group,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+        )
+
+        assert len(result["biodomains"]) == 2
+        assert set(result["biodomains"]) == {"Synaptic", "Metabolic"}
+
+
+class TestProcessSingleDataFile:
+    """
+    Unit tests for the _process_single_data_file helper function.
+
+    This class contains focused unit tests for single file processing logic,
+    testing the function in isolation from the full transformation pipeline.
+
+    Test Methods:
+        - test_process_single_data_file_basic: Tests basic file processing.
+        - test_process_single_data_file_empty_raises_error: Tests error handling for empty files.
+        - test_process_single_data_file_filters_human_genes: Tests filtering of human genes.
+        - test_process_single_data_file_rounding: Tests numeric rounding to 5 decimal places.
+        - test_process_single_data_file_multiple_groups: Tests processing multiple groups.
+    """
+
+    def test_process_single_data_file_basic(self) -> None:
+        """Test basic processing of a single data file."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "log2foldchange": [1.5],
+                "padj": [0.01],
+                "model": ["Model_A"],
+                "case": ["Tg"],
+                "control": ["Wt"],
+                "age": ["6 months"],
+                "sex": ["Male"],
+                "tissue": ["Cortex"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
+        model_group_dict = {"Model_A": "Group1"}
+        biodomain_dict = {"ENSMUSG00000000001": ["Synaptic"]}
+        model_info_dict = {"Model_A": "knockout"}
+
+        data_file_required_columns = [
+            "ensembl_gene_id",
+            "log2foldchange",
+            "padj",
+            "model",
+            "case",
+            "control",
+            "age",
+            "sex",
+            "tissue",
+        ]
+
+        result = _process_single_data_file(
+            file_name="test_file.csv",
+            data_file=data_file,
+            data_file_required_columns=data_file_required_columns,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+            file_index=0,
+            total_files=1,
+        )
+
+        assert len(result) == 1
+        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert result[0]["gene_symbol"] == "Gene1"
+
+    def test_process_single_data_file_empty_raises_error(self) -> None:
+        """Test that processing an empty file raises ValueError with correct message.
+
+        This verifies that the empty file check happens before column validation,
+        ensuring the error message is about the file being empty, not about missing columns.
+        """
+        data_file = pd.DataFrame()
+
+        gene_metadata_dict = {}
+        label_map_dict = {}
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        data_file_required_columns = [
+            "ensembl_gene_id",
+            "log2foldchange",
+            "padj",
+            "model",
+            "case",
+            "control",
+            "age",
+            "sex",
+            "tissue",
+        ]
+
+        with pytest.raises(ValueError) as exc_info:
+            _process_single_data_file(
+                file_name="empty_file.csv",
+                data_file=data_file,
+                data_file_required_columns=data_file_required_columns,
+                gene_metadata_dict=gene_metadata_dict,
+                label_map_dict=label_map_dict,
+                model_group_dict=model_group_dict,
+                biodomain_dict=biodomain_dict,
+                model_info_dict=model_info_dict,
+                file_index=0,
+                total_files=1,
+            )
+
+        # Verify the error message is about empty file, not missing columns
+        error_message = str(exc_info.value)
+        assert "Data file empty_file.csv is empty" in error_message
+        assert "Missing required columns" not in error_message
+
+    def test_process_single_data_file_filters_human_genes(self) -> None:
+        """Test that human genes (ENSG*) are filtered out, only mouse genes (ENSMUSG*) are kept."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": [
+                    "ENSMUSG00000000001",
+                    "ENSG00000000001",
+                    "ENSMUSG00000000002",
+                ],
+                "log2foldchange": [1.5, 2.0, 0.5],
+                "padj": [0.01, 0.02, 0.03],
+                "model": ["Model_A", "Model_A", "Model_A"],
+                "case": ["Tg", "Tg", "Tg"],
+                "control": ["Wt", "Wt", "Wt"],
+                "age": ["6 months", "6 months", "6 months"],
+                "sex": ["Male", "Male", "Male"],
+                "tissue": ["Cortex", "Cortex", "Cortex"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        label_map_dict = {}
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        data_file_required_columns = [
+            "ensembl_gene_id",
+            "log2foldchange",
+            "padj",
+            "model",
+            "case",
+            "control",
+            "age",
+            "sex",
+            "tissue",
+        ]
+
+        result = _process_single_data_file(
+            file_name="mixed_genes.csv",
+            data_file=data_file,
+            data_file_required_columns=data_file_required_columns,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+            file_index=0,
+            total_files=1,
+        )
+
+        # Should only have 2 entries (mouse genes only)
+        assert len(result) == 2
+        assert all(entry["ensembl_gene_id"].startswith("ENSMUSG") for entry in result)
+        assert not any(entry["ensembl_gene_id"].startswith("ENSG") for entry in result)
+
+    def test_process_single_data_file_rounding(self) -> None:
+        """Test that numeric values are rounded to 5 decimal places."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "log2foldchange": [1.123456789],
+                "padj": [0.0123456789],
+                "model": ["Model_A"],
+                "case": ["Tg"],
+                "control": ["Wt"],
+                "age": ["6 months"],
+                "sex": ["Male"],
+                "tissue": ["Cortex"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        label_map_dict = {}
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        data_file_required_columns = [
+            "ensembl_gene_id",
+            "log2foldchange",
+            "padj",
+            "model",
+            "case",
+            "control",
+            "age",
+            "sex",
+            "tissue",
+        ]
+
+        result = _process_single_data_file(
+            file_name="rounding_test.csv",
+            data_file=data_file,
+            data_file_required_columns=data_file_required_columns,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+            file_index=0,
+            total_files=1,
+        )
+
+        # Values should be rounded to 5 decimal places
+        assert result[0]["6 months"]["log2_fc"] == pytest.approx(1.12346, abs=1e-6)
+        assert result[0]["6 months"]["adj_p_val"] == pytest.approx(0.01235, abs=1e-6)
+
+    def test_process_single_data_file_multiple_groups(self) -> None:
+        """Test processing a file with multiple groups (different genes/models/tissues)."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
+                "log2foldchange": [1.5, 0.5],
+                "padj": [0.01, 0.05],
+                "model": ["Model_A", "Model_B"],
+                "case": ["Tg", "Tg"],
+                "control": ["Wt", "Wt"],
+                "age": ["6 months", "3 months"],
+                "sex": ["Male", "Female"],
+                "tissue": ["Cortex", "Hippocampus"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        label_map_dict = {}
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        data_file_required_columns = [
+            "ensembl_gene_id",
+            "log2foldchange",
+            "padj",
+            "model",
+            "case",
+            "control",
+            "age",
+            "sex",
+            "tissue",
+        ]
+
+        result = _process_single_data_file(
+            file_name="multiple_groups.csv",
+            data_file=data_file,
+            data_file_required_columns=data_file_required_columns,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_info_dict=model_info_dict,
+            file_index=0,
+            total_files=1,
+        )
+
+        # Should have 2 separate output entries
+        assert len(result) == 2
+        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert result[1]["ensembl_gene_id"] == "ENSMUSG00000000002"
 
 
 class TestTransformRnaDeAggregate:
@@ -524,6 +1199,88 @@ class TestTransformRnaDeAggregate:
         # Verify only mouse genes are present
         for entry in output_data:
             assert entry["ensembl_gene_id"].startswith("ENSMUSG")
+
+    def test_nan_adj_p_values_are_coerced_to_zero(self) -> None:
+        """NaN adjusted p-values in source data should be exported as 0."""
+
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_nan_negative_zero_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        output_data = transform_rna_de_aggregate(datasets=datasets)
+
+        assert len(output_data) == 1
+        result_entry = output_data[0]
+        twelve_month_entry = result_entry["12 months"]
+        assert math.isclose(twelve_month_entry["adj_p_val"], 0.0, abs_tol=1e-12)
+
+    def test_negative_zero_log2foldchange_are_coerced_to_zero(self) -> None:
+        """-0.0 log2 fold change in source data should be exported as 0."""
+
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_nan_negative_zero_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        output_data = transform_rna_de_aggregate(datasets=datasets)
+
+        assert len(output_data) == 1
+        result_entry = output_data[0]
+        eighteen_month_entry = result_entry["18 months"]
+        assert math.isclose(eighteen_month_entry["adj_p_val"], 0.0, abs_tol=1e-12)
+        assert math.copysign(1.0, eighteen_month_entry["adj_p_val"]) > 0
+
+    def test_negative_adj_p_values_raise_error(self) -> None:
+        """Negative adjusted p-values in source data should raise ValueError."""
+
+        # Load required metadata datasets
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        # Create a dataframe with a negative p-value directly
+        negative_padj_data = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "log2foldchange": [1.00000],
+                "padj": [-0.10000],
+                "model": ["Model_A"],
+                "case": ["Tg"],
+                "control": ["Wt"],
+                "age": ["3 months"],
+                "sex": ["Female"],
+                "tissue": ["Brain"],
+            }
+        )
+
+        datasets["negative_padj_data"] = negative_padj_data
+
+        with pytest.raises(ValueError) as exc_info:
+            transform_rna_de_aggregate(datasets=datasets)
+
+        error_message = str(exc_info.value)
+        assert "Negative adjusted p-value found in data" in error_message
+        assert "ENSMUSG00000000001" in error_message
+        assert "Model_A" in error_message
+        assert "Brain" in error_message
+        assert "Female" in error_message
+        assert "-0.10000" in error_message or "-0.1" in error_message
 
     def test_synthetic_age_sorting(self) -> None:
         """Test age sorting with synthetic data.

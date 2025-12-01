@@ -16,6 +16,7 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_rounding_precision_data.csv`**: Tests numeric rounding to 5 decimal places
 - **`synthetic_multiple_biodomains_data.csv`**: Tests genes with multiple biodomain assignments
 - **`synthetic_null_model_group_data.csv`**: Tests empty model_group conversion to null
+- **`synthetic_nan_negative_zero_data.csv`**: Tests NaN adjusted p-value coercion to 0.0
 - **`synthetic_empty_data.csv`**: Empty data file for error testing
 - **`synthetic_missing_columns_data.csv`**: Missing required columns for error testing
 
@@ -103,7 +104,28 @@ Expected: model_group=null (not empty string)
 Tests: Empty string to null conversion for model_group field
 ```
 
-### Scenario 10: Inconsistent Model Group (`synthetic_rnaseq_genotype_label_map_inconsistent.csv`)
+### Scenario 10: NaN Adj P-Values (`synthetic_nan_negative_zero_data.csv`)
+```
+Gene: ENSMUSG00000000003 (Gene_C)
+Model: Model_A
+Ages: 12 months (padj=NaN, log2foldchange=0.12345), 18 months (padj=0.0, log2foldchange=-0.000001)
+Expected: 
+  - 12 months: adj_p_val=0.0 (NaN coerced), log2_fc=0.12345
+  - 18 months: adj_p_val=0.0 (positive zero verified), log2_fc=-0.000001
+Tests: NaN padj coercion to 0.0 and verification that zero padj values are positive
+Note: This dataset is used by two tests: test_nan_adj_p_values_are_coerced_to_zero (tests 12 months)
+      and test_negative_zero_log2foldchange_are_coerced_to_zero (tests 18 months, verifies adj_p_val is positive zero)
+```
+
+### Scenario 11: Negative Adjusted P-Values (Error Testing)
+```
+Test: test_negative_adj_p_values_raise_error
+Input: DataFrame with padj=-0.1 (created programmatically in test)
+Expected: ValueError raised with informative message identifying the negative padj value
+Tests: Validation that negative adjusted p-values are rejected with clear error message
+```
+
+### Scenario 12: Inconsistent Model Group (`synthetic_rnaseq_genotype_label_map_inconsistent.csv`)
 ```
 Model: Model_A with inconsistent model_group values
   - Tg genotype → GroupX
@@ -166,6 +188,9 @@ When testing, verify:
 11. **Missing metadata**: Gene not in metadata → gene_symbol="" and biodomains=[]
 12. **Null model_group**: Empty model_group converted to null in output
 13. **Model group consistency**: Each model must have consistent model_group values across all genotypes (raises ValueError if inconsistent)
+14. **Negative padj validation**: Negative adjusted p-values raise ValueError with informative error message
+15. **Log2foldchange normalization**: Negative zero (-0.0) log2foldchange values are normalized to positive zero (0.0) via normalize_zero function
+16. **NaN padj coercion**: NaN adjusted p-values are coerced to 0.0 in output
 
 ## File Structure
 ```
@@ -181,6 +206,7 @@ tests/test_assets/rna_de_aggregate/
 │   │   ├── synthetic_rounding_precision_data.csv
 │   │   ├── synthetic_multiple_biodomains_data.csv
 │   │   ├── synthetic_null_model_group_data.csv
+│   │   ├── synthetic_nan_negative_zero_data.csv
 │   │   ├── synthetic_empty_data.csv
 │   │   └── synthetic_missing_columns_data.csv
 │   └── Metadata Files:
