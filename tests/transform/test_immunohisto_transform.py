@@ -1330,9 +1330,11 @@ class TestCreateMeasureOrderKey:
 
     def test_create_measure_order_key_invalid_columns(self) -> None:
         """
-        Test that ValueError is raised when config has wrong columns.
+        Test that KeyError is raised when config has wrong columns.
 
-        Validates proper error handling for malformed config.
+        Note: In practice, column validation happens earlier in the main transform
+        function via check_required_datasets_and_columns. This test validates the
+        function's behavior when called directly with invalid input.
         """
         # Create config with wrong columns
         config_df = pd.DataFrame(
@@ -1343,9 +1345,8 @@ class TestCreateMeasureOrderKey:
         )
         datasets = {"immunohisto_measure_order": config_df}
 
-        with pytest.raises(
-            ValueError, match="must have 'dataset_name' and 'evidence_type' columns"
-        ):
+        # Function will fail when trying to access non-existent columns
+        with pytest.raises(KeyError):
             _create_measure_order_key(datasets, "biomarkers")
 
 

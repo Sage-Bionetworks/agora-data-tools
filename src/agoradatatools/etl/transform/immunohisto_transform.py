@@ -257,16 +257,11 @@ def _create_measure_order_key(
     config_df = datasets[config_key].copy()
 
     # Handle generic column names from read_yaml_into_df (key/items) or legacy names (dataset_name/evidence_type)
+    # Note: Column validation is already performed in the main transform function via check_required_datasets_and_columns
     if "key" in config_df.columns and "items" in config_df.columns:
         # Rename generic columns to expected names
         config_df = config_df.rename(
             columns={"key": "dataset_name", "items": "evidence_type"}
-        )
-    elif not all(col in config_df.columns for col in ["dataset_name", "evidence_type"]):
-        raise ValueError(
-            f"Measure order configuration must have 'dataset_name' and 'evidence_type' columns "
-            f"(or 'key' and 'items' columns from generic YAML reader). "
-            f"Found columns: {config_df.columns.tolist()}"
         )
 
     # Reconstruct the list structure from the exploded DataFrame
