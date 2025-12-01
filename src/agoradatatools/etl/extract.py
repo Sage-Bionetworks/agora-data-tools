@@ -165,9 +165,17 @@ def read_yaml_into_df(yaml_path: str) -> pd.DataFrame:
     """
     Reads provided YAML file into dataframe using file path.
 
-    For YAML files containing measure order configurations (with keys like 'biomarkers'
-    and 'pathology' mapping to lists of evidence types), this function converts the
-    nested structure into a flat DataFrame with 'dataset_name' and 'evidence_type' columns.
+    This function converts a YAML file (assumed to be a dictionary/mapping) into a DataFrame.
+    The behavior depends on the structure of the YAML content:
+
+    - If all values in the YAML are lists: Returns a DataFrame with 'key' and 'items' columns,
+      where each list item gets its own row (the DataFrame is exploded). This is useful for
+      configurations where each key maps to a list of items.
+
+    - If values are mixed types (dicts, lists, primitives): Returns a DataFrame with 'key' and
+      'items' columns, where each key gets one row and the 'items' column contains the entire
+      value structure (dict, list, or other) for that key. Transforms can then handle the
+      structure as needed.
 
     Args:
         yaml_path (str): path to input YAML file
@@ -177,8 +185,9 @@ def read_yaml_into_df(yaml_path: str) -> pd.DataFrame:
         configuration does not match the extension of the file provided
 
     Returns:
-        pd.DataFrame: data frame created from YAML file path with columns
-                      'dataset_name' and 'evidence_type'
+        pd.DataFrame: data frame created from YAML file path with 'key' and 'items' columns.
+                      When all values are lists, one row per list item; otherwise, one row per
+                      key with the full value structure in the 'items' column.
     """
 
     file_extension = yaml_path.split(".")[-1]
@@ -191,14 +200,14 @@ def read_yaml_into_df(yaml_path: str) -> pd.DataFrame:
     with open(yaml_path, "r") as f:
         data = yaml.safe_load(f)
 
-    # Convert nested dict structure to flat DataFrame
-    # Expected format: {"biomarkers": [...], "pathology": [...]}
-    rows = []
-    for dataset_name, evidence_types in data.items():
-        if isinstance(evidence_types, list):
-            for evidence_type in evidence_types:
-                rows.append(
-                    {"dataset_name": dataset_name, "evidence_type": evidence_type}
-                )
+    # Convert YAML dictionary to DataFrame with 'key' and 'items' columns
+    data_df = pd.DataFrame({"key": list(data.keys()), "items": list(data.values())})
 
-    return pd.DataFrame(rows)
+    # Check if all values are lists
+    is_list = data_df["items"].apply(lambda x: isinstance(x, list))
+
+    # If all values are lists, explode so each list item gets its own row
+    if all(is_list):
+        data_df = data_df.explode("items").reset_index(drop=True)
+
+    return data_df

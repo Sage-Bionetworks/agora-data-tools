@@ -254,12 +254,18 @@ def _create_measure_order_key(
             "Measure order configuration 'immunohisto_measure_order' is required but not found in datasets"
         )
 
-    config_df = datasets[config_key]
+    config_df = datasets[config_key].copy()
 
-    # Validate that required columns are present
-    if not all(col in config_df.columns for col in ["dataset_name", "evidence_type"]):
+    # Handle generic column names from read_yaml_into_df (key/items) or legacy names (dataset_name/evidence_type)
+    if "key" in config_df.columns and "items" in config_df.columns:
+        # Rename generic columns to expected names
+        config_df = config_df.rename(
+            columns={"key": "dataset_name", "items": "evidence_type"}
+        )
+    elif not all(col in config_df.columns for col in ["dataset_name", "evidence_type"]):
         raise ValueError(
-            f"Measure order configuration must have 'dataset_name' and 'evidence_type' columns. "
+            f"Measure order configuration must have 'dataset_name' and 'evidence_type' columns "
+            f"(or 'key' and 'items' columns from generic YAML reader). "
             f"Found columns: {config_df.columns.tolist()}"
         )
 
@@ -351,6 +357,17 @@ def immunohisto_transform(
         raise ValueError(
             "At least one of 'biomarkers' or 'pathology' must be present in the datasets"
         )
+
+    # Convert immunohisto_measure_order DataFrame format if needed
+    # Handle generic column names from read_yaml_into_df (key/items) or legacy names (dataset_name/evidence_type)
+    if "immunohisto_measure_order" in datasets:
+        config_df = datasets["immunohisto_measure_order"].copy()
+        if "key" in config_df.columns and "items" in config_df.columns:
+            # Rename generic columns to expected names
+            config_df = config_df.rename(
+                columns={"key": "dataset_name", "items": "evidence_type"}
+            )
+            datasets["immunohisto_measure_order"] = config_df
 
     # Filter required_input to only validate datasets that are actually present
     filtered_required_input = {

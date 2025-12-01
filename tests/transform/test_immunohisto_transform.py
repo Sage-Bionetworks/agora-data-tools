@@ -1134,15 +1134,17 @@ class TestMeasureOrderConfig:
         """
         Test that the test measure order config has the expected structure.
 
-        Validates that the test config file has the required columns and expected evidence types.
+        Validates that the test config file has the required columns (generic key/items)
+        and expected evidence types.
         """
         config = _load_test_measure_order_config()
 
-        assert "dataset_name" in config.columns
-        assert "evidence_type" in config.columns
+        # Check for generic columns returned by read_yaml_into_df
+        assert "key" in config.columns
+        assert "items" in config.columns
 
         # Check biomarkers
-        biomarkers = config[config["dataset_name"] == "biomarkers"]
+        biomarkers = config[config["key"] == "biomarkers"]
         expected_biomarkers = [
             "NfL",
             "Soluble A&beta;40",
@@ -1150,10 +1152,10 @@ class TestMeasureOrderConfig:
             "Insoluble A&beta;40",
             "Insoluble A&beta;42",
         ]
-        assert biomarkers["evidence_type"].tolist() == expected_biomarkers
+        assert biomarkers["items"].tolist() == expected_biomarkers
 
         # Check pathology
-        pathology = config[config["dataset_name"] == "pathology"]
+        pathology = config[config["key"] == "pathology"]
         expected_pathology = [
             "Plaque Density (Thio-S)",
             "Plaque Size (Thio-S)",
@@ -1164,7 +1166,7 @@ class TestMeasureOrderConfig:
             "Astrocyte Cell Density (GFAP)",
             "Astrocyte Cell Density (S100B)",
         ]
-        assert pathology["evidence_type"].tolist() == expected_pathology
+        assert pathology["items"].tolist() == expected_pathology
 
 
 class TestCreateMeasureOrderKey:

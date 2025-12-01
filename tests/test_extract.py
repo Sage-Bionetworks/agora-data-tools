@@ -99,22 +99,22 @@ def test_read_yaml_into_df():
     # Verify it returns a DataFrame
     assert isinstance(df, pd.DataFrame)
 
-    # Verify it has the expected columns
-    assert "dataset_name" in df.columns
-    assert "evidence_type" in df.columns
+    # Verify it has the expected generic columns (key/items)
+    assert "key" in df.columns
+    assert "items" in df.columns
 
     # Verify it has the expected number of rows (5 biomarkers + 8 pathology = 13)
     assert len(df) == 13
 
     # Verify the biomarkers are present
-    biomarker_rows = df[df["dataset_name"] == "biomarkers"]
+    biomarker_rows = df[df["key"] == "biomarkers"]
     assert len(biomarker_rows) == 5
-    assert "NfL" in biomarker_rows["evidence_type"].values
+    assert "NfL" in biomarker_rows["items"].values
 
     # Verify the pathology measures are present
-    pathology_rows = df[df["dataset_name"] == "pathology"]
+    pathology_rows = df[df["key"] == "pathology"]
     assert len(pathology_rows) == 8
-    assert "Tau (HT7)" in pathology_rows["evidence_type"].values
+    assert "Tau (HT7)" in pathology_rows["items"].values
 
 
 @pytest.mark.parametrize(
