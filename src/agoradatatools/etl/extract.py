@@ -189,7 +189,7 @@ def read_yaml_into_df(yaml_path: str) -> pd.DataFrame:
         )
 
     with open(yaml_path, "r") as f:
-        data = yaml.load(f, Loader=yaml.FullLoader)
+        data = yaml.safe_load(f)
 
     # Convert nested dict structure to flat DataFrame
     # Expected format: {"biomarkers": [...], "pathology": [...]}
