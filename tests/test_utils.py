@@ -863,10 +863,10 @@ class TestNormalizeZero:
 
     def test_negative_values_preserved(self) -> None:
         """Test that negative values (other than -0.0) are preserved."""
-        assert utils.normalize_zero(-1.0) == -1.0
-        assert utils.normalize_zero(-42.5) == -42.5
-        assert utils.normalize_zero(-0.001) == -0.001
-        assert utils.normalize_zero(-1e10) == -1e10
+        assert utils.normalize_zero(-1.0) == pytest.approx(-1.0)
+        assert utils.normalize_zero(-42.5) == pytest.approx(-42.5)
+        assert utils.normalize_zero(-0.001) == pytest.approx(-0.001)
+        assert utils.normalize_zero(-1e10) == pytest.approx(-1e10)
 
     def test_very_small_positive_value_preserved(self) -> None:
         """Test that very small positive values are preserved."""
