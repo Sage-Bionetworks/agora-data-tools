@@ -216,74 +216,6 @@ def _extract_age_num(age_str: str) -> float:
         raise ValueError(f"Invalid age value: {age_str!r}") from exc
 
 
-def _create_measure_order_key(
-    datasets: Dict[str, pd.DataFrame],
-    dataset_name: str,
-    config_key: str = "immunohisto_measure_order",
-) -> callable:
-    """
-    Create a sorting key function for evidence_type based on the measure order configuration.
-
-    This function loads the measure order configuration from datasets and creates a sorting
-    key function. Evidence types listed in the config will be sorted in that order, while
-    unlisted types will be sorted alphabetically after the listed types.
-
-    Args:
-        datasets: Dictionary of dataset names mapped to their DataFrames
-        dataset_name: Name of the dataset ('biomarkers' or 'pathology')
-        config_key: Key to look for in datasets dictionary (defaults to 'immunohisto_measure_order')
-
-    Returns:
-        A function that takes an evidence_type string and returns a tuple that
-        can be used for sorting. The tuple is (order_index, evidence_type) where
-        order_index is the position in the measure order list (or a large number for
-        unlisted types to sort them after listed ones).
-
-    Raises:
-        ValueError: If the config is not found in datasets or has invalid structure
-
-    Example:
-        >>> datasets = {"immunohisto_measure_order": config_df}
-        >>> key_func = _create_measure_order_key(datasets, "biomarkers")
-        >>> sorted(["Soluble A&beta;40", "Other Type", "NfL"], key=key_func)
-        ["NfL", "Soluble A&beta;40", "Other Type"]
-    """
-    # Load and validate config from datasets
-    if config_key not in datasets:
-        raise ValueError(
-            "Measure order configuration 'immunohisto_measure_order' is required but not found in datasets"
-        )
-
-    config_df = datasets[config_key].copy()
-
-    # Handle generic column names from read_yaml_into_df (key/items) or legacy names (dataset_name/evidence_type)
-    # Note: Column validation is already performed in the main transform function via check_required_datasets_and_columns
-    if "key" in config_df.columns and "items" in config_df.columns:
-        # Rename generic columns to expected names
-        config_df = config_df.rename(
-            columns={"key": "dataset_name", "items": "evidence_type"}
-        )
-
-    # Reconstruct the list structure from the exploded DataFrame
-    # (read_yaml_into_df explodes lists into separate rows, so we group them back)
-    measure_order_by_dataset = (
-        config_df.groupby("dataset_name")["evidence_type"].apply(list).to_dict()
-    )
-    measure_order = measure_order_by_dataset.get(dataset_name, [])
-
-    # Create a mapping of evidence_type to its desired order index
-    order_map = {evidence_type: idx for idx, evidence_type in enumerate(measure_order)}
-
-    def key_func(evidence_type: str) -> Tuple[int, str]:
-        # If the evidence_type is in our config, use its index
-        # Otherwise, use a large number to sort it after all configured types
-        # Also include the evidence_type itself for alphabetical sorting within unlisted types
-        order_idx = order_map.get(evidence_type, len(measure_order) + 1000)
-        return (order_idx, evidence_type)
-
-    return key_func
-
-
 def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
     dataset_name: str,
@@ -365,12 +297,15 @@ def immunohisto_transform(
             )
             datasets["immunohisto_measure_order"] = config_df
 
-    # Filter required_input to only validate datasets that are actually present
-    filtered_required_input = {
-        key: value for key, value in required_input.items() if key in datasets
+    # Build required_input with only the datasets that are actually required:
+    # - The specific dataset being transformed (biomarkers or pathology)
+    # - immunohisto_measure_order (always required for sorting)
+    actual_required_input = {
+        dataset_name: required_input[dataset_name],
+        "immunohisto_measure_order": required_input["immunohisto_measure_order"],
     }
 
-    check_required_datasets_and_columns(datasets, filtered_required_input)
+    check_required_datasets_and_columns(datasets, actual_required_input)
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
 
@@ -408,15 +343,27 @@ def immunohisto_transform(
     # attempting to access the measure order configuration.
     data_rows["age_numeric"] = data_rows["age"].apply(_extract_age_num)
 
-    # Create sorting key function for evidence_type based on measure order config
-    measure_order_key = _create_measure_order_key(datasets, dataset_name)
+    # Assuming config_df is already .explode()-ed and renamed (handled earlier in function)
+    config_df = datasets["immunohisto_measure_order"].copy()
+
+    # Filter config for this dataset, reset index to create order column, and merge
+    config_df = (
+        config_df[config_df["dataset_name"] == dataset_name]
+        .reset_index(drop=True)  # Re-number the rows from 0-N
+        .drop(columns="dataset_name")
+    )
+    config_df["evidence_type_order"] = config_df.index
+
+    # Merge the order into data_rows
+    # Missing evidence types will have NaN in evidence_type_order, which pandas will sort to the end
+    data_rows = data_rows.merge(
+        config_df, how="left", on="evidence_type", validate="many_to_one"
+    )
 
     # Sort by age (using the numeric column), then by evidence_type using custom order
-    data_rows["evidence_type_order"] = data_rows["evidence_type"].apply(
-        measure_order_key
-    )
+    # Adding "evidence_type" as final sort key ensures alphabetical sorting for unlisted types
     data_rows = data_rows.sort_values(
-        ["age_numeric", "age", "evidence_type_order"]
+        ["age_numeric", "age", "evidence_type_order", "evidence_type"]
     ).drop(columns=["age_numeric", "evidence_type_order"])
 
     # Reorder columns to match expected output: group_columns + y_axis_max + extra_column_name
