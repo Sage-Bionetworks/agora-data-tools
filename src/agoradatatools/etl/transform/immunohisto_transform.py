@@ -269,11 +269,12 @@ def _create_measure_order_key(
             f"Found columns: {config_df.columns.tolist()}"
         )
 
-    # Extract the measure order for this specific dataset
-    dataset_rows = config_df[config_df["dataset_name"] == dataset_name]
-    measure_order = (
-        dataset_rows["evidence_type"].tolist() if not dataset_rows.empty else []
+    # Reconstruct the list structure from the exploded DataFrame
+    # (read_yaml_into_df explodes lists into separate rows, so we group them back)
+    measure_order_by_dataset = (
+        config_df.groupby("dataset_name")["evidence_type"].apply(list).to_dict()
     )
+    measure_order = measure_order_by_dataset.get(dataset_name, [])
 
     # Create a mapping of evidence_type to its desired order index
     order_map = {evidence_type: idx for idx, evidence_type in enumerate(measure_order)}
