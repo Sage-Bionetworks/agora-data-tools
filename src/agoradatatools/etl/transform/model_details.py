@@ -185,16 +185,6 @@ def transform_model_details(
 
     check_required_datasets_and_columns(datasets, required_with_config)
 
-    if "biomarkers" not in datasets:
-        raise ValueError(
-            "The 'biomarkers' dataset is required but not found in datasets"
-        )
-
-    if "pathology" not in datasets:
-        raise ValueError(
-            "The 'pathology' dataset is required but not found in datasets"
-        )
-
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
