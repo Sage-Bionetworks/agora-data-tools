@@ -286,7 +286,7 @@ def _create_output_entry_from_group(
         "model_group": model_group if model_group != "" else None,
         "model_type": model_type,
         "tissue": tissue,
-        "sex": sex,
+        "sex_cohort": sex,
         **sorted_ages,
     }
 

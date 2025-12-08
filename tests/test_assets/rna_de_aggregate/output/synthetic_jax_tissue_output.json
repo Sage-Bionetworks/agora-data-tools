@@ -8,7 +8,7 @@
     "model_group": "AD",
     "model_type": "Transgenic",
     "tissue": "Hemibrain",
-    "sex": "Male",
+    "sex_cohort": "Male",
     "3 months": {
       "log2_fc": 3.0,
       "adj_p_val": 0.3

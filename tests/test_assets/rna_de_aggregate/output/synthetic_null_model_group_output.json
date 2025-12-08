@@ -8,7 +8,7 @@
     "model_group": null,
     "model_type": "Transgenic",
     "tissue": "Brain",
-    "sex": "Female",
+    "sex_cohort": "Female",
     "3 months": {
       "log2_fc": 1.0,
       "adj_p_val": 0.01

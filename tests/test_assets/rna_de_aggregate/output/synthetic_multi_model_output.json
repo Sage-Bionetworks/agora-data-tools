@@ -8,7 +8,7 @@
     "model_group": "AD",
     "model_type": "Transgenic",
     "tissue": "Hippocampus",
-    "sex": "Male",
+    "sex_cohort": "Male",
     "3 months": {
       "log2_fc": 1.1,
       "adj_p_val": 0.011
@@ -27,7 +27,7 @@
     "model_group": "AD",
     "model_type": "Transgenic",
     "tissue": "Cortex",
-    "sex": "Female",
+    "sex_cohort": "Female",
     "3 months": {
       "log2_fc": 0.5,
       "adj_p_val": 0.05
