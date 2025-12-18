@@ -259,8 +259,8 @@ def _create_output_entry_from_group(
     ensembl_gene_id, model, tissue, sex, case, control = group_key
 
     gene_symbol = gene_metadata_dict.get(ensembl_gene_id, "")
-    name = label_map_dict.get((model, case), model)
-    matched_control = label_map_dict.get((model, control), model)
+    name = label_map_dict.get((model, case), case)
+    matched_control = label_map_dict.get((model, control), control)
     model_group = model_group_dict.get(model)
     biodomains = biodomain_dict.get(ensembl_gene_id, [])
     model_type = model_info_dict.get(model, "")
