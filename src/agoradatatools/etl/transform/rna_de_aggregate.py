@@ -209,13 +209,16 @@ def _create_output_entry_from_group(
     Args:
         group_key: Tuple containing (ensembl_gene_id, model, tissue, sex, case, control)
             that uniquely identifies this group. The case and control values represent the
-            genotype labels for the experimental and control conditions.
+            genotype identifiers (e.g., '5XFAD_carrier', '5XFAD_noncarrier') from the input
+            data files, which are mapped to display labels via the label_map_dict.
         group: DataFrame group containing age-based differential expression data. Each row
             represents a single age timepoint with columns: age, log2foldchange, padj.
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols. Used to
             enrich entries with human-readable gene names.
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
-            Used to create human-readable names for case and control conditions.
+            Used to map genotype identifiers to human-readable display names for case and
+            control conditions. For example, ('5xFAD (UCI)', '5XFAD_carrier') -> '5xFAD (UCI)',
+            or ('5xFAD (UCI)', '5XFAD_noncarrier') -> 'C57BL/6J'.
         model_group_dict: Dictionary mapping model names to model groups. Used to categorize
             models into groups (e.g., "5XFAD", "APP/PS1").
         biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
@@ -335,7 +338,9 @@ def _process_single_data_file(
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols. Used
             to enrich output entries with human-readable gene names.
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
-            Used to create human-readable names for case and control conditions.
+            Used to map genotype identifiers to human-readable display names for case and
+            control conditions. For example, ('5xFAD (UCI)', '5XFAD_carrier') -> '5xFAD (UCI)',
+            or ('5xFAD (UCI)', '5XFAD_noncarrier') -> 'C57BL/6J'.
         model_group_dict: Dictionary mapping model names to model groups. Used to
             categorize models into groups (e.g., "5XFAD", "APP/PS1").
         biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
@@ -425,7 +430,7 @@ def transform_rna_de_aggregate(
     1. Validates that all required input datasets and columns are present
     2. Pre-computes lookup dictionaries from metadata for efficient data enrichment:
        - Gene symbols from Ensembl IDs
-       - Display labels for genotypes
+       - Display labels for genotype identifiers (case/control) by model
        - Model groups and types
        - Biodomain annotations
     3. Validates data consistency (e.g., ensures each model has a consistent model_group)
@@ -442,7 +447,9 @@ def transform_rna_de_aggregate(
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
-            - 'rnaseq_genotype_label_map': Maps models and genotypes to display labels
+            - 'rnaseq_genotype_label_map': Maps (model, genotype) combinations to display labels
+              and organizes models into model_groups. Each row specifies how a genotype identifier
+              should be displayed for a given model.
             - 'mouse_gene_metadata': Gene symbols and aliases for Ensembl IDs
             - 'model_info': Model types and metadata
             - 'biodom_genes_mm': Biodomain annotations for mouse genes
