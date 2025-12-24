@@ -285,17 +285,6 @@ def immunohisto_transform(
             "At least one of 'biomarkers' or 'pathology' must be present in the datasets"
         )
 
-    # Convert immunohisto_measure_order DataFrame format if needed
-    # Handle generic column names from read_yaml_into_df (key/items) or legacy names (dataset_name/evidence_type)
-    if "immunohisto_measure_order" in datasets:
-        config_df = datasets["immunohisto_measure_order"].copy()
-        if "key" in config_df.columns and "items" in config_df.columns:
-            # Rename generic columns to expected names
-            config_df = config_df.rename(
-                columns={"key": "dataset_name", "items": "evidence_type"}
-            )
-            datasets["immunohisto_measure_order"] = config_df
-
     # Build required_input with only the datasets that are actually required:
     # - The specific dataset being transformed (biomarkers or pathology)
     # - immunohisto_measure_order (always required for sorting)

@@ -20,6 +20,8 @@ datasets:
         measurement: value
         type: evidence_type
         model: name
+        key: dataset_name
+        items: evidence_type
 
   - pathology:
       files:
@@ -38,6 +40,8 @@ datasets:
         measurement: value
         type: evidence_type
         model: name
+        key: dataset_name
+        items: evidence_type
 
   - model_details:
       files:
@@ -73,6 +77,8 @@ datasets:
         measurement: value
         type: evidence_type
         model: name
+        key: dataset_name
+        items: evidence_type
       gx_nested_columns:
         - genetic_info
         - biomarkers
