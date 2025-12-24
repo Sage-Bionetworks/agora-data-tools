@@ -39,6 +39,18 @@ import logging
 import gc
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns, normalize_zero
+from agoradatatools.etl.transform.rna_shared_utils import (
+    filter_mouse_genes,
+    validate_and_sort_age_entries as validate_and_sort_age_entries_shared,
+    validate_model_group_consistency,
+    create_gene_metadata_dict,
+    create_model_group_dict,
+    create_label_map_dict,
+    log_file_processing_info,
+    validate_data_file_not_empty,
+    normalize_model_group_value,
+    extract_common_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -87,30 +99,9 @@ def _validate_and_sort_age_entries(
     Raises:
         ValueError: If any age string is empty, whitespace-only, or not in 'N months' format
     """
-    # Validate that no age strings are empty or whitespace-only
-    for age in age_entries.keys():
-        age_stripped = age.strip()
-        if not age_stripped:
-            raise ValueError(
-                f"Empty or whitespace-only age value found in data for gene '{ensembl_gene_id}', "
-                f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-                f"Expected 'N months' format but found: '{age}'"
-            )
-
-    # Sort age entries by numeric value with error handling for format validation
-    try:
-        sorted_ages = dict(
-            sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
-        )
-    except (ValueError, IndexError) as e:
-        raise ValueError(
-            f"Invalid age format in data for gene '{ensembl_gene_id}', "
-            f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-            f"Expected 'N months' format but found: {list(age_entries.keys())}. "
-            f"Original error: {e}"
-        ) from e
-
-    return sorted_ages
+    return validate_and_sort_age_entries_shared(
+        age_entries, ensembl_gene_id, model, tissue, sex
+    )
 
 
 def _create_age_entries_from_group(
@@ -261,7 +252,11 @@ def _create_output_entry_from_group(
     """
     ensembl_gene_id, model, tissue, sex, case, control = group_key
 
-    gene_symbol = gene_metadata_dict.get(ensembl_gene_id, "")
+    # Extract common metadata (gene_symbol, tissue mapping)
+    common_metadata = extract_common_metadata(
+        ensembl_gene_id, tissue, gene_metadata_dict
+    )
+
     name = label_map_dict.get((model, case), case)
     matched_control = label_map_dict.get((model, control), control)
     model_group = model_group_dict.get(model)
@@ -276,19 +271,13 @@ def _create_output_entry_from_group(
         age_entries, ensembl_gene_id, model, tissue, sex
     )
 
-    # If tissue is "Right Cerebral Hemisphere", change tissue to "Hemibrain"
-    # Only expected for JAX models
-    tissue = "Hemibrain" if tissue == "Right Cerebral Hemisphere" else tissue
-
     return {
-        "ensembl_gene_id": ensembl_gene_id,
-        "gene_symbol": gene_symbol,
+        **common_metadata,
         "biodomains": biodomains,
         "name": name,
         "matched_control": matched_control,
-        "model_group": model_group if model_group != "" else None,
+        "model_group": normalize_model_group_value(model_group),
         "model_type": model_type,
-        "tissue": tissue,
         "sex_cohort": sex,
         **sorted_ages,
     }
@@ -369,22 +358,17 @@ def _process_single_data_file(
         genes to ensure only mouse (Mus musculus) data is processed, as indicated by
         Ensembl IDs starting with "ENSMUSG".
     """
-    logger.info(
-        f"Processing {file_name} ({file_index+1}/{total_files}): {len(data_file)} rows, "
-        f"{len(data_file.columns)} columns, "
-        f"{data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
-    )
+    log_file_processing_info(file_name, file_index, total_files, data_file)
 
     # Check if data file is empty (before column validation)
-    if len(data_file) == 0:
-        raise ValueError(f"Data file {file_name} is empty")
+    validate_data_file_not_empty(file_name, data_file)
 
     check_required_datasets_and_columns(
         {file_name: data_file}, {file_name: data_file_required_columns}
     )
 
     # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
-    data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
+    data_file = filter_mouse_genes(data_file)
 
     # Round numeric columns to 5 decimal places for consistency
     data_file = data_file.round(decimals=5)
@@ -511,31 +495,16 @@ def transform_rna_de_aggregate(
     )
 
     # Create lookup dictionaries
-    gene_metadata_dict = mouse_gene_metadata_df.set_index("ensembl_gene_id")[
-        "gene_symbol"
-    ].to_dict()
+    gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
     model_info_dict = model_info_df.set_index("model")["model_type"].to_dict()
 
     # Create label map dictionaries for efficient lookups
-    label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
-        "display_label"
-    ].to_dict()
+    label_map_dict = create_label_map_dict(rnaseq_genotype_label_map_df)
 
     # Validate that each model has consistent model_group values
-    inconsistent_models = (
-        rnaseq_genotype_label_map_df.groupby("model")["model_group"]
-        .nunique()
-        .pipe(lambda x: x[x > 1].index.tolist())
-    )
-    if inconsistent_models:
-        raise ValueError(
-            f"Each model must have a consistent model_group value in rnaseq_genotype_label_map. "
-            f"Models with inconsistent model_group values: {inconsistent_models}"
-        )
+    validate_model_group_consistency(rnaseq_genotype_label_map_df)
 
-    model_group_dict = (
-        rnaseq_genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
-    )
+    model_group_dict = create_model_group_dict(rnaseq_genotype_label_map_df)
 
     # Create biodomain lookup dictionary
     biodomain_dict = (

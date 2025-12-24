@@ -166,3 +166,42 @@ datasets:
         - syn69058662
       destination: *dest
       custom_transformations: transform_rna_de_aggregate
+
+  - rna_de_individual:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422
+          format: json
+        - name: Jax.IU.Pitt_5XFAD_normalized_expression
+          id: syn69693095
+          format: csv
+        - name: UCI_3xTg-AD_normalized_expression
+          id: syn69693094
+          format: csv
+        - name: UCI_ABCA7_normalized_expression
+          id: syn69693096
+          format: csv
+        - name: Jax.IU.Pitt_APOE4.Trem2.R47H_normalized_expression
+          id: syn69693097
+          format: csv
+        - name: UCI_5XFAD_normalized_expression
+          id: syn69693098
+          format: csv
+        - name: UCI_Trem2-R47H_NSS_normalized_expression
+          id: syn69693099
+          format: csv
+      final_format: json
+      provenance:
+        - syn69014401
+        - syn51615422
+        - syn69693095
+        - syn69693094
+        - syn69693096
+        - syn69693097
+        - syn69693098
+        - syn69693099
+      destination: *dest
+      custom_transformations: transform_rna_de_individual
