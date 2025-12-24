@@ -8,7 +8,7 @@
     "model_group": "AD",
     "model_type": "Transgenic",
     "tissue": "Striatum",
-    "sex": "Male",
+    "sex_cohort": "Male",
     "9 months": {
       "log2_fc": 5.0,
       "adj_p_val": 0.5
