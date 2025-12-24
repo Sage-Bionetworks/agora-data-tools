@@ -1,0 +1,120 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000003",
+    "hgnc_symbol": "Gene3",
+    "tissue": "Hippocampus",
+    "name": "Abca7*V1599M",
+    "model_group": "Abca7*V1599M",
+    "matched_control": "C57BL/6J",
+    "units": "Log2 Counts per Million",
+    "individual_results": [
+      {
+        "age": "4 months",
+        "data": [
+          {
+            "genotype": "Abca7-V1599M_homozygous",
+            "sex": "Male",
+            "individual_id": "3001",
+            "value": 4.5
+          },
+          {
+            "genotype": "Abca7-V1599M_homozygous",
+            "sex": "Female",
+            "individual_id": "3002",
+            "value": 4.2
+          },
+          {
+            "genotype": "5XFAD_carrier; Abca7-V1599M_homozygous",
+            "sex": "Male",
+            "individual_id": "3003",
+            "value": 5.1
+          },
+          {
+            "genotype": "5XFAD_carrier; Abca7-V1599M_homozygous",
+            "sex": "Female",
+            "individual_id": "3004",
+            "value": 5.3
+          },
+          {
+            "genotype": "5XFAD_carrier",
+            "sex": "Male",
+            "individual_id": "3005",
+            "value": 4.9
+          },
+          {
+            "genotype": "5XFAD_carrier",
+            "sex": "Female",
+            "individual_id": "3006",
+            "value": 5.0
+          },
+          {
+            "genotype": "5XFAD_noncarrier",
+            "sex": "Male",
+            "individual_id": "3007",
+            "value": 3.8
+          },
+          {
+            "genotype": "5XFAD_noncarrier",
+            "sex": "Female",
+            "individual_id": "3008",
+            "value": 3.9
+          }
+        ]
+      },
+      {
+        "age": "12 months",
+        "data": [
+          {
+            "genotype": "Abca7-V1599M_homozygous",
+            "sex": "Male",
+            "individual_id": "4001",
+            "value": 5.5
+          },
+          {
+            "genotype": "Abca7-V1599M_homozygous",
+            "sex": "Female",
+            "individual_id": "4002",
+            "value": 5.2
+          },
+          {
+            "genotype": "5XFAD_carrier; Abca7-V1599M_homozygous",
+            "sex": "Male",
+            "individual_id": "4003",
+            "value": 6.1
+          },
+          {
+            "genotype": "5XFAD_carrier; Abca7-V1599M_homozygous",
+            "sex": "Female",
+            "individual_id": "4004",
+            "value": 6.3
+          },
+          {
+            "genotype": "5XFAD_carrier",
+            "sex": "Male",
+            "individual_id": "4005",
+            "value": 5.9
+          },
+          {
+            "genotype": "5XFAD_carrier",
+            "sex": "Female",
+            "individual_id": "4006",
+            "value": 6.0
+          },
+          {
+            "genotype": "5XFAD_noncarrier",
+            "sex": "Male",
+            "individual_id": "4007",
+            "value": 4.8
+          },
+          {
+            "genotype": "5XFAD_noncarrier",
+            "sex": "Female",
+            "individual_id": "4008",
+            "value": 4.9
+          }
+        ]
+      }
+    ]
+  }
+]
+

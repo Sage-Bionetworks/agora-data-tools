@@ -1,0 +1,12 @@
+model,model_group,display_label,genotype
+5xFAD (UCI),,5xFAD (UCI),5XFAD_carrier
+5xFAD (UCI),,C57BL/6J,5XFAD_noncarrier
+Abca7*V1599M,Abca7*V1599M,Abca7*V1599M,Abca7-V1599M_homozygous
+Abca7*V1599M,Abca7*V1599M,C57BL/6J,5XFAD_noncarrier
+Abca7*V1599M,Abca7*V1599M,Abca7*V1599M.5xFAD,5XFAD_carrier; Abca7-V1599M_homozygous
+Abca7*V1599M,Abca7*V1599M,5xFAD,5XFAD_carrier
+LOAD1,LOAD1,C57BL/6J,APOE4-KI_noncarrier
+LOAD1,LOAD1,APOE4,APOE4-KI_homozygous
+LOAD1,LOAD1,LOAD1,APOE4-KI_homozygous; Trem2-R47H_homozygous
+LOAD1,LOAD1,Trem2R47H,Trem2-R47H_homozygous
+
