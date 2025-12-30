@@ -549,7 +549,7 @@ class TestCreateOutputEntryFromGroup:
         assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
 
     def test_create_output_entry_missing_metadata(self) -> None:
-        """Test output entry creation with missing metadata (defaults to empty strings/lists)."""
+        """Test output entry creation with missing metadata (defaults to genotype strings for name/matched_control)."""
         group_key = (
             "ENSMUSG00000000002",
             "Model_B",
@@ -586,8 +586,8 @@ class TestCreateOutputEntryFromGroup:
         assert result["ensembl_gene_id"] == "ENSMUSG00000000002"
         assert result["gene_symbol"] == ""  # Default for missing
         assert result["biodomains"] == []  # Default for missing
-        assert result["name"] == "Model_B"  # Falls back to model name
-        assert result["matched_control"] == "Model_B"  # Falls back to model name
+        assert result["name"] == "Tg"  # Falls back to case genotype
+        assert result["matched_control"] == "Wt"  # Falls back to control genotype
         assert result["model_group"] is None  # Empty string converted to None
         assert result["model_type"] == ""  # Default for missing
         assert result["tissue"] == "Hippocampus"
