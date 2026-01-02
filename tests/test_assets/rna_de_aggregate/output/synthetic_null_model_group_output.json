@@ -3,7 +3,9 @@
     "ensembl_gene_id": "ENSMUSG00000000001",
     "gene_symbol": "Gene_A",
     "biodomains": ["Synaptic"],
-    "name": "Model_NoGroup (Tg)",
+    "name": {
+      "link_url": "models/Model_NoGroup (Tg)"
+    },
     "matched_control": "Model_NoGroup (Wt)",
     "model_group": null,
     "model_type": "Transgenic",

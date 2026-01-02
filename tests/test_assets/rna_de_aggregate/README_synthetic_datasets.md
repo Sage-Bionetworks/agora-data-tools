@@ -156,8 +156,8 @@ The `case` and `control` columns in the input data represent the comparison bein
 - **Control**: The control condition (e.g., wild-type "Wt")
 
 The `rnaseq_genotype_label_map.csv` file maps these genotypes to human-readable display labels:
-- `case` → `name` (e.g., "Model_A (Tg)")
-- `control` → `matched_control` (e.g., "Model_A (Wt)")
+- `case` → `name` (object with `link_url` field, e.g., `{"link_url": "models/Model_A (Tg)"}`)
+- `control` → `matched_control` (string, e.g., "Model_A (Wt)")
 
 ### Example Grouping
 Given input data:
@@ -172,6 +172,51 @@ This creates **2 output entries**:
 1. Gene + Model_A + Female + Brain + Tg/Wt → contains ages 3 months, 6 months
 2. Gene + Model_A + Male + Brain + Tg/Wt → contains age 3 months
 
+## Output Structure
+
+Each output entry in the transform result has the following structure:
+
+```json
+{
+  "ensembl_gene_id": "ENSMUSG00000000001",
+  "gene_symbol": "Gene_A",
+  "biodomains": ["Synaptic"],
+  "name": {
+    "link_url": "models/Model_A (Tg)"
+  },
+  "matched_control": "Model_A (Wt)",
+  "model_group": "AD",
+  "model_type": "Transgenic",
+  "tissue": "Brain",
+  "sex_cohort": "Female",
+  "3 months": {
+    "log2_fc": 1.0,
+    "adj_p_val": 0.01
+  },
+  "6 months": {
+    "log2_fc": 2.0,
+    "adj_p_val": 0.02
+  }
+}
+```
+
+### Output Fields
+
+- **ensembl_gene_id** (string): Mouse gene identifier (ENSMUSG*)
+- **gene_symbol** (string): Human-readable gene symbol (empty string if not found in metadata)
+- **biodomains** (array): List of biodomain names associated with the gene
+- **name** (object): Display label for the case genotype with navigation link
+  - **link_url** (string): Relative URL path to the model page (format: `models/<display_label>`)
+- **matched_control** (string): Display label for the control genotype
+- **model_group** (string or null): Model group name (null if empty)
+- **model_type** (string): Model type classification (e.g., "Transgenic", "knockout")
+- **tissue** (string): Tissue name (JAX models have "Right Cerebral Hemisphere" mapped to "Hemibrain")
+- **sex_cohort** (string): Sex category ("Male" or "Female")
+- **<age>** (object): Age-based entries (keys are age strings like "3 months", "6 months", etc.)
+  - **log2_fc** (number): Log2 fold change value (rounded to 5 decimal places)
+  - **adj_p_val** (number): Adjusted p-value (rounded to 5 decimal places, NaN values coerced to 0.0)
+
+
 ## Validation Points
 
 When testing, verify:
@@ -182,15 +227,16 @@ When testing, verify:
 5. **Label mapping**: Correct display labels from genotype map
 6. **Model metadata**: Correct model type and matched controls
 7. **Grouping logic**: One output entry per unique gene+model+tissue+sex+case+control combination
-8. **Case/control mapping**: Correct name and matched_control values from genotype labels
-9. **Numeric rounding**: log2_fc and adj_p_val rounded to exactly 5 decimal places
-10. **Multiple biodomains**: Genes can have multiple biodomain assignments in a list
-11. **Missing metadata**: Gene not in metadata → gene_symbol="" and biodomains=[]
-12. **Null model_group**: Empty model_group converted to null in output
-13. **Model group consistency**: Each model must have consistent model_group values across all genotypes (raises ValueError if inconsistent)
-14. **Negative padj validation**: Negative adjusted p-values raise ValueError with informative error message
-15. **Log2foldchange normalization**: Negative zero (-0.0) log2foldchange values are normalized to positive zero (0.0) via normalize_zero function
-16. **NaN padj coercion**: NaN adjusted p-values are coerced to 0.0 in output
+8. **Case/control mapping**: Correct name (with link_url) and matched_control values from genotype labels
+9. **Name field structure**: `name` is an object with `link_url` field formatted as `models/<display_label>`
+10. **Numeric rounding**: log2_fc and adj_p_val rounded to exactly 5 decimal places
+11. **Multiple biodomains**: Genes can have multiple biodomain assignments in a list
+12. **Missing metadata**: Gene not in metadata → gene_symbol="" and biodomains=[]
+13. **Null model_group**: Empty model_group converted to null in output
+14. **Model group consistency**: Each model must have consistent model_group values across all genotypes (raises ValueError if inconsistent)
+15. **Negative padj validation**: Negative adjusted p-values raise ValueError with informative error message
+16. **Log2foldchange normalization**: Negative zero (-0.0) log2foldchange values are normalized to positive zero (0.0) via normalize_zero function
+17. **NaN padj coercion**: NaN adjusted p-values are coerced to 0.0 in output
 
 ## File Structure
 ```

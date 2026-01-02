@@ -3,7 +3,9 @@
     "ensembl_gene_id": "ENSMUSG00000000001",
     "gene_symbol": "Gene_A",
     "biodomains": ["Synaptic"],
-    "name": "Model_B (Tg)",
+    "name": {
+      "link_url": "models/Model_B (Tg)"
+    },
     "matched_control": "Model_B (Wt)",
     "model_group": "AD",
     "model_type": "Transgenic",
@@ -22,7 +24,9 @@
     "ensembl_gene_id": "ENSMUSG00000000003",
     "gene_symbol": "Gene_C",
     "biodomains": ["Neuronal"],
-    "name": "Model_C (Tg)",
+    "name": {
+      "link_url": "models/Model_C (Tg)"
+    },
     "matched_control": "Model_C (Wt)",
     "model_group": "AD",
     "model_type": "Transgenic",

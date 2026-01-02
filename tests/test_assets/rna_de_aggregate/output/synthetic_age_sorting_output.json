@@ -3,7 +3,9 @@
     "ensembl_gene_id": "ENSMUSG00000000007",
     "gene_symbol": "Gene_G",
     "biodomains": [],
-    "name": "Model_E (Tg)",
+    "name": {
+      "link_url": "models/Model_E (Tg)"
+    },
     "matched_control": "Model_E (Wt)",
     "model_group": "AD",
     "model_type": "Transgenic",
