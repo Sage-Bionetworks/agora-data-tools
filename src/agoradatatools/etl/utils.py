@@ -296,13 +296,12 @@ def check_required_datasets_and_columns(
 
     # Check for missing columns
     for dataset_name, columns in required_input.items():
-        missing_columns = [
-            col for col in columns if col not in datasets[dataset_name].columns
-        ]
+        dataset_columns = datasets[dataset_name].columns
+        missing_columns = [col for col in columns if col not in dataset_columns]
         if missing_columns:
             raise ValueError(
                 f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
-                f"Please ensure the {dataset_name} dataset contains all required columns: {', '.join(columns)}."
+                f"Please ensure the {dataset_name} dataset contains all required columns. Columns found: {', '.join(dataset_columns)}."
             )
 
 
