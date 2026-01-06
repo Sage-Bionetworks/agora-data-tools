@@ -19,7 +19,12 @@ def _load_test_measure_order_config():
         "immunohisto_measure_order.yaml",
     )
 
-    return read_yaml_into_df(config_path)
+    config_df = read_yaml_into_df(config_path)
+    # Rename generic columns from read_yaml_into_df to expected names
+    config_df = config_df.rename(
+        columns={"key": "dataset_name", "items": "evidence_type"}
+    )
+    return config_df
 
 
 class TestTransformModelDetails:

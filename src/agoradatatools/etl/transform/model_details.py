@@ -44,6 +44,10 @@ REQUIRED_INPUT = {
         "gene_symbol",
         "human_ensembl_id",
     ],
+    "immunohisto_measure_order": [
+        "dataset_name",
+        "evidence_type",
+    ],
     "biomarkers": [
         "name",
         "evidence_type",
@@ -163,27 +167,7 @@ def transform_model_details(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    if "immunohisto_measure_order" not in datasets:
-        raise ValueError(
-            "The 'immunohisto_measure_order' dataset is required but not found in datasets"
-        )
-
-    # Convert immunohisto_measure_order DataFrame format if needed
-    # Handle generic column names from read_yaml_into_df (key/items) or legacy names (dataset_name/evidence_type)
-    config_df = datasets["immunohisto_measure_order"].copy()
-    if "key" in config_df.columns and "items" in config_df.columns:
-        # Rename generic columns to expected names
-        config_df = config_df.rename(
-            columns={"key": "dataset_name", "items": "evidence_type"}
-        )
-        datasets["immunohisto_measure_order"] = config_df
-
-    required_with_config = {
-        **required_input,
-        "immunohisto_measure_order": ["dataset_name", "evidence_type"],
-    }
-
-    check_required_datasets_and_columns(datasets, required_with_config)
+    check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")

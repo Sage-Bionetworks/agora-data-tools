@@ -172,7 +172,7 @@ def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
         Updated DataFrame with missing age entries added
     """
     # Get all unique ages that exist in the data
-    available_ages = list(data_rows["age"].drop_duplicates())
+    available_ages = data_rows["age"].drop_duplicates().tolist()
 
     # All unique combinations of groups (name, evidence_type, tissue, y_axis_max)
     fill_df = (
@@ -277,22 +277,21 @@ def immunohisto_transform(
         in extra_column_name. This extra column contains all information from extra_columns, collapsed
         into a single dictionary.
     """
-
-    # Validate that required datasets are present
-    # Ensure at least one of "biomarkers" or "pathology" is present
-    if not any(key in datasets for key in ["biomarkers", "pathology"]):
+    # Validate that dataset_name is one of the valid dataset types
+    valid_dataset_names = ["biomarkers", "pathology"]
+    if dataset_name not in valid_dataset_names:
         raise ValueError(
-            "At least one of 'biomarkers' or 'pathology' must be present in the datasets"
+            f"Missing required datasets: dataset_name must be one of {valid_dataset_names}, got '{dataset_name}'"
         )
 
     # Build required_input with only the datasets that are actually required:
     # - The specific dataset being transformed (biomarkers or pathology)
     # - immunohisto_measure_order (always required for sorting)
     actual_required_input = {
-        dataset_name: required_input[dataset_name],
-        "immunohisto_measure_order": required_input["immunohisto_measure_order"],
+        k: v
+        for k, v in required_input.items()
+        if k in [dataset_name, "immunohisto_measure_order"]
     }
-
     check_required_datasets_and_columns(datasets, actual_required_input)
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
@@ -331,23 +330,20 @@ def immunohisto_transform(
     # attempting to access the measure order configuration.
     data_rows["age_numeric"] = data_rows["age"].apply(_extract_age_num)
 
-    # Get config DataFrame. Note: read_yaml_into_df() explodes the DataFrame only when
-    # all YAML values are lists (which is the case for the current immunohisto_measure_order.yaml).
-    # If the YAML structure changes, the DataFrame may not be exploded.
-    config_df = datasets["immunohisto_measure_order"].copy()
-
-    # Filter config for this dataset, reset index to create order column, and merge
-    config_df = (
-        config_df[config_df["dataset_name"] == dataset_name]
+    # Filter config for this dataset, reset index to create order column
+    # Use 'dataset_name' to filter and 'evidence_type' contains the evidence_type values
+    config_df = datasets["immunohisto_measure_order"]
+    measure_order = (
+        config_df[config_df["dataset_name"] == dataset_name]["evidence_type"]
         .reset_index(drop=True)  # Re-number the rows from 0-N
-        .drop(columns="dataset_name")
+        .to_frame()  # Creates DataFrame with column already named 'evidence_type'
     )
-    config_df["evidence_type_order"] = config_df.index
+    measure_order["evidence_type_order"] = measure_order.index
 
     # Merge the order into data_rows
     # Missing evidence types will have NaN in evidence_type_order, which pandas will sort to the end
     data_rows = data_rows.merge(
-        config_df, how="left", on="evidence_type", validate="many_to_one"
+        measure_order, how="left", on="evidence_type", validate="many_to_one"
     )
 
     # Sort by age (using the numeric column), then by evidence_type using custom order

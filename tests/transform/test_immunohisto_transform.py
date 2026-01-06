@@ -319,7 +319,7 @@ class TestTransformGeneralModelAD:
             }
         )
 
-        with pytest.raises(ValueError, match="At least one of"):
+        with pytest.raises(ValueError, match="Missing required datasets"):
             immunohisto_transform(
                 datasets={
                     "other_data": other_df,
