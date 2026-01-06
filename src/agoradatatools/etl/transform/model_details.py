@@ -2,12 +2,13 @@
 This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
-import pandas as pd
-import numpy as np
 from typing import Any, Dict, List
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+import numpy as np
+import pandas as pd
+
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
+from agoradatatools.etl.utils import check_required_datasets_and_columns
 
 
 REQUIRED_INPUT = {
@@ -42,6 +43,10 @@ REQUIRED_INPUT = {
         "mgi_allele_id",
         "gene_symbol",
         "human_ensembl_id",
+    ],
+    "immunohisto_measure_order": [
+        "dataset_name",
+        "evidence_type",
     ],
     "biomarkers": [
         "name",

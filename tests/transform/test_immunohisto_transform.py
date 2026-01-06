@@ -25,6 +25,23 @@ from agoradatatools.etl.transform.immunohisto_transform import (
 )
 
 
+def _load_test_measure_order_config():
+    """Load the test measure order config from test assets as a DataFrame."""
+    from agoradatatools.etl.extract import read_yaml_into_df
+
+    config_path = os.path.join(
+        "tests/test_assets/immunohisto_transform/input",
+        "immunohisto_measure_order.yaml",
+    )
+
+    config_df = read_yaml_into_df(config_path)
+    # Rename generic columns from read_yaml_into_df to expected names
+    config_df = config_df.rename(
+        columns={"key": "dataset_name", "items": "evidence_type"}
+    )
+    return config_df
+
+
 class TestTransformGeneralModelAD:
     """
     Test suite for the main immunohisto_transform function and related data preparation.
@@ -110,6 +127,7 @@ class TestTransformGeneralModelAD:
                 datasets={
                     "biomarkers": immunohisto_transform_df,
                     "pathology": immunohisto_transform_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
                 },
                 dataset_name="biomarkers",
             )
@@ -143,6 +161,7 @@ class TestTransformGeneralModelAD:
                 datasets={
                     "biomarkers": immunohisto_transform_df,
                     "pathology": immunohisto_transform_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
                 },
                 dataset_name="biomarkers",
             )
@@ -267,7 +286,11 @@ class TestTransformGeneralModelAD:
         )
 
         result = immunohisto_transform(
-            datasets={"biomarkers": empty_df}, dataset_name="biomarkers"
+            datasets={
+                "biomarkers": empty_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="biomarkers",
         )
 
         # Should return empty list
@@ -296,9 +319,40 @@ class TestTransformGeneralModelAD:
             }
         )
 
-        with pytest.raises(ValueError, match="At least one of"):
+        with pytest.raises(ValueError, match="Missing required datasets"):
             immunohisto_transform(
-                datasets={"other_data": other_df}, dataset_name="other_data"
+                datasets={
+                    "other_data": other_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
+                },
+                dataset_name="other_data",
+            )
+
+    def test_immunohisto_transform_missing_measure_order_config(self) -> None:
+        """
+        Test that ValueError is raised when measure order config is missing.
+
+        Verifies that the function properly validates that the config dataset is provided.
+        """
+        # Create a test DataFrame
+        input_df = pd.DataFrame(
+            {
+                "name": ["test"],
+                "evidence_type": ["test"],
+                "value": [1.0],
+                "units": ["test"],
+                "age": [1],
+                "tissue": ["test"],
+                "sex": ["male"],
+                "genotype": ["test"],
+                "individual_id": ["test"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="immunohisto_measure_order.*required"):
+            immunohisto_transform(
+                datasets={"biomarkers": input_df},
+                dataset_name="biomarkers",
             )
 
     def test_immunohisto_transform_with_pathology_dataset(self) -> None:
@@ -325,7 +379,11 @@ class TestTransformGeneralModelAD:
 
         # Transform using pathology dataset name
         result = immunohisto_transform(
-            datasets={"pathology": input_df}, dataset_name="pathology"
+            datasets={
+                "pathology": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="pathology",
         )
 
         # Should successfully return results
@@ -338,6 +396,162 @@ class TestTransformGeneralModelAD:
         assert "age" in result[0]
         assert "data" in result[0]
         assert "y_axis_max" in result[0]
+
+    def test_immunohisto_transform_measure_type_ordering_biomarkers(self) -> None:
+        """
+        Test that biomarkers are ordered according to the BIOMARKER_MEASURE_ORDER constant.
+
+        Validates that the transform function correctly orders evidence types
+        for biomarkers according to the measure order constants.
+        """
+        # Create test data with biomarkers in non-alphabetical order
+        # Using the first 3 types from BIOMARKER_MEASURE_ORDER
+        # Note: Using "beta" in raw form since prepare_immunohisto_data will convert it to "&beta;"
+        input_df = pd.DataFrame(
+            {
+                "name": ["ModelA"] * 6,
+                "evidence_type": [
+                    "Soluble Abeta42",
+                    "NfL",
+                    "Soluble Abeta40",
+                    "Soluble Abeta42",
+                    "NfL",
+                    "Soluble Abeta40",
+                ],
+                "value": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+                "units": ["pg/mg"] * 6,
+                "age": [6, 6, 6, 12, 12, 12],
+                "tissue": ["Brain"] * 6,
+                "sex": ["male"] * 6,
+                "genotype": ["WT"] * 6,
+                "individual_id": ["1", "2", "3", "4", "5", "6"],
+            }
+        )
+
+        # Transform
+        result = immunohisto_transform(
+            datasets={
+                "biomarkers": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="biomarkers",
+        )
+
+        # Extract the evidence_type ordering from the result
+        evidence_types = [entry["evidence_type"] for entry in result]
+
+        # Expected order based on measure order config:
+        # NfL, Soluble A&beta;40, Soluble A&beta;42 (for both age 6 and 12)
+        expected_order = [
+            "NfL",
+            "Soluble A&beta;40",
+            "Soluble A&beta;42",
+            "NfL",
+            "Soluble A&beta;40",
+            "Soluble A&beta;42",
+        ]
+
+        assert evidence_types == expected_order
+
+    def test_immunohisto_transform_measure_type_ordering_pathology(self) -> None:
+        """
+        Test that pathology measures are ordered according to the PATHOLOGY_MEASURE_ORDER constant.
+
+        Validates that the transform function correctly orders evidence types
+        for pathology according to the measure order constants.
+        """
+        # Create test data with pathology measures in non-alphabetical order
+        # Using the first 3 types from PATHOLOGY_MEASURE_ORDER
+        input_df = pd.DataFrame(
+            {
+                "name": ["ModelA"] * 3,
+                "evidence_type": [
+                    "Tau (HT7)",
+                    "Plaque Density (Thio-S)",
+                    "Plaque Size (Thio-S)",
+                ],
+                "value": [10.0, 20.0, 30.0],
+                "units": ["cells/mm2", "plaques/mm2", "plaques/mm2"],
+                "age": [12, 12, 12],
+                "tissue": ["Hippocampus"] * 3,
+                "sex": ["female"] * 3,
+                "genotype": ["KO"] * 3,
+                "individual_id": ["1", "2", "3"],
+            }
+        )
+
+        # Transform
+        result = immunohisto_transform(
+            datasets={
+                "pathology": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="pathology",
+        )
+
+        # Extract the evidence_type ordering from the result
+        evidence_types = [entry["evidence_type"] for entry in result]
+
+        # Expected order based on PATHOLOGY_MEASURE_ORDER:
+        # Plaque Density (Thio-S), Plaque Size (Thio-S), Tau (HT7)
+        expected_order = [
+            "Plaque Density (Thio-S)",
+            "Plaque Size (Thio-S)",
+            "Tau (HT7)",
+        ]
+
+        assert evidence_types == expected_order
+
+    def test_immunohisto_transform_unlisted_measure_types(self) -> None:
+        """
+        Test that unlisted measure types are sorted alphabetically after listed ones.
+
+        Validates that evidence types not in BIOMARKER_MEASURE_ORDER are placed after
+        configured types and sorted alphabetically among themselves.
+        """
+        # Create test data with both listed and unlisted types
+        # Note: Using "beta" in raw form since prepare_immunohisto_data will convert it to "&beta;"
+        input_df = pd.DataFrame(
+            {
+                "name": ["ModelA"] * 4,
+                "evidence_type": [
+                    "Unknown Type B",
+                    "NfL",
+                    "Unknown Type A",
+                    "Soluble Abeta40",
+                ],
+                "value": [1.0, 2.0, 3.0, 4.0],
+                "units": ["pg/mg"] * 4,
+                "age": [12] * 4,
+                "tissue": ["Brain"] * 4,
+                "sex": ["male"] * 4,
+                "genotype": ["WT"] * 4,
+                "individual_id": ["1", "2", "3", "4"],
+            }
+        )
+
+        # Transform
+        result = immunohisto_transform(
+            datasets={
+                "biomarkers": input_df,
+                "immunohisto_measure_order": _load_test_measure_order_config(),
+            },
+            dataset_name="biomarkers",
+        )
+
+        # Extract the evidence_type ordering from the result
+        evidence_types = [entry["evidence_type"] for entry in result]
+
+        # Expected order: NfL, Soluble A&beta;40 (from measure order config),
+        # then Unknown Type A, Unknown Type B (alphabetical)
+        expected_order = [
+            "NfL",
+            "Soluble A&beta;40",
+            "Unknown Type A",
+            "Unknown Type B",
+        ]
+
+        assert evidence_types == expected_order
 
 
 class TestRoundYAxisMax:
@@ -558,7 +772,11 @@ class TestRoundYAxisMax:
 
         with pytest.raises(ValueError, match="Invalid age value"):
             immunohisto_transform(
-                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+                datasets={
+                    "biomarkers": input_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
+                },
+                dataset_name="biomarkers",
             )
 
     def test_extract_age_num_indexerror_handling(self) -> None:
@@ -580,7 +798,11 @@ class TestRoundYAxisMax:
 
         with pytest.raises(ValueError, match="Invalid age value"):
             immunohisto_transform(
-                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+                datasets={
+                    "biomarkers": input_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
+                },
+                dataset_name="biomarkers",
             )
 
     def test_extract_age_num_attributeerror_handling(self) -> None:
@@ -602,7 +824,11 @@ class TestRoundYAxisMax:
 
         with pytest.raises(ValueError, match="Invalid age value"):
             immunohisto_transform(
-                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+                datasets={
+                    "biomarkers": input_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
+                },
+                dataset_name="biomarkers",
             )
 
     def test_extract_age_num_mixed_error_handling(self) -> None:
@@ -630,7 +856,11 @@ class TestRoundYAxisMax:
 
         with pytest.raises(ValueError, match="Invalid age value"):
             immunohisto_transform(
-                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+                datasets={
+                    "biomarkers": input_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
+                },
+                dataset_name="biomarkers",
             )
 
     def test_immunohisto_transform_invalid_age_error_message(self) -> None:
@@ -652,7 +882,11 @@ class TestRoundYAxisMax:
 
         with pytest.raises(ValueError, match="Invalid age value: 'invalid months'"):
             immunohisto_transform(
-                datasets={"biomarkers": input_df}, dataset_name="biomarkers"
+                datasets={
+                    "biomarkers": input_df,
+                    "immunohisto_measure_order": _load_test_measure_order_config(),
+                },
+                dataset_name="biomarkers",
             )
 
 
@@ -915,6 +1149,48 @@ class TestAddMissingAgeEntries:
         result_dicts = result.to_dict("records")
         expected_dicts = data_rows.to_dict("records")
         assert result_dicts == expected_dicts
+
+
+class TestMeasureOrderConfig:
+    """Test class for validating the measure order configuration structure."""
+
+    def test_measure_order_config_structure(self) -> None:
+        """
+        Test that the test measure order config has the expected structure.
+
+        Validates that the test config file has the required columns (dataset_name/evidence_type)
+        and expected evidence types after the rename operation.
+        """
+        config = _load_test_measure_order_config()
+
+        # Check for renamed columns
+        assert "dataset_name" in config.columns
+        assert "evidence_type" in config.columns
+
+        # Check biomarkers
+        biomarkers = config[config["dataset_name"] == "biomarkers"]
+        expected_biomarkers = [
+            "NfL",
+            "Soluble A&beta;40",
+            "Soluble A&beta;42",
+            "Insoluble A&beta;40",
+            "Insoluble A&beta;42",
+        ]
+        assert biomarkers["evidence_type"].tolist() == expected_biomarkers
+
+        # Check pathology
+        pathology = config[config["dataset_name"] == "pathology"]
+        expected_pathology = [
+            "Plaque Density (Thio-S)",
+            "Plaque Size (Thio-S)",
+            "Tau (HT7)",
+            "Phospho-Tau (AT8)",
+            "Dystrophic Neurites (LAMP1)",
+            "Microglia Cell Density (IBA1)",
+            "Astrocyte Cell Density (GFAP)",
+            "Astrocyte Cell Density (S100B)",
+        ]
+        assert pathology["evidence_type"].tolist() == expected_pathology
 
 
 class TestExtractAgeNum:

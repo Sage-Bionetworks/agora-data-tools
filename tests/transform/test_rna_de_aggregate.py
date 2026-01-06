@@ -538,7 +538,10 @@ class TestCreateOutputEntryFromGroup:
         assert result["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result["gene_symbol"] == "Gene1"
         assert result["biodomains"] == ["Synaptic"]
-        assert result["name"] == "Transgenic"
+        assert result["name"] == {
+            "link_url": "models/Transgenic",
+            "link_text": "Transgenic",
+        }
         assert result["matched_control"] == "Wildtype"
         assert result["model_group"] == "Group1"
         assert result["model_type"] == "knockout"
@@ -586,7 +589,10 @@ class TestCreateOutputEntryFromGroup:
         assert result["ensembl_gene_id"] == "ENSMUSG00000000002"
         assert result["gene_symbol"] == ""  # Default for missing
         assert result["biodomains"] == []  # Default for missing
-        assert result["name"] == "Tg"  # Falls back to case genotype
+        assert result["name"] == {
+            "link_url": "models/Tg",
+            "link_text": "Tg",
+        }  # Falls back to case genotype
         assert result["matched_control"] == "Wt"  # Falls back to control genotype
         assert result["model_group"] is None  # Empty string converted to None
         assert result["model_type"] == ""  # Default for missing
@@ -1116,10 +1122,10 @@ class TestTransformRnaDeAggregate:
 
         # Sort output data by ensembl_gene_id and name for deterministic comparison
         output_data_sorted = sorted(
-            output_data, key=lambda x: (x["ensembl_gene_id"], x["name"])
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["name"]["link_text"])
         )
         expected_data_sorted = sorted(
-            expected_data, key=lambda x: (x["ensembl_gene_id"], x["name"])
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["name"]["link_text"])
         )
 
         # Compare output with expected
