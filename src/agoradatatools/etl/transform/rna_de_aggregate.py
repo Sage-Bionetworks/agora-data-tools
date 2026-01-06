@@ -257,13 +257,28 @@ def _create_output_entry_from_group(
 
     Note:
         Age entries are validated and sorted numerically before being included in the output.
-        Missing values in lookup dictionaries result in empty strings or empty lists, not errors.
+        Missing values in gene_metadata_dict, biodomain_dict, and model_info_dict result
+        in empty strings or empty lists, not errors. However, missing entries in label_map_dict
+        for the case or control genotypes will raise a ValueError.
     """
     ensembl_gene_id, model, tissue, sex, case, control = group_key
 
     gene_symbol = gene_metadata_dict.get(ensembl_gene_id, "")
-    name = label_map_dict.get((model, case), case)
-    matched_control = label_map_dict.get((model, control), control)
+
+    # Lookup name and matched_control - raise error if not found
+    case_key = (model, case)
+    control_key = (model, control)
+    for k in [case_key, control_key]:
+        if k not in label_map_dict:
+            raise ValueError(
+                f"Label mapping not found for genotype. "
+                f"Model: '{model}', Genotype: '{k[1]}', "
+                f"Gene: {ensembl_gene_id}, Tissue: {tissue}, Sex: {sex}. "
+                f"Please ensure the rnaseq_genotype_label_map dataset contains "
+                f"an entry for model '{model}' and genotype '{k[1]}'."
+            )
+    name = label_map_dict[case_key]
+    matched_control = label_map_dict[control_key]
     model_group = model_group_dict.get(model)
     biodomains = biodomain_dict.get(ensembl_gene_id, [])
     model_type = model_info_dict.get(model, "")

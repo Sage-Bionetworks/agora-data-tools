@@ -549,7 +549,11 @@ class TestCreateOutputEntryFromGroup:
         assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
 
     def test_create_output_entry_missing_metadata(self) -> None:
-        """Test output entry creation with missing metadata (defaults to genotype strings for name/matched_control)."""
+        """Test output entry creation with missing metadata (empty strings/lists for gene_metadata, biodomain, model_info).
+
+        Note: label_map_dict must contain entries for the genotypes used, as the function
+        now raises an error if they are missing.
+        """
         group_key = (
             "ENSMUSG00000000002",
             "Model_B",
@@ -567,8 +571,12 @@ class TestCreateOutputEntryFromGroup:
         )
 
         # Empty dictionaries simulate missing metadata
+        # label_map_dict must have entries for genotypes to avoid errors
         gene_metadata_dict = {}
-        label_map_dict = {}
+        label_map_dict = {
+            ("Model_B", "Tg"): "Transgenic_B",
+            ("Model_B", "Wt"): "Wildtype_B",
+        }
         model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
@@ -586,8 +594,8 @@ class TestCreateOutputEntryFromGroup:
         assert result["ensembl_gene_id"] == "ENSMUSG00000000002"
         assert result["gene_symbol"] == ""  # Default for missing
         assert result["biodomains"] == []  # Default for missing
-        assert result["name"] == "Tg"  # Falls back to case genotype
-        assert result["matched_control"] == "Wt"  # Falls back to control genotype
+        assert result["name"] == "Transgenic_B"  # From label_map_dict
+        assert result["matched_control"] == "Wildtype_B"  # From label_map_dict
         assert result["model_group"] is None  # Empty string converted to None
         assert result["model_type"] == ""  # Default for missing
         assert result["tissue"] == "Hippocampus"
@@ -612,7 +620,10 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000003": "Gene3"}
-        label_map_dict = {}
+        label_map_dict = {
+            ("Model_C", "Tg"): "Transgenic_C",
+            ("Model_C", "Wt"): "Wildtype_C",
+        }
         model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
@@ -641,7 +652,10 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
+        label_map_dict = {
+            ("Model_D", "Tg"): "Transgenic_D",
+            ("Model_D", "Wt"): "Wildtype_D",
+        }
         model_group_dict = {"Model_D": ""}  # Empty string
         biodomain_dict = {}
         model_info_dict = {}
@@ -670,7 +684,10 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
+        label_map_dict = {
+            ("Model_E", "Tg"): "Transgenic_E",
+            ("Model_E", "Wt"): "Wildtype_E",
+        }
         model_group_dict = {}
         biodomain_dict = {"ENSMUSG00000000005": ["Synaptic", "Metabolic"]}
         model_info_dict = {}
@@ -687,6 +704,128 @@ class TestCreateOutputEntryFromGroup:
 
         assert len(result["biodomains"]) == 2
         assert set(result["biodomains"]) == {"Synaptic", "Metabolic"}
+
+    def test_create_output_entry_missing_case_label_raises_error(self) -> None:
+        """Test that missing case genotype in label_map_dict raises ValueError."""
+        group_key = ("ENSMUSG00000000006", "Model_F", "Cortex", "Male", "Tg", "Wt")
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [0.01],
+            }
+        )
+
+        gene_metadata_dict = {}
+        # label_map_dict is missing entry for ("Model_F", "Tg")
+        label_map_dict = {
+            ("Model_F", "Wt"): "Wildtype",
+        }
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        with pytest.raises(ValueError) as exc_info:
+            _create_output_entry_from_group(
+                group_key=group_key,
+                group=group,
+                gene_metadata_dict=gene_metadata_dict,
+                label_map_dict=label_map_dict,
+                model_group_dict=model_group_dict,
+                biodomain_dict=biodomain_dict,
+                model_info_dict=model_info_dict,
+            )
+
+        error_message = str(exc_info.value)
+        assert "Label mapping not found for genotype" in error_message
+        assert "Model_F" in error_message
+        assert "Tg" in error_message
+        assert "ENSMUSG00000000006" in error_message
+        assert "Cortex" in error_message
+        assert "Male" in error_message
+
+    def test_create_output_entry_missing_control_label_raises_error(self) -> None:
+        """Test that missing control genotype in label_map_dict raises ValueError."""
+        group_key = (
+            "ENSMUSG00000000007",
+            "Model_G",
+            "Hippocampus",
+            "Female",
+            "Tg",
+            "Wt",
+        )
+        group = pd.DataFrame(
+            {
+                "age": ["3 months"],
+                "log2foldchange": [2.0],
+                "padj": [0.001],
+            }
+        )
+
+        gene_metadata_dict = {}
+        # label_map_dict is missing entry for ("Model_G", "Wt")
+        label_map_dict = {
+            ("Model_G", "Tg"): "Transgenic",
+        }
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        with pytest.raises(ValueError) as exc_info:
+            _create_output_entry_from_group(
+                group_key=group_key,
+                group=group,
+                gene_metadata_dict=gene_metadata_dict,
+                label_map_dict=label_map_dict,
+                model_group_dict=model_group_dict,
+                biodomain_dict=biodomain_dict,
+                model_info_dict=model_info_dict,
+            )
+
+        error_message = str(exc_info.value)
+        assert "Label mapping not found for genotype" in error_message
+        assert "Model_G" in error_message
+        assert "Wt" in error_message
+        assert "ENSMUSG00000000007" in error_message
+        assert "Hippocampus" in error_message
+        assert "Female" in error_message
+
+    def test_create_output_entry_missing_both_labels_raises_case_error_first(
+        self,
+    ) -> None:
+        """Test that when both case and control are missing, case error is raised first."""
+        group_key = ("ENSMUSG00000000008", "Model_H", "Cortex", "Male", "Tg", "Wt")
+        group = pd.DataFrame(
+            {
+                "age": ["12 months"],
+                "log2foldchange": [0.5],
+                "padj": [0.05],
+            }
+        )
+
+        gene_metadata_dict = {}
+        # label_map_dict is completely empty
+        label_map_dict = {}
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        with pytest.raises(ValueError) as exc_info:
+            _create_output_entry_from_group(
+                group_key=group_key,
+                group=group,
+                gene_metadata_dict=gene_metadata_dict,
+                label_map_dict=label_map_dict,
+                model_group_dict=model_group_dict,
+                biodomain_dict=biodomain_dict,
+                model_info_dict=model_info_dict,
+            )
+
+        # Should raise error for case first, since case is checked before control
+        error_message = str(exc_info.value)
+        assert "Label mapping not found for genotype" in error_message
+        assert "Model_H" in error_message
+        assert "Tg" in error_message
 
 
 class TestProcessSingleDataFile:
@@ -767,7 +906,7 @@ class TestProcessSingleDataFile:
         data_file = pd.DataFrame()
 
         gene_metadata_dict = {}
-        label_map_dict = {}
+        label_map_dict = {}  # Empty is OK since no data will be processed
         model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
@@ -824,7 +963,10 @@ class TestProcessSingleDataFile:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
         model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
@@ -876,7 +1018,10 @@ class TestProcessSingleDataFile:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
         model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
@@ -927,7 +1072,12 @@ class TestProcessSingleDataFile:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic_A",
+            ("Model_A", "Wt"): "Wildtype_A",
+            ("Model_B", "Tg"): "Transgenic_B",
+            ("Model_B", "Wt"): "Wildtype_B",
+        }
         model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
