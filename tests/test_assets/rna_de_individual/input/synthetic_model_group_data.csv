@@ -1,4 +1,4 @@
-ensembl_gene_id,individualID,expression,tissue,sex,age,genotype,model
+ensembl_gene_id,individualid,expression,tissue,sex,age,genotype,model
 ENSMUSG00000000003,3001,4.5,Hippocampus,Male,4 months,Abca7-V1599M_homozygous,Abca7*V1599M
 ENSMUSG00000000003,3002,4.2,Hippocampus,Female,4 months,Abca7-V1599M_homozygous,Abca7*V1599M
 ENSMUSG00000000003,3003,5.1,Hippocampus,Male,4 months,5XFAD_carrier; Abca7-V1599M_homozygous,Abca7*V1599M

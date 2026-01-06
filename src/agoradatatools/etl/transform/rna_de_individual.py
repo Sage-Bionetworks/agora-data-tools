@@ -26,7 +26,7 @@ Required Inputs:
     - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
     - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
     - Data files: One or more CSV files containing individual expression results with columns:
-      ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualID
+      ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
 """
 
 import pandas as pd
@@ -65,7 +65,7 @@ def _create_individual_results_from_group(
     for each age timepoint.
 
     Args:
-        group: DataFrame group containing age, genotype, sex, individualID, and expression columns.
+        group: DataFrame group containing age, genotype, sex, individualid, and expression columns.
 
     Returns:
         List of dictionaries, one per age timepoint, each containing:
@@ -88,7 +88,7 @@ def _create_individual_results_from_group(
                 {
                     "genotype": row.genotype,
                     "sex": row.sex,
-                    "individual_id": str(row.individualID),
+                    "individual_id": str(row.individualid),
                     "value": float(row.expression),
                 }
             )
@@ -266,7 +266,7 @@ def transform_rna_de_individual(
             - 'mouse_gene_metadata': Gene symbols for Ensembl IDs
             - One or more data files: CSV DataFrames containing individual expression
               results with columns: ensembl_gene_id, expression, model, genotype, age,
-              sex, tissue, individualID
+              sex, tissue, individualid
         required_input: Dictionary mapping required dataset names to required columns
 
     Returns:
@@ -334,7 +334,7 @@ def transform_rna_de_individual(
         "age",
         "sex",
         "tissue",
-        "individualID",
+        "individualid",
     ]
 
     logger.info(f"Transform rna_de_individual total data files: {total_files}")

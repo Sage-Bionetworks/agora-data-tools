@@ -47,7 +47,7 @@ class TestCreateIndividualResultsFromGroup:
                 "age": ["6 months", "6 months"],
                 "genotype": ["5XFAD_carrier", "5XFAD_noncarrier"],
                 "sex": ["Male", "Female"],
-                "individualID": ["1001", "1002"],
+                "individualid": ["1001", "1002"],
                 "expression": [5.5, 4.9],
             }
         )
@@ -73,7 +73,7 @@ class TestCreateIndividualResultsFromGroup:
                     "5XFAD_noncarrier",
                 ],
                 "sex": ["Male", "Female", "Male", "Female"],
-                "individualID": ["1001", "1002", "2001", "2002"],
+                "individualid": ["1001", "1002", "2001", "2002"],
                 "expression": [5.5, 4.9, 6.1, 5.0],
             }
         )
@@ -93,7 +93,7 @@ class TestCreateIndividualResultsFromGroup:
                 "age": ["12 months", "6 months", "18 months"],
                 "genotype": ["5XFAD_carrier", "5XFAD_carrier", "5XFAD_carrier"],
                 "sex": ["Male", "Male", "Male"],
-                "individualID": ["2001", "1001", "3001"],
+                "individualid": ["2001", "1001", "3001"],
                 "expression": [6.1, 5.5, 7.0],
             }
         )
@@ -121,7 +121,7 @@ class TestCreateOutputEntryFromGroup:
                 "age": ["6 months", "6 months"],
                 "genotype": ["5XFAD_carrier", "5XFAD_noncarrier"],
                 "sex": ["Male", "Female"],
-                "individualID": ["1001", "1002"],
+                "individualid": ["1001", "1002"],
                 "expression": [5.5, 4.9],
             }
         )
@@ -158,7 +158,7 @@ class TestCreateOutputEntryFromGroup:
                 "age": ["6 months"],
                 "genotype": ["5XFAD_carrier"],
                 "sex": ["Male"],
-                "individualID": ["1001"],
+                "individualid": ["1001"],
                 "expression": [5.5],
             }
         )
@@ -188,7 +188,7 @@ class TestCreateOutputEntryFromGroup:
                 "age": ["4 months"],
                 "genotype": ["Abca7-V1599M_homozygous"],
                 "sex": ["Male"],
-                "individualID": ["3001"],
+                "individualid": ["3001"],
                 "expression": [4.5],
             }
         )
@@ -216,7 +216,7 @@ class TestProcessSingleDataFile:
         data_file = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
-                "individualID": ["1001", "1002"],
+                "individualid": ["1001", "1002"],
                 "expression": [5.5, 4.9],
                 "tissue": ["Cortex", "Cortex"],
                 "sex": ["Male", "Female"],
@@ -245,7 +245,7 @@ class TestProcessSingleDataFile:
             "age",
             "sex",
             "tissue",
-            "individualID",
+            "individualid",
         ]
 
         result = _process_single_data_file(
@@ -269,7 +269,7 @@ class TestProcessSingleDataFile:
         data_file = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSMUSG00000000001", "ENSG00000000001"],
-                "individualID": ["1001", "1002"],
+                "individualid": ["1001", "1002"],
                 "expression": [5.5, 4.9],
                 "tissue": ["Cortex", "Cortex"],
                 "sex": ["Male", "Female"],
@@ -293,7 +293,7 @@ class TestProcessSingleDataFile:
             "age",
             "sex",
             "tissue",
-            "individualID",
+            "individualid",
         ]
 
         result = _process_single_data_file(
