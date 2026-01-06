@@ -8,6 +8,9 @@ datasets:
         - name: biomarkers
           id: syn61250724
           format: csv
+        - name: immunohisto_measure_order
+          id: syn71305327
+          format: yaml
       final_format: json
       destination: *dest
       custom_transformations: immunohisto_transform
@@ -17,12 +20,17 @@ datasets:
         measurement: value
         type: evidence_type
         model: name
+        key: dataset_name
+        items: evidence_type
 
   - pathology:
       files:
         - name: pathology
           id: syn61357279
           format: csv
+        - name: immunohisto_measure_order
+          id: syn71305327
+          format: yaml
       final_format: json
       destination: *dest
       custom_transformations: immunohisto_transform
@@ -32,6 +40,8 @@ datasets:
         measurement: value
         type: evidence_type
         model: name
+        key: dataset_name
+        items: evidence_type
 
   - model_details:
       files:
@@ -53,6 +63,9 @@ datasets:
         - name: model_results_info
           id: syn68377668
           format: csv
+        - name: immunohisto_measure_order
+          id: syn71305327
+          format: yaml
       final_format: json
       destination: *dest
       custom_transformations: transform_model_details
@@ -64,6 +77,8 @@ datasets:
         measurement: value
         type: evidence_type
         model: name
+        key: dataset_name
+        items: evidence_type
       gx_nested_columns:
         - genetic_info
         - biomarkers

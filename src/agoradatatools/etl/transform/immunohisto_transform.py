@@ -37,6 +37,10 @@ REQUIRED_INPUT = {
         "genotype",
         "individual_id",
     ],
+    "immunohisto_measure_order": [
+        "dataset_name",
+        "evidence_type",
+    ],
 }
 
 
@@ -168,7 +172,7 @@ def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
         Updated DataFrame with missing age entries added
     """
     # Get all unique ages that exist in the data
-    available_ages = list(data_rows["age"].drop_duplicates())
+    available_ages = data_rows["age"].drop_duplicates().tolist()
 
     # All unique combinations of groups (name, evidence_type, tissue, y_axis_max)
     fill_df = (
@@ -235,6 +239,10 @@ def immunohisto_transform(
     is a list of dictionaries. Each dictionary in this list corresponds to an individual measurement
     and contains the extra_columns (by default: genotype, sex, individual_id, value).
 
+    The output is sorted first by age (numerically), then by evidence_type (measure type) according
+    to the ordering specified in the measure order configuration (from datasets or constants).
+    Evidence types not listed in the configuration will be sorted alphabetically after the configured types.
+
     Example output structure:
     [
       {
@@ -259,28 +267,32 @@ def immunohisto_transform(
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
         dataset_name (str): The name of the dataset to transform.
+        required_input (Dict[str, List[str]], optional): Required input columns for validation.
         group_columns (List[str], optional): List of columns to group by. Defaults to ['name', 'evidence_type', 'tissue', 'age', 'units'].
         extra_columns (List[str], optional): List of columns to include in the group. Defaults to ['genotype', 'sex', 'individual_id', 'value'].
         extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'data'.
 
     Returns:
-        pd.DataFrame: DataFrame containing all group_columns, plus an extra column named as specified
+        List[Dict[str, Any]]: List of dictionaries containing all group_columns, plus an extra column named as specified
         in extra_column_name. This extra column contains all information from extra_columns, collapsed
         into a single dictionary.
     """
-
-    # Filter required_input to only include datasets that are present
-    filtered_required_input = {
-        key: value for key, value in required_input.items() if key in datasets
-    }
-
-    # Ensure at least one of "biomarkers" or "pathology" is present
-    if not any(key in datasets for key in ["biomarkers", "pathology"]):
+    # Validate that dataset_name is one of the valid dataset types
+    valid_dataset_names = ["biomarkers", "pathology"]
+    if dataset_name not in valid_dataset_names:
         raise ValueError(
-            "At least one of 'biomarkers' or 'pathology' must be present in the datasets"
+            f"Missing required datasets: dataset_name must be one of {valid_dataset_names}, got '{dataset_name}'"
         )
 
-    check_required_datasets_and_columns(datasets, filtered_required_input)
+    # Build required_input with only the datasets that are actually required:
+    # - The specific dataset being transformed (biomarkers or pathology)
+    # - immunohisto_measure_order (always required for sorting)
+    actual_required_input = {
+        k: v
+        for k, v in required_input.items()
+        if k in [dataset_name, "immunohisto_measure_order"]
+    }
+    check_required_datasets_and_columns(datasets, actual_required_input)
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
 
@@ -314,11 +326,31 @@ def immunohisto_transform(
     # Add missing age entries for completeness
     data_rows = _add_missing_age_entries(data_rows)
 
-    # Sort by age (convert age to numeric for sorting)
+    # Convert age values to numeric early so validation errors surface before
+    # attempting to access the measure order configuration.
     data_rows["age_numeric"] = data_rows["age"].apply(_extract_age_num)
-    data_rows = data_rows.sort_values(["age_numeric", "age", "evidence_type"]).drop(
-        columns="age_numeric"
+
+    # Filter config for this dataset, reset index to create order column
+    # Use 'dataset_name' to filter and 'evidence_type' contains the evidence_type values
+    config_df = datasets["immunohisto_measure_order"]
+    measure_order = (
+        config_df[config_df["dataset_name"] == dataset_name]["evidence_type"]
+        .reset_index(drop=True)  # Re-number the rows from 0-N
+        .to_frame()  # Creates DataFrame with column already named 'evidence_type'
     )
+    measure_order["evidence_type_order"] = measure_order.index
+
+    # Merge the order into data_rows
+    # Missing evidence types will have NaN in evidence_type_order, which pandas will sort to the end
+    data_rows = data_rows.merge(
+        measure_order, how="left", on="evidence_type", validate="many_to_one"
+    )
+
+    # Sort by age (using the numeric column), then by evidence_type using custom order
+    # Adding "evidence_type" as final sort key ensures alphabetical sorting for unlisted types
+    data_rows = data_rows.sort_values(
+        ["age_numeric", "age", "evidence_type_order", "evidence_type"]
+    ).drop(columns=["age_numeric", "evidence_type_order"])
 
     # Reorder columns to match expected output: group_columns + y_axis_max + extra_column_name
     column_order = group_columns + ["y_axis_max", extra_column_name]

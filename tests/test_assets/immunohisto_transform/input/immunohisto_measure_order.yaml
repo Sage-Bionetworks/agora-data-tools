@@ -1,0 +1,21 @@
+# Measure type ordering configuration for immunohisto transform
+# This file specifies the display order for biomarker and pathology evidence types.
+# The order listed here determines the order in which data will appear in the application.
+
+biomarkers:
+  - NfL
+  - Soluble A&beta;40
+  - Soluble A&beta;42
+  - Insoluble A&beta;40
+  - Insoluble A&beta;42
+
+pathology:
+  - Plaque Density (Thio-S)
+  - Plaque Size (Thio-S)
+  - Tau (HT7)
+  - Phospho-Tau (AT8)
+  - Dystrophic Neurites (LAMP1)
+  - Microglia Cell Density (IBA1)
+  - Astrocyte Cell Density (GFAP)
+  - Astrocyte Cell Density (S100B)
+

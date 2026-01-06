@@ -10,6 +10,23 @@ from agoradatatools.etl.transform.model_details import (
 )
 
 
+def _load_test_measure_order_config():
+    """Load the test measure order config from test assets as a DataFrame."""
+    from agoradatatools.etl.extract import read_yaml_into_df
+
+    config_path = os.path.join(
+        "tests/test_assets/model_details/input",
+        "immunohisto_measure_order.yaml",
+    )
+
+    config_df = read_yaml_into_df(config_path)
+    # Rename generic columns from read_yaml_into_df to expected names
+    config_df = config_df.rename(
+        columns={"key": "dataset_name", "items": "evidence_type"}
+    )
+    return config_df
+
+
 class TestTransformModelDetails:
     data_files_path = "tests/test_assets/model_details"
     pass_test_data = [
@@ -165,6 +182,9 @@ class TestTransformModelDetails:
                 os.path.join(self.data_files_path, "input", file_name)
             )
 
+        # Add measure order config
+        datasets["immunohisto_measure_order"] = _load_test_measure_order_config()
+
         # Transform data
         output_data = transform_model_details(datasets=datasets)
 
@@ -210,6 +230,9 @@ class TestTransformModelDetails:
             datasets[dataset_name] = pd.read_csv(
                 os.path.join(self.data_files_path, "input", file_name)
             )
+
+        # Add measure order config
+        datasets["immunohisto_measure_order"] = _load_test_measure_order_config()
 
         # Expect transformation to raise the specified error
         with pytest.raises(error_type):
@@ -329,6 +352,7 @@ class TestTransformModelDetails:
             "biomarkers": biomarkers_df,
             "pathology": pathology_df,
             "model_results_info": model_results_info_df,
+            "immunohisto_measure_order": _load_test_measure_order_config(),
         }
 
         # Transform data
