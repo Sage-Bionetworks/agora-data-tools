@@ -4,7 +4,8 @@
     "gene_symbol": "Gene_E",
     "biodomains": [],
     "name": {
-      "link_url": "models/Model_D (Tg)"
+      "link_url": "models/Model_D (Tg)",
+      "link_text": "Model_D (Tg)"
     },
     "matched_control": "Model_D (Wt)",
     "model_group": "AD",
@@ -21,7 +22,8 @@
     "gene_symbol": "Gene_F",
     "biodomains": [],
     "name": {
-      "link_url": "models/Model_D (Tg)"
+      "link_url": "models/Model_D (Tg)",
+      "link_text": "Model_D (Tg)"
     },
     "matched_control": "Model_D (Wt)",
     "model_group": "AD",

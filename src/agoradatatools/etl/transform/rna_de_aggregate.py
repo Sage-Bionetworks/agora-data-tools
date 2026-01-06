@@ -231,7 +231,7 @@ def _create_output_entry_from_group(
             - 'ensembl_gene_id': str, Ensembl gene identifier
             - 'gene_symbol': str, Human-readable gene symbol (empty string if not found)
             - 'biodomains': List[str], List of biodomain names associated with the gene
-            - 'name': dict, Object with 'link_url' key containing the model link path
+            - 'name': dict, Object with 'link_url' and 'link_text' keys containing the model link path and display text
             - 'matched_control': str, Display label for the control genotype
             - 'model_group': str or None, Model group name (None if empty)
             - 'model_type': str, Model type classification (empty string if not found)
@@ -245,7 +245,7 @@ def _create_output_entry_from_group(
                 'ensembl_gene_id': 'ENSMUSG00000000001',
                 'gene_symbol': 'Gapdh',
                 'biodomains': ['Synaptic', 'Metabolic'],
-                'name': {'link_url': 'models/5XFAD'},
+                'name': {'link_url': 'models/5XFAD', 'link_text': '5XFAD'},
                 'matched_control': 'Wild-type',
                 'model_group': '5XFAD',
                 'model_type': 'transgenic',
@@ -284,7 +284,7 @@ def _create_output_entry_from_group(
         "ensembl_gene_id": ensembl_gene_id,
         "gene_symbol": gene_symbol,
         "biodomains": biodomains,
-        "name": {"link_url": f"models/{name}"},
+        "name": {"link_url": f"models/{name}", "link_text": name},
         "matched_control": matched_control,
         "model_group": model_group if model_group != "" else None,
         "model_type": model_type,
@@ -464,7 +464,7 @@ def transform_rna_de_aggregate(
         List of dictionaries, where each dictionary represents a unique combination of
         gene, model, tissue, and sex. Each entry contains:
             - Gene identifiers: ensembl_gene_id, gene_symbol
-            - Model information: name (object with link_url), matched_control, model_group, model_type
+            - Model information: name (object with link_url and link_text), matched_control, model_group, model_type
             - Sample information: tissue, sex
             - Biodomain annotations: biodomains (list)
             - Age-based measurements: Dictionary keys are age strings (e.g., '3 months')
@@ -475,7 +475,7 @@ def transform_rna_de_aggregate(
                 'ensembl_gene_id': 'ENSMUSG00000000001',
                 'gene_symbol': 'Gapdh',
                 'biodomains': ['Synaptic', 'Metabolic'],
-                'name': {'link_url': 'models/5XFAD'},
+                'name': {'link_url': 'models/5XFAD', 'link_text': '5XFAD'},
                 'matched_control': 'Wild-type',
                 'model_group': '5XFAD',
                 'model_type': 'transgenic',

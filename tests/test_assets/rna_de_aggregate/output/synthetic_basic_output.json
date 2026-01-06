@@ -4,7 +4,8 @@
     "gene_symbol": "Gene_A",
     "biodomains": ["Synaptic"],
     "name": {
-      "link_url": "models/Model_A (Tg)"
+      "link_url": "models/Model_A (Tg)",
+      "link_text": "Model_A (Tg)"
     },
     "matched_control": "Model_A (Wt)",
     "model_group": "AD",
@@ -25,7 +26,8 @@
     "gene_symbol": "Gene_B",
     "biodomains": ["Synaptic"],
     "name": {
-      "link_url": "models/Model_A (Tg)"
+      "link_url": "models/Model_A (Tg)",
+      "link_text": "Model_A (Tg)"
     },
     "matched_control": "Model_A (Wt)",
     "model_group": "AD",

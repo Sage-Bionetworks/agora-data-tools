@@ -156,7 +156,7 @@ The `case` and `control` columns in the input data represent the comparison bein
 - **Control**: The control condition (e.g., wild-type "Wt")
 
 The `rnaseq_genotype_label_map.csv` file maps these genotypes to human-readable display labels:
-- `case` → `name` (object with `link_url` field, e.g., `{"link_url": "models/Model_A (Tg)"}`)
+- `case` → `name` (object with `link_url` and `link_text` fields, e.g., `{"link_url": "models/Model_A (Tg)", "link_text": "Model_A (Tg)"}`)
 - `control` → `matched_control` (string, e.g., "Model_A (Wt)")
 
 ### Example Grouping
@@ -182,7 +182,8 @@ Each output entry in the transform result has the following structure:
   "gene_symbol": "Gene_A",
   "biodomains": ["Synaptic"],
   "name": {
-    "link_url": "models/Model_A (Tg)"
+    "link_url": "models/Model_A (Tg)",
+    "link_text": "Model_A (Tg)"
   },
   "matched_control": "Model_A (Wt)",
   "model_group": "AD",
@@ -207,6 +208,7 @@ Each output entry in the transform result has the following structure:
 - **biodomains** (array): List of biodomain names associated with the gene
 - **name** (object): Display label for the case genotype with navigation link
   - **link_url** (string): Relative URL path to the model page (format: `models/<display_label>`)
+  - **link_text** (string): Display text for the link (typically the model name/label)
 - **matched_control** (string): Display label for the control genotype
 - **model_group** (string or null): Model group name (null if empty)
 - **model_type** (string): Model type classification (e.g., "Transgenic", "knockout")
@@ -227,8 +229,8 @@ When testing, verify:
 5. **Label mapping**: Correct display labels from genotype map
 6. **Model metadata**: Correct model type and matched controls
 7. **Grouping logic**: One output entry per unique gene+model+tissue+sex+case+control combination
-8. **Case/control mapping**: Correct name (with link_url) and matched_control values from genotype labels
-9. **Name field structure**: `name` is an object with `link_url` field formatted as `models/<display_label>`
+8. **Case/control mapping**: Correct name (with link_url and link_text) and matched_control values from genotype labels
+9. **Name field structure**: `name` is an object with `link_url` and `link_text` fields formatted as `models/<display_label>`
 10. **Numeric rounding**: log2_fc and adj_p_val rounded to exactly 5 decimal places
 11. **Multiple biodomains**: Genes can have multiple biodomain assignments in a list
 12. **Missing metadata**: Gene not in metadata → gene_symbol="" and biodomains=[]

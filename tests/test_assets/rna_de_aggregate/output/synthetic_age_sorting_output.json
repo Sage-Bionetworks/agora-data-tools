@@ -4,7 +4,8 @@
     "gene_symbol": "Gene_G",
     "biodomains": [],
     "name": {
-      "link_url": "models/Model_E (Tg)"
+      "link_url": "models/Model_E (Tg)",
+      "link_text": "Model_E (Tg)"
     },
     "matched_control": "Model_E (Wt)",
     "model_group": "AD",

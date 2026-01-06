@@ -538,7 +538,10 @@ class TestCreateOutputEntryFromGroup:
         assert result["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result["gene_symbol"] == "Gene1"
         assert result["biodomains"] == ["Synaptic"]
-        assert result["name"] == {"link_url": "models/Transgenic"}
+        assert result["name"] == {
+            "link_url": "models/Transgenic",
+            "link_text": "Transgenic",
+        }
         assert result["matched_control"] == "Wildtype"
         assert result["model_group"] == "Group1"
         assert result["model_type"] == "knockout"
@@ -587,7 +590,8 @@ class TestCreateOutputEntryFromGroup:
         assert result["gene_symbol"] == ""  # Default for missing
         assert result["biodomains"] == []  # Default for missing
         assert result["name"] == {
-            "link_url": "models/Tg"
+            "link_url": "models/Tg",
+            "link_text": "Tg",
         }  # Falls back to case genotype
         assert result["matched_control"] == "Wt"  # Falls back to control genotype
         assert result["model_group"] is None  # Empty string converted to None

@@ -4,7 +4,8 @@
     "gene_symbol": "Gene_A",
     "biodomains": ["Synaptic"],
     "name": {
-      "link_url": "models/Model_NoGroup (Tg)"
+      "link_url": "models/Model_NoGroup (Tg)",
+      "link_text": "Model_NoGroup (Tg)"
     },
     "matched_control": "Model_NoGroup (Wt)",
     "model_group": null,

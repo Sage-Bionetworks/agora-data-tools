@@ -4,7 +4,8 @@
     "gene_symbol": "Gene_MultiDomain",
     "biodomains": ["Synaptic", "Metabolic"],
     "name": {
-      "link_url": "models/Model_A (Tg)"
+      "link_url": "models/Model_A (Tg)",
+      "link_text": "Model_A (Tg)"
     },
     "matched_control": "Model_A (Wt)",
     "model_group": "AD",

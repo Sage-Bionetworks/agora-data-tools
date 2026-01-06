@@ -4,7 +4,8 @@
     "gene_symbol": "Gene_D",
     "biodomains": ["Metabolic"],
     "name": {
-      "link_url": "models/JAX_Model (Tg)"
+      "link_url": "models/JAX_Model (Tg)",
+      "link_text": "JAX_Model (Tg)"
     },
     "matched_control": "JAX_Model (Wt)",
     "model_group": "AD",
