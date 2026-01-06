@@ -196,7 +196,7 @@ ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
 # Static columns are the same across all views
-ge_primary_column <- list("Gene", "primary", "gene_symbol", NA, NA, NA, NA, TRUE, FALSE)
+ge_primary_column <- list("Gene", "primary", "gene_symbol", "Mouse Gene", NA, NA, NA, TRUE, FALSE)
 ge_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE)
 ge_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA, TRUE, FALSE)
 
@@ -298,7 +298,7 @@ dc_menu2 <- c(
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
 # All views have the same static column values
-dc_primary_column <- list("Model", "primary", "name", NA, NA, NA, NA, TRUE, FALSE)
+dc_primary_column <- list("Model", "primary", "name", "Mouse Model", NA, NA, NA, TRUE, FALSE)
 dc_age_column <- list("Age", "text", "age", NA, "Sort by Age value", NA, NA, TRUE, FALSE)
 dc_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
 
@@ -421,7 +421,7 @@ mo_columns <- data.frame(
   data_key = c("name", "model_type", "matched_controls", "gene_expression",
                  "disease_correlation", "pathology", "biomarkers",
                  "study_data", "jax_strain", "center", "modified_genes", "available_data"),
-  tooltip = rep(NA, times = 12),
+  tooltip = c("Mouse Model",  rep(NA, times = 11)),
   sort_tooltip = rep(NA, times = 12),
   link_url = rep(NA, times = 12),
   link_text = c(NA, NA, NA, "Results", "Results", "Results", "Results", "View Data", "View Strain", NA, NA, NA),
