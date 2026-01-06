@@ -12,7 +12,7 @@ The transformation:
 - Validates and sorts age entries by numeric value
 - Normalizes zero values in log2 fold change for consistent representation
 - Enriches data with gene symbols, biodomains, and model metadata
-- Maps genotypes to display labels for better readability
+- Maps genotypes to display labels with strict validation (raises ValueError if mappings are missing)
 - Applies special tissue name transformation for JAX models ("Right Cerebral Hemisphere" -> "Hemibrain")
 - Rounds numeric columns to 5 decimal places for consistency
 - Processes multiple data files sequentially to minimize memory usage
@@ -25,7 +25,8 @@ Key Functions:
     _process_single_data_file: Processes a single differential expression data file and transforms it into output entries
 
 Required Inputs:
-    - rnaseq_genotype_label_map: Maps models and genotypes to display labels
+    - rnaseq_genotype_label_map: Maps (model, genotype) tuples to display labels. All genotypes
+      used in data files must have corresponding entries or a ValueError will be raised.
     - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
     - model_info: Model types and matched controls
     - biodom_genes_mm: Biodomain annotations for mouse genes
@@ -255,6 +256,11 @@ def _create_output_entry_from_group(
                 '6 months': {'log2_fc': 2.456, 'adj_p_val': 0.0001}
             }
 
+    Raises:
+        ValueError: If the case or control genotype is not found in label_map_dict.
+            The error includes details about the model, genotype, gene, tissue, and sex
+            to help identify which mapping is missing.
+
     Note:
         Age entries are validated and sorted numerically before being included in the output.
         Missing values in gene_metadata_dict, biodomain_dict, and model_info_dict result
@@ -374,8 +380,9 @@ def _process_single_data_file(
         `_create_output_entry_from_group`.
 
     Raises:
-        ValueError: If the data file is empty or if required columns are missing.
-            The error message includes the file name for debugging purposes.
+        ValueError: If the data file is empty, if required columns are missing, or if any
+            case or control genotype is not found in label_map_dict during group processing.
+            The error message includes the file name and specific details for debugging purposes.
 
     Note:
         This function performs memory cleanup by explicitly deleting the processed DataFrame
@@ -502,7 +509,9 @@ def transform_rna_de_aggregate(
 
     Raises:
         ValueError: If required datasets or columns are missing, if any model has
-            inconsistent model_group values, or if any data file is empty or invalid.
+            inconsistent model_group values, if any data file is empty or invalid,
+            or if any case or control genotype used in the data files is not found
+            in the rnaseq_genotype_label_map dataset.
             Error messages include specific details about what validation failed.
 
     Note:
