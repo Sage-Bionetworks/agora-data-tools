@@ -1122,10 +1122,10 @@ class TestTransformRnaDeAggregate:
 
         # Sort output data by ensembl_gene_id and name for deterministic comparison
         output_data_sorted = sorted(
-            output_data, key=lambda x: (x["ensembl_gene_id"], x["name"]["link_url"])
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["name"]["link_text"])
         )
         expected_data_sorted = sorted(
-            expected_data, key=lambda x: (x["ensembl_gene_id"], x["name"]["link_url"])
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["name"]["link_text"])
         )
 
         # Compare output with expected
