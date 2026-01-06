@@ -3,7 +3,10 @@
     "ensembl_gene_id": "ENSMUSG00000000004",
     "gene_symbol": "Gene_D",
     "biodomains": ["Metabolic"],
-    "name": "JAX_Model (Tg)",
+    "name": {
+      "link_url": "models/JAX_Model (Tg)",
+      "link_text": "JAX_Model (Tg)"
+    },
     "matched_control": "JAX_Model (Wt)",
     "model_group": "AD",
     "model_type": "Transgenic",
