@@ -445,7 +445,7 @@ mo_filter_values <- list(
   c('Biomarkers', 'Disease Correlation', 'Gene Expression', 'Pathology'),
   c('IU/Jax/Pitt', 'UCI'),
   model_type_filter_vals,
-  model_name_filter_vals
+  modified_gene_filter_vals
 )
 
 # Generates Model Overview ui_config objects
