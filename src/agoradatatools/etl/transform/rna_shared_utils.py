@@ -236,3 +236,47 @@ def extract_common_metadata(
         "gene_symbol": gene_metadata_dict.get(ensembl_gene_id, ""),
         "tissue": map_jax_tissue_name(tissue),
     }
+
+
+def resolve_genotypes_to_display_labels(
+    label_map_dict: Dict[tuple[str, str], str],
+    name: str,
+    case: str,
+    control: str,
+    ensembl_gene_id: str,
+    tissue: str,
+    sex: str,
+) -> tuple[str, str]:
+    """
+    Resolve genotypes to display labels.
+    Args:
+        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
+        name: Model name
+        case: Case genotype
+        control: Control genotype
+        ensembl_gene_id: Ensembl gene identifier
+        tissue: Tissue name
+        sex: Sex category
+
+    Returns:
+        Tuple containing the display label for the case genotype and the display label for the control genotype
+
+    Raises:
+        ValueError: If the case or control genotype is not found in label_map_dict.
+    """
+    # Lookup name and matched_control - raise error if not found
+    case_key = (name, case)
+    control_key = (name, control)
+    for k in [case_key, control_key]:
+        if k not in label_map_dict:
+            raise ValueError(
+                f"Label mapping not found for genotype. "
+                f"Model: '{name}', Genotype: '{k[1]}', "
+                f"Gene: {ensembl_gene_id}, Tissue: {tissue}, Sex: {sex}. "
+                f"Please ensure the rnaseq_genotype_label_map dataset contains "
+                f"an entry for model '{name}' and genotype '{k[1]}'."
+            )
+    name = label_map_dict[case_key]
+    matched_control = label_map_dict[control_key]
+
+    return name, matched_control

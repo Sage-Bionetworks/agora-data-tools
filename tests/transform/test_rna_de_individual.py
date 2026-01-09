@@ -127,23 +127,30 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        matched_control_dict = {"5xFAD (UCI)": "C57BL/6J"}
+        label_map_dict = {
+            ("5xFAD (UCI)", "5XFAD_carrier"): "5xFAD (UCI)",
+            ("5xFAD (UCI)", "5XFAD_noncarrier"): "C57BL/6J",
+        }
 
         result = _create_output_entry_from_group(
             group_key,
             group,
             gene_metadata_dict,
-            matched_control_dict,
+            label_map_dict,
         )
 
-        assert result["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert result["hgnc_symbol"] == "Gene1"
-        assert result["tissue"] == "Cortex"
-        assert result["name"] == "5xFAD (UCI)"
-        assert result["model_group"] is None
-        assert result["matched_control"] == "C57BL/6J"
-        assert result["units"] == "Log2 Counts per Million"
-        assert len(result["individual_results"]) == 1
+        # Now returns a list of entries (one per age)
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert result[0]["hgnc_symbol"] == "Gene1"
+        assert result[0]["tissue"] == "Cortex"
+        assert result[0]["name"] == "5xFAD (UCI)"
+        assert result[0]["model_group"] is None
+        assert result[0]["matched_control"] == "C57BL/6J"
+        assert result[0]["units"] == "Log2 Counts per Million"
+        assert result[0]["age"] == "6 months"
+        assert len(result[0]["data"]) == 2
 
     def test_create_output_entry_jax_tissue_mapping(self) -> None:
         """Test that JAX tissue name is mapped correctly."""
@@ -164,16 +171,17 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {}
-        matched_control_dict = {}
+        label_map_dict = {}
 
         result = _create_output_entry_from_group(
             group_key,
             group,
             gene_metadata_dict,
-            matched_control_dict,
+            label_map_dict,
         )
 
-        assert result["tissue"] == "Hemibrain"
+        assert len(result) == 1
+        assert result[0]["tissue"] == "Hemibrain"
 
     def test_create_output_entry_with_model_group(self) -> None:
         """Test output entry creation with model_group."""
@@ -194,16 +202,20 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000003": "Gene3"}
-        matched_control_dict = {"Abca7*V1599M": "C57BL/6J"}
+        label_map_dict = {
+            ("Abca7*V1599M", "Abca7-V1599M_homozygous"): "Abca7*V1599M",
+            ("Abca7*V1599M", "5XFAD_noncarrier"): "C57BL/6J",
+        }
 
         result = _create_output_entry_from_group(
             group_key,
             group,
             gene_metadata_dict,
-            matched_control_dict,
+            label_map_dict,
         )
 
-        assert result["model_group"] == "Abca7*V1599M"
+        assert len(result) == 1
+        assert result[0]["model_group"] == "Abca7*V1599M"
 
 
 class TestProcessSingleDataFile:
@@ -232,7 +244,6 @@ class TestProcessSingleDataFile:
             ("5xFAD (UCI)", "5XFAD_noncarrier"): "C57BL/6J",
         }
         model_group_dict = {"5xFAD (UCI)": ""}
-        matched_control_dict = {"5xFAD (UCI)": "C57BL/6J"}
         genotypes_by_model_group = {
             "5xFAD (UCI)": ["5XFAD_carrier", "5XFAD_noncarrier"]
         }
@@ -255,7 +266,6 @@ class TestProcessSingleDataFile:
             gene_metadata_dict=gene_metadata_dict,
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
-            matched_control_dict=matched_control_dict,
             genotypes_by_model_group=genotypes_by_model_group,
             file_index=0,
             total_files=1,
@@ -282,7 +292,6 @@ class TestProcessSingleDataFile:
         gene_metadata_dict = {}
         label_map_dict = {}
         model_group_dict = {"5xFAD (UCI)": ""}
-        matched_control_dict = {}
         genotypes_by_model_group = {"5xFAD (UCI)": ["5XFAD_carrier"]}
 
         data_file_required_columns = [
@@ -303,7 +312,6 @@ class TestProcessSingleDataFile:
             gene_metadata_dict=gene_metadata_dict,
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
-            matched_control_dict=matched_control_dict,
             genotypes_by_model_group=genotypes_by_model_group,
             file_index=0,
             total_files=1,
@@ -325,7 +333,6 @@ class TestProcessSingleDataFile:
                 gene_metadata_dict={},
                 label_map_dict={},
                 model_group_dict={},
-                matched_control_dict={},
                 genotypes_by_model_group={},
                 file_index=0,
                 total_files=1,

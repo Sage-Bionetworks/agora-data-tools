@@ -116,42 +116,62 @@ def _create_output_entry_from_group(
     group_key: tuple[str, str, str, str],
     group: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
-    matched_control_dict: Dict[str, str],
-) -> Dict[str, Any]:
+    label_map_dict: Dict[tuple[str, str], str],
+) -> List[Dict[str, Any]]:
     """
-    Creates a complete output entry from a grouped DataFrame.
+    Creates output entries from a grouped DataFrame, one entry per age group.
 
     Args:
         group_key: Tuple containing (ensembl_gene_id, tissue, model_group, name)
         group: DataFrame group containing individual expression data
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
-        matched_control_dict: Dictionary mapping models to matched controls
+        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels
 
     Returns:
-        Dictionary containing the complete output entry with individual_results
+        List of dictionaries, one per age group, each containing the complete output entry
+        with age and data fields (unnested from individual_results)
     """
-    ensembl_gene_id, tissue, model_group, name = group_key
+    ensembl_gene_id, tissue, model_group, model = group_key
 
     # Extract common metadata (gene_symbol, tissue mapping)
     common_metadata = extract_common_metadata(
         ensembl_gene_id, tissue, gene_metadata_dict
     )
 
-    matched_control = matched_control_dict.get(name, "")
-
     # Create individual_results structure
     individual_results = _create_individual_results_from_group(group)
 
-    return {
-        "ensembl_gene_id": common_metadata["ensembl_gene_id"],
-        "hgnc_symbol": common_metadata["gene_symbol"],
-        "tissue": common_metadata["tissue"],
-        "name": name,
-        "model_group": normalize_model_group_value(model_group),
-        "matched_control": matched_control,
-        "units": "Log2 Counts per Million",
-        "individual_results": individual_results,
-    }
+    # Determine matched_control by looking for the first genotype in the group that contains "noncarrier"
+    # If none found, use empty string
+    matched_control = ""
+    control_genotypes = group[
+        group["genotype"].str.contains("noncarrier", case=False, na=False)
+    ]
+    if not control_genotypes.empty:
+        control_genotype = control_genotypes.iloc[0]["genotype"]
+        matched_control = label_map_dict.get((model, control_genotype), "")
+
+    # Determine name - use model_group if it's different from model, otherwise use model
+    name = model_group if (model_group and model_group != model) else model
+
+    # Create one output entry per age group (unnesting individual_results)
+    output_entries = []
+    for age_result in individual_results:
+        output_entries.append(
+            {
+                "ensembl_gene_id": common_metadata["ensembl_gene_id"],
+                "hgnc_symbol": common_metadata["gene_symbol"],
+                "tissue": common_metadata["tissue"],
+                "name": name,
+                "model_group": normalize_model_group_value(model_group),
+                "matched_control": matched_control,
+                "units": "Log2 Counts per Million",
+                "age": age_result["age"],
+                "data": age_result["data"],
+            }
+        )
+
+    return output_entries
 
 
 def _process_single_data_file(
@@ -161,7 +181,6 @@ def _process_single_data_file(
     gene_metadata_dict: Dict[str, str],
     label_map_dict: Dict[tuple[str, str], str],
     model_group_dict: Dict[str, str],
-    matched_control_dict: Dict[str, str],
     genotypes_by_model_group: Dict[str, List[str]],
     file_index: int,
     total_files: int,
@@ -176,7 +195,6 @@ def _process_single_data_file(
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels
         model_group_dict: Dictionary mapping model names to model_groups
-        matched_control_dict: Dictionary mapping models to matched controls
         genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
         file_index: Current file index for progress tracking
         total_files: Total number of files to process
@@ -234,13 +252,13 @@ def _process_single_data_file(
 
     output_entries = []
     for group_key, group in grouped:
-        output_entry = _create_output_entry_from_group(
+        entries_for_group = _create_output_entry_from_group(
             group_key,
             group,
             gene_metadata_dict,
-            matched_control_dict,
+            label_map_dict,
         )
-        output_entries.append(output_entry)
+        output_entries.extend(entries_for_group)
 
     # Clean up memory
     del data_file
@@ -349,7 +367,6 @@ def transform_rna_de_individual(
             gene_metadata_dict,
             label_map_dict,
             model_group_dict,
-            matched_control_dict,
             genotypes_by_model_group,
             i,
             total_files,

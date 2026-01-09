@@ -21,6 +21,7 @@ from agoradatatools.etl.transform.rna_shared_utils import (
     validate_data_file_not_empty,
     normalize_model_group_value,
     extract_common_metadata,
+    resolve_genotypes_to_display_labels,
 )
 
 
@@ -428,3 +429,259 @@ class TestIntegration:
         )
         assert metadata["gene_symbol"] == "Gene1"
         assert metadata["tissue"] == "Hemibrain"
+
+
+class TestResolveGenotypesToDisplayLabels:
+    """Tests for resolve_genotypes_to_display_labels function."""
+
+    def test_resolves_both_genotypes_successfully(self) -> None:
+        """Test that both case and control genotypes are resolved to their display labels."""
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
+
+        name, matched_control = resolve_genotypes_to_display_labels(
+            label_map_dict=label_map_dict,
+            name="Model_A",
+            case="Tg",
+            control="Wt",
+            ensembl_gene_id="ENSMUSG00000000001",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert name == "Transgenic"
+        assert matched_control == "Wildtype"
+
+    def test_resolves_multiple_models(self) -> None:
+        """Test that different models can have different display labels for the same genotype."""
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic_A",
+            ("Model_A", "Wt"): "Wildtype_A",
+            ("Model_B", "Tg"): "Transgenic_B",
+            ("Model_B", "Wt"): "Wildtype_B",
+        }
+
+        # Test Model_A
+        name_a, control_a = resolve_genotypes_to_display_labels(
+            label_map_dict=label_map_dict,
+            name="Model_A",
+            case="Tg",
+            control="Wt",
+            ensembl_gene_id="ENSMUSG00000000001",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert name_a == "Transgenic_A"
+        assert control_a == "Wildtype_A"
+
+        # Test Model_B
+        name_b, control_b = resolve_genotypes_to_display_labels(
+            label_map_dict=label_map_dict,
+            name="Model_B",
+            case="Tg",
+            control="Wt",
+            ensembl_gene_id="ENSMUSG00000000002",
+            tissue="Hippocampus",
+            sex="Female",
+        )
+
+        assert name_b == "Transgenic_B"
+        assert control_b == "Wildtype_B"
+
+    def test_missing_case_genotype_raises_error(self) -> None:
+        """Test that missing case genotype in label_map_dict raises ValueError."""
+        label_map_dict = {
+            ("Model_A", "Wt"): "Wildtype",
+            # Missing entry for ("Model_A", "Tg")
+        }
+
+        with pytest.raises(ValueError) as exc_info:
+            resolve_genotypes_to_display_labels(
+                label_map_dict=label_map_dict,
+                name="Model_A",
+                case="Tg",
+                control="Wt",
+                ensembl_gene_id="ENSMUSG00000000001",
+                tissue="Cortex",
+                sex="Male",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Label mapping not found for genotype" in error_message
+        assert "Model_A" in error_message
+        assert "Tg" in error_message
+        assert "ENSMUSG00000000001" in error_message
+        assert "Cortex" in error_message
+        assert "Male" in error_message
+
+    def test_missing_control_genotype_raises_error(self) -> None:
+        """Test that missing control genotype in label_map_dict raises ValueError."""
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            # Missing entry for ("Model_A", "Wt")
+        }
+
+        with pytest.raises(ValueError) as exc_info:
+            resolve_genotypes_to_display_labels(
+                label_map_dict=label_map_dict,
+                name="Model_A",
+                case="Tg",
+                control="Wt",
+                ensembl_gene_id="ENSMUSG00000000002",
+                tissue="Hippocampus",
+                sex="Female",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Label mapping not found for genotype" in error_message
+        assert "Model_A" in error_message
+        assert "Wt" in error_message
+        assert "ENSMUSG00000000002" in error_message
+        assert "Hippocampus" in error_message
+        assert "Female" in error_message
+
+    def test_missing_both_genotypes_raises_case_error_first(self) -> None:
+        """Test that when both genotypes are missing, case error is raised first."""
+        label_map_dict = {}
+
+        with pytest.raises(ValueError) as exc_info:
+            resolve_genotypes_to_display_labels(
+                label_map_dict=label_map_dict,
+                name="Model_A",
+                case="Tg",
+                control="Wt",
+                ensembl_gene_id="ENSMUSG00000000003",
+                tissue="Striatum",
+                sex="Male",
+            )
+
+        # Should raise error for case first, since case is checked before control
+        error_message = str(exc_info.value)
+        assert "Label mapping not found for genotype" in error_message
+        assert "Model_A" in error_message
+        assert "Tg" in error_message
+
+    def test_missing_model_raises_error(self) -> None:
+        """Test that missing model (not in label_map_dict) raises ValueError."""
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
+
+        with pytest.raises(ValueError) as exc_info:
+            resolve_genotypes_to_display_labels(
+                label_map_dict=label_map_dict,
+                name="Model_B",
+                case="Tg",
+                control="Wt",
+                ensembl_gene_id="ENSMUSG00000000004",
+                tissue="Cortex",
+                sex="Female",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Label mapping not found for genotype" in error_message
+        assert "Model_B" in error_message
+
+    def test_error_message_includes_all_context(self) -> None:
+        """Test that error message includes all relevant context information."""
+        label_map_dict = {
+            ("5xFAD", "Wt"): "Wildtype",
+        }
+
+        with pytest.raises(ValueError) as exc_info:
+            resolve_genotypes_to_display_labels(
+                label_map_dict=label_map_dict,
+                name="5xFAD",
+                case="Het",
+                control="Wt",
+                ensembl_gene_id="ENSMUSG00000051951",
+                tissue="Hemibrain",
+                sex="Female",
+            )
+
+        error_message = str(exc_info.value)
+        # Verify all context is in error message
+        assert "5xFAD" in error_message
+        assert "Het" in error_message
+        assert "ENSMUSG00000051951" in error_message
+        assert "Hemibrain" in error_message
+        assert "Female" in error_message
+        assert "rnaseq_genotype_label_map" in error_message
+
+    def test_different_genotype_names(self) -> None:
+        """Test that function works with various genotype naming conventions."""
+        label_map_dict = {
+            ("Model_X", "Het"): "Heterozygous",
+            ("Model_X", "WT"): "Wild Type",
+            ("Model_Y", "Homo"): "Homozygous",
+            ("Model_Y", "Control"): "Control",
+        }
+
+        # Test Model_X with Het/WT
+        name_x, control_x = resolve_genotypes_to_display_labels(
+            label_map_dict=label_map_dict,
+            name="Model_X",
+            case="Het",
+            control="WT",
+            ensembl_gene_id="ENSMUSG00000000005",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert name_x == "Heterozygous"
+        assert control_x == "Wild Type"
+
+        # Test Model_Y with Homo/Control
+        name_y, control_y = resolve_genotypes_to_display_labels(
+            label_map_dict=label_map_dict,
+            name="Model_Y",
+            case="Homo",
+            control="Control",
+            ensembl_gene_id="ENSMUSG00000000006",
+            tissue="Hippocampus",
+            sex="Female",
+        )
+
+        assert name_y == "Homozygous"
+        assert control_y == "Control"
+
+    def test_case_sensitive_lookups(self) -> None:
+        """Test that genotype lookups are case-sensitive."""
+        label_map_dict = {
+            ("Model_A", "tg"): "Transgenic Lower",
+            ("Model_A", "Tg"): "Transgenic Title",
+            ("Model_A", "wt"): "Wildtype Lower",
+            ("Model_A", "Wt"): "Wildtype Title",
+        }
+
+        # Test with title case
+        name_title, control_title = resolve_genotypes_to_display_labels(
+            label_map_dict=label_map_dict,
+            name="Model_A",
+            case="Tg",
+            control="Wt",
+            ensembl_gene_id="ENSMUSG00000000007",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert name_title == "Transgenic Title"
+        assert control_title == "Wildtype Title"
+
+        # Test with lower case
+        name_lower, control_lower = resolve_genotypes_to_display_labels(
+            label_map_dict=label_map_dict,
+            name="Model_A",
+            case="tg",
+            control="wt",
+            ensembl_gene_id="ENSMUSG00000000008",
+            tissue="Cortex",
+            sex="Female",
+        )
+
+        assert name_lower == "Transgenic Lower"
+        assert control_lower == "Wildtype Lower"

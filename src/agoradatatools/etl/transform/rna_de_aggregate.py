@@ -51,6 +51,7 @@ from agoradatatools.etl.transform.rna_shared_utils import (
     validate_data_file_not_empty,
     normalize_model_group_value,
     extract_common_metadata,
+    resolve_genotypes_to_display_labels,
 )
 
 logger = logging.getLogger(__name__)
@@ -266,19 +267,9 @@ def _create_output_entry_from_group(
     )
 
     # Lookup name and matched_control - raise error if not found
-    case_key = (model, case)
-    control_key = (model, control)
-    for k in [case_key, control_key]:
-        if k not in label_map_dict:
-            raise ValueError(
-                f"Label mapping not found for genotype. "
-                f"Model: '{model}', Genotype: '{k[1]}', "
-                f"Gene: {ensembl_gene_id}, Tissue: {tissue}, Sex: {sex}. "
-                f"Please ensure the rnaseq_genotype_label_map dataset contains "
-                f"an entry for model '{model}' and genotype '{k[1]}'."
-            )
-    name = label_map_dict[case_key]
-    matched_control = label_map_dict[control_key]
+    name, matched_control = resolve_genotypes_to_display_labels(
+        label_map_dict, model, case, control, ensembl_gene_id, tissue, sex
+    )
     model_group = model_group_dict.get(model)
     biodomains = biodomain_dict.get(ensembl_gene_id, [])
     model_type = model_info_dict.get(model, "")
