@@ -1,0 +1,10 @@
+ensembl_gene_id,individualid,expression,tissue,sex,age,genotype,model
+ENSMUSG00000000001,5001,7.5,Right Cerebral Hemisphere,Male,6 months,5XFAD_carrier,5xFAD (UCI)
+ENSMUSG00000000001,5002,7.2,Right Cerebral Hemisphere,Female,6 months,5XFAD_carrier,5xFAD (UCI)
+ENSMUSG00000000001,5003,6.8,Right Cerebral Hemisphere,Male,6 months,5XFAD_noncarrier,5xFAD (UCI)
+ENSMUSG00000000001,5004,6.9,Right Cerebral Hemisphere,Female,6 months,5XFAD_noncarrier,5xFAD (UCI)
+ENSMUSG00000000002,5005,4.5,Right Cerebral Hemisphere,Male,6 months,5XFAD_carrier,5xFAD (UCI)
+ENSMUSG00000000002,5006,4.2,Right Cerebral Hemisphere,Female,6 months,5XFAD_carrier,5xFAD (UCI)
+ENSMUSG00000000002,5007,3.8,Right Cerebral Hemisphere,Male,6 months,5XFAD_noncarrier,5xFAD (UCI)
+ENSMUSG00000000002,5008,3.9,Right Cerebral Hemisphere,Female,6 months,5XFAD_noncarrier,5xFAD (UCI)
+

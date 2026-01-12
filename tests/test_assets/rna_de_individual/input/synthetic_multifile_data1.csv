@@ -1,0 +1,6 @@
+ensembl_gene_id,individualid,expression,tissue,sex,age,genotype,model
+ENSMUSG00000000001,1001,5.5,Cortex,Male,6 months,5XFAD_carrier,5xFAD (UCI)
+ENSMUSG00000000001,1002,5.2,Cortex,Female,6 months,5XFAD_carrier,5xFAD (UCI)
+ENSMUSG00000000001,1003,4.8,Cortex,Male,6 months,5XFAD_noncarrier,5xFAD (UCI)
+ENSMUSG00000000001,1004,4.9,Cortex,Female,6 months,5XFAD_noncarrier,5xFAD (UCI)
+
