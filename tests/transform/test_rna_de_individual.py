@@ -32,7 +32,41 @@ from agoradatatools.etl.transform.rna_de_individual import (
     _create_individual_results_from_group,
     _create_output_entry_from_group,
     _process_single_data_file,
+    _extract_age_numeric,
 )
+
+
+class TestExtractAgeNumeric:
+    """
+    Unit tests for the _extract_age_numeric helper function.
+    """
+
+    def test_extract_age_numeric_standard_format(self) -> None:
+        """Test extracting age from standard format like '6 months'."""
+        assert _extract_age_numeric("6 months") == 6
+        assert _extract_age_numeric("12 months") == 12
+        assert _extract_age_numeric("4 months") == 4
+        assert _extract_age_numeric("18 months") == 18
+
+    def test_extract_age_numeric_single_digit(self) -> None:
+        """Test extracting age with single digit."""
+        assert _extract_age_numeric("3 months") == 3
+        assert _extract_age_numeric("9 months") == 9
+
+    def test_extract_age_numeric_with_different_units(self) -> None:
+        """Test extracting age with different time units."""
+        assert _extract_age_numeric("6 weeks") == 6
+        assert _extract_age_numeric("2 years") == 2
+
+    def test_extract_age_numeric_invalid_format(self) -> None:
+        """Test that invalid formats return 0."""
+        assert _extract_age_numeric("invalid") == 0
+        assert _extract_age_numeric("") == 0
+        assert _extract_age_numeric("months only") == 0
+
+    def test_extract_age_numeric_none(self) -> None:
+        """Test that None returns 0."""
+        assert _extract_age_numeric(None) == 0
 
 
 class TestCreateIndividualResultsFromGroup:
@@ -155,6 +189,7 @@ class TestCreateOutputEntryFromGroup:
         assert result[0]["result_order"] == ["5xFAD (UCI)", "C57BL/6J"]
         assert result[0]["units"] == "Log2 Counts per Million"
         assert result[0]["age"] == "6 months"
+        assert result[0]["age_numeric"] == 6
         assert len(result[0]["data"]) == 2
 
     def test_create_output_entry_jax_tissue_mapping(self) -> None:
@@ -237,6 +272,7 @@ class TestCreateOutputEntryFromGroup:
 
         assert len(result) == 1
         assert result[0]["model_group"] == "Abca7*V1599M"
+        assert result[0]["age_numeric"] == 4
         # For matrixed model, should have order: base control, base model, fancy control, compound
         assert result[0]["result_order"] == [
             "C57BL/6J",

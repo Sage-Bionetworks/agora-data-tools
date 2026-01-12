@@ -8,6 +8,7 @@
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "4 months",
+    "age_numeric": 4,
     "result_order": [
       "C57BL/6J",
       "Abca7*V1599M",
@@ -74,6 +75,7 @@
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "12 months",
+    "age_numeric": 12,
     "result_order": [
       "C57BL/6J",
       "Abca7*V1599M",
