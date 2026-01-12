@@ -131,23 +131,28 @@ class TestCreateOutputEntryFromGroup:
             ("5xFAD (UCI)", "5XFAD_carrier"): "5xFAD (UCI)",
             ("5xFAD (UCI)", "5XFAD_noncarrier"): "C57BL/6J",
         }
+        genotypes_by_model_group = {
+            "5xFAD (UCI)": ["5XFAD_carrier", "5XFAD_noncarrier"]
+        }
 
         result = _create_output_entry_from_group(
             group_key,
             group,
             gene_metadata_dict,
             label_map_dict,
+            genotypes_by_model_group,
         )
 
         # Now returns a list of entries (one per age)
         assert isinstance(result, list)
         assert len(result) == 1
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert result[0]["hgnc_symbol"] == "Gene1"
+        assert result[0]["gene_symbol"] == "Gene1"
         assert result[0]["tissue"] == "Cortex"
         assert result[0]["name"] == "5xFAD (UCI)"
         assert result[0]["model_group"] is None
         assert result[0]["matched_control"] == "C57BL/6J"
+        assert result[0]["result_order"] == ["5xFAD (UCI)", "C57BL/6J"]
         assert result[0]["units"] == "Log2 Counts per Million"
         assert result[0]["age"] == "6 months"
         assert len(result[0]["data"]) == 2
@@ -172,12 +177,14 @@ class TestCreateOutputEntryFromGroup:
 
         gene_metadata_dict = {}
         label_map_dict = {}
+        genotypes_by_model_group = {"Model_A": ["5XFAD_carrier"]}
 
         result = _create_output_entry_from_group(
             group_key,
             group,
             gene_metadata_dict,
             label_map_dict,
+            genotypes_by_model_group,
         )
 
         assert len(result) == 1
@@ -205,6 +212,19 @@ class TestCreateOutputEntryFromGroup:
         label_map_dict = {
             ("Abca7*V1599M", "Abca7-V1599M_homozygous"): "Abca7*V1599M",
             ("Abca7*V1599M", "5XFAD_noncarrier"): "C57BL/6J",
+            ("Abca7*V1599M", "5XFAD_carrier"): "5xFAD",
+            (
+                "Abca7*V1599M",
+                "5XFAD_carrier; Abca7-V1599M_homozygous",
+            ): "Abca7*V1599M.5xFAD",
+        }
+        genotypes_by_model_group = {
+            "Abca7*V1599M": [
+                "5XFAD_noncarrier",
+                "Abca7-V1599M_homozygous",
+                "5XFAD_carrier",
+                "5XFAD_carrier; Abca7-V1599M_homozygous",
+            ]
         }
 
         result = _create_output_entry_from_group(
@@ -212,10 +232,18 @@ class TestCreateOutputEntryFromGroup:
             group,
             gene_metadata_dict,
             label_map_dict,
+            genotypes_by_model_group,
         )
 
         assert len(result) == 1
         assert result[0]["model_group"] == "Abca7*V1599M"
+        # For matrixed model, should have order: base control, base model, fancy control, compound
+        assert result[0]["result_order"] == [
+            "C57BL/6J",
+            "Abca7*V1599M",
+            "5xFAD",
+            "Abca7*V1599M.5xFAD",
+        ]
 
 
 class TestProcessSingleDataFile:

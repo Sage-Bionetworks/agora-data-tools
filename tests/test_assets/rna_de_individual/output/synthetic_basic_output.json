@@ -1,13 +1,17 @@
 [
   {
     "ensembl_gene_id": "ENSMUSG00000000001",
-    "hgnc_symbol": "Gene1",
+    "gene_symbol": "Gene1",
     "tissue": "Cortex",
     "name": "5xFAD (UCI)",
     "model_group": null,
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "6 months",
+    "result_order": [
+      "5xFAD (UCI)",
+      "C57BL/6J"
+    ],
     "data": [
       {
         "genotype": "5XFAD_carrier",
@@ -37,13 +41,17 @@
   },
   {
     "ensembl_gene_id": "ENSMUSG00000000001",
-    "hgnc_symbol": "Gene1",
+    "gene_symbol": "Gene1",
     "tissue": "Cortex",
     "name": "5xFAD (UCI)",
     "model_group": null,
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "12 months",
+    "result_order": [
+      "5xFAD (UCI)",
+      "C57BL/6J"
+    ],
     "data": [
       {
         "genotype": "5XFAD_carrier",
@@ -73,13 +81,17 @@
   },
   {
     "ensembl_gene_id": "ENSMUSG00000000002",
-    "hgnc_symbol": "Gene2",
+    "gene_symbol": "Gene2",
     "tissue": "Hippocampus",
     "name": "5xFAD (UCI)",
     "model_group": null,
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "6 months",
+    "result_order": [
+      "5xFAD (UCI)",
+      "C57BL/6J"
+    ],
     "data": [
       {
         "genotype": "5XFAD_carrier",

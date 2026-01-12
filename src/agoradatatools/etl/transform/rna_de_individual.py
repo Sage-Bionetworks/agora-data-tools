@@ -55,6 +55,90 @@ REQUIRED_INPUT = {
 }
 
 
+def _determine_result_order(
+    label_map_dict: Dict[tuple[str, str], str],
+    model: str,
+    model_group: str,
+    genotypes_by_model_group: Dict[str, List[str]],
+) -> List[str]:
+    """
+    Determines the result_order (ordering of display labels) for genotypes in a model_group.
+
+    Ordering rules:
+    - For simple models (2 genotypes): case first, then control
+    - For matrixed models (4 genotypes):
+      1. Base control (real control, e.g., C57BL6J with noncarrier)
+      2. Base model (single mutation)
+      3. Fancy control (another model's carrier, e.g., 5xFAD)
+      4. Compound model (model on fancy background, has semicolon in genotype)
+
+    Args:
+        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels
+        model: Model name
+        model_group: Model group name (or empty string)
+        genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
+
+    Returns:
+        List of display labels in the correct order
+    """
+    # Determine the effective model_group
+    effective_model_group = model_group if model_group else model
+
+    # Get all genotypes for this model_group
+    genotypes = genotypes_by_model_group.get(effective_model_group, [])
+
+    if not genotypes:
+        return []
+
+    # Create a list of (genotype, display_label) tuples
+    genotype_label_pairs = []
+    for genotype in genotypes:
+        display_label = label_map_dict.get((model, genotype), "")
+        if display_label:
+            genotype_label_pairs.append((genotype, display_label))
+
+    # Sort based on number of genotypes
+    num_genotypes = len(genotype_label_pairs)
+
+    if num_genotypes == 2:
+        # Simple model: case (carrier) first, control (noncarrier) second
+        def simple_sort_key(pair):
+            genotype = pair[0]
+            # Carrier = 0 (first), noncarrier = 1 (second)
+            return 1 if "noncarrier" in genotype.lower() else 0
+
+        sorted_pairs = sorted(genotype_label_pairs, key=simple_sort_key)
+
+    elif num_genotypes >= 4:
+        # Matrixed model: base control, base model, fancy control, compound model
+        def matrixed_sort_key(pair):
+            genotype = pair[0]
+            # Base control (noncarrier) = 0
+            if "noncarrier" in genotype.lower():
+                return 0
+            # Compound model (has semicolon) = 3
+            elif ";" in genotype:
+                return 3
+            # Now we need to distinguish base model from fancy control
+            # Both are carriers, but fancy control typically has "carrier" in name
+            # Base model has a specific mutation name
+            elif "carrier" in genotype.lower():
+                return 2  # Fancy control
+            else:
+                return 1  # Base model (single mutation, no "carrier" in name)
+
+        sorted_pairs = sorted(genotype_label_pairs, key=matrixed_sort_key)
+
+    else:
+        # Fallback for unexpected number of genotypes: sort alphabetically
+        sorted_pairs = sorted(genotype_label_pairs, key=lambda x: x[1])
+
+    # Extract just the display labels
+    result_order = [display_label for _, display_label in sorted_pairs]
+
+    return result_order
+
+
 def _create_individual_results_from_group(
     group: pd.DataFrame,
 ) -> List[Dict[str, Any]]:
@@ -117,6 +201,7 @@ def _create_output_entry_from_group(
     group: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
     label_map_dict: Dict[tuple[str, str], str],
+    genotypes_by_model_group: Dict[str, List[str]],
 ) -> List[Dict[str, Any]]:
     """
     Creates output entries from a grouped DataFrame, one entry per age group.
@@ -126,6 +211,7 @@ def _create_output_entry_from_group(
         group: DataFrame group containing individual expression data
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels
+        genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
 
     Returns:
         List of dictionaries, one per age group, each containing the complete output entry
@@ -154,19 +240,25 @@ def _create_output_entry_from_group(
     # Determine name - use model_group if it's different from model, otherwise use model
     name = model_group if (model_group and model_group != model) else model
 
+    # Determine result_order for this model_group
+    result_order = _determine_result_order(
+        label_map_dict, model, model_group, genotypes_by_model_group
+    )
+
     # Create one output entry per age group (unnesting individual_results)
     output_entries = []
     for age_result in individual_results:
         output_entries.append(
             {
                 "ensembl_gene_id": common_metadata["ensembl_gene_id"],
-                "hgnc_symbol": common_metadata["gene_symbol"],
+                "gene_symbol": common_metadata["gene_symbol"],
                 "tissue": common_metadata["tissue"],
                 "name": name,
                 "model_group": normalize_model_group_value(model_group),
                 "matched_control": matched_control,
                 "units": "Log2 Counts per Million",
                 "age": age_result["age"],
+                "result_order": result_order,
                 "data": age_result["data"],
             }
         )
@@ -257,6 +349,7 @@ def _process_single_data_file(
             group,
             gene_metadata_dict,
             label_map_dict,
+            genotypes_by_model_group,
         )
         output_entries.extend(entries_for_group)
 

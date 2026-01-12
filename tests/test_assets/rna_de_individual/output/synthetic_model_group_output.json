@@ -1,13 +1,19 @@
 [
   {
     "ensembl_gene_id": "ENSMUSG00000000003",
-    "hgnc_symbol": "Gene3",
+    "gene_symbol": "Gene3",
     "tissue": "Hippocampus",
     "name": "Abca7*V1599M",
     "model_group": "Abca7*V1599M",
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "4 months",
+    "result_order": [
+      "C57BL/6J",
+      "Abca7*V1599M",
+      "5xFAD",
+      "Abca7*V1599M.5xFAD"
+    ],
     "data": [
       {
         "genotype": "Abca7-V1599M_homozygous",
@@ -61,13 +67,19 @@
   },
   {
     "ensembl_gene_id": "ENSMUSG00000000003",
-    "hgnc_symbol": "Gene3",
+    "gene_symbol": "Gene3",
     "tissue": "Hippocampus",
     "name": "Abca7*V1599M",
     "model_group": "Abca7*V1599M",
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "12 months",
+    "result_order": [
+      "C57BL/6J",
+      "Abca7*V1599M",
+      "5xFAD",
+      "Abca7*V1599M.5xFAD"
+    ],
     "data": [
       {
         "genotype": "Abca7-V1599M_homozygous",
