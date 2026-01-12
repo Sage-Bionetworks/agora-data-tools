@@ -167,7 +167,7 @@ def _create_individual_results_from_group(
     Creates individual_results structure from a grouped DataFrame.
 
     Groups the data by age and creates entries with all individual data points
-    for each age timepoint.
+    for each age timepoint. Uses efficient pandas methods for bulk operations.
 
     Args:
         group: DataFrame group containing age, genotype, sex, individualid, and expression columns.
@@ -187,16 +187,20 @@ def _create_individual_results_from_group(
     age_groups = group.groupby("age")
 
     for age, age_group in age_groups:
-        data_points = []
-        for row in age_group.itertuples(index=False):
-            data_points.append(
-                {
-                    "genotype": row.genotype,
-                    "sex": row.sex,
-                    "individual_id": str(row.individualid),
-                    "value": float(row.expression),
-                }
-            )
+        # Select and rename columns for output format
+        age_group_subset = age_group[
+            ["genotype", "sex", "individualid", "expression"]
+        ].copy()
+        age_group_subset.columns = ["genotype", "sex", "individual_id", "value"]
+
+        # Convert types efficiently
+        age_group_subset["individual_id"] = age_group_subset["individual_id"].astype(
+            str
+        )
+        age_group_subset["value"] = age_group_subset["value"].astype(float)
+
+        # Convert DataFrame to list of dictionaries for JSON serialization
+        data_points = age_group_subset.to_dict("records")
 
         individual_results.append(
             {
@@ -248,14 +252,11 @@ def _create_output_entry_from_group(
     # Create individual_results structure
     individual_results = _create_individual_results_from_group(group)
 
-    # Determine matched_control by looking for the first genotype in the group that contains "noncarrier"
-    # If none found, use empty string
+    # Determine matched_control by finding the first noncarrier genotype
     matched_control = ""
-    control_genotypes = group[
-        group["genotype"].str.contains("noncarrier", case=False, na=False)
-    ]
-    if not control_genotypes.empty:
-        control_genotype = control_genotypes.iloc[0]["genotype"]
+    control_mask = group["genotype"].str.contains("noncarrier", case=False, na=False)
+    if control_mask.any():
+        control_genotype = group.loc[control_mask, "genotype"].iloc[0]
         matched_control = label_map_dict.get((model, control_genotype), "")
 
     # Determine name - use model_group if it's different from model, otherwise use model
@@ -302,6 +303,10 @@ def _process_single_data_file(
     """
     Processes a single individual expression data file.
 
+    Applies filtering, enrichment, and grouping logic to transform raw expression
+    data into the structured output format. Uses vectorized pandas operations
+    for efficient processing of large datasets.
+
     Args:
         file_name: Name of the data file being processed
         data_file: DataFrame containing the individual expression data
@@ -331,35 +336,63 @@ def _process_single_data_file(
     # Round numeric columns to 5 decimal places for consistency
     data_file = data_file.round(decimals=5)
 
-    # Add model_group and display_label to data_file based on genotype label map
-    # Map genotype to display_label
-    data_file["genotype_display"] = data_file.apply(
-        lambda row: label_map_dict.get(
-            (row["model"], row["genotype"]), row["genotype"]
-        ),
-        axis=1,
-    )
+    # Map genotypes to display labels using vectorized merge operation
+    # This is more efficient than row-by-row operations for large datasets
+    if label_map_dict:
+        label_map_list = [
+            {"model": k[0], "genotype": k[1], "genotype_display": v}
+            for k, v in label_map_dict.items()
+        ]
+        label_map_df = pd.DataFrame(label_map_list)
 
-    # Map model to model_group
+        # Perform left join to add display labels
+        data_file = data_file.merge(label_map_df, on=["model", "genotype"], how="left")
+        # Fill missing display labels with original genotype
+        data_file["genotype_display"] = data_file["genotype_display"].fillna(
+            data_file["genotype"]
+        )
+    else:
+        # If no label map provided, use genotype as display label
+        data_file["genotype_display"] = data_file["genotype"]
+
+    # Map model names to model_groups
     data_file["model_group"] = data_file["model"].map(model_group_dict).fillna("")
 
     # Determine the "name" field based on grouping logic
-    # If model_group exists and is different from model, use model_group
-    # Otherwise, use the model name
-    data_file["name"] = data_file.apply(
-        lambda row: row["model_group"]
-        if row["model_group"] and row["model_group"] != row["model"]
-        else row["model"],
-        axis=1,
+    # Uses vectorized conditional logic instead of row-by-row application
+    different_from_model = (data_file["model_group"] != "") & (
+        data_file["model_group"] != data_file["model"]
+    )
+    data_file["name"] = data_file["model_group"].where(
+        different_from_model, data_file["model"]
     )
 
     # Filter data to only include genotypes that belong to the model_group
-    def filter_by_model_group(row):
-        model_group = row["model_group"] if row["model_group"] else row["model"]
-        allowed_genotypes = genotypes_by_model_group.get(model_group, [])
-        return row["genotype"] in allowed_genotypes
+    # Create effective model_group for filtering
+    data_file["effective_model_group"] = data_file["model_group"].where(
+        data_file["model_group"] != "", data_file["model"]
+    )
 
-    data_file = data_file[data_file.apply(filter_by_model_group, axis=1)]
+    # Build a set of allowed (model_group, genotype) combinations for efficient lookup
+    allowed_genotypes_set = set()
+    for mg, genotypes in genotypes_by_model_group.items():
+        for genotype in genotypes:
+            allowed_genotypes_set.add((mg, genotype))
+
+    # Create combined key and filter using set membership (O(1) lookup)
+    data_file["_filter_key"] = list(
+        zip(data_file["effective_model_group"], data_file["genotype"])
+    )
+    data_file = data_file[data_file["_filter_key"].isin(allowed_genotypes_set)]
+
+    # Drop temporary columns used for filtering
+    data_file = data_file.drop(columns=["effective_model_group", "_filter_key"])
+
+    # Convert repetitive string columns to categorical dtype for memory efficiency
+    # This reduces memory usage significantly for large datasets with repeated values
+    for col in ["model", "genotype", "tissue", "sex", "model_group", "name"]:
+        if col in data_file.columns:
+            data_file[col] = data_file[col].astype("category")
 
     # Group by gene, tissue, model_group, and name to create one entry per group
     grouped = data_file.groupby(["ensembl_gene_id", "tissue", "model_group", "name"])
@@ -413,7 +446,7 @@ def transform_rna_de_individual(
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
 
-    # Create lookup dictionaries
+    # Create lookup dictionaries for efficient data enrichment
     gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
 
     label_map_dict = create_label_map_dict(rnaseq_genotype_label_map_df)
@@ -423,15 +456,18 @@ def transform_rna_de_individual(
 
     model_group_dict = create_model_group_dict(rnaseq_genotype_label_map_df)
 
-    # Create a dictionary of genotypes by model_group
-    # This is used to filter data to only include genotypes that belong to the model_group
-    genotypes_by_model_group = {}
-    for _, row in rnaseq_genotype_label_map_df.iterrows():
-        model_group = row["model_group"] if row["model_group"] else row["model"]
-        if model_group not in genotypes_by_model_group:
-            genotypes_by_model_group[model_group] = []
-        if row["genotype"] not in genotypes_by_model_group[model_group]:
-            genotypes_by_model_group[model_group].append(row["genotype"])
+    # Build genotypes_by_model_group dictionary for filtering
+    # Groups genotypes by their effective model_group for validation
+    label_map_copy = rnaseq_genotype_label_map_df.copy()
+    label_map_copy["effective_model_group"] = label_map_copy["model_group"].where(
+        label_map_copy["model_group"] != "", label_map_copy["model"]
+    )
+
+    genotypes_by_model_group = (
+        label_map_copy.groupby("effective_model_group")["genotype"]
+        .apply(lambda x: list(x.unique()))
+        .to_dict()
+    )
 
     # Create matched_control dictionary
     # For each model, find the genotype that maps to a control (contains "noncarrier" or is a control strain)
