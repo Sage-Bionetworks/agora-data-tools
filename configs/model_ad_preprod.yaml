@@ -168,16 +168,5 @@ datasets:
           id: syn69058662
           format: csv
       final_format: json
-      provenance:
-        - syn69014401
-        - syn51615422
-        - syn61378590
-        - syn66351272
-        - syn69058660
-        - syn69693082
-        - syn69058661
-        - syn69058664
-        - syn69058663
-        - syn69058662
       destination: *dest
       custom_transformations: transform_rna_de_aggregate
