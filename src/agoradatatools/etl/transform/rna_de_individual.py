@@ -7,7 +7,7 @@ values to create a structured output format grouped by model_group.
 
 The transformation:
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
-- Groups individual expression data by gene, tissue, and model_group
+- Groups individual expression data by gene, tissue, model_group, and name
 - Creates age-based entries containing individual expression values for all genotypes
 - Organizes data by model_group to support both single and multiple control display paradigms
 - Enriches data with gene symbols from gene metadata
@@ -19,9 +19,10 @@ The transformation:
 Key Functions:
     transform_rna_de_individual: Main transformation function that orchestrates the data processing
     _create_individual_results_from_group: Creates individual_results structure with age-based grouping
-    _create_output_entry_from_group: Creates a complete output entry from a grouped DataFrame
+    _create_output_entry_from_group: Creates output entries from a grouped DataFrame, one entry per age
     _process_single_data_file: Processes a single individual expression data file
     _extract_age_numeric: Extracts numeric value from age strings (e.g., "12 months" -> 12)
+    _determine_result_order: Determines the ordering of display labels for genotypes in a model_group
 
 Required Inputs:
     - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
@@ -232,7 +233,7 @@ def _create_output_entry_from_group(
     Creates output entries from a grouped DataFrame, one entry per age group.
 
     Args:
-        group_key: Tuple containing (ensembl_gene_id, tissue, model_group, name)
+        group_key: Tuple containing (ensembl_gene_id, tissue, model_group, model)
         group: DataFrame group containing individual expression data
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels
@@ -437,8 +438,10 @@ def transform_rna_de_individual(
 
     Returns:
         List of dictionaries, each representing a unique combination of gene, tissue,
-        and model_group/name with individual_results containing all expression data
-        grouped by age.
+        model_group, name, and age. Each entry contains individual expression data points
+        with fields: ensembl_gene_id, gene_symbol, tissue, name, model_group,
+        matched_control, units, age, age_numeric, result_order, and data (list of
+        individual measurements).
     """
     check_required_datasets_and_columns(datasets, required_input)
 
