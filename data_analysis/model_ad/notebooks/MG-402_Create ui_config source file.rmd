@@ -38,9 +38,10 @@ Sources the required variables and functions.
 # *******************************
 # STATIC ROW COUNTS (MG-384)
 # *******************************
-gene_expression_row_count = "over 200000" # THIS IS NOT THE REAL VALUE
-disease_correlation_row_count = "1800" # 1800 source rows/total results, 300 CT rows, 60 rows/cluster, variable results per row
-model_overview_row_count = "16"
+# we don't need row_count values for ModelAD CT loading indicators since we've introduced server-side pagination
+gene_expression_row_count = NA
+disease_correlation_row_count = NA
+model_overview_row_count = NA
 
 # *************
 # FILTER VALUES
@@ -409,8 +410,8 @@ build_dc_objects <- function() {
 #
 mo_columns <- data.frame(
   name = c("Model", "Model Type", "Matched Controls",
-           "Gene Expression", "Disease Correlation", "Pathology",
-           "Biomarkers", "Study Data", "JAX Strain",
+           "Gene Expression", "Disease Correlation", "Biomarkers",
+           "Pathology", "Study Data", "JAX Strain",
            "Center", NA, NA
   ),
   type = c("primary", "text", "text",
@@ -419,7 +420,7 @@ mo_columns <- data.frame(
     "link_external", "text", "text"
   ),
   data_key = c("name", "model_type", "matched_controls", "gene_expression",
-                 "disease_correlation", "pathology", "biomarkers",
+                 "disease_correlation", "biomarkers", "pathology",
                  "study_data", "jax_strain", "center", "modified_genes", "available_data"),
   tooltip = c("Mouse Model",  rep(NA, times = 11)),
   sort_tooltip = rep(NA, times = 12),
@@ -569,4 +570,3 @@ json_list <-  build_ge_objects()
 
 toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
 ```
-
