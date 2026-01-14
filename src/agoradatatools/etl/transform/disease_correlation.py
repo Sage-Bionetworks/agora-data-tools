@@ -83,6 +83,20 @@ def extract_module_name(module: str) -> str:
     return match.group(0) if match else module
 
 
+def extract_age_numeric(age: str) -> int:
+    """
+    Extracts the numeric value from an age string.
+
+    Args:
+        age (str): The age string that contains a numeric value (e.g. '8 months', '12 months')
+
+    Returns:
+        int: The numeric age value (e.g. 8, 12). Returns 0 if no numeric value is found.
+    """
+    match = re.search(r"(\d+)", age)
+    return int(match.group(1)) if match else 0
+
+
 def process_group(
     group: pd.DataFrame,
     model_info: Dict[str, Any],
@@ -127,6 +141,7 @@ def process_group(
         "modified_genes": modified_genes,
         "cluster": cluster,
         "age": age,
+        "age_numeric": extract_age_numeric(age),
         "sex": sex,
     }
 
@@ -186,6 +201,7 @@ def transform_disease_correlation(
                 "model_type": str,
                 "cluster": str,
                 "age": str,
+                "age_numeric": int,
                 "sex": str,
                 "<module name>": Dict[str, float] correlation and adj_p_val
             }
