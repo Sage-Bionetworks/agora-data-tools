@@ -21,7 +21,6 @@ Key Functions:
     _create_individual_results_from_group: Creates individual_results structure with age-based grouping
     _create_output_entry_from_group: Creates output entries from a grouped DataFrame, one entry per age
     _process_single_data_file: Processes a single individual expression data file
-    _extract_age_numeric: Extracts numeric value from age strings (e.g., "12 months" -> 12)
     _determine_result_order: Determines the ordering of display labels for genotypes in a model_group
 
 Required Inputs:
@@ -36,7 +35,10 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    extract_age_numeric,
+)
 from agoradatatools.etl.transform.rna_shared_utils import (
     filter_mouse_genes,
     validate_model_group_consistency,
@@ -55,26 +57,6 @@ REQUIRED_INPUT = {
     "rnaseq_genotype_label_map": ["model", "model_group", "display_label", "genotype"],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
 }
-
-
-def _extract_age_numeric(age_str: str) -> int:
-    """
-    Extracts the numeric value from an age string.
-
-    Args:
-        age_str: Age string like "6 months", "12 months", etc.
-
-    Returns:
-        Integer value of the age (e.g., 6 for "6 months")
-        Returns 0 if extraction fails.
-    """
-    try:
-        return int(age_str.split()[0])
-    except (ValueError, IndexError, AttributeError):
-        logger.warning(
-            f"Could not extract numeric age from '{age_str}', defaulting to 0"
-        )
-        return 0
 
 
 def _determine_result_order(
@@ -281,7 +263,7 @@ def _create_output_entry_from_group(
                 "matched_control": matched_control,
                 "units": "Log2 Counts per Million",
                 "age": age_result["age"],
-                "age_numeric": _extract_age_numeric(age_result["age"]),
+                "age_numeric": extract_age_numeric(age_result["age"]),
                 "result_order": result_order,
                 "data": age_result["data"],
             }

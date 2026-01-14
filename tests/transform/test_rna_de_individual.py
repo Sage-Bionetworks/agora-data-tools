@@ -6,12 +6,14 @@ and its helper functions, which transform mouse model individual RNA-seq express
 data into a structured format for the Agora platform.
 
 Test Classes:
+    - TestDetermineResultOrder: Unit tests for _determine_result_order
     - TestCreateIndividualResultsFromGroup: Unit tests for _create_individual_results_from_group
     - TestCreateOutputEntryFromGroup: Unit tests for _create_output_entry_from_group
     - TestProcessSingleDataFile: Unit tests for _process_single_data_file
     - TestTransformRnaDeIndividual: Integration tests for the full transformation pipeline
 
 The tests use synthetic datasets stored in `tests/test_assets/rna_de_individual/` to verify:
+- Result ordering logic (genotype display label ordering for 2-genotype and 4-genotype models)
 - Core transformation logic (data grouping, metadata enrichment)
 - Model_group handling (single control vs multiple control paradigms)
 - JAX tissue name mapping (e.g., 'Right Cerebral Hemisphere' -> 'Hemibrain')
@@ -32,87 +34,8 @@ from agoradatatools.etl.transform.rna_de_individual import (
     _create_individual_results_from_group,
     _create_output_entry_from_group,
     _process_single_data_file,
-    _extract_age_numeric,
     _determine_result_order,
 )
-
-
-class TestExtractAgeNumeric:
-    """
-    Unit tests for the _extract_age_numeric helper function.
-    """
-
-    def test_extract_age_numeric_standard_format(self) -> None:
-        """Test extracting age from standard format like '6 months'."""
-        assert _extract_age_numeric("6 months") == 6
-        assert _extract_age_numeric("12 months") == 12
-        assert _extract_age_numeric("4 months") == 4
-        assert _extract_age_numeric("18 months") == 18
-
-    def test_extract_age_numeric_single_digit(self) -> None:
-        """Test extracting age with single digit."""
-        assert _extract_age_numeric("3 months") == 3
-        assert _extract_age_numeric("9 months") == 9
-
-    def test_extract_age_numeric_with_different_units(self) -> None:
-        """Test extracting age with different time units."""
-        assert _extract_age_numeric("6 weeks") == 6
-        assert _extract_age_numeric("2 years") == 2
-
-    def test_extract_age_numeric_invalid_format(self) -> None:
-        """Test that invalid formats return 0."""
-        assert _extract_age_numeric("invalid") == 0
-        assert _extract_age_numeric("") == 0
-        assert _extract_age_numeric("months only") == 0
-
-    def test_extract_age_numeric_none(self) -> None:
-        """Test that None returns 0."""
-        assert _extract_age_numeric(None) == 0  # type: ignore[arg-type]
-
-    def test_extract_age_numeric_negative_age(self) -> None:
-        """Test that negative age values return the negative number."""
-        assert _extract_age_numeric("-5 months") == -5
-
-    def test_extract_age_numeric_float_age(self) -> None:
-        """Test that float age strings fail gracefully and return 0."""
-        assert _extract_age_numeric("3.5 months") == 0
-        assert _extract_age_numeric("6.9 months") == 0
-
-    def test_extract_age_numeric_very_large_age(self) -> None:
-        """Test that very large age values are extracted correctly."""
-        assert _extract_age_numeric("1000 months") == 1000
-        assert _extract_age_numeric("999999 days") == 999999
-
-    def test_extract_age_numeric_zero_age(self) -> None:
-        """Test that zero age is extracted correctly."""
-        assert _extract_age_numeric("0 months") == 0
-
-    def test_extract_age_numeric_whitespace_handling(self) -> None:
-        """Test that extra whitespace is handled correctly."""
-        assert _extract_age_numeric("  6   months  ") == 6
-        assert _extract_age_numeric("12  months") == 12
-
-    def test_extract_age_numeric_no_space_between(self) -> None:
-        """Test age format without space between number and unit returns 0."""
-        assert _extract_age_numeric("6months") == 0
-        assert _extract_age_numeric("12weeks") == 0
-
-    def test_extract_age_numeric_mixed_case_units(self) -> None:
-        """Test that mixed case units are handled."""
-        assert _extract_age_numeric("6 Months") == 6
-        assert _extract_age_numeric("12 WEEKS") == 12
-
-    def test_extract_age_numeric_with_decimals_and_commas(self) -> None:
-        """Test age with unusual number formats."""
-        # These should fail gracefully and return 0
-        assert _extract_age_numeric("1,000 months") == 0  # Comma causes ValueError
-        assert _extract_age_numeric("six months") == 0  # Word not parseable
-
-    def test_extract_age_numeric_special_formats(self) -> None:
-        """Test special age formats that might appear in data."""
-        assert _extract_age_numeric("P30") == 0  # Postnatal day format
-        assert _extract_age_numeric("3-6 months") == 0  # Range format fails
-        assert _extract_age_numeric("~4 months") == 0  # Approximate fails
 
 
 class TestDetermineResultOrder:
