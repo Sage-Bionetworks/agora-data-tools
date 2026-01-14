@@ -887,3 +887,33 @@ class TestNormalizeZero:
         # Verify result is non-negative (positive zero, not negative zero)
         assert result >= 0
         assert math.copysign(1.0, result) > 0
+
+
+class TestExtractAgeNumeric:
+    """
+    Test class for validating the extract_age_numeric utility function.
+    This function extracts the numeric value from an age string.
+    """
+
+    @pytest.mark.parametrize(
+        "input_age,expected",
+        [
+            ("4 months", 4),  # Age with months
+            ("8 months", 8),  # Age with months
+            ("12 months", 12),  # Age with months
+            ("6 weeks", 6),  # Age with weeks
+            ("100 days", 100),  # Age with days
+            ("", 0),  # Empty string
+            ("no number here", 0),  # String without number
+        ],
+    )
+    def test_extract_age_numeric(self, input_age, expected):
+        """
+        Test that extract_age_numeric correctly extracts the numeric value
+        from age strings with various formats.
+
+        Args:
+            input_age: Input string that may contain age and unit
+            expected: Expected numeric age value
+        """
+        assert utils.extract_age_numeric(input_age) == expected

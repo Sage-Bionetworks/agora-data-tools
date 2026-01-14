@@ -1,4 +1,5 @@
 from typing import Union, Dict, Any, List
+import re
 
 import numpy as np
 import pandas as pd
@@ -410,3 +411,23 @@ def normalize_zero(value: float) -> float:
     """
     # Using a tolerance of 1e-15 to account for floating point precision issues
     return 0.0 if abs(value) < 1e-15 else value
+
+
+def extract_age_numeric(age: str) -> int:
+    """
+    Extracts the numeric value from an age string.
+
+    Args:
+        age (str): The age string that contains a numeric value (e.g. '8 months', '12 months')
+
+    Returns:
+        int: The numeric age value (e.g. 8, 12). Returns 0 if no numeric value is found.
+
+    Example:
+        extract_age_numeric('8 months')
+        8
+        extract_age_numeric('12 months')
+        12
+    """
+    match = re.search(r"(\d+)", age)
+    return int(match.group(1)) if match else 0

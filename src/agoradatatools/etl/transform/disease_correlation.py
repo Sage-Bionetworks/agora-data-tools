@@ -12,6 +12,7 @@ from agoradatatools.etl.utils import (
     flatten_list,
     remove_duplicates_keep_order,
     input_validation_model_info,
+    extract_age_numeric,
 )
 
 
@@ -81,20 +82,6 @@ def extract_module_name(module: str) -> str:
     """
     match = re.match(r"^[A-Z]+", module)
     return match.group(0) if match else module
-
-
-def extract_age_numeric(age: str) -> int:
-    """
-    Extracts the numeric value from an age string.
-
-    Args:
-        age (str): The age string that contains a numeric value (e.g. '8 months', '12 months')
-
-    Returns:
-        int: The numeric age value (e.g. 8, 12). Returns 0 if no numeric value is found.
-    """
-    match = re.search(r"(\d+)", age)
-    return int(match.group(1)) if match else 0
 
 
 def process_group(
