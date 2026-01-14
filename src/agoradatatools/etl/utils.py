@@ -413,7 +413,7 @@ def normalize_zero(value: float) -> float:
     return 0.0 if abs(value) < 1e-15 else value
 
 
-def extract_age_numeric(age: str) -> int:
+def extract_age_numeric(age: str) -> Union[int, None]:
     """
     Extracts the numeric value from an age string.
 
@@ -421,7 +421,7 @@ def extract_age_numeric(age: str) -> int:
         age (str): The age string that contains a numeric value (e.g. '8 months', '12 months')
 
     Returns:
-        int: The numeric age value (e.g. 8, 12). Returns 0 if no numeric value is found.
+        Union[int, None]: The numeric age value (e.g. 8, 12). Returns None if no numeric value is found.
 
     Example:
         extract_age_numeric('8 months')
@@ -430,4 +430,4 @@ def extract_age_numeric(age: str) -> int:
         12
     """
     match = re.search(r"(\d+)", age)
-    return int(match.group(1)) if match else 0
+    return int(match.group(1)) if match else None
