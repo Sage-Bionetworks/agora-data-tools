@@ -12,6 +12,7 @@ from agoradatatools.etl.utils import (
     flatten_list,
     remove_duplicates_keep_order,
     input_validation_model_info,
+    extract_age_numeric,
 )
 
 
@@ -127,6 +128,7 @@ def process_group(
         "modified_genes": modified_genes,
         "cluster": cluster,
         "age": age,
+        "age_numeric": extract_age_numeric(age),
         "sex": sex,
     }
 
@@ -186,6 +188,7 @@ def transform_disease_correlation(
                 "model_type": str,
                 "cluster": str,
                 "age": str,
+                "age_numeric": int,
                 "sex": str,
                 "<module name>": Dict[str, float] correlation and adj_p_val
             }
