@@ -903,8 +903,8 @@ class TestExtractAgeNumeric:
             ("12 months", 12),  # Age with months
             ("6 weeks", 6),  # Age with weeks
             ("100 days", 100),  # Age with days
-            ("", 0),  # Empty string
-            ("no number here", 0),  # String without number
+            ("", None),  # Empty string
+            ("no number here", None),  # String without number
         ],
     )
     def test_extract_age_numeric(self, input_age, expected):
@@ -914,6 +914,6 @@ class TestExtractAgeNumeric:
 
         Args:
             input_age: Input string that may contain age and unit
-            expected: Expected numeric age value
+            expected: Expected numeric age value or None if no number found
         """
         assert utils.extract_age_numeric(input_age) == expected
