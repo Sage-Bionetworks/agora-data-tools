@@ -98,6 +98,8 @@ def validate_model_group_consistency(
 ) -> None:
     """
     Validate that each model has consistent model_group values.
+    Each model should map to exactly one unique model_group; having multiple
+    different model_group values for the same model indicates a data quality issue.
 
     Args:
         genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
