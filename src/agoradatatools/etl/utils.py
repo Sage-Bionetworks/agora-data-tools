@@ -429,5 +429,7 @@ def extract_age_numeric(age: str) -> Union[int, None]:
         extract_age_numeric('12 months')
         12
     """
+    if age is None:
+        return None
     match = re.search(r"(\d+)", age)
     return int(match.group(1)) if match else None
