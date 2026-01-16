@@ -123,6 +123,10 @@ def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str,
     """
     Create a lookup dictionary mapping Ensembl gene IDs to gene symbols.
 
+    Note: This function (and other similar lookup dict functions below) creates a
+    dictionary to speed up processing by avoiding repeated DataFrame lookups during
+    iteration over large datasets.
+
     Args:
         mouse_gene_metadata_df: DataFrame with 'ensembl_gene_id' and 'gene_symbol' columns
 
