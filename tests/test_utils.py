@@ -905,6 +905,9 @@ class TestExtractAgeNumeric:
             ("100 days", 100),  # Age with days
             ("", None),  # Empty string
             ("no number here", None),  # String without number
+            ("number 10", 10),  # String with number
+            ("10 11 12", 10),  # String with multiple numbers
+            (None, None),  # None input
         ],
     )
     def test_extract_age_numeric(self, input_age, expected):
