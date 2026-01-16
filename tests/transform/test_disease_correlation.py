@@ -145,6 +145,7 @@ class TestTransformDiseaseCorrelation:
                     "modified_genes": ["APOE4", "TREM2"],
                     "cluster": "Cluster A",
                     "age": "4 months",
+                    "age_numeric": 4,
                     "sex": "Female",
                     "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
                     "PHG": {"correlation": 0.6, "adj_p_val": 0.02},
@@ -156,6 +157,7 @@ class TestTransformDiseaseCorrelation:
                     "modified_genes": ["APP"],  # Single gene is returned as a list
                     "cluster": "Cluster B",
                     "age": "6 months",
+                    "age_numeric": 6,
                     "sex": "Male",
                     "TCX": {"correlation": 0.7, "adj_p_val": 0.03},
                 },
@@ -206,6 +208,7 @@ class TestTransformDiseaseCorrelation:
                     "modified_genes": ["APOE4"],  # Deduplicated from duplicate entries
                     "cluster": "Cluster A",
                     "age": "4 months",
+                    "age_numeric": 4,
                     "sex": "Female",
                     "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
                 }
@@ -552,6 +555,7 @@ class TestProcessGroup:
             "modified_genes": ["APOE4", "TREM2"],
             "cluster": "Cluster A",
             "age": "4 months",
+            "age_numeric": 4,
             "sex": "Female",
             "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
             "PHG": {"correlation": 0.6, "adj_p_val": 0.02},
@@ -585,6 +589,7 @@ class TestProcessGroup:
             "modified_genes": [],
             "cluster": "Cluster A",
             "age": "4 months",
+            "age_numeric": 4,
             "sex": "Female",
             "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
         }

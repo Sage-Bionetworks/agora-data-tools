@@ -9,6 +9,7 @@
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
+    "age_numeric": 4,
     "sex": "Female",
     "IFG": {
       "correlation": 0.0829228557717283,
@@ -29,6 +30,7 @@
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
+    "age_numeric": 12,
     "sex": "Female",
     "IFG": {
       "correlation": 0.0970533422952034,
@@ -49,6 +51,7 @@
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
+    "age_numeric": 4,
     "sex": "Male",
     "IFG": {
       "correlation": 0.0341639955699389,
@@ -69,6 +72,7 @@
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
+    "age_numeric": 12,
     "sex": "Male",
     "IFG": {
       "correlation": 0.1802025471199635,
@@ -88,15 +92,16 @@
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
+    "age_numeric": 4,
     "sex": "Female",
-      "IFG": {
-        "correlation": 0.070482336169501,
-        "adj_p_val": 0.5318004865047494
-      },
-      "PHG": {
-        "correlation": 0.0794770495092502,
-        "adj_p_val": 0.4366165051976555
-      }
+    "IFG": {
+      "correlation": 0.070482336169501,
+      "adj_p_val": 0.5318004865047494
+    },
+    "PHG": {
+      "correlation": 0.0794770495092502,
+      "adj_p_val": 0.4366165051976555
+    }
   },
   {
     "name": "APOE4",
@@ -107,10 +112,11 @@
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "8 months",
+    "age_numeric": 8,
     "sex": "Female",
     "IFG": {
       "correlation": 0.0695648292036998,
-        "adj_p_val": 0.5371683491780308
+      "adj_p_val": 0.5371683491780308
     },
     "PHG": {
       "correlation": 0.0136311661990827,
@@ -126,6 +132,7 @@
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
+    "age_numeric": 12,
     "sex": "Female",
     "IFG": {
       "correlation": 0.0827022307818794,
@@ -146,6 +153,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "4 months",
+    "age_numeric": 4,
     "sex": "Female",
     "CBE": {
       "correlation": 0.470098530032772,
@@ -166,6 +174,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "12 months",
+    "age_numeric": 12,
     "sex": "Female",
     "CBE": {
       "correlation": 0.449727558161722,
@@ -186,6 +195,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "4 months",
+    "age_numeric": 4,
     "sex": "Male",
     "CBE": {
       "correlation": 0.379834234698666,
@@ -206,6 +216,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "12 months",
+    "age_numeric": 12,
     "sex": "Male",
     "CBE": {
       "correlation": 0.48792346411812,
@@ -225,6 +236,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "4 months",
+    "age_numeric": 4,
     "sex": "Female",
     "CBE": {
       "correlation": 0.0958176679386717,
@@ -244,6 +256,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "8 months",
+    "age_numeric": 8,
     "sex": "Female",
     "CBE": {
       "correlation": 0.0390288304703237,
@@ -263,6 +276,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "12 months",
+    "age_numeric": 12,
     "sex": "Female",
     "CBE": {
       "correlation": 0.0996113320636796,
@@ -282,6 +296,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "4 months",
+    "age_numeric": 4,
     "sex": "Male",
     "CBE": {
       "correlation": 0.0994513071661718,
@@ -301,6 +316,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "8 months",
+    "age_numeric": 8,
     "sex": "Male",
     "CBE": {
       "correlation": 0.0068586454130309,
@@ -320,6 +336,7 @@
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "12 months",
+    "age_numeric": 12,
     "sex": "Male",
     "CBE": {
       "correlation": 0.130312470603861,
