@@ -4,7 +4,7 @@
     "model_type": "Familial AD",
     "matched_controls": ["B6129"],
     "gene_expression": {
-      "link_url": "comparison/expression?model=3xTg-AD"
+      "link_url": "comparison/expression?models=3xTg-AD"
     },
     "disease_correlation": null,
     "pathology": {
