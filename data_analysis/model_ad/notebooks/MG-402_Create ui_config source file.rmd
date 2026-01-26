@@ -14,6 +14,14 @@ This notebook must be updated when the Explorer is updated to:
 * Add or modify a CT dropdown menu or dropdown value
 * Add or modify a filterset or filter value
 
+
+Notes:
+* `query_param_key`: Values must be plural, camelCase, and should intelligibly align with the related display values presented to users on the page:
+   - filter.name (filter panels)
+   - filter.short_name (filter chiclets)
+   - column.name (column header)
+
+
 ## Library setup
 Install required packages:
 - synapser (also requires a Synapse account with an auth token)
@@ -124,25 +132,26 @@ build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, 
 }
 
 # Builds a list of filter definitions
-# - filter_defs: A dataframe of filterset info
-#   -- name, data_field, short_name, filter_values
+# - filter_defs: A dataframe of filterset info:
+#   - name, data_field, short_name, query_param_key, filter_values
 # - filter_vals: A list of lists specifying the filter values for each filterset
 build_filters <- function(filter_defs, filter_values) {
 
   # Construct list of filters
-  filters <- Map(function(name, data_key, short_name, filter_values) {
+  filters <- Map(function(name, data_key, short_name, query_param_key, filter_values) {
 
     filter <- list(
       name = name,
       data_key = data_key,
       short_name = short_name,
+      query_param_key = query_param_key,
       values = filter_values
       )
 
       # Omit keys with NA values
       filter <- discard(filter, ~ is.null(.x) | all(is.na(.x)))
 
-    }, filter_defs$name, filter_defs$data_key, filter_defs$short_name, filter_values)
+    }, filter_defs$name, filter_defs$data_key, filter_defs$short_name, filter_defs$query_param_key, filter_values)
 
   # Remove names to ensure JSON is an array, not object
   names(filters) <- NULL
@@ -194,6 +203,7 @@ ge_filters <- data.frame(
   name = c('Biological Domain', 'Model Type', 'Mouse Model'),
   data_key = c('biodomains', 'model_type', 'name'),
   short_name = c('Biodomain', 'Type', 'Model'),
+  query_param_key = c('biodomains', 'modelTypes', 'models'),
   stringsAsFactors = FALSE
 )
 
@@ -326,6 +336,7 @@ dc_filters <- data.frame(
   name = c('Age', 'Model Type', 'Modified Gene', 'Mouse Model', 'Sex'),
   data_key = c('age', 'model_type', 'modified_genes', 'name', 'sex'),
   short_name = c(NA, 'Type', 'Gene', 'Model', NA),
+  query_param_key = c('ages', 'modelTypes', 'modifiedGenes', 'models', 'sexes'),
   stringsAsFactors = FALSE
 )
 
@@ -440,6 +451,7 @@ mo_filters <- data.frame(
   name = c('Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'),
   data_key = c('available_data', 'center', 'model_type', 'modified_genes'),
   short_name = c('Data', 'Center', 'Type', 'Gene'),
+  query_param_key = c('availableData', 'centers', 'modelTypes', 'modifiedGenes'),
   stringsAsFactors = FALSE
 )
 
