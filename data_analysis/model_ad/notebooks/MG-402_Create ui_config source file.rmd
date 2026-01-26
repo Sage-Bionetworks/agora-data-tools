@@ -457,7 +457,7 @@ mo_filters <- data.frame(
 
 # Model Overview Filter Values
 # ----------------------------
-# Include modified_gene filter values for genes modified in all included models
+# Include modified_gene filter values for genes modified in any included model
 mo_modified_gene_filter_vals <- c('Abca7',
                                'APOE',
                                'APP',
