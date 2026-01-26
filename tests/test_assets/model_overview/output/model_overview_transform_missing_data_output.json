@@ -4,7 +4,7 @@
     "model_type": "Familial AD",
     "matched_controls": [],
     "gene_expression": {
-      "link_url": "comparison/expression?model=3xTg-AD"
+      "link_url": "comparison/expression?models=3xTg-AD"
     },
     "disease_correlation": null,
     "pathology": {
@@ -37,7 +37,7 @@
     "model_type": null,
     "matched_controls": ["C57BL6J"],
     "gene_expression": {
-      "link_url": "comparison/expression?model=5xFAD (UCI)"
+      "link_url": "comparison/expression?models=5xFAD (UCI)"
     },
     "disease_correlation": null,
     "pathology": {
@@ -65,10 +65,10 @@
     "model_type": "Late Onset AD",
     "matched_controls": ["C57BL6J"],
     "gene_expression": {
-      "link_url": "comparison/expression?model=APOE4"
+      "link_url": "comparison/expression?models=APOE4"
     },
     "disease_correlation": {
-      "link_url": "comparison/correlation?model=APOE4"
+      "link_url": "comparison/correlation?models=APOE4"
     },
     "pathology": null,
     "biomarkers": null,

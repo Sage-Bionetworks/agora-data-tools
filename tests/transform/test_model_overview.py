@@ -280,7 +280,7 @@ class TestTransformModelOverview:
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
                 "gene_expression": {
-                    "link_url": "comparison/expression?model=test_model"
+                    "link_url": "comparison/expression?models=test_model"
                 },
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/test_model/pathology"},
@@ -451,7 +451,7 @@ class TestTransformModelOverview:
                 "name": "model1",
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
-                "gene_expression": {"link_url": "comparison/expression?model=model1"},
+                "gene_expression": {"link_url": "comparison/expression?models=model1"},
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/model1/pathology"},
                 "biomarkers": None,
@@ -472,7 +472,7 @@ class TestTransformModelOverview:
                 "matched_controls": ["B6129", "B6130"],
                 "gene_expression": None,
                 "disease_correlation": {
-                    "link_url": "comparison/correlation?model=model2"
+                    "link_url": "comparison/correlation?models=model2"
                 },
                 "pathology": {"link_url": "models/model2/pathology"},
                 "biomarkers": {"link_url": "models/model2/biomarkers"},
