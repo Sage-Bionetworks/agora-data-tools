@@ -265,20 +265,26 @@ def _create_output_entry_from_group(
     # Create individual_results structure
     individual_results = _create_individual_results_from_group(group)
 
-    # Determine matched_control by finding the control genotype (result_order == 1)
-    # All control genotypes consistently have result_order=1
+    # Determine the effective model_group for lookups
+    effective_model_group = model_group if model_group else model
+
+    # Determine matched_control from mapping file by finding the control genotype (result_order == 1)
+    # for this model_group. This ensures matched_control is populated even if control data
+    # is not present in this specific chunked input file.
     matched_control = ""
-    if "result_order" in group.columns:
-        control_mask = group["result_order"] == 1
-        if control_mask.any():
-            control_genotype = group.loc[control_mask, "genotype"].iloc[0]
-            matched_control = label_map_dict.get((model, control_genotype), "")
+    genotypes = genotypes_by_model_group.get(effective_model_group, [])
+    for genotype in genotypes:
+        # Get the model for this genotype in the model_group
+        genotype_model = model_genotype_map.get((effective_model_group, genotype))
+        if genotype_model:
+            # Check if this genotype has result_order == 1 (is the control)
+            order = result_order_dict.get((genotype_model, genotype))
+            if order == 1:
+                matched_control = label_map_dict.get((genotype_model, genotype), "")
+                break
 
     # Determine name - use model_group if it's different from model, otherwise use model
     name = model_group if (model_group and model_group != model) else model
-
-    # Determine the effective model_group for result_order lookup
-    effective_model_group = model_group if model_group else model
 
     # Determine result_order for this model_group
     result_order = _determine_result_order(
