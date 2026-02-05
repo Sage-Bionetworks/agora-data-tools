@@ -209,15 +209,26 @@ ge_filters <- data.frame(
 
 # Gene Expression Filter values
 # -----------------------------
-# Only include model.name filter values for models with Gene Expression results
-ge_model_name_filter_vals <- c('3xTg-AD',
+# MG-750: Only include model filter values for models with results for the selected tissue
+
+# Hemibrain: All JAX models
+ge_model_name_filter_vals_hemibrain <- c(
                             '5xFAD (IU/Jax/Pitt)',
-                            '5xFAD (UCI)',
-                            'Abca7*V1599M',
                             'APOE4',
                             'LOAD1',
-                            'Trem2-R47H_NSS',
                             'Trem2R47H')
+
+# Cortex: 5xFAD (UCI); need to wrap single value in a list for JSON serialization
+ge_model_name_filter_vals_cerebral_cortex <- list('5xFAD (UCI)')
+
+# Hippocampus: All UCI models
+ge_model_name_filter_vals_hippocampus <- c(
+                            '3xTg-AD',
+                            '5xFAD (UCI)',
+                            'Abca7*V1599M',
+                            'Abca7*V1599M.5xFAD',
+                            'Trem2-R47H_NSS',
+                            'Trem2-R47H_NSS.5xFAD')
 
 ge_filter_values <- list(
   biodomain_filter_vals,
@@ -246,11 +257,29 @@ build_ge_objects <- function() {
     combo <- dropdown_combos[i, ]
 
     # Dynamic columns vary by tissue dropdown
-    dynamic_names <- if (combo$menu2 == "Tissue - Hemibrain") ge_dynamic_names_jax else ge_dynamic_names_uci
+    dynamic_names <- if (grepl("Hemibrain", combo$menu2, ignore.case = TRUE)) ge_dynamic_names_jax else ge_dynamic_names_uci
     dynamic_columns <- lapply(dynamic_names,function(name) {
                            build_column(name, ge_dynamic_column_type, name, NA, ge_dynamic_column_sort_tooltip,
                                         NA, NA, ge_dynamic_column_is_exported, ge_dynamic_column_is_hidden)
     })
+
+    # Dynamic model filter values vary by tissue dropdown
+    dynamic_model_filters <- if (grepl("Hemibrain", combo$menu2, ignore.case = TRUE)) {
+      ge_model_name_filter_vals_hemibrain
+    } else if (grepl("Cerebral Cortex", combo$menu2, ignore.case = TRUE)) {
+      ge_model_name_filter_vals_cerebral_cortex
+    } else if (grepl("Hippocampus", combo$menu2, ignore.case = TRUE)) {
+      ge_model_name_filter_vals_hippocampus
+    } else {
+      stop() # fail if we are missing required filter values
+    }
+
+    # Construct the filter values list for this specific combo
+    ge_filter_values <- list(
+      biodomain_filter_vals,
+      model_type_filter_vals,
+      dynamic_model_filters
+    )
 
     # The column ordering is mirrored when a CSV is generated
     columns <- c(list(primary, ensembl_gene_id, tissue, sex_cohort, model, matched_control), dynamic_columns, c(list(biodomains, model_type, model_group)))
@@ -520,6 +549,8 @@ if(!dir.exists(output_dir)){
 }
 
 write(json_output, file.path(output_dir, "ui_config.json"))
+
+# BREAK HERE FOR LOCAL VALIDATION - generated file is in ADT notebooks/output
 
 # upload to synapse
 synLogin()
