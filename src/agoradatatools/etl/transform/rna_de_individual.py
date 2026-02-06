@@ -1,8 +1,11 @@
 """
-RNA Individual Expression Transform Module
+RNA Individual Expression Transform Module (Chunked Version)
 
 This module transforms individual RNA expression (normalized expression) data for Model AD.
-It combines multiple datasets including gene metadata, genotype labels, and individual expression
+Unlike the standard rna_de_individual transform that combines multiple datasets, this chunked
+version processes ONE dataset at a time, outputting each dataset to its own separate file.
+
+The transformation includes gene metadata, genotype labels, and individual expression
 values to create a structured output format grouped by model_group.
 
 The transformation:
@@ -14,19 +17,18 @@ The transformation:
 - Maps genotypes to display labels for better readability
 - Applies special tissue name transformation for JAX models ("Right Cerebral Hemisphere" -> "Hemibrain")
 - Rounds numeric columns to 5 decimal places for consistency
-- Processes multiple data files sequentially to minimize memory usage
 
 Key Functions:
-    transform_rna_de_individual: Main transformation function that orchestrates the data processing
+    transform_rna_de_individual_chunked: Main transformation function that orchestrates the data processing
     _create_individual_results_from_group: Creates individual_results structure with age-based grouping
     _create_output_entry_from_group: Creates output entries from a grouped DataFrame, one entry per age
     _process_single_data_file: Processes a single individual expression data file
     _determine_result_order: Determines the ordering of display labels for genotypes in a model_group
 
 Required Inputs:
-    - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
+    - rnaseq_genotype_label_map_new: Maps models and genotypes to display labels and model_groups
     - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
-    - Data files: One or more CSV files containing individual expression results with columns:
+    - Data file: ONE CSV file containing individual expression results with columns:
       ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
 """
 
@@ -53,92 +55,116 @@ from agoradatatools.etl.transform.rna_shared_utils import (
 
 logger = logging.getLogger(__name__)
 
+
+def _create_result_order_dict(
+    rnaseq_genotype_label_map_df: pd.DataFrame,
+) -> Dict[tuple[str, str], int]:
+    """
+    Creates a dictionary mapping (model, genotype) tuples to result_order values.
+
+    Args:
+        rnaseq_genotype_label_map_df: DataFrame containing model, genotype, and result_order columns
+
+    Returns:
+        Dictionary mapping (model, genotype) tuples to result_order integer values
+    """
+    result_order_dict = {}
+    for _, row in rnaseq_genotype_label_map_df.iterrows():
+        model = row["model"]
+        genotype = row["genotype"]
+        result_order = int(row["result_order"])
+        result_order_dict[(model, genotype)] = result_order
+    return result_order_dict
+
+
+def _create_model_genotype_map(
+    rnaseq_genotype_label_map_df: pd.DataFrame,
+) -> Dict[tuple[str, str], str]:
+    """
+    Creates a dictionary mapping (effective_model_group, genotype) tuples to model names.
+
+    This is needed because genotypes in a model_group may belong to different models.
+    For example, in the Abca7*V1599M model_group, some genotypes belong to the
+    Abca7*V1599M model and others to Abca7*V1599M.5xFAD.
+
+    Args:
+        rnaseq_genotype_label_map_df: DataFrame containing model, model_group, and genotype columns
+
+    Returns:
+        Dictionary mapping (effective_model_group, genotype) tuples to model names
+    """
+    model_genotype_map = {}
+    for _, row in rnaseq_genotype_label_map_df.iterrows():
+        model = row["model"]
+        model_group = row["model_group"]
+        genotype = row["genotype"]
+        effective_model_group = model_group if model_group else model
+        model_genotype_map[(effective_model_group, genotype)] = model
+    return model_genotype_map
+
+
 REQUIRED_INPUT = {
-    "rnaseq_genotype_label_map": ["model", "model_group", "display_label", "genotype"],
+    "rnaseq_genotype_label_map_new": [
+        "model",
+        "model_group",
+        "display_label",
+        "genotype",
+        "result_order",
+    ],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
 }
 
 
 def _determine_result_order(
     label_map_dict: Dict[tuple[str, str], str],
-    model: str,
+    result_order_dict: Dict[tuple[str, str], int],
+    model_genotype_map: Dict[tuple[str, str], str],
     model_group: str,
     genotypes_by_model_group: Dict[str, List[str]],
 ) -> List[str]:
     """
     Determines the result_order (ordering of display labels) for genotypes in a model_group.
 
-    Ordering rules:
-    - For simple models (2 genotypes): case first, then control
-    - For matrixed models (4 genotypes):
-      1. Base control (real control, e.g., C57BL6J with noncarrier)
-      2. Base model (single mutation)
-      3. Fancy control (another model's carrier, e.g., 5xFAD)
-      4. Compound model (model on fancy background, has semicolon in genotype)
+    Uses the result_order values from the rnaseq_genotype_label_map_new CSV file to
+    determine the ordering of display labels. Handles cases where genotypes in the same
+    model_group belong to different models.
 
     Args:
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels
-        model: Model name
-        model_group: Model group name (or empty string)
+        result_order_dict: Dictionary mapping (model, genotype) tuples to result_order values
+        model_genotype_map: Dictionary mapping (effective_model_group, genotype) to model names
+        model_group: Model group name (used as effective_model_group if present, otherwise model is used)
         genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
 
     Returns:
-        List of display labels in the correct order
+        List of display labels in the correct order based on result_order values
     """
-    # Determine the effective model_group
-    effective_model_group = model_group if model_group else model
-
     # Get all genotypes for this model_group
-    genotypes = genotypes_by_model_group.get(effective_model_group, [])
+    genotypes = genotypes_by_model_group.get(model_group, [])
 
     if not genotypes:
         return []
 
-    # Create a list of (genotype, display_label) tuples
-    genotype_label_pairs = []
+    # Create a list of (genotype, display_label, order) tuples
+    genotype_info = []
     for genotype in genotypes:
+        # Look up the model for this genotype in the model_group
+        model = model_genotype_map.get((model_group, genotype))
+        if not model:
+            continue
+
         display_label = label_map_dict.get((model, genotype), "")
+        order = result_order_dict.get(
+            (model, genotype), 999
+        )  # Default to high value if not found
         if display_label:
-            genotype_label_pairs.append((genotype, display_label))
+            genotype_info.append((genotype, display_label, order))
 
-    # Sort based on number of genotypes
-    num_genotypes = len(genotype_label_pairs)
-
-    if num_genotypes == 2:
-        # Simple model: case (carrier) first, control (noncarrier) second
-        def simple_sort_key(pair):
-            genotype = pair[0]
-            # Carrier = 0 (first), noncarrier = 1 (second)
-            return 1 if "noncarrier" in genotype.lower() else 0
-
-        sorted_pairs = sorted(genotype_label_pairs, key=simple_sort_key)
-
-    elif num_genotypes >= 4:
-        # Matrixed model: base control, base model, fancy control, compound model
-        def matrixed_sort_key(pair):
-            genotype = pair[0]
-            # Base control (noncarrier) = 0
-            if "noncarrier" in genotype.lower():
-                return 0
-            # Compound model (has semicolon) = 3
-            elif ";" in genotype:
-                return 3
-            # Now we need to distinguish base model from fancy control
-            # Both are carriers, but fancy control typically has "carrier" in name
-            # Base model has a specific mutation name
-            elif "carrier" in genotype.lower():
-                return 2  # Fancy control
-            else:
-                return 1  # Base model (single mutation, no "carrier" in name)
-
-        sorted_pairs = sorted(genotype_label_pairs, key=matrixed_sort_key)
-
-    else:
-        # Fallback for unexpected number of genotypes: sort alphabetically
-        sorted_pairs = sorted(genotype_label_pairs, key=lambda x: x[1])
+    # Sort by the result_order value
+    sorted_info = sorted(genotype_info, key=lambda x: x[2])
 
     # Extract just the display labels
-    result_order = [display_label for _, display_label in sorted_pairs]
+    result_order = [display_label for _, display_label, _ in sorted_info]
 
     return result_order
 
@@ -172,7 +198,7 @@ def _create_individual_results_from_group(
     for age, age_group in age_groups:
         # Select and rename columns for output format
         age_group_subset = age_group[
-            ["genotype", "sex", "individualid", "expression"]
+            ["genotype_display", "sex", "individualid", "expression"]
         ].copy()
         age_group_subset.columns = ["genotype", "sex", "individual_id", "value"]
 
@@ -209,6 +235,8 @@ def _create_output_entry_from_group(
     group: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
     label_map_dict: Dict[tuple[str, str], str],
+    result_order_dict: Dict[tuple[str, str], int],
+    model_genotype_map: Dict[tuple[str, str], str],
     genotypes_by_model_group: Dict[str, List[str]],
 ) -> List[Dict[str, Any]]:
     """
@@ -219,6 +247,8 @@ def _create_output_entry_from_group(
         group: DataFrame group containing individual expression data
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels
+        result_order_dict: Dictionary mapping (model, genotype) tuples to result_order values
+        model_genotype_map: Dictionary mapping (effective_model_group, genotype) to model names
         genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
 
     Returns:
@@ -235,19 +265,32 @@ def _create_output_entry_from_group(
     # Create individual_results structure
     individual_results = _create_individual_results_from_group(group)
 
-    # Determine matched_control by finding the first noncarrier genotype
-    matched_control = ""
-    control_mask = group["genotype"].str.contains("noncarrier", case=False, na=False)
-    if control_mask.any():
-        control_genotype = group.loc[control_mask, "genotype"].iloc[0]
-        matched_control = label_map_dict.get((model, control_genotype), "")
+    # Determine the effective model_group for lookups
+    effective_model_group = model_group if model_group else model
 
-    # Determine name - use model_group if it's different from model, otherwise use model
-    name = model_group if (model_group and model_group != model) else model
+    # Determine matched_control by finding the genotype with the LOWEST result_order
+    # present in the actual data for this group. For chunked files, each file may only
+    # contain a subset of genotypes, so we need to find the control within this data.
+    matched_control = ""
+    if "result_order" in group.columns:
+        # Get the minimum result_order value present in the data
+        min_order = group["result_order"].min()
+        control_mask = group["result_order"] == min_order
+        if control_mask.any():
+            control_genotype = group.loc[control_mask, "genotype"].iloc[0]
+            matched_control = label_map_dict.get((model, control_genotype), "")
+
+    # For chunked files, use the actual model as the name (not the model_group)
+    # since each file represents a single model's data
+    name = model
 
     # Determine result_order for this model_group
     result_order = _determine_result_order(
-        label_map_dict, model, model_group, genotypes_by_model_group
+        label_map_dict,
+        result_order_dict,
+        model_genotype_map,
+        effective_model_group,
+        genotypes_by_model_group,
     )
 
     # Create one output entry per age group (unnesting individual_results)
@@ -278,6 +321,8 @@ def _process_single_data_file(
     data_file_required_columns: List[str],
     gene_metadata_dict: Dict[str, str],
     label_map_dict: Dict[tuple[str, str], str],
+    result_order_dict: Dict[tuple[str, str], int],
+    model_genotype_map: Dict[tuple[str, str], str],
     model_group_dict: Dict[str, str],
     genotypes_by_model_group: Dict[str, List[str]],
     file_index: int,
@@ -296,6 +341,8 @@ def _process_single_data_file(
         data_file_required_columns: List of required column names
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels
+        result_order_dict: Dictionary mapping (model, genotype) tuples to result_order values
+        model_genotype_map: Dictionary mapping (effective_model_group, genotype) to model names
         model_group_dict: Dictionary mapping model names to model_groups
         genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
         file_index: Current file index for progress tracking
@@ -328,27 +375,50 @@ def _process_single_data_file(
         ]
         label_map_df = pd.DataFrame(label_map_list)
 
-        # Perform left join to add display labels
-        data_file = data_file.merge(label_map_df, on=["model", "genotype"], how="left")
+        # Add result_order to label_map_df for control identification
+        result_order_list = [
+            {"model": k[0], "genotype": k[1], "result_order": v}
+            for k, v in result_order_dict.items()
+        ]
+        result_order_df = pd.DataFrame(result_order_list)
+        label_map_df = label_map_df.merge(
+            result_order_df, on=["model", "genotype"], how="left", validate="one_to_one"
+        )
+
+        # Perform left join to add display labels and result_order
+        data_file = data_file.merge(
+            label_map_df, on=["model", "genotype"], how="left", validate="many_to_one"
+        )
         # Fill missing display labels with original genotype
         data_file["genotype_display"] = data_file["genotype_display"].fillna(
             data_file["genotype"]
         )
+        # Fill missing result_order with high value (non-controls)
+        data_file["result_order"] = data_file["result_order"].fillna(999)
     else:
         # If no label map provided, use genotype as display label
         data_file["genotype_display"] = data_file["genotype"]
+        # Still add result_order for control identification
+        if result_order_dict:
+            result_order_list = [
+                {"model": k[0], "genotype": k[1], "result_order": v}
+                for k, v in result_order_dict.items()
+            ]
+            result_order_df = pd.DataFrame(result_order_list)
+            data_file = data_file.merge(
+                result_order_df,
+                on=["model", "genotype"],
+                how="left",
+                validate="many_to_one",
+            )
+            data_file["result_order"] = data_file["result_order"].fillna(999)
 
     # Map model names to model_groups
     data_file["model_group"] = data_file["model"].map(model_group_dict).fillna("")
 
-    # Determine the "name" field based on grouping logic
-    # Uses vectorized conditional logic instead of row-by-row application
-    different_from_model = (data_file["model_group"] != "") & (
-        data_file["model_group"] != data_file["model"]
-    )
-    data_file["name"] = data_file["model_group"].where(
-        different_from_model, data_file["model"]
-    )
+    # For chunked files, always use the actual model as the name field
+    # since each file represents a single model's data
+    data_file["name"] = data_file["model"]
 
     # Filter data to only include genotypes that belong to the model_group
     # Create effective model_group for filtering
@@ -387,6 +457,8 @@ def _process_single_data_file(
             group,
             gene_metadata_dict,
             label_map_dict,
+            result_order_dict,
+            model_genotype_map,
             genotypes_by_model_group,
         )
         output_entries.extend(entries_for_group)
@@ -403,17 +475,18 @@ def transform_rna_de_individual(
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
-    Main transformation function for RNA individual expression data.
+    Main transformation function for RNA individual expression data (chunked version).
 
-    This function transforms individual RNA expression data files into a structured
+    This function transforms a SINGLE RNA individual expression data file into a structured
     format grouped by model_group to support display paradigms for models with
-    single or multiple controls.
+    single or multiple controls. Unlike the standard rna_de_individual transform,
+    this processes one dataset at a time for separate output files.
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
-            - 'rnaseq_genotype_label_map': Maps genotypes to display labels and model_groups
+            - 'rnaseq_genotype_label_map_new': Maps genotypes to display labels and model_groups
             - 'mouse_gene_metadata': Gene symbols for Ensembl IDs
-            - One or more data files: CSV DataFrames containing individual expression
+            - One data file: CSV DataFrame containing individual expression
               results with columns: ensembl_gene_id, expression, model, genotype, age,
               sex, tissue, individualid
         required_input: Dictionary mapping required dataset names to required columns
@@ -428,13 +501,19 @@ def transform_rna_de_individual(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Pre-compute lookup dictionaries
-    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
+    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map_new"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
 
     # Create lookup dictionaries for efficient data enrichment
     gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
 
     label_map_dict = create_label_map_dict(rnaseq_genotype_label_map_df)
+
+    # Create result_order dictionary from CSV
+    result_order_dict = _create_result_order_dict(rnaseq_genotype_label_map_df)
+
+    # Create model_genotype_map to handle genotypes from different models in same model_group
+    model_genotype_map = _create_model_genotype_map(rnaseq_genotype_label_map_df)
 
     # Validate that each model has consistent model_group values
     validate_model_group_consistency(rnaseq_genotype_label_map_df)
@@ -454,31 +533,11 @@ def transform_rna_de_individual(
         .to_dict()
     )
 
-    # Create matched_control dictionary
-    # For each model, find the genotype that maps to a control (contains "noncarrier" or is a control strain)
-    matched_control_dict = {}
-    for model in rnaseq_genotype_label_map_df["model"].unique():
-        model_df = rnaseq_genotype_label_map_df[
-            rnaseq_genotype_label_map_df["model"] == model
-        ]
-        # Look for control genotypes (typically contain "noncarrier")
-        control_genotypes = model_df[
-            model_df["genotype"].str.contains("noncarrier", case=False, na=False)
-        ]
-        if not control_genotypes.empty:
-            matched_control = control_genotypes.iloc[0]["display_label"]
-        else:
-            # Fallback: use the first genotype's display label
-            matched_control = (
-                model_df.iloc[0]["display_label"] if not model_df.empty else ""
-            )
-        matched_control_dict[model] = matched_control
-
-    output = []
-
-    # Process files one at a time to reduce memory usage
+    # Get the single data file (excluding metadata files)
     file_list = [k for k in datasets.keys() if k not in required_input]
-    total_files = len(file_list)
+
+    if len(file_list) == 0:
+        raise ValueError("Transform rna_de_individual expects at least 1 data file.")
 
     data_file_required_columns = [
         "ensembl_gene_id",
@@ -491,9 +550,10 @@ def transform_rna_de_individual(
         "individualid",
     ]
 
+    total_files = len(file_list)
     logger.info(f"Transform rna_de_individual total data files: {total_files}")
-    logger.info(f"Data files list: {file_list}")
 
+    output = []
     for i, file_name in enumerate(file_list):
         data_file = datasets[file_name]
         file_output = _process_single_data_file(
@@ -502,6 +562,8 @@ def transform_rna_de_individual(
             data_file_required_columns,
             gene_metadata_dict,
             label_map_dict,
+            result_order_dict,
+            model_genotype_map,
             model_group_dict,
             genotypes_by_model_group,
             i,
@@ -510,4 +572,5 @@ def transform_rna_de_individual(
         output.extend(file_output)
 
     logger.info(f"Transform rna_de_individual total output entries: {len(output)}")
+
     return output
