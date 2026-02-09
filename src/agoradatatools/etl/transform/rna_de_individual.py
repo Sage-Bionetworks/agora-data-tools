@@ -1,9 +1,8 @@
 """
-RNA Individual Expression Transform Module (Chunked Version)
+RNA Individual Expression Transform Module
 
 This module transforms individual RNA expression (normalized expression) data for Model AD.
-Unlike the standard rna_de_individual transform that combines multiple datasets, this chunked
-version processes ONE dataset at a time, outputting each dataset to its own separate file.
+It processes multiple RNA-seq datasets and combines them into a unified output format.
 
 The transformation includes gene metadata, genotype labels, and individual expression
 values to create a structured output format grouped by model_group.
@@ -19,7 +18,7 @@ The transformation:
 - Rounds numeric columns to 5 decimal places for consistency
 
 Key Functions:
-    transform_rna_de_individual_chunked: Main transformation function that orchestrates the data processing
+    transform_rna_de_individual: Main transformation function that orchestrates the data processing
     _create_individual_results_from_group: Creates individual_results structure with age-based grouping
     _create_output_entry_from_group: Creates output entries from a grouped DataFrame, one entry per age
     _process_single_data_file: Processes a single individual expression data file
@@ -28,9 +27,9 @@ Key Functions:
         result_order, model_group, and effective_model_group for efficient data enrichment
 
 Required Inputs:
-    - rnaseq_genotype_label_map_new: Maps models and genotypes to display labels and model_groups
+    - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
     - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
-    - Data file: ONE CSV file containing individual expression results with columns:
+    - Data files: One or more CSV files containing individual expression results with columns:
       ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
 """
 
@@ -57,7 +56,7 @@ from agoradatatools.etl.transform.rna_shared_utils import (
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
-    "rnaseq_genotype_label_map_new": [
+    "rnaseq_genotype_label_map": [
         "model",
         "model_group",
         "display_label",
@@ -66,6 +65,24 @@ REQUIRED_INPUT = {
     ],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
 }
+
+
+def _get_effective_model_group(model_group: str, model: str) -> str:
+    """
+    Get the effective model group for a given model and model_group.
+
+    The effective model group is the model_group if present (non-empty),
+    otherwise it's the model name itself. This is used throughout the transform
+    to determine how to group and display data.
+
+    Args:
+        model_group: Model group name (may be empty string)
+        model: Model name
+
+    Returns:
+        Model group if present, otherwise model name
+    """
+    return model_group if model_group else model
 
 
 def _create_genotype_metadata_dict(
@@ -98,7 +115,7 @@ def _create_genotype_metadata_dict(
         model = row["model"]
         genotype = row["genotype"]
         model_group = row["model_group"]
-        effective_model_group = model_group if model_group else model
+        effective_model_group = _get_effective_model_group(model_group, model)
 
         genotype_metadata[(model, genotype)] = {
             "display_label": row["display_label"],
@@ -117,7 +134,7 @@ def _determine_result_order(
     """
     Determines the result_order (ordering of display labels) for genotypes in a model_group.
 
-    Uses the result_order values from the rnaseq_genotype_label_map_new CSV file to
+    Uses the result_order values from the rnaseq_genotype_label_map CSV file to
     determine the ordering of display labels. Handles cases where genotypes in the same
     model_group belong to different models.
 
@@ -260,11 +277,10 @@ def _create_output_entry_from_group(
     individual_results = _create_individual_results_from_group(group)
 
     # Determine the effective model_group for lookups
-    effective_model_group = model_group if model_group else model
+    effective_model_group = _get_effective_model_group(model_group, model)
 
     # Determine matched_control by finding the genotype with the LOWEST result_order
-    # present in the actual data for this group. For chunked files, each file may only
-    # contain a subset of genotypes, so we need to find the control within this data.
+    # present in the actual data for this group.
     matched_control = ""
     if "result_order" in group.columns:
         # Get the minimum result_order value present in the data
@@ -389,12 +405,11 @@ def _process_single_data_file(
     # Map model names to model_groups
     data_file["model_group"] = data_file["model"].map(model_group_dict).fillna("")
 
-    # For chunked files, always use the actual model as the name field
-    # since each file represents a single model's data
+    # Use the actual model as the name field
     data_file["name"] = data_file["model"]
 
     # Filter data to only include genotypes that belong to the model_group
-    # Create effective model_group for filtering
+    # Create effective model_group for filtering (vectorized equivalent of _get_effective_model_group)
     data_file["effective_model_group"] = data_file["model_group"].where(
         data_file["model_group"] != "", data_file["model"]
     )
@@ -446,18 +461,17 @@ def transform_rna_de_individual(
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
-    Main transformation function for RNA individual expression data (chunked version).
+    Main transformation function for RNA individual expression data.
 
-    This function transforms a SINGLE RNA individual expression data file into a structured
+    This function transforms RNA individual expression data files into a structured
     format grouped by model_group to support display paradigms for models with
-    single or multiple controls. Unlike the standard rna_de_individual transform,
-    this processes one dataset at a time for separate output files.
+    single or multiple controls.
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
-            - 'rnaseq_genotype_label_map_new': Maps genotypes to display labels and model_groups
+            - 'rnaseq_genotype_label_map': Maps genotypes to display labels and model_groups
             - 'mouse_gene_metadata': Gene symbols for Ensembl IDs
-            - One data file: CSV DataFrame containing individual expression
+            - One or more data files: CSV DataFrames containing individual expression
               results with columns: ensembl_gene_id, expression, model, genotype, age,
               sex, tissue, individualid
         required_input: Dictionary mapping required dataset names to required columns
@@ -472,7 +486,7 @@ def transform_rna_de_individual(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Pre-compute lookup dictionaries
-    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map_new"].fillna("")
+    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
 
     # Validate that each model has consistent model_group values
@@ -491,6 +505,7 @@ def transform_rna_de_individual(
 
     # Build genotypes_by_model_group dictionary for filtering
     # Groups genotypes by their effective model_group for validation
+    # (vectorized equivalent of _get_effective_model_group)
     label_map_copy = rnaseq_genotype_label_map_df.copy()
     label_map_copy["effective_model_group"] = label_map_copy["model_group"].where(
         label_map_copy["model_group"] != "", label_map_copy["model"]
