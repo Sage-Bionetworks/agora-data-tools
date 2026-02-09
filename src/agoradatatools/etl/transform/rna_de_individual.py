@@ -130,6 +130,7 @@ def _determine_result_order(
     genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
     model_group: str,
     genotypes_by_model_group: Dict[str, List[str]],
+    genotype_to_models: Dict[tuple[str, str], str],
 ) -> List[str]:
     """
     Determines the result_order (ordering of display labels) for genotypes in a model_group.
@@ -143,6 +144,8 @@ def _determine_result_order(
             containing 'display_label', 'result_order', and 'effective_model_group'
         model_group: Model group name (used as effective_model_group if present, otherwise model is used)
         genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
+        genotype_to_models: Dictionary mapping (genotype, effective_model_group) to model name
+            for O(1) lookup
 
     Returns:
         List of display labels in the correct order based on result_order values
@@ -156,13 +159,8 @@ def _determine_result_order(
     # Create a list of (genotype, display_label, order) tuples
     genotype_info = []
     for genotype in genotypes:
-        # Find the model for this genotype by searching through metadata
-        # where effective_model_group matches the current model_group
-        model = None
-        for (m, g), metadata in genotype_metadata_dict.items():
-            if g == genotype and metadata["effective_model_group"] == model_group:
-                model = m
-                break
+        # Find the model for this genotype using O(1) lookup
+        model = genotype_to_models.get((genotype, model_group))
 
         if not model:
             continue
@@ -250,6 +248,7 @@ def _create_output_entry_from_group(
     gene_metadata_dict: Dict[str, str],
     genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
     genotypes_by_model_group: Dict[str, List[str]],
+    genotype_to_models: Dict[tuple[str, str], str],
 ) -> List[Dict[str, Any]]:
     """
     Creates output entries from a grouped DataFrame, one entry per age group.
@@ -261,6 +260,7 @@ def _create_output_entry_from_group(
         genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
             containing 'display_label', 'result_order', and 'effective_model_group'
         genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
+        genotype_to_models: Dictionary mapping (genotype, effective_model_group) to model name
 
     Returns:
         List of dictionaries, one per age group, each containing the complete output entry
@@ -300,6 +300,7 @@ def _create_output_entry_from_group(
         genotype_metadata_dict,
         effective_model_group,
         genotypes_by_model_group,
+        genotype_to_models,
     )
 
     # Create one output entry per age group (unnesting individual_results)
@@ -332,6 +333,7 @@ def _process_single_data_file(
     genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
     model_group_dict: Dict[str, str],
     genotypes_by_model_group: Dict[str, List[str]],
+    genotype_to_models: Dict[tuple[str, str], str],
     file_index: int,
     total_files: int,
 ) -> List[Dict[str, Any]]:
@@ -351,6 +353,7 @@ def _process_single_data_file(
             containing 'display_label', 'result_order', and 'effective_model_group'
         model_group_dict: Dictionary mapping model names to model_groups
         genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
+        genotype_to_models: Dictionary mapping (genotype, effective_model_group) to model name
         file_index: Current file index for progress tracking
         total_files: Total number of files to process
 
@@ -429,12 +432,6 @@ def _process_single_data_file(
     # Drop temporary columns used for filtering
     data_file = data_file.drop(columns=["effective_model_group", "_filter_key"])
 
-    # Convert repetitive string columns to categorical dtype for memory efficiency
-    # This reduces memory usage significantly for large datasets with repeated values
-    for col in ["model", "genotype", "tissue", "sex", "model_group", "name"]:
-        if col in data_file.columns:
-            data_file[col] = data_file[col].astype("category")
-
     # Group by gene, tissue, model_group, and name to create one entry per group
     grouped = data_file.groupby(["ensembl_gene_id", "tissue", "model_group", "name"])
 
@@ -446,6 +443,7 @@ def _process_single_data_file(
             gene_metadata_dict,
             genotype_metadata_dict,
             genotypes_by_model_group,
+            genotype_to_models,
         )
         output_entries.extend(entries_for_group)
 
@@ -517,6 +515,13 @@ def transform_rna_de_individual(
         .to_dict()
     )
 
+    # Build reverse lookup for O(1) genotype -> model mapping
+    # Maps (genotype, effective_model_group) to model for efficient lookups
+    genotype_to_models = {
+        (row["genotype"], row["effective_model_group"]): row["model"]
+        for _, row in label_map_copy.iterrows()
+    }
+
     # Get the single data file (excluding metadata files)
     file_list = [k for k in datasets.keys() if k not in required_input]
 
@@ -548,6 +553,7 @@ def transform_rna_de_individual(
             genotype_metadata_dict,
             model_group_dict,
             genotypes_by_model_group,
+            genotype_to_models,
             i,
             total_files,
         )
