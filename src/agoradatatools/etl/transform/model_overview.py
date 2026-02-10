@@ -155,12 +155,12 @@ def transform_model_overview(
 
         # Build the links first
         row["gene_expression"] = (
-            {"link_url": f"comparison/expression?model={row['name']}"}
+            {"link_url": f"comparison/expression?models={row['name']}"}
             if bool(row["gene_expression"])
             else None
         )
         row["disease_correlation"] = (
-            {"link_url": f"comparison/correlation?model={row['name']}"}
+            {"link_url": f"comparison/correlation?models={row['name']}"}
             if bool(row["disease_correlation"])
             else None
         )

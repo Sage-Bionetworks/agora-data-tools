@@ -14,6 +14,14 @@ This notebook must be updated when the Explorer is updated to:
 * Add or modify a CT dropdown menu or dropdown value
 * Add or modify a filterset or filter value
 
+
+Notes:
+* `query_param_key`: Values must be plural, camelCase, and should intelligibly align with the related display values presented to users on the page:
+   - filter.name (filter panels)
+   - filter.short_name (filter chiclets)
+   - column.name (column header)
+
+
 ## Library setup
 Install required packages:
 - synapser (also requires a Synapse account with an auth token)
@@ -67,38 +75,6 @@ biodomain_filter_vals <- c('Apoptosis',
                            'Vasculature')
 model_type_filter_vals <- c('Familial AD',
                             'Late Onset AD')
-model_name_filter_vals <- c('3xTg-AD',
-                            '5xFAD (IU/Jax/Pitt)',
-                            '5xFAD (UCI)',
-                            'Abca7*V1599M',
-                            'APOE4',
-                            'LOAD1',
-                            'LOAD1.Abca7A1527G',
-                            'LOAD1.Ceacam1KO',
-                            'LOAD1.Clasp2L163P',
-                            'LOAD1.CR1long',
-                            'LOAD1.Il1rapExon2KO',
-                            'LOAD1.MthfrC677T',
-                            'LOAD1.Plcg2M28L',
-                            'LOAD1.Snx1D465N',
-                            'Trem2-R47H_NSS',
-                            'Trem2R47H')
-modified_gene_filter_vals <- c('Abca7',
-                               'APOE',
-                               'App',
-                               'APP',
-                               'Ceacam1',
-                               'Clasp2',
-                               'CR1',
-                               'CR2',
-                               'Il1rap',
-                               'MAPT',
-                               'Mthfr',
-                               'Plcg2',
-                               'Psen1',
-                               'PSEN1',
-                               'Snx1',
-                               'Trem2')
 sex_filter_vals <- c('Female', 'Male')
 
 
@@ -156,25 +132,26 @@ build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, 
 }
 
 # Builds a list of filter definitions
-# - filter_defs: A dataframe of filterset info
-#   -- name, data_field, short_name, filter_values
+# - filter_defs: A dataframe of filterset info:
+#   - name, data_field, short_name, query_param_key, filter_values
 # - filter_vals: A list of lists specifying the filter values for each filterset
 build_filters <- function(filter_defs, filter_values) {
 
   # Construct list of filters
-  filters <- Map(function(name, data_key, short_name, filter_values) {
+  filters <- Map(function(name, data_key, short_name, query_param_key, filter_values) {
 
     filter <- list(
       name = name,
       data_key = data_key,
       short_name = short_name,
+      query_param_key = query_param_key,
       values = filter_values
       )
 
       # Omit keys with NA values
       filter <- discard(filter, ~ is.null(.x) | all(is.na(.x)))
 
-    }, filter_defs$name, filter_defs$data_key, filter_defs$short_name, filter_values)
+    }, filter_defs$name, filter_defs$data_key, filter_defs$short_name, filter_defs$query_param_key, filter_values)
 
   # Remove names to ensure JSON is an array, not object
   names(filters) <- NULL
@@ -226,15 +203,37 @@ ge_filters <- data.frame(
   name = c('Biological Domain', 'Model Type', 'Mouse Model'),
   data_key = c('biodomains', 'model_type', 'name'),
   short_name = c('Biodomain', 'Type', 'Model'),
+  query_param_key = c('biodomains', 'modelTypes', 'models'),
   stringsAsFactors = FALSE
 )
 
 # Gene Expression Filter values
 # -----------------------------
+# MG-750: Only include model filter values for models with results for the selected tissue
+
+# Hemibrain: All JAX models
+ge_model_name_filter_vals_hemibrain <- c(
+                            '5xFAD (IU/Jax/Pitt)',
+                            'APOE4',
+                            'LOAD1',
+                            'Trem2R47H')
+
+# Cortex: 5xFAD (UCI); need to wrap single value in a list for JSON serialization
+ge_model_name_filter_vals_cerebral_cortex <- list('5xFAD (UCI)')
+
+# Hippocampus: All UCI models
+ge_model_name_filter_vals_hippocampus <- c(
+                            '3xTg-AD',
+                            '5xFAD (UCI)',
+                            'Abca7*V1599M',
+                            'Abca7*V1599M.5xFAD',
+                            'Trem2-R47H_NSS',
+                            'Trem2-R47H_NSS.5xFAD')
+
 ge_filter_values <- list(
   biodomain_filter_vals,
   model_type_filter_vals,
-  model_name_filter_vals
+  ge_model_name_filter_vals
 )
 
 # Generates Gene Expression ui_config objects
@@ -258,11 +257,29 @@ build_ge_objects <- function() {
     combo <- dropdown_combos[i, ]
 
     # Dynamic columns vary by tissue dropdown
-    dynamic_names <- if (combo$menu2 == "Tissue - Hemibrain") ge_dynamic_names_jax else ge_dynamic_names_uci
+    dynamic_names <- if (grepl("Hemibrain", combo$menu2, ignore.case = TRUE)) ge_dynamic_names_jax else ge_dynamic_names_uci
     dynamic_columns <- lapply(dynamic_names,function(name) {
                            build_column(name, ge_dynamic_column_type, name, NA, ge_dynamic_column_sort_tooltip,
                                         NA, NA, ge_dynamic_column_is_exported, ge_dynamic_column_is_hidden)
     })
+
+    # Dynamic model filter values vary by tissue dropdown
+    dynamic_model_filters <- if (grepl("Hemibrain", combo$menu2, ignore.case = TRUE)) {
+      ge_model_name_filter_vals_hemibrain
+    } else if (grepl("Cerebral Cortex", combo$menu2, ignore.case = TRUE)) {
+      ge_model_name_filter_vals_cerebral_cortex
+    } else if (grepl("Hippocampus", combo$menu2, ignore.case = TRUE)) {
+      ge_model_name_filter_vals_hippocampus
+    } else {
+      stop() # fail if we are missing required filter values
+    }
+
+    # Construct the filter values list for this specific combo
+    ge_filter_values <- list(
+      biodomain_filter_vals,
+      model_type_filter_vals,
+      dynamic_model_filters
+    )
 
     # The column ordering is mirrored when a CSV is generated
     columns <- c(list(primary, ensembl_gene_id, tissue, sex_cohort, model, matched_control), dynamic_columns, c(list(biodomains, model_type, model_group)))
@@ -348,16 +365,42 @@ dc_filters <- data.frame(
   name = c('Age', 'Model Type', 'Modified Gene', 'Mouse Model', 'Sex'),
   data_key = c('age', 'model_type', 'modified_genes', 'name', 'sex'),
   short_name = c(NA, 'Type', 'Gene', 'Model', NA),
+  query_param_key = c('ages', 'modelTypes', 'modifiedGenes', 'models', 'sexes'),
   stringsAsFactors = FALSE
 )
 
 # Disease Correlation Filter values
 # ---------------------------------
+# Only include model.name filter values for models with Disease Correlation results
+dc_model_name_filter_vals <- c('5xFAD (IU/Jax/Pitt)',
+                            'APOE4',
+                            'LOAD1',
+                            'LOAD1.Abca7A1527G',
+                            'LOAD1.Ceacam1KO',
+                            'LOAD1.Clasp2L163P',
+                            'LOAD1.CR1long',
+                            'LOAD1.Il1rapExon2KO',
+                            'LOAD1.MthfrC677T',
+                            'LOAD1.Snx1D465N',
+                            'Trem2R47H')
+# Only include modified_gene filter values for genes modified in models with Disease Correlation results
+dc_modified_gene_filter_vals <- c('Abca7',
+                               'APOE',
+                               'APP',
+                               'Ceacam1',
+                               'Clasp2',
+                               'CR1',
+                               'CR2',
+                               'Il1rap',
+                               'Mthfr',
+                               "PSEN1",
+                               'Snx1',
+                               'Trem2')
 dc_filter_values <- list(
   c('4 months', '8 months', '12 months'),
   model_type_filter_vals,
-  modified_gene_filter_vals,
-  model_name_filter_vals,
+  dc_modified_gene_filter_vals,
+  dc_model_name_filter_vals,
   sex_filter_vals
 )
 
@@ -437,16 +480,34 @@ mo_filters <- data.frame(
   name = c('Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'),
   data_key = c('available_data', 'center', 'model_type', 'modified_genes'),
   short_name = c('Data', 'Center', 'Type', 'Gene'),
+  query_param_key = c('availableData', 'centers', 'modelTypes', 'modifiedGenes'),
   stringsAsFactors = FALSE
 )
 
 # Model Overview Filter Values
 # ----------------------------
+# Include modified_gene filter values for genes modified in any included model
+mo_modified_gene_filter_vals <- c('Abca7',
+                               'APOE',
+                               'APP',
+                               'Ceacam1',
+                               'Clasp2',
+                               'CR1',
+                               'CR2',
+                               'Il1rap',
+                               'MAPT',
+                               'Mthfr',
+                               'Plcg2',
+                               'Psen1',
+                               'PSEN1',
+                               'Snx1',
+                               'Trem2')
+
 mo_filter_values <- list(
   c('Biomarkers', 'Disease Correlation', 'Gene Expression', 'Pathology'),
   c('IU/Jax/Pitt', 'UCI'),
   model_type_filter_vals,
-  modified_gene_filter_vals
+  mo_modified_gene_filter_vals
 )
 
 # Generates Model Overview ui_config objects
@@ -488,6 +549,8 @@ if(!dir.exists(output_dir)){
 }
 
 write(json_output, file.path(output_dir, "ui_config.json"))
+
+# BREAK HERE FOR LOCAL VALIDATION - generated file is in ADT notebooks/output
 
 # upload to synapse
 synLogin()
