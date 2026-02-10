@@ -46,7 +46,6 @@ from agoradatatools.etl.transform.rna_shared_utils import (
     filter_mouse_genes,
     validate_model_group_consistency,
     create_gene_metadata_dict,
-    create_model_group_dict,
     log_file_processing_info,
     validate_data_file_not_empty,
     normalize_model_group_value,
@@ -129,8 +128,6 @@ def _create_genotype_metadata_dict(
 def _determine_result_order(
     genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
     model_group: str,
-    genotypes_by_model_group: Dict[str, List[str]],
-    genotype_to_models: Dict[tuple[str, str], str],
 ) -> List[str]:
     """
     Determines the result_order (ordering of display labels) for genotypes in a model_group.
@@ -143,34 +140,20 @@ def _determine_result_order(
         genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
             containing 'display_label', 'result_order', and 'effective_model_group'
         model_group: Model group name (used as effective_model_group if present, otherwise model is used)
-        genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
-        genotype_to_models: Dictionary mapping (genotype, effective_model_group) to model name
-            for O(1) lookup
 
     Returns:
         List of display labels in the correct order based on result_order values
     """
-    # Get all genotypes for this model_group
-    genotypes = genotypes_by_model_group.get(model_group, [])
-
-    if not genotypes:
-        return []
-
-    # Create a list of (genotype, display_label, order) tuples
+    # Collect all genotypes for this model_group by scanning genotype_metadata_dict
     genotype_info = []
-    for genotype in genotypes:
-        # Find the model for this genotype using O(1) lookup
-        model = genotype_to_models.get((genotype, model_group))
+    for (model, genotype), metadata in genotype_metadata_dict.items():
+        # Only include genotypes that belong to this model_group
+        if metadata["effective_model_group"] == model_group:
+            display_label = metadata.get("display_label", "")
+            order = metadata.get("result_order", 999)
 
-        if not model:
-            continue
-
-        metadata = genotype_metadata_dict.get((model, genotype), {})
-        display_label = metadata.get("display_label", "")
-        order = metadata.get("result_order", 999)  # Default to high value if not found
-
-        if display_label:
-            genotype_info.append((genotype, display_label, order))
+            if display_label:
+                genotype_info.append((genotype, display_label, order))
 
     # Sort by the result_order value
     sorted_info = sorted(genotype_info, key=lambda x: x[2])
@@ -179,77 +162,6 @@ def _determine_result_order(
     result_order = [display_label for _, display_label, _ in sorted_info]
 
     return result_order
-
-
-def _prepare_metadata_lookups(
-    rnaseq_genotype_label_map_df: pd.DataFrame,
-    mouse_gene_metadata_df: pd.DataFrame,
-) -> tuple[
-    Dict[str, str],
-    Dict[tuple[str, str], Dict[str, Any]],
-    Dict[str, str],
-    Dict[str, List[str]],
-    Dict[tuple[str, str], str],
-]:
-    """
-    Prepare all metadata lookup dictionaries for efficient data enrichment.
-
-    This function consolidates all the metadata preparation logic into one place,
-    making the main transform function cleaner and easier to follow.
-
-    Args:
-        rnaseq_genotype_label_map_df: DataFrame with model, genotype, display_label,
-            result_order, and model_group columns
-        mouse_gene_metadata_df: DataFrame with ensembl_gene_id and gene_symbol columns
-
-    Returns:
-        Tuple containing:
-        - gene_metadata_dict: Maps ensembl_gene_id to gene_symbol
-        - genotype_metadata_dict: Maps (model, genotype) to metadata dict
-        - model_group_dict: Maps model to model_group
-        - genotypes_by_model_group: Maps effective_model_group to list of genotypes
-        - genotype_to_models: Maps (genotype, effective_model_group) to model
-    """
-    # Validate data consistency
-    validate_model_group_consistency(rnaseq_genotype_label_map_df)
-
-    # Create gene metadata lookup
-    gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
-
-    # Create unified genotype metadata dictionary
-    genotype_metadata_dict = _create_genotype_metadata_dict(
-        rnaseq_genotype_label_map_df
-    )
-
-    # Create model group lookup
-    model_group_dict = create_model_group_dict(rnaseq_genotype_label_map_df)
-
-    # Build genotypes_by_model_group and genotype_to_models lookups
-    # (vectorized equivalent of _get_effective_model_group)
-    label_map_copy = rnaseq_genotype_label_map_df.copy()
-    label_map_copy["effective_model_group"] = label_map_copy["model_group"].where(
-        label_map_copy["model_group"] != "", label_map_copy["model"]
-    )
-
-    genotypes_by_model_group = (
-        label_map_copy.groupby("effective_model_group")["genotype"]
-        .apply(lambda x: list(x.unique()))
-        .to_dict()
-    )
-
-    # Build reverse lookup for O(1) genotype -> model mapping
-    genotype_to_models = {
-        (row["genotype"], row["effective_model_group"]): row["model"]
-        for _, row in label_map_copy.iterrows()
-    }
-
-    return (
-        gene_metadata_dict,
-        genotype_metadata_dict,
-        model_group_dict,
-        genotypes_by_model_group,
-        genotype_to_models,
-    )
 
 
 def _create_individual_results_from_group(
@@ -318,8 +230,6 @@ def _create_output_entry_from_group(
     group: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
     genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
-    genotypes_by_model_group: Dict[str, List[str]],
-    genotype_to_models: Dict[tuple[str, str], str],
 ) -> List[Dict[str, Any]]:
     """
     Creates output entries from a grouped DataFrame, one entry per age group.
@@ -330,8 +240,6 @@ def _create_output_entry_from_group(
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
             containing 'display_label', 'result_order', and 'effective_model_group'
-        genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
-        genotype_to_models: Dictionary mapping (genotype, effective_model_group) to model name
 
     Returns:
         List of dictionaries, one per age group, each containing the complete output entry
@@ -370,8 +278,6 @@ def _create_output_entry_from_group(
     result_order = _determine_result_order(
         genotype_metadata_dict,
         effective_model_group,
-        genotypes_by_model_group,
-        genotype_to_models,
     )
 
     # Create one output entry per age group (unnesting individual_results)
@@ -399,12 +305,8 @@ def _create_output_entry_from_group(
 def _process_single_data_file(
     file_name: str,
     data_file: pd.DataFrame,
-    data_file_required_columns: List[str],
     gene_metadata_dict: Dict[str, str],
     genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
-    model_group_dict: Dict[str, str],
-    genotypes_by_model_group: Dict[str, List[str]],
-    genotype_to_models: Dict[tuple[str, str], str],
     file_index: int,
     total_files: int,
 ) -> List[Dict[str, Any]]:
@@ -418,19 +320,27 @@ def _process_single_data_file(
     Args:
         file_name: Name of the data file being processed
         data_file: DataFrame containing the individual expression data
-        data_file_required_columns: List of required column names
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
-            containing 'display_label', 'result_order', and 'effective_model_group'
-        model_group_dict: Dictionary mapping model names to model_groups
-        genotypes_by_model_group: Dictionary mapping model_groups to lists of genotypes
-        genotype_to_models: Dictionary mapping (genotype, effective_model_group) to model name
+            containing 'display_label', 'result_order', 'model_group', and 'effective_model_group'
         file_index: Current file index for progress tracking
         total_files: Total number of files to process
 
     Returns:
         List of output entry dictionaries
     """
+
+    data_file_required_columns = [
+        "ensembl_gene_id",
+        "expression",
+        "model",
+        "genotype",
+        "age",
+        "sex",
+        "tissue",
+        "individualid",
+    ]
+
     log_file_processing_info(file_name, file_index, total_files, data_file)
 
     # Check if data file is empty
@@ -479,8 +389,17 @@ def _process_single_data_file(
         data_file["genotype_display"] = data_file["genotype"]
         data_file["result_order"] = 999
 
-    # Map model names to model_groups
-    data_file["model_group"] = data_file["model"].map(model_group_dict).fillna("")
+    # Map model names to model_groups by extracting from genotype_metadata_dict
+    # Build a simple {model: model_group} lookup from any genotype entry for each model
+    model_to_group = {
+        model: metadata["model_group"]
+        for (model, _), metadata in genotype_metadata_dict.items()
+    }
+    # Remove duplicates by using dict (keeps first occurrence)
+    model_to_group = {
+        model: model_to_group[model] for model in dict.fromkeys(model_to_group)
+    }
+    data_file["model_group"] = data_file["model"].map(model_to_group).fillna("")
 
     # Use the actual model as the name field
     data_file["name"] = data_file["model"]
@@ -495,11 +414,10 @@ def _process_single_data_file(
         data_file["model_group"] != "", data_file["model"]
     )
 
-    # Build a set of allowed (effective_model_group, genotype) combinations for O(1) lookup
+    # Build a set of allowed (effective_model_group, genotype) combinations from genotype_metadata_dict
     allowed_genotypes_set = {
-        (mg, genotype)
-        for mg, genotypes in genotypes_by_model_group.items()
-        for genotype in genotypes
+        (metadata["effective_model_group"], genotype)
+        for (model, genotype), metadata in genotype_metadata_dict.items()
     }
 
     # Filter rows: keep only those with valid (effective_model_group, genotype) combinations
@@ -519,8 +437,6 @@ def _process_single_data_file(
             group,
             gene_metadata_dict,
             genotype_metadata_dict,
-            genotypes_by_model_group,
-            genotype_to_models,
         )
         output_entries.extend(entries_for_group)
 
@@ -564,31 +480,23 @@ def transform_rna_de_individual(
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
 
-    # Prepare all metadata lookup dictionaries for efficient data enrichment
-    (
-        gene_metadata_dict,
-        genotype_metadata_dict,
-        model_group_dict,
-        genotypes_by_model_group,
-        genotype_to_models,
-    ) = _prepare_metadata_lookups(rnaseq_genotype_label_map_df, mouse_gene_metadata_df)
+    # Validate data consistency
+    validate_model_group_consistency(rnaseq_genotype_label_map_df)
+
+    # Create gene metadata lookup (separate domain - genes vs genotypes)
+    gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
+
+    # Create unified genotype metadata dictionary - this is our SINGLE SOURCE OF TRUTH
+    # All other lookups can be derived from this on-the-fly
+    genotype_metadata_dict = _create_genotype_metadata_dict(
+        rnaseq_genotype_label_map_df
+    )
 
     # Get the data files (excluding metadata files)
     file_list = [k for k in datasets.keys() if k not in required_input]
 
     if len(file_list) == 0:
         raise ValueError("Transform rna_de_individual expects at least 1 data file.")
-
-    data_file_required_columns = [
-        "ensembl_gene_id",
-        "expression",
-        "model",
-        "genotype",
-        "age",
-        "sex",
-        "tissue",
-        "individualid",
-    ]
 
     total_files = len(file_list)
     logger.info(f"Transform rna_de_individual total data files: {total_files}")
@@ -599,12 +507,8 @@ def transform_rna_de_individual(
         file_output = _process_single_data_file(
             file_name,
             data_file,
-            data_file_required_columns,
             gene_metadata_dict,
             genotype_metadata_dict,
-            model_group_dict,
-            genotypes_by_model_group,
-            genotype_to_models,
             i,
             total_files,
         )
