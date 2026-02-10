@@ -181,6 +181,77 @@ def _determine_result_order(
     return result_order
 
 
+def _prepare_metadata_lookups(
+    rnaseq_genotype_label_map_df: pd.DataFrame,
+    mouse_gene_metadata_df: pd.DataFrame,
+) -> tuple[
+    Dict[str, str],
+    Dict[tuple[str, str], Dict[str, Any]],
+    Dict[str, str],
+    Dict[str, List[str]],
+    Dict[tuple[str, str], str],
+]:
+    """
+    Prepare all metadata lookup dictionaries for efficient data enrichment.
+
+    This function consolidates all the metadata preparation logic into one place,
+    making the main transform function cleaner and easier to follow.
+
+    Args:
+        rnaseq_genotype_label_map_df: DataFrame with model, genotype, display_label,
+            result_order, and model_group columns
+        mouse_gene_metadata_df: DataFrame with ensembl_gene_id and gene_symbol columns
+
+    Returns:
+        Tuple containing:
+        - gene_metadata_dict: Maps ensembl_gene_id to gene_symbol
+        - genotype_metadata_dict: Maps (model, genotype) to metadata dict
+        - model_group_dict: Maps model to model_group
+        - genotypes_by_model_group: Maps effective_model_group to list of genotypes
+        - genotype_to_models: Maps (genotype, effective_model_group) to model
+    """
+    # Validate data consistency
+    validate_model_group_consistency(rnaseq_genotype_label_map_df)
+
+    # Create gene metadata lookup
+    gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
+
+    # Create unified genotype metadata dictionary
+    genotype_metadata_dict = _create_genotype_metadata_dict(
+        rnaseq_genotype_label_map_df
+    )
+
+    # Create model group lookup
+    model_group_dict = create_model_group_dict(rnaseq_genotype_label_map_df)
+
+    # Build genotypes_by_model_group and genotype_to_models lookups
+    # (vectorized equivalent of _get_effective_model_group)
+    label_map_copy = rnaseq_genotype_label_map_df.copy()
+    label_map_copy["effective_model_group"] = label_map_copy["model_group"].where(
+        label_map_copy["model_group"] != "", label_map_copy["model"]
+    )
+
+    genotypes_by_model_group = (
+        label_map_copy.groupby("effective_model_group")["genotype"]
+        .apply(lambda x: list(x.unique()))
+        .to_dict()
+    )
+
+    # Build reverse lookup for O(1) genotype -> model mapping
+    genotype_to_models = {
+        (row["genotype"], row["effective_model_group"]): row["model"]
+        for _, row in label_map_copy.iterrows()
+    }
+
+    return (
+        gene_metadata_dict,
+        genotype_metadata_dict,
+        model_group_dict,
+        genotypes_by_model_group,
+        genotype_to_models,
+    )
+
+
 def _create_individual_results_from_group(
     group: pd.DataFrame,
 ) -> List[Dict[str, Any]]:
@@ -376,9 +447,11 @@ def _process_single_data_file(
     data_file = data_file.round(decimals=5)
 
     # Map genotypes to display labels and result_order using vectorized merge operation
-    # This is more efficient than row-by-row operations for large datasets
+    # This enriches the raw data with human-readable labels and ordering information
+    # from the genotype label map, which is more efficient than row-by-row lookups
     if genotype_metadata_dict:
-        # Create DataFrame from genotype_metadata_dict for merging
+        # Convert dictionary to DataFrame for efficient pandas merge
+        # Each row maps a (model, genotype) pair to its display label and result_order
         metadata_list = [
             {
                 "model": k[0],
@@ -391,14 +464,15 @@ def _process_single_data_file(
         metadata_df = pd.DataFrame(metadata_list)
 
         # Perform left join to add display labels and result_order
+        # validate="many_to_one" ensures each (model, genotype) has exactly one label
         data_file = data_file.merge(
             metadata_df, on=["model", "genotype"], how="left", validate="many_to_one"
         )
-        # Fill missing display labels with original genotype
+        # Fill missing display labels with original genotype (fallback for unmapped entries)
         data_file["genotype_display"] = data_file["genotype_display"].fillna(
             data_file["genotype"]
         )
-        # Fill missing result_order with high value (non-controls)
+        # Fill missing result_order with high value (treats unmapped entries as non-controls)
         data_file["result_order"] = data_file["result_order"].fillna(999)
     else:
         # If no metadata provided, use genotype as display label
@@ -412,25 +486,28 @@ def _process_single_data_file(
     data_file["name"] = data_file["model"]
 
     # Filter data to only include genotypes that belong to the model_group
-    # Create effective model_group for filtering (vectorized equivalent of _get_effective_model_group)
-    data_file["effective_model_group"] = data_file["model_group"].where(
+    # This ensures we only process valid genotype combinations for each model group.
+    # For example, if a model_group has genotypes [A, B], we filter out any rows
+    # with genotype C even if they share the same model name.
+
+    # Determine effective model_group for each row (vectorized equivalent of _get_effective_model_group)
+    effective_model_groups = data_file["model_group"].where(
         data_file["model_group"] != "", data_file["model"]
     )
 
-    # Build a set of allowed (model_group, genotype) combinations for efficient lookup
-    allowed_genotypes_set = set()
-    for mg, genotypes in genotypes_by_model_group.items():
-        for genotype in genotypes:
-            allowed_genotypes_set.add((mg, genotype))
+    # Build a set of allowed (effective_model_group, genotype) combinations for O(1) lookup
+    allowed_genotypes_set = {
+        (mg, genotype)
+        for mg, genotypes in genotypes_by_model_group.items()
+        for genotype in genotypes
+    }
 
-    # Create combined key and filter using set membership (O(1) lookup)
-    data_file["_filter_key"] = list(
-        zip(data_file["effective_model_group"], data_file["genotype"])
-    )
-    data_file = data_file[data_file["_filter_key"].isin(allowed_genotypes_set)]
-
-    # Drop temporary columns used for filtering
-    data_file = data_file.drop(columns=["effective_model_group", "_filter_key"])
+    # Filter rows: keep only those with valid (effective_model_group, genotype) combinations
+    filter_mask = [
+        (emg, gt) in allowed_genotypes_set
+        for emg, gt in zip(effective_model_groups, data_file["genotype"])
+    ]
+    data_file = data_file[filter_mask]
 
     # Group by gene, tissue, model_group, and name to create one entry per group
     grouped = data_file.groupby(["ensembl_gene_id", "tissue", "model_group", "name"])
@@ -487,42 +564,16 @@ def transform_rna_de_individual(
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
 
-    # Validate that each model has consistent model_group values
-    validate_model_group_consistency(rnaseq_genotype_label_map_df)
+    # Prepare all metadata lookup dictionaries for efficient data enrichment
+    (
+        gene_metadata_dict,
+        genotype_metadata_dict,
+        model_group_dict,
+        genotypes_by_model_group,
+        genotype_to_models,
+    ) = _prepare_metadata_lookups(rnaseq_genotype_label_map_df, mouse_gene_metadata_df)
 
-    # Create lookup dictionaries for efficient data enrichment
-    gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
-
-    # Create unified genotype metadata dictionary (consolidates display_label, result_order,
-    # model_group, and effective_model_group into a single lookup structure)
-    genotype_metadata_dict = _create_genotype_metadata_dict(
-        rnaseq_genotype_label_map_df
-    )
-
-    model_group_dict = create_model_group_dict(rnaseq_genotype_label_map_df)
-
-    # Build genotypes_by_model_group dictionary for filtering
-    # Groups genotypes by their effective model_group for validation
-    # (vectorized equivalent of _get_effective_model_group)
-    label_map_copy = rnaseq_genotype_label_map_df.copy()
-    label_map_copy["effective_model_group"] = label_map_copy["model_group"].where(
-        label_map_copy["model_group"] != "", label_map_copy["model"]
-    )
-
-    genotypes_by_model_group = (
-        label_map_copy.groupby("effective_model_group")["genotype"]
-        .apply(lambda x: list(x.unique()))
-        .to_dict()
-    )
-
-    # Build reverse lookup for O(1) genotype -> model mapping
-    # Maps (genotype, effective_model_group) to model for efficient lookups
-    genotype_to_models = {
-        (row["genotype"], row["effective_model_group"]): row["model"]
-        for _, row in label_map_copy.iterrows()
-    }
-
-    # Get the single data file (excluding metadata files)
+    # Get the data files (excluding metadata files)
     file_list = [k for k in datasets.keys() if k not in required_input]
 
     if len(file_list) == 0:
