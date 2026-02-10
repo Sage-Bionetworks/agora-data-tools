@@ -40,59 +40,6 @@ def map_jax_tissue_name(tissue: str) -> str:
     return "Hemibrain" if tissue == "Right Cerebral Hemisphere" else tissue
 
 
-def validate_and_sort_age_entries(
-    age_entries: Dict,
-    ensembl_gene_id: str,
-    model: str,
-    tissue: str,
-    sex: str,
-) -> Dict:
-    """
-    Validates and sorts age entries by their numeric value.
-
-    Age entries are expected to be in the format 'N months' where N is an integer.
-    This function validates that all age strings are properly formatted and not empty,
-    then sorts them numerically.
-
-    Args:
-        age_entries: Dictionary with age strings as keys
-        ensembl_gene_id: Gene identifier for error reporting
-        model: Model name for error reporting
-        tissue: Tissue type for error reporting
-        sex: Sex category for error reporting
-
-    Returns:
-        Dictionary of age entries sorted by numeric age value
-
-    Raises:
-        ValueError: If any age string is empty, whitespace-only, or not in 'N months' format
-    """
-    # Validate that no age strings are empty or whitespace-only
-    for age in age_entries.keys():
-        age_stripped = age.strip()
-        if not age_stripped:
-            raise ValueError(
-                f"Empty or whitespace-only age value found in data for gene '{ensembl_gene_id}', "
-                f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-                f"Expected 'N months' format but found: '{age}'"
-            )
-
-    # Sort age entries by numeric value with error handling for format validation
-    try:
-        sorted_ages = dict(
-            sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
-        )
-    except (ValueError, IndexError) as e:
-        raise ValueError(
-            f"Invalid age format in data for gene '{ensembl_gene_id}', "
-            f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-            f"Expected 'N months' format but found: {list(age_entries.keys())}. "
-            f"Original error: {e}"
-        ) from e
-
-    return sorted_ages
-
-
 def validate_model_group_consistency(
     genotype_label_map_df: pd.DataFrame,
 ) -> None:
@@ -134,34 +81,6 @@ def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str,
         Dictionary mapping ensembl_gene_id to gene_symbol
     """
     return mouse_gene_metadata_df.set_index("ensembl_gene_id")["gene_symbol"].to_dict()
-
-
-def create_model_group_dict(genotype_label_map_df: pd.DataFrame) -> Dict[str, str]:
-    """
-    Create a lookup dictionary mapping model names to model_group values.
-
-    Args:
-        genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
-
-    Returns:
-        Dictionary mapping model to model_group
-    """
-    return genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
-
-
-def create_label_map_dict(genotype_label_map_df: pd.DataFrame) -> Dict[tuple, str]:
-    """
-    Create a lookup dictionary mapping (model, genotype) tuples to display labels.
-
-    Args:
-        genotype_label_map_df: DataFrame with 'model', 'genotype', and 'display_label' columns
-
-    Returns:
-        Dictionary mapping (model, genotype) to display_label
-    """
-    return genotype_label_map_df.set_index(["model", "genotype"])[
-        "display_label"
-    ].to_dict()
 
 
 def log_file_processing_info(
@@ -242,47 +161,3 @@ def extract_common_metadata(
         "gene_symbol": gene_metadata_dict.get(ensembl_gene_id, ""),
         "tissue": map_jax_tissue_name(tissue),
     }
-
-
-def resolve_genotypes_to_display_labels(
-    label_map_dict: Dict[tuple[str, str], str],
-    name: str,
-    case: str,
-    control: str,
-    ensembl_gene_id: str,
-    tissue: str,
-    sex: str,
-) -> tuple[str, str]:
-    """
-    Resolve genotypes to display labels.
-    Args:
-        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
-        name: Model name
-        case: Case genotype
-        control: Control genotype
-        ensembl_gene_id: Ensembl gene identifier
-        tissue: Tissue name
-        sex: Sex category
-
-    Returns:
-        Tuple containing the display label for the case genotype and the display label for the control genotype
-
-    Raises:
-        ValueError: If the case or control genotype is not found in label_map_dict.
-    """
-    # Lookup name and matched_control - raise error if not found
-    case_key = (name, case)
-    control_key = (name, control)
-    for k in [case_key, control_key]:
-        if k not in label_map_dict:
-            raise ValueError(
-                f"Label mapping not found for genotype. "
-                f"Model: '{name}', Genotype: '{k[1]}', "
-                f"Gene: {ensembl_gene_id}, Tissue: {tissue}, Sex: {sex}. "
-                f"Please ensure the rnaseq_genotype_label_map dataset contains "
-                f"an entry for model '{name}' and genotype '{k[1]}'."
-            )
-    name = label_map_dict[case_key]
-    matched_control = label_map_dict[control_key]
-
-    return name, matched_control

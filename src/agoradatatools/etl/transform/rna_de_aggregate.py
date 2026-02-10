@@ -42,16 +42,12 @@ import gc
 from agoradatatools.etl.utils import check_required_datasets_and_columns, normalize_zero
 from agoradatatools.etl.transform.rna_shared_utils import (
     filter_mouse_genes,
-    validate_and_sort_age_entries as validate_and_sort_age_entries_shared,
     validate_model_group_consistency,
     create_gene_metadata_dict,
-    create_model_group_dict,
-    create_label_map_dict,
     log_file_processing_info,
     validate_data_file_not_empty,
     normalize_model_group_value,
     extract_common_metadata,
-    resolve_genotypes_to_display_labels,
 )
 
 logger = logging.getLogger(__name__)
@@ -75,12 +71,12 @@ REQUIRED_INPUT = {
 
 
 def _validate_and_sort_age_entries(
-    age_entries: Dict[str, Dict[str, float]],
+    age_entries: Dict,
     ensembl_gene_id: str,
     model: str,
     tissue: str,
     sex: str,
-) -> Dict[str, Dict[str, float]]:
+) -> Dict:
     """
     Validates and sorts age entries by their numeric value.
 
@@ -89,7 +85,7 @@ def _validate_and_sort_age_entries(
     then sorts them numerically.
 
     Args:
-        age_entries: Dictionary mapping age strings to their log2_fc and adj_p_val values
+        age_entries: Dictionary with age strings as keys
         ensembl_gene_id: Gene identifier for error reporting
         model: Model name for error reporting
         tissue: Tissue type for error reporting
@@ -101,9 +97,74 @@ def _validate_and_sort_age_entries(
     Raises:
         ValueError: If any age string is empty, whitespace-only, or not in 'N months' format
     """
-    return validate_and_sort_age_entries_shared(
-        age_entries, ensembl_gene_id, model, tissue, sex
-    )
+    # Validate that no age strings are empty or whitespace-only
+    for age in age_entries.keys():
+        age_stripped = age.strip()
+        if not age_stripped:
+            raise ValueError(
+                f"Empty or whitespace-only age value found in data for gene '{ensembl_gene_id}', "
+                f"model '{model}', tissue '{tissue}', sex '{sex}'. "
+                f"Expected 'N months' format but found: '{age}'"
+            )
+
+    # Sort age entries by numeric value with error handling for format validation
+    try:
+        sorted_ages = dict(
+            sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
+        )
+    except (ValueError, IndexError) as e:
+        raise ValueError(
+            f"Invalid age format in data for gene '{ensembl_gene_id}', "
+            f"model '{model}', tissue '{tissue}', sex '{sex}'. "
+            f"Expected 'N months' format but found: {list(age_entries.keys())}. "
+            f"Original error: {e}"
+        ) from e
+
+    return sorted_ages
+
+
+def _resolve_genotypes_to_display_labels(
+    label_map_dict: Dict[tuple[str, str], str],
+    name: str,
+    case: str,
+    control: str,
+    ensembl_gene_id: str,
+    tissue: str,
+    sex: str,
+) -> tuple[str, str]:
+    """
+    Resolve genotypes to display labels.
+    Args:
+        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
+        name: Model name
+        case: Case genotype
+        control: Control genotype
+        ensembl_gene_id: Ensembl gene identifier
+        tissue: Tissue name
+        sex: Sex category
+
+    Returns:
+        Tuple containing the display label for the case genotype and the display label for the control genotype
+
+    Raises:
+        ValueError: If the case or control genotype is not found in label_map_dict.
+    """
+    # Lookup name and matched_control - raise error if not found
+    case_key = (name, case)
+    control_key = (name, control)
+    for k in [case_key, control_key]:
+        if k not in label_map_dict:
+            raise ValueError(
+                f"Label mapping not found for genotype. "
+                f"Model: '{name}', Genotype: '{k[1]}', "
+                f"Gene: {ensembl_gene_id}, Tissue: {tissue}, Sex: {sex}. "
+                f"Please ensure the rnaseq_genotype_label_map dataset contains "
+                f"an entry for model '{name}' and genotype '{k[1]}'."
+            )
+    name = label_map_dict[case_key]
+    matched_control = label_map_dict[control_key]
+
+    return name, matched_control
 
 
 def _create_age_entries_from_group(
@@ -267,7 +328,7 @@ def _create_output_entry_from_group(
     )
 
     # Lookup name and matched_control - raise error if not found
-    name, matched_control = resolve_genotypes_to_display_labels(
+    name, matched_control = _resolve_genotypes_to_display_labels(
         label_map_dict, model, case, control, ensembl_gene_id, tissue, sex
     )
     model_group = model_group_dict.get(model)
@@ -513,12 +574,16 @@ def transform_rna_de_aggregate(
     model_info_dict = model_info_df.set_index("model")["model_type"].to_dict()
 
     # Create label map dictionaries for efficient lookups
-    label_map_dict = create_label_map_dict(rnaseq_genotype_label_map_df)
+    label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
+        "display_label"
+    ].to_dict()
 
     # Validate that each model has consistent model_group values
     validate_model_group_consistency(rnaseq_genotype_label_map_df)
 
-    model_group_dict = create_model_group_dict(rnaseq_genotype_label_map_df)
+    model_group_dict = (
+        rnaseq_genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
+    )
 
     # Create biodomain lookup dictionary
     biodomain_dict = (
