@@ -23,6 +23,8 @@ from agoradatatools.etl.transform.disease_correlation import (
 )
 from agoradatatools.etl.transform.model_overview import transform_model_overview
 from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggregate
+from agoradatatools.etl.transform.nominated_targets import transform_nominated_targets
+from agoradatatools.etl.transform.nominated_drugs import transform_nominated_drugs
 
 
 __all__ = [
@@ -41,4 +43,6 @@ __all__ = [
     "transform_disease_correlation",
     "transform_model_overview",
     "transform_rna_de_aggregate",
+    "transform_nominated_targets",
+    "transform_nominated_drugs",
 ]

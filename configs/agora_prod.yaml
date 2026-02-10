@@ -1,5 +1,5 @@
 destination: &dest syn12177492
-staging_path: ./staging
+staging_path: ./staging/agora
 gx_folder: syn52948668
 gx_table: syn60527066
 team_images_id: syn12861877
@@ -281,3 +281,42 @@ datasets:
       custom_transformations: transform_proteomics_distribution_data
       destination: *dest
       gx_enabled: true
+
+  - nominated_targets:
+      files:
+        - name: target_list
+          id: syn12540368.62
+          format: csv
+        - name: gene_metadata
+          id: syn25953363.16
+          format: feather
+        - name: pharos_classes
+          id: syn64123611.2
+          format: csv
+      final_format: json
+      custom_transformations:
+        transform_nominated_targets
+      agora_rename:
+        symbol: hgnc_symbol
+      destination: *dest
+      gx_enabled: false
+
+  - nominated_drugs:
+      files:
+        - name: drug_list
+          id: syn73677240 # TODO pin this once source is finalized
+          format: csv
+      final_format: json
+      custom_transformations:
+        transform_nominated_drugs
+      destination: *dest
+      gx_enabled: false
+
+  - ui_config:
+      files:
+        - name: ui_config
+          id: syn73677126
+          format: json
+      final_format: json
+      destination: *dest
+      gx_enabled: false
