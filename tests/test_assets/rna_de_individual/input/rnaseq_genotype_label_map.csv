@@ -1,0 +1,25 @@
+model,model_group,display_label,genotype,result_order
+3xTg-AD,,3xTg-AD,3xTg-AD_carrier,2
+3xTg-AD,,B6129,3xTg-AD_noncarrier,1
+5xFAD (IU/Jax/Pitt),,5xFAD (IU/Jax/Pitt),5XFAD_carrier,2
+5xFAD (IU/Jax/Pitt),,C57BL/6J,5XFAD_noncarrier,1
+5xFAD (UCI),,5xFAD (UCI),5XFAD_carrier,2
+5xFAD (UCI),,C57BL/6J,5XFAD_noncarrier,1
+Abca7*V1599M.5xFAD,Abca7*V1599M,5xFAD,5XFAD_carrier,3
+Abca7*V1599M.5xFAD,Abca7*V1599M,Abca7*V1599M.5xFAD,5XFAD_carrier; Abca7-V1599M_homozygous,4
+Abca7*V1599M,Abca7*V1599M,C57BL/6J,5XFAD_noncarrier,1
+Abca7*V1599M,Abca7*V1599M,Abca7*V1599M,Abca7-V1599M_homozygous,2
+Clu-h2kbKI.5xFAD,Clu-h2kbKI,5xFAD,5XFAD_carrier,3
+Clu-h2kbKI.5xFAD,Clu-h2kbKI,Clu-h2kbKI.5xFAD,5XFAD_carrier; Clu-rs2279590_KI_homozygous,4
+Clu-h2kbKI,Clu-h2kbKI,C57BL/6J,5XFAD_noncarrier,1
+Clu-h2kbKI,Clu-h2kbKI,Clu-h2kbKI,Clu-rs2279590_KI_homozygous,2
+LOAD1,LOAD1,LOAD1,APOE4-KI_homozygous; Trem2-R47H_homozygous,2
+LOAD1,LOAD1,C57BL/6J,APOE4-KI_WT; Trem2-R47H_WT,1
+APOE4,APOE4,APOE4,APOE4-KI_homozygous; Trem2-R47H_WT,2
+APOE4,APOE4,C57BL/6J,APOE4-KI_WT; Trem2-R47H_WT,1
+Trem2R47H,Trem2R47H,Trem2R47H,APOE4-KI_WT; Trem2-R47H_homozygous,2
+Trem2R47H,Trem2R47H,C57BL/6J,APOE4-KI_WT; Trem2-R47H_WT,1
+Trem2-R47H_NSS.5xFAD,Trem2-R47H_NSS,5xFAD,5XFAD_carrier,3
+Trem2-R47H_NSS.5xFAD,Trem2-R47H_NSS,Trem2-R47H_NSS.5xFAD,5XFAD_carrier; Trem2-R47H_NSS_homozygous,4
+Trem2-R47H_NSS,Trem2-R47H_NSS,C57BL/6J,5XFAD_noncarrier,1
+Trem2-R47H_NSS,Trem2-R47H_NSS,Trem2-R47H_NSS,Trem2-R47H_NSS_homozygous,2

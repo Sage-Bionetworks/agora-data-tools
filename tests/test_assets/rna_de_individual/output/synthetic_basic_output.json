@@ -1,124 +1,71 @@
 [
   {
     "ensembl_gene_id": "ENSMUSG00000000001",
-    "gene_symbol": "Gene1",
+    "gene_symbol": "Gnai3",
     "tissue": "Cortex",
-    "name": "5xFAD (UCI)",
-    "model_group": null,
+    "name": "APOE4",
+    "model_group": "APOE4",
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "6 months",
     "age_numeric": 6,
     "result_order": [
-      "5xFAD (UCI)",
-      "C57BL/6J"
+      "C57BL/6J",
+      "APOE4"
     ],
     "data": [
       {
-        "genotype": "5XFAD_carrier",
+        "genotype": "APOE4",
         "sex": "Male",
-        "individual_id": "1001",
-        "value": 5.5
+        "individual_id": "Ind001",
+        "value": 5.12345
       },
       {
-        "genotype": "5XFAD_carrier",
+        "genotype": "APOE4",
         "sex": "Female",
-        "individual_id": "1002",
-        "value": 5.2
+        "individual_id": "Ind002",
+        "value": 4.98765
       },
       {
-        "genotype": "5XFAD_noncarrier",
+        "genotype": "C57BL/6J",
         "sex": "Male",
-        "individual_id": "1003",
-        "value": 4.8
+        "individual_id": "Ind003",
+        "value": 3.55555
       },
       {
-        "genotype": "5XFAD_noncarrier",
+        "genotype": "C57BL/6J",
         "sex": "Female",
-        "individual_id": "1004",
-        "value": 4.9
-      }
-    ]
-  },
-  {
-    "ensembl_gene_id": "ENSMUSG00000000001",
-    "gene_symbol": "Gene1",
-    "tissue": "Cortex",
-    "name": "5xFAD (UCI)",
-    "model_group": null,
-    "matched_control": "C57BL/6J",
-    "units": "Log2 Counts per Million",
-    "age": "12 months",
-    "age_numeric": 12,
-    "result_order": [
-      "5xFAD (UCI)",
-      "C57BL/6J"
-    ],
-    "data": [
-      {
-        "genotype": "5XFAD_carrier",
-        "sex": "Male",
-        "individual_id": "2001",
-        "value": 6.1
-      },
-      {
-        "genotype": "5XFAD_carrier",
-        "sex": "Female",
-        "individual_id": "2002",
-        "value": 6.0
-      },
-      {
-        "genotype": "5XFAD_noncarrier",
-        "sex": "Male",
-        "individual_id": "2003",
-        "value": 5.1
-      },
-      {
-        "genotype": "5XFAD_noncarrier",
-        "sex": "Female",
-        "individual_id": "2004",
-        "value": 5.0
+        "individual_id": "Ind004",
+        "value": 3.6789
       }
     ]
   },
   {
     "ensembl_gene_id": "ENSMUSG00000000002",
-    "gene_symbol": "Gene2",
-    "tissue": "Hippocampus",
-    "name": "5xFAD (UCI)",
-    "model_group": null,
-    "matched_control": "C57BL/6J",
+    "gene_symbol": "",
+    "tissue": "Cortex",
+    "name": "APOE4",
+    "model_group": "APOE4",
+    "matched_control": "APOE4",
     "units": "Log2 Counts per Million",
     "age": "6 months",
     "age_numeric": 6,
     "result_order": [
-      "5xFAD (UCI)",
-      "C57BL/6J"
+      "C57BL/6J",
+      "APOE4"
     ],
     "data": [
       {
-        "genotype": "5XFAD_carrier",
+        "genotype": "APOE4",
         "sex": "Male",
-        "individual_id": "1005",
-        "value": 3.5
+        "individual_id": "Ind001",
+        "value": 6.23456
       },
       {
-        "genotype": "5XFAD_carrier",
+        "genotype": "APOE4",
         "sex": "Female",
-        "individual_id": "1006",
-        "value": 3.2
-      },
-      {
-        "genotype": "5XFAD_noncarrier",
-        "sex": "Male",
-        "individual_id": "1007",
-        "value": 2.8
-      },
-      {
-        "genotype": "5XFAD_noncarrier",
-        "sex": "Female",
-        "individual_id": "1008",
-        "value": 2.9
+        "individual_id": "Ind002",
+        "value": 5.87654
       }
     ]
   }

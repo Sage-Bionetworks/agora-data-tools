@@ -2,25 +2,38 @@
 Test suite for RNA individual expression transformation.
 
 This module contains comprehensive tests for the `transform_rna_de_individual` function
-and its helper functions, which transform mouse model individual RNA-seq expression
-data into a structured format for the Agora platform.
+and its helper functions, which process individual RNA-seq expression data for mouse models
+into a structured format for the Agora platform.
 
 Test Classes:
-    - TestDetermineResultOrder: Unit tests for _determine_result_order
-    - TestCreateIndividualResultsFromGroup: Unit tests for _create_individual_results_from_group
-    - TestCreateOutputEntryFromGroup: Unit tests for _create_output_entry_from_group
-    - TestProcessSingleDataFile: Unit tests for _process_single_data_file
+    - TestGetEffectiveModelGroup: Unit tests for the _get_effective_model_group helper function
+    - TestCreateGenotypeMetadataDict: Unit tests for the _create_genotype_metadata_dict helper function
+    - TestDetermineResultOrder: Unit tests for the _determine_result_order helper function
+    - TestCreateIndividualResultsFromGroup: Unit tests for the _create_individual_results_from_group helper function
+    - TestCreateOutputEntryFromGroup: Unit tests for the _create_output_entry_from_group helper function
+    - TestProcessSingleDataFile: Unit tests for the _process_single_data_file helper function
     - TestTransformRnaDeIndividual: Integration tests for the full transformation pipeline
 
 The tests use synthetic datasets stored in `tests/test_assets/rna_de_individual/` to verify:
-- Result ordering logic (genotype display label ordering for 2-genotype and 4-genotype models)
-- Core transformation logic (data grouping, metadata enrichment)
-- Model_group handling (single control vs multiple control paradigms)
+- Core transformation logic (data grouping, individual expression aggregation)
+- Multi-model and multi-tissue handling with model_groups
 - JAX tissue name mapping (e.g., 'Right Cerebral Hemisphere' -> 'Hemibrain')
 - Human gene filtering (only mouse genes with ENSMUSG* IDs should be processed)
 - Age sorting (numeric ordering of age entries)
+- Data precision (rounding to 5 decimal places)
 - Edge cases (single row data, missing metadata, empty files)
-- Error handling (missing datasets, empty files, missing columns)
+- Error handling (missing datasets, empty files, missing columns, inconsistent model_group values)
+- Result ordering logic (controls should appear first in result_order arrays)
+- Matched control determination (minimum result_order value)
+- Model group vs individual model handling
+
+Test Data Structure:
+    Input files include:
+    - RNA-seq individual expression data (*.csv)
+    - rnaseq_genotype_label_map.csv (maps genotypes to display labels, result_order, and model_groups)
+    - mouse_gene_metadata.csv (gene symbols and metadata)
+
+    Output files are JSON-formatted expected results for comparison.
 """
 
 import os
@@ -31,239 +44,288 @@ import pytest
 
 from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
+    _get_effective_model_group,
+    _create_genotype_metadata_dict,
+    _determine_result_order,
     _create_individual_results_from_group,
     _create_output_entry_from_group,
     _process_single_data_file,
-    _determine_result_order,
 )
+
+
+class TestGetEffectiveModelGroup:
+    """
+    Unit tests for the _get_effective_model_group helper function.
+
+    This class contains focused unit tests for the effective model group determination logic,
+    which returns the model_group if present (non-empty), otherwise returns the model name.
+
+    Test Methods:
+        - test_with_model_group: Tests that model_group is returned when present.
+        - test_with_empty_model_group: Tests that model name is returned when model_group is empty.
+        - test_with_whitespace_model_group: Tests that whitespace-only model_group is treated as empty.
+    """
+
+    def test_with_model_group(self) -> None:
+        """Test that model_group is returned when present."""
+        result = _get_effective_model_group("GroupA", "Model1")
+        assert result == "GroupA"
+
+    def test_with_empty_model_group(self) -> None:
+        """Test that model name is returned when model_group is empty string."""
+        result = _get_effective_model_group("", "Model1")
+        assert result == "Model1"
+
+    def test_with_whitespace_model_group(self) -> None:
+        """Test behavior with whitespace-only model_group.
+
+        Note: The function checks for empty string, so whitespace is considered a valid group.
+        """
+        result = _get_effective_model_group("   ", "Model1")
+        assert result == "   "  # Whitespace is treated as a non-empty value
+
+
+class TestCreateGenotypeMetadataDict:
+    """
+    Unit tests for the _create_genotype_metadata_dict helper function.
+
+    This class contains focused unit tests for genotype metadata dictionary creation,
+    which maps (model, genotype) tuples to their metadata including display labels,
+    result_order, model_group, and effective_model_group.
+
+    Test Methods:
+        - test_basic_metadata_creation: Tests basic dictionary creation with single model.
+        - test_with_model_groups: Tests metadata creation with model_groups.
+        - test_effective_model_group_calculation: Tests effective_model_group calculation logic.
+        - test_result_order_conversion: Tests that result_order is converted to int.
+        - test_empty_dataframe: Tests handling of empty DataFrame input.
+    """
+
+    def test_basic_metadata_creation(self) -> None:
+        """Test basic genotype metadata dictionary creation."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "genotype": ["Tg", "Wt"],
+                "display_label": ["Transgenic", "Wildtype"],
+                "result_order": [2, 1],
+                "model_group": ["", ""],
+            }
+        )
+
+        result = _create_genotype_metadata_dict(df)
+
+        assert len(result) == 2
+        assert ("Model_A", "Tg") in result
+        assert ("Model_A", "Wt") in result
+        assert result[("Model_A", "Tg")]["display_label"] == "Transgenic"
+        assert result[("Model_A", "Tg")]["result_order"] == 2
+        assert result[("Model_A", "Tg")]["model_group"] == ""
+        assert result[("Model_A", "Tg")]["effective_model_group"] == "Model_A"
+
+    def test_with_model_groups(self) -> None:
+        """Test metadata creation with model_groups defined."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_B", "Model_B", "Model_C"],
+                "genotype": ["Carrier", "Non-Carrier", "Mutant"],
+                "display_label": ["Model_B", "Control_B", "Model_C"],
+                "result_order": [2, 1, 3],
+                "model_group": ["GroupX", "GroupX", "GroupX"],
+            }
+        )
+
+        result = _create_genotype_metadata_dict(df)
+
+        assert len(result) == 3
+        # All should have same effective_model_group
+        assert result[("Model_B", "Carrier")]["effective_model_group"] == "GroupX"
+        assert result[("Model_B", "Non-Carrier")]["effective_model_group"] == "GroupX"
+        assert result[("Model_C", "Mutant")]["effective_model_group"] == "GroupX"
+
+    def test_effective_model_group_calculation(self) -> None:
+        """Test that effective_model_group is correctly calculated."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_B"],
+                "genotype": ["Tg", "Carrier"],
+                "display_label": ["Model_A", "Model_B"],
+                "result_order": [2, 2],
+                "model_group": ["", "GroupX"],
+            }
+        )
+
+        result = _create_genotype_metadata_dict(df)
+
+        # Empty model_group -> effective is model name
+        assert result[("Model_A", "Tg")]["effective_model_group"] == "Model_A"
+        # Non-empty model_group -> effective is model_group
+        assert result[("Model_B", "Carrier")]["effective_model_group"] == "GroupX"
+
+    def test_result_order_conversion(self) -> None:
+        """Test that result_order is converted to int."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": ["2"],  # String value
+                "model_group": [""],
+            }
+        )
+
+        result = _create_genotype_metadata_dict(df)
+
+        assert isinstance(result[("Model_A", "Tg")]["result_order"], int)
+        assert result[("Model_A", "Tg")]["result_order"] == 2
+
+    def test_empty_dataframe(self) -> None:
+        """Test handling of empty DataFrame."""
+        df = pd.DataFrame(
+            columns=[
+                "model",
+                "genotype",
+                "display_label",
+                "result_order",
+                "model_group",
+            ]
+        )
+
+        result = _create_genotype_metadata_dict(df)
+
+        assert len(result) == 0
+        assert result == {}
 
 
 class TestDetermineResultOrder:
     """
     Unit tests for the _determine_result_order helper function.
+
+    This class contains focused unit tests for result order determination,
+    which creates an ordered list of display labels based on result_order values.
+
+    Test Methods:
+        - test_single_model_result_order: Tests result ordering for a single model.
+        - test_model_group_result_order: Tests result ordering for a model group.
+        - test_result_order_sorting: Tests that display labels are sorted by result_order.
+        - test_empty_genotype_metadata: Tests handling of empty metadata dictionary.
+        - test_no_matching_model_group: Tests behavior when no genotypes match the model_group.
     """
 
-    def test_two_genotype_simple_model_carrier_first(self) -> None:
-        """Test 2-genotype model: carrier should come before noncarrier."""
-        label_map_dict = {
-            ("5xFAD (UCI)", "5XFAD_carrier"): "5xFAD (UCI)",
-            ("5xFAD (UCI)", "5XFAD_noncarrier"): "C57BL/6J",
-        }
-        genotypes_by_model_group = {
-            "5xFAD (UCI)": ["5XFAD_carrier", "5XFAD_noncarrier"]
-        }
-
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="5xFAD (UCI)",
-            model_group="",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
-
-        assert result == ["5xFAD (UCI)", "C57BL/6J"]
-
-    def test_two_genotype_uses_model_as_effective_group(self) -> None:
-        """Test that empty model_group uses model name as effective group."""
-        label_map_dict = {
-            ("TestModel", "carrier"): "Case",
-            ("TestModel", "noncarrier"): "Control",
-        }
-        genotypes_by_model_group = {"TestModel": ["carrier", "noncarrier"]}
-
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="TestModel",
-            model_group="",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
-
-        assert result == ["Case", "Control"]
-
-    def test_four_genotype_matrixed_model_correct_order(self) -> None:
-        """Test 4-genotype model: base control, base model, fancy control, compound."""
-        label_map_dict = {
-            ("Abca7*V1599M", "5XFAD_noncarrier"): "C57BL/6J",
-            ("Abca7*V1599M", "Abca7-V1599M_homozygous"): "Abca7*V1599M",
-            ("Abca7*V1599M", "5XFAD_carrier"): "5xFAD",
-            (
-                "Abca7*V1599M",
-                "5XFAD_carrier; Abca7-V1599M_homozygous",
-            ): "Abca7*V1599M.5xFAD",
-        }
-        genotypes_by_model_group = {
-            "Abca7*V1599M": [
-                "5XFAD_noncarrier",
-                "Abca7-V1599M_homozygous",
-                "5XFAD_carrier",
-                "5XFAD_carrier; Abca7-V1599M_homozygous",
-            ]
+    def test_single_model_result_order(self) -> None:
+        """Test result order for a single model (no model_group)."""
+        genotype_metadata = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "effective_model_group": "Model_A",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "result_order": 1,
+                "effective_model_group": "Model_A",
+            },
         }
 
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="Abca7*V1599M",
-            model_group="Abca7*V1599M",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
+        result = _determine_result_order(genotype_metadata, "Model_A")
 
-        assert result == ["C57BL/6J", "Abca7*V1599M", "5xFAD", "Abca7*V1599M.5xFAD"]
+        assert result == ["Wildtype", "Transgenic"]
 
-    def test_four_genotype_with_mixed_order_input(self) -> None:
-        """Test that 4-genotype model sorts correctly regardless of input order."""
-        label_map_dict = {
-            ("Model", "compound; mutation"): "Compound",
-            ("Model", "fancy_carrier"): "Fancy",
-            ("Model", "mutation"): "Base",
-            ("Model", "control_noncarrier"): "Control",
-        }
-        genotypes_by_model_group = {
-            "Model": [
-                "compound; mutation",
-                "fancy_carrier",
-                "mutation",
-                "control_noncarrier",
-            ]
+    def test_model_group_result_order(self) -> None:
+        """Test result order for a model group with multiple models."""
+        genotype_metadata = {
+            ("Model_B", "Carrier"): {
+                "display_label": "Model_B",
+                "result_order": 2,
+                "effective_model_group": "GroupX",
+            },
+            ("Model_B", "Non-Carrier"): {
+                "display_label": "Control_B",
+                "result_order": 1,
+                "effective_model_group": "GroupX",
+            },
+            ("Model_C", "Mutant"): {
+                "display_label": "Model_C",
+                "result_order": 3,
+                "effective_model_group": "GroupX",
+            },
         }
 
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="Model",
-            model_group="Model",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
+        result = _determine_result_order(genotype_metadata, "GroupX")
 
-        # Expected: Control (noncarrier), Base (no carrier/noncarrier), Fancy (carrier), Compound (;)
-        assert result == ["Control", "Base", "Fancy", "Compound"]
+        assert result == ["Control_B", "Model_B", "Model_C"]
 
-    def test_three_genotype_fallback_alphabetical(self) -> None:
-        """Test 3-genotype model falls back to alphabetical sorting."""
-        label_map_dict = {
-            ("Model", "genotype_a"): "Zebra",
-            ("Model", "genotype_b"): "Apple",
-            ("Model", "genotype_c"): "Mango",
-        }
-        genotypes_by_model_group = {"Model": ["genotype_a", "genotype_b", "genotype_c"]}
-
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="Model",
-            model_group="Model",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
-
-        # Should be alphabetically sorted by display label
-        assert result == ["Apple", "Mango", "Zebra"]
-
-    def test_one_genotype_single_entry(self) -> None:
-        """Test single genotype returns single element list."""
-        label_map_dict = {("Model", "only_genotype"): "OnlyOne"}
-        genotypes_by_model_group = {"Model": ["only_genotype"]}
-
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="Model",
-            model_group="",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
-
-        assert result == ["OnlyOne"]
-
-    def test_five_genotype_uses_matrixed_logic(self) -> None:
-        """Test 5-genotype model still uses matrixed sorting logic."""
-        label_map_dict = {
-            ("Model", "noncarrier"): "Control",
-            ("Model", "mutation"): "Base",
-            ("Model", "fancy_carrier"): "Fancy",
-            ("Model", "compound; mutation"): "Compound",
-            ("Model", "extra"): "Extra",
-        }
-        genotypes_by_model_group = {
-            "Model": [
-                "noncarrier",
-                "mutation",
-                "fancy_carrier",
-                "compound; mutation",
-                "extra",
-            ]
+    def test_result_order_sorting(self) -> None:
+        """Test that display labels are sorted by result_order value."""
+        genotype_metadata = {
+            ("Model_A", "G3"): {
+                "display_label": "Label_C",
+                "result_order": 30,
+                "effective_model_group": "Model_A",
+            },
+            ("Model_A", "G1"): {
+                "display_label": "Label_A",
+                "result_order": 10,
+                "effective_model_group": "Model_A",
+            },
+            ("Model_A", "G2"): {
+                "display_label": "Label_B",
+                "result_order": 20,
+                "effective_model_group": "Model_A",
+            },
         }
 
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="Model",
-            model_group="Model",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
+        result = _determine_result_order(genotype_metadata, "Model_A")
 
-        # First should be noncarrier (0), then non-semicolon/non-carrier (1),
-        # then carrier (2), then semicolon (3)
-        assert result[0] == "Control"
-        assert result[-1] == "Compound"
-        assert "Fancy" in result
+        assert result == ["Label_A", "Label_B", "Label_C"]
 
-    def test_empty_genotypes_list(self) -> None:
-        """Test empty genotypes list returns empty result."""
-        label_map_dict = {}
-        genotypes_by_model_group = {}
+    def test_empty_genotype_metadata(self) -> None:
+        """Test handling of empty genotype metadata dictionary."""
+        genotype_metadata = {}
 
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="Model",
-            model_group="Model",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
+        result = _determine_result_order(genotype_metadata, "Model_A")
 
         assert result == []
 
-    def test_genotypes_not_in_label_map(self) -> None:
-        """Test genotypes without display labels are filtered out."""
-        label_map_dict = {
-            ("Model", "genotype_a"): "LabelA",
+    def test_no_matching_model_group(self) -> None:
+        """Test behavior when no genotypes match the specified model_group."""
+        genotype_metadata = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "effective_model_group": "Model_A",
+            },
         }
-        genotypes_by_model_group = {"Model": ["genotype_a", "genotype_b", "genotype_c"]}
 
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="Model",
-            model_group="Model",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
+        result = _determine_result_order(genotype_metadata, "Model_B")
 
-        # Only genotype_a has a label
-        assert result == ["LabelA"]
-
-    def test_case_sensitivity_in_noncarrier(self) -> None:
-        """Test case-insensitive detection of 'noncarrier'."""
-        label_map_dict = {
-            ("Model", "NoNcArRiEr"): "Control",
-            ("Model", "CARRIER"): "Case",
-        }
-        genotypes_by_model_group = {"Model": ["NoNcArRiEr", "CARRIER"]}
-
-        result = _determine_result_order(
-            label_map_dict=label_map_dict,
-            model="Model",
-            model_group="",
-            genotypes_by_model_group=genotypes_by_model_group,
-        )
-
-        # Noncarrier should be second (control)
-        assert result == ["Case", "Control"]
+        assert result == []
 
 
 class TestCreateIndividualResultsFromGroup:
     """
     Unit tests for the _create_individual_results_from_group helper function.
+
+    This class contains focused unit tests for individual results creation,
+    which groups data by age and creates structured data points.
+
+    Test Methods:
+        - test_single_age_group: Tests creation with single age group.
+        - test_multiple_age_groups: Tests creation with multiple ages.
+        - test_age_sorting: Tests numeric sorting of age groups.
+        - test_data_point_structure: Tests structure of individual data points.
+        - test_type_conversions: Tests type conversions for output fields.
     """
 
-    def test_create_individual_results_single_age(self) -> None:
-        """Test creating individual_results from a single age group."""
+    def test_single_age_group(self) -> None:
+        """Test individual results creation with single age group."""
         group = pd.DataFrame(
             {
                 "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_noncarrier"],
+                "genotype_display": ["Transgenic", "Wildtype"],
                 "sex": ["Male", "Female"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, 4.9],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.12345, 3.45678],
             }
         )
 
@@ -272,732 +334,535 @@ class TestCreateIndividualResultsFromGroup:
         assert len(result) == 1
         assert result[0]["age"] == "6 months"
         assert len(result[0]["data"]) == 2
-        assert result[0]["data"][0]["genotype"] == "5XFAD_carrier"
-        assert result[0]["data"][0]["value"] == pytest.approx(5.5)
-        assert result[0]["data"][0]["individual_id"] == "1001"
 
-    def test_create_individual_results_multiple_ages(self) -> None:
-        """Test creating individual_results from multiple age groups."""
+    def test_multiple_age_groups(self) -> None:
+        """Test individual results creation with multiple age groups."""
         group = pd.DataFrame(
             {
-                "age": ["6 months", "6 months", "12 months", "12 months"],
-                "genotype": [
-                    "5XFAD_carrier",
-                    "5XFAD_noncarrier",
-                    "5XFAD_carrier",
-                    "5XFAD_noncarrier",
-                ],
-                "sex": ["Male", "Female", "Male", "Female"],
-                "individualid": ["1001", "1002", "2001", "2002"],
-                "expression": [5.5, 4.9, 6.1, 5.0],
+                "age": ["3 months", "3 months", "6 months"],
+                "genotype_display": ["Transgenic", "Wildtype", "Transgenic"],
+                "sex": ["Male", "Female", "Male"],
+                "individualid": ["Ind001", "Ind002", "Ind003"],
+                "expression": [4.0, 3.0, 5.0],
             }
         )
 
         result = _create_individual_results_from_group(group)
 
         assert len(result) == 2
-        assert result[0]["age"] == "6 months"
-        assert result[1]["age"] == "12 months"
-        assert len(result[0]["data"]) == 2
-        assert len(result[1]["data"]) == 2
+        # Check ages are present
+        ages = [r["age"] for r in result]
+        assert "3 months" in ages
+        assert "6 months" in ages
 
-    def test_create_individual_results_age_sorting(self) -> None:
-        """Test that ages are sorted numerically."""
+    def test_age_sorting(self) -> None:
+        """Test that age groups are sorted numerically."""
         group = pd.DataFrame(
             {
-                "age": ["12 months", "6 months", "18 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_carrier", "5XFAD_carrier"],
+                "age": ["12 months", "3 months", "6 months"],
+                "genotype_display": ["Tg", "Tg", "Tg"],
                 "sex": ["Male", "Male", "Male"],
-                "individualid": ["2001", "1001", "3001"],
-                "expression": [6.1, 5.5, 7.0],
+                "individualid": ["Ind001", "Ind002", "Ind003"],
+                "expression": [6.0, 4.0, 5.0],
             }
         )
 
         result = _create_individual_results_from_group(group)
 
         assert len(result) == 3
-        assert result[0]["age"] == "6 months"
-        assert result[1]["age"] == "12 months"
-        assert result[2]["age"] == "18 months"
+        assert result[0]["age"] == "3 months"
+        assert result[1]["age"] == "6 months"
+        assert result[2]["age"] == "12 months"
 
-    def test_create_individual_results_with_mixed_case_genotypes(self) -> None:
-        """Test that mixed case genotypes are preserved as-is."""
-        group = pd.DataFrame(
-            {
-                "age": ["6 months", "6 months"],
-                "genotype": ["5xFaD_CaRrIeR", "5XFAD_noncarrier"],
-                "sex": ["Male", "Female"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, 4.9],
-            }
-        )
-
-        result = _create_individual_results_from_group(group)
-
-        assert len(result) == 1
-        assert result[0]["data"][0]["genotype"] == "5xFaD_CaRrIeR"
-        assert result[0]["data"][1]["genotype"] == "5XFAD_noncarrier"
-
-    def test_create_individual_results_single_data_point(self) -> None:
-        """Test with only one data point."""
+    def test_data_point_structure(self) -> None:
+        """Test structure of individual data points."""
         group = pd.DataFrame(
             {
                 "age": ["6 months"],
-                "genotype": ["5XFAD_carrier"],
+                "genotype_display": ["Transgenic"],
                 "sex": ["Male"],
-                "individualid": ["1001"],
-                "expression": [5.5],
+                "individualid": ["Ind001"],
+                "expression": [5.12345],
             }
         )
 
         result = _create_individual_results_from_group(group)
 
-        assert len(result) == 1
-        assert len(result[0]["data"]) == 1
+        data_point = result[0]["data"][0]
+        assert "genotype" in data_point
+        assert "sex" in data_point
+        assert "individual_id" in data_point
+        assert "value" in data_point
+        assert data_point["genotype"] == "Transgenic"
+        assert data_point["sex"] == "Male"
+        assert data_point["individual_id"] == "Ind001"
+        assert data_point["value"] == 5.12345
 
-    def test_create_individual_results_with_special_characters_in_sex(self) -> None:
-        """Test that special characters in sex field are preserved."""
+    def test_type_conversions(self) -> None:
+        """Test that individual_id is converted to string and value to float."""
         group = pd.DataFrame(
             {
                 "age": ["6 months"],
-                "genotype": ["5XFAD_carrier"],
-                "sex": ["Unknown/Mixed"],
-                "individualid": ["1001"],
-                "expression": [5.5],
+                "genotype_display": ["Transgenic"],
+                "sex": ["Male"],
+                "individualid": [12345],  # Integer ID
+                "expression": ["5.12345"],  # String expression
             }
         )
 
         result = _create_individual_results_from_group(group)
 
-        assert result[0]["data"][0]["sex"] == "Unknown/Mixed"
-
-    def test_create_individual_results_with_invalid_age_format(self) -> None:
-        """Test that invalid age formats are kept but may not sort correctly."""
-        group = pd.DataFrame(
-            {
-                "age": ["invalid", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_carrier"],
-                "sex": ["Male", "Male"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, 6.0],
-            }
-        )
-
-        result = _create_individual_results_from_group(group)
-
-        # Both ages should be present
-        assert len(result) == 2
-        ages = [r["age"] for r in result]
-        assert "invalid" in ages
-        assert "6 months" in ages
+        data_point = result[0]["data"][0]
+        assert isinstance(data_point["individual_id"], str)
+        assert isinstance(data_point["value"], float)
+        assert data_point["individual_id"] == "12345"
+        assert data_point["value"] == pytest.approx(5.12345)
 
 
 class TestCreateOutputEntryFromGroup:
     """
     Unit tests for the _create_output_entry_from_group helper function.
+
+    This class contains focused unit tests for output entry creation logic,
+    which creates complete output entries with all metadata.
+
+    Test Methods:
+        - test_basic_output_entry: Tests basic output entry creation.
+        - test_jax_tissue_mapping: Tests JAX tissue name mapping.
+        - test_matched_control_determination: Tests matched control selection.
+        - test_model_group_handling: Tests model_group vs null handling.
+        - test_multiple_ages_creates_multiple_entries: Tests that each age creates a separate entry.
     """
 
-    def test_create_output_entry_basic(self) -> None:
-        """Test basic output entry creation."""
-        # group_key contains (ensembl_gene_id, tissue, model_group, name)
-        # When model_group is empty, it should be set to empty string in group_key
-        group_key = ("ENSMUSG00000000001", "Cortex", "", "5xFAD (UCI)")
+    def test_basic_output_entry(self) -> None:
+        """Test basic output entry creation with all fields."""
+        group_key = ("ENSMUSG00000000001", "Cortex", "", "Model_A")
         group = pd.DataFrame(
             {
                 "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_noncarrier"],
+                "genotype": ["Tg", "Wt"],
+                "genotype_display": ["Transgenic", "Wildtype"],
                 "sex": ["Male", "Female"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, 4.9],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 3.0],
+                "result_order": [2, 1],
             }
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        label_map_dict = {
-            ("5xFAD (UCI)", "5XFAD_carrier"): "5xFAD (UCI)",
-            ("5xFAD (UCI)", "5XFAD_noncarrier"): "C57BL/6J",
-        }
-        genotypes_by_model_group = {
-            "5xFAD (UCI)": ["5XFAD_carrier", "5XFAD_noncarrier"]
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "effective_model_group": "Model_A",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "result_order": 1,
+                "effective_model_group": "Model_A",
+            },
         }
 
         result = _create_output_entry_from_group(
-            group_key,
-            group,
-            gene_metadata_dict,
-            label_map_dict,
-            genotypes_by_model_group,
+            group_key, group, gene_metadata_dict, genotype_metadata_dict
         )
 
-        # Now returns a list of entries (one per age)
-        assert isinstance(result, list)
-        assert len(result) == 1
-        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert result[0]["gene_symbol"] == "Gene1"
-        assert result[0]["tissue"] == "Cortex"
-        assert result[0]["name"] == "5xFAD (UCI)"
-        assert result[0]["model_group"] is None
-        assert result[0]["matched_control"] == "C57BL/6J"
-        assert result[0]["result_order"] == ["5xFAD (UCI)", "C57BL/6J"]
-        assert result[0]["units"] == "Log2 Counts per Million"
-        assert result[0]["age"] == "6 months"
-        assert result[0]["age_numeric"] == 6
-        assert len(result[0]["data"]) == 2
+        assert len(result) == 1  # One age group
+        entry = result[0]
+        assert entry["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert entry["gene_symbol"] == "Gene1"
+        assert entry["tissue"] == "Cortex"
+        assert entry["name"] == "Model_A"
+        assert entry["model_group"] is None  # Empty string converted to None
+        assert entry["matched_control"] == "Wildtype"
+        assert entry["units"] == "Log2 Counts per Million"
+        assert entry["age"] == "6 months"
+        assert entry["age_numeric"] == 6
+        assert entry["result_order"] == ["Wildtype", "Transgenic"]
+        assert len(entry["data"]) == 2
 
-    def test_create_output_entry_jax_tissue_mapping(self) -> None:
+    def test_jax_tissue_mapping(self) -> None:
         """Test that JAX tissue name is mapped correctly."""
-        group_key = (
-            "ENSMUSG00000000001",
-            "Right Cerebral Hemisphere",
-            "Model_A",
-            "Model_A",
-        )
+        group_key = ("ENSMUSG00000000001", "Right Cerebral Hemisphere", "", "Model_A")
         group = pd.DataFrame(
             {
                 "age": ["6 months"],
-                "genotype": ["5XFAD_carrier"],
+                "genotype": ["Tg"],
+                "genotype_display": ["Transgenic"],
                 "sex": ["Male"],
-                "individualid": ["1001"],
-                "expression": [5.5],
+                "individualid": ["Ind001"],
+                "expression": [5.0],
+                "result_order": [2],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "effective_model_group": "Model_A",
+            },
+        }
+
+        result = _create_output_entry_from_group(
+            group_key, group, gene_metadata_dict, genotype_metadata_dict
+        )
+
+        assert result[0]["tissue"] == "Hemibrain"
+
+    def test_matched_control_determination(self) -> None:
+        """Test that matched control is the genotype with minimum result_order."""
+        group_key = ("ENSMUSG00000000001", "Cortex", "GroupX", "Model_B")
+        group = pd.DataFrame(
+            {
+                "age": ["6 months", "6 months", "6 months"],
+                "genotype": ["Carrier", "Non-Carrier", "Mutant"],
+                "genotype_display": ["Model_B", "Control_B", "Model_C"],
+                "sex": ["Male", "Female", "Male"],
+                "individualid": ["Ind001", "Ind002", "Ind003"],
+                "expression": [5.0, 3.0, 6.0],
+                "result_order": [2, 1, 3],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_metadata_dict = {
+            ("Model_B", "Carrier"): {
+                "display_label": "Model_B",
+                "result_order": 2,
+                "effective_model_group": "GroupX",
+            },
+            ("Model_B", "Non-Carrier"): {
+                "display_label": "Control_B",
+                "result_order": 1,
+                "effective_model_group": "GroupX",
+            },
+            ("Model_C", "Mutant"): {
+                "display_label": "Model_C",
+                "result_order": 3,
+                "effective_model_group": "GroupX",
+            },
+        }
+
+        result = _create_output_entry_from_group(
+            group_key, group, gene_metadata_dict, genotype_metadata_dict
+        )
+
+        assert result[0]["matched_control"] == "Control_B"
+
+    def test_model_group_handling(self) -> None:
+        """Test that model_group is properly set (null for empty, value for non-empty)."""
+        # Test with empty model_group
+        group_key = ("ENSMUSG00000000001", "Cortex", "", "Model_A")
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "genotype": ["Tg"],
+                "genotype_display": ["Transgenic"],
+                "sex": ["Male"],
+                "individualid": ["Ind001"],
+                "expression": [5.0],
+                "result_order": [2],
             }
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
-        genotypes_by_model_group = {"Model_A": ["5XFAD_carrier"]}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "effective_model_group": "Model_A",
+            },
+        }
 
         result = _create_output_entry_from_group(
-            group_key,
-            group,
-            gene_metadata_dict,
-            label_map_dict,
-            genotypes_by_model_group,
+            group_key, group, gene_metadata_dict, genotype_metadata_dict
         )
 
-        assert len(result) == 1
-        assert result[0]["tissue"] == "Hemibrain"
+        assert result[0]["model_group"] is None
 
-    def test_create_output_entry_with_model_group(self) -> None:
-        """Test output entry creation with model_group."""
-        group_key = (
-            "ENSMUSG00000000003",
-            "Hippocampus",
-            "Abca7*V1599M",
-            "Abca7*V1599M",
+        # Test with non-empty model_group
+        group_key = ("ENSMUSG00000000001", "Cortex", "GroupX", "Model_B")
+        genotype_metadata_dict = {
+            ("Model_B", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "effective_model_group": "GroupX",
+            },
+        }
+
+        result = _create_output_entry_from_group(
+            group_key, group, gene_metadata_dict, genotype_metadata_dict
         )
+
+        assert result[0]["model_group"] == "GroupX"
+
+    def test_multiple_ages_creates_multiple_entries(self) -> None:
+        """Test that multiple ages create separate output entries."""
+        group_key = ("ENSMUSG00000000001", "Cortex", "", "Model_A")
         group = pd.DataFrame(
             {
-                "age": ["4 months"],
-                "genotype": ["Abca7-V1599M_homozygous"],
-                "sex": ["Male"],
-                "individualid": ["3001"],
-                "expression": [4.5],
+                "age": ["3 months", "6 months"],
+                "genotype": ["Tg", "Tg"],
+                "genotype_display": ["Transgenic", "Transgenic"],
+                "sex": ["Male", "Male"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [4.0, 5.0],
+                "result_order": [2, 2],
             }
         )
 
-        gene_metadata_dict = {"ENSMUSG00000000003": "Gene3"}
-        label_map_dict = {
-            ("Abca7*V1599M", "Abca7-V1599M_homozygous"): "Abca7*V1599M",
-            ("Abca7*V1599M", "5XFAD_noncarrier"): "C57BL/6J",
-            ("Abca7*V1599M", "5XFAD_carrier"): "5xFAD",
-            (
-                "Abca7*V1599M",
-                "5XFAD_carrier; Abca7-V1599M_homozygous",
-            ): "Abca7*V1599M.5xFAD",
-        }
-        genotypes_by_model_group = {
-            "Abca7*V1599M": [
-                "5XFAD_noncarrier",
-                "Abca7-V1599M_homozygous",
-                "5XFAD_carrier",
-                "5XFAD_carrier; Abca7-V1599M_homozygous",
-            ]
+        gene_metadata_dict = {}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "effective_model_group": "Model_A",
+            },
         }
 
         result = _create_output_entry_from_group(
-            group_key,
-            group,
-            gene_metadata_dict,
-            label_map_dict,
-            genotypes_by_model_group,
+            group_key, group, gene_metadata_dict, genotype_metadata_dict
         )
 
-        assert len(result) == 1
-        assert result[0]["model_group"] == "Abca7*V1599M"
-        assert result[0]["age_numeric"] == 4
-        # For matrixed model, should have order: base control, base model, fancy control, compound
-        assert result[0]["result_order"] == [
-            "C57BL/6J",
-            "Abca7*V1599M",
-            "5xFAD",
-            "Abca7*V1599M.5xFAD",
-        ]
+        assert len(result) == 2  # Two separate entries
+        ages = [entry["age"] for entry in result]
+        assert "3 months" in ages
+        assert "6 months" in ages
 
 
 class TestProcessSingleDataFile:
     """
     Unit tests for the _process_single_data_file helper function.
+
+    This class contains focused unit tests for single file processing logic,
+    testing the function in isolation from the full transformation pipeline.
+
+    Test Methods:
+        - test_basic_file_processing: Tests basic file processing.
+        - test_empty_file_raises_error: Tests error handling for empty files.
+        - test_filters_human_genes: Tests filtering of human genes.
+        - test_rounding: Tests numeric rounding to 5 decimal places.
+        - test_genotype_filtering: Tests filtering of invalid genotypes.
     """
 
-    def test_process_single_data_file_basic(self) -> None:
+    def test_basic_file_processing(self) -> None:
         """Test basic processing of a single data file."""
         data_file = pd.DataFrame(
             {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, 4.9],
-                "tissue": ["Cortex", "Cortex"],
-                "sex": ["Male", "Female"],
-                "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_noncarrier"],
-                "model": ["5xFAD (UCI)", "5xFAD (UCI)"],
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "individualid": ["Ind001"],
+                "expression": [5.12345],
+                "tissue": ["Cortex"],
+                "sex": ["Male"],
+                "age": ["6 months"],
+                "genotype": ["Tg"],
+                "model": ["Model_A"],
             }
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        label_map_dict = {
-            ("5xFAD (UCI)", "5XFAD_carrier"): "5xFAD (UCI)",
-            ("5xFAD (UCI)", "5XFAD_noncarrier"): "C57BL/6J",
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "model_group": "",
+                "effective_model_group": "Model_A",
+            },
         }
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {
-            "5xFAD (UCI)": ["5XFAD_carrier", "5XFAD_noncarrier"]
-        }
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
 
         result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
+            "test_file.csv",
+            data_file,
+            gene_metadata_dict,
+            genotype_metadata_dict,
+            0,
+            1,
         )
 
         assert len(result) == 1
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
 
-    def test_process_single_data_file_filters_human_genes(self) -> None:
-        """Test that human genes are filtered out."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSG00000000001"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, 4.9],
-                "tissue": ["Cortex", "Cortex"],
-                "sex": ["Male", "Female"],
-                "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_carrier"],
-                "model": ["5xFAD (UCI)", "5xFAD (UCI)"],
-            }
-        )
-
-        gene_metadata_dict = {}
-        label_map_dict = {}
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {"5xFAD (UCI)": ["5XFAD_carrier"]}
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
-
-        result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
-        )
-
-        # Only one entry (mouse gene only)
-        assert len(result) == 1
-        assert result[0]["ensembl_gene_id"].startswith("ENSMUSG")
-
-    def test_process_single_data_file_empty_raises_error(self) -> None:
+    def test_empty_file_raises_error(self) -> None:
         """Test that empty file raises ValueError."""
         data_file = pd.DataFrame()
 
-        with pytest.raises(ValueError, match="Data file .* is empty"):
+        gene_metadata_dict = {}
+        genotype_metadata_dict = {}
+
+        with pytest.raises(ValueError, match="is empty"):
             _process_single_data_file(
-                file_name="empty_file.csv",
-                data_file=data_file,
-                data_file_required_columns=["ensembl_gene_id"],
-                gene_metadata_dict={},
-                label_map_dict={},
-                model_group_dict={},
-                genotypes_by_model_group={},
-                file_index=0,
-                total_files=1,
+                "empty_file.csv",
+                data_file,
+                gene_metadata_dict,
+                genotype_metadata_dict,
+                0,
+                1,
             )
 
-    def test_process_single_data_file_with_nan_expression(self) -> None:
-        """Test that NaN expression values are handled (should be preserved as NaN)."""
+    def test_filters_human_genes(self) -> None:
+        """Test that human genes (ENSG*) are filtered out."""
         data_file = pd.DataFrame(
             {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, float("nan")],
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
                 "tissue": ["Cortex", "Cortex"],
                 "sex": ["Male", "Female"],
                 "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_noncarrier"],
-                "model": ["5xFAD (UCI)", "5xFAD (UCI)"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["Model_A", "Model_A"],
             }
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {
-            "5xFAD (UCI)": ["5XFAD_carrier", "5XFAD_noncarrier"]
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "model_group": "",
+                "effective_model_group": "Model_A",
+            },
         }
 
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
-
         result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
+            "mixed_genes.csv",
+            data_file,
+            gene_metadata_dict,
+            genotype_metadata_dict,
+            0,
+            1,
         )
 
-        # Verify NaN is preserved in output
+        # Should only have 1 entry (mouse gene only)
         assert len(result) == 1
-        data_points = result[0]["data"]
-        has_nan = any(pd.isna(point["value"]) for point in data_points)
-        assert has_nan
+        assert result[0]["ensembl_gene_id"].startswith("ENSMUSG")
 
-    def test_process_single_data_file_with_infinite_expression(self) -> None:
-        """Test that infinite expression values are handled."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
-                "individualid": ["1001", "1002"],
-                "expression": [float("inf"), 5.5],
-                "tissue": ["Cortex", "Cortex"],
-                "sex": ["Male", "Female"],
-                "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_noncarrier"],
-                "model": ["5xFAD (UCI)", "5xFAD (UCI)"],
-            }
-        )
-
-        gene_metadata_dict = {}
-        label_map_dict = {}
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {
-            "5xFAD (UCI)": ["5XFAD_carrier", "5XFAD_noncarrier"]
-        }
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
-
-        result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
-        )
-
-        # Verify infinite value is in output
-        assert len(result) == 1
-        data_points = result[0]["data"]
-        has_inf = any(point["value"] == float("inf") for point in data_points)
-        assert has_inf
-
-    def test_process_single_data_file_missing_gene_in_metadata(self) -> None:
-        """Test that genes not in metadata dict get empty gene_symbol."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG99999999999"],
-                "individualid": ["1001"],
-                "expression": [5.5],
-                "tissue": ["Cortex"],
-                "sex": ["Male"],
-                "age": ["6 months"],
-                "genotype": ["5XFAD_carrier"],
-                "model": ["5xFAD (UCI)"],
-            }
-        )
-
-        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}  # Different gene
-        label_map_dict = {}
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {"5xFAD (UCI)": ["5XFAD_carrier"]}
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
-
-        result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
-        )
-
-        assert len(result) == 1
-        assert result[0]["gene_symbol"] == ""
-
-    def test_process_single_data_file_duplicate_individual_ids(self) -> None:
-        """Test that duplicate individual IDs in same group are preserved."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
-                "individualid": ["1001", "1001"],  # Duplicate
-                "expression": [5.5, 5.6],
-                "tissue": ["Cortex", "Cortex"],
-                "sex": ["Male", "Male"],
-                "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_carrier"],
-                "model": ["5xFAD (UCI)", "5xFAD (UCI)"],
-            }
-        )
-
-        gene_metadata_dict = {}
-        label_map_dict = {}
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {"5xFAD (UCI)": ["5XFAD_carrier"]}
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
-
-        result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
-        )
-
-        # Both duplicates should be preserved
-        assert len(result) == 1
-        assert len(result[0]["data"]) == 2
-
-    def test_process_single_data_file_negative_expression(self) -> None:
-        """Test that negative expression values are preserved."""
+    def test_rounding(self) -> None:
+        """Test that numeric values are rounded to 5 decimal places."""
         data_file = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSMUSG00000000001"],
-                "individualid": ["1001"],
-                "expression": [-2.5],
+                "individualid": ["Ind001"],
+                "expression": [1.123456789],
                 "tissue": ["Cortex"],
                 "sex": ["Male"],
                 "age": ["6 months"],
-                "genotype": ["5XFAD_carrier"],
-                "model": ["5xFAD (UCI)"],
+                "genotype": ["Tg"],
+                "model": ["Model_A"],
             }
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {"5xFAD (UCI)": ["5XFAD_carrier"]}
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "model_group": "",
+                "effective_model_group": "Model_A",
+            },
+        }
 
         result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
+            "rounding_test.csv",
+            data_file,
+            gene_metadata_dict,
+            genotype_metadata_dict,
+            0,
+            1,
         )
 
-        assert len(result) == 1
-        assert result[0]["data"][0]["value"] == pytest.approx(-2.5)
+        # Value should be rounded to 5 decimal places
+        assert result[0]["data"][0]["value"] == pytest.approx(1.12346, abs=1e-6)
 
-    def test_process_single_data_file_rounding_to_5_decimals(self) -> None:
-        """Test that expression values are rounded to 5 decimal places."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001"],
-                "individualid": ["1001"],
-                "expression": [5.123456789],
-                "tissue": ["Cortex"],
-                "sex": ["Male"],
-                "age": ["6 months"],
-                "genotype": ["5XFAD_carrier"],
-                "model": ["5xFAD (UCI)"],
-            }
-        )
-
-        gene_metadata_dict = {}
-        label_map_dict = {}
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {"5xFAD (UCI)": ["5XFAD_carrier"]}
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
-
-        result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
-        )
-
-        assert len(result) == 1
-        assert result[0]["data"][0]["value"] == pytest.approx(5.12346)
-
-    def test_process_single_data_file_genotype_not_in_model_group(self) -> None:
-        """Test that genotypes not in model_group are filtered out."""
+    def test_genotype_filtering(self) -> None:
+        """Test that genotypes not in the model_group are filtered out."""
         data_file = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, 4.9],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
                 "tissue": ["Cortex", "Cortex"],
                 "sex": ["Male", "Female"],
                 "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "invalid_genotype"],
-                "model": ["5xFAD (UCI)", "5xFAD (UCI)"],
+                "genotype": ["Tg", "InvalidGenotype"],
+                "model": ["Model_A", "Model_A"],
             }
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {}
-        model_group_dict = {"5xFAD (UCI)": ""}
-        genotypes_by_model_group = {
-            "5xFAD (UCI)": ["5XFAD_carrier"]
-        }  # Only carrier allowed
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-        ]
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "model_group": "",
+                "effective_model_group": "Model_A",
+            },
+        }
 
         result = _process_single_data_file(
-            file_name="test_file.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            genotypes_by_model_group=genotypes_by_model_group,
-            file_index=0,
-            total_files=1,
+            "genotype_filter_test.csv",
+            data_file,
+            gene_metadata_dict,
+            genotype_metadata_dict,
+            0,
+            1,
         )
 
-        # Only valid genotype should remain
+        # Should only have 1 data point (valid genotype only)
         assert len(result) == 1
         assert len(result[0]["data"]) == 1
-        assert result[0]["data"][0]["genotype"] == "5XFAD_carrier"
+        assert result[0]["data"][0]["genotype"] == "Transgenic"
 
 
 class TestTransformRnaDeIndividual:
     """
-    Integration tests for RNA individual expression transformation.
+    Test class for RNA individual expression transformation.
+
+    This class contains test methods that verify the behavior of the
+    `transform_rna_de_individual` function using synthetic datasets designed
+    to test specific functionality and edge cases.
+
+    Attributes:
+        data_files_path (str): Path to the directory containing test assets
+            (synthetic input files and expected output files).
+
+    Test Methods:
+        - test_transform_rna_de_individual_missing_required_dataset: Tests error handling
+          when required datasets are missing.
+        - test_synthetic_basic_data: Tests core transformation with simple dataset.
+        - test_synthetic_multi_model_data: Tests handling of multiple models with model_groups.
+        - test_synthetic_jax_tissue_mapping: Tests JAX-specific tissue name mapping.
+        - test_synthetic_mixed_genes_filtering: Tests filtering of human genes.
+        - test_synthetic_age_sorting: Tests numeric sorting of age entries.
+        - test_synthetic_single_row_data: Tests minimal edge case (single row).
+        - test_synthetic_empty_data_file: Tests error handling for empty data files.
+        - test_synthetic_missing_columns_data: Tests error handling for missing columns.
+        - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
+        - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
+
+    Helper Methods:
+        - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
+          proper dataset key mapping.
     """
 
     data_files_path = "tests/test_assets/rna_de_individual"
+
+    def test_transform_rna_de_individual_missing_required_dataset(self) -> None:
+        """Test that missing required datasets raise ValueError."""
+        # Load datasets without mouse_gene_metadata
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "rnaseq_genotype_label_map.csv",
+                # Missing mouse_gene_metadata.csv
+            ]
+        )
+
+        # Expect transformation to raise ValueError for missing required dataset
+        with pytest.raises(ValueError):
+            transform_rna_de_individual(datasets=datasets)
 
     def _load_synthetic_test_data(
         self, data_files: List[str]
@@ -1006,99 +871,74 @@ class TestTransformRnaDeIndividual:
         datasets = {}
         input_path = os.path.join(self.data_files_path, "input")
 
+        # Mapping from file names to expected dataset keys
         file_to_key_mapping = {
-            "synthetic_rnaseq_genotype_label_map.csv": "rnaseq_genotype_label_map",
-            "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
+            "rnaseq_genotype_label_map.csv": "rnaseq_genotype_label_map",
+            "rnaseq_genotype_label_map_inconsistent.csv": "rnaseq_genotype_label_map",
+            "mouse_gene_metadata.csv": "mouse_gene_metadata",
         }
 
         for file_name in data_files:
             if file_name.endswith(".csv"):
+                # Load CSV files
                 file_path = os.path.join(input_path, file_name)
                 df = pd.read_csv(file_path)
+
+                # Use the mapped key if available, otherwise use file name without extension
                 key = file_to_key_mapping.get(file_name, file_name.replace(".csv", ""))
                 datasets[key] = df
 
         return datasets
 
     def test_synthetic_basic_data(self) -> None:
-        """Test transformation with synthetic basic data."""
+        """Test transformation with synthetic basic data.
+
+        Tests a simple case with 2 genes, single age, and straightforward values
+        to verify core transform functionality: data aggregation by gene and age,
+        proper metadata enrichment (gene symbols, display labels), and result_order
+        determination.
+        """
+        # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
-                "synthetic_basic_individual_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_basic_data.csv",
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
             ]
         )
 
+        # Load expected output
         with open(
             os.path.join(self.data_files_path, "output", "synthetic_basic_output.json")
         ) as f:
             expected_data = json.load(f)
 
+        # Transform data
         output_data = transform_rna_de_individual(datasets=datasets)
 
-        # Sort for deterministic comparison
-        output_data_sorted = sorted(
-            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"])
-        )
-        expected_data_sorted = sorted(
-            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"])
-        )
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
 
+        # Compare output with expected
         assert output_data_sorted == expected_data_sorted
-
-    def test_synthetic_model_group_data(self) -> None:
-        """Test transformation with model_group data (multiple genotypes)."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_model_group_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-            ]
-        )
-
-        with open(
-            os.path.join(
-                self.data_files_path, "output", "synthetic_model_group_output.json"
-            )
-        ) as f:
-            expected_data = json.load(f)
-
-        output_data = transform_rna_de_individual(datasets=datasets)
-
-        # Sort for deterministic comparison
-        output_data_sorted = sorted(
-            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"])
-        )
-        expected_data_sorted = sorted(
-            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"])
-        )
-
-        assert output_data_sorted == expected_data_sorted
-
-    def test_transform_rna_de_individual_missing_required_dataset(self) -> None:
-        """Test that missing required datasets raise ValueError."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_individual_data.csv",
-                "synthetic_mouse_gene_metadata.csv",
-                # Missing rnaseq_genotype_label_map
-            ]
-        )
-
-        with pytest.raises(ValueError):
-            transform_rna_de_individual(datasets=datasets)
 
     def test_synthetic_jax_tissue_mapping(self) -> None:
-        """Test JAX tissue name mapping: 'Right Cerebral Hemisphere' -> 'Hemibrain'."""
+        """Test JAX tissue mapping with synthetic data.
+
+        Verifies that tissue names from JAX models are correctly mapped: specifically that
+        'Right Cerebral Hemisphere' tissue is transformed to 'Hemibrain' in the output.
+        """
+        # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_jax_tissue_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
             ]
         )
 
+        # Load expected output
         with open(
             os.path.join(
                 self.data_files_path, "output", "synthetic_jax_tissue_output.json"
@@ -1106,250 +946,229 @@ class TestTransformRnaDeIndividual:
         ) as f:
             expected_data = json.load(f)
 
+        # Transform data
         output_data = transform_rna_de_individual(datasets=datasets)
 
-        # Sort for deterministic comparison
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+
+        # Compare output with expected
+        assert output_data_sorted == expected_data_sorted
+
+        # Verify tissue mapping
+        assert output_data_sorted[0]["tissue"] == "Hemibrain"
+
+    def test_synthetic_mixed_genes_filtering(self) -> None:
+        """Test human gene filtering with synthetic mixed genes data.
+
+        Tests that the transform correctly filters out human genes (ENSG*) and only
+        processes mouse genes (ENSMUSG*). The input contains a mix of both human and mouse
+        genes, but only mouse genes should appear in the output.
+        """
+        # Load synthetic test data
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_mixed_genes_data.csv",
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
+            ]
+        )
+
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path, "output", "synthetic_mixed_genes_output.json"
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        # Transform data
+        output_data = transform_rna_de_individual(datasets=datasets)
+
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+
+        # Compare output with expected
+        assert output_data_sorted == expected_data_sorted
+
+        # Verify only mouse genes are present
+        for entry in output_data:
+            assert entry["ensembl_gene_id"].startswith("ENSMUSG")
+
+    def test_synthetic_age_sorting(self) -> None:
+        """Test age sorting with synthetic data.
+
+        Verifies that when a gene has data at multiple ages, the output entries
+        are created separately for each age and can be properly organized. Input ages
+        are deliberately unsorted (12, 6, 3 months) to test numeric sorting.
+        """
+        # Load synthetic test data
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_age_sorting_data.csv",
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
+            ]
+        )
+
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path, "output", "synthetic_age_sorting_output.json"
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        # Transform data
+        output_data = transform_rna_de_individual(datasets=datasets)
+
+        # Sort output data by ensembl_gene_id and age_numeric for deterministic comparison
         output_data_sorted = sorted(
-            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"])
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["age_numeric"])
         )
         expected_data_sorted = sorted(
-            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"])
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["age_numeric"])
         )
 
+        # Compare output with expected
         assert output_data_sorted == expected_data_sorted
-        # Verify tissue is mapped to Hemibrain
-        assert all(entry["tissue"] == "Hemibrain" for entry in output_data)
 
-    def test_multiple_data_files_processing(self) -> None:
-        """Test that multiple data files are processed and combined correctly."""
+        # Verify ages are in correct numeric order
+        assert output_data_sorted[0]["age"] == "3 months"
+        assert output_data_sorted[1]["age"] == "6 months"
+        assert output_data_sorted[2]["age"] == "12 months"
+
+    def test_synthetic_single_row_data(self) -> None:
+        """Test transformation with synthetic single row data.
+
+        Tests edge case handling of minimal input: a single data row representing one individual
+        at one age/condition. Verifies the transform can handle the smallest valid dataset.
+        Also tests missing gene metadata handling - the gene (ENSMUSG00000000008) is not in
+        mouse_gene_metadata.csv, so gene_symbol should be "".
+        """
+        # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
-                "synthetic_multifile_data1.csv",
-                "synthetic_multifile_data2.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_single_row_data.csv",
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
             ]
         )
 
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path, "output", "synthetic_single_row_output.json"
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        # Transform data
         output_data = transform_rna_de_individual(datasets=datasets)
 
-        # Should have entries from both files
-        assert len(output_data) >= 2
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
 
-        # Check that we have data from both genes
-        gene_ids = {entry["ensembl_gene_id"] for entry in output_data}
-        assert "ENSMUSG00000000001" in gene_ids
-        assert "ENSMUSG00000000002" in gene_ids
+        # Compare output with expected
+        assert output_data_sorted == expected_data_sorted
 
-        # Check that we have data from both tissues
-        tissues = {entry["tissue"] for entry in output_data}
-        assert "Cortex" in tissues
-        assert "Hippocampus" in tissues
+        # Verify missing metadata handling
+        assert output_data_sorted[0]["gene_symbol"] == ""
 
-    def test_mixed_human_and_mouse_genes(self) -> None:
-        """Test that human genes (ENSG*) are filtered out, keeping only mouse genes (ENSMUSG*)."""
-        # Create test data with both human and mouse genes
+    def test_synthetic_empty_data_file(self) -> None:
+        """Test handling of synthetic empty data files."""
+        # Load datasets with empty synthetic data file
         datasets = self._load_synthetic_test_data(
             [
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_empty_data.csv",
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
             ]
         )
 
-        # Add a mixed dataset manually
-        mixed_data = pd.DataFrame(
-            {
-                "ensembl_gene_id": [
-                    "ENSMUSG00000000001",  # Mouse
-                    "ENSG00000000001",  # Human
-                    "ENSMUSG00000000002",  # Mouse
-                ],
-                "individualid": ["1001", "1002", "1003"],
-                "expression": [5.5, 6.0, 4.5],
-                "tissue": ["Cortex", "Cortex", "Cortex"],
-                "sex": ["Male", "Female", "Male"],
-                "age": ["6 months", "6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_carrier", "5XFAD_carrier"],
-                "model": ["5xFAD (UCI)", "5xFAD (UCI)", "5xFAD (UCI)"],
-            }
-        )
-        datasets["mixed_genes.csv"] = mixed_data
-
-        output_data = transform_rna_de_individual(datasets=datasets)
-
-        # Only mouse genes should be in output
-        gene_ids = [entry["ensembl_gene_id"] for entry in output_data]
-        assert all(gene_id.startswith("ENSMUSG") for gene_id in gene_ids)
-        assert "ENSG00000000001" not in gene_ids
-
-    def test_empty_model_group_vs_null_model_group(self) -> None:
-        """Test that empty string and null model_group are handled correctly."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_individual_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-            ]
-        )
-
-        output_data = transform_rna_de_individual(datasets=datasets)
-
-        # Basic data uses empty model_group, should become null in output
-        for entry in output_data:
-            if entry["name"] == "5xFAD (UCI)":
-                assert entry["model_group"] is None
-
-    def test_missing_required_column_in_data_file(self) -> None:
-        """Test that missing required columns in data file raise ValueError."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-            ]
-        )
-
-        # Create data file missing 'age' column
-        incomplete_data = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001"],
-                "individualid": ["1001"],
-                "expression": [5.5],
-                "tissue": ["Cortex"],
-                "sex": ["Male"],
-                # Missing 'age'
-                "genotype": ["5XFAD_carrier"],
-                "model": ["5xFAD (UCI)"],
-            }
-        )
-        datasets["incomplete_data.csv"] = incomplete_data
-
-        with pytest.raises(ValueError):
+        # Should raise ValueError for empty data file
+        with pytest.raises(ValueError, match="is empty"):
             transform_rna_de_individual(datasets=datasets)
 
-    def test_missing_rnaseq_genotype_label_map(self) -> None:
-        """Test that missing rnaseq_genotype_label_map raises ValueError."""
-        datasets = {
-            "data.csv": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "individualid": ["1001"],
-                    "expression": [5.5],
-                    "tissue": ["Cortex"],
-                    "sex": ["Male"],
-                    "age": ["6 months"],
-                    "genotype": ["5XFAD_carrier"],
-                    "model": ["5xFAD (UCI)"],
-                }
-            ),
-            "mouse_gene_metadata": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "gene_symbol": ["Gene1"],
-                    "alias": [""],
-                }
-            ),
-        }
+    def test_synthetic_missing_columns_data(self) -> None:
+        """Test handling of synthetic data files with missing required columns."""
+        # Load datasets with a synthetic data file missing required columns (missing 'age')
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_missing_columns_data.csv",
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
+            ]
+        )
 
-        with pytest.raises(ValueError):
+        # Expect transformation to raise ValueError for missing required columns
+        with pytest.raises(ValueError, match="Missing required columns"):
             transform_rna_de_individual(datasets=datasets)
 
-    def test_missing_mouse_gene_metadata(self) -> None:
-        """Test that missing mouse_gene_metadata raises ValueError."""
-        datasets = {
-            "data.csv": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "individualid": ["1001"],
-                    "expression": [5.5],
-                    "tissue": ["Cortex"],
-                    "sex": ["Male"],
-                    "age": ["6 months"],
-                    "genotype": ["5XFAD_carrier"],
-                    "model": ["5xFAD (UCI)"],
-                }
-            ),
-            "rnaseq_genotype_label_map": pd.DataFrame(
-                {
-                    "model": ["5xFAD (UCI)"],
-                    "model_group": [""],
-                    "display_label": ["5xFAD (UCI)"],
-                    "genotype": ["5XFAD_carrier"],
-                }
-            ),
-        }
+    def test_synthetic_rounding_precision(self) -> None:
+        """Test that expression values are rounded to 5 decimal places.
 
-        with pytest.raises(ValueError):
+        Tests numeric precision by providing values with 7+ decimal places and verifying
+        they are correctly rounded to exactly 5 decimal places in the output.
+        """
+        # Load synthetic test data with high-precision values
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_rounding_precision_data.csv",
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
+            ]
+        )
+
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path,
+                "output",
+                "synthetic_rounding_precision_output.json",
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        # Transform data
+        output_data = transform_rna_de_individual(datasets=datasets)
+
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+
+        # Compare output with expected
+        assert output_data_sorted == expected_data_sorted
+
+        # Explicitly verify rounding (1.123456789 -> 1.12346, 2.987654321 -> 2.98765)
+        assert output_data_sorted[0]["data"][0]["value"] == pytest.approx(1.12346)
+        assert output_data_sorted[0]["data"][1]["value"] == pytest.approx(2.98765)
+
+    def test_inconsistent_model_group_values(self) -> None:
+        """Test error handling for inconsistent model_group values within the same model.
+
+        Tests that when a model has different model_group values across multiple rows
+        (e.g., different genotypes), a clear ValueError is raised identifying which
+        models have inconsistent values.
+        """
+        # Load synthetic test data with inconsistent model_group values
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "rnaseq_genotype_label_map_inconsistent.csv",
+                "mouse_gene_metadata.csv",
+            ]
+        )
+
+        # Expect transformation to raise ValueError with informative message
+        with pytest.raises(ValueError) as exc_info:
             transform_rna_de_individual(datasets=datasets)
 
-    def test_only_metadata_no_data_files(self) -> None:
-        """Test that having only metadata files (no data files) returns empty list."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-            ]
-        )
-
-        output_data = transform_rna_de_individual(datasets=datasets)
-
-        # Should return empty list when no data files are provided
-        assert output_data == []
-
-    def test_data_file_with_all_human_genes(self) -> None:
-        """Test that data file with only human genes returns empty output."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-            ]
-        )
-
-        # Create data file with only human genes
-        human_only_data = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSG00000000001", "ENSG00000000002"],
-                "individualid": ["1001", "1002"],
-                "expression": [5.5, 6.0],
-                "tissue": ["Cortex", "Cortex"],
-                "sex": ["Male", "Female"],
-                "age": ["6 months", "6 months"],
-                "genotype": ["5XFAD_carrier", "5XFAD_carrier"],
-                "model": ["5xFAD (UCI)", "5xFAD (UCI)"],
-            }
-        )
-        datasets["human_only.csv"] = human_only_data
-
-        output_data = transform_rna_de_individual(datasets=datasets)
-
-        # Should return empty list since all genes are filtered out
-        assert output_data == []
-
-    def test_model_not_in_label_map(self) -> None:
-        """Test behavior when model in data is not in label map."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-            ]
-        )
-
-        # Create data with a model not in the label map
-        unknown_model_data = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001"],
-                "individualid": ["1001"],
-                "expression": [5.5],
-                "tissue": ["Cortex"],
-                "sex": ["Male"],
-                "age": ["6 months"],
-                "genotype": ["unknown_genotype"],
-                "model": ["UnknownModel"],
-            }
-        )
-        datasets["unknown_model.csv"] = unknown_model_data
-
-        output_data = transform_rna_de_individual(datasets=datasets)
-
-        # Should handle gracefully - data gets filtered out due to genotype filtering
-        # The output might be empty or have entries with empty matched_control
-        assert isinstance(output_data, list)
+        # Verify the error message contains expected information
+        error_message = str(exc_info.value)
+        assert "Each model must have a consistent model_group value" in error_message
+        assert "rnaseq_genotype_label_map" in error_message
+        assert "APOE4" in error_message

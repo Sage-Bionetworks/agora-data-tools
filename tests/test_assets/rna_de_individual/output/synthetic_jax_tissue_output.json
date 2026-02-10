@@ -1,79 +1,37 @@
 [
   {
     "ensembl_gene_id": "ENSMUSG00000000001",
-    "gene_symbol": "Gene1",
+    "gene_symbol": "Gnai3",
     "tissue": "Hemibrain",
-    "name": "5xFAD (UCI)",
-    "model_group": null,
+    "name": "LOAD1",
+    "model_group": "LOAD1",
     "matched_control": "C57BL/6J",
     "units": "Log2 Counts per Million",
     "age": "6 months",
     "age_numeric": 6,
-    "result_order": ["5xFAD (UCI)", "C57BL/6J"],
+    "result_order": [
+      "C57BL/6J",
+      "LOAD1"
+    ],
     "data": [
       {
-        "genotype": "5XFAD_carrier",
+        "genotype": "LOAD1",
         "sex": "Male",
-        "individual_id": "5001",
-        "value": 7.5
+        "individual_id": "Ind301",
+        "value": 5.6789
       },
       {
-        "genotype": "5XFAD_carrier",
+        "genotype": "LOAD1",
         "sex": "Female",
-        "individual_id": "5002",
-        "value": 7.2
+        "individual_id": "Ind302",
+        "value": 4.56789
       },
       {
-        "genotype": "5XFAD_noncarrier",
+        "genotype": "C57BL/6J",
         "sex": "Male",
-        "individual_id": "5003",
-        "value": 6.8
-      },
-      {
-        "genotype": "5XFAD_noncarrier",
-        "sex": "Female",
-        "individual_id": "5004",
-        "value": 6.9
-      }
-    ]
-  },
-  {
-    "ensembl_gene_id": "ENSMUSG00000000002",
-    "gene_symbol": "Gene2",
-    "tissue": "Hemibrain",
-    "name": "5xFAD (UCI)",
-    "model_group": null,
-    "matched_control": "C57BL/6J",
-    "units": "Log2 Counts per Million",
-    "age": "6 months",
-    "age_numeric": 6,
-    "result_order": ["5xFAD (UCI)", "C57BL/6J"],
-    "data": [
-      {
-        "genotype": "5XFAD_carrier",
-        "sex": "Male",
-        "individual_id": "5005",
-        "value": 4.5
-      },
-      {
-        "genotype": "5XFAD_carrier",
-        "sex": "Female",
-        "individual_id": "5006",
-        "value": 4.2
-      },
-      {
-        "genotype": "5XFAD_noncarrier",
-        "sex": "Male",
-        "individual_id": "5007",
-        "value": 3.8
-      },
-      {
-        "genotype": "5XFAD_noncarrier",
-        "sex": "Female",
-        "individual_id": "5008",
-        "value": 3.9
+        "individual_id": "Ind303",
+        "value": 3.45678
       }
     ]
   }
 ]
-
