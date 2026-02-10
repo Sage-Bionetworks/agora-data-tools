@@ -1,5 +1,5 @@
 destination: &dest syn51498092
-staging_path: ./staging
+staging_path: ./staging/model-ad
 gx_folder: syn63141015
 gx_table: syn63891939
 datasets:
