@@ -54,6 +54,7 @@ The transform requires three types of input:
 ### Step 1: Metadata Preparation
 
 1. **Genotype Metadata Dictionary Creation** (`_create_genotype_metadata_dict`)
+   - Wrapper around shared `create_genotype_metadata_dict` function (from `rna_shared_utils`)
    - Creates a lookup dictionary mapping `(model, genotype)` tuples to metadata
    - Each entry contains:
      - `display_label`: Human-readable genotype label
@@ -61,30 +62,32 @@ The transform requires three types of input:
      - `model_group`: Model group name (empty string if none)
      - `effective_model_group`: `model_group` if present, otherwise `model` name
    - **Purpose:** Enables O(1) lookup time for genotype properties during processing
+   - **Note:** The individual transform uses `include_result_order=True` to include ordering and effective model group information
 
 2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict` from shared utils)
    - Maps Ensembl gene IDs to gene symbols
    - Uses gene symbols first, falls back to aliases if needed
    - **Purpose:** Enriches output with human-readable gene names
 
-### Step 2: File Processing (`_process_single_data_file`)
+### Step 2: File Processing (Shared Pattern)
 
-For each data file:
+The transform uses a **shared file processing pattern** (`process_data_files` from `rna_shared_utils`) that handles common preprocessing steps for all data files:
 
-#### 2.1 Validation
-- Checks for empty files
-- Validates all required columns are present
+#### 2.1 Common Preprocessing (Shared)
+Automatically applied to each file before transform-specific processing:
+- **File iteration:** Processes files one at a time (excluding required input files)
+- **Logging:** Logs file name, index, row count, column count, and memory usage
+- **Empty file validation:** Raises error if file is empty
+- **Column validation:** Checks all required columns are present
+- **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
+- **Numeric rounding:** Rounds all numeric columns to 5 decimal places
+- **Memory cleanup:** Deletes DataFrame and runs garbage collection after processing
 
-#### 2.2 Gene Filtering
-- **Filters to mouse genes only:** Keeps only genes with Ensembl IDs starting with `ENSMUSG`
-- **Excludes human genes:** Removes genes with IDs starting with `ENSG`
-- **Assumption:** Input data may contain both mouse and human genes; only mouse genes are relevant for Model AD
+#### 2.2 Transform-Specific Processing (`_process_individual_data_file_core`)
 
-#### 2.3 Numeric Rounding
-- **Rounds all numeric columns to 5 decimal places** for consistency
-- Applies to expression values
+After preprocessing, the individual transform applies its specific logic:
 
-#### 2.4 Genotype Enrichment (Vectorized Merge)
+**Genotype Enrichment (Vectorized Merge):**
 - Converts genotype metadata dictionary to DataFrame
 - Performs left join on `(model, genotype)` to add:
   - `genotype_display`: Human-readable genotype label
@@ -94,12 +97,12 @@ For each data file:
   - `result_order` = 999 (treated as non-control)
 - **Merge validation:** Uses `validate="many_to_one"` to ensure each `(model, genotype)` maps to exactly one label
 
-#### 2.5 Model Group Assignment
+**Model Group Assignment:**
 - Maps each model to its model_group using genotype metadata
 - Empty string if no model_group defined
 - Adds `name` field equal to `model` (not model_group) since each file represents a single model
 
-#### 2.6 Genotype Filtering by Model Group
+**Genotype Filtering by Model Group:**
 - **Critical filtering step:** Filters data to include only genotypes that belong to the effective model_group
 - Effective model_group = `model_group` if present, else `model` name
 - Builds set of allowed `(effective_model_group, genotype)` combinations from metadata

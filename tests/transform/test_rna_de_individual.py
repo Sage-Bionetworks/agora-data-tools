@@ -6,7 +6,6 @@ and its helper functions, which process individual RNA-seq expression data for m
 into a structured format for the Agora platform.
 
 Test Classes:
-    - TestGetEffectiveModelGroup: Unit tests for the _get_effective_model_group helper function
     - TestCreateGenotypeMetadataDict: Unit tests for the _create_genotype_metadata_dict helper function
     - TestDetermineResultOrder: Unit tests for the _determine_result_order helper function
     - TestCreateIndividualResultsFromGroup: Unit tests for the _create_individual_results_from_group helper function
@@ -44,45 +43,13 @@ import pytest
 
 from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
-    _get_effective_model_group,
     _create_genotype_metadata_dict,
     _determine_result_order,
     _create_individual_results_from_group,
     _create_output_entry_from_group,
     _process_single_data_file,
+    _process_individual_data_file_core,
 )
-
-
-class TestGetEffectiveModelGroup:
-    """
-    Unit tests for the _get_effective_model_group helper function.
-
-    This class contains focused unit tests for the effective model group determination logic,
-    which returns the model_group if present (non-empty), otherwise returns the model name.
-
-    Test Methods:
-        - test_with_model_group: Tests that model_group is returned when present.
-        - test_with_empty_model_group: Tests that model name is returned when model_group is empty.
-        - test_with_whitespace_model_group: Tests that whitespace-only model_group is treated as empty.
-    """
-
-    def test_with_model_group(self) -> None:
-        """Test that model_group is returned when present."""
-        result = _get_effective_model_group("GroupA", "Model1")
-        assert result == "GroupA"
-
-    def test_with_empty_model_group(self) -> None:
-        """Test that model name is returned when model_group is empty string."""
-        result = _get_effective_model_group("", "Model1")
-        assert result == "Model1"
-
-    def test_with_whitespace_model_group(self) -> None:
-        """Test behavior with whitespace-only model_group.
-
-        Note: The function checks for empty string, so whitespace is considered a valid group.
-        """
-        result = _get_effective_model_group("   ", "Model1")
-        assert result == "   "  # Whitespace is treated as a non-empty value
 
 
 class TestCreateGenotypeMetadataDict:
@@ -814,6 +781,165 @@ class TestProcessSingleDataFile:
         assert len(result) == 1
         assert len(result[0]["data"]) == 1
         assert result[0]["data"][0]["genotype"] == "Transgenic"
+
+
+class TestProcessIndividualDataFileCore:
+    """
+    Unit tests for the _process_individual_data_file_core helper function.
+
+    This class tests the core individual transformation logic that is called after
+    shared preprocessing (filtering, rounding, validation). It focuses on testing
+    the transform-specific logic: enrichment, filtering, and grouping.
+
+    Test Methods:
+        - test_basic_core_processing: Tests basic processing with enrichment and grouping.
+        - test_genotype_filtering: Tests filtering of invalid genotypes.
+        - test_uses_preprocessed_data: Tests that function expects preprocessed data.
+    """
+
+    def test_basic_core_processing(self) -> None:
+        """Test basic core processing with genotype enrichment and grouping."""
+        # Simulate preprocessed data (already filtered and rounded)
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "individualid": ["Ind001"],
+                "expression": [5.12345],
+                "tissue": ["Cortex"],
+                "sex": ["Male"],
+                "age": ["6 months"],
+                "genotype": ["Tg"],
+                "model": ["Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "model_group": "",
+                "effective_model_group": "Model_A",
+            },
+        }
+
+        result = _process_individual_data_file_core(
+            data_file, gene_metadata_dict, genotype_metadata_dict
+        )
+
+        assert len(result) == 1
+        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert result[0]["gene_symbol"] == "Gene1"
+        assert len(result[0]["data"]) == 1
+        assert result[0]["data"][0]["genotype"] == "Transgenic"
+
+    def test_genotype_filtering(self) -> None:
+        """Test that invalid genotypes are filtered out during core processing."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "6 months"],
+                "genotype": ["Tg", "InvalidGenotype"],
+                "model": ["Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "model_group": "",
+                "effective_model_group": "Model_A",
+            },
+        }
+
+        result = _process_individual_data_file_core(
+            data_file, gene_metadata_dict, genotype_metadata_dict
+        )
+
+        # Should only have 1 data point (valid genotype only)
+        assert len(result) == 1
+        assert len(result[0]["data"]) == 1
+        assert result[0]["data"][0]["genotype"] == "Transgenic"
+
+    def test_uses_preprocessed_data(self) -> None:
+        """Test that function works with preprocessed data (no human genes, rounded values)."""
+        # Data should already be filtered (no human genes) and rounded
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "individualid": ["Ind001"],
+                "expression": [1.12346],  # Already rounded to 5 decimals
+                "tissue": ["Cortex"],
+                "sex": ["Male"],
+                "age": ["6 months"],
+                "genotype": ["Tg"],
+                "model": ["Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "result_order": 2,
+                "model_group": "",
+                "effective_model_group": "Model_A",
+            },
+        }
+
+        result = _process_individual_data_file_core(
+            data_file, gene_metadata_dict, genotype_metadata_dict
+        )
+
+        # Value should remain as provided (already preprocessed)
+        assert result[0]["data"][0]["value"] == pytest.approx(1.12346, abs=1e-6)
+
+    def test_multiple_genotypes_with_model_group(self) -> None:
+        """Test processing with multiple genotypes in a model group."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 3.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "6 months"],
+                "genotype": ["Carrier", "Non-Carrier"],
+                "model": ["Model_B", "Model_B"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_metadata_dict = {
+            ("Model_B", "Carrier"): {
+                "display_label": "Model_B",
+                "result_order": 2,
+                "model_group": "GroupX",
+                "effective_model_group": "GroupX",
+            },
+            ("Model_B", "Non-Carrier"): {
+                "display_label": "Control_B",
+                "result_order": 1,
+                "model_group": "GroupX",
+                "effective_model_group": "GroupX",
+            },
+        }
+
+        result = _process_individual_data_file_core(
+            data_file, gene_metadata_dict, genotype_metadata_dict
+        )
+
+        # Should have 1 entry with 2 data points
+        assert len(result) == 1
+        assert len(result[0]["data"]) == 2
+        assert result[0]["model_group"] == "GroupX"
+        assert result[0]["matched_control"] == "Control_B"
 
 
 class TestTransformRnaDeIndividual:

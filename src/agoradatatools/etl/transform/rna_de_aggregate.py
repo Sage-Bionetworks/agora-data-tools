@@ -44,10 +44,12 @@ from agoradatatools.etl.transform.rna_shared_utils import (
     filter_mouse_genes,
     validate_model_group_consistency,
     create_gene_metadata_dict,
+    create_genotype_metadata_dict,
     log_file_processing_info,
     validate_data_file_not_empty,
     normalize_model_group_value,
     extract_common_metadata,
+    process_data_files,
 )
 
 logger = logging.getLogger(__name__)
@@ -124,18 +126,20 @@ def _validate_and_sort_age_entries(
 
 
 def _resolve_genotypes_to_display_labels(
-    label_map_dict: Dict[tuple[str, str], str],
+    genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
     name: str,
     case: str,
     control: str,
     ensembl_gene_id: str,
     tissue: str,
     sex: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, str]:
     """
-    Resolve genotypes to display labels.
+    Resolve genotypes to display labels and extract model_group.
+
     Args:
-        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
+        genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
+            containing 'display_label' and 'model_group'
         name: Model name
         case: Case genotype
         control: Control genotype
@@ -144,16 +148,20 @@ def _resolve_genotypes_to_display_labels(
         sex: Sex category
 
     Returns:
-        Tuple containing the display label for the case genotype and the display label for the control genotype
+        Tuple containing:
+            - Display label for the case genotype
+            - Display label for the control genotype
+            - Model group for the model
 
     Raises:
-        ValueError: If the case or control genotype is not found in label_map_dict.
+        ValueError: If the case or control genotype is not found in genotype_metadata_dict.
     """
     # Lookup name and matched_control - raise error if not found
     case_key = (name, case)
     control_key = (name, control)
+
     for k in [case_key, control_key]:
-        if k not in label_map_dict:
+        if k not in genotype_metadata_dict:
             raise ValueError(
                 f"Label mapping not found for genotype. "
                 f"Model: '{name}', Genotype: '{k[1]}', "
@@ -161,10 +169,15 @@ def _resolve_genotypes_to_display_labels(
                 f"Please ensure the rnaseq_genotype_label_map dataset contains "
                 f"an entry for model '{name}' and genotype '{k[1]}'."
             )
-    name = label_map_dict[case_key]
-    matched_control = label_map_dict[control_key]
 
-    return name, matched_control
+    case_metadata = genotype_metadata_dict[case_key]
+    control_metadata = genotype_metadata_dict[control_key]
+
+    name = case_metadata["display_label"]
+    matched_control = control_metadata["display_label"]
+    model_group = case_metadata["model_group"]
+
+    return name, matched_control, model_group
 
 
 def _create_age_entries_from_group(
@@ -235,8 +248,7 @@ def _create_output_entry_from_group(
     group_key: tuple[str, str, str, str, str, str],
     group: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
-    label_map_dict: Dict[tuple[str, str], str],
-    model_group_dict: Dict[str, str],
+    genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
     biodomain_dict: Dict[str, List[str]],
     model_info_dict: Dict[str, str],
 ) -> Dict[str, Any]:
@@ -264,17 +276,14 @@ def _create_output_entry_from_group(
         group_key: Tuple containing (ensembl_gene_id, model, tissue, sex, case, control)
             that uniquely identifies this group. The case and control values represent the
             genotype identifiers (e.g., '5XFAD_carrier', '5XFAD_noncarrier') from the input
-            data files, which are mapped to display labels via the label_map_dict.
+            data files, which are mapped to display labels via genotype_metadata_dict.
         group: DataFrame group containing age-based differential expression data. Each row
             represents a single age timepoint with columns: age, log2foldchange, padj.
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols. Used to
             enrich entries with human-readable gene names.
-        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
-            Used to map genotype identifiers to human-readable display names for case and
-            control conditions. For example, ('5xFAD (UCI)', '5XFAD_carrier') -> '5xFAD (UCI)',
-            or ('5xFAD (UCI)', '5XFAD_noncarrier') -> 'C57BL/6J'.
-        model_group_dict: Dictionary mapping model names to model groups. Used to categorize
-            models into groups (e.g., "5XFAD", "APP/PS1").
+        genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
+            containing 'display_label' and 'model_group'. Used to map genotype identifiers to
+            human-readable display names and extract model group information.
         biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
             Used to annotate genes with their associated biological domains.
         model_info_dict: Dictionary mapping model names to model types. Used to classify
@@ -310,14 +319,14 @@ def _create_output_entry_from_group(
             }
 
     Raises:
-        ValueError: If the case or control genotype is not found in label_map_dict.
+        ValueError: If the case or control genotype is not found in genotype_metadata_dict.
             The error includes details about the model, genotype, gene, tissue, and sex
             to help identify which mapping is missing.
 
     Note:
         Age entries are validated and sorted numerically before being included in the output.
         Missing values in gene_metadata_dict, biodomain_dict, and model_info_dict result
-        in empty strings or empty lists, not errors. However, missing entries in label_map_dict
+        in empty strings or empty lists, not errors. However, missing entries in genotype_metadata_dict
         for the case or control genotypes will raise a ValueError.
     """
     ensembl_gene_id, model, tissue, sex, case, control = group_key
@@ -327,11 +336,10 @@ def _create_output_entry_from_group(
         ensembl_gene_id, tissue, gene_metadata_dict
     )
 
-    # Lookup name and matched_control - raise error if not found
-    name, matched_control = _resolve_genotypes_to_display_labels(
-        label_map_dict, model, case, control, ensembl_gene_id, tissue, sex
+    # Lookup name, matched_control, and model_group - raise error if not found
+    name, matched_control, model_group = _resolve_genotypes_to_display_labels(
+        genotype_metadata_dict, model, case, control, ensembl_gene_id, tissue, sex
     )
-    model_group = model_group_dict.get(model)
     biodomains = biodomain_dict.get(ensembl_gene_id, [])
     model_type = model_info_dict.get(model, "")
 
@@ -355,13 +363,60 @@ def _create_output_entry_from_group(
     }
 
 
+def _process_aggregate_data_file_core(
+    data_file: pd.DataFrame,
+    gene_metadata_dict: Dict[str, str],
+    genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
+    biodomain_dict: Dict[str, List[str]],
+    model_info_dict: Dict[str, str],
+) -> List[Dict[str, Any]]:
+    """
+    Core transformation logic for aggregate differential expression data.
+
+    This function contains the aggregate-transform-specific processing logic:
+    - Groups data by gene, model, tissue, sex, case, and control
+    - Creates enriched output entries for each group using metadata dictionaries
+
+    Note: This function expects preprocessed data (mouse genes only, rounded numeric values).
+    Preprocessing is handled by the shared process_data_files function.
+
+    Args:
+        data_file: Preprocessed DataFrame containing differential expression data
+        gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
+        genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
+        biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names
+        model_info_dict: Dictionary mapping model names to model types
+
+    Returns:
+        List of output entry dictionaries for this file
+    """
+    # Group by gene, model, tissue, and sex to create one entry per group
+    # Using groupby rather than pandas merge operations as a performance optimization
+    grouped = data_file.groupby(
+        ["ensembl_gene_id", "model", "tissue", "sex", "case", "control"]
+    )
+
+    output_entries = []
+    for group_key, group in grouped:
+        output_entry = _create_output_entry_from_group(
+            group_key,
+            group,
+            gene_metadata_dict,
+            genotype_metadata_dict,
+            biodomain_dict,
+            model_info_dict,
+        )
+        output_entries.append(output_entry)
+
+    return output_entries
+
+
 def _process_single_data_file(
     file_name: str,
     data_file: pd.DataFrame,
     data_file_required_columns: List[str],
     gene_metadata_dict: Dict[str, str],
-    label_map_dict: Dict[tuple[str, str], str],
-    model_group_dict: Dict[str, str],
+    genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
     biodomain_dict: Dict[str, List[str]],
     model_info_dict: Dict[str, str],
     file_index: int,
@@ -369,6 +424,9 @@ def _process_single_data_file(
 ) -> List[Dict[str, Any]]:
     """
     Processes a single differential expression data file and transforms it into output entries.
+
+    DEPRECATED: This function is maintained for backward compatibility with existing tests.
+    New code should use the shared process_data_files function with _process_aggregate_data_file_core.
 
     This function handles the complete processing pipeline for a single RNA differential
     expression data file. It performs data validation, filtering, grouping, and enrichment
@@ -398,12 +456,9 @@ def _process_single_data_file(
             in the data_file. Used for validation before processing.
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols. Used
             to enrich output entries with human-readable gene names.
-        label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
-            Used to map genotype identifiers to human-readable display names for case and
-            control conditions. For example, ('5xFAD (UCI)', '5XFAD_carrier') -> '5xFAD (UCI)',
-            or ('5xFAD (UCI)', '5XFAD_noncarrier') -> 'C57BL/6J'.
-        model_group_dict: Dictionary mapping model names to model groups. Used to
-            categorize models into groups (e.g., "5XFAD", "APP/PS1").
+        genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
+            containing 'display_label' and 'model_group'. Used to map genotype identifiers to
+            human-readable display names and extract model group information.
         biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
             Used to annotate genes with their associated biological domains.
         model_info_dict: Dictionary mapping model names to model types. Used to classify
@@ -421,7 +476,7 @@ def _process_single_data_file(
 
     Raises:
         ValueError: If the data file is empty, if required columns are missing, or if any
-            case or control genotype is not found in label_map_dict during group processing.
+            case or control genotype is not found in genotype_metadata_dict during group processing.
             The error message includes the file name and specific details for debugging purposes.
 
     Note:
@@ -446,24 +501,14 @@ def _process_single_data_file(
     # Round numeric columns to 5 decimal places for consistency
     data_file = data_file.round(decimals=5)
 
-    # Group by gene, model, tissue, and sex to create one entry per group
-    # Using groupby rather than pandas merge operations as a performance optimization
-    grouped = data_file.groupby(
-        ["ensembl_gene_id", "model", "tissue", "sex", "case", "control"]
+    # Call core processing logic
+    output_entries = _process_aggregate_data_file_core(
+        data_file,
+        gene_metadata_dict,
+        genotype_metadata_dict,
+        biodomain_dict,
+        model_info_dict,
     )
-
-    output_entries = []
-    for group_key, group in grouped:
-        output_entry = _create_output_entry_from_group(
-            group_key,
-            group,
-            gene_metadata_dict,
-            label_map_dict,
-            model_group_dict,
-            biodomain_dict,
-            model_info_dict,
-        )
-        output_entries.append(output_entry)
 
     # Clean up memory by deleting the processed file
     del data_file
@@ -573,16 +618,12 @@ def transform_rna_de_aggregate(
     gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
     model_info_dict = model_info_df.set_index("model")["model_type"].to_dict()
 
-    # Create label map dictionaries for efficient lookups
-    label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
-        "display_label"
-    ].to_dict()
-
     # Validate that each model has consistent model_group values
     validate_model_group_consistency(rnaseq_genotype_label_map_df)
 
-    model_group_dict = (
-        rnaseq_genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
+    # Create unified genotype metadata dictionary (contains display_label and model_group)
+    genotype_metadata_dict = create_genotype_metadata_dict(
+        rnaseq_genotype_label_map_df, include_result_order=False
     )
 
     # Create biodomain lookup dictionary
@@ -594,12 +635,7 @@ def transform_rna_de_aggregate(
         .to_dict()
     )
 
-    output = []
-
-    # Process files one at a time to reduce memory usage
-    file_list = [k for k in datasets.keys() if k not in required_input]
-    total_files = len(file_list)
-
+    # Define required columns for data files
     data_file_required_columns = [
         "ensembl_gene_id",
         "log2foldchange",
@@ -612,25 +648,27 @@ def transform_rna_de_aggregate(
         "tissue",
     ]
 
-    logger.info(f"Transform rna_de_aggregate total data files: {total_files}")
-    logger.info(f"Data files list: {file_list}")
-
-    for i, file_name in enumerate(file_list):
-        # Download and process one file at a time
-        data_file = datasets[file_name]
-        file_output = _process_single_data_file(
-            file_name,
+    # Define callback function for processing each file
+    def process_file(
+        file_name: str, data_file: pd.DataFrame, file_index: int, total_files: int
+    ) -> List[Dict[str, Any]]:
+        """Process a single aggregate data file."""
+        return _process_aggregate_data_file_core(
             data_file,
-            data_file_required_columns,
             gene_metadata_dict,
-            label_map_dict,
-            model_group_dict,
+            genotype_metadata_dict,
             biodomain_dict,
             model_info_dict,
-            i,
-            total_files,
         )
-        output.extend(file_output)
+
+    # Use shared file processor
+    logger.info("Transform rna_de_aggregate starting file processing")
+    output = process_data_files(
+        datasets=datasets,
+        required_input=required_input,
+        data_file_required_columns=data_file_required_columns,
+        process_file_callback=process_file,
+    )
 
     logger.info(f"Transform rna_de_aggregate total output entries: {len(output)}")
     return output

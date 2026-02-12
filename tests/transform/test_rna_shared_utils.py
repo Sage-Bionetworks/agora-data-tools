@@ -14,10 +14,12 @@ from agoradatatools.etl.transform.rna_shared_utils import (
     map_jax_tissue_name,
     validate_model_group_consistency,
     create_gene_metadata_dict,
+    create_genotype_metadata_dict,
     log_file_processing_info,
     validate_data_file_not_empty,
     normalize_model_group_value,
     extract_common_metadata,
+    process_data_files,
 )
 
 
@@ -155,6 +157,98 @@ class TestCreateGeneMetadataDict:
         df = pd.DataFrame({"ensembl_gene_id": [], "gene_symbol": []})
 
         result = create_gene_metadata_dict(df)
+
+        assert result == {}
+
+
+class TestCreateGenotypeMetadataDict:
+    """Tests for create_genotype_metadata_dict function."""
+
+    def test_basic_metadata_without_result_order(self) -> None:
+        """Test creating metadata dict without result_order (aggregate mode)."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A", "Model_B"],
+                "genotype": ["Tg", "Wt", "Tg"],
+                "display_label": ["Transgenic", "Wildtype", "Transgenic_B"],
+                "model_group": ["Group1", "Group1", "Group2"],
+            }
+        )
+
+        result = create_genotype_metadata_dict(df, include_result_order=False)
+
+        assert result == {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "model_group": "Group1",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "model_group": "Group1",
+            },
+            ("Model_B", "Tg"): {
+                "display_label": "Transgenic_B",
+                "model_group": "Group2",
+            },
+        }
+
+    def test_metadata_with_result_order(self) -> None:
+        """Test creating metadata dict with result_order (individual mode)."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "genotype": ["Tg", "Wt"],
+                "display_label": ["Transgenic", "Wildtype"],
+                "model_group": ["Group1", "Group1"],
+                "result_order": [2, 1],
+            }
+        )
+
+        result = create_genotype_metadata_dict(df, include_result_order=True)
+
+        assert result == {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "model_group": "Group1",
+                "result_order": 2,
+                "effective_model_group": "Group1",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "model_group": "Group1",
+                "result_order": 1,
+                "effective_model_group": "Group1",
+            },
+        }
+
+    def test_effective_model_group_with_empty_model_group(self) -> None:
+        """Test that effective_model_group defaults to model when model_group is empty."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_X"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "model_group": [""],
+                "result_order": [1],
+            }
+        )
+
+        result = create_genotype_metadata_dict(df, include_result_order=True)
+
+        assert result[("Model_X", "Tg")]["effective_model_group"] == "Model_X"
+
+    def test_empty_dataframe(self) -> None:
+        """Test handling of empty DataFrame."""
+        df = pd.DataFrame(
+            {
+                "model": [],
+                "genotype": [],
+                "display_label": [],
+                "model_group": [],
+            }
+        )
+
+        result = create_genotype_metadata_dict(df, include_result_order=False)
 
         assert result == {}
 
@@ -302,3 +396,181 @@ class TestIntegration:
         )
         assert metadata["gene_symbol"] == "Gene1"
         assert metadata["tissue"] == "Hemibrain"
+
+
+class TestProcessDataFiles:
+    """Tests for process_data_files function."""
+
+    def test_basic_file_processing(self) -> None:
+        """Test basic file processing with single data file."""
+        # Setup datasets
+        datasets = {
+            "required_input": pd.DataFrame({"col1": [1, 2]}),
+            "data_file_1": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
+                    "value": [10, 20],
+                }
+            ),
+        }
+
+        required_input = {"required_input": ["col1"]}
+        data_file_required_columns = ["ensembl_gene_id", "value"]
+
+        # Define callback that just returns the data
+        def callback(file_name, df, idx, total):
+            return [{"file": file_name, "rows": len(df)}]
+
+        # Process files
+        result = process_data_files(
+            datasets, required_input, data_file_required_columns, callback
+        )
+
+        assert len(result) == 1
+        assert result[0]["file"] == "data_file_1"
+        assert result[0]["rows"] == 2
+
+    def test_multiple_files_processing(self) -> None:
+        """Test processing multiple data files."""
+        datasets = {
+            "required_input": pd.DataFrame({"col1": [1]}),
+            "file1": pd.DataFrame(
+                {"ensembl_gene_id": ["ENSMUSG00000000001"], "value": [1]}
+            ),
+            "file2": pd.DataFrame(
+                {"ensembl_gene_id": ["ENSMUSG00000000002"], "value": [2]}
+            ),
+        }
+
+        required_input = {"required_input": ["col1"]}
+        data_file_required_columns = ["ensembl_gene_id", "value"]
+
+        def callback(file_name, df, idx, total):
+            return [{"file": file_name, "index": idx, "total": total}]
+
+        result = process_data_files(
+            datasets, required_input, data_file_required_columns, callback
+        )
+
+        assert len(result) == 2
+        assert result[0]["index"] == 0
+        assert result[0]["total"] == 2
+        assert result[1]["index"] == 1
+        assert result[1]["total"] == 2
+
+    def test_filters_human_genes(self) -> None:
+        """Test that human genes are filtered out."""
+        datasets = {
+            "required_input": pd.DataFrame({"col1": [1]}),
+            "data_file": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000000001", "ENSG00000000001"],
+                    "value": [1, 2],
+                }
+            ),
+        }
+
+        required_input = {"required_input": ["col1"]}
+        data_file_required_columns = ["ensembl_gene_id", "value"]
+
+        def callback(file_name, df, idx, total):
+            # Should only receive mouse genes
+            assert all(df["ensembl_gene_id"].str.startswith("ENSMUSG"))
+            return [{"rows": len(df)}]
+
+        result = process_data_files(
+            datasets, required_input, data_file_required_columns, callback
+        )
+
+        assert result[0]["rows"] == 1
+
+    def test_rounds_numeric_values(self) -> None:
+        """Test that numeric values are rounded to 5 decimal places."""
+        datasets = {
+            "required_input": pd.DataFrame({"col1": [1]}),
+            "data_file": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000000001"],
+                    "value": [1.123456789],
+                }
+            ),
+        }
+
+        required_input = {"required_input": ["col1"]}
+        data_file_required_columns = ["ensembl_gene_id", "value"]
+
+        def callback(file_name, df, idx, total):
+            # Check rounding
+            return [{"value": df.iloc[0]["value"]}]
+
+        result = process_data_files(
+            datasets, required_input, data_file_required_columns, callback
+        )
+
+        assert result[0]["value"] == pytest.approx(1.12346, abs=1e-6)
+
+    def test_empty_file_raises_error(self) -> None:
+        """Test that empty files raise ValueError."""
+        datasets = {
+            "required_input": pd.DataFrame({"col1": [1]}),
+            "data_file": pd.DataFrame({"ensembl_gene_id": [], "value": []}),
+        }
+
+        required_input = {"required_input": ["col1"]}
+        data_file_required_columns = ["ensembl_gene_id", "value"]
+
+        def callback(file_name, df, idx, total):
+            return []
+
+        with pytest.raises(ValueError, match="empty"):
+            process_data_files(
+                datasets, required_input, data_file_required_columns, callback
+            )
+
+    def test_missing_columns_raises_error(self) -> None:
+        """Test that missing required columns raise error."""
+        datasets = {
+            "required_input": pd.DataFrame({"col1": [1]}),
+            "data_file": pd.DataFrame(
+                {"ensembl_gene_id": ["ENSMUSG00000000001"]}  # Missing 'value' column
+            ),
+        }
+
+        required_input = {"required_input": ["col1"]}
+        data_file_required_columns = ["ensembl_gene_id", "value"]
+
+        def callback(file_name, df, idx, total):
+            return []
+
+        with pytest.raises(ValueError):
+            process_data_files(
+                datasets, required_input, data_file_required_columns, callback
+            )
+
+    def test_callback_results_are_accumulated(self) -> None:
+        """Test that results from callback are accumulated across files."""
+        datasets = {
+            "required_input": pd.DataFrame({"col1": [1]}),
+            "file1": pd.DataFrame(
+                {"ensembl_gene_id": ["ENSMUSG00000000001"], "value": [1]}
+            ),
+            "file2": pd.DataFrame(
+                {"ensembl_gene_id": ["ENSMUSG00000000002"], "value": [2]}
+            ),
+        }
+
+        required_input = {"required_input": ["col1"]}
+        data_file_required_columns = ["ensembl_gene_id", "value"]
+
+        def callback(file_name, df, idx, total):
+            # Return multiple entries per file
+            return [{"entry": 1, "file": file_name}, {"entry": 2, "file": file_name}]
+
+        result = process_data_files(
+            datasets, required_input, data_file_required_columns, callback
+        )
+
+        # Should have 2 entries per file = 4 total
+        assert len(result) == 4
+        assert result[0]["entry"] == 1
+        assert result[1]["entry"] == 2

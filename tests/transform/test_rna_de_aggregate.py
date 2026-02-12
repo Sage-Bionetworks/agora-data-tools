@@ -52,6 +52,7 @@ from agoradatatools.etl.transform.rna_de_aggregate import (
     _create_age_entries_from_group,
     _create_output_entry_from_group,
     _process_single_data_file,
+    _process_aggregate_data_file_core,
 )
 
 
@@ -517,11 +518,16 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        label_map_dict = {
-            ("Model_A", "Tg"): "Transgenic",
-            ("Model_A", "Wt"): "Wildtype",
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "model_group": "Group1",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "model_group": "Group1",
+            },
         }
-        model_group_dict = {"Model_A": "Group1"}
         biodomain_dict = {"ENSMUSG00000000001": ["Synaptic"]}
         model_info_dict = {"Model_A": "knockout"}
 
@@ -529,8 +535,7 @@ class TestCreateOutputEntryFromGroup:
             group_key=group_key,
             group=group,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
         )
@@ -576,11 +581,16 @@ class TestCreateOutputEntryFromGroup:
         # Empty dictionaries simulate missing metadata
         # label_map_dict must have entries for genotypes to avoid errors
         gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_B", "Tg"): "Transgenic_B",
-            ("Model_B", "Wt"): "Wildtype_B",
+        genotype_metadata_dict = {
+            ("Model_B", "Tg"): {
+                "display_label": "Transgenic_B",
+                "model_group": "",
+            },
+            ("Model_B", "Wt"): {
+                "display_label": "Wildtype_B",
+                "model_group": "",
+            },
         }
-        model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
 
@@ -588,8 +598,7 @@ class TestCreateOutputEntryFromGroup:
             group_key=group_key,
             group=group,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
         )
@@ -626,11 +635,16 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000003": "Gene3"}
-        label_map_dict = {
-            ("Model_C", "Tg"): "Transgenic_C",
-            ("Model_C", "Wt"): "Wildtype_C",
+        genotype_metadata_dict = {
+            ("Model_C", "Tg"): {
+                "display_label": "Transgenic_C",
+                "model_group": "",
+            },
+            ("Model_C", "Wt"): {
+                "display_label": "Wildtype_C",
+                "model_group": "",
+            },
         }
-        model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
 
@@ -638,8 +652,7 @@ class TestCreateOutputEntryFromGroup:
             group_key=group_key,
             group=group,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
         )
@@ -658,11 +671,16 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_D", "Tg"): "Transgenic_D",
-            ("Model_D", "Wt"): "Wildtype_D",
+        genotype_metadata_dict = {
+            ("Model_D", "Tg"): {
+                "display_label": "Transgenic_D",
+                "model_group": "",
+            },
+            ("Model_D", "Wt"): {
+                "display_label": "Wildtype_D",
+                "model_group": "",
+            },
         }
-        model_group_dict = {"Model_D": ""}  # Empty string
         biodomain_dict = {}
         model_info_dict = {}
 
@@ -670,8 +688,7 @@ class TestCreateOutputEntryFromGroup:
             group_key=group_key,
             group=group,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
         )
@@ -690,11 +707,16 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_E", "Tg"): "Transgenic_E",
-            ("Model_E", "Wt"): "Wildtype_E",
+        genotype_metadata_dict = {
+            ("Model_E", "Tg"): {
+                "display_label": "Transgenic_E",
+                "model_group": "",
+            },
+            ("Model_E", "Wt"): {
+                "display_label": "Wildtype_E",
+                "model_group": "",
+            },
         }
-        model_group_dict = {}
         biodomain_dict = {"ENSMUSG00000000005": ["Synaptic", "Metabolic"]}
         model_info_dict = {}
 
@@ -702,8 +724,7 @@ class TestCreateOutputEntryFromGroup:
             group_key=group_key,
             group=group,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
         )
@@ -744,11 +765,16 @@ class TestProcessSingleDataFile:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        label_map_dict = {
-            ("Model_A", "Tg"): "Transgenic",
-            ("Model_A", "Wt"): "Wildtype",
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "model_group": "Group1",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "model_group": "Group1",
+            },
         }
-        model_group_dict = {"Model_A": "Group1"}
         biodomain_dict = {"ENSMUSG00000000001": ["Synaptic"]}
         model_info_dict = {"Model_A": "knockout"}
 
@@ -769,8 +795,7 @@ class TestProcessSingleDataFile:
             data_file=data_file,
             data_file_required_columns=data_file_required_columns,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
             file_index=0,
@@ -790,8 +815,7 @@ class TestProcessSingleDataFile:
         data_file = pd.DataFrame()
 
         gene_metadata_dict = {}
-        label_map_dict = {}  # Empty is OK since no data will be processed
-        model_group_dict = {}
+        genotype_metadata_dict = {}  # Empty is OK since no data will be processed
         biodomain_dict = {}
         model_info_dict = {}
 
@@ -813,8 +837,7 @@ class TestProcessSingleDataFile:
                 data_file=data_file,
                 data_file_required_columns=data_file_required_columns,
                 gene_metadata_dict=gene_metadata_dict,
-                label_map_dict=label_map_dict,
-                model_group_dict=model_group_dict,
+                genotype_metadata_dict=genotype_metadata_dict,
                 biodomain_dict=biodomain_dict,
                 model_info_dict=model_info_dict,
                 file_index=0,
@@ -847,11 +870,16 @@ class TestProcessSingleDataFile:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_A", "Tg"): "Transgenic",
-            ("Model_A", "Wt"): "Wildtype",
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "model_group": "",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "model_group": "",
+            },
         }
-        model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
 
@@ -872,8 +900,7 @@ class TestProcessSingleDataFile:
             data_file=data_file,
             data_file_required_columns=data_file_required_columns,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
             file_index=0,
@@ -902,11 +929,16 @@ class TestProcessSingleDataFile:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_A", "Tg"): "Transgenic",
-            ("Model_A", "Wt"): "Wildtype",
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "model_group": "",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "model_group": "",
+            },
         }
-        model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
 
@@ -927,8 +959,7 @@ class TestProcessSingleDataFile:
             data_file=data_file,
             data_file_required_columns=data_file_required_columns,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
             file_index=0,
@@ -956,13 +987,24 @@ class TestProcessSingleDataFile:
         )
 
         gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_A", "Tg"): "Transgenic_A",
-            ("Model_A", "Wt"): "Wildtype_A",
-            ("Model_B", "Tg"): "Transgenic_B",
-            ("Model_B", "Wt"): "Wildtype_B",
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic_A",
+                "model_group": "",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype_A",
+                "model_group": "",
+            },
+            ("Model_B", "Tg"): {
+                "display_label": "Transgenic_B",
+                "model_group": "",
+            },
+            ("Model_B", "Wt"): {
+                "display_label": "Wildtype_B",
+                "model_group": "",
+            },
         }
-        model_group_dict = {}
         biodomain_dict = {}
         model_info_dict = {}
 
@@ -983,8 +1025,7 @@ class TestProcessSingleDataFile:
             data_file=data_file,
             data_file_required_columns=data_file_required_columns,
             gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
+            genotype_metadata_dict=genotype_metadata_dict,
             biodomain_dict=biodomain_dict,
             model_info_dict=model_info_dict,
             file_index=0,
@@ -995,6 +1036,160 @@ class TestProcessSingleDataFile:
         assert len(result) == 2
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result[1]["ensembl_gene_id"] == "ENSMUSG00000000002"
+
+
+class TestProcessAggregateDataFileCore:
+    """
+    Unit tests for the _process_aggregate_data_file_core helper function.
+
+    This class tests the core aggregate transformation logic that is called after
+    shared preprocessing (filtering, rounding, validation). It focuses on testing
+    the transform-specific logic: grouping and creating output entries.
+
+    Test Methods:
+        - test_basic_core_processing: Tests basic grouping and entry creation.
+        - test_multiple_groups: Tests processing multiple groups (different genes/models).
+        - test_uses_preprocessed_data: Tests that function expects preprocessed data.
+    """
+
+    def test_basic_core_processing(self) -> None:
+        """Test basic core processing with single group."""
+        # Simulate preprocessed data (already filtered and rounded)
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "log2foldchange": [1.5],
+                "padj": [0.01],
+                "model": ["Model_A"],
+                "case": ["Tg"],
+                "control": ["Wt"],
+                "age": ["6 months"],
+                "sex": ["Male"],
+                "tissue": ["Cortex"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "model_group": "Group1",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "model_group": "Group1",
+            },
+        }
+        biodomain_dict = {"ENSMUSG00000000001": ["Synaptic"]}
+        model_info_dict = {"Model_A": "knockout"}
+
+        result = _process_aggregate_data_file_core(
+            data_file,
+            gene_metadata_dict,
+            genotype_metadata_dict,
+            biodomain_dict,
+            model_info_dict,
+        )
+
+        assert len(result) == 1
+        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert result[0]["gene_symbol"] == "Gene1"
+        assert result[0]["name"]["link_text"] == "Transgenic"
+        assert result[0]["matched_control"] == "Wildtype"
+
+    def test_multiple_groups(self) -> None:
+        """Test core processing with multiple groups (different genes/models)."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
+                "log2foldchange": [1.5, 0.5],
+                "padj": [0.01, 0.05],
+                "model": ["Model_A", "Model_B"],
+                "case": ["Tg", "Tg"],
+                "control": ["Wt", "Wt"],
+                "age": ["6 months", "3 months"],
+                "sex": ["Male", "Female"],
+                "tissue": ["Cortex", "Hippocampus"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic_A",
+                "model_group": "",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype_A",
+                "model_group": "",
+            },
+            ("Model_B", "Tg"): {
+                "display_label": "Transgenic_B",
+                "model_group": "",
+            },
+            ("Model_B", "Wt"): {
+                "display_label": "Wildtype_B",
+                "model_group": "",
+            },
+        }
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        result = _process_aggregate_data_file_core(
+            data_file,
+            gene_metadata_dict,
+            genotype_metadata_dict,
+            biodomain_dict,
+            model_info_dict,
+        )
+
+        # Should create 2 separate output entries
+        assert len(result) == 2
+        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert result[1]["ensembl_gene_id"] == "ENSMUSG00000000002"
+
+    def test_uses_preprocessed_data(self) -> None:
+        """Test that function works with preprocessed data (no human genes, rounded values)."""
+        # Data should already be filtered (no human genes) and rounded
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "log2foldchange": [1.12346],  # Already rounded to 5 decimals
+                "padj": [0.01235],  # Already rounded to 5 decimals
+                "model": ["Model_A"],
+                "case": ["Tg"],
+                "control": ["Wt"],
+                "age": ["6 months"],
+                "sex": ["Male"],
+                "tissue": ["Cortex"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_metadata_dict = {
+            ("Model_A", "Tg"): {
+                "display_label": "Transgenic",
+                "model_group": "",
+            },
+            ("Model_A", "Wt"): {
+                "display_label": "Wildtype",
+                "model_group": "",
+            },
+        }
+        biodomain_dict = {}
+        model_info_dict = {}
+
+        result = _process_aggregate_data_file_core(
+            data_file,
+            gene_metadata_dict,
+            genotype_metadata_dict,
+            biodomain_dict,
+            model_info_dict,
+        )
+
+        # Values should remain as provided (already preprocessed)
+        assert result[0]["6 months"]["log2_fc"] == pytest.approx(1.12346, abs=1e-6)
+        assert result[0]["6 months"]["adj_p_val"] == pytest.approx(0.01235, abs=1e-6)
 
 
 class TestTransformRnaDeAggregate:
