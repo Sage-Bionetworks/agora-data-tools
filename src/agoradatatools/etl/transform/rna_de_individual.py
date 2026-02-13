@@ -21,10 +21,8 @@ Key Functions:
     transform_rna_de_individual: Main transformation function that orchestrates the data processing
     _create_individual_results_from_group: Creates individual_results structure with age-based grouping
     _create_output_entry_from_group: Creates output entries from a grouped DataFrame, one entry per age
-    _process_single_data_file: Processes a single individual expression data file
+    _process_individual_data_file_core: Processes the core transformation logic for individual expression data
     _determine_result_order: Determines the ordering of display labels for genotypes in a model_group
-    _create_genotype_metadata_dict: Creates unified lookup dictionary consolidating display labels,
-        result_order, model_group, and effective_model_group for efficient data enrichment
 
 Required Inputs:
     - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
@@ -36,19 +34,15 @@ Required Inputs:
 import pandas as pd
 from typing import Dict, List, Any
 import logging
-import gc
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     extract_age_numeric,
 )
-from agoradatatools.etl.transform.rna_shared_utils import (
-    filter_mouse_genes,
+from agoradatatools.etl.transform.rna_de_individual_utils import (
     validate_model_group_consistency,
     create_gene_metadata_dict,
     create_genotype_metadata_dict,
-    log_file_processing_info,
-    validate_data_file_not_empty,
     normalize_model_group_value,
     extract_common_metadata,
     process_data_files,
@@ -66,31 +60,6 @@ REQUIRED_INPUT = {
     ],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
 }
-
-
-def _create_genotype_metadata_dict(
-    rnaseq_genotype_label_map_df: pd.DataFrame,
-) -> Dict[tuple[str, str], Dict[str, Any]]:
-    """
-    Creates a comprehensive lookup dictionary mapping (model, genotype) pairs to their metadata.
-
-    This is a wrapper around the shared create_genotype_metadata_dict function that includes
-    result_order and effective_model_group for the individual transform.
-
-    Args:
-        rnaseq_genotype_label_map_df: DataFrame containing model, genotype, display_label,
-            result_order, and model_group columns
-
-    Returns:
-        Dictionary mapping (model, genotype) tuples to a dict containing:
-            - 'display_label': str, human-readable label for the genotype
-            - 'result_order': int, ordering value for display (lower values indicate controls)
-            - 'model_group': str, model group name (empty string if none)
-            - 'effective_model_group': str, model_group if present, otherwise model name
-    """
-    return create_genotype_metadata_dict(
-        rnaseq_genotype_label_map_df, include_result_order=True
-    )
 
 
 def _determine_result_order(
@@ -390,75 +359,6 @@ def _process_individual_data_file_core(
     return output_entries
 
 
-def _process_single_data_file(
-    file_name: str,
-    data_file: pd.DataFrame,
-    gene_metadata_dict: Dict[str, str],
-    genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
-    file_index: int,
-    total_files: int,
-) -> List[Dict[str, Any]]:
-    """
-    Processes a single individual expression data file.
-
-    DEPRECATED: This function is maintained for backward compatibility with existing tests.
-    New code should use the shared process_data_files function with _process_individual_data_file_core.
-
-    Applies filtering, enrichment, and grouping logic to transform raw expression
-    data into the structured output format. Uses vectorized pandas operations
-    for efficient processing of large datasets.
-
-    Args:
-        file_name: Name of the data file being processed
-        data_file: DataFrame containing the individual expression data
-        gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
-        genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
-            containing 'display_label', 'result_order', 'model_group', and 'effective_model_group'
-        file_index: Current file index for progress tracking
-        total_files: Total number of files to process
-
-    Returns:
-        List of output entry dictionaries
-    """
-
-    data_file_required_columns = [
-        "ensembl_gene_id",
-        "expression",
-        "model",
-        "genotype",
-        "age",
-        "sex",
-        "tissue",
-        "individualid",
-    ]
-
-    log_file_processing_info(file_name, file_index, total_files, data_file)
-
-    # Check if data file is empty
-    validate_data_file_not_empty(file_name, data_file)
-
-    check_required_datasets_and_columns(
-        {file_name: data_file}, {file_name: data_file_required_columns}
-    )
-
-    # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
-    data_file = filter_mouse_genes(data_file)
-
-    # Round numeric columns to 5 decimal places for consistency
-    data_file = data_file.round(decimals=5)
-
-    # Call core processing logic
-    output_entries = _process_individual_data_file_core(
-        data_file, gene_metadata_dict, genotype_metadata_dict
-    )
-
-    # Clean up memory
-    del data_file
-    gc.collect()
-
-    return output_entries
-
-
 def transform_rna_de_individual(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -500,8 +400,8 @@ def transform_rna_de_individual(
 
     # Create unified genotype metadata dictionary - this is our SINGLE SOURCE OF TRUTH
     # All other lookups can be derived from this on-the-fly
-    genotype_metadata_dict = _create_genotype_metadata_dict(
-        rnaseq_genotype_label_map_df
+    genotype_metadata_dict = create_genotype_metadata_dict(
+        rnaseq_genotype_label_map_df, include_result_order=True
     )
 
     # Define required columns for data files
@@ -516,22 +416,15 @@ def transform_rna_de_individual(
         "individualid",
     ]
 
-    # Define callback function for processing each file
-    def process_file(
-        file_name: str, data_file: pd.DataFrame, file_index: int, total_files: int
-    ) -> List[Dict[str, Any]]:
-        """Process a single individual expression data file."""
-        return _process_individual_data_file_core(
-            data_file, gene_metadata_dict, genotype_metadata_dict
-        )
-
     # Use shared file processor
     logger.info("Transform rna_de_individual starting file processing")
     output = process_data_files(
         datasets=datasets,
         required_input=required_input,
         data_file_required_columns=data_file_required_columns,
-        process_file_callback=process_file,
+        process_file_callback=lambda file_name, data_file, file_index, total_files: _process_individual_data_file_core(
+            data_file, gene_metadata_dict, genotype_metadata_dict
+        ),
     )
 
     logger.info(f"Transform rna_de_individual total output entries: {len(output)}")

@@ -1,8 +1,19 @@
 """
-Shared utility functions for RNA-seq data transformations.
+RNA DE Individual Transform Utility Functions
 
-This module contains common functionality used by multiple RNA-seq transforms
-including rna_de_aggregate and rna_de_individual.
+Intended to eventually be used as a set of shared utility functions for RNA-seq data transformations.
+
+This module contains common functionality used by the rna_de_individual transform that can later be used by the rna_de_aggregate transform.
+
+Key Functions:
+    create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
+    create_genotype_metadata_dict: Create a lookup dictionary mapping (model, genotype) tuples to their metadata
+    log_file_processing_info: Log information about a file being processed
+    validate_data_file_not_empty: Validate that a data file is not empty
+    normalize_model_group_value: Normalize model_group value by converting empty strings to None
+    extract_common_metadata: Extract common metadata fields used by both RNA transforms
+    process_data_files: Process multiple data files with common validation and preprocessing steps
+    validate_model_group_consistency: Validate that each model has consistent model_group values
 """
 
 import pandas as pd
