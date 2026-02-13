@@ -6,7 +6,7 @@ and its helper functions, which process individual RNA-seq expression data for m
 into a structured format for the Agora platform.
 
 Test Classes:
-    - TestCreateGenotypeMetadataDict: Unit tests for the _create_genotype_metadata_dict helper function
+    - TestCreateGenotypeMetadataDict: Unit tests for the create_genotype_metadata_dict helper function (from rna_de_individual_utils)
     - TestDetermineResultOrder: Unit tests for the _determine_result_order helper function
     - TestCreateIndividualResultsFromGroup: Unit tests for the _create_individual_results_from_group helper function
     - TestCreateOutputEntryFromGroup: Unit tests for the _create_output_entry_from_group helper function
@@ -43,17 +43,19 @@ import pytest
 
 from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
-    _create_genotype_metadata_dict,
     _determine_result_order,
     _create_individual_results_from_group,
     _create_output_entry_from_group,
     _process_individual_data_file_core,
 )
+from agoradatatools.etl.transform.rna_de_individual_utils import (
+    create_genotype_metadata_dict,
+)
 
 
 class TestCreateGenotypeMetadataDict:
     """
-    Unit tests for the _create_genotype_metadata_dict helper function.
+    Unit tests for the create_genotype_metadata_dict helper function.
 
     This class contains focused unit tests for genotype metadata dictionary creation,
     which maps (model, genotype) tuples to their metadata including display labels,
@@ -79,7 +81,7 @@ class TestCreateGenotypeMetadataDict:
             }
         )
 
-        result = _create_genotype_metadata_dict(df)
+        result = create_genotype_metadata_dict(df, include_result_order=True)
 
         assert len(result) == 2
         assert ("Model_A", "Tg") in result
@@ -101,7 +103,7 @@ class TestCreateGenotypeMetadataDict:
             }
         )
 
-        result = _create_genotype_metadata_dict(df)
+        result = create_genotype_metadata_dict(df, include_result_order=True)
 
         assert len(result) == 3
         # All should have same effective_model_group
@@ -121,7 +123,7 @@ class TestCreateGenotypeMetadataDict:
             }
         )
 
-        result = _create_genotype_metadata_dict(df)
+        result = create_genotype_metadata_dict(df, include_result_order=True)
 
         # Empty model_group -> effective is model name
         assert result[("Model_A", "Tg")]["effective_model_group"] == "Model_A"
@@ -140,7 +142,7 @@ class TestCreateGenotypeMetadataDict:
             }
         )
 
-        result = _create_genotype_metadata_dict(df)
+        result = create_genotype_metadata_dict(df, include_result_order=True)
 
         assert isinstance(result[("Model_A", "Tg")]["result_order"], int)
         assert result[("Model_A", "Tg")]["result_order"] == 2
@@ -157,7 +159,7 @@ class TestCreateGenotypeMetadataDict:
             ]
         )
 
-        result = _create_genotype_metadata_dict(df)
+        result = create_genotype_metadata_dict(df, include_result_order=True)
 
         assert len(result) == 0
         assert result == {}

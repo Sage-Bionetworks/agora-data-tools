@@ -1,15 +1,15 @@
 """
-Test suite for RNA-seq shared utilities.
+Test suite for RNA-seq individual transform utility functions.
 
-This module contains comprehensive tests for the shared utility functions used by
-multiple RNA-seq transforms (rna_de_aggregate and rna_de_individual).
+This module contains comprehensive tests for the utility functions in rna_de_individual_utils
+that are used by the rna_de_individual transform.
 """
 
 import pandas as pd
 import pytest
 import logging
 
-from agoradatatools.etl.transform.rna_shared_utils import (
+from agoradatatools.etl.transform.rna_de_individual_utils import (
     filter_mouse_genes,
     map_jax_tissue_name,
     validate_model_group_consistency,

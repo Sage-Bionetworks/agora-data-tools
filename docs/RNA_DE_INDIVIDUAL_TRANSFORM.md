@@ -53,8 +53,8 @@ The transform requires three types of input:
 
 ### Step 1: Metadata Preparation
 
-1. **Genotype Metadata Dictionary Creation** (`_create_genotype_metadata_dict`)
-   - Wrapper around shared `create_genotype_metadata_dict` function (from `rna_shared_utils`)
+1. **Genotype Metadata Dictionary Creation** (`create_genotype_metadata_dict`)
+   - Imported from `rna_de_individual_utils` module
    - Creates a lookup dictionary mapping `(model, genotype)` tuples to metadata
    - Each entry contains:
      - `display_label`: Human-readable genotype label
@@ -64,14 +64,15 @@ The transform requires three types of input:
    - **Purpose:** Enables O(1) lookup time for genotype properties during processing
    - **Note:** The individual transform uses `include_result_order=True` to include ordering and effective model group information
 
-2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict` from shared utils)
+2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
+   - Imported from `rna_de_individual_utils` module
    - Maps Ensembl gene IDs to gene symbols
    - Uses gene symbols first, falls back to aliases if needed
    - **Purpose:** Enriches output with human-readable gene names
 
 ### Step 2: File Processing (Shared Pattern)
 
-The transform uses a **shared file processing pattern** (`process_data_files` from `rna_shared_utils`) that handles common preprocessing steps for all data files:
+The transform uses a **shared file processing pattern** (`process_data_files` from `rna_de_individual_utils`) that handles common preprocessing steps for all data files:
 
 #### 2.1 Common Preprocessing (Shared)
 Automatically applied to each file before transform-specific processing:
@@ -347,7 +348,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 ## Related Transforms
 
 - **rna_de_aggregate:** Processes aggregated differential expression (log2FC, adj p-value) data
-- **Shared utilities:** `rna_shared_utils.py` provides common functions for both transforms
+- **Utility functions:** `rna_de_individual_utils.py` contains utility functions extracted from this transform for better code organization and potential future reuse
 
 ## Example Usage
 
