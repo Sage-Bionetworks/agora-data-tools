@@ -1,19 +1,22 @@
 """
 RNA DE Individual Transform Utility Functions
 
-Intended to eventually be used as a set of shared utility functions for RNA-seq data transformations.
-
-This module contains common functionality used by the rna_de_individual transform that can later be used by the rna_de_aggregate transform.
+This module contains utility functions extracted from the rna_de_individual transform
+for better code organization. These functions are currently used exclusively by the
+rna_de_individual transform, but are structured in a way that allows for potential
+future reuse by other RNA-seq transforms if needed.
 
 Key Functions:
+    filter_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
+    map_jax_tissue_name: Map JAX-specific tissue names to standard names
+    validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
     create_genotype_metadata_dict: Create a lookup dictionary mapping (model, genotype) tuples to their metadata
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
     normalize_model_group_value: Normalize model_group value by converting empty strings to None
-    extract_common_metadata: Extract common metadata fields used by both RNA transforms
+    extract_common_metadata: Extract common metadata fields for RNA transforms
     process_data_files: Process multiple data files with common validation and preprocessing steps
-    validate_model_group_consistency: Validate that each model has consistent model_group values
 """
 
 import pandas as pd
@@ -224,7 +227,7 @@ def extract_common_metadata(
     gene_metadata_dict: Dict[str, str],
 ) -> Dict[str, Any]:
     """
-    Extract common metadata fields used by both RNA transforms.
+    Extract common metadata fields for RNA transforms.
 
     This function handles:
     - Gene symbol lookup
@@ -259,7 +262,7 @@ def process_data_files(
     """
     Process multiple data files with common validation and preprocessing steps.
 
-    This function implements a shared file processing pattern used by both RNA transforms:
+    This function implements a file processing pattern for RNA transforms:
     1. Iterates over data files (excluding required input files)
     2. Logs processing information for each file
     3. Validates file is not empty
@@ -269,7 +272,7 @@ def process_data_files(
     7. Calls transform-specific processing callback
     8. Performs memory cleanup after each file
 
-    This pattern ensures consistent file handling across transforms and reduces code duplication.
+    This pattern ensures consistent file handling and reduces code duplication.
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include required
