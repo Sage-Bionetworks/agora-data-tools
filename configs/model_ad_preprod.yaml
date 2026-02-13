@@ -174,28 +174,40 @@ datasets:
   - rna_de_individual:
       files:
         - name: rnaseq_genotype_label_map
-          id: syn69014401
+          id: syn73672054
           format: csv
         - name: mouse_gene_metadata
           id: syn51615422
           format: json
-        - name: Jax.IU.Pitt_5XFAD_normalized_expression
-          id: syn69058674
+        - name: Jax.IU.Pitt_APOE4.Trem2.R47H_normalized_expression
+          id: syn72388432
+          format: csv
+        - name: Jax.IU.Pitt_APOE4_normalized_expression
+          id: syn72388431
+          format: csv
+        - name: Jax.IU.Pitt_Trem2.R47H_normalized_expression
+          id: syn72388430
+          format: csv
+        - name: UCI_ABCA7.5XFAD_normalized_expression
+          id: syn72388476
+          format: csv
+        - name: UCI_ABCA7_normalized_expression
+          id: syn72388477
+          format: csv
+        - name: UCI_Trem2-R47H_NSS.5XFAD_normalized_expression
+          id: syn72388499
+          format: csv
+        - name: UCI_Trem2-R47H_NSS_normalized_expression
+          id: syn72388498
           format: csv
         - name: UCI_3xTg-AD_normalized_expression
           id: syn69058676
           format: csv
-        - name: UCI_ABCA7_normalized_expression
-          id: syn69058677
-          format: csv
-        - name: Jax.IU.Pitt_APOE4.Trem2.R47H_normalized_expression
-          id: syn69693076
-          format: csv
         - name: UCI_5XFAD_normalized_expression
           id: syn69058679
           format: csv
-        - name: UCI_Trem2-R47H_NSS_normalized_expression
-          id: syn69058678
+        - name: Jax.IU.Pitt_5XFAD_normalized_expression
+          id: syn69058674
           format: csv
       final_format: json
       destination: *dest
