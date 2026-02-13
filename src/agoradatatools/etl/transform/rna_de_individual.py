@@ -171,6 +171,10 @@ def _create_output_entry_from_group(
     """
     Creates output entries from a grouped DataFrame, one entry per age group.
 
+    This function takes a group of individual expression data and creates complete
+    output entries with all metadata fields. It unnests the age-grouped structure
+    so that each age timepoint becomes a separate output entry.
+
     Args:
         group_key: Tuple containing (ensembl_gene_id, tissue, model_group, model)
         group: DataFrame group containing individual expression data
@@ -189,25 +193,24 @@ def _create_output_entry_from_group(
         ensembl_gene_id, tissue, gene_metadata_dict
     )
 
-    # Create individual_results structure
+    # Create individual_results structure grouped by age
     individual_results = _create_individual_results_from_group(group)
 
-    # Get effective_model_group from genotype metadata (use any genotype from this model)
-    # All genotypes for the same model should have the same effective_model_group
+    # Determine effective_model_group: use model_group if present, otherwise use model name
+    # This handles both grouped models (e.g., multiple 5XFAD variants) and standalone models
     effective_model_group = model_group if model_group else model
 
-    # We can also get it from the first genotype in the group if we want to be more explicit
+    # Verify effective_model_group from metadata if available (provides validation)
     if "genotype" in group.columns and len(group) > 0:
         first_genotype = group.iloc[0]["genotype"]
         metadata = genotype_metadata_dict.get((model, first_genotype), {})
         if "effective_model_group" in metadata:
             effective_model_group = metadata["effective_model_group"]
 
-    # Determine matched_control by finding the genotype with the LOWEST result_order
-    # present in the actual data for this group.
+    # Identify the matched control genotype (lowest result_order value)
+    # This assumes lower result_order values represent control genotypes
     matched_control = ""
     if "result_order" in group.columns:
-        # Get the minimum result_order value present in the data
         min_order = group["result_order"].min()
         control_mask = group["result_order"] == min_order
         if control_mask.any():
@@ -215,17 +218,17 @@ def _create_output_entry_from_group(
             metadata = genotype_metadata_dict.get((model, control_genotype), {})
             matched_control = metadata.get("display_label", "")
 
-    # For chunked files, use the actual model as the name (not the model_group)
-    # since each file represents a single model's data
+    # Use the actual model name (not model_group) as 'name' since each file
+    # represents data from a single model
     name = model
 
-    # Determine result_order for this model_group
+    # Get ordered list of display labels for this model_group
     result_order = _determine_result_order(
         genotype_metadata_dict,
         effective_model_group,
     )
 
-    # Create one output entry per age group (unnesting individual_results)
+    # Create one output entry per age timepoint (unnesting individual_results)
     output_entries = []
     for age_result in individual_results:
         output_entries.append(
@@ -256,28 +259,29 @@ def _process_individual_data_file_core(
     Core transformation logic for individual expression data.
 
     This function contains the individual-transform-specific processing logic:
-    - Enriches data with genotype metadata (display labels, result_order, model_group)
-    - Filters to include only valid genotype combinations for each model_group
-    - Groups data by gene, tissue, model_group, and model name
-    - Creates output entries for each group with individual measurements
+    1. Enriches data with genotype metadata (display labels, result_order, model_group)
+    2. Filters to include only valid genotype combinations for each model_group
+    3. Groups data by gene, tissue, model_group, and model name
+    4. Creates output entries for each group with individual measurements
 
     Note: This function expects preprocessed data (mouse genes only, rounded numeric values).
-    Preprocessing is handled by the shared process_data_files function.
+    Preprocessing (filtering human genes, rounding, validation) is handled by the
+    process_data_files function before this function is called.
 
     Args:
-        data_file: Preprocessed DataFrame containing individual expression data
+        data_file: Preprocessed DataFrame containing individual expression data with columns:
+            ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
+            containing 'display_label', 'result_order', 'model_group', 'effective_model_group'
 
     Returns:
-        List of output entry dictionaries for this file
+        List of output entry dictionaries for this file, one per (gene, tissue, model, age)
     """
-    # Map genotypes to display labels and result_order using vectorized merge operation
-    # This enriches the raw data with human-readable labels and ordering information
-    # from the genotype label map, which is more efficient than row-by-row lookups
+    # Step 1: Enrich with genotype metadata using vectorized merge
+    # This adds display labels and result_order to each row efficiently
     if genotype_metadata_dict:
-        # Convert dictionary to DataFrame for efficient pandas merge
-        # Each row maps a (model, genotype) pair to its display label and result_order
+        # Convert metadata dictionary to DataFrame for efficient pandas merge
         metadata_list = [
             {
                 "model": k[0],
@@ -289,61 +293,58 @@ def _process_individual_data_file_core(
         ]
         metadata_df = pd.DataFrame(metadata_list)
 
-        # Perform left join to add display labels and result_order
-        # validate="many_to_one" ensures each (model, genotype) has exactly one label
+        # Merge to add display labels and result_order
+        # validate="many_to_one" ensures data integrity (each (model, genotype) has one label)
         data_file = data_file.merge(
             metadata_df, on=["model", "genotype"], how="left", validate="many_to_one"
         )
-        # Fill missing display labels with original genotype (fallback for unmapped entries)
+
+        # Handle unmapped genotypes gracefully
         data_file["genotype_display"] = data_file["genotype_display"].fillna(
             data_file["genotype"]
         )
-        # Fill missing result_order with high value (treats unmapped entries as non-controls)
         data_file["result_order"] = data_file["result_order"].fillna(999)
     else:
-        # If no metadata provided, use genotype as display label
+        # Fallback if no metadata provided (edge case)
         data_file["genotype_display"] = data_file["genotype"]
         data_file["result_order"] = 999
 
-    # Map model names to model_groups by extracting from genotype_metadata_dict
-    # Build a simple {model: model_group} lookup from any genotype entry for each model
+    # Step 2: Add model_group information
+    # Extract {model: model_group} mapping from genotype metadata
     model_to_group = {
         model: metadata["model_group"]
         for (model, _), metadata in genotype_metadata_dict.items()
     }
-    # Remove duplicates by using dict (keeps first occurrence)
+    # Remove duplicate keys (all genotypes for a model have same model_group)
     model_to_group = {
         model: model_to_group[model] for model in dict.fromkeys(model_to_group)
     }
     data_file["model_group"] = data_file["model"].map(model_to_group).fillna("")
-
-    # Use the actual model as the name field
     data_file["name"] = data_file["model"]
 
-    # Filter data to only include genotypes that belong to the model_group
-    # This ensures we only process valid genotype combinations for each model group.
-    # For example, if a model_group has genotypes [A, B], we filter out any rows
-    # with genotype C even if they share the same model name.
+    # Step 3: Filter to valid genotype combinations for each model_group
+    # This prevents processing invalid genotype combinations that may exist in the data
 
-    # Determine effective model_group for each row (vectorized equivalent of _get_effective_model_group)
+    # Compute effective_model_group for each row (model_group if present, else model)
     effective_model_groups = data_file["model_group"].where(
         data_file["model_group"] != "", data_file["model"]
     )
 
-    # Build a set of allowed (effective_model_group, genotype) combinations from genotype_metadata_dict
+    # Build set of valid (effective_model_group, genotype) pairs
     allowed_genotypes_set = {
         (metadata["effective_model_group"], genotype)
         for (model, genotype), metadata in genotype_metadata_dict.items()
     }
 
-    # Filter rows: keep only those with valid (effective_model_group, genotype) combinations
+    # Filter: keep only rows with valid genotype combinations
     filter_mask = [
         (emg, gt) in allowed_genotypes_set
         for emg, gt in zip(effective_model_groups, data_file["genotype"])
     ]
     data_file = data_file[filter_mask]
 
-    # Group by gene, tissue, model_group, and name to create one entry per group
+    # Step 4: Group and create output entries
+    # Group by gene, tissue, model_group, and model name
     grouped = data_file.groupby(["ensembl_gene_id", "tissue", "model_group", "name"])
 
     output_entries = []
@@ -366,45 +367,79 @@ def transform_rna_de_individual(
     """
     Main transformation function for RNA individual expression data.
 
-    This function transforms RNA individual expression data files into a structured
-    format grouped by model_group to support display paradigms for models with
-    single or multiple controls.
+    This function orchestrates the transformation of RNA individual expression data files
+    into a structured format grouped by model_group. The output supports display paradigms
+    for models with single or multiple controls.
+
+    Processing Steps:
+        1. Validates required datasets and columns
+        2. Creates gene and genotype metadata lookup dictionaries
+        3. Validates data consistency (model_group values)
+        4. Processes each data file:
+           - Filters to mouse genes only
+           - Rounds numeric values to 5 decimal places
+           - Enriches with genotype metadata
+           - Filters to valid genotype combinations
+           - Groups by gene, tissue, model, and age
+           - Creates output entries with individual data points
+        5. Consolidates output from all files
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
-            - 'rnaseq_genotype_label_map': Maps genotypes to display labels and model_groups
-            - 'mouse_gene_metadata': Gene symbols for Ensembl IDs
+            - 'rnaseq_genotype_label_map': Maps genotypes to display labels and model_groups.
+              Required columns: model, genotype, display_label, model_group, result_order
+            - 'mouse_gene_metadata': Gene symbols for Ensembl IDs.
+              Required columns: ensembl_gene_id, gene_symbol, alias
             - One or more data files: CSV DataFrames containing individual expression
               results with columns: ensembl_gene_id, expression, model, genotype, age,
               sex, tissue, individualid
-        required_input: Dictionary mapping required dataset names to required columns
+        required_input: Dictionary mapping required dataset names to their required columns.
+            Defaults to REQUIRED_INPUT module constant.
 
     Returns:
         List of dictionaries, each representing a unique combination of gene, tissue,
-        model_group, name, and age. Each entry contains individual expression data points
-        with fields: ensembl_gene_id, gene_symbol, tissue, name, model_group,
-        matched_control, units, age, age_numeric, result_order, and data (list of
-        individual measurements).
+        model, and age. Each entry contains:
+            - ensembl_gene_id: Mouse gene identifier (ENSMUSG*)
+            - gene_symbol: Human-readable gene name (empty string if not found)
+            - tissue: Tissue name (with JAX-specific mappings applied)
+            - name: Model name
+            - model_group: Model group for display (None if not grouped)
+            - matched_control: Display label of the control genotype
+            - units: "Log2 Counts per Million"
+            - age: Age timepoint string (e.g., "3 months")
+            - age_numeric: Numeric age value for sorting
+            - result_order: Ordered list of genotype display labels
+            - data: List of individual data points, each containing:
+                - genotype: Display label
+                - sex: Sex identifier
+                - individual_id: Sample identifier
+                - value: Expression value
+
+    Raises:
+        ValueError: If required datasets or columns are missing, if data files are empty,
+            or if model_group values are inconsistent for any model.
     """
+    # Step 1: Validate inputs
     check_required_datasets_and_columns(datasets, required_input)
 
-    # Pre-compute lookup dictionaries
+    # Step 2: Prepare metadata DataFrames (fill NA values with empty strings)
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
 
-    # Validate data consistency
+    # Step 3: Validate data consistency
     validate_model_group_consistency(rnaseq_genotype_label_map_df)
 
-    # Create gene metadata lookup (separate domain - genes vs genotypes)
+    # Step 4: Create lookup dictionaries for efficient processing
+    # Gene metadata: maps Ensembl IDs to gene symbols
     gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
 
-    # Create unified genotype metadata dictionary - this is our SINGLE SOURCE OF TRUTH
-    # All other lookups can be derived from this on-the-fly
+    # Genotype metadata: single source of truth for all genotype-related information
+    # Includes display_label, result_order, model_group, and effective_model_group
     genotype_metadata_dict = create_genotype_metadata_dict(
         rnaseq_genotype_label_map_df, include_result_order=True
     )
 
-    # Define required columns for data files
+    # Step 5: Define required columns for data files
     data_file_required_columns = [
         "ensembl_gene_id",
         "expression",
@@ -416,7 +451,9 @@ def transform_rna_de_individual(
         "individualid",
     ]
 
-    # Use shared file processor
+    # Step 6: Process all data files
+    # The process_data_files function handles common preprocessing (filtering, rounding)
+    # and calls our core transformation logic for each file
     logger.info("Transform rna_de_individual starting file processing")
     output = process_data_files(
         datasets=datasets,
