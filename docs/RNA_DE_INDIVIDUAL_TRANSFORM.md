@@ -10,7 +10,7 @@ The `rna_de_individual` transform processes individual-level RNA expression (nor
 
 This transform serves to:
 1. Consolidate individual RNA expression data from multiple mouse models
-2. Group individual measurements by model group to support both single and multiple control display paradigms
+2. Group individual measurements by model group to support comparison displays (e.g., one model vs. one control, or multiple related models sharing the same control group)
 3. Enrich raw data with gene symbols, genotype display labels, and model metadata
 4. Create age-based groupings with individual data points for visualization
 
@@ -67,7 +67,6 @@ The transform requires three types of input:
 2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
    - Imported from `rna_de_individual_utils` module
    - Maps Ensembl gene IDs to gene symbols
-   - Uses gene symbols first, falls back to aliases if needed
    - **Purpose:** Enriches output with human-readable gene names
 
 ### Step 2: File Processing (Shared Pattern)
@@ -81,6 +80,7 @@ Automatically applied to each file before transform-specific processing:
 - **Empty file validation:** Raises error if file is empty
 - **Column validation:** Checks all required columns are present
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
+- **Sex conversion:** Converts sex values to sentence case (M/m/male → Male, F/f/female → Female)
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places
 - **Memory cleanup:** Deletes DataFrame and runs garbage collection after processing
 
@@ -127,9 +127,9 @@ For each grouped combination, this function directly creates output entries (one
 - `gene_symbol`: Gene symbol from metadata (empty string if not found)
 
 **Tissue Information:**
-- `tissue`: Tissue name with JAX-specific transformation applied
+- `tissue`: Tissue name with transformations applied:
   - **Special transformation:** "Right Cerebral Hemisphere" → "Hemibrain"
-  - All other tissue names remain unchanged
+  - **Sentence case conversion:** All tissue names converted to sentence case (e.g., "hippocampus" → "Hippocampus", "CORTEX" → "Cortex")
 
 **Model Information:**
 - `name`: Model name (from the `model` field, NOT model_group)
@@ -159,7 +159,7 @@ For each grouped combination, this function directly creates output entries (one
 - `units`: Fixed value "Log2 Counts per Million"
 - `data`: List of individual data points containing:
   - `genotype`: Display label (from genotype_display)
-  - `sex`: Sex identifier
+  - `sex`: Sex identifier converted to sentence case (Male/Female)
   - `individual_id`: Sample identifier (converted to string)
   - `value`: Expression value (converted to float)
 
@@ -186,23 +186,42 @@ For each grouped combination, this function directly creates output entries (one
 - **Assumption:** The genotype with the minimum result_order in actual data is the matched control
 - **Implication:** If data is missing control samples, the matched_control field may be empty
 
-### 3. Effective Model Group
-- **Assumption:** When `model_group` is empty, the model itself serves as its own group
-- **Purpose:** Handles both grouped models (e.g., multiple 5XFAD variants) and standalone models
+### 3. Model Grouping Strategy
+This transform is designed to handle two distinct experimental scenarios:
 
-### 4. Name vs Model Group
-- **Decision:** The `name` field uses the actual model name, NOT the model_group
-- **Rationale:** Each data file represents a single model's data; preserves model-level granularity
+**Scenario A: Single Model vs. Control**
+- One model compared to one control (e.g., `Jax.IU.Pitt_APOE4` vs. `C57BL/6J`)
+- The `model_group` may be empty or equal to the model name
+- Display shows one experimental genotype vs. one control genotype
 
-### 5. Genotype Mapping Completeness
+**Scenario B: Multiple Related Models Sharing Controls**
+- Multiple variants of the same model type share a common control group
+- Example: Several 5XFAD variants (`5XFAD (UCI)`, `5XFAD (JAX)`, etc.) all use the same control genotypes
+- The `model_group` field (e.g., "5XFAD") links these related models together
+- Display can show multiple model variants alongside their shared controls
+
+**Implementation Details:**
+- **Effective Model Group:** When `model_group` is empty, the model itself serves as its own group
+- **Name vs Model Group:** The `name` field preserves the actual model name (not model_group), maintaining model-level granularity
+- **Grouping Key:** Data is grouped by `model_group` to enable proper control sharing across related models
+
+### 4. Genotype Mapping Completeness
 - **Assumption:** Most genotypes in data files have entries in rnaseq_genotype_label_map
 - **Fallback:** Unmapped genotypes use the original genotype value as display_label
 - **Treatment:** Unmapped genotypes get result_order=999 (treated as non-controls)
 
-### 6. Tissue Name Standardization
+### 5. Tissue Name Standardization
 - **Assumption:** JAX models use "Right Cerebral Hemisphere" which should be standardized
 - **Transformation:** "Right Cerebral Hemisphere" → "Hemibrain"
-- **Purpose:** Ensures consistency across different data sources
+- **Sentence case conversion:** All tissue names are converted to sentence case for consistency
+- **Purpose:** Ensures consistency across different data sources and standardizes capitalization
+
+### 6. Sex Value Standardization
+- **Conversion:** Sex values are standardized to sentence case format:
+  - "M", "m", "male", "MALE" → "Male"
+  - "F", "f", "female", "FEMALE" → "Female"
+- **Purpose:** Ensures consistent sex value formatting across all data sources
+- **Handling:** Other sex values (if present) are converted to sentence case
 
 ### 7. Age Format
 - **Assumption:** Age values follow format "[number] months" (e.g., "3 months", "6 months")
@@ -303,7 +322,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 
 - **ensembl_gene_id**: Mouse gene Ensembl identifier (ENSMUSG*)
 - **gene_symbol**: Human-readable gene symbol (empty if not found in metadata)
-- **tissue**: Tissue name (with JAX transformation applied)
+- **tissue**: Tissue name (with JAX transformation and sentence case applied)
 - **name**: Actual model name (not model_group)
 - **model_group**: Model group for display purposes (null if empty)
 - **matched_control**: Display label of the control genotype (empty if no control present in data)
@@ -313,7 +332,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 - **result_order**: Ordered list of genotype display labels for this model_group
 - **data**: Array of individual data points with:
   - **genotype**: Display label for genotype
-  - **sex**: Sex identifier
+  - **sex**: Sex identifier in sentence case (Male/Female)
   - **individual_id**: Unique sample identifier
   - **value**: Normalized expression value (rounded to 5 decimal places)
 
@@ -383,8 +402,13 @@ output = transform_rna_de_individual(datasets)
 
 ### Issue: Unexpected tissue names
 - **Cause:** Tissue names not standardized in input data
-- **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"
+- **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"; all other tissues are converted to sentence case
 - **Solution:** Update input data or add transformations to `map_jax_tissue_name`
+
+### Issue: Unexpected sex values
+- **Cause:** Sex values in non-standard format
+- **Impact:** Values are converted to sentence case; common variations (M/F/male/female) are standardized to Male/Female
+- **Solution:** Verify sex values in input data; add additional mappings to `convert_sex_to_sentence_case` if needed
 
 ### Issue: Memory errors with large files
 - **Cause:** Processing very large expression files

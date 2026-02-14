@@ -8,7 +8,9 @@ future reuse by other RNA-seq transforms if needed.
 
 Key Functions:
     filter_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
-    map_jax_tissue_name: Map JAX-specific tissue names to standard names
+    convert_to_sentence_case: Convert text to sentence case (first letter capitalized)
+    convert_sex_to_sentence_case: Convert sex values to standardized sentence case (Male/Female)
+    map_jax_tissue_name: Map JAX-specific tissue names to standard names and apply sentence case
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
     create_genotype_metadata_dict: Create a lookup dictionary mapping (model, genotype) tuples to their metadata
@@ -42,19 +44,98 @@ def filter_mouse_genes(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["ensembl_gene_id"].str.startswith("ENSMUSG")]
 
 
+def convert_to_sentence_case(text: str) -> str:
+    """
+    Convert text to sentence case (first letter capitalized, rest lowercase).
+
+    Handles empty strings and preserves multi-word formatting.
+
+    Args:
+        text: Text to convert
+
+    Returns:
+        Text in sentence case, or empty string if input is empty
+
+    Examples:
+        >>> convert_to_sentence_case("CORTEX")
+        "Cortex"
+        >>> convert_to_sentence_case("hippocampus")
+        "Hippocampus"
+        >>> convert_to_sentence_case("M")
+        "M"
+    """
+    if not text:
+        return text
+    return text.capitalize()
+
+
+def convert_sex_to_sentence_case(sex: str) -> str:
+    """
+    Convert sex value to sentence case format.
+
+    Converts common sex identifiers to standardized sentence case values:
+    - "M", "m", "male", "MALE" -> "Male"
+    - "F", "f", "female", "FEMALE" -> "Female"
+    - Other values are converted to sentence case
+
+    Args:
+        sex: Sex identifier
+
+    Returns:
+        Standardized sex value in sentence case
+
+    Examples:
+        >>> convert_sex_to_sentence_case("M")
+        "Male"
+        >>> convert_sex_to_sentence_case("female")
+        "Female"
+        >>> convert_sex_to_sentence_case("MALE")
+        "Male"
+    """
+    if not sex:
+        return sex
+
+    sex_lower = sex.lower()
+
+    # Map common male identifiers
+    if sex_lower in ["m", "male"]:
+        return "Male"
+
+    # Map common female identifiers
+    if sex_lower in ["f", "female"]:
+        return "Female"
+
+    # For any other value, apply sentence case
+    return convert_to_sentence_case(sex)
+
+
 def map_jax_tissue_name(tissue: str) -> str:
     """
-    Map JAX-specific tissue names to standard names.
+    Map JAX-specific tissue names to standard names and apply sentence case.
 
-    Currently maps "Right Cerebral Hemisphere" to "Hemibrain".
+    First applies special mappings (e.g., "Right Cerebral Hemisphere" to "Hemibrain"),
+    then converts the result to sentence case.
 
     Args:
         tissue: Original tissue name
 
     Returns:
-        Mapped tissue name
+        Mapped and sentence-cased tissue name
+
+    Examples:
+        >>> map_jax_tissue_name("Right Cerebral Hemisphere")
+        "Hemibrain"
+        >>> map_jax_tissue_name("hippocampus")
+        "Hippocampus"
+        >>> map_jax_tissue_name("CORTEX")
+        "Cortex"
     """
-    return "Hemibrain" if tissue == "Right Cerebral Hemisphere" else tissue
+    # Apply special mapping first
+    if tissue == "Right Cerebral Hemisphere":
+        return "Hemibrain"
+
+    # Then apply sentence case to the tissue name
+    return convert_to_sentence_case(tissue)
 
 
 def validate_model_group_consistency(
@@ -268,9 +349,10 @@ def process_data_files(
     3. Validates file is not empty
     4. Checks required columns are present
     5. Filters to mouse genes only (removes human genes)
-    6. Rounds numeric values to 5 decimal places
-    7. Calls transform-specific processing callback
-    8. Performs memory cleanup after each file
+    6. Converts sex values to sentence case (Male/Female)
+    7. Rounds numeric values to 5 decimal places
+    8. Calls transform-specific processing callback
+    9. Performs memory cleanup after each file
 
     This pattern ensures consistent file handling and reduces code duplication.
 
@@ -335,6 +417,13 @@ def process_data_files(
 
         # Filter to mouse genes only
         data_file = filter_mouse_genes(data_file)
+
+        # Convert sex values to sentence case if sex column exists
+        if "sex" in data_file.columns:
+            data_file = (
+                data_file.copy()
+            )  # Create explicit copy to avoid SettingWithCopyWarning
+            data_file["sex"] = data_file["sex"].apply(convert_sex_to_sentence_case)
 
         # Round numeric columns to 5 decimal places
         data_file = data_file.round(decimals=5)

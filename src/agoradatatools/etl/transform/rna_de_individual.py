@@ -14,7 +14,8 @@ The transformation:
 - Organizes data by model_group to support both single and multiple control display paradigms
 - Enriches data with gene symbols from gene metadata
 - Maps genotypes to display labels for better readability
-- Applies special tissue name transformation for JAX models ("Right Cerebral Hemisphere" -> "Hemibrain")
+- Converts sex values to sentence case (M/F/male/female → Male/Female)
+- Applies tissue name transformations: "Right Cerebral Hemisphere" → "Hemibrain" and converts all tissues to sentence case
 - Rounds numeric columns to 5 decimal places for consistency
 
 Key Functions:
@@ -322,6 +323,7 @@ def transform_rna_de_individual(
         3. Validates data consistency (model_group values)
         4. Processes each data file:
            - Filters to mouse genes only
+           - Converts sex values to sentence case (Male/Female)
            - Rounds numeric values to 5 decimal places
            - Enriches with genotype metadata
            - Filters to valid genotype combinations
@@ -346,7 +348,7 @@ def transform_rna_de_individual(
         model, and age. Each entry contains:
             - ensembl_gene_id: Mouse gene identifier (ENSMUSG*)
             - gene_symbol: Human-readable gene name (empty string if not found)
-            - tissue: Tissue name (with JAX-specific mappings applied)
+            - tissue: Tissue name (with JAX-specific mappings and sentence case applied)
             - name: Model name
             - model_group: Model group for display (None if not grouped)
             - matched_control: Display label of the control genotype
@@ -356,7 +358,7 @@ def transform_rna_de_individual(
             - result_order: Ordered list of genotype display labels
             - data: List of individual data points, each containing:
                 - genotype: Display label
-                - sex: Sex identifier
+                - sex: Sex identifier in sentence case (Male/Female)
                 - individual_id: Sample identifier
                 - value: Expression value
 
