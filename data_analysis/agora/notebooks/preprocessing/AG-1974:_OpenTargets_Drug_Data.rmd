@@ -1,0 +1,195 @@
+---
+title: "AG-1974: OpenTargets Drug Data"
+---
+This notebook pulls drug data from the OpenTargets GraphQL API and cleans it for use by downstream transforms:
+- nomianted_drugs
+- drug_info
+
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- jsonlite
+- purrr
+- ghql
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "https://cloud.r-project.org"))
+}
+if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
+if (!require("purrr")) { install.packages("purrr") }
+if (!require("ghql")) { install.packages("ghql") }
+
+library(synapser)
+library(purrr)
+library(jsonlite)
+library(ghql)
+```
+
+
+## Variables and functions
+Setup the required graphQL client and nominated drugs source file
+```{r}
+# ***************************
+# OPEN TARGETS GRAPHQL CLIENT
+# ***************************
+url <- "https://api.platform.opentargets.org/api/v4/graphql"
+con <- GraphqlClient$new(url = url)
+
+# ************
+# DRUG TARGETS
+# ************
+source <- download_file("syn73677240", type = "csv")
+assign("drug_targets", source, envir = .GlobalEnv)
+chembl_ids <- drug_targets$ChEMBL_ID
+
+# ********
+# FUNCTION
+# ********
+# Combines the provided lists of values to produce a set of unique values.
+# - name: The canonical name of the drug, to removed from the list of alias values
+# - ...: A variable number of lists of values to combine
+resolve_drug_names <- function(name, ...) {
+  combined <- unlist(list(...))
+  combined <- combined[!is.na(combined) & combined != ""]
+
+  # Remove the canonical name
+  filtered <- combined[tolower(combined) != tolower(name)]
+
+  # Case-insensitive deduplication, keeping original casing of the first occurrence found
+  final_list <- filtered[!duplicated(tolower(filtered))]
+
+  # Return as a list (or character(0) if empty for clean JSON)
+  return(if(length(final_list) > 0) final_list else list())
+}
+
+
+```
+# Download and adapt OpenTargets Drug data
+```{r}
+# construct the GraphQL query
+drug_query <- Query$new()
+variables = list(chembl_ids = chembl_ids)
+
+drug_query$query('test_drugs', 'query getDrugs($chembl_ids: [String!]!){
+  drugs (chemblIds: $chembl_ids){
+    id
+    description
+    drugType
+    maximumClinicalTrialPhase
+    yearOfFirstApproval
+    mechanismsOfAction {
+      rows {
+        mechanismOfAction
+      }
+    }
+    linkedTargets {
+      rows {
+        id
+      }
+    }
+    name
+    crossReferences {
+      source
+      ids
+    }
+    synonyms
+    tradeNames
+  }
+}')
+
+#Execute the GraphQL query
+result <- con$exec(drug_query$queries$test_drugs, variables)
+write(prettify(result), file.path(output_dir, "test_drugs"))
+
+# Read the JSON response into a dataframe
+response_df <- fromJSON(result, flatten = TRUE)
+drug_info <- response_df$data$drugs
+drug_info
+
+
+# clean up nested row structures
+drug_info <- drug_info %>%
+  mutate(
+mechanismsOfAction = map(mechanismsOfAction.rows, ~ unlist(.x$mechanismOfAction)),
+    linkedTargets = map(linkedTargets.rows, ~ unlist(.x$id))
+  ) %>%
+  # have to use - instead of ! to negate columns with . characters
+  select(-mechanismsOfAction.rows, -linkedTargets.rows)
+
+# Extract DrugBank ID from crossReferences
+drugbank_mapping <- drug_info %>%
+  select(id, crossReferences) %>%
+  unnest(crossReferences) %>%
+  filter(source == "drugbank") %>%
+  unnest(ids) %>%
+  select(id, drug_bank_id = ids)
+
+drug_info <- drug_info %>%
+  left_join(drugbank_mapping, by = "id") %>%
+  select(-crossReferences)
+
+# manually resolve missing DrugBank IDs
+manual_fixes <- tribble(
+  ~id,             ~drug_bank_id_fix,
+  "CHEMBL4435170",   "DB16650",
+  "CHEMBL4594217",   "DB08907",
+  "CHEMBL4084119",   "DB06655",
+  "CHEMBL4788758",   "DB19277",
+  "CHEMBL545437",    "DB05395"
+)
+
+# Populate the missing DrugBank IDs
+drug_info <- drug_info %>%
+  left_join(manual_fixes, by = "id") %>%
+  mutate(drug_bank_id = coalesce(drug_bank_id, drug_bank_id_fix)) %>%
+  select(-drug_bank_id_fix)
+
+ # Collapse synonyms and tradeNames into a single set (case-insensitive)
+drug_info <- drug_info %>%
+  mutate(aliases = pmap(
+    .l = list(name, synonyms, tradeNames),
+    .f = resolve_drug_names
+  )) %>%
+  select(-tradeNames, -synonyms, -name)
+
+
+# If maximumClinicalTrialPhase == -1, convert to NA to avoid magic numbers
+drug_info <- drug_info %>%
+  mutate(maximumClinicalTrialPhase = na_if(maximumClinicalTrialPhase, -1))
+
+drug_info
+```
+
+# Generate source file and upload to Synapse
+```{r}
+json_output <- toJSON(drug_info, pretty = TRUE, auto_unbox = TRUE)
+# cat(json_output)
+
+# write json file
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+
+write(json_output, file.path(output_dir, "opentargets_drug_data.json"))
+
+# BREAK HERE FOR LOCAL VALIDATION - generated file is in ADT notebooks/output
+
+# upload to synapse
+synLogin()
+syn_file <- File(
+              file.path(output_dir, "opentargets_drug_data.json"),
+              description = "Open Targets Drug data for Agora",
+              parent = "syn7525089"
+            )
+
+res <- synStore(
+          syn_file,
+          forceVersion = FALSE,
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/AG-1974:_OpenTarget_ Drug_Data.rmd"
+        )
+# print synapse_id and new version number
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+```
+
