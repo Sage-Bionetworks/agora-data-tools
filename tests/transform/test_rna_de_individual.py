@@ -8,7 +8,6 @@ into a structured format for the Agora platform.
 Test Classes:
     - TestCreateGenotypeMetadataDict: Unit tests for the create_genotype_metadata_dict helper function (from rna_de_individual_utils)
     - TestDetermineResultOrder: Unit tests for the _determine_result_order helper function
-    - TestCreateIndividualResultsFromGroup: Unit tests for the _create_individual_results_from_group helper function
     - TestCreateOutputEntryFromGroup: Unit tests for the _create_output_entry_from_group helper function
     - TestProcessIndividualDataFileCore: Unit tests for the _process_individual_data_file_core helper function
     - TestTransformRnaDeIndividual: Integration tests for the full transformation pipeline
@@ -44,7 +43,6 @@ import pytest
 from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
     _determine_result_order,
-    _create_individual_results_from_group,
     _create_output_entry_from_group,
     _process_individual_data_file_core,
 )
@@ -268,123 +266,6 @@ class TestDetermineResultOrder:
         result = _determine_result_order(genotype_metadata, "Model_B")
 
         assert result == []
-
-
-class TestCreateIndividualResultsFromGroup:
-    """
-    Unit tests for the _create_individual_results_from_group helper function.
-
-    This class contains focused unit tests for individual results creation,
-    which groups data by age and creates structured data points.
-
-    Test Methods:
-        - test_single_age_group: Tests creation with single age group.
-        - test_multiple_age_groups: Tests creation with multiple ages.
-        - test_age_sorting: Tests numeric sorting of age groups.
-        - test_data_point_structure: Tests structure of individual data points.
-        - test_type_conversions: Tests type conversions for output fields.
-    """
-
-    def test_single_age_group(self) -> None:
-        """Test individual results creation with single age group."""
-        group = pd.DataFrame(
-            {
-                "age": ["6 months", "6 months"],
-                "genotype_display": ["Transgenic", "Wildtype"],
-                "sex": ["Male", "Female"],
-                "individualid": ["Ind001", "Ind002"],
-                "expression": [5.12345, 3.45678],
-            }
-        )
-
-        result = _create_individual_results_from_group(group)
-
-        assert len(result) == 1
-        assert result[0]["age"] == "6 months"
-        assert len(result[0]["data"]) == 2
-
-    def test_multiple_age_groups(self) -> None:
-        """Test individual results creation with multiple age groups."""
-        group = pd.DataFrame(
-            {
-                "age": ["3 months", "3 months", "6 months"],
-                "genotype_display": ["Transgenic", "Wildtype", "Transgenic"],
-                "sex": ["Male", "Female", "Male"],
-                "individualid": ["Ind001", "Ind002", "Ind003"],
-                "expression": [4.0, 3.0, 5.0],
-            }
-        )
-
-        result = _create_individual_results_from_group(group)
-
-        assert len(result) == 2
-        # Check ages are present
-        ages = [r["age"] for r in result]
-        assert "3 months" in ages
-        assert "6 months" in ages
-
-    def test_age_sorting(self) -> None:
-        """Test that age groups are sorted numerically."""
-        group = pd.DataFrame(
-            {
-                "age": ["12 months", "3 months", "6 months"],
-                "genotype_display": ["Tg", "Tg", "Tg"],
-                "sex": ["Male", "Male", "Male"],
-                "individualid": ["Ind001", "Ind002", "Ind003"],
-                "expression": [6.0, 4.0, 5.0],
-            }
-        )
-
-        result = _create_individual_results_from_group(group)
-
-        assert len(result) == 3
-        assert result[0]["age"] == "3 months"
-        assert result[1]["age"] == "6 months"
-        assert result[2]["age"] == "12 months"
-
-    def test_data_point_structure(self) -> None:
-        """Test structure of individual data points."""
-        group = pd.DataFrame(
-            {
-                "age": ["6 months"],
-                "genotype_display": ["Transgenic"],
-                "sex": ["Male"],
-                "individualid": ["Ind001"],
-                "expression": [5.12345],
-            }
-        )
-
-        result = _create_individual_results_from_group(group)
-
-        data_point = result[0]["data"][0]
-        assert "genotype" in data_point
-        assert "sex" in data_point
-        assert "individual_id" in data_point
-        assert "value" in data_point
-        assert data_point["genotype"] == "Transgenic"
-        assert data_point["sex"] == "Male"
-        assert data_point["individual_id"] == "Ind001"
-        assert data_point["value"] == 5.12345
-
-    def test_type_conversions(self) -> None:
-        """Test that individual_id is converted to string and value to float."""
-        group = pd.DataFrame(
-            {
-                "age": ["6 months"],
-                "genotype_display": ["Transgenic"],
-                "sex": ["Male"],
-                "individualid": [12345],  # Integer ID
-                "expression": ["5.12345"],  # String expression
-            }
-        )
-
-        result = _create_individual_results_from_group(group)
-
-        data_point = result[0]["data"][0]
-        assert isinstance(data_point["individual_id"], str)
-        assert isinstance(data_point["value"], float)
-        assert data_point["individual_id"] == "12345"
-        assert data_point["value"] == pytest.approx(5.12345)
 
 
 class TestCreateOutputEntryFromGroup:

@@ -19,7 +19,6 @@ The transformation:
 
 Key Functions:
     transform_rna_de_individual: Main transformation function that orchestrates the data processing
-    _create_individual_results_from_group: Creates individual_results structure with age-based grouping
     _create_output_entry_from_group: Creates output entries from a grouped DataFrame, one entry per age
     _process_individual_data_file_core: Processes the core transformation logic for individual expression data
     _determine_result_order: Determines the ordering of display labels for genotypes in a model_group
@@ -101,67 +100,6 @@ def _determine_result_order(
     return result_order
 
 
-def _create_individual_results_from_group(
-    group: pd.DataFrame,
-) -> List[Dict[str, Any]]:
-    """
-    Creates individual_results structure from a grouped DataFrame.
-
-    Groups the data by age and creates entries with all individual data points
-    for each age timepoint. Uses efficient pandas methods for bulk operations.
-
-    Args:
-        group: DataFrame group containing age, genotype, sex, individualid, and expression columns.
-
-    Returns:
-        List of dictionaries, one per age timepoint, each containing:
-            - 'age': str, age timepoint (e.g., '3 months')
-            - 'data': List of dicts with individual data points containing:
-                - 'genotype': str, genotype identifier
-                - 'sex': str, sex identifier
-                - 'individual_id': str, individual identifier
-                - 'value': float, expression value
-    """
-    individual_results = []
-
-    # Group by age to create age-based entries
-    age_groups = group.groupby("age")
-
-    for age, age_group in age_groups:
-        # Select and rename columns for output format
-        age_group_subset = age_group[
-            ["genotype_display", "sex", "individualid", "expression"]
-        ].copy()
-        age_group_subset.columns = ["genotype", "sex", "individual_id", "value"]
-
-        # Convert types efficiently
-        age_group_subset["individual_id"] = age_group_subset["individual_id"].astype(
-            str
-        )
-        age_group_subset["value"] = age_group_subset["value"].astype(float)
-
-        # Convert DataFrame to list of dictionaries for JSON serialization
-        data_points = age_group_subset.to_dict("records")
-
-        individual_results.append(
-            {
-                "age": str(age),
-                "data": data_points,
-            }
-        )
-
-    # Sort by numeric age value
-    try:
-        individual_results = sorted(
-            individual_results, key=lambda x: int(x["age"].split()[0])
-        )
-    except (ValueError, IndexError):
-        # If age format is unexpected, keep original order
-        pass
-
-    return individual_results
-
-
 def _create_output_entry_from_group(
     group_key: tuple[str, str, str, str],
     group: pd.DataFrame,
@@ -169,22 +107,26 @@ def _create_output_entry_from_group(
     genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """
-    Creates output entries from a grouped DataFrame, one entry per age group.
+    Creates output entries from a grouped DataFrame, one entry per age timepoint.
 
-    This function takes a group of individual expression data and creates complete
-    output entries with all metadata fields. It unnests the age-grouped structure
-    so that each age timepoint becomes a separate output entry.
+    This function takes a group of individual expression data (gene, tissue, model combination)
+    and creates separate output entries for each age timepoint. Each entry contains all the
+    individual data points for that specific age.
 
     Args:
         group_key: Tuple containing (ensembl_gene_id, tissue, model_group, model)
-        group: DataFrame group containing individual expression data
+        group: DataFrame group containing individual expression data with columns:
+            genotype, genotype_display, age, sex, individualid, expression, result_order
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
             containing 'display_label', 'result_order', and 'effective_model_group'
 
     Returns:
-        List of dictionaries, one per age group, each containing the complete output entry
-        with age and data fields (unnested from individual_results)
+        List of dictionaries, one per age timepoint, each containing:
+            - All metadata fields (gene, tissue, model, control info)
+            - age: Age timepoint string
+            - age_numeric: Numeric age for sorting
+            - data: List of individual data points for this age
     """
     ensembl_gene_id, tissue, model_group, model = group_key
 
@@ -192,9 +134,6 @@ def _create_output_entry_from_group(
     common_metadata = extract_common_metadata(
         ensembl_gene_id, tissue, gene_metadata_dict
     )
-
-    # Create individual_results structure grouped by age
-    individual_results = _create_individual_results_from_group(group)
 
     # Determine effective_model_group: use model_group if present, otherwise use model name
     # This handles both grouped models (e.g., multiple 5XFAD variants) and standalone models
@@ -228,9 +167,26 @@ def _create_output_entry_from_group(
         effective_model_group,
     )
 
-    # Create one output entry per age timepoint (unnesting individual_results)
+    # Create one output entry per age timepoint directly from grouped data
     output_entries = []
-    for age_result in individual_results:
+
+    for age, age_group in group.groupby("age"):
+        # Select and rename columns for output format
+        age_group_subset = age_group[
+            ["genotype_display", "sex", "individualid", "expression"]
+        ].copy()
+        age_group_subset.columns = ["genotype", "sex", "individual_id", "value"]
+
+        # Convert types for JSON serialization
+        age_group_subset["individual_id"] = age_group_subset["individual_id"].astype(
+            str
+        )
+        age_group_subset["value"] = age_group_subset["value"].astype(float)
+
+        # Convert DataFrame to list of dictionaries
+        data_points = age_group_subset.to_dict("records")
+
+        # Create output entry for this age
         output_entries.append(
             {
                 "ensembl_gene_id": common_metadata["ensembl_gene_id"],
@@ -240,12 +196,15 @@ def _create_output_entry_from_group(
                 "model_group": normalize_model_group_value(model_group),
                 "matched_control": matched_control,
                 "units": "Log2 Counts per Million",
-                "age": age_result["age"],
-                "age_numeric": extract_age_numeric(age_result["age"]),
+                "age": str(age),
+                "age_numeric": extract_age_numeric(str(age)),
                 "result_order": result_order,
-                "data": age_result["data"],
+                "data": data_points,
             }
         )
+
+    # Sort entries by numeric age value
+    output_entries.sort(key=lambda x: x["age_numeric"])
 
     return output_entries
 

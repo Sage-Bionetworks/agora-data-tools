@@ -118,18 +118,9 @@ After preprocessing, the individual transform applies its specific logic:
 - Each group represents a unique combination of gene, tissue, and model
 - **Design decision:** Groups by `model_group` to support multiple controls paradigm
 
-#### 3.2 Individual Results Structure Creation (`_create_individual_results_from_group`)
-- Sub-groups data by age within each main group
-- For each age timepoint, creates a list of individual data points:
-  - `genotype`: Display label for genotype
-  - `sex`: Sex identifier
-  - `individual_id`: Individual sample identifier (converted to string)
-  - `value`: Expression value (converted to float)
-- Sorts age entries numerically (extracts numeric value from strings like "3 months")
+#### 3.2 Output Entry Creation (`_create_output_entry_from_group`)
 
-#### 3.3 Output Entry Creation (`_create_output_entry_from_group`)
-
-For each grouped combination, creates output entries with:
+For each grouped combination, this function directly creates output entries (one per age timepoint) with:
 
 **Gene Information:**
 - `ensembl_gene_id`: Original Ensembl ID
@@ -167,10 +158,16 @@ For each grouped combination, creates output entries with:
 **Measurement Information:**
 - `units`: Fixed value "Log2 Counts per Million"
 - `data`: List of individual data points containing:
-  - `genotype`: Display label
+  - `genotype`: Display label (from genotype_display)
   - `sex`: Sex identifier
-  - `individual_id`: Sample identifier
-  - `value`: Expression value
+  - `individual_id`: Sample identifier (converted to string)
+  - `value`: Expression value (converted to float)
+
+**Processing Steps:**
+1. Groups the input data by age within each (gene, tissue, model) combination
+2. For each age group, creates a complete output entry with all metadata fields
+3. Sorts output entries by numeric age value for consistent ordering
+4. Returns one output entry per age timepoint
 
 **Unnesting Decision:** Unlike some transforms that nest age data, this transform creates **one output entry per age** (unnested structure). Each entry has a single age with its associated data points.
 
