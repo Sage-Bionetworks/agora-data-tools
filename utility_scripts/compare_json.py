@@ -175,11 +175,11 @@ def compare_json_files(file1: str, file2: str) -> bool:
     print(f"Objects only in file2: {len(only_in_2_keys):,}")
 
     if len(only_in_1_keys) == 0 and len(only_in_2_keys) == 0:
-        print("\n✅ SUCCESS: Files are identical!")
+        print("\nSUCCESS: Files are identical!")
         print("Percentage match: 100.00%")
         return True
     else:
-        print("\n✗ MISMATCH: Files have different content")
+        print("\nMISMATCH: Files have different content")
         print(f"Percentage identical: {len(common_keys)/len(data1)*100:.2f}%")
         print(f"Percentage different: {len(only_in_1_keys)/len(data1)*100:.2f}%")
 

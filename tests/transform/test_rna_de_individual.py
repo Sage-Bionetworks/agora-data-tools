@@ -295,6 +295,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001", "Ind002"],
                 "expression": [5.0, 3.0],
                 "result_order": [2, 1],
+                "effective_model_group": ["Model_A", "Model_A"],
             }
         )
 
@@ -342,6 +343,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001"],
                 "expression": [5.0],
                 "result_order": [2],
+                "effective_model_group": ["Model_A"],
             }
         )
 
@@ -372,6 +374,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001", "Ind002", "Ind003"],
                 "expression": [5.0, 3.0, 6.0],
                 "result_order": [2, 1, 3],
+                "effective_model_group": ["GroupX", "GroupX", "GroupX"],
             }
         )
 
@@ -413,6 +416,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001"],
                 "expression": [5.0],
                 "result_order": [2],
+                "effective_model_group": ["Model_A"],
             }
         )
 
@@ -433,6 +437,18 @@ class TestCreateOutputEntryFromGroup:
 
         # Test with non-empty model_group
         group_key = ("ENSMUSG00000000001", "Cortex", "GroupX", "Model_B")
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "genotype": ["Tg"],
+                "genotype_display": ["Transgenic"],
+                "sex": ["Male"],
+                "individualid": ["Ind001"],
+                "expression": [5.0],
+                "result_order": [2],
+                "effective_model_group": ["GroupX"],
+            }
+        )
         genotype_metadata_dict = {
             ("Model_B", "Tg"): {
                 "display_label": "Transgenic",
@@ -459,6 +475,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001", "Ind002"],
                 "expression": [4.0, 5.0],
                 "result_order": [2, 2],
+                "effective_model_group": ["Model_A", "Model_A"],
             }
         )
 

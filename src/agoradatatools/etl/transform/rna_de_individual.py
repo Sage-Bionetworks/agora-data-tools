@@ -116,7 +116,8 @@ def _create_output_entry_from_group(
     Args:
         group_key: Tuple containing (ensembl_gene_id, tissue, model_group, model)
         group: DataFrame group containing individual expression data with columns:
-            genotype, genotype_display, age, sex, individualid, expression, result_order
+            genotype, genotype_display, age, sex, individualid, expression, result_order,
+            effective_model_group
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
             containing 'display_label', 'result_order', and 'effective_model_group'
@@ -135,16 +136,9 @@ def _create_output_entry_from_group(
         ensembl_gene_id, tissue, gene_metadata_dict
     )
 
-    # Determine effective_model_group: use model_group if present, otherwise use model name
-    # This handles both grouped models (e.g., multiple 5XFAD variants) and standalone models
-    effective_model_group = model_group if model_group else model
-
-    # Verify effective_model_group from metadata if available (provides validation)
-    if "genotype" in group.columns and len(group) > 0:
-        first_genotype = group.iloc[0]["genotype"]
-        metadata = genotype_metadata_dict.get((model, first_genotype), {})
-        if "effective_model_group" in metadata:
-            effective_model_group = metadata["effective_model_group"]
+    # Get effective_model_group from the DataFrame (pre-computed during merge)
+    # All rows in the group have the same effective_model_group
+    effective_model_group = group.iloc[0]["effective_model_group"]
 
     # Identify the matched control genotype (lowest result_order value)
     # This assumes lower result_order values represent control genotypes
@@ -218,7 +212,7 @@ def _process_individual_data_file_core(
     Core transformation logic for individual expression data.
 
     This function contains the individual-transform-specific processing logic:
-    1. Enriches data with genotype metadata (display labels, result_order, model_group)
+    1. Enriches data with genotype metadata (display labels, result_order, model_group, effective_model_group)
     2. Filters to include only valid genotype combinations for each model_group
     3. Groups data by gene, tissue, model_group, and model name
     4. Creates output entries for each group with individual measurements
@@ -238,7 +232,7 @@ def _process_individual_data_file_core(
         List of output entry dictionaries for this file, one per (gene, tissue, model, age)
     """
     # Step 1: Enrich with genotype metadata using vectorized merge
-    # This adds display labels and result_order to each row efficiently
+    # This adds display labels, result_order, model_group, and effective_model_group to each row
     if genotype_metadata_dict:
         # Convert metadata dictionary to DataFrame for efficient pandas merge
         metadata_list = [
@@ -247,12 +241,14 @@ def _process_individual_data_file_core(
                 "genotype": k[1],
                 "genotype_display": v["display_label"],
                 "result_order": v["result_order"],
+                "model_group": v["model_group"],
+                "effective_model_group": v["effective_model_group"],
             }
             for k, v in genotype_metadata_dict.items()
         ]
         metadata_df = pd.DataFrame(metadata_list)
 
-        # Merge to add display labels and result_order
+        # Merge to add all metadata fields
         # validate="many_to_one" ensures data integrity (each (model, genotype) has one label)
         data_file = data_file.merge(
             metadata_df, on=["model", "genotype"], how="left", validate="many_to_one"
@@ -263,42 +259,32 @@ def _process_individual_data_file_core(
             data_file["genotype"]
         )
         data_file["result_order"] = data_file["result_order"].fillna(999)
+        data_file["model_group"] = data_file["model_group"].fillna("")
+        data_file["effective_model_group"] = data_file["effective_model_group"].fillna(
+            data_file["model"]
+        )
     else:
         # Fallback if no metadata provided (edge case)
         data_file["genotype_display"] = data_file["genotype"]
         data_file["result_order"] = 999
+        data_file["model_group"] = ""
+        data_file["effective_model_group"] = data_file["model"]
 
-    # Step 2: Add model_group information
-    # Extract {model: model_group} mapping from genotype metadata
-    model_to_group = {
-        model: metadata["model_group"]
-        for (model, _), metadata in genotype_metadata_dict.items()
-    }
-    # Remove duplicate keys (all genotypes for a model have same model_group)
-    model_to_group = {
-        model: model_to_group[model] for model in dict.fromkeys(model_to_group)
-    }
-    data_file["model_group"] = data_file["model"].map(model_to_group).fillna("")
+    # Step 2: Add name column (alias for model)
     data_file["name"] = data_file["model"]
 
     # Step 3: Filter to valid genotype combinations for each model_group
     # This prevents processing invalid genotype combinations that may exist in the data
-
-    # Compute effective_model_group for each row (model_group if present, else model)
-    effective_model_groups = data_file["model_group"].where(
-        data_file["model_group"] != "", data_file["model"]
-    )
-
-    # Build set of valid (effective_model_group, genotype) pairs
+    # Build set of valid (effective_model_group, genotype) pairs from metadata
     allowed_genotypes_set = {
         (metadata["effective_model_group"], genotype)
         for (model, genotype), metadata in genotype_metadata_dict.items()
     }
 
-    # Filter: keep only rows with valid genotype combinations
+    # Filter: keep only rows with valid genotype combinations using the pre-computed column
     filter_mask = [
         (emg, gt) in allowed_genotypes_set
-        for emg, gt in zip(effective_model_groups, data_file["genotype"])
+        for emg, gt in zip(data_file["effective_model_group"], data_file["genotype"])
     ]
     data_file = data_file[filter_mask]
 
