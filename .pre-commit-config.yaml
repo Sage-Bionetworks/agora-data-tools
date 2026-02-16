@@ -54,6 +54,7 @@ repos:
       - id: interrogate
         exclude: ^(setup.py|tests|data_analysis|gx_suite_definitions)
         args: [--config=pyproject.toml]
+        additional_dependencies: ['setuptools']
 
   - repo: https://github.com/jendrikseipp/vulture
     rev: "v2.7"
