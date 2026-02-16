@@ -27,25 +27,33 @@ library(ghql)
 ```
 
 
-## Variables and functions
+## Set up clients, variables and functions
 Setup the required graphQL client and nominated drugs source file
 ```{r}
 # ***************************
 # OPEN TARGETS GRAPHQL CLIENT
 # ***************************
+
 url <- "https://api.platform.opentargets.org/api/v4/graphql"
 con <- GraphqlClient$new(url = url)
 
-# ************
-# DRUG TARGETS
-# ************
-source <- download_file("syn73677240", type = "csv")
-assign("drug_targets", source, envir = .GlobalEnv)
-chembl_ids <- drug_targets$ChEMBL_ID
+# **************************
+# PROVENANCE & LOCAL STORAGE
+# **************************
 
-# ********
-# FUNCTION
-# ********
+# Vector to store all downloaded synIds for Synapse provenance (populated via download_csv function)
+data_sources <- character()
+
+# Local file storage
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+
+# *********
+# FUNCTIONS
+# *********
+
 # Combines the provided lists of values to produce a set of unique values.
 # - name: The canonical name of the drug, to removed from the list of alias values
 # - ...: A variable number of lists of values to combine
@@ -63,15 +71,54 @@ resolve_drug_names <- function(name, ...) {
   return(if(length(final_list) > 0) final_list else list())
 }
 
+# Download a csv file from Synapse by synId and read it into a dataframe
+# - synId: synapse ID of the file to download
+# - df_name: the name to use for the resulting dataframe
+download_csv <- function(synId, df_name) {
 
+  synLogin()
+
+  # Capture all downloaded synIds for provenance
+  data_sources <<- c(data_sources, synId)
+
+  input_dir <- file.path("./", "input")
+  id_parts <- strsplit(synId, '.', fixed = TRUE)
+  id_value <- id_parts[[1]][1]
+  version_value <- id_parts[[1]][2]
+
+  if (is.na(version_value)) {
+    version_value <- NULL
+  }
+
+  cat(paste0("Downloading ", synId, "..."))
+
+  file <- synGet(id_value, version = version_value, downloadLocation = input_dir, ifcollision='overwrite.local')
+  path <- file$path
+
+  cat("\nDownload on:  ", date())
+  cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
+  cat("\npath: ", file$path, "\n")
+
+  data <- read.csv(path)
+  df_name <- as.data.frame(data)
+}
+
+# ***************
+# DRUG TARGET IDs
+# ***************
+
+# Get the list of chembl_ids from harmonized_drugs.csv
+drug_targets <- download_csv("syn73677240.5", drug_targets)
+chembl_ids <- drug_targets$ChEMBL_ID
 ```
-# Download and adapt OpenTargets Drug data
+
+# Download and adapt OpenTargets Drug data for nominated drugs
 ```{r}
 # construct the GraphQL query
 drug_query <- Query$new()
 variables = list(chembl_ids = chembl_ids)
 
-drug_query$query('test_drugs', 'query getDrugs($chembl_ids: [String!]!){
+drug_query$query('drug_info', 'query getDrugs($chembl_ids: [String!]!){
   drugs (chemblIds: $chembl_ids){
     id
     description
@@ -99,14 +146,15 @@ drug_query$query('test_drugs', 'query getDrugs($chembl_ids: [String!]!){
 }')
 
 #Execute the GraphQL query
-result <- con$exec(drug_query$queries$test_drugs, variables)
-write(prettify(result), file.path(output_dir, "test_drugs"))
+result <- con$exec(drug_query$queries$drug_info, variables)
+
+# Uncomment to write response data to local file
+#write(prettify(result), file.path(output_dir, "drug_info_response"))
 
 # Read the JSON response into a dataframe
 response_df <- fromJSON(result, flatten = TRUE)
 drug_info <- response_df$data$drugs
 drug_info
-
 
 # clean up nested row structures
 drug_info <- drug_info %>%
@@ -167,11 +215,6 @@ json_output <- toJSON(drug_info, pretty = TRUE, auto_unbox = TRUE)
 # cat(json_output)
 
 # write json file
-output_dir <- file.path("./", "output")
-if(!dir.exists(output_dir)){
-  dir.create(output_dir)
-}
-
 write(json_output, file.path(output_dir, "opentargets_drug_data.json"))
 
 # BREAK HERE FOR LOCAL VALIDATION - generated file is in ADT notebooks/output
@@ -187,6 +230,7 @@ syn_file <- File(
 res <- synStore(
           syn_file,
           forceVersion = FALSE,
+          used = data_sources,
           executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/AG-1974:_OpenTarget_ Drug_Data.rmd"
         )
 # print synapse_id and new version number
