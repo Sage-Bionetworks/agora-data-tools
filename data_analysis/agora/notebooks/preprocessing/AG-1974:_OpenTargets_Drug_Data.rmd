@@ -99,8 +99,7 @@ download_csv <- function(synId, df_name) {
   cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
   cat("\npath: ", file$path, "\n")
 
-  data <- read.csv(path)
-  df_name <- as.data.frame(data)
+  as.data.frame(read.csv(path))
 }
 
 # ***************
@@ -108,7 +107,7 @@ download_csv <- function(synId, df_name) {
 # ***************
 
 # Get the list of chembl_ids from harmonized_drugs.csv
-drug_targets <- download_csv("syn73677240.5", drug_targets)
+drug_targets <- download_csv("syn73677240.5")
 chembl_ids <- drug_targets$ChEMBL_ID
 ```
 
@@ -159,7 +158,7 @@ drug_info
 # clean up nested row structures
 drug_info <- drug_info %>%
   mutate(
-mechanismsOfAction = map(mechanismsOfAction.rows, ~ unlist(.x$mechanismOfAction)),
+  mechanismsOfAction = map(mechanismsOfAction.rows, ~ unlist(.x$mechanismOfAction)),
     linkedTargets = map(linkedTargets.rows, ~ unlist(.x$id))
   ) %>%
   # have to use - instead of ! to negate columns with . characters
@@ -193,25 +192,33 @@ drug_info <- drug_info %>%
   mutate(drug_bank_id = coalesce(drug_bank_id, drug_bank_id_fix)) %>%
   select(-drug_bank_id_fix)
 
- # Collapse synonyms and tradeNames into a single set (case-insensitive)
+# Clean up values and align colnames
 drug_info <- drug_info %>%
+
+  # Collapse synonyms and tradeNames into a single set (case-insensitive)
   mutate(aliases = pmap(
     .l = list(name, synonyms, tradeNames),
     .f = resolve_drug_names
   )) %>%
-  select(-tradeNames, -synonyms, -name)
+  select(-tradeNames, -synonyms, -name) %>%
 
+  # If maximumClinicalTrialPhase == -1, convert to NA to avoid magic numbers
+  mutate(maximumClinicalTrialPhase = na_if(maximumClinicalTrialPhase, -1)) %>%
 
-# If maximumClinicalTrialPhase == -1, convert to NA to avoid magic numbers
-drug_info <- drug_info %>%
-  mutate(maximumClinicalTrialPhase = na_if(maximumClinicalTrialPhase, -1))
+  # rename camelCase columns
+  dplyr::rename(chembl_id = id) %>%
+  dplyr::rename(drug_type = drugType) %>%
+  dplyr::rename(maximum_clinical_trial_phase = maximumClinicalTrialPhase) %>%
+  dplyr::rename(year_of_first_approval = yearOfFirstApproval) %>%
+  dplyr::rename(mechanisms_of_action = mechanismsOfAction) %>%
+  dplyr::rename(linked_targets = linkedTargets)
 
 drug_info
 ```
 
 # Generate source file and upload to Synapse
 ```{r}
-json_output <- toJSON(drug_info, pretty = TRUE, auto_unbox = TRUE)
+json_output <- toJSON(drug_info, pretty = TRUE, auto_unbox = FALSE)
 # cat(json_output)
 
 # write json file
