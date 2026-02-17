@@ -96,11 +96,16 @@ datasets:
         - name: allele_info
           id: syn64618791
           format: csv
+        - name: human_transgene_allele_map
+          id: syn64846805
+          format: csv
       final_format: json
       destination: *dest
       custom_transformations: transform_disease_correlation
       column_rename:
         model: name
+        gene: modified_gene
+        ensembl_id: human_ensembl_id
 
   - ui_config:
       files:
