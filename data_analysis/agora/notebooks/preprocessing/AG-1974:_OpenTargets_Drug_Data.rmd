@@ -176,7 +176,7 @@ drug_info <- drug_info %>%
   left_join(drugbank_mapping, by = "id") %>%
   select(-crossReferences)
 
-# manually resolve missing DrugBank IDs
+# manually resolved missing DrugBank IDs
 manual_fixes <- tribble(
   ~id,             ~drug_bank_id_fix,
   "CHEMBL4435170",   "DB16650",
@@ -204,6 +204,10 @@ drug_info <- drug_info %>%
 
   # If maximumClinicalTrialPhase == -1, convert to NA to avoid magic numbers
   mutate(maximumClinicalTrialPhase = na_if(maximumClinicalTrialPhase, -1)) %>%
+
+  # collapse ensembl_gene_id and mechanisms_of_action lists to unique values
+  mutate(linkedTargets = map(linkedTargets, unique)) %>%
+  mutate(mechanismsOfAction = map(mechanismsOfAction, unique)) %>%
 
   # rename columns
   dplyr::rename(chembl_id = id) %>%
