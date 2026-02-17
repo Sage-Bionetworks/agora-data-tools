@@ -1,8 +1,8 @@
 ---
-title: "AG-1974: OpenTargets Drug Data"
+title: "AG-1974: OpenTargets Drug Metadata"
 ---
-This notebook pulls drug data from the OpenTargets GraphQL API and cleans it for use by downstream transforms:
-- nomianted_drugs
+This notebook pulls drug metadata from the OpenTargets GraphQL API and prepares it for use by downstream transforms:
+- nominated_drugs
 - drug_info
 
 ## Library setup
