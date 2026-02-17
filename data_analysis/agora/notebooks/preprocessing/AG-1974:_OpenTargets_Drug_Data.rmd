@@ -207,7 +207,7 @@ drug_info <- drug_info %>%
 
   # rename columns
   dplyr::rename(chembl_id = id) %>%
-  dplyr::rename(drug_type = drugType) %>%
+  dplyr::rename(modality = drugType) %>%
   dplyr::rename(maximum_clinical_trial_phase = maximumClinicalTrialPhase) %>%
   dplyr::rename(year_of_first_approval = yearOfFirstApproval) %>%
   dplyr::rename(mechanisms_of_action = mechanismsOfAction) %>%
