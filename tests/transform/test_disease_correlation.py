@@ -7,6 +7,7 @@ from agoradatatools.etl.transform.disease_correlation import (
     create_lookup,
     extract_module_name,
     process_group,
+    map_genes_to_human_symbols,
 )
 
 
@@ -26,6 +27,7 @@ class TestDiseaseCorrelationAssets:
                 "disease_correlation_results": "disease_correlation_results.csv",
                 "allele_info": "model_allele_info.csv",
                 "model_info": "model_info.csv",
+                "human_transgene_allele_map": "human_transgene_allele_map.csv",
             },
             "disease_correlation_expected_output.json",
         )
@@ -135,6 +137,13 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD2", "gene": "APP"},
                     ]
                 ),
+                "human_transgene_allele_map": pd.DataFrame(
+                    {
+                        "mgi_allele_id": pd.Series(dtype="object"),
+                        "gene_symbol": pd.Series(dtype="object"),
+                        "human_ensembl_id": pd.Series(dtype="object"),
+                    }
+                ),
             },
             # Expected output structure for validation
             [
@@ -193,6 +202,13 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD1", "gene": "APOE4"},
                         {"name": "LOAD1", "gene": "APOE4"},  # Duplicate entry
                     ]
+                ),
+                "human_transgene_allele_map": pd.DataFrame(
+                    {
+                        "mgi_allele_id": pd.Series(dtype="object"),
+                        "gene_symbol": pd.Series(dtype="object"),
+                        "human_ensembl_id": pd.Series(dtype="object"),
+                    }
                 ),
             },
             # Expected output: duplicate genes should be deduplicated
@@ -264,6 +280,13 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD1", "gene": "APOE4"},
                     ]
                 ),
+                "human_transgene_allele_map": pd.DataFrame(
+                    {
+                        "mgi_allele_id": pd.Series(dtype="object"),
+                        "gene_symbol": pd.Series(dtype="object"),
+                        "human_ensembl_id": pd.Series(dtype="object"),
+                    }
+                ),
                 # Note: model_info dataset is missing
             },
             ValueError,
@@ -308,6 +331,13 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD1", "gene": "APOE4"},
                     ]
                 ),
+                "human_transgene_allele_map": pd.DataFrame(
+                    {
+                        "mgi_allele_id": pd.Series(dtype="object"),
+                        "gene_symbol": pd.Series(dtype="object"),
+                        "human_ensembl_id": pd.Series(dtype="object"),
+                    }
+                ),
             },
             ValueError,
             "Module IFG already exists for LOAD1",
@@ -347,6 +377,13 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD1", "gene": "APOE4"},
                     ]
                 ),
+                "human_transgene_allele_map": pd.DataFrame(
+                    {
+                        "mgi_allele_id": pd.Series(dtype="object"),
+                        "gene_symbol": pd.Series(dtype="object"),
+                        "human_ensembl_id": pd.Series(dtype="object"),
+                    }
+                ),
             },
             ValueError,
             "Model LOAD1 has inconsistent matched_controls values:",
@@ -384,6 +421,13 @@ class TestTransformDiseaseCorrelation:
                     [
                         {"name": "LOAD1", "gene": "APOE4"},
                     ]
+                ),
+                "human_transgene_allele_map": pd.DataFrame(
+                    {
+                        "mgi_allele_id": pd.Series(dtype="object"),
+                        "gene_symbol": pd.Series(dtype="object"),
+                        "human_ensembl_id": pd.Series(dtype="object"),
+                    }
                 ),
             },
             ValueError,
@@ -622,3 +666,140 @@ class TestProcessGroup:
 
         # Should take first element from the list
         assert result["matched_control"] == "C57BL6J"
+
+
+class TestMapGenesToHumanSymbols:
+    """
+    Test class for validating the map_genes_to_human_symbols function.
+    This function maps mouse gene names to human gene symbols using the human transgene allele map.
+    """
+
+    def test_map_genes_with_mgi_allele_id(self):
+        """
+        Test that map_genes_to_human_symbols correctly maps genes when mgi_allele_id is present.
+        """
+        # Create test allele_info with mouse gene names
+        allele_info_df = pd.DataFrame(
+            [
+                {"name": "APOE4", "gene": "Apoe", "mgi_allele_id": 5810209},
+                {"name": "5xFAD", "gene": "App", "mgi_allele_id": 3693208},
+                {"name": "5xFAD", "gene": "Psen1", "mgi_allele_id": 3693208},
+            ]
+        )
+
+        # Create human transgene map
+        human_transgene_map_df = pd.DataFrame(
+            [
+                {
+                    "mgi_allele_id": 5810209,
+                    "gene_symbol": "APOE",
+                    "human_ensembl_id": "ENSG00000130203",
+                },
+                {
+                    "mgi_allele_id": 3693208,
+                    "gene_symbol": "APP",
+                    "human_ensembl_id": "ENSG00000142192",
+                },
+                {
+                    "mgi_allele_id": 3693208,
+                    "gene_symbol": "PSEN1",
+                    "human_ensembl_id": "ENSG00000080815",
+                },
+            ]
+        )
+
+        # Map genes
+        result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
+
+        # Check that mouse gene names were replaced with human symbols
+        assert result[result["name"] == "APOE4"]["gene"].values[0] == "APOE"
+        assert result[result["name"] == "5xFAD"]["gene"].tolist() == ["APP", "PSEN1"]
+
+    def test_map_genes_without_mgi_allele_id(self):
+        """
+        Test that map_genes_to_human_symbols works when mgi_allele_id is not present.
+        """
+        # Create test allele_info without mgi_allele_id
+        allele_info_df = pd.DataFrame(
+            [
+                {"name": "Model1", "gene": "Apoe"},
+                {"name": "Model2", "gene": "App"},
+            ]
+        )
+
+        # Create human transgene map
+        human_transgene_map_df = pd.DataFrame(
+            [
+                {
+                    "mgi_allele_id": 12345,
+                    "gene_symbol": "APOE",
+                    "human_ensembl_id": "ENSG00000130203",
+                },
+                {
+                    "mgi_allele_id": 67890,
+                    "gene_symbol": "APP",
+                    "human_ensembl_id": "ENSG00000142192",
+                },
+            ]
+        )
+
+        # Map genes
+        result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
+
+        # Check that gene names were mapped based on gene_upper only
+        assert result[result["name"] == "Model1"]["gene"].values[0] == "APOE"
+        assert result[result["name"] == "Model2"]["gene"].values[0] == "APP"
+
+    def test_map_genes_no_matching_transgene(self):
+        """
+        Test that map_genes_to_human_symbols preserves original gene names when no mapping exists.
+        """
+        # Create test allele_info
+        allele_info_df = pd.DataFrame(
+            [
+                {"name": "Model1", "gene": "Mapt", "mgi_allele_id": 99999},
+            ]
+        )
+
+        # Create human transgene map without Mapt
+        human_transgene_map_df = pd.DataFrame(
+            [
+                {
+                    "mgi_allele_id": 12345,
+                    "gene_symbol": "APOE",
+                    "human_ensembl_id": "ENSG00000130203",
+                },
+            ]
+        )
+
+        # Map genes
+        result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
+
+        # Original gene name should be preserved
+        assert result["gene"].values[0] == "Mapt"
+
+    def test_map_genes_empty_transgene_map(self):
+        """
+        Test that map_genes_to_human_symbols handles empty transgene map gracefully.
+        """
+        # Create test allele_info
+        allele_info_df = pd.DataFrame(
+            [
+                {"name": "Model1", "gene": "Apoe"},
+            ]
+        )
+
+        # Create empty human transgene map
+        human_transgene_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": pd.Series(dtype="object"),
+                "gene_symbol": pd.Series(dtype="object"),
+                "human_ensembl_id": pd.Series(dtype="object"),
+            }
+        )
+
+        # Map genes
+        result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
+
+        # Original gene name should be preserved
+        assert result["gene"].values[0] == "Apoe"
