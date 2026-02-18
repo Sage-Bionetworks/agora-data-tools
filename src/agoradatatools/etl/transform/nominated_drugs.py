@@ -13,7 +13,7 @@ def transform_nominated_drugs(datasets: dict) -> pd.DataFrame:
     # Group data by common_name
     nominated_drugs = nest_fields(
         df=drug_list,
-        grouping="common_name",
+        grouping=["common_name","chembl_id"],
         new_column="drug_object",
         drop_columns=["common_name"],
     )
@@ -29,7 +29,7 @@ def transform_nominated_drugs(datasets: dict) -> pd.DataFrame:
     )
 
     # create 'year_first_nominated' field by finding the smallest initial_nomination value
-    nominated_drugs["year_first_nominated"] = nominated_drugs.apply(
+    nominated_drugs["initial_nomination"] = nominated_drugs.apply(
         lambda row: (
             min((item["initial_nomination"] for item in row["drug_object"] if item.get("initial_nomination")), default=np.NaN)
             if isinstance(row["drug_object"], list) and row["drug_object"]
@@ -60,15 +60,19 @@ def transform_nominated_drugs(datasets: dict) -> pd.DataFrame:
 
 
     # Keep only the columns we need
-    nominated_drugs = nominated_drugs[
-        [
-            "common_name",
-            "total_nominations",
-            "year_first_nominated",
-            "principal_investigators",
-            "programs"
-        ]
-    ]
+    # nominated_drugs = nominated_drugs[
+    #     [
+    #
+    #         "common_name",
+    #         "total_nominations",
+    #         "year_first_nominated",
+    #         "principal_investigators",
+    #         "programs",
+    #         "modality",
+    #         "year_of_first_approval",
+    #         "maximum_clinical_trial_phase"
+    #     ]
+    # ]
 
     # Make sure there are no N/A common_name values
     nominated_drugs = nominated_drugs.dropna(subset=["common_name"])
