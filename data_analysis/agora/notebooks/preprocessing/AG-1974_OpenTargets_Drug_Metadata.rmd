@@ -153,7 +153,7 @@ drug_info <- response_df$data$drugs
 # clean up nested row structures
 drug_info <- drug_info %>%
   mutate(
-mechanismsOfAction = map(mechanismsOfAction.rows, ~ unlist(.x$mechanismOfAction)),
+  mechanismsOfAction = map(mechanismsOfAction.rows, ~ unlist(.x$mechanismOfAction)),
     linkedTargets = map(linkedTargets.rows, ~ unlist(.x$id))
   ) %>%
   # have to use - instead of ! to negate columns with . characters
