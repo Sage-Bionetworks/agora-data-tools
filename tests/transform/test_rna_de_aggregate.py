@@ -386,8 +386,8 @@ class TestCreateAgeEntriesFromGroup:
             sex="Male",
         )
 
-        # NA should be converted to 0.0 without errors
-        assert math.isclose(result["6 months"]["adj_p_val"], 0.0, abs_tol=1e-12)
+        # NA should be converted to 1.0 without errors
+        assert result["6 months"]["adj_p_val"] == pytest.approx(1.0)
         assert result["6 months"]["log2_fc"] == pytest.approx(1.5)
 
     def test_create_age_entries_mixed_na_and_valid_padj(self) -> None:
@@ -415,7 +415,7 @@ class TestCreateAgeEntriesFromGroup:
 
         # Both entries should be created without errors
         assert len(result) == 2
-        assert math.isclose(result["3 months"]["adj_p_val"], 0.0, abs_tol=1e-12)
+        assert result["3 months"]["adj_p_val"] == pytest.approx(1.0)
         assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
 
         # Group with NA and negative value should still raise error for negative
@@ -1356,8 +1356,8 @@ class TestTransformRnaDeAggregate:
         for entry in output_data:
             assert entry["ensembl_gene_id"].startswith("ENSMUSG")
 
-    def test_nan_adj_p_values_are_coerced_to_zero(self) -> None:
-        """NaN adjusted p-values in source data should be exported as 0."""
+    def test_nan_adj_p_values_are_coerced_to_one(self) -> None:
+        """NaN adjusted p-values in source data should be exported as 1.0."""
 
         datasets = self._load_synthetic_test_data(
             [
@@ -1374,7 +1374,7 @@ class TestTransformRnaDeAggregate:
         assert len(output_data) == 1
         result_entry = output_data[0]
         twelve_month_entry = result_entry["12 months"]
-        assert math.isclose(twelve_month_entry["adj_p_val"], 0.0, abs_tol=1e-12)
+        assert twelve_month_entry["adj_p_val"] == pytest.approx(1.0)
 
     def test_negative_zero_log2foldchange_are_coerced_to_zero(self) -> None:
         """-0.0 log2 fold change in source data should be exported as 0."""

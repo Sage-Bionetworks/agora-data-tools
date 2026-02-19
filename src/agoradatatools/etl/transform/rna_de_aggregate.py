@@ -173,7 +173,7 @@ def _create_age_entries_from_group(
             )
         age_entries[age] = {
             "log2_fc": normalize_zero(float(row.log2foldchange)),
-            "adj_p_val": 0.0 if pd.isna(row.padj) else float(row.padj),
+            "adj_p_val": 1.0 if pd.isna(row.padj) else float(row.padj),
         }
     return age_entries
 

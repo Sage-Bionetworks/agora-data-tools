@@ -49,7 +49,7 @@ repos:
       - id: nbstripout
 
   - repo: https://github.com/econchick/interrogate
-    rev: 1.5.0
+    rev: 1.7.0
     hooks:
       - id: interrogate
         exclude: ^(setup.py|tests|data_analysis|gx_suite_definitions)
