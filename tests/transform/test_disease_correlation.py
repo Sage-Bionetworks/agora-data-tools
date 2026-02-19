@@ -679,6 +679,10 @@ class TestMapGenesToHumanSymbols:
         Test that map_genes_to_human_symbols correctly maps genes when mgi_allele_id is present.
         """
         # Create test allele_info with mouse gene names
+        # Note: Multiple genes can share the same mgi_allele_id (e.g., 5xFAD model has both
+        # App and Psen1 with ID 3693208) because a single transgenic allele can be a
+        # multi-gene construct. The function merges on BOTH mgi_allele_id AND gene_upper
+        # to correctly map each gene to its corresponding human symbol.
         allele_info_df = pd.DataFrame(
             [
                 {"name": "APOE4", "gene": "Apoe", "mgi_allele_id": 5810209},
@@ -688,6 +692,8 @@ class TestMapGenesToHumanSymbols:
         )
 
         # Create human transgene map
+        # The same mgi_allele_id appears multiple times with different gene_symbols
+        # because the 5xFAD transgenic construct contains multiple human genes
         human_transgene_map_df = pd.DataFrame(
             [
                 {
@@ -711,9 +717,17 @@ class TestMapGenesToHumanSymbols:
         # Map genes
         result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
 
-        # Check that mouse gene names were replaced with human symbols
-        assert result[result["name"] == "APOE4"]["gene"].values[0] == "APOE"
-        assert result[result["name"] == "5xFAD"]["gene"].tolist() == ["APP", "PSEN1"]
+        # Construct expected dataframe with human gene symbols
+        expected_df = pd.DataFrame(
+            [
+                {"name": "APOE4", "gene": "APOE", "mgi_allele_id": 5810209},
+                {"name": "5xFAD", "gene": "APP", "mgi_allele_id": 3693208},
+                {"name": "5xFAD", "gene": "PSEN1", "mgi_allele_id": 3693208},
+            ]
+        )
+
+        # Verify the entire dataframe matches expected output
+        pd.testing.assert_frame_equal(result, expected_df)
 
     def test_map_genes_without_mgi_allele_id(self):
         """
@@ -746,9 +760,16 @@ class TestMapGenesToHumanSymbols:
         # Map genes
         result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
 
-        # Check that gene names were mapped based on gene_upper only
-        assert result[result["name"] == "Model1"]["gene"].values[0] == "APOE"
-        assert result[result["name"] == "Model2"]["gene"].values[0] == "APP"
+        # Construct expected dataframe with human gene symbols
+        expected_df = pd.DataFrame(
+            [
+                {"name": "Model1", "gene": "APOE"},
+                {"name": "Model2", "gene": "APP"},
+            ]
+        )
+
+        # Verify the entire dataframe matches expected output
+        pd.testing.assert_frame_equal(result, expected_df)
 
     def test_map_genes_no_matching_transgene(self):
         """
@@ -775,8 +796,15 @@ class TestMapGenesToHumanSymbols:
         # Map genes
         result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
 
-        # Original gene name should be preserved
-        assert result["gene"].values[0] == "Mapt"
+        # Construct expected dataframe - original gene name should be preserved
+        expected_df = pd.DataFrame(
+            [
+                {"name": "Model1", "gene": "Mapt", "mgi_allele_id": 99999},
+            ]
+        )
+
+        # Verify the entire dataframe matches expected output
+        pd.testing.assert_frame_equal(result, expected_df)
 
     def test_map_genes_empty_transgene_map(self):
         """
@@ -801,5 +829,12 @@ class TestMapGenesToHumanSymbols:
         # Map genes
         result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
 
-        # Original gene name should be preserved
-        assert result["gene"].values[0] == "Apoe"
+        # Construct expected dataframe - original gene name should be preserved
+        expected_df = pd.DataFrame(
+            [
+                {"name": "Model1", "gene": "Apoe"},
+            ]
+        )
+
+        # Verify the entire dataframe matches expected output
+        pd.testing.assert_frame_equal(result, expected_df)
