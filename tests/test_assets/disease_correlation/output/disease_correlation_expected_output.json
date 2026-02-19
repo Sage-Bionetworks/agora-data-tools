@@ -25,8 +25,8 @@
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
-      "App",
-      "Psen1"
+      "APP",
+      "PSEN1"
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
@@ -46,8 +46,8 @@
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
-      "App",
-      "Psen1"
+      "APP",
+      "PSEN1"
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "4 months",
@@ -67,8 +67,8 @@
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
-      "App",
-      "Psen1"
+      "APP",
+      "PSEN1"
     ],
     "cluster": "Consensus Cluster A (ECM organization)",
     "age": "12 months",
@@ -148,8 +148,8 @@
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
-      "App",
-      "Psen1"
+      "APP",
+      "PSEN1"
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "4 months",
@@ -169,8 +169,8 @@
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
-      "App",
-      "Psen1"
+      "APP",
+      "PSEN1"
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "12 months",
@@ -190,8 +190,8 @@
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
-      "App",
-      "Psen1"
+      "APP",
+      "PSEN1"
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "4 months",
@@ -211,8 +211,8 @@
     "matched_control": "C57BL6J",
     "model_type": "Familial AD",
     "modified_genes": [
-      "App",
-      "Psen1"
+      "APP",
+      "PSEN1"
     ],
     "cluster": "Consensus Cluster B (Immune System)",
     "age": "12 months",

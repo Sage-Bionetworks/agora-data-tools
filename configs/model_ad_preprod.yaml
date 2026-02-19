@@ -104,7 +104,6 @@ datasets:
       custom_transformations: transform_disease_correlation
       column_rename:
         model: name
-        gene: modified_gene
         ensembl_id: human_ensembl_id
 
   - ui_config:
