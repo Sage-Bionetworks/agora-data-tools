@@ -262,7 +262,7 @@ res <- synStore(
           syn_file,
           forceVersion = FALSE,
           used = data_sources,
-          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/AG-1974_OpenTargets_Drug_Metadata.rmd"
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/agora/notebooks/preprocessing/AG-1974_OpenTargets_Drug_Metadata.rmd"
         )
 # print synapse_id and new version number
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
