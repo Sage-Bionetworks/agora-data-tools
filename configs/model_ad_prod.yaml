@@ -98,7 +98,7 @@ datasets:
   - rna_de_aggregate:
       files:
         - name: rnaseq_genotype_label_map
-          id: syn69014401.12
+          id: syn69014401.13
           format: csv
         - name: mouse_gene_metadata
           id: syn51615422.4
@@ -113,7 +113,7 @@ datasets:
           id: syn69058660.1
           format: csv
         - name: Jax.IU.Pitt_APOE4.Trem2.R47H_differential_expression
-          id: syn69693082.1
+          id: syn69693082.2
           format: csv
         - name: UCI_3xTg-AD_differential_expression
           id: syn69058661.1
@@ -122,10 +122,10 @@ datasets:
           id: syn69058664.1
           format: csv
         - name: UCI_ABCA7_differential_expression
-          id: syn69058663.1
+          id: syn69058663.2
           format: csv
         - name: UCI_Trem2-R47H_NSS_differential_expression
-          id: syn69058662.1
+          id: syn69058662.2
           format: csv
       final_format: json
       destination: *dest
