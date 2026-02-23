@@ -34,6 +34,7 @@ REQUIRED_INPUT = {
     "allele_info": [
         "name",
         "gene",
+        "mgi_allele_id",
     ],
     "human_transgene_allele_map": [
         "mgi_allele_id",
@@ -102,7 +103,7 @@ def map_genes_to_human_symbols(
 
     Args:
         allele_info_df (pd.DataFrame): DataFrame containing allele information with columns:
-            name, gene (modified_gene after column rename), and optionally mgi_allele_id
+            name, gene, and mgi_allele_id
         human_transgene_allele_map_df (pd.DataFrame): DataFrame containing the mapping with columns:
             mgi_allele_id, gene_symbol (human), human_ensembl_id
 
@@ -113,40 +114,21 @@ def map_genes_to_human_symbols(
     allele_info_df = allele_info_df.copy()
     human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
 
-    # Check if mgi_allele_id exists in allele_info for more precise matching
-    has_mgi_allele_id = "mgi_allele_id" in allele_info_df.columns
-
     # Normalize gene columns to uppercase for consistent merging
     allele_info_df["gene_upper"] = allele_info_df["gene"].str.upper()
     human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
         "gene_symbol"
     ].str.upper()
 
-    # Merge based on available columns
-    if has_mgi_allele_id:
-        # Merge on both mgi_allele_id and gene_upper for more precise matching
-        merged_df = allele_info_df.merge(
-            human_transgene_allele_map_df[
-                ["mgi_allele_id", "gene_upper", "gene_symbol"]
-            ],
-            on=["mgi_allele_id", "gene_upper"],
-            how="left",
-        )
-    else:
-        # Merge only on gene_upper if mgi_allele_id is not available
-        merged_df = allele_info_df.merge(
-            human_transgene_allele_map_df[
-                ["gene_upper", "gene_symbol"]
-            ].drop_duplicates(subset=["gene_upper"]),
-            on="gene_upper",
-            how="left",
-        )
+    # Merge on both mgi_allele_id and gene_upper for precise matching
+    merged_df = allele_info_df.merge(
+        human_transgene_allele_map_df[["mgi_allele_id", "gene_upper", "gene_symbol"]],
+        on=["mgi_allele_id", "gene_upper"],
+        how="left",
+    )
 
     # Replace gene name with human symbol where mapping exists
-    merged_df["gene"] = merged_df.apply(
-        lambda row: row["gene_symbol"] if pd.notna(row["gene_symbol"]) else row["gene"],
-        axis=1,
-    )
+    merged_df["gene"] = merged_df["gene_symbol"].fillna(merged_df["gene"])
 
     # Drop the temporary columns and gene_symbol (already merged into gene)
     merged_df = merged_df.drop(columns=["gene_upper", "gene_symbol"])

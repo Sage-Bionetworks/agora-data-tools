@@ -132,9 +132,9 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4"},
-                        {"name": "LOAD1", "gene": "TREM2"},
-                        {"name": "LOAD2", "gene": "APP"},
+                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {"name": "LOAD1", "gene": "TREM2", "mgi_allele_id": 5770794},
+                        {"name": "LOAD2", "gene": "APP", "mgi_allele_id": 3693208},
                     ]
                 ),
                 "human_transgene_allele_map": pd.DataFrame(
@@ -199,8 +199,12 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4"},
-                        {"name": "LOAD1", "gene": "APOE4"},  # Duplicate entry
+                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {
+                            "name": "LOAD1",
+                            "gene": "APOE4",
+                            "mgi_allele_id": 5810209,
+                        },  # Duplicate entry
                     ]
                 ),
                 "human_transgene_allele_map": pd.DataFrame(
@@ -277,7 +281,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
                 "human_transgene_allele_map": pd.DataFrame(
@@ -328,7 +332,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
                 "human_transgene_allele_map": pd.DataFrame(
@@ -374,7 +378,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
                 "human_transgene_allele_map": pd.DataFrame(
@@ -419,7 +423,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4"},
+                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
                 "human_transgene_allele_map": pd.DataFrame(
@@ -729,48 +733,6 @@ class TestMapGenesToHumanSymbols:
         # Verify the entire dataframe matches expected output
         pd.testing.assert_frame_equal(result, expected_df)
 
-    def test_map_genes_without_mgi_allele_id(self):
-        """
-        Test that map_genes_to_human_symbols works when mgi_allele_id is not present.
-        """
-        # Create test allele_info without mgi_allele_id
-        allele_info_df = pd.DataFrame(
-            [
-                {"name": "Model1", "gene": "Apoe"},
-                {"name": "Model2", "gene": "App"},
-            ]
-        )
-
-        # Create human transgene map
-        human_transgene_map_df = pd.DataFrame(
-            [
-                {
-                    "mgi_allele_id": 12345,
-                    "gene_symbol": "APOE",
-                    "human_ensembl_id": "ENSG00000130203",
-                },
-                {
-                    "mgi_allele_id": 67890,
-                    "gene_symbol": "APP",
-                    "human_ensembl_id": "ENSG00000142192",
-                },
-            ]
-        )
-
-        # Map genes
-        result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
-
-        # Construct expected dataframe with human gene symbols
-        expected_df = pd.DataFrame(
-            [
-                {"name": "Model1", "gene": "APOE"},
-                {"name": "Model2", "gene": "APP"},
-            ]
-        )
-
-        # Verify the entire dataframe matches expected output
-        pd.testing.assert_frame_equal(result, expected_df)
-
     def test_map_genes_no_matching_transgene(self):
         """
         Test that map_genes_to_human_symbols preserves original gene names when no mapping exists.
@@ -813,7 +775,7 @@ class TestMapGenesToHumanSymbols:
         # Create test allele_info
         allele_info_df = pd.DataFrame(
             [
-                {"name": "Model1", "gene": "Apoe"},
+                {"name": "Model1", "gene": "Apoe", "mgi_allele_id": 88057},
             ]
         )
 
@@ -832,7 +794,7 @@ class TestMapGenesToHumanSymbols:
         # Construct expected dataframe - original gene name should be preserved
         expected_df = pd.DataFrame(
             [
-                {"name": "Model1", "gene": "Apoe"},
+                {"name": "Model1", "gene": "Apoe", "mgi_allele_id": 88057},
             ]
         )
 
