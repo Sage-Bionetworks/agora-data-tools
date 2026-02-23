@@ -57,7 +57,7 @@ datasets:
           id: syn64618791.6
           format: csv
         - name: human_transgene_allele_map
-          id: syn64846805
+          id: syn64846805.2
           format: csv
       final_format: json
       destination: *dest
