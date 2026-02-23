@@ -80,6 +80,15 @@ class TestTransformDiseaseCorrelation:
     input scenarios. Tests both successful transformations and error conditions.
     """
 
+    # Empty human transgene allele map DataFrame used across multiple tests
+    empty_human_transgene_allele_map = pd.DataFrame(
+        {
+            "mgi_allele_id": pd.Series(dtype="object"),
+            "gene_symbol": pd.Series(dtype="object"),
+            "human_ensembl_id": pd.Series(dtype="object"),
+        }
+    )
+
     # Test data for successful transformation scenarios
     pass_test_data = [
         # Test case 1: Basic valid input with multiple models and modules
@@ -137,13 +146,7 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD2", "gene": "APP", "mgi_allele_id": 3693208},
                     ]
                 ),
-                "human_transgene_allele_map": pd.DataFrame(
-                    {
-                        "mgi_allele_id": pd.Series(dtype="object"),
-                        "gene_symbol": pd.Series(dtype="object"),
-                        "human_ensembl_id": pd.Series(dtype="object"),
-                    }
-                ),
+                "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             # Expected output structure for validation
             [
@@ -207,13 +210,7 @@ class TestTransformDiseaseCorrelation:
                         },  # Duplicate entry
                     ]
                 ),
-                "human_transgene_allele_map": pd.DataFrame(
-                    {
-                        "mgi_allele_id": pd.Series(dtype="object"),
-                        "gene_symbol": pd.Series(dtype="object"),
-                        "human_ensembl_id": pd.Series(dtype="object"),
-                    }
-                ),
+                "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             # Expected output: duplicate genes should be deduplicated
             # The output should contain a single entry for "LOAD1" with the
@@ -284,13 +281,7 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
-                "human_transgene_allele_map": pd.DataFrame(
-                    {
-                        "mgi_allele_id": pd.Series(dtype="object"),
-                        "gene_symbol": pd.Series(dtype="object"),
-                        "human_ensembl_id": pd.Series(dtype="object"),
-                    }
-                ),
+                "human_transgene_allele_map": empty_human_transgene_allele_map,
                 # Note: model_info dataset is missing
             },
             ValueError,
@@ -335,13 +326,7 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
-                "human_transgene_allele_map": pd.DataFrame(
-                    {
-                        "mgi_allele_id": pd.Series(dtype="object"),
-                        "gene_symbol": pd.Series(dtype="object"),
-                        "human_ensembl_id": pd.Series(dtype="object"),
-                    }
-                ),
+                "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             ValueError,
             "Module IFG already exists for LOAD1",
@@ -381,13 +366,7 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
-                "human_transgene_allele_map": pd.DataFrame(
-                    {
-                        "mgi_allele_id": pd.Series(dtype="object"),
-                        "gene_symbol": pd.Series(dtype="object"),
-                        "human_ensembl_id": pd.Series(dtype="object"),
-                    }
-                ),
+                "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             ValueError,
             "Model LOAD1 has inconsistent matched_controls values:",
@@ -426,13 +405,7 @@ class TestTransformDiseaseCorrelation:
                         {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
-                "human_transgene_allele_map": pd.DataFrame(
-                    {
-                        "mgi_allele_id": pd.Series(dtype="object"),
-                        "gene_symbol": pd.Series(dtype="object"),
-                        "human_ensembl_id": pd.Series(dtype="object"),
-                    }
-                ),
+                "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             ValueError,
             "Missing required columns in disease_correlation_results dataset: age",
