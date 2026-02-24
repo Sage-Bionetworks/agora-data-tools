@@ -5,13 +5,15 @@ This module transforms individual RNA expression (normalized expression) data fo
 It processes multiple RNA-seq datasets and combines them into a unified output format.
 
 The transformation includes gene metadata, genotype labels, and individual expression
-values to create a structured output format grouped by model_group.
+values to create a structured output format grouped by effective_model_group.
 
 The transformation:
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
-- Groups individual expression data by gene, tissue, model_group, and name
+- Groups files by effective_model_group so that models sharing a model_group (e.g. UCI
+  models whose data is split across two input files) are combined before output creation
+- Groups individual expression data by gene, tissue, and effective_model_group
 - Creates age-based entries containing individual expression values for all genotypes
-- Organizes data by model_group to support both single and multiple control display paradigms
+- Organizes data by effective_model_group to support both single and multiple control display paradigms
 - Enriches data with gene symbols from gene metadata
 - Maps genotypes to display labels for better readability
 - Converts sex values to sentence case (M/F/male/female → Male/Female)
@@ -219,7 +221,7 @@ def _process_individual_data_file_core(
     This function contains the individual-transform-specific processing logic:
     1. Enriches data with genotype metadata (display labels, result_order, model_group, effective_model_group)
     2. Filters to include only valid genotype combinations for each model_group
-    3. Groups data by gene, tissue, model_group, and model name
+    3. Groups data by gene, tissue, and effective_model_group
     4. Creates output entries for each group with individual measurements
 
     Note: This function expects preprocessed data (mouse genes only, rounded numeric values).
@@ -234,7 +236,7 @@ def _process_individual_data_file_core(
             containing 'display_label', 'result_order', 'model_group', 'effective_model_group'
 
     Returns:
-        List of output entry dictionaries for this file, one per (gene, tissue, model, age)
+        List of output entry dictionaries, one per (gene, tissue, effective_model_group, age)
     """
     # Step 1: Enrich with genotype metadata using vectorized merge
     # This adds display labels, result_order, model_group, and effective_model_group to each row
@@ -324,15 +326,20 @@ def transform_rna_de_individual(
         1. Validates required datasets and columns
         2. Creates gene and genotype metadata lookup dictionaries
         3. Validates data consistency (model_group values)
-        4. Processes each data file:
-           - Filters to mouse genes only
-           - Converts sex values to sentence case (Male/Female)
-           - Rounds numeric values to 5 decimal places
+        4. Groups input files by effective_model_group so that models whose data is
+           split across multiple files (e.g. UCI models) are combined before output
+           creation, while unrelated files are processed and freed independently
+        5. For each effective_model_group:
+           - Preprocesses each file (filters to mouse genes, converts sex to sentence
+             case, rounds numeric values to 5 decimal places)
+           - Concatenates preprocessed DataFrames within the group (no-op for
+             single-file groups)
            - Enriches with genotype metadata
            - Filters to valid genotype combinations
-           - Groups by gene, tissue, model, and age
+           - Groups by gene, tissue, and effective_model_group
            - Creates output entries with individual data points
-        5. Consolidates output from all files
+           - Frees memory before moving to the next group
+        6. Consolidates output from all groups
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
@@ -348,12 +355,13 @@ def transform_rna_de_individual(
 
     Returns:
         List of dictionaries, each representing a unique combination of gene, tissue,
-        model, and age. Each entry contains:
+        effective_model_group, and age. Each entry contains:
             - ensembl_gene_id: Mouse gene identifier (ENSMUSG*)
             - gene_symbol: Human-readable gene name (empty string if not found)
             - tissue: Tissue name (with JAX-specific mappings and sentence case applied)
-            - name: Model name
-            - model_group: Model group for display (None if not grouped)
+            - name: effective_model_group value (equals model_group when explicitly set,
+              otherwise equals the model name for solo models)
+            - model_group: Explicit model group for display (None if not set)
             - matched_control: Display label of the control genotype
             - units: "Log2 Counts per Million"
             - age: Age timepoint string (e.g., "3 months")

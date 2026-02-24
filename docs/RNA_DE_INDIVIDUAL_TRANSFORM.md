@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `rna_de_individual` transform processes individual-level RNA expression (normalized expression) data from Model AD mouse models. It transforms raw individual expression measurements into a structured format that groups data by gene, tissue, model_group, and name, with individual data points organized by age.
+The `rna_de_individual` transform processes individual-level RNA expression (normalized expression) data from Model AD mouse models. It transforms raw individual expression measurements into a structured format that groups data by gene, tissue, and effective_model_group, with individual data points organized by age.
 
 **Module Location:** `src/agoradatatools/etl/transform/rna_de_individual.py`
 
@@ -69,39 +69,46 @@ The transform requires three types of input:
    - Maps Ensembl gene IDs to gene symbols
    - **Purpose:** Enriches output with human-readable gene names
 
-### Step 2: File Processing (Shared Pattern)
+### Step 2: File Grouping and Preprocessing
 
-The transform uses a **shared file processing pattern** (`process_data_files` from `rna_de_individual_utils`) that handles common preprocessing steps for all data files:
+Before transform-specific processing, the main function groups input files by their `effective_model_group` and preprocesses each file individually.
 
-#### 2.1 Common Preprocessing (Shared)
-Automatically applied to each file before transform-specific processing:
-- **File iteration:** Processes files one at a time (excluding required input files)
-- **Logging:** Logs file name, index, row count, column count, and memory usage
+#### 2.1 File Grouping by effective_model_group
+- Reads the `model` column of each input file to determine its `effective_model_group` using the genotype metadata lookup
+- Groups files with the same `effective_model_group` together (e.g. UCI models whose data is split across two CSV files)
+- Single-file groups are processed without any concatenation overhead
+- This strategy keeps memory usage proportional to the largest group rather than the total dataset size
+
+#### 2.2 Common Preprocessing (`preprocess_data_file`)
+Applied to each file individually before it is combined within its group:
+- **Logging:** Logs file name, global index, row count, column count, and memory usage
 - **Empty file validation:** Raises error if file is empty
 - **Column validation:** Checks all required columns are present
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
 - **Sex conversion:** Converts sex values to sentence case (M/m/male → Male, F/f/female → Female)
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places
-- **Memory cleanup:** Deletes DataFrame and runs garbage collection after processing
 
-#### 2.2 Transform-Specific Processing (`_process_individual_data_file_core`)
+After all files in a group are preprocessed, they are concatenated (via `pd.concat`) into a single DataFrame that is passed to `_process_individual_data_file_core`. Memory is explicitly freed (via `del` and `gc.collect()`) after each group is processed.
 
-After preprocessing, the individual transform applies its specific logic:
+#### 2.3 Transform-Specific Processing (`_process_individual_data_file_core`)
+
+After preprocessing and concatenation, the individual transform applies its specific logic:
 
 **Genotype Enrichment (Vectorized Merge):**
 - Converts genotype metadata dictionary to DataFrame
 - Performs left join on `(model, genotype)` to add:
   - `genotype_display`: Human-readable genotype label
   - `result_order`: Ordering value for display
+  - `model_group`: Explicit model group (empty string if none)
+  - `effective_model_group`: `model_group` when set, otherwise `model` name
 - **Fallback for unmapped genotypes:**
   - `genotype_display` = original `genotype` value
   - `result_order` = 999 (treated as non-control)
 - **Merge validation:** Uses `validate="many_to_one"` to ensure each `(model, genotype)` maps to exactly one label
 
-**Model Group Assignment:**
-- Maps each model to its model_group using genotype metadata
-- Empty string if no model_group defined
-- Adds `name` field equal to `model` (not model_group) since each file represents a single model
+**name Field Assignment:**
+- `name` is set to `effective_model_group` (the model_group when explicitly set, or the model name for solo models)
+- This consolidates multi-file model_groups (e.g. all UCI models sharing "Trem2-R47H_NSS") under a single display name while preserving solo-model names
 
 **Genotype Filtering by Model Group:**
 - **Critical filtering step:** Filters data to include only genotypes that belong to the effective model_group
@@ -114,9 +121,9 @@ After preprocessing, the individual transform applies its specific logic:
 ### Step 3: Grouping and Output Entry Creation
 
 #### 3.1 Grouping Strategy
-- Groups data by: `(ensembl_gene_id, tissue, model_group, name)`
-- Each group represents a unique combination of gene, tissue, and model
-- **Design decision:** Groups by `model_group` to support multiple controls paradigm
+- Groups data by: `(ensembl_gene_id, tissue, effective_model_group)`
+- Each group represents a unique combination of gene, tissue, and effective model group
+- **Design decision:** Groups by `effective_model_group` rather than individual model name so that all models sharing the same `model_group` (including data split across multiple input files) produce a single consolidated output entry
 
 #### 3.2 Output Entry Creation (`_create_output_entry_from_group`)
 
@@ -132,8 +139,8 @@ For each grouped combination, this function directly creates output entries (one
   - **Sentence case conversion:** All tissue names converted to sentence case (e.g., "hippocampus" → "Hippocampus", "CORTEX" → "Cortex")
 
 **Model Information:**
-- `name`: Model name (from the `model` field, NOT model_group)
-- `model_group`: Model group name (normalized to `None` if empty string)
+- `name`: `effective_model_group` value — equals `model_group` when explicitly set, or the model name for solo models
+- `model_group`: Explicit model group name (normalized to `None` if empty string)
 
 **Control Identification:**
 - `matched_control`: Display label of the control genotype
@@ -164,7 +171,7 @@ For each grouped combination, this function directly creates output entries (one
   - `value`: Expression value (converted to float)
 
 **Processing Steps:**
-1. Groups the input data by age within each (gene, tissue, model) combination
+1. Groups the input data by age within each (gene, tissue, effective_model_group) combination
 2. For each age group, creates a complete output entry with all metadata fields
 3. Sorts output entries by numeric age value for consistent ordering
 4. Returns one output entry per age timepoint
@@ -172,7 +179,7 @@ For each grouped combination, this function directly creates output entries (one
 **Unnesting Decision:** Unlike some transforms that nest age data, this transform creates **one output entry per age** (unnested structure). Each entry has a single age with its associated data points.
 
 ### Step 4: Consolidation
-- Combines output entries from all processed files
+- Combines output entries from all processed effective_model_groups
 - Returns single list of all entries
 
 ## Key Assumptions
@@ -201,9 +208,10 @@ This transform is designed to handle two distinct experimental scenarios:
 - Display can show multiple model variants alongside their shared controls
 
 **Implementation Details:**
-- **Effective Model Group:** When `model_group` is empty, the model itself serves as its own group
-- **Name vs Model Group:** The `name` field preserves the actual model name (not model_group), maintaining model-level granularity
-- **Grouping Key:** Data is grouped by `model_group` to enable proper control sharing across related models
+- **Effective Model Group:** When `model_group` is empty, the model itself serves as its own group (`effective_model_group = model`)
+- **Name Field:** The `name` field is set to `effective_model_group`, consolidating multi-file model_groups (e.g. UCI models) under a single display name while preserving solo-model names
+- **File Grouping:** Input files are first grouped by `effective_model_group`; only files within the same group are concatenated before processing
+- **Grouping Key:** Data is grouped by `(ensembl_gene_id, tissue, effective_model_group)` to produce one consolidated output entry per group, regardless of how many input files contributed data
 
 ### 4. Genotype Mapping Completeness
 - **Assumption:** Most genotypes in data files have entries in rnaseq_genotype_label_map
@@ -269,15 +277,15 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Failure mode:** Raises error if same (model, genotype) maps to multiple labels
 
 ### 2. Grouping Strategy
-- **Primary group:** (ensembl_gene_id, tissue, model_group, name)
+- **Primary group:** (ensembl_gene_id, tissue, effective_model_group)
 - **Secondary group:** age (within each primary group)
-- **Why:** Organizes data hierarchically for efficient display
-- **Impact:** Creates nested structure suitable for visualization
+- **Why:** Organizes data hierarchically for efficient display and consolidates multi-file model_groups
+- **Impact:** Creates one output entry per (gene, tissue, effective_model_group, age) regardless of how many input files contributed data
 
 ### 3. Cross-File Merging
-- **Method:** Sequential processing with list concatenation
-- **Why:** Minimizes memory usage for large datasets
-- **Trade-off:** No cross-file validation or deduplication
+- **Method:** Files are grouped by `effective_model_group`; within each group, preprocessed DataFrames are concatenated with `pd.concat` before core processing; memory is explicitly freed after each group
+- **Why:** Minimizes peak memory usage — only files belonging to the same group are held in memory simultaneously
+- **Trade-off:** No cross-group validation or deduplication
 
 ### 4. Model to Model Group Mapping
 - **Method:** Extracts from genotype metadata (one entry per model)
@@ -287,14 +295,14 @@ This transform is designed to handle two distinct experimental scenarios:
 
 ## Output Structure
 
-Each output entry represents a unique combination of (gene, tissue, model_group, name, age) with the following schema:
+Each output entry represents a unique combination of (gene, tissue, effective_model_group, age) with the following schema:
 
 ```json
 {
   "ensembl_gene_id": "ENSMUSG00000000001",
   "gene_symbol": "Gnai3",
   "tissue": "Hemibrain",
-  "name": "Jax.IU.Pitt_APOE4",
+  "name": "APOE4",
   "model_group": "APOE4",
   "matched_control": "C57BL/6J",
   "units": "Log2 Counts per Million",
@@ -323,7 +331,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 - **ensembl_gene_id**: Mouse gene Ensembl identifier (ENSMUSG*)
 - **gene_symbol**: Human-readable gene symbol (empty if not found in metadata)
 - **tissue**: Tissue name (with JAX transformation and sentence case applied)
-- **name**: Actual model name (not model_group)
+- **name**: `effective_model_group` value — equals `model_group` when explicitly set, or the model name for solo models
 - **model_group**: Model group for display purposes (null if empty)
 - **matched_control**: Display label of the control genotype (empty if no control present in data)
 - **units**: Always "Log2 Counts per Million"
@@ -340,8 +348,8 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 
 1. **Vectorized Operations:** Uses pandas merge instead of row-by-row lookups
 2. **Pre-computed Dictionaries:** Creates lookup dictionaries once before file processing
-3. **Sequential File Processing:** Processes files one at a time with explicit garbage collection
-4. **Memory Cleanup:** Deletes DataFrames and runs gc.collect() after each file
+3. **Group-Based File Processing:** Groups input files by `effective_model_group` and processes one group at a time; single-file groups incur no concatenation overhead
+4. **Memory Cleanup:** Explicitly deletes DataFrames and runs `gc.collect()` after each group is processed, keeping peak memory proportional to the largest group rather than the total dataset
 5. **Efficient Grouping:** Uses pandas groupby instead of manual iteration
 
 ## Validation and Error Handling
@@ -413,4 +421,4 @@ output = transform_rna_de_individual(datasets)
 ### Issue: Memory errors with large files
 - **Cause:** Processing very large expression files
 - **Impact:** Out of memory errors
-- **Solution:** Files are processed sequentially with cleanup; consider splitting input files
+- **Solution:** Files are processed group by group with explicit memory cleanup after each group; consider splitting input files further if individual groups remain too large
