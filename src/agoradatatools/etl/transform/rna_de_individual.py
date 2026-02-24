@@ -442,6 +442,7 @@ def transform_rna_de_individual(
     # Groups with multiple files (e.g. UCI split-file models) are concatenated
     # only within that group before processing, then freed immediately after.
     output = []
+    global_file_idx = 0
     for group_idx, (emg, files_in_group) in enumerate(emg_to_files.items()):
         logger.info(
             f"Transform rna_de_individual: processing group {group_idx + 1}/"
@@ -449,15 +450,16 @@ def transform_rna_de_individual(
         )
 
         preprocessed_dfs = []
-        for file_idx, file_name in enumerate(files_in_group):
+        for file_name in files_in_group:
             preprocessed_df = preprocess_data_file(
                 file_name=file_name,
                 data_file=datasets[file_name],
-                file_index=group_idx * len(files_in_group) + file_idx,
+                file_index=global_file_idx,
                 total_files=total_files,
                 data_file_required_columns=data_file_required_columns,
             )
             preprocessed_dfs.append(preprocessed_df)
+            global_file_idx += 1
 
         combined_data = (
             pd.concat(preprocessed_dfs, ignore_index=True)
