@@ -1,0 +1,69 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "tissue": "Hippocampus",
+    "name": "Trem2-R47H_NSS",
+    "model_group": "Trem2-R47H_NSS",
+    "matched_control": "C57BL/6J",
+    "units": "Log2 Counts per Million",
+    "age": "4 months",
+    "age_numeric": 4,
+    "result_order": [
+      "C57BL/6J",
+      "Trem2-R47H_NSS",
+      "5xFAD",
+      "Trem2-R47H_NSS.5xFAD"
+    ],
+    "data": [
+      {
+        "genotype": "Trem2-R47H_NSS",
+        "sex": "Male",
+        "individual_id": "Ind001",
+        "value": 5.12345
+      },
+      {
+        "genotype": "Trem2-R47H_NSS",
+        "sex": "Female",
+        "individual_id": "Ind002",
+        "value": 4.98765
+      },
+      {
+        "genotype": "C57BL/6J",
+        "sex": "Male",
+        "individual_id": "Ind003",
+        "value": 3.55555
+      },
+      {
+        "genotype": "C57BL/6J",
+        "sex": "Female",
+        "individual_id": "Ind004",
+        "value": 3.6789
+      },
+      {
+        "genotype": "Trem2-R47H_NSS.5xFAD",
+        "sex": "Male",
+        "individual_id": "Ind005",
+        "value": 6.11111
+      },
+      {
+        "genotype": "Trem2-R47H_NSS.5xFAD",
+        "sex": "Female",
+        "individual_id": "Ind006",
+        "value": 5.88888
+      },
+      {
+        "genotype": "5xFAD",
+        "sex": "Male",
+        "individual_id": "Ind007",
+        "value": 4.44444
+      },
+      {
+        "genotype": "5xFAD",
+        "sex": "Female",
+        "individual_id": "Ind008",
+        "value": 4.22222
+      }
+    ]
+  }
+]

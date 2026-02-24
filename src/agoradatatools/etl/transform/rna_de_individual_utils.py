@@ -332,6 +332,47 @@ def extract_common_metadata(
     }
 
 
+def preprocess_data_file(
+    file_name: str,
+    data_file: pd.DataFrame,
+    file_index: int,
+    total_files: int,
+    data_file_required_columns: List[str],
+) -> pd.DataFrame:
+    """
+    Preprocess a single data file with common validation and transformation steps.
+
+    Applies the same preprocessing as process_data_files (validation, filtering,
+    sex conversion, rounding) but returns the preprocessed DataFrame directly,
+    allowing callers to accumulate and concatenate multiple files before processing.
+
+    Args:
+        file_name: Name of the file being processed
+        data_file: DataFrame to preprocess
+        file_index: Index of this file in the processing sequence (0-based)
+        total_files: Total number of files being processed
+        data_file_required_columns: List of column names that must be present
+
+    Returns:
+        Preprocessed DataFrame with mouse genes only, sentence-cased sex values,
+        and numeric values rounded to 5 decimal places.
+
+    Raises:
+        ValueError: If the file is empty or missing required columns.
+    """
+    log_file_processing_info(file_name, file_index, total_files, data_file)
+    validate_data_file_not_empty(file_name, data_file)
+    check_required_datasets_and_columns(
+        {file_name: data_file}, {file_name: data_file_required_columns}
+    )
+    data_file = filter_mouse_genes(data_file)
+    if "sex" in data_file.columns:
+        data_file = data_file.copy()
+        data_file["sex"] = data_file["sex"].apply(convert_sex_to_sentence_case)
+    data_file = data_file.round(decimals=5)
+    return data_file
+
+
 def process_data_files(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]],

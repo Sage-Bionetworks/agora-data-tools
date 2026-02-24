@@ -31,6 +31,9 @@ Required Inputs:
       ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
 """
 
+import gc
+from collections import defaultdict
+
 import pandas as pd
 from typing import Dict, List, Any
 import logging
@@ -45,7 +48,7 @@ from agoradatatools.etl.transform.rna_de_individual_utils import (
     create_genotype_metadata_dict,
     normalize_model_group_value,
     extract_common_metadata,
-    process_data_files,
+    preprocess_data_file,
 )
 
 logger = logging.getLogger(__name__)
@@ -102,7 +105,7 @@ def _determine_result_order(
 
 
 def _create_output_entry_from_group(
-    group_key: tuple[str, str, str, str],
+    group_key: tuple[str, str, str],
     group: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
     genotype_metadata_dict: Dict[tuple[str, str], Dict[str, Any]],
@@ -110,15 +113,17 @@ def _create_output_entry_from_group(
     """
     Creates output entries from a grouped DataFrame, one entry per age timepoint.
 
-    This function takes a group of individual expression data (gene, tissue, model combination)
-    and creates separate output entries for each age timepoint. Each entry contains all the
-    individual data points for that specific age.
+    This function takes a group of individual expression data (gene, tissue, and
+    effective_model_group combination) and creates separate output entries for each
+    age timepoint. Each entry contains all individual data points for that age,
+    potentially spanning multiple models that share the same model_group.
 
     Args:
-        group_key: Tuple containing (ensembl_gene_id, tissue, model_group, model)
+        group_key: Tuple containing (ensembl_gene_id, tissue, effective_model_group).
+            effective_model_group is model_group when set, otherwise the model name.
         group: DataFrame group containing individual expression data with columns:
             genotype, genotype_display, age, sex, individualid, expression, result_order,
-            effective_model_group
+            model_group, effective_model_group
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         genotype_metadata_dict: Dictionary mapping (model, genotype) tuples to metadata dicts
             containing 'display_label', 'result_order', and 'effective_model_group'
@@ -130,31 +135,30 @@ def _create_output_entry_from_group(
             - age_numeric: Numeric age for sorting
             - data: List of individual data points for this age
     """
-    ensembl_gene_id, tissue, model_group, model = group_key
+    ensembl_gene_id, tissue, effective_model_group = group_key
 
     # Extract common metadata (gene_symbol, tissue mapping)
     common_metadata = extract_common_metadata(
         ensembl_gene_id, tissue, gene_metadata_dict
     )
 
-    # Get effective_model_group from the DataFrame (pre-computed during merge)
-    # All rows in the group have the same effective_model_group
-    effective_model_group = group.iloc[0]["effective_model_group"]
+    # Get the actual model_group value from data (empty string if none defined).
+    # effective_model_group equals model_group when set, or model name when not.
+    model_group = group.iloc[0]["model_group"]
 
-    # Identify the matched control genotype (lowest result_order value)
-    # This assumes lower result_order values represent control genotypes
+    # name is the effective_model_group: model_group when explicitly set,
+    # otherwise the model name. This consolidates multi-file model_groups under
+    # a single display name while preserving solo-model names.
+    name = effective_model_group
+
+    # Identify the matched control genotype (lowest result_order value).
+    # Use genotype_display directly since the group may span multiple models.
     matched_control = ""
     if "result_order" in group.columns:
         min_order = group["result_order"].min()
         control_mask = group["result_order"] == min_order
         if control_mask.any():
-            control_genotype = group.loc[control_mask, "genotype"].iloc[0]
-            metadata = genotype_metadata_dict.get((model, control_genotype), {})
-            matched_control = metadata.get("display_label", "")
-
-    # Use the actual model name (not model_group) as 'name' since each file
-    # represents data from a single model
-    name = model
+            matched_control = group.loc[control_mask, "genotype_display"].iloc[0]
 
     # Get ordered list of display labels for this model_group
     result_order = _determine_result_order(
@@ -271,9 +275,6 @@ def _process_individual_data_file_core(
         data_file["model_group"] = ""
         data_file["effective_model_group"] = data_file["model"]
 
-    # Step 2: Add name column (alias for model)
-    data_file["name"] = data_file["model"]
-
     # Step 3: Filter to valid genotype combinations for each model_group
     # This prevents processing invalid genotype combinations that may exist in the data
     # Build set of valid (effective_model_group, genotype) pairs from metadata
@@ -290,8 +291,10 @@ def _process_individual_data_file_core(
     data_file = data_file[filter_mask]
 
     # Step 4: Group and create output entries
-    # Group by gene, tissue, model_group, and model name
-    grouped = data_file.groupby(["ensembl_gene_id", "tissue", "model_group", "name"])
+    # Group by gene, tissue, and effective_model_group so that all models sharing
+    # the same model_group (e.g. data split across multiple input files) are
+    # combined into a single output entry.
+    grouped = data_file.groupby(["ensembl_gene_id", "tissue", "effective_model_group"])
 
     output_entries = []
     for group_key, group in grouped:
@@ -398,18 +401,77 @@ def transform_rna_de_individual(
         "individualid",
     ]
 
-    # Step 6: Process all data files
-    # The process_data_files function handles common preprocessing (filtering, rounding)
-    # and calls our core transformation logic for each file
-    logger.info("Transform rna_de_individual starting file processing")
-    output = process_data_files(
-        datasets=datasets,
-        required_input=required_input,
-        data_file_required_columns=data_file_required_columns,
-        process_file_callback=lambda file_name, data_file, file_index, total_files: _process_individual_data_file_core(
-            data_file, gene_metadata_dict, genotype_metadata_dict
-        ),
+    # Step 6: Group files by effective_model_group so that models sharing the same
+    # group (e.g. UCI models split across two input files) are processed together,
+    # while unrelated files are processed and freed independently.
+    #
+    # This preserves the original memory-efficient sequential processing for the
+    # majority of files (which each represent their own group) while only
+    # holding multiple files in memory simultaneously when they genuinely need to
+    # be combined.  The alternative of concatenating ALL files first would hold
+    # the full ~5+ GB in memory at once regardless of grouping need.
+    file_list = [k for k in datasets.keys() if k not in required_input]
+    total_files = len(file_list)
+    logger.info(
+        f"Transform rna_de_individual: processing {total_files} data files: {file_list}"
     )
+
+    # Build a model → effective_model_group lookup from the metadata dict
+    model_to_emg: Dict[str, str] = {
+        model: metadata["effective_model_group"]
+        for (model, genotype), metadata in genotype_metadata_dict.items()
+    }
+
+    # Assign each file to the effective_model_group of its data.
+    # Reading the 'model' column from the already-loaded DataFrame is cheap.
+    emg_to_files: Dict[str, List[str]] = defaultdict(list)
+    for file_name in file_list:
+        df = datasets[file_name]
+        # A single file should contain only one model's data; use the first value.
+        raw_model = df["model"].iloc[0] if len(df) > 0 else ""
+        emg = model_to_emg.get(raw_model, raw_model)
+        emg_to_files[emg].append(file_name)
+
+    logger.info(
+        "Transform rna_de_individual: file groups by effective_model_group: "
+        + ", ".join(f"{emg}={files}" for emg, files in emg_to_files.items())
+    )
+
+    # Step 7: Process one effective_model_group at a time.
+    # Groups with a single file are processed without any extra concatenation.
+    # Groups with multiple files (e.g. UCI split-file models) are concatenated
+    # only within that group before processing, then freed immediately after.
+    output = []
+    for group_idx, (emg, files_in_group) in enumerate(emg_to_files.items()):
+        logger.info(
+            f"Transform rna_de_individual: processing group {group_idx + 1}/"
+            f"{len(emg_to_files)} ({emg}): {files_in_group}"
+        )
+
+        preprocessed_dfs = []
+        for file_idx, file_name in enumerate(files_in_group):
+            preprocessed_df = preprocess_data_file(
+                file_name=file_name,
+                data_file=datasets[file_name],
+                file_index=group_idx * len(files_in_group) + file_idx,
+                total_files=total_files,
+                data_file_required_columns=data_file_required_columns,
+            )
+            preprocessed_dfs.append(preprocessed_df)
+
+        combined_data = (
+            pd.concat(preprocessed_dfs, ignore_index=True)
+            if len(preprocessed_dfs) > 1
+            else preprocessed_dfs[0]
+        )
+
+        group_output = _process_individual_data_file_core(
+            combined_data, gene_metadata_dict, genotype_metadata_dict
+        )
+        output.extend(group_output)
+
+        del preprocessed_dfs, combined_data
+        gc.collect()
 
     logger.info(f"Transform rna_de_individual total output entries: {len(output)}")
 
