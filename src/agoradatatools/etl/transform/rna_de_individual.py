@@ -224,7 +224,7 @@ def _process_individual_data_file_core(
 
     Note: This function expects preprocessed data (mouse genes only, rounded numeric values).
     Preprocessing (filtering human genes, rounding, validation) is handled by the
-    process_data_files function before this function is called.
+    preprocess_data_file function before this function is called.
 
     Args:
         data_file: Preprocessed DataFrame containing individual expression data with columns:
