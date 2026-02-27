@@ -285,7 +285,7 @@ class TestCreateOutputEntryFromGroup:
 
     def test_basic_output_entry(self) -> None:
         """Test basic output entry creation with all fields."""
-        group_key = ("ENSMUSG00000000001", "Cortex", "", "Model_A")
+        group_key = ("ENSMUSG00000000001", "Cortex", "Model_A")
         group = pd.DataFrame(
             {
                 "age": ["6 months", "6 months"],
@@ -295,6 +295,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001", "Ind002"],
                 "expression": [5.0, 3.0],
                 "result_order": [2, 1],
+                "model_group": ["", ""],
                 "effective_model_group": ["Model_A", "Model_A"],
             }
         )
@@ -333,7 +334,7 @@ class TestCreateOutputEntryFromGroup:
 
     def test_jax_tissue_mapping(self) -> None:
         """Test that JAX tissue name is mapped correctly."""
-        group_key = ("ENSMUSG00000000001", "Right Cerebral Hemisphere", "", "Model_A")
+        group_key = ("ENSMUSG00000000001", "Right Cerebral Hemisphere", "Model_A")
         group = pd.DataFrame(
             {
                 "age": ["6 months"],
@@ -343,6 +344,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001"],
                 "expression": [5.0],
                 "result_order": [2],
+                "model_group": [""],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -364,7 +366,7 @@ class TestCreateOutputEntryFromGroup:
 
     def test_matched_control_determination(self) -> None:
         """Test that matched control is the genotype with minimum result_order."""
-        group_key = ("ENSMUSG00000000001", "Cortex", "GroupX", "Model_B")
+        group_key = ("ENSMUSG00000000001", "Cortex", "GroupX")
         group = pd.DataFrame(
             {
                 "age": ["6 months", "6 months", "6 months"],
@@ -374,6 +376,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001", "Ind002", "Ind003"],
                 "expression": [5.0, 3.0, 6.0],
                 "result_order": [2, 1, 3],
+                "model_group": ["GroupX", "GroupX", "GroupX"],
                 "effective_model_group": ["GroupX", "GroupX", "GroupX"],
             }
         )
@@ -405,8 +408,8 @@ class TestCreateOutputEntryFromGroup:
 
     def test_model_group_handling(self) -> None:
         """Test that model_group is properly set (null for empty, value for non-empty)."""
-        # Test with empty model_group
-        group_key = ("ENSMUSG00000000001", "Cortex", "", "Model_A")
+        # Test with empty model_group (effective_model_group falls back to model name)
+        group_key = ("ENSMUSG00000000001", "Cortex", "Model_A")
         group = pd.DataFrame(
             {
                 "age": ["6 months"],
@@ -416,6 +419,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001"],
                 "expression": [5.0],
                 "result_order": [2],
+                "model_group": [""],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -436,7 +440,7 @@ class TestCreateOutputEntryFromGroup:
         assert result[0]["model_group"] is None
 
         # Test with non-empty model_group
-        group_key = ("ENSMUSG00000000001", "Cortex", "GroupX", "Model_B")
+        group_key = ("ENSMUSG00000000001", "Cortex", "GroupX")
         group = pd.DataFrame(
             {
                 "age": ["6 months"],
@@ -446,6 +450,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001"],
                 "expression": [5.0],
                 "result_order": [2],
+                "model_group": ["GroupX"],
                 "effective_model_group": ["GroupX"],
             }
         )
@@ -465,7 +470,7 @@ class TestCreateOutputEntryFromGroup:
 
     def test_multiple_ages_creates_multiple_entries(self) -> None:
         """Test that multiple ages create separate output entries."""
-        group_key = ("ENSMUSG00000000001", "Cortex", "", "Model_A")
+        group_key = ("ENSMUSG00000000001", "Cortex", "Model_A")
         group = pd.DataFrame(
             {
                 "age": ["3 months", "6 months"],
@@ -475,6 +480,7 @@ class TestCreateOutputEntryFromGroup:
                 "individualid": ["Ind001", "Ind002"],
                 "expression": [4.0, 5.0],
                 "result_order": [2, 2],
+                "model_group": ["", ""],
                 "effective_model_group": ["Model_A", "Model_A"],
             }
         )
@@ -987,6 +993,72 @@ class TestTransformRnaDeIndividual:
         # Explicitly verify rounding (1.123456789 -> 1.12346, 2.987654321 -> 2.98765)
         assert output_data_sorted[0]["data"][0]["value"] == pytest.approx(1.12346)
         assert output_data_sorted[0]["data"][1]["value"] == pytest.approx(2.98765)
+
+    def test_synthetic_multi_model_data(self) -> None:
+        """Test that models sharing a model_group but split across two input files
+        are combined into a single output entry with all four genotypes.
+
+        This covers the UCI model bug where e.g. Trem2-R47H_NSS and
+        Trem2-R47H_NSS.5xFAD both belong to model_group 'Trem2-R47H_NSS' but
+        their expression data lives in separate files. Before the fix each file
+        produced its own 2-genotype entry; after the fix they produce a single
+        4-genotype entry.
+        """
+        datasets = self._load_synthetic_test_data(
+            [
+                "rnaseq_genotype_label_map.csv",
+                "mouse_gene_metadata.csv",
+                "synthetic_multi_model_file1.csv",
+                "synthetic_multi_model_file2.csv",
+            ]
+        )
+
+        with open(
+            os.path.join(
+                self.data_files_path, "output", "synthetic_multi_model_output.json"
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        output_data = transform_rna_de_individual(datasets=datasets)
+
+        # Should produce exactly one consolidated entry (one gene, one age)
+        assert len(output_data) == 1
+        entry = output_data[0]
+
+        # Verify metadata
+        assert entry["name"] == "Trem2-R47H_NSS"
+        assert entry["model_group"] == "Trem2-R47H_NSS"
+        assert entry["matched_control"] == "C57BL/6J"
+        assert entry["result_order"] == [
+            "C57BL/6J",
+            "Trem2-R47H_NSS",
+            "5xFAD",
+            "Trem2-R47H_NSS.5xFAD",
+        ]
+
+        # All four genotypes should be present in data
+        genotypes_in_data = {d["genotype"] for d in entry["data"]}
+        assert genotypes_in_data == {
+            "C57BL/6J",
+            "Trem2-R47H_NSS",
+            "5xFAD",
+            "Trem2-R47H_NSS.5xFAD",
+        }
+        assert len(entry["data"]) == 8  # 2 individuals per genotype
+
+        # Full comparison with expected JSON (data order may vary)
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+        for out_entry, exp_entry in zip(output_data_sorted, expected_data_sorted):
+            assert out_entry["ensembl_gene_id"] == exp_entry["ensembl_gene_id"]
+            assert out_entry["name"] == exp_entry["name"]
+            assert out_entry["model_group"] == exp_entry["model_group"]
+            assert out_entry["matched_control"] == exp_entry["matched_control"]
+            assert out_entry["result_order"] == exp_entry["result_order"]
+            assert sorted(
+                out_entry["data"], key=lambda x: x["individual_id"]
+            ) == sorted(exp_entry["data"], key=lambda x: x["individual_id"])
 
     def test_inconsistent_model_group_values(self) -> None:
         """Test error handling for inconsistent model_group values within the same model.
