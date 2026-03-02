@@ -55,8 +55,9 @@ if(!dir.exists(output_dir)){
 # FUNCTIONS
 # *********
 
-# Combines the provided lists of values to produce a set of unique values.
-# - name: The canonical name of the drug, to removed from the list of alias values
+# Combines the provided lists of values to produce a set of unique values, used to collapse
+# the lists of synonyms and trade names into a single list of aliases.
+# - name: The canonical name of the drug, to removed from the combined list of alias values
 # - ...: A variable number of lists of values to combine
 resolve_drug_names <- function(name, ...) {
   combined <- unlist(list(...))
@@ -171,22 +172,6 @@ drug_info <- drug_info %>%
   left_join(drugbank_mapping, by = "id") %>%
   select(-crossReferences)
 
-# missing values were manually resolved from DrugBank
-drugbank_manual_fixes <- tribble(
-  ~id,             ~drug_bank_id_fix,
-  "CHEMBL4435170",   "DB16650",
-  "CHEMBL4594217",   "DB08907",
-  "CHEMBL4084119",   "DB06655",
-  "CHEMBL4788758",   "DB19277",
-  "CHEMBL545437",    "DB05395"
-)
-
-# Populate the missing DrugBank IDs
-drug_info <- drug_info %>%
-  left_join(drugbank_manual_fixes, by = "id") %>%
-  mutate(drug_bank_id = coalesce(drug_bank_id, drug_bank_id_fix)) %>%
-  select(-drug_bank_id_fix)
-
 # Clean up values and align colnames
 drug_info <- drug_info %>%
 
@@ -198,8 +183,16 @@ drug_info <- drug_info %>%
 
   select(-tradeNames, -synonyms, -name) %>%
 
-  # If maximumClinicalTrialPhase == -1, convert to NA to avoid magic numbers
-  mutate(maximumClinicalTrialPhase = na_if(maximumClinicalTrialPhase, -1)) %>%
+  # Map Clinical Trial Phase enum to display values
+  mutate(maximumClinicalTrialPhase = case_when(
+    maximumClinicalTrialPhase == 1   ~ "Phase I",
+    maximumClinicalTrialPhase == 2   ~ "Phase II",
+    maximumClinicalTrialPhase == 3   ~ "Phase III",
+    maximumClinicalTrialPhase == 4   ~ "Phase IV",
+    maximumClinicalTrialPhase == -1  ~ "Unknown",
+    is.na(maximumClinicalTrialPhase) ~ "Preclinical",
+    TRUE                             ~ "Unknown"  # unexpected values
+  )) %>%
 
   # collapse ensembl_gene_id and mechanisms_of_action lists to unique values
   mutate(linkedTargets = map(linkedTargets, unique)) %>%
@@ -217,13 +210,33 @@ drug_info <- drug_info %>%
   manual_entries <- data.frame(
     chembl_id = c("CHEMBL449520", "CHEMBL3970532", "CHEMBL293762",
                   "CHEMBL71851", "CHEMBL338802", "CHEMBL51934"),
-    maximum_clinical_trial_phase = c(NA, NA, NA, NA, 4, 2),
+    maximum_clinical_trial_phase = c("Preclinical", "Preclinical", "Preclinical",
+                                     "Preclinical", "Phase IV", "Phase II"),
     modality = c("Small molecule", "Small molecule", "Small molecule",
                "Small molecule", "Small molecule", "Small molecule"),
     year_of_first_approval = c(NA, NA, NA, NA, 1941, NA),
     stringsAsFactors = FALSE
   )
   drug_info <- bind_rows(drug_info, manual_entries)
+
+  # Populate missing values as possible
+  drug_info <- drug_info %>%
+  # Missing drug_bank_ids that I could resolve by name
+  mutate(drug_bank_id = case_when(
+    chembl_id == "CHEMBL2108724" ~ "DB13928",
+    chembl_id == "CHEMBL296522"  ~ "DB04917",
+    chembl_id == "CHEMBL338802"  ~ "DB13726",
+    chembl_id == "CHEMBL4435170" ~ "DB16650",
+    chembl_id == "CHEMBL4594217" ~ "DB08907",
+    chembl_id == "CHEMBL4084119" ~ "DB06655",
+    chembl_id == "CHEMBL4788758" ~ "DB19277",
+    chembl_id == "CHEMBL545437"  ~ "DB05395",
+    TRUE                         ~ drug_bank_id  # Keeps existing values for remaining rows
+  )) %>%
+  # Populate missing descriptions with basic value
+  mutate(description = ifelse(is.na(description),
+                              paste(modality, "drug."),
+                              description))
 
   # Ensure empty list fields serialize as empty lists in JSON
   list_cols <- c("mechanisms_of_action", "linked_targets", "aliases")
@@ -239,6 +252,25 @@ drug_info <- drug_info %>%
 }
 
 drug_info # 65 rows - missing 2 are the ones with 2 chembl_ids
+```
+
+# Validate drug_info
+```{r}
+# check for missing values
+drug_info[is.na(drug_info$chembl_id),] # 0 NA
+drug_info[is.na(drug_info$description),] # 0 NA
+drug_info[is.na(drug_info$modality),] # 0 NA
+drug_info[is.na(drug_info$maximum_clinical_trial_phase),] # 5 NA == Preclinical
+drug_info[is.na(drug_info$year_of_first_approval),] # 16 NA (# never approved)
+drug_info[is.na(drug_info$drug_bank_id),] # 5 NA - can't find
+
+# sanity check list fields
+drug_info %>% filter(lengths(linked_targets) == 0) # 18 empty
+drug_info %>% filter(lengths(mechanisms_of_action) == 0) # 16 empty
+drug_info %>% filter(lengths(aliases) == 0) # 9 empty
+
+# sanity check this == # never approved above
+drug_info[drug_info$maximum_clinical_trial_phase != 'Phase IV',] # 16 non-approved
 ```
 
 # Generate source file and upload to Synapse
