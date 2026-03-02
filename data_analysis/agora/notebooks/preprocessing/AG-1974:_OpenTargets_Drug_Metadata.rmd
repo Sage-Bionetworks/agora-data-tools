@@ -27,7 +27,6 @@ library(ghql)
 ```
 
 
-
 ## Set up clients, variables and functions
 Setup the required graphQL client and get nominated drug ids
 ```{r}
@@ -55,8 +54,9 @@ if(!dir.exists(output_dir)){
 # FUNCTIONS
 # *********
 
-# Combines the provided lists of values to produce a set of unique values.
-# - name: The canonical name of the drug, to removed from the list of alias values
+# Combines the provided lists of values to produce a set of unique values, used to collapse
+# the lists of synonyms and trade names into a single list of aliases.
+# - name: The canonical name of the drug, to removed from the combined list of alias values
 # - ...: A variable number of lists of values to combine
 resolve_drug_names <- function(name, ...) {
   combined <- unlist(list(...))
