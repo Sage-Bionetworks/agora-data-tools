@@ -1,5 +1,6 @@
 """Submodule for Agora Data Tools Transformations"""
 
+# agora transforms
 from agoradatatools.etl.transform.biodomain_info import transform_biodomain_info
 from agoradatatools.etl.transform.distribution_data import transform_distribution_data
 from agoradatatools.etl.transform.gene_info import transform_gene_info
@@ -16,6 +17,11 @@ from agoradatatools.etl.transform.rnaseq_differential_expression import (
 )
 from agoradatatools.etl.transform.team_info import transform_team_info
 from agoradatatools.etl.transform.proteomics import transform_proteomics
+from agoradatatools.etl.transform.drug_info import transform_drug_info
+from agoradatatools.etl.transform.nominated_targets import transform_nominated_targets
+from agoradatatools.etl.transform.nominated_drugs import transform_nominated_drugs
+
+# model-ad transforms
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.transform.model_details import transform_model_details
 from agoradatatools.etl.transform.disease_correlation import (
@@ -23,8 +29,7 @@ from agoradatatools.etl.transform.disease_correlation import (
 )
 from agoradatatools.etl.transform.model_overview import transform_model_overview
 from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggregate
-from agoradatatools.etl.transform.nominated_targets import transform_nominated_targets
-from agoradatatools.etl.transform.nominated_drugs import transform_nominated_drugs
+
 
 
 __all__ = [
@@ -45,4 +50,5 @@ __all__ = [
     "transform_rna_de_aggregate",
     "transform_nominated_targets",
     "transform_nominated_drugs",
+    "transform_drug_info",
 ]

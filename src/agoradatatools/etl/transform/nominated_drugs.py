@@ -9,70 +9,48 @@ def transform_nominated_drugs(datasets: dict) -> pd.DataFrame:
     This function creates a dataset called nominated_drugs.
     """
     drug_list = datasets["drug_list"]
+    drug_metadata = datasets["drug_metadata"]
 
-    # Group data by common_name
-    nominated_drugs = nest_fields(
-        df=drug_list,
-        grouping=["common_name","chembl_id"],
-        new_column="drug_object",
-        drop_columns=["common_name"],
-    )
-
-    # create 'total_nominations' field by counting grouped nominations
-    nominated_drugs["total_nominations"] = nominated_drugs.apply(
-        lambda row: (
-            len(row["drug_object"])
-            if isinstance(row["drug_object"], list)
-            else np.NaN
-        ),
-        axis=1,
-    )
-
-    # create 'year_first_nominated' field by finding the smallest initial_nomination value
-    nominated_drugs["initial_nomination"] = nominated_drugs.apply(
-        lambda row: (
-            min((item["initial_nomination"] for item in row["drug_object"] if item.get("initial_nomination")), default=np.NaN)
-            if isinstance(row["drug_object"], list) and row["drug_object"]
-            else np.NaN
-        ),
-        axis=1,
-    )
-
-    # Create 'principal_investigators' field by collecting unique values
-    nominated_drugs["principal_investigators"] = nominated_drugs.apply(
-        lambda row: (
-            list({item["contact_pi"] for item in row["drug_object"] if item.get("contact_pi")})
-            if isinstance(row["drug_object"], list)
-            else []
-        ),
-        axis=1,
-    )
-
-    # Create 'programs' field by collecting unique source values
-    nominated_drugs["programs"] = nominated_drugs.apply(
-        lambda row: (
-            list({item["source"] for item in row["drug_object"] if item.get("source")})
-            if isinstance(row["drug_object"], list)
-            else []
-        ),
-        axis=1,
-    )
+    # Clean & prepare drug_list data
+    nominated_drugs = drug_list.groupby(["common_name", "chembl_id"]).agg(
+        total_nominations=("common_name", "size"),
+        initial_nomination=("initial_nomination", "min"),
+        principal_investigators=("contact_pi", lambda x: list(set(x.dropna()))),
+        programs=("source", lambda x: list(set(x.dropna())))
+    ).reset_index()
 
 
-    # Keep only the columns we need
-    # nominated_drugs = nominated_drugs[
-    #     [
-    #
-    #         "common_name",
-    #         "total_nominations",
-    #         "year_first_nominated",
-    #         "principal_investigators",
-    #         "programs",
-    #         "modality",
-    #         "year_of_first_approval",
-    #         "maximum_clinical_trial_phase"
-    #     ]
-    # ]
+    # Merge in other datasets by chembl_id
+    for dataset in [
+        drug_metadata
+    ]:
+        nominated_drugs = pd.merge(
+            left=nominated_drugs,
+            right=dataset,
+            on="chembl_id",
+            how="outer", # this may not be the best choice, but I don't want to silently lose any rows
+            validate="one_to_one"
+        )
+
+    # Convert specific columns to nullable integers
+    cols_to_fix = ["year_of_first_approval"]
+    for col in cols_to_fix:
+        nominated_drugs[col] = nominated_drugs[col].astype("Int64")
+
+     # Keep only the columns we need
+    nominated_drugs = nominated_drugs[
+        [
+            "common_name",
+            "chembl_id",
+            "total_nominations",
+            "initial_nomination",
+            "principal_investigators",
+            "programs",
+            "modality",
+            "year_of_first_approval",
+            "maximum_clinical_trial_phase"
+        ]
+    ]
 
     # Make sure there are no N/A common_name values
     nominated_drugs = nominated_drugs.dropna(subset=["common_name"])
