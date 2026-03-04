@@ -89,13 +89,11 @@ def _determine_result_order(
     # Collect all genotypes for this model_group by scanning genotype_metadata_dict
     genotype_info = []
     for (model, genotype), metadata in genotype_metadata_dict.items():
-        # Only include genotypes that belong to this model_group
-        if metadata["effective_model_group"] == model_group:
-            display_label = metadata.get("display_label", "")
+        display_label = metadata.get("display_label", "")
+        # Only include genotypes that belong to this model_group and have a display label
+        if metadata["effective_model_group"] == model_group and display_label:
             order = metadata.get("result_order", 999)
-
-            if display_label:
-                genotype_info.append((genotype, display_label, order))
+            genotype_info.append((genotype, display_label, order))
 
     # Sort by the result_order value
     sorted_info = sorted(genotype_info, key=lambda x: x[2])
@@ -155,18 +153,30 @@ def _create_output_entry_from_group(
 
     # Identify the matched control genotype (lowest result_order value).
     # Use genotype_display directly since the group may span multiple models.
+    # Assuming "result_order" and "genotype_display" are in group.columns
     matched_control = ""
-    if "result_order" in group.columns:
-        min_order = group["result_order"].min()
-        control_mask = group["result_order"] == min_order
-        if control_mask.any():
-            matched_control = group.loc[control_mask, "genotype_display"].iloc[0]
+    min_order = group["result_order"].min()
+    control_rows = group[group["result_order"] == min_order]
+    if not control_rows.empty:
+        matched_control = control_rows.iloc[0]["genotype_display"]
 
     # Get ordered list of display labels for this model_group
     result_order = _determine_result_order(
         genotype_metadata_dict,
         effective_model_group,
     )
+
+    # Fields shared across all age timepoints for this (gene, tissue, model_group)
+    base_entry = {
+        "ensembl_gene_id": common_metadata["ensembl_gene_id"],
+        "gene_symbol": common_metadata["gene_symbol"],
+        "tissue": common_metadata["tissue"],
+        "name": name,
+        "model_group": normalize_model_group_value(model_group),
+        "matched_control": matched_control,
+        "units": "Log2 Counts per Million",
+        "result_order": result_order,
+    }
 
     # Create one output entry per age timepoint directly from grouped data
     output_entries = []
@@ -175,31 +185,22 @@ def _create_output_entry_from_group(
         # Select and rename columns for output format
         age_group_subset = age_group[
             ["genotype_display", "sex", "individualid", "expression"]
-        ].copy()
-        age_group_subset.columns = ["genotype", "sex", "individual_id", "value"]
-
-        # Convert types for JSON serialization
-        age_group_subset["individual_id"] = age_group_subset["individual_id"].astype(
-            str
+        ].rename(
+            columns={
+                "genotype_display": "genotype",
+                "individualid": "individual_id",
+                "expression": "value",
+            }
         )
-        age_group_subset["value"] = age_group_subset["value"].astype(float)
 
         # Convert DataFrame to list of dictionaries
         data_points = age_group_subset.to_dict("records")
 
-        # Create output entry for this age
         output_entries.append(
             {
-                "ensembl_gene_id": common_metadata["ensembl_gene_id"],
-                "gene_symbol": common_metadata["gene_symbol"],
-                "tissue": common_metadata["tissue"],
-                "name": name,
-                "model_group": normalize_model_group_value(model_group),
-                "matched_control": matched_control,
-                "units": "Log2 Counts per Million",
+                **base_entry,
                 "age": str(age),
                 "age_numeric": extract_age_numeric(str(age)),
-                "result_order": result_order,
                 "data": data_points,
             }
         )
@@ -292,7 +293,11 @@ def _process_individual_data_file_core(
     ]
     data_file = data_file[filter_mask]
 
-    # Step 4: Group and create output entries
+    # Step 4: Convert types once per file before grouping
+    data_file["individualid"] = data_file["individualid"].astype(str)
+    data_file["expression"] = data_file["expression"].astype(float)
+
+    # Step 5: Group and create output entries
     # Group by gene, tissue, and effective_model_group so that all models sharing
     # the same model_group (e.g. data split across multiple input files) are
     # combined into a single output entry.
