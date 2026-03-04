@@ -27,13 +27,12 @@ rna_de_individual/
 
 ### Metadata Files
 
-These files are required for all transformations. `rnaseq_genotype_label_map.csv` is copied from actual production metadata; `synthetic_mouse_gene_metadata.csv` is a minimal synthetic subset:
+These files are required for all transformations. Both are minimal synthetic subsets containing only the entries needed by the test suite:
 
-1. **rnaseq_genotype_label_map.csv**
+1. **synthetic_rnaseq_genotype_label_map.csv**
    - Maps genotypes to display labels and model groups
    - Columns: model, model_group, display_label, genotype, result_order
-   - Copied from `staging/rna_de_individual/inputs/rnaseq_genotype_label_map.csv`
-   - Contains real mappings for all models (APOE4, LOAD1, Trem2R47H, Abca7*V1599M, etc.)
+   - Synthetic subset of production `rnaseq_genotype_label_map` data; contains only the 4 models used by the test suite (APOE4, LOAD1, Trem2-R47H_NSS, Trem2-R47H_NSS.5xFAD)
 
 2. **synthetic_mouse_gene_metadata.csv**
    - Gene symbols and aliases for Ensembl IDs
