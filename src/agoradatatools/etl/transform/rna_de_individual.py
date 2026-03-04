@@ -241,42 +241,38 @@ def _process_individual_data_file_core(
     """
     # Step 1: Enrich with genotype metadata using vectorized merge
     # This adds display labels, result_order, model_group, and effective_model_group to each row
-    if genotype_metadata_dict:
-        # Convert metadata dictionary to DataFrame for efficient pandas merge
-        metadata_list = [
-            {
-                "model": k[0],
-                "genotype": k[1],
-                "genotype_display": v["display_label"],
-                "result_order": v["result_order"],
-                "model_group": v["model_group"],
-                "effective_model_group": v["effective_model_group"],
-            }
-            for k, v in genotype_metadata_dict.items()
-        ]
-        metadata_df = pd.DataFrame(metadata_list)
+    if not genotype_metadata_dict:
+        raise ValueError("genotype_metadata_dict is required")
 
-        # Merge to add all metadata fields
-        # validate="many_to_one" ensures data integrity (each (model, genotype) has one label)
-        data_file = data_file.merge(
-            metadata_df, on=["model", "genotype"], how="left", validate="many_to_one"
-        )
+    # Convert metadata dictionary to DataFrame for efficient pandas merge
+    metadata_list = [
+        {
+            "model": k[0],
+            "genotype": k[1],
+            "genotype_display": v["display_label"],
+            "result_order": v["result_order"],
+            "model_group": v["model_group"],
+            "effective_model_group": v["effective_model_group"],
+        }
+        for k, v in genotype_metadata_dict.items()
+    ]
+    metadata_df = pd.DataFrame(metadata_list)
 
-        # Handle unmapped genotypes gracefully
-        data_file["genotype_display"] = data_file["genotype_display"].fillna(
-            data_file["genotype"]
-        )
-        data_file["result_order"] = data_file["result_order"].fillna(999)
-        data_file["model_group"] = data_file["model_group"].fillna("")
-        data_file["effective_model_group"] = data_file["effective_model_group"].fillna(
-            data_file["model"]
-        )
-    else:
-        # Fallback if no metadata provided (edge case)
-        data_file["genotype_display"] = data_file["genotype"]
-        data_file["result_order"] = 999
-        data_file["model_group"] = ""
-        data_file["effective_model_group"] = data_file["model"]
+    # Merge to add all metadata fields
+    # validate="many_to_one" ensures data integrity (each (model, genotype) has one label)
+    data_file = data_file.merge(
+        metadata_df, on=["model", "genotype"], how="left", validate="many_to_one"
+    )
+
+    # Handle unmapped genotypes gracefully
+    data_file["genotype_display"] = data_file["genotype_display"].fillna(
+        data_file["genotype"]
+    )
+    data_file["result_order"] = data_file["result_order"].fillna(999)
+    data_file["model_group"] = data_file["model_group"].fillna("")
+    data_file["effective_model_group"] = data_file["effective_model_group"].fillna(
+        data_file["model"]
+    )
 
     # Step 3: Filter to valid genotype combinations for each model_group
     # This prevents processing invalid genotype combinations that may exist in the data

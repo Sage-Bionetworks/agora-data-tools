@@ -621,6 +621,26 @@ class TestProcessIndividualDataFileCore:
         # Value should remain as provided (already preprocessed)
         assert result[0]["data"][0]["value"] == pytest.approx(1.12346, abs=1e-6)
 
+    def test_empty_genotype_metadata_dict_raises(self) -> None:
+        """Test that an empty genotype_metadata_dict raises ValueError."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "individualid": ["Ind001"],
+                "expression": [5.0],
+                "tissue": ["Cortex"],
+                "sex": ["Male"],
+                "age": ["6 months"],
+                "genotype": ["Tg"],
+                "model": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="genotype_metadata_dict is required"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict={}, genotype_metadata_dict={}
+            )
+
     def test_multiple_genotypes_with_model_group(self) -> None:
         """Test processing with multiple genotypes in a model group."""
         data_file = pd.DataFrame(
