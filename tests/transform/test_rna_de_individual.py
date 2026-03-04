@@ -29,7 +29,7 @@ Test Data Structure:
     Input files include:
     - RNA-seq individual expression data (*.csv)
     - rnaseq_genotype_label_map.csv (maps genotypes to display labels, result_order, and model_groups)
-    - mouse_gene_metadata.csv (gene symbols and metadata)
+    - synthetic_mouse_gene_metadata.csv (gene symbols and metadata)
 
     Output files are JSON-formatted expected results for comparison.
 """
@@ -723,7 +723,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_basic_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                # Missing mouse_gene_metadata.csv
+                # Missing synthetic_mouse_gene_metadata.csv
             ]
         )
 
@@ -742,7 +742,7 @@ class TestTransformRnaDeIndividual:
         file_to_key_mapping = {
             "rnaseq_genotype_label_map.csv": "rnaseq_genotype_label_map",
             "rnaseq_genotype_label_map_inconsistent.csv": "rnaseq_genotype_label_map",
-            "mouse_gene_metadata.csv": "mouse_gene_metadata",
+            "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
         }
 
         for file_name in data_files:
@@ -770,7 +770,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_basic_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 
@@ -801,7 +801,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_jax_tissue_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 
@@ -838,7 +838,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_mixed_genes_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 
@@ -876,7 +876,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_age_sorting_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 
@@ -913,14 +913,14 @@ class TestTransformRnaDeIndividual:
         Tests edge case handling of minimal input: a single data row representing one individual
         at one age/condition. Verifies the transform can handle the smallest valid dataset.
         Also tests missing gene metadata handling - the gene (ENSMUSG00000000008) is not in
-        mouse_gene_metadata.csv, so gene_symbol should be "".
+        synthetic_mouse_gene_metadata.csv, so gene_symbol should be "".
         """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_single_row_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 
@@ -952,7 +952,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_empty_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 
@@ -967,7 +967,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_missing_columns_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 
@@ -986,7 +986,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_rounding_precision_data.csv",
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 
@@ -1027,7 +1027,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "rnaseq_genotype_label_map.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
                 "synthetic_multi_model_file1.csv",
                 "synthetic_multi_model_file2.csv",
             ]
@@ -1092,7 +1092,7 @@ class TestTransformRnaDeIndividual:
             [
                 "synthetic_basic_data.csv",
                 "rnaseq_genotype_label_map_inconsistent.csv",
-                "mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.csv",
             ]
         )
 

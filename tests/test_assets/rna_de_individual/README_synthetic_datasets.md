@@ -27,7 +27,7 @@ rna_de_individual/
 
 ### Metadata Files
 
-These files are required for all transformations and are copied from the actual production metadata:
+These files are required for all transformations. `rnaseq_genotype_label_map.csv` is copied from actual production metadata; `synthetic_mouse_gene_metadata.csv` is a minimal synthetic subset:
 
 1. **rnaseq_genotype_label_map.csv**
    - Maps genotypes to display labels and model groups
@@ -35,11 +35,10 @@ These files are required for all transformations and are copied from the actual 
    - Copied from `staging/rna_de_individual/inputs/rnaseq_genotype_label_map.csv`
    - Contains real mappings for all models (APOE4, LOAD1, Trem2R47H, Abca7*V1599M, etc.)
 
-2. **mouse_gene_metadata.csv**
+2. **synthetic_mouse_gene_metadata.csv**
    - Gene symbols and aliases for Ensembl IDs
    - Columns: ensembl_gene_id, gene_symbol, alias
-   - Converted from `staging/rna_de_individual/inputs/mouse_gene_metadata.json`
-   - Contains ~43,000 mouse genes
+   - Synthetic subset of production `mouse_gene_metadata` data; contains only the entries needed by the test suite (ENSMUSG00000000001 → Gnai3, plus a few additional rows for realism)
 
 3. **rnaseq_genotype_label_map_inconsistent.csv**
    - Contains inconsistent model_group values to test error handling
@@ -161,7 +160,7 @@ Each output JSON file contains the expected transformed data structure:
 - **Matched Control**: Determined from actual data, not all possible genotypes
 - **Result Order**: May contain duplicate display labels when multiple models share the same control genotype
 - **Model Group**: Empty strings are converted to `null` in JSON output
-- **Gene Metadata**: Missing genes result in empty string for gene_symbol
+- **Gene Metadata**: Missing genes result in empty string for gene_symbol (e.g. ENSMUSG00000000008 is intentionally absent from `synthetic_mouse_gene_metadata.csv`)
 - **Real Genotypes**: Tests use actual genotypes from production data (e.g., "APOE4-KI_homozygous; Trem2-R47H_WT")
 - **Real Models**: Tests use actual model names (APOE4, LOAD1, Abca7*V1599M, etc.)
 
