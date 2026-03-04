@@ -256,21 +256,25 @@ drug_info # 65 rows - missing 2 are the ones with 2 chembl_ids
 
 # Validate drug_info
 ```{r}
-# check for missing values
-drug_info[is.na(drug_info$chembl_id),] # 0 NA
-drug_info[is.na(drug_info$description),] # 0 NA
-drug_info[is.na(drug_info$modality),] # 0 NA
-drug_info[is.na(drug_info$maximum_clinical_trial_phase),] # 5 NA == Preclinical
-drug_info[is.na(drug_info$year_of_first_approval),] # 16 NA (# never approved)
-drug_info[is.na(drug_info$drug_bank_id),] # 5 NA - can't find
+# check for missing values; expected missing values based on the initial set of drug nominations
+tmp <- drug_info %>%
+  # expect these fields to be fully populated
+  verify(!is.na(chembl_id) & chembl_id != "") %>%
+  verify(!is.na(description) & description != "") %>%
+  verify(!is.na(modality) & modality != "") %>%
+  verify(!is.na(maximum_clinical_trial_phase) & maximum_clinical_trial_phase != "") %>%
 
-# sanity check list fields
-drug_info %>% filter(lengths(linked_targets) == 0) # 18 empty
-drug_info %>% filter(lengths(mechanisms_of_action) == 0) # 16 empty
-drug_info %>% filter(lengths(aliases) == 0) # 9 empty
+  # expect some missing values
+  verify(sum(is.na(year_of_first_approval)) == 16) %>%                                   # expect 16 (unapproved)
+  verify(sum(is.na(drug_bank_id)) == 5) %>%                                              # expect 5 (unresolvable)
 
-# sanity check this == # never approved above
-drug_info[drug_info$maximum_clinical_trial_phase != 'Phase IV',] # 16 non-approved
+  # list fields
+  verify(sum(lengths(linked_targets) == 0) == 18) %>%                                    # 18 empty
+  verify(sum(lengths(mechanisms_of_action) == 0) == 16) %>%                              # 16 empty
+  verify(sum(lengths(aliases) == 0) == 9) %>%                                            # 9 empty
+
+  # cross-field sanity checks
+  verify(sum(maximum_clinical_trial_phase != 'Phase IV') == sum(is.na(year_of_first_approval))).  # N unapproved == N !phase4
 ```
 
 # Generate source file and upload to Synapse
