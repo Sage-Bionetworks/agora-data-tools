@@ -7,6 +7,7 @@ import pytest
 from agoradatatools.etl.transform.model_details import (
     transform_model_details,
     process_genetic_info,
+    build_gene_expression_url,
 )
 
 
@@ -41,6 +42,18 @@ class TestTransformModelDetails:
                 "model_results_info": "model_details_model_results_info_good_test_input_1.csv",
             },
             "model_details_transform_good_test_output.json",
+        ),
+        (
+            # Pass with good test data requiring special URLs for gene expression
+            {
+                "biomarkers": "model_details_biomarkers_good_test_input.csv",
+                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
+                "allele_info": "model_details_allele_info_good_test_input.csv",
+                "model_info": "model_details_model_info_url_test_good_input.csv",
+                "pathology": "model_details_pathology_good_test_input.csv",
+                "model_results_info": "model_details_model_results_info_url_test_input.csv",
+            },
+            "model_details_transform_url_test_good_output.json",
         ),
         (
             # Pass with missing data in some fields
@@ -117,6 +130,7 @@ class TestTransformModelDetails:
     ]
     pass_test_ids = [
         "Pass with good test data",
+        "Pass with good test data requiring special URLs for gene expression link"
         "Pass with missing data in some fields",
         "Pass with empty biomarkers and pathology",
         "Pass with extra columns",
@@ -277,6 +291,8 @@ class TestTransformModelDetails:
                 "alzforum_id": ["alz1", "alz2", "alz3", "alz4", "alz5", "alz6"],
                 "genotype": ["geno1", "geno2", "geno3", "geno4", "geno5", "geno6"],
                 "aliases": ["alias1", "alias2", "alias3", "alias4", "alias5", "alias6"],
+                "url_categories_value": [""] * 6,
+                "url_models_value": [""] * 6,
             }
         )
 
@@ -567,3 +583,101 @@ class TestProcessGeneticInfo:
 
         # Compare output with expected
         assert output == expected_output
+
+
+class TestBuildGeneExpressionUrl:
+    """
+    This class is for testing the build_gene_expression_url function for the model_details transform. The function takes
+    a pd.Series object (representing a single row from the model_info file) and builds a URL if the model has gene
+    expression data.
+    """
+
+    test_model = pd.Series(
+        {
+            "name": "Model",
+            "url_categories_value": "category_string",
+            "url_models_value": "model1,model2",
+            "gene_expression": True,
+        }
+    )
+
+    def test_build_gene_expression_url_no_gene_expression(self):
+        no_gene_model = self.test_model.copy()
+        no_gene_model["gene_expression"] = False
+        url = build_gene_expression_url(no_gene_model)
+        assert url is None
+
+    def test_build_gene_expression_url_all_default_values(self):
+        default_model = self.test_model.copy()
+        default_model["url_categories_value"] = ""
+        default_model["url_models_value"] = ""
+
+        url = build_gene_expression_url(default_model)
+        assert url == "comparison/expression?models=Model"
+
+    def test_build_gene_expression_url_default_category(self):
+        default_model = self.test_model.copy()
+        default_model["url_categories_value"] = ""
+
+        url = build_gene_expression_url(default_model)
+        assert url == "comparison/expression?models=model1,model2"
+
+    def test_build_gene_expression_url_default_models(self):
+        default_model = self.test_model.copy()
+        default_model["url_models_value"] = ""
+
+        url = build_gene_expression_url(default_model)
+        assert url == "comparison/expression?categories=category_string&models=Model"
+
+    def test_build_gene_expression_url_na_gene_expression_passes(self):
+        """
+        The function coverts NA to booleans so NA gene_expression should be interpreted as False and return None.
+        """
+        na_model = self.test_model.copy()
+        na_model["gene_expression"] = None
+
+        url = build_gene_expression_url(na_model)
+        assert url is None
+
+    @pytest.mark.parametrize(
+        "na_variable",
+        ["url_categories_value", "url_models_value"],
+        ids=["Fail with NA categories value", "Fail with NA models value"],
+    )
+    def test_build_gene_expression_url_na_category(self, na_variable: str):
+        """
+        The function should raise a TypeError if either the categories or models field is NA instead
+        of an empty string.
+        """
+
+        bad_model = self.test_model.copy()
+        bad_model[na_variable] = None
+
+        with pytest.raises(TypeError):
+            build_gene_expression_url(bad_model)
+
+    @pytest.mark.parametrize(
+        "missing_key",
+        ["name", "url_categories_value", "url_models_value", "gene_expression"],
+        ids=[
+            "Fail with missing name column",
+            "Fail with missing url_categories_value column",
+            "Fail with missing url_models_value column",
+            "Fail with missing gene_expression column",
+        ],
+    )
+    def test_build_gene_expression_url_missing_field(self, missing_key: str):
+        """
+        In the transform, the model_info and model_results_info data frames have already been validated to have all the
+        required columns to correctly call build_gene_expression_url. However, we verify anyway that calling the
+        function with missing columns will throw errors.
+        """
+        bad_model = self.test_model.copy()
+        bad_model.pop(missing_key)
+
+        # Special case: model["name"] never gets used unless we set the url_models_value to empty
+        if missing_key == "name":
+            bad_model["url_models_value"] = ""
+
+        with pytest.raises(KeyError):
+            build_gene_expression_url(bad_model)

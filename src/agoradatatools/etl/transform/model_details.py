@@ -2,9 +2,9 @@
 This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
-from typing import Any, Dict, List
 
-import numpy as np
+from typing import Any, Dict, List, Union
+
 import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
@@ -112,17 +112,21 @@ def process_genetic_info(
 
     # Only override ensembl_id if we have a valid human_ensembl_id
     merged_df["ensembl_gene_id"] = merged_df.apply(
-        lambda row: row["human_ensembl_id"]
-        if pd.notna(row["human_ensembl_id"])
-        else row["gene_ensembl_id"],
+        lambda row: (
+            row["human_ensembl_id"]
+            if pd.notna(row["human_ensembl_id"])
+            else row["gene_ensembl_id"]
+        ),
         axis=1,
     )
 
     # Only override gene_symbol if we have a valid human_ensembl_id
     merged_df["modified_gene"] = merged_df.apply(
-        lambda row: row["gene_symbol"]
-        if pd.notna(row["human_ensembl_id"])
-        else row["modified_gene"],
+        lambda row: (
+            row["gene_symbol"]
+            if pd.notna(row["human_ensembl_id"])
+            else row["modified_gene"]
+        ),
         axis=1,
     )
 
@@ -134,6 +138,60 @@ def process_genetic_info(
     return merged_df[
         ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
     ].to_dict(orient="records")
+
+
+def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
+    """
+    Creates the link-url to the gene comparison table for a given model. The default string is
+    "comparison/expression?models=<model_name>".
+
+    However, this default isn't an appropriate value for every model. By default, the gene comparison table loads with
+    tissue = Hemibrain by default, and only Jax studies have hemibrain samples. For models without hemibrain data, we
+    add a "categories=..." string to the URL that sets tissue = Hippocampus.
+
+    Additionally, some UCI studies have 4 associated genotypes (2 sets of case vs control differential expression
+    results), and the gene comparison table should load results for both sets of DE data. For those studies, we add
+    two (or more) model names to the "models=..." part of the string.
+
+    The exact values that should go in "categories=..." and "models=..." are pulled from columns in model_row. If the
+    url_categories_value is "", the "categories=..." string is not added. If the url_models_value is "", the
+    "models=..." string defaults to "models=<model_name>".
+
+    The final url can have two different formats:
+        "comparison/expression?models=..."
+        "comparison/expression?categories=...&models=..."
+    where:
+        the models "..." could be a single model name or a comma-separated list of models, and
+        the categories "..." is a string like
+            "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hippocampus,Sex%2520-%2520Females%2520%2526%2520Males"
+
+    The url will be None if there is no gene expression data for this model.
+
+    Args:
+        model_row (pd.Series): A single row from the model_info data frame, which must contain columns "name",
+            "gene_expression", "url_categories_value", and "url_models_value". The latter two columns may be blank or
+            contain strings. "gene_expression" must be True or False.
+
+    Returns:
+        a string with the completed URL, or None if there is no gene expression data for the model
+    """
+    categories_value = (
+        # Contains the "&" at the end to separate it from the models=... statement
+        f"categories={model_row['url_categories_value']}&"
+        if len(model_row["url_categories_value"]) > 0  # must not be ""
+        else ""  # Only adds to URL if the url_categories_value is specified
+    )
+    models_value = (
+        model_row["url_models_value"]  # A comma-separated list, if specified
+        if len(model_row["url_models_value"]) > 0  # must not be ""
+        else model_row["name"]  # A single model name if url_models_value is blank
+    )
+    url = (
+        f"comparison/expression?{categories_value}models={models_value}"
+        if bool(model_row["gene_expression"])
+        else None
+    )
+    return url
 
 
 def transform_model_details(
@@ -173,7 +231,15 @@ def transform_model_details(
     allele_info_df = datasets["allele_info"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
-    model_results_info_df = datasets["model_results_info"].fillna({np.nan: None})
+
+    # Merge model_results_df into model_info to get which types of data are available for each model
+    model_info_df = pd.merge(
+        model_info_df,
+        datasets["model_results_info"],
+        how="left",
+        on="name",
+        validate="one_to_one",
+    ).fillna({"gene_expression": False, "disease_correlation": False})
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
     if "jax_id" in model_info_df.columns:
@@ -188,9 +254,11 @@ def transform_model_details(
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
         model_info_df[col_name] = model_info_df[col_name].apply(
-            lambda x: [item.strip() for item in str(x).split(",")]
-            if pd.notna(x) and x != ""
-            else []
+            lambda x: (
+                [item.strip() for item in str(x).split(",")]
+                if pd.notna(x) and x != ""
+                else []
+            )
         )
 
     # Process each model
@@ -229,23 +297,12 @@ def transform_model_details(
         }
 
         # Add gene expression and disease correlation links if they exist
-        if model_name in model_results_info_df["name"].values:
-            model_results_info_row_dict = model_results_info_df[
-                model_results_info_df["name"] == model_name
-            ].to_dict("records")[0]
-
-            model_entry["gene_expression"] = (
-                f"comparison/expression?models={model_name}"
-                if pd.notna(model_results_info_row_dict["gene_expression"])
-                and bool(model_results_info_row_dict["gene_expression"])
-                else None
-            )
-            model_entry["disease_correlation"] = (
-                f"comparison/correlation?models={model_name}"
-                if pd.notna(model_results_info_row_dict["disease_correlation"])
-                and bool(model_results_info_row_dict["disease_correlation"])
-                else None
-            )
+        model_entry["gene_expression"] = build_gene_expression_url(model_row)
+        model_entry["disease_correlation"] = (
+            f"comparison/correlation?models={model_name}"
+            if bool(model_row["disease_correlation"])
+            else None
+        )
 
         result.append(model_entry)
 

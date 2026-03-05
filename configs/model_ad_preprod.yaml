@@ -2,12 +2,16 @@ destination: &dest syn51498091 # preprod
 staging_path: ./staging
 gx_folder: syn59934608         # preprod
 gx_table: syn71888382          # preprod
+sources:
+  - model_info:
+    model_info_file: &model_info_file
+      - name: model_info
+        id: syn61378590.12
+        format: csv
 datasets:
   - model_details:
       files:
-        - name: model_info
-          id: syn61378590.11
-          format: csv
+        - <<: *model_info_file
         - name: allele_info
           id: syn64618791.6
           format: csv
@@ -50,9 +54,7 @@ datasets:
         - name: disease_correlation_results
           id: syn65467849.5
           format: csv
-        - name: model_info
-          id: syn61378590.11
-          format: csv
+        - <<: *model_info_file
         - name: allele_info
           id: syn64618791.6
           format: csv
@@ -79,9 +81,7 @@ datasets:
 
   - model_overview:
       files:
-        - name: model_info
-          id: syn61378590.11
-          format: csv
+        - <<: *model_info_file
         - name: model_results_info
           id: syn68377668.4
           format: csv
@@ -107,9 +107,7 @@ datasets:
         - name: mouse_gene_metadata
           id: syn51615422.4
           format: json
-        - name: model_info
-          id: syn61378590.11
-          format: csv
+        - <<: *model_info_file
         - name: biodom_genes_mm
           id: syn66351272.1
           format: csv

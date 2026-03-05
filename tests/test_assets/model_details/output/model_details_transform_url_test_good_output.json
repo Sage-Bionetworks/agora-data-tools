@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Model_url_default",
+    "matched_controls": [
+      "C57BL/6J"
+    ],
+    "model_type": "Tauopathy",
+    "contributing_group": "Mayo",
+    "study_synid": "syn25539881",
+    "rrid": "IMSR_JAX:005491",
+    "jax_id": "005491",
+    "alzforum_id": "htau",
+    "genotype": "B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J",
+    "aliases": [
+      "hTau",
+      "Mapt-/-"
+    ],
+    "gene_expression": "comparison/expression?models=Model_url_categories",
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
+    "genetic_info": [],
+    "biomarkers": [],
+    "pathology": []
+  },
+  {
+    "name": "Model_url_categories",
+    "matched_controls": [
+      "B6129"
+    ],
+    "model_type": "Familial AD",
+    "contributing_group": "UCI",
+    "study_synid": "syn22964685",
+    "rrid": "MMRRC_034830-JAX",
+    "jax_id": "004807",
+    "alzforum_id": "3xtg",
+    "genotype": "B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",
+    "aliases": [
+      "3xTg"
+    ],
+    "gene_expression": "comparison/expression?categories=category_string&models=Model_url_categories",
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
+    "genetic_info": [],
+    "biomarkers": [],
+    "pathology": []
+  },
+  {
+    "name": "Model_url_models",
+    "matched_controls": [
+      "C57BL/6J"
+    ],
+    "model_type": "Tauopathy",
+    "contributing_group": "Mayo",
+    "study_synid": "syn25539881",
+    "rrid": "IMSR_JAX:005491",
+    "jax_id": "005491",
+    "alzforum_id": "htau",
+    "genotype": "B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J",
+    "aliases": [
+      "hTau",
+      "Mapt-/-"
+    ],
+    "gene_expression": "comparison/expression?models=model1,model2",
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
+    "genetic_info": [],
+    "biomarkers": [],
+    "pathology": []
+  },
+  {
+    "name": "Model_url_both",
+    "matched_controls": [
+      "B6129"
+    ],
+    "model_type": "Familial AD",
+    "contributing_group": "UCI",
+    "study_synid": "syn22964685",
+    "rrid": "MMRRC_034830-JAX",
+    "jax_id": "004807",
+    "alzforum_id": "3xtg",
+    "genotype": "B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",
+    "aliases": [
+      "3xTg"
+    ],
+    "gene_expression": "comparison/expression?categories=category_string&models=model3,model4",
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
+    "genetic_info": [],
+    "biomarkers": [],
+    "pathology": []
+  }
+]
