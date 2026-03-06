@@ -1,3 +1,11 @@
+"""
+This file contains utility functions that may be used across multiple transforms related to Model-AD.
+
+Functions:
+    process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
+    build_gene_expression_url - build a URL linking to the gene comparison table for a given study
+"""
+
 from typing import Any, Dict, List, Union
 import pandas as pd
 

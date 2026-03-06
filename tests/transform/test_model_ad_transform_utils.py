@@ -1,3 +1,7 @@
+"""
+This file contains tests for utility functions used in Model-AD transforms.
+"""
+
 import pandas as pd
 import pytest
 
@@ -10,7 +14,7 @@ from agoradatatools.etl.transform.model_ad_transform_utils import (
 class TestProcessGeneticInfo:
     """Test class for the process_genetic_info function."""
 
-    def test_process_genetic_info_should_pass(self):
+    def test_process_genetic_info_should_pass(self) -> None:
         # Create test input DataFrames
         human_transgene_allele_map_df = pd.DataFrame(
             {
@@ -69,7 +73,7 @@ class TestProcessGeneticInfo:
         # Compare output with expected
         assert output == expected_output
 
-    def test_process_genetic_info_with_no_human_matches(self):
+    def test_process_genetic_info_with_no_human_matches(self) -> None:
         # Create test input DataFrames with no matching human transgenes
         human_transgene_allele_map_df = pd.DataFrame(
             {
@@ -128,7 +132,7 @@ class TestProcessGeneticInfo:
         # Compare output with expected
         assert output == expected_output
 
-    def test_process_genetic_info_with_empty_input(self):
+    def test_process_genetic_info_with_empty_input(self) -> None:
         # Create empty test input DataFrames
         human_transgene_allele_map_df = pd.DataFrame(
             columns=["mgi_allele_id", "gene_symbol", "human_ensembl_id"]
@@ -152,7 +156,7 @@ class TestProcessGeneticInfo:
         # Compare output with expected
         assert output == expected_output
 
-    def test_process_genetic_info_case_insensitive_mapping(self):
+    def test_process_genetic_info_case_insensitive_mapping(self) -> None:
         # Create test input DataFrames with different gene casing
         human_transgene_allele_map_df = pd.DataFrame(
             {
@@ -224,7 +228,7 @@ class TestBuildGeneExpressionUrl:
         [False, None],
         ids=["Pass with False boolean value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_no_gene_expression(self, false_val):
+    def test_build_gene_expression_url_no_gene_expression(self, false_val: bool) -> None:
         """
         The function should treat both None and False as gene_expression = False, and return None.
         """
@@ -234,7 +238,7 @@ class TestBuildGeneExpressionUrl:
         url = build_gene_expression_url(no_gene_model)
         assert url is None
 
-    def test_build_gene_expression_url_all_default_values(self):
+    def test_build_gene_expression_url_all_default_values(self) -> None:
         default_model = self.test_model.copy()
         default_model["url_categories_value"] = ""
         default_model["url_models_value"] = ""
@@ -247,7 +251,7 @@ class TestBuildGeneExpressionUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_default_category(self, empty_val):
+    def test_build_gene_expression_url_default_category(self, empty_val: str) -> None:
         """
         The function should treat both "" and None/NA as empty values and not have a "categories=..." in the url
         """
@@ -262,7 +266,7 @@ class TestBuildGeneExpressionUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_default_models(self, empty_val):
+    def test_build_gene_expression_url_default_models(self, empty_val: str) -> None:
         """
         The function should treat both "" and None/NA as empty values and have just the model name in the URL
         """
@@ -282,7 +286,7 @@ class TestBuildGeneExpressionUrl:
             "Fail with missing gene_expression column",
         ],
     )
-    def test_build_gene_expression_url_missing_field(self, missing_key: str):
+    def test_build_gene_expression_url_missing_field(self, missing_key: str) -> None:
         """
         In the transform, the model_info and model_results_info data frames have already been validated to have all the
         required columns to correctly call build_gene_expression_url. However, we verify anyway that calling the
