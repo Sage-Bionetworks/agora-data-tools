@@ -107,7 +107,7 @@ def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
     Args:
         model_row (pd.Series): A single row from the model_info data frame, which must contain columns "name",
             "gene_expression", "url_categories_value", and "url_models_value". The latter two columns may be blank or
-            contain strings. "gene_expression" must be True or False.
+            contain strings. "gene_expression" must be True, False, or None (which is interpreted as False).
 
     Returns:
         a string with the completed URL, or None if there is no gene expression data for the model

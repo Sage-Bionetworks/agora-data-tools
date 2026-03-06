@@ -35,6 +35,8 @@ REQUIRED_INPUT = {
         "alzforum_id",
         "genotype",
         "aliases",
+        "url_categories_value",
+        "url_models_value",
     ],
     "model_results_info": [
         "name",
