@@ -228,7 +228,9 @@ class TestBuildGeneExpressionUrl:
         [False, None],
         ids=["Pass with False boolean value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_no_gene_expression(self, false_val: bool) -> None:
+    def test_build_gene_expression_url_no_gene_expression(
+        self, false_val: bool
+    ) -> None:
         """
         The function should treat both None and False as gene_expression = False, and return None.
         """
