@@ -138,7 +138,7 @@ datasets:
   - rna_de_individual:
       files:
         - name: rnaseq_genotype_label_map
-          id: syn73672054
+          id: syn69014401.13
           format: csv
         - name: mouse_gene_metadata
           id: syn51615422
