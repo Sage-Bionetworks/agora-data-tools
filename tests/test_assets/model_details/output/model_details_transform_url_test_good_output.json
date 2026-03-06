@@ -15,7 +15,7 @@
       "hTau",
       "Mapt-/-"
     ],
-    "gene_expression": "comparison/expression?models=Model_url_categories",
+    "gene_expression": "comparison/expression?models=Model_url_default",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [],
