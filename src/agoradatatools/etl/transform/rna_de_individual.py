@@ -16,7 +16,7 @@ The transformation:
 - Organizes data by effective_model_group to support both single and multiple control display paradigms
 - Enriches data with gene symbols from gene metadata
 - Maps genotypes to display labels for better readability
-- Converts sex values to sentence case (M/F/male/female → Male/Female)
+- Passes sex values through as-is from the source data
 - Applies tissue name transformations: "Right Cerebral Hemisphere" → "Hemibrain" and converts all tissues to sentence case
 - Rounds numeric columns to 5 decimal places for consistency
 
@@ -331,8 +331,8 @@ def transform_rna_de_individual(
            split across multiple files (e.g. UCI models) are combined before output
            creation, while unrelated files are processed and freed independently
         5. For each effective_model_group:
-           - Preprocesses each file (filters to mouse genes, converts sex to sentence
-             case, rounds numeric values to 5 decimal places)
+           - Preprocesses each file (filters to mouse genes, rounds numeric values to
+             5 decimal places)
            - Concatenates preprocessed DataFrames within the group (no-op for
              single-file groups)
            - Enriches with genotype metadata
@@ -370,7 +370,7 @@ def transform_rna_de_individual(
             - result_order: Ordered list of genotype display labels
             - data: List of individual data points, each containing:
                 - genotype: Display label
-                - sex: Sex identifier in sentence case (Male/Female)
+                - sex: Sex identifier
                 - individual_id: Sample identifier
                 - value: Expression value
 

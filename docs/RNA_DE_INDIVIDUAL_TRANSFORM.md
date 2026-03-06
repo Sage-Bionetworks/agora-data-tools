@@ -85,7 +85,6 @@ Applied to each file individually before it is combined within its group:
 - **Empty file validation:** Raises error if file is empty
 - **Column validation:** Checks all required columns are present
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
-- **Sex conversion:** Converts sex values to sentence case (M/m/male → Male, F/f/female → Female)
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places
 
 After all files in a group are preprocessed, they are concatenated (via `pd.concat`) into a single DataFrame that is passed to `_process_individual_data_file_core`. Memory is explicitly freed (via `del` and `gc.collect()`) after each group is processed.
@@ -166,7 +165,7 @@ For each grouped combination, this function directly creates output entries (one
 - `units`: Fixed value "Log2 Counts per Million"
 - `data`: List of individual data points containing:
   - `genotype`: Display label (from genotype_display)
-  - `sex`: Sex identifier converted to sentence case (Male/Female)
+  - `sex`: Sex identifier
   - `individual_id`: Sample identifier (converted to string)
   - `value`: Expression value (converted to float)
 
@@ -224,18 +223,11 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Sentence case conversion:** All tissue names are converted to sentence case for consistency
 - **Purpose:** Ensures consistency across different data sources and standardizes capitalization
 
-### 6. Sex Value Standardization
-- **Conversion:** Sex values are standardized to sentence case format:
-  - "M", "m", "male", "MALE" → "Male"
-  - "F", "f", "female", "FEMALE" → "Female"
-- **Purpose:** Ensures consistent sex value formatting across all data sources
-- **Handling:** Other sex values (if present) are converted to sentence case
-
-### 7. Age Format
+### 6. Age Format
 - **Assumption:** Age values follow format "[number] months" (e.g., "3 months", "6 months")
 - **Handling:** Numeric extraction for sorting; falls back to original order if format is unexpected
 
-### 8. Expression Units
+### 7. Expression Units
 - **Fixed assumption:** All expression values are "Log2 Counts per Million"
 - **Implication:** No unit conversion is performed; assumes preprocessing has normalized data
 
@@ -340,7 +332,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 - **result_order**: Ordered list of genotype display labels for this model_group
 - **data**: Array of individual data points with:
   - **genotype**: Display label for genotype
-  - **sex**: Sex identifier in sentence case (Male/Female)
+  - **sex**: Sex identifier
   - **individual_id**: Unique sample identifier
   - **value**: Normalized expression value (rounded to 5 decimal places)
 
@@ -412,11 +404,6 @@ output = transform_rna_de_individual(datasets)
 - **Cause:** Tissue names not standardized in input data
 - **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"; all other tissues are converted to sentence case
 - **Solution:** Update input data or add transformations to `map_jax_tissue_name`
-
-### Issue: Unexpected sex values
-- **Cause:** Sex values in non-standard format
-- **Impact:** Values are converted to sentence case; common variations (M/F/male/female) are standardized to Male/Female
-- **Solution:** Verify sex values in input data; add additional mappings to `convert_sex_to_sentence_case` if needed
 
 ### Issue: Memory errors with large files
 - **Cause:** Processing very large expression files

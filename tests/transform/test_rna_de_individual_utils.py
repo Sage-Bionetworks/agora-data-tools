@@ -12,7 +12,6 @@ import logging
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     filter_mouse_genes,
     convert_to_sentence_case,
-    convert_sex_to_sentence_case,
     map_jax_tissue_name,
     validate_model_group_consistency,
     create_gene_metadata_dict,
@@ -99,41 +98,6 @@ class TestConvertToSentenceCase:
         """Test that single character strings work."""
         assert convert_to_sentence_case("a") == "A"
         assert convert_to_sentence_case("Z") == "Z"
-
-
-class TestConvertSexToSentenceCase:
-    """Tests for convert_sex_to_sentence_case function."""
-
-    def test_converts_m_to_male(self) -> None:
-        """Test that 'M' is converted to 'Male'."""
-        assert convert_sex_to_sentence_case("M") == "Male"
-        assert convert_sex_to_sentence_case("m") == "Male"
-
-    def test_converts_male_variations_to_male(self) -> None:
-        """Test that various 'male' formats are converted to 'Male'."""
-        assert convert_sex_to_sentence_case("male") == "Male"
-        assert convert_sex_to_sentence_case("MALE") == "Male"
-        assert convert_sex_to_sentence_case("Male") == "Male"
-
-    def test_converts_f_to_female(self) -> None:
-        """Test that 'F' is converted to 'Female'."""
-        assert convert_sex_to_sentence_case("F") == "Female"
-        assert convert_sex_to_sentence_case("f") == "Female"
-
-    def test_converts_female_variations_to_female(self) -> None:
-        """Test that various 'female' formats are converted to 'Female'."""
-        assert convert_sex_to_sentence_case("female") == "Female"
-        assert convert_sex_to_sentence_case("FEMALE") == "Female"
-        assert convert_sex_to_sentence_case("Female") == "Female"
-
-    def test_handles_empty_string(self) -> None:
-        """Test that empty string is handled correctly."""
-        assert convert_sex_to_sentence_case("") == ""
-
-    def test_handles_other_values(self) -> None:
-        """Test that other values are converted to sentence case."""
-        assert convert_sex_to_sentence_case("unknown") == "Unknown"
-        assert convert_sex_to_sentence_case("OTHER") == "Other"
 
 
 class TestMapJaxTissueName:
@@ -586,60 +550,6 @@ class TestProcessDataFiles:
         )
 
         assert result[0]["value"] == pytest.approx(1.12346, abs=1e-6)
-
-    def test_converts_sex_to_sentence_case(self) -> None:
-        """Test that sex values are converted to sentence case."""
-        datasets = {
-            "required_input": pd.DataFrame({"col1": [1]}),
-            "data_file": pd.DataFrame(
-                {
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000002",
-                        "ENSMUSG00000000003",
-                    ],
-                    "sex": ["M", "f", "male"],
-                    "value": [1, 2, 3],
-                }
-            ),
-        }
-
-        required_input = {"required_input": ["col1"]}
-        data_file_required_columns = ["ensembl_gene_id", "sex", "value"]
-
-        def callback(file_name, df, idx, total):
-            # Check sex conversion
-            return df["sex"].tolist()
-
-        result = process_data_files(
-            datasets, required_input, data_file_required_columns, callback
-        )
-
-        assert result == ["Male", "Female", "Male"]
-
-    def test_handles_missing_sex_column(self) -> None:
-        """Test that files without sex column are processed normally."""
-        datasets = {
-            "required_input": pd.DataFrame({"col1": [1]}),
-            "data_file": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "value": [1],
-                }
-            ),
-        }
-
-        required_input = {"required_input": ["col1"]}
-        data_file_required_columns = ["ensembl_gene_id", "value"]
-
-        def callback(file_name, df, idx, total):
-            return [{"has_sex": "sex" in df.columns}]
-
-        result = process_data_files(
-            datasets, required_input, data_file_required_columns, callback
-        )
-
-        assert result[0]["has_sex"] is False
 
     def test_empty_file_raises_error(self) -> None:
         """Test that empty files raise ValueError."""
