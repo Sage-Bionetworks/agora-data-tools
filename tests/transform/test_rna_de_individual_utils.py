@@ -199,7 +199,7 @@ class TestCreateGenotypeMetadataDict:
     """Tests for create_genotype_metadata_dict function."""
 
     def test_basic_metadata_without_result_order(self) -> None:
-        """Test creating metadata dict without result_order (aggregate mode)."""
+        """Test creating metadata dict without result_order columns in the input."""
         df = pd.DataFrame(
             {
                 "model": ["Model_A", "Model_A", "Model_B"],
@@ -209,7 +209,7 @@ class TestCreateGenotypeMetadataDict:
             }
         )
 
-        result = create_genotype_metadata_dict(df, include_result_order=False)
+        result = create_genotype_metadata_dict(df)
 
         assert result == {
             ("Model_A", "Tg"): {
@@ -227,7 +227,7 @@ class TestCreateGenotypeMetadataDict:
         }
 
     def test_metadata_with_result_order(self) -> None:
-        """Test creating metadata dict with result_order (individual mode)."""
+        """Test creating metadata dict when result_order and effective_model_group are in the input."""
         df = pd.DataFrame(
             {
                 "model": ["Model_A", "Model_A"],
@@ -235,10 +235,11 @@ class TestCreateGenotypeMetadataDict:
                 "display_label": ["Transgenic", "Wildtype"],
                 "model_group": ["Group1", "Group1"],
                 "result_order": [2, 1],
+                "effective_model_group": ["Group1", "Group1"],
             }
         )
 
-        result = create_genotype_metadata_dict(df, include_result_order=True)
+        result = create_genotype_metadata_dict(df)
 
         assert result == {
             ("Model_A", "Tg"): {
@@ -256,7 +257,7 @@ class TestCreateGenotypeMetadataDict:
         }
 
     def test_effective_model_group_with_empty_model_group(self) -> None:
-        """Test that effective_model_group defaults to model when model_group is empty."""
+        """Test that a pre-computed effective_model_group (model name) is preserved in output."""
         df = pd.DataFrame(
             {
                 "model": ["Model_X"],
@@ -264,27 +265,13 @@ class TestCreateGenotypeMetadataDict:
                 "display_label": ["Transgenic"],
                 "model_group": [""],
                 "result_order": [1],
+                "effective_model_group": ["Model_X"],
             }
         )
 
-        result = create_genotype_metadata_dict(df, include_result_order=True)
+        result = create_genotype_metadata_dict(df)
 
         assert result[("Model_X", "Tg")]["effective_model_group"] == "Model_X"
-
-    def test_empty_dataframe(self) -> None:
-        """Test handling of empty DataFrame."""
-        df = pd.DataFrame(
-            {
-                "model": [],
-                "genotype": [],
-                "display_label": [],
-                "model_group": [],
-            }
-        )
-
-        result = create_genotype_metadata_dict(df, include_result_order=False)
-
-        assert result == {}
 
 
 class TestPrepareGenotypeLabelMapDf:

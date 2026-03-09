@@ -12,7 +12,7 @@ Key Functions:
     map_jax_tissue_name: Map JAX-specific tissue names to standard names and apply sentence case
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
-    create_genotype_metadata_dict: Create a lookup dictionary mapping (model, genotype) tuples to their metadata
+    create_genotype_metadata_dict: Create a lookup dictionary mapping (model, genotype) tuples to their metadata (columns in input DataFrame determine what's included)
     prepare_genotype_label_map_df: Enrich the genotype label map DataFrame with effective_model_group
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
@@ -24,7 +24,7 @@ import pandas as pd
 from typing import Dict, Any, List
 import logging
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
 
 logger = logging.getLogger(__name__)
 
@@ -141,36 +141,22 @@ def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str,
 
 def create_genotype_metadata_dict(
     genotype_label_map_df: pd.DataFrame,
-    include_result_order: bool = False,
 ) -> Dict[tuple[str, str], Dict[str, Any]]:
     """
     Create a unified lookup dictionary mapping (model, genotype) pairs to their metadata.
 
-    This function builds a comprehensive data structure that enables efficient lookups of
-    genotype information during data processing. By grouping all genotype-related metadata
-    together, we avoid multiple DataFrame iterations and provide O(1) lookup time for
-    genotype properties.
-
-    The effective_model_group is computed when include_result_order=True to handle cases
-    where models belong to a model_group for display purposes. When a model has a
-    model_group defined, that becomes the effective grouping; otherwise, the model name
-    itself serves as the grouping key.
+    Builds a data structure that enables efficient O(1) lookups of genotype information
+    during data processing. The output metadata for each key contains all columns from the
+    input DataFrame except 'model' and 'genotype' themselves, so callers control which
+    fields appear in the result by selecting columns before calling this function.
 
     Args:
-        genotype_label_map_df: DataFrame containing model, genotype, display_label,
-            and model_group columns. If include_result_order=True, must also contain
-            result_order column.
-        include_result_order: Whether to include result_order and effective_model_group
-            fields in the metadata. Set to True for individual transform, False for
-            aggregate transform.
+        genotype_label_map_df: DataFrame containing at minimum 'model', 'genotype', and
+            'display_label' columns. Any additional columns present (e.g. 'model_group',
+            'result_order', 'effective_model_group') are included in the output metadata.
 
     Returns:
-        Dictionary mapping (model, genotype) tuples to a dict containing:
-            - 'display_label': str, human-readable label for the genotype
-            - 'model_group': str, model group name (empty string if none)
-            - 'result_order': int, ordering value for display (only if include_result_order=True)
-            - 'effective_model_group': str, model_group if present, otherwise model name
-              (only if include_result_order=True)
+        Dictionary mapping (model, genotype) tuples to a dict of the remaining columns.
 
     Example:
         >>> df = pd.DataFrame({
@@ -178,9 +164,10 @@ def create_genotype_metadata_dict(
         ...     'genotype': ['Tg', 'Wt'],
         ...     'display_label': ['Transgenic', 'Wildtype'],
         ...     'model_group': ['Group1', 'Group1'],
-        ...     'result_order': [2, 1]
+        ...     'result_order': [2, 1],
+        ...     'effective_model_group': ['Group1', 'Group1'],
         ... })
-        >>> metadata = create_genotype_metadata_dict(df, include_result_order=True)
+        >>> metadata = create_genotype_metadata_dict(df)
         >>> metadata[('Model_A', 'Tg')]
         {
             'display_label': 'Transgenic',
@@ -189,25 +176,23 @@ def create_genotype_metadata_dict(
             'effective_model_group': 'Group1'
         }
     """
-    genotype_metadata = {}
-    for _, row in genotype_label_map_df.iterrows():
-        model = row["model"]
-        genotype = row["genotype"]
-        model_group = row["model_group"]
+    genotype_labels = genotype_label_map_df.copy()
+    genotype_labels["group_key"] = list(
+        zip(genotype_labels["model"], genotype_labels["genotype"])
+    )
 
-        metadata = {
-            "display_label": row["display_label"],
-            "model_group": model_group,
-        }
+    cols_keep = ["group_key"] + [
+        c for c in genotype_label_map_df.columns if c not in ("model", "genotype")
+    ]
 
-        if include_result_order:
-            metadata["result_order"] = int(row["result_order"])
-            # Compute effective_model_group: use model_group if present, otherwise model
-            metadata["effective_model_group"] = model_group if model_group else model
-
-        genotype_metadata[(model, genotype)] = metadata
-
-    return genotype_metadata
+    genotype_labels = nest_fields(
+        genotype_labels[cols_keep],
+        grouping="group_key",
+        new_column="metadata",
+        drop_columns=["group_key"],
+        nested_field_is_list=False,
+    )
+    return genotype_labels.set_index("group_key")["metadata"].to_dict()
 
 
 def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
