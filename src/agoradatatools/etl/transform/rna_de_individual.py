@@ -267,7 +267,6 @@ def _process_individual_data_file_core(
         data_file["genotype"]
     )
     data_file["result_order"] = data_file["result_order"].fillna(999)
-    data_file["model_group"] = data_file["model_group"].fillna("")
     data_file["effective_model_group"] = data_file["effective_model_group"].fillna(
         data_file["model"]
     )

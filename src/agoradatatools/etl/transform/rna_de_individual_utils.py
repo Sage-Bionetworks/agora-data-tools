@@ -246,17 +246,19 @@ def validate_data_file_not_empty(file_name: str, data_file: pd.DataFrame) -> Non
         raise ValueError(f"Data file {file_name} is empty")
 
 
-def normalize_model_group_value(model_group: str) -> str or None:
+def normalize_model_group_value(model_group) -> str or None:
     """
-    Normalize model_group value by converting empty strings to None.
+    Normalize model_group value by converting empty strings or NaN to None.
 
     Args:
-        model_group: Model group string value
+        model_group: Model group value (string or NaN from a pandas merge)
 
     Returns:
-        None if model_group is empty string, otherwise returns model_group
+        None if model_group is an empty string or NaN, otherwise returns model_group
     """
-    return None if model_group == "" else model_group
+    if pd.isna(model_group) or model_group == "":
+        return None
+    return model_group
 
 
 def extract_common_metadata(

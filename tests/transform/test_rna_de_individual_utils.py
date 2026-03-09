@@ -331,6 +331,13 @@ class TestNormalizeModelGroupValue:
         """Test that empty string is converted to None."""
         assert normalize_model_group_value("") is None
 
+    def test_converts_nan_to_none(self) -> None:
+        """Test that NaN (from an unmatched pandas merge) is converted to None."""
+        import numpy as np
+
+        assert normalize_model_group_value(np.nan) is None
+        assert normalize_model_group_value(float("nan")) is None
+
     def test_keeps_non_empty_strings(self) -> None:
         """Test that non-empty strings are kept."""
         assert normalize_model_group_value("Group1") == "Group1"
