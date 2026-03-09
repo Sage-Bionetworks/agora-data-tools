@@ -168,9 +168,7 @@ def _create_output_entry_from_group(
 
     # Fields shared across all age timepoints for this (gene, tissue, model_group)
     base_entry = {
-        "ensembl_gene_id": common_metadata["ensembl_gene_id"],
-        "gene_symbol": common_metadata["gene_symbol"],
-        "tissue": common_metadata["tissue"],
+        **common_metadata,
         "name": name,
         "model_group": normalize_model_group_value(model_group),
         "matched_control": matched_control,
