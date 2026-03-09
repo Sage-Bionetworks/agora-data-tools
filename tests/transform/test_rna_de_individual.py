@@ -46,121 +46,6 @@ from agoradatatools.etl.transform.rna_de_individual import (
     _create_output_entry_from_group,
     _process_individual_data_file_core,
 )
-from agoradatatools.etl.transform.rna_de_individual_utils import (
-    create_genotype_metadata_dict,
-)
-
-
-class TestCreateGenotypeMetadataDict:
-    """
-    Unit tests for the create_genotype_metadata_dict helper function.
-
-    This class contains focused unit tests for genotype metadata dictionary creation,
-    which maps (model, genotype) tuples to their metadata including display labels,
-    result_order, model_group, and effective_model_group.
-
-    Test Methods:
-        - test_basic_metadata_creation: Tests basic dictionary creation with single model.
-        - test_with_model_groups: Tests metadata creation with model_groups.
-        - test_effective_model_group_calculation: Tests effective_model_group calculation logic.
-        - test_result_order_conversion: Tests that result_order is converted to int.
-        - test_empty_dataframe: Tests handling of empty DataFrame input.
-    """
-
-    def test_basic_metadata_creation(self) -> None:
-        """Test basic genotype metadata dictionary creation."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "genotype": ["Tg", "Wt"],
-                "display_label": ["Transgenic", "Wildtype"],
-                "result_order": [2, 1],
-                "model_group": ["", ""],
-            }
-        )
-
-        result = create_genotype_metadata_dict(df, include_result_order=True)
-
-        assert len(result) == 2
-        assert ("Model_A", "Tg") in result
-        assert ("Model_A", "Wt") in result
-        assert result[("Model_A", "Tg")]["display_label"] == "Transgenic"
-        assert result[("Model_A", "Tg")]["result_order"] == 2
-        assert result[("Model_A", "Tg")]["model_group"] == ""
-        assert result[("Model_A", "Tg")]["effective_model_group"] == "Model_A"
-
-    def test_with_model_groups(self) -> None:
-        """Test metadata creation with model_groups defined."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_B", "Model_B", "Model_C"],
-                "genotype": ["Carrier", "Non-Carrier", "Mutant"],
-                "display_label": ["Model_B", "Control_B", "Model_C"],
-                "result_order": [2, 1, 3],
-                "model_group": ["GroupX", "GroupX", "GroupX"],
-            }
-        )
-
-        result = create_genotype_metadata_dict(df, include_result_order=True)
-
-        assert len(result) == 3
-        # All should have same effective_model_group
-        assert result[("Model_B", "Carrier")]["effective_model_group"] == "GroupX"
-        assert result[("Model_B", "Non-Carrier")]["effective_model_group"] == "GroupX"
-        assert result[("Model_C", "Mutant")]["effective_model_group"] == "GroupX"
-
-    def test_effective_model_group_calculation(self) -> None:
-        """Test that effective_model_group is correctly calculated."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_B"],
-                "genotype": ["Tg", "Carrier"],
-                "display_label": ["Model_A", "Model_B"],
-                "result_order": [2, 2],
-                "model_group": ["", "GroupX"],
-            }
-        )
-
-        result = create_genotype_metadata_dict(df, include_result_order=True)
-
-        # Empty model_group -> effective is model name
-        assert result[("Model_A", "Tg")]["effective_model_group"] == "Model_A"
-        # Non-empty model_group -> effective is model_group
-        assert result[("Model_B", "Carrier")]["effective_model_group"] == "GroupX"
-
-    def test_result_order_conversion(self) -> None:
-        """Test that result_order is converted to int."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "result_order": ["2"],  # String value
-                "model_group": [""],
-            }
-        )
-
-        result = create_genotype_metadata_dict(df, include_result_order=True)
-
-        assert isinstance(result[("Model_A", "Tg")]["result_order"], int)
-        assert result[("Model_A", "Tg")]["result_order"] == 2
-
-    def test_empty_dataframe(self) -> None:
-        """Test handling of empty DataFrame."""
-        df = pd.DataFrame(
-            columns=[
-                "model",
-                "genotype",
-                "display_label",
-                "result_order",
-                "model_group",
-            ]
-        )
-
-        result = create_genotype_metadata_dict(df, include_result_order=True)
-
-        assert len(result) == 0
-        assert result == {}
 
 
 class TestDetermineResultOrder:
@@ -174,96 +59,92 @@ class TestDetermineResultOrder:
         - test_single_model_result_order: Tests result ordering for a single model.
         - test_model_group_result_order: Tests result ordering for a model group.
         - test_result_order_sorting: Tests that display labels are sorted by result_order.
-        - test_empty_genotype_metadata: Tests handling of empty metadata dictionary.
+        - test_empty_genotype_label_map_df: Tests handling of an empty label map DataFrame.
         - test_no_matching_model_group: Tests behavior when no genotypes match the model_group.
     """
 
     def test_single_model_result_order(self) -> None:
         """Test result order for a single model (no model_group)."""
-        genotype_metadata = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "effective_model_group": "Model_A",
-            },
-            ("Model_A", "Wt"): {
-                "display_label": "Wildtype",
-                "result_order": 1,
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "genotype": ["Tg", "Wt"],
+                "display_label": ["Transgenic", "Wildtype"],
+                "result_order": [2, 1],
+                "model_group": ["", ""],
+                "effective_model_group": ["Model_A", "Model_A"],
+            }
+        )
 
-        result = _determine_result_order(genotype_metadata, "Model_A")
+        result = _determine_result_order(genotype_label_map_df, "Model_A")
 
         assert result == ["Wildtype", "Transgenic"]
 
     def test_model_group_result_order(self) -> None:
         """Test result order for a model group with multiple models."""
-        genotype_metadata = {
-            ("Model_B", "Carrier"): {
-                "display_label": "Model_B",
-                "result_order": 2,
-                "effective_model_group": "GroupX",
-            },
-            ("Model_B", "Non-Carrier"): {
-                "display_label": "Control_B",
-                "result_order": 1,
-                "effective_model_group": "GroupX",
-            },
-            ("Model_C", "Mutant"): {
-                "display_label": "Model_C",
-                "result_order": 3,
-                "effective_model_group": "GroupX",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_B", "Model_B", "Model_C"],
+                "genotype": ["Carrier", "Non-Carrier", "Mutant"],
+                "display_label": ["Model_B", "Control_B", "Model_C"],
+                "result_order": [2, 1, 3],
+                "model_group": ["GroupX", "GroupX", "GroupX"],
+                "effective_model_group": ["GroupX", "GroupX", "GroupX"],
+            }
+        )
 
-        result = _determine_result_order(genotype_metadata, "GroupX")
+        result = _determine_result_order(genotype_label_map_df, "GroupX")
 
         assert result == ["Control_B", "Model_B", "Model_C"]
 
     def test_result_order_sorting(self) -> None:
         """Test that display labels are sorted by result_order value."""
-        genotype_metadata = {
-            ("Model_A", "G3"): {
-                "display_label": "Label_C",
-                "result_order": 30,
-                "effective_model_group": "Model_A",
-            },
-            ("Model_A", "G1"): {
-                "display_label": "Label_A",
-                "result_order": 10,
-                "effective_model_group": "Model_A",
-            },
-            ("Model_A", "G2"): {
-                "display_label": "Label_B",
-                "result_order": 20,
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A", "Model_A"],
+                "genotype": ["G3", "G1", "G2"],
+                "display_label": ["Label_C", "Label_A", "Label_B"],
+                "result_order": [30, 10, 20],
+                "model_group": ["", "", ""],
+                "effective_model_group": ["Model_A", "Model_A", "Model_A"],
+            }
+        )
 
-        result = _determine_result_order(genotype_metadata, "Model_A")
+        result = _determine_result_order(genotype_label_map_df, "Model_A")
 
         assert result == ["Label_A", "Label_B", "Label_C"]
 
-    def test_empty_genotype_metadata(self) -> None:
-        """Test handling of empty genotype metadata dictionary."""
-        genotype_metadata = {}
+    def test_empty_genotype_label_map_df(self) -> None:
+        """Test handling of an empty label map DataFrame."""
+        genotype_label_map_df = pd.DataFrame(
+            columns=[
+                "model",
+                "genotype",
+                "display_label",
+                "result_order",
+                "model_group",
+                "effective_model_group",
+            ]
+        )
 
-        result = _determine_result_order(genotype_metadata, "Model_A")
+        result = _determine_result_order(genotype_label_map_df, "Model_A")
 
         assert result == []
 
     def test_no_matching_model_group(self) -> None:
         """Test behavior when no genotypes match the specified model_group."""
-        genotype_metadata = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
 
-        result = _determine_result_order(genotype_metadata, "Model_B")
+        result = _determine_result_order(genotype_label_map_df, "Model_B")
 
         assert result == []
 
@@ -301,21 +182,19 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        genotype_metadata_dict = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "effective_model_group": "Model_A",
-            },
-            ("Model_A", "Wt"): {
-                "display_label": "Wildtype",
-                "result_order": 1,
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "genotype": ["Tg", "Wt"],
+                "display_label": ["Transgenic", "Wildtype"],
+                "result_order": [2, 1],
+                "model_group": ["", ""],
+                "effective_model_group": ["Model_A", "Model_A"],
+            }
+        )
 
         result = _create_output_entry_from_group(
-            group_key, group, gene_metadata_dict, genotype_metadata_dict
+            group_key, group, gene_metadata_dict, genotype_label_map_df
         )
 
         assert len(result) == 1  # One age group
@@ -350,16 +229,19 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        genotype_metadata_dict = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
 
         result = _create_output_entry_from_group(
-            group_key, group, gene_metadata_dict, genotype_metadata_dict
+            group_key, group, gene_metadata_dict, genotype_label_map_df
         )
 
         assert result[0]["tissue"] == "Hemibrain"
@@ -382,26 +264,19 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        genotype_metadata_dict = {
-            ("Model_B", "Carrier"): {
-                "display_label": "Model_B",
-                "result_order": 2,
-                "effective_model_group": "GroupX",
-            },
-            ("Model_B", "Non-Carrier"): {
-                "display_label": "Control_B",
-                "result_order": 1,
-                "effective_model_group": "GroupX",
-            },
-            ("Model_C", "Mutant"): {
-                "display_label": "Model_C",
-                "result_order": 3,
-                "effective_model_group": "GroupX",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_B", "Model_B", "Model_C"],
+                "genotype": ["Carrier", "Non-Carrier", "Mutant"],
+                "display_label": ["Model_B", "Control_B", "Model_C"],
+                "result_order": [2, 1, 3],
+                "model_group": ["GroupX", "GroupX", "GroupX"],
+                "effective_model_group": ["GroupX", "GroupX", "GroupX"],
+            }
+        )
 
         result = _create_output_entry_from_group(
-            group_key, group, gene_metadata_dict, genotype_metadata_dict
+            group_key, group, gene_metadata_dict, genotype_label_map_df
         )
 
         assert result[0]["matched_control"] == "Control_B"
@@ -425,16 +300,19 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {}
-        genotype_metadata_dict = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
 
         result = _create_output_entry_from_group(
-            group_key, group, gene_metadata_dict, genotype_metadata_dict
+            group_key, group, gene_metadata_dict, genotype_label_map_df
         )
 
         assert result[0]["model_group"] is None
@@ -454,16 +332,19 @@ class TestCreateOutputEntryFromGroup:
                 "effective_model_group": ["GroupX"],
             }
         )
-        genotype_metadata_dict = {
-            ("Model_B", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "effective_model_group": "GroupX",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_B"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": ["GroupX"],
+                "effective_model_group": ["GroupX"],
+            }
+        )
 
         result = _create_output_entry_from_group(
-            group_key, group, gene_metadata_dict, genotype_metadata_dict
+            group_key, group, gene_metadata_dict, genotype_label_map_df
         )
 
         assert result[0]["model_group"] == "GroupX"
@@ -486,16 +367,19 @@ class TestCreateOutputEntryFromGroup:
         )
 
         gene_metadata_dict = {}
-        genotype_metadata_dict = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
 
         result = _create_output_entry_from_group(
-            group_key, group, gene_metadata_dict, genotype_metadata_dict
+            group_key, group, gene_metadata_dict, genotype_label_map_df
         )
 
         assert len(result) == 2  # Two separate entries
@@ -535,17 +419,19 @@ class TestProcessIndividualDataFileCore:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        genotype_metadata_dict = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "model_group": "",
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
 
         result = _process_individual_data_file_core(
-            data_file, gene_metadata_dict, genotype_metadata_dict
+            data_file, gene_metadata_dict, genotype_label_map_df
         )
 
         assert len(result) == 1
@@ -570,17 +456,19 @@ class TestProcessIndividualDataFileCore:
         )
 
         gene_metadata_dict = {}
-        genotype_metadata_dict = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "model_group": "",
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
 
         result = _process_individual_data_file_core(
-            data_file, gene_metadata_dict, genotype_metadata_dict
+            data_file, gene_metadata_dict, genotype_label_map_df
         )
 
         # Should only have 1 data point (valid genotype only)
@@ -605,24 +493,26 @@ class TestProcessIndividualDataFileCore:
         )
 
         gene_metadata_dict = {}
-        genotype_metadata_dict = {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "result_order": 2,
-                "model_group": "",
-                "effective_model_group": "Model_A",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
 
         result = _process_individual_data_file_core(
-            data_file, gene_metadata_dict, genotype_metadata_dict
+            data_file, gene_metadata_dict, genotype_label_map_df
         )
 
         # Value should remain as provided (already preprocessed)
         assert result[0]["data"][0]["value"] == pytest.approx(1.12346, abs=1e-6)
 
-    def test_empty_genotype_metadata_dict_raises(self) -> None:
-        """Test that an empty genotype_metadata_dict raises ValueError."""
+    def test_empty_genotype_label_map_df_raises(self) -> None:
+        """Test that an empty genotype_label_map_df raises ValueError."""
         data_file = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSMUSG00000000001"],
@@ -635,10 +525,20 @@ class TestProcessIndividualDataFileCore:
                 "model": ["Model_A"],
             }
         )
+        empty_df = pd.DataFrame(
+            columns=[
+                "model",
+                "genotype",
+                "display_label",
+                "result_order",
+                "model_group",
+                "effective_model_group",
+            ]
+        )
 
-        with pytest.raises(ValueError, match="genotype_metadata_dict is required"):
+        with pytest.raises(ValueError, match="genotype_label_map_df is required"):
             _process_individual_data_file_core(
-                data_file, gene_metadata_dict={}, genotype_metadata_dict={}
+                data_file, gene_metadata_dict={}, genotype_label_map_df=empty_df
             )
 
     def test_multiple_genotypes_with_model_group(self) -> None:
@@ -657,23 +557,19 @@ class TestProcessIndividualDataFileCore:
         )
 
         gene_metadata_dict = {}
-        genotype_metadata_dict = {
-            ("Model_B", "Carrier"): {
-                "display_label": "Model_B",
-                "result_order": 2,
-                "model_group": "GroupX",
-                "effective_model_group": "GroupX",
-            },
-            ("Model_B", "Non-Carrier"): {
-                "display_label": "Control_B",
-                "result_order": 1,
-                "model_group": "GroupX",
-                "effective_model_group": "GroupX",
-            },
-        }
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_B", "Model_B"],
+                "genotype": ["Carrier", "Non-Carrier"],
+                "display_label": ["Model_B", "Control_B"],
+                "result_order": [2, 1],
+                "model_group": ["GroupX", "GroupX"],
+                "effective_model_group": ["GroupX", "GroupX"],
+            }
+        )
 
         result = _process_individual_data_file_core(
-            data_file, gene_metadata_dict, genotype_metadata_dict
+            data_file, gene_metadata_dict, genotype_label_map_df
         )
 
         # Should have 1 entry with 2 data points

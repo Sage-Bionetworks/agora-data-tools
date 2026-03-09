@@ -16,6 +16,7 @@ from agoradatatools.etl.transform.rna_de_individual_utils import (
     validate_model_group_consistency,
     create_gene_metadata_dict,
     create_genotype_metadata_dict,
+    prepare_genotype_label_map_df,
     log_file_processing_info,
     validate_data_file_not_empty,
     normalize_model_group_value,
@@ -284,6 +285,131 @@ class TestCreateGenotypeMetadataDict:
         result = create_genotype_metadata_dict(df, include_result_order=False)
 
         assert result == {}
+
+
+class TestPrepareGenotypeLabelMapDf:
+    """Tests for prepare_genotype_label_map_df function."""
+
+    def test_adds_effective_model_group_from_model_group(self) -> None:
+        """Test that a non-empty model_group becomes effective_model_group."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_B"],
+                "genotype": ["Carrier"],
+                "display_label": ["Model_B"],
+                "model_group": ["GroupX"],
+                "result_order": [2],
+            }
+        )
+
+        result = prepare_genotype_label_map_df(df)
+
+        assert result["effective_model_group"].iloc[0] == "GroupX"
+
+    def test_falls_back_to_model_when_model_group_empty(self) -> None:
+        """Test that an empty model_group causes effective_model_group to use model."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "model_group": [""],
+                "result_order": [1],
+            }
+        )
+
+        result = prepare_genotype_label_map_df(df)
+
+        assert result["effective_model_group"].iloc[0] == "Model_A"
+
+    def test_falls_back_to_model_when_model_group_nan(self) -> None:
+        """Test that a NaN model_group causes effective_model_group to use model."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "model_group": [None],
+                "result_order": [1],
+            }
+        )
+
+        result = prepare_genotype_label_map_df(df)
+
+        assert result["effective_model_group"].iloc[0] == "Model_A"
+
+    def test_fills_remaining_nan_with_empty_string(self) -> None:
+        """Test that remaining NaN values (e.g. model_group) are replaced with empty string."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "model_group": [None],
+                "result_order": [1],
+            }
+        )
+
+        result = prepare_genotype_label_map_df(df)
+
+        assert result["model_group"].iloc[0] == ""
+
+    def test_converts_result_order_to_int(self) -> None:
+        """Test that result_order is cast to int."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "model_group": [""],
+                "result_order": ["3"],
+            }
+        )
+
+        result = prepare_genotype_label_map_df(df)
+
+        assert result["result_order"].dtype == int
+        assert result["result_order"].iloc[0] == 3
+
+    def test_does_not_mutate_input(self) -> None:
+        """Test that the original DataFrame is not modified."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "model_group": [None],
+                "result_order": [1],
+            }
+        )
+        original_model_group = df["model_group"].iloc[0]
+
+        prepare_genotype_label_map_df(df)
+
+        assert df["model_group"].iloc[0] is original_model_group
+
+    def test_mixed_model_group_values(self) -> None:
+        """Test correct handling of rows with and without model_group."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_B"],
+                "genotype": ["Tg", "Carrier"],
+                "display_label": ["Transgenic", "Model_B"],
+                "model_group": ["", "GroupX"],
+                "result_order": [2, 1],
+            }
+        )
+
+        result = prepare_genotype_label_map_df(df)
+
+        assert (
+            result.loc[result["model"] == "Model_A", "effective_model_group"].iloc[0]
+            == "Model_A"
+        )
+        assert (
+            result.loc[result["model"] == "Model_B", "effective_model_group"].iloc[0]
+            == "GroupX"
+        )
 
 
 class TestLogFileProcessingInfo:

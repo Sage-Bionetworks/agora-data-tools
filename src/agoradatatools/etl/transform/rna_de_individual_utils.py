@@ -13,6 +13,7 @@ Key Functions:
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
     create_genotype_metadata_dict: Create a lookup dictionary mapping (model, genotype) tuples to their metadata
+    prepare_genotype_label_map_df: Enrich the genotype label map DataFrame with effective_model_group
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
     normalize_model_group_value: Normalize model_group value by converting empty strings to None
@@ -207,6 +208,45 @@ def create_genotype_metadata_dict(
         genotype_metadata[(model, genotype)] = metadata
 
     return genotype_metadata
+
+
+def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Enrich the genotype label map DataFrame with an effective_model_group column.
+
+    Computes effective_model_group as model_group when a non-empty value is present,
+    otherwise falls back to the model name. Fills all remaining NaN values with empty
+    strings and casts result_order to int.
+
+    Args:
+        df: Raw rnaseq_genotype_label_map DataFrame with columns: model, genotype,
+            display_label, model_group, result_order
+
+    Returns:
+        Enriched DataFrame with an added effective_model_group column, NaN values
+        replaced by empty strings, and result_order cast to int.
+
+    Examples:
+        >>> df = pd.DataFrame({
+        ...     'model': ['Model_A', 'Model_B'],
+        ...     'genotype': ['Tg', 'Carrier'],
+        ...     'display_label': ['Transgenic', 'Model_B'],
+        ...     'model_group': [None, 'GroupX'],
+        ...     'result_order': [2, 1],
+        ... })
+        >>> result = prepare_genotype_label_map_df(df)
+        >>> result['effective_model_group'].tolist()
+        ['Model_A', 'GroupX']
+    """
+    df = df.copy()
+    # Replace empty strings with NaN before computing effective_model_group so that
+    # both NaN and "" model_group values fall back to the model name.
+    df["effective_model_group"] = (
+        df["model_group"].replace("", pd.NA).fillna(df["model"])
+    )
+    df = df.fillna("")
+    df["result_order"] = df["result_order"].astype(int)
+    return df
 
 
 def log_file_processing_info(
