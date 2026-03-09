@@ -109,13 +109,11 @@ After preprocessing and concatenation, the individual transform applies its spec
 - `name` is set to `effective_model_group` (the model_group when explicitly set, or the model name for solo models)
 - This consolidates multi-file model_groups (e.g. all UCI models sharing "Trem2-R47H_NSS") under a single display name while preserving solo-model names
 
-**Genotype Filtering by Model Group:**
-- **Critical filtering step:** Filters data to include only genotypes that belong to the effective model_group
-- Effective model_group = `model_group` if present, else `model` name
-- Builds set of allowed `(effective_model_group, genotype)` combinations from metadata
-- Removes rows with invalid genotype combinations
-- **Purpose:** Ensures only valid genotype combinations are processed for each model group
-- **Example:** If model_group "5XFAD" has genotypes ["5XFAD_carrier", "5XFAD_noncarrier"], any rows with different genotypes are filtered out
+**Dropping Unmatched Rows:**
+- After the left merge with the label map, any row whose `(model, genotype)` pair had no match receives NA for `effective_model_group`
+- Those rows are removed with `dropna(subset=["effective_model_group"])`
+- **Purpose:** Ensures only genotype combinations that exist in the label map are processed
+- **Example:** If model_group "5XFAD" has genotypes ["5XFAD_carrier", "5XFAD_noncarrier"], any rows with a different genotype receive NA and are dropped
 
 ### Step 3: Grouping and Output Entry Creation
 
@@ -238,10 +236,10 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Why:** Model AD focuses on mouse models; human genes are not relevant
 - **Impact:** Significantly reduces data volume if input contains human genes
 
-### 2. Genotype Filtering by Model Group
-- **What:** Keeps only genotypes that belong to the effective model_group per metadata
-- **Why:** Prevents invalid genotype combinations from being processed
-- **Example:** If processing model_group "5XFAD" with genotypes [A, B], filters out any rows with genotype C
+### 2. Dropping Unmatched Rows
+- **What:** Drops rows whose `(model, genotype)` pair had no match in the label map (NA `effective_model_group` after left merge)
+- **Why:** Prevents unrecognised genotype combinations from being processed
+- **Example:** If processing model_group "5XFAD" with genotypes [A, B], rows with genotype C receive NA and are dropped
 - **Impact:** Ensures data integrity and prevents mismatched comparisons
 
 ### 3. Empty File Filtering

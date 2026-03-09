@@ -211,7 +211,7 @@ def _process_individual_data_file_core(
 
     This function contains the individual-transform-specific processing logic:
     1. Enriches data with genotype metadata (display labels, result_order, model_group, effective_model_group)
-    2. Filters to include only valid genotype combinations for each model_group
+    2. Drops rows with no label-map match (NA effective_model_group after the left merge)
     3. Groups data by gene, tissue, and effective_model_group
     4. Creates output entries for each group with individual measurements
 
@@ -256,21 +256,11 @@ def _process_individual_data_file_core(
     )
     data_file["result_order"] = data_file["result_order"].fillna(999)
 
-    # Step 2: Filter to valid genotype combinations for each model_group
-    # This prevents processing invalid genotype combinations that may exist in the data
-    allowed_genotypes_set = set(
-        zip(
-            genotype_label_map_df["effective_model_group"],
-            genotype_label_map_df["genotype"],
-        )
-    )
-
-    # Filter: keep only rows with valid genotype combinations using the pre-computed column
-    filter_mask = [
-        (emg, gt) in allowed_genotypes_set
-        for emg, gt in zip(data_file["effective_model_group"], data_file["genotype"])
-    ]
-    data_file = data_file[filter_mask]
+    # Step 2: Drop rows that had no match in the label map.
+    # After a left merge, any unmatched row has NA for effective_model_group (it is never
+    # filled with a fallback above), so dropping those NAs is equivalent to the previous
+    # allowed_genotypes_set filter while being faster and simpler.
+    data_file = data_file.dropna(subset=["effective_model_group"])
 
     # Step 3: Convert types once per file before grouping
     data_file["individualid"] = data_file["individualid"].astype(str)
@@ -319,7 +309,7 @@ def transform_rna_de_individual(
            - Concatenates preprocessed DataFrames within the group (no-op for
              single-file groups)
            - Enriches with genotype metadata
-           - Filters to valid genotype combinations
+           - Drops rows with no label-map match (NA effective_model_group)
            - Groups by gene, tissue, and effective_model_group
            - Creates output entries with individual data points
            - Frees memory before moving to the next group
