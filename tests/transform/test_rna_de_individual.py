@@ -511,36 +511,6 @@ class TestProcessIndividualDataFileCore:
         # Value should remain as provided (already preprocessed)
         assert result[0]["data"][0]["value"] == pytest.approx(1.12346, abs=1e-6)
 
-    def test_empty_genotype_label_map_df_raises(self) -> None:
-        """Test that an empty genotype_label_map_df raises ValueError."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001"],
-                "individualid": ["Ind001"],
-                "expression": [5.0],
-                "tissue": ["Cortex"],
-                "sex": ["Male"],
-                "age": ["6 months"],
-                "genotype": ["Tg"],
-                "model": ["Model_A"],
-            }
-        )
-        empty_df = pd.DataFrame(
-            columns=[
-                "model",
-                "genotype",
-                "display_label",
-                "result_order",
-                "model_group",
-                "effective_model_group",
-            ]
-        )
-
-        with pytest.raises(ValueError, match="genotype_label_map_df is required"):
-            _process_individual_data_file_core(
-                data_file, gene_metadata_dict={}, genotype_label_map_df=empty_df
-            )
-
     def test_multiple_genotypes_with_model_group(self) -> None:
         """Test processing with multiple genotypes in a model group."""
         data_file = pd.DataFrame(

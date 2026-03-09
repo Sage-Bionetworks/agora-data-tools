@@ -232,8 +232,6 @@ def _process_individual_data_file_core(
     """
     # Step 1: Enrich with genotype metadata using vectorized merge
     # This adds display labels, result_order, model_group, and effective_model_group to each row
-    if len(genotype_label_map_df) == 0:
-        raise ValueError("genotype_label_map_df is required")
 
     # Merge directly against the enriched label map df; rename display_label for output clarity
     merge_df = genotype_label_map_df[
@@ -257,9 +255,6 @@ def _process_individual_data_file_core(
         data_file["genotype"]
     )
     data_file["result_order"] = data_file["result_order"].fillna(999)
-    data_file["effective_model_group"] = data_file["effective_model_group"].fillna(
-        data_file["model"]
-    )
 
     # Step 2: Filter to valid genotype combinations for each model_group
     # This prevents processing invalid genotype combinations that may exist in the data
