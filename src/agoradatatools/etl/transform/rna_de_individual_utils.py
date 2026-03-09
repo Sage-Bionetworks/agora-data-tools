@@ -21,9 +21,8 @@ Key Functions:
 """
 
 import pandas as pd
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List
 import logging
-import gc
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns
 
@@ -327,103 +326,3 @@ def preprocess_data_file(
     data_file = filter_mouse_genes(data_file)
     data_file = data_file.round(decimals=5)
     return data_file
-
-
-def process_data_files(
-    datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]],
-    data_file_required_columns: List[str],
-    process_file_callback: Callable[
-        [str, pd.DataFrame, int, int], List[Dict[str, Any]]
-    ],
-) -> List[Dict[str, Any]]:
-    """
-    Process multiple data files with common validation and preprocessing steps.
-
-    This function implements a file processing pattern for RNA transforms:
-    1. Iterates over data files (excluding required input files)
-    2. Logs processing information for each file
-    3. Validates file is not empty
-    4. Checks required columns are present
-    5. Filters to mouse genes only (removes human genes)
-    6. Rounds numeric values to 5 decimal places
-    8. Calls transform-specific processing callback
-    9. Performs memory cleanup after each file
-
-    This pattern ensures consistent file handling and reduces code duplication.
-
-    Args:
-        datasets: Dictionary mapping dataset names to DataFrames. Must include required
-            input datasets plus one or more data files to process.
-        required_input: Dictionary mapping required input dataset names to their required
-            columns. These datasets are excluded from file processing.
-        data_file_required_columns: List of column names that must be present in each
-            data file.
-        process_file_callback: Function to call for each file after preprocessing.
-            Signature: (file_name: str, data_file: pd.DataFrame, file_index: int,
-            total_files: int) -> List[Dict[str, Any]]
-            This callback receives the preprocessed DataFrame and should return a list
-            of output entries specific to the transform.
-
-    Returns:
-        List of output dictionaries accumulated from all processed files. Each entry's
-        structure depends on the transform-specific callback.
-
-    Raises:
-        ValueError: If any data file is empty or missing required columns.
-
-    Example:
-        >>> def my_processor(file_name, df, idx, total):
-        ...     # Transform-specific logic here
-        ...     return [{"result": "processed"}]
-        >>>
-        >>> result = process_data_files(
-        ...     datasets={"required_input": df1, "data_file_1": df2},
-        ...     required_input={"required_input": ["col1"]},
-        ...     data_file_required_columns=["ensembl_gene_id", "log2foldchange"],
-        ...     process_file_callback=my_processor
-        ... )
-
-    Note:
-        This function processes files sequentially to minimize memory usage. Each file
-        is fully processed and cleaned up before moving to the next file.
-    """
-    output = []
-
-    # Get list of data files (exclude required input files)
-    file_list = [k for k in datasets.keys() if k not in required_input]
-    total_files = len(file_list)
-
-    logger.info(f"Processing {total_files} data files")
-    logger.info(f"Data files list: {file_list}")
-
-    for i, file_name in enumerate(file_list):
-        data_file = datasets[file_name]
-
-        # Log file processing info
-        log_file_processing_info(file_name, i, total_files, data_file)
-
-        # Validate file is not empty
-        validate_data_file_not_empty(file_name, data_file)
-
-        # Check required columns (import needed from etl.utils)
-        check_required_datasets_and_columns(
-            {file_name: data_file}, {file_name: data_file_required_columns}
-        )
-
-        # Filter to mouse genes only
-        data_file = filter_mouse_genes(data_file)
-
-        # Round numeric columns to 5 decimal places
-        data_file = data_file.round(decimals=5)
-
-        # Call transform-specific processing callback
-        file_output = process_file_callback(file_name, data_file, i, total_files)
-        output.extend(file_output)
-
-        # Clean up memory
-        del data_file
-        gc.collect()
-
-    logger.info(f"Total output entries: {len(output)}")
-    return output
