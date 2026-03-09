@@ -214,14 +214,16 @@ class TestBuildGeneExpressionUrl:
     expression data.
     """
 
-    test_model = pd.Series(
-        {
-            "name": "Model",
-            "url_categories_value": "category_string",
-            "url_models_value": "model1,model2",
-            "gene_expression": True,
-        }
-    )
+    @pytest.fixture
+    def url_test_model(self) -> pd.Series:
+        return pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": "category_string",
+                "url_models_value": "model1,model2",
+                "gene_expression": True,
+            }
+        )
 
     @pytest.mark.parametrize(
         "false_val",
@@ -229,23 +231,23 @@ class TestBuildGeneExpressionUrl:
         ids=["Pass with False boolean value", "Pass with NA value"],
     )
     def test_build_gene_expression_url_no_gene_expression(
-        self, false_val: bool
+        self, false_val: bool, url_test_model: pd.Series
     ) -> None:
         """
         The function should treat both None and False as gene_expression = False, and return None.
         """
-        no_gene_model = self.test_model.copy()
-        no_gene_model["gene_expression"] = false_val
+        url_test_model["gene_expression"] = false_val
 
-        url = build_gene_expression_url(no_gene_model)
+        url = build_gene_expression_url(url_test_model)
         assert url is None
 
-    def test_build_gene_expression_url_all_default_values(self) -> None:
-        default_model = self.test_model.copy()
-        default_model["url_categories_value"] = ""
-        default_model["url_models_value"] = ""
+    def test_build_gene_expression_url_all_default_values(
+        self, url_test_model: pd.Series
+    ) -> None:
+        url_test_model["url_categories_value"] = ""
+        url_test_model["url_models_value"] = ""
 
-        url = build_gene_expression_url(default_model)
+        url = build_gene_expression_url(url_test_model)
         assert url == "comparison/expression?models=Model"
 
     @pytest.mark.parametrize(
@@ -253,14 +255,15 @@ class TestBuildGeneExpressionUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_default_category(self, empty_val: str) -> None:
+    def test_build_gene_expression_url_default_category(
+        self, empty_val: str, url_test_model: pd.Series
+    ) -> None:
         """
         The function should treat both "" and None/NA as empty values and not have a "categories=..." in the url
         """
-        default_model = self.test_model.copy()
-        default_model["url_categories_value"] = empty_val
+        url_test_model["url_categories_value"] = empty_val
 
-        url = build_gene_expression_url(default_model)
+        url = build_gene_expression_url(url_test_model)
         assert url == "comparison/expression?models=model1,model2"
 
     @pytest.mark.parametrize(
@@ -268,14 +271,15 @@ class TestBuildGeneExpressionUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_default_models(self, empty_val: str) -> None:
+    def test_build_gene_expression_url_default_models(
+        self, empty_val: str, url_test_model: pd.Series
+    ) -> None:
         """
         The function should treat both "" and None/NA as empty values and have just the model name in the URL
         """
-        default_model = self.test_model.copy()
-        default_model["url_models_value"] = empty_val
+        url_test_model["url_models_value"] = empty_val
 
-        url = build_gene_expression_url(default_model)
+        url = build_gene_expression_url(url_test_model)
         assert url == "comparison/expression?categories=category_string&models=Model"
 
     @pytest.mark.parametrize(
@@ -288,18 +292,19 @@ class TestBuildGeneExpressionUrl:
             "Fail with missing gene_expression column",
         ],
     )
-    def test_build_gene_expression_url_missing_field(self, missing_key: str) -> None:
+    def test_build_gene_expression_url_missing_field(
+        self, missing_key: str, url_test_model: pd.Series
+    ) -> None:
         """
         In the transform, the model_info and model_results_info data frames have already been validated to have all the
         required columns to correctly call build_gene_expression_url. However, we verify anyway that calling the
         function with missing columns will throw errors.
         """
-        bad_model = self.test_model.copy()
-        bad_model.pop(missing_key)
+        url_test_model.pop(missing_key)
 
         # Special case: model["name"] never gets used unless we set the url_models_value to empty
         if missing_key == "name":
-            bad_model["url_models_value"] = ""
+            url_test_model["url_models_value"] = ""
 
         with pytest.raises(KeyError):
-            build_gene_expression_url(bad_model)
+            build_gene_expression_url(url_test_model)
