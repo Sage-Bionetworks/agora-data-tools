@@ -134,12 +134,10 @@ Each output JSON file contains the expected transformed data structure:
 
 ### Unit Tests
 
-1. **TestGetEffectiveModelGroup**: Tests effective model group determination
-2. **TestCreateGenotypeMetadataDict**: Tests genotype metadata dictionary creation
-3. **TestDetermineResultOrder**: Tests result ordering logic
-4. **TestCreateIndividualResultsFromGroup**: Tests individual results structure creation
-5. **TestCreateOutputEntryFromGroup**: Tests output entry creation with metadata
-6. **TestProcessSingleDataFile**: Tests single file processing logic
+1. **TestCreateGenotypeMetadataDict**: Tests genotype metadata dictionary creation
+2. **TestDetermineResultOrder**: Tests result ordering logic
+3. **TestCreateOutputEntryFromGroup**: Tests output entry creation with metadata
+4. **TestProcessIndividualDataFileCore**: Tests single file processing logic
 
 ### Integration Tests
 

@@ -17,7 +17,6 @@ Key Functions:
     validate_data_file_not_empty: Validate that a data file is not empty
     normalize_model_group_value: Normalize model_group value by converting empty strings to None
     extract_common_metadata: Extract common metadata fields for RNA transforms
-    process_data_files: Process multiple data files with common validation and preprocessing steps
 """
 
 import pandas as pd
