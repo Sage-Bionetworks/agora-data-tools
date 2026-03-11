@@ -23,7 +23,7 @@ class TestProcessGeneticInfo:
             {
                 "mgi_allele_id": [2672831, 1930937],
                 "gene_symbol": ["APP", "PSEN1"],
-                "human_ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
+                "ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
             }
         )
 
@@ -32,7 +32,7 @@ class TestProcessGeneticInfo:
         return pd.DataFrame(
             {
                 "name": ["Model1", "Model2"],
-                "modified_gene": ["App", "Psen1"],
+                "gene": ["App", "Psen1"],
                 "mgi_gene_id": [11820, 19164],
                 "gene_ensembl_id": ["ENSMUSG00000022892", "ENSMUSG00000019969"],
                 "allele": ["APP_transgenic", "PSEN1_transgenic"],
@@ -46,7 +46,7 @@ class TestProcessGeneticInfo:
         return pd.DataFrame(
             {
                 "name": ["Model1", "Model2"],
-                "modified_gene": ["APP", "PSEN1"],
+                "gene": ["APP", "PSEN1"],
                 "mgi_gene_id": [11820, 19164],
                 "allele": ["APP_transgenic", "PSEN1_transgenic"],
                 "allele_type": ["Transgenic", "Transgenic"],
@@ -77,12 +77,12 @@ class TestProcessGeneticInfo:
             {
                 "mgi_allele_id": [9999999],  # Different MGI ID
                 "gene_symbol": ["DifferentGene"],
-                "human_ensembl_id": ["ENSG00000000000"],
+                "ensembl_id": ["ENSG00000000000"],
             }
         )
 
         # Most output is the same, but keep mouse genes instead of human genes
-        basic_expected_output["modified_gene"] = ["App", "Psen1"]
+        basic_expected_output["gene"] = ["App", "Psen1"]
         basic_expected_output["ensembl_gene_id"] = [
             "ENSMUSG00000022892",
             "ENSMUSG00000019969",
@@ -99,12 +99,12 @@ class TestProcessGeneticInfo:
     def test_process_genetic_info_with_empty_input(self) -> None:
         # Create empty test input DataFrames
         human_transgene_allele_map_df = pd.DataFrame(
-            columns=["mgi_allele_id", "gene_symbol", "human_ensembl_id"]
+            columns=["mgi_allele_id", "gene_symbol", "ensembl_id"]
         )
         allele_info = pd.DataFrame(
             columns=[
                 "name",
-                "modified_gene",
+                "gene",
                 "mgi_gene_id",
                 "gene_ensembl_id",
                 "allele",
@@ -117,7 +117,7 @@ class TestProcessGeneticInfo:
         expected_output = pd.DataFrame(
             columns=[
                 "name",
-                "modified_gene",
+                "gene",
                 "mgi_gene_id",
                 "allele",
                 "allele_type",
@@ -142,7 +142,7 @@ class TestProcessGeneticInfo:
         # match between data frames no matter what the casing is
         basic_human_transgene_allele_map["gene_symbol"] = ["APP", "psen1"]
 
-        basic_expected_output["modified_gene"] = ["APP", "psen1"]
+        basic_expected_output["gene"] = ["APP", "psen1"]
 
         # Transform data
         output = process_genetic_info(
@@ -163,7 +163,7 @@ class TestProcessGeneticInfo:
         new_row = pd.DataFrame(
             {
                 "name": ["Model2"],
-                "modified_gene": ["Psen1"],
+                "gene": ["Psen1"],
                 "mgi_gene_id": [19164],
                 "gene_ensembl_id": ["ENSMUSG00000019969"],
                 "allele": ["Psen1_Mouse"],
@@ -177,7 +177,7 @@ class TestProcessGeneticInfo:
         expected_new_row = pd.DataFrame(
             {
                 "name": ["Model2"],
-                "modified_gene": ["Psen1"],
+                "gene": ["Psen1"],
                 "mgi_gene_id": [19164],
                 "allele": ["Psen1_Mouse"],
                 "allele_type": ["Targeted"],
@@ -214,7 +214,7 @@ class TestProcessGeneticInfo:
         basic_expected_output = basic_expected_output[
             [
                 "name",
-                "modified_gene",
+                "gene",
                 "mgi_gene_id",
                 "allele",
                 "allele_type",
