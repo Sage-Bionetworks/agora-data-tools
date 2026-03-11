@@ -477,7 +477,7 @@ class TestTransformModelOverview:
                 "study_data": {
                     "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
                 },
-                "jax_strain": {"link_url": "https://jax.org/strain/111"},
+                "jax_strain": {"link_url": "https://jax.org/strain/000111"},
                 "center": {
                     "link_text": "UCI",
                     "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/",
@@ -498,7 +498,7 @@ class TestTransformModelOverview:
                 "study_data": {
                     "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
                 },
-                "jax_strain": {"link_url": "https://jax.org/strain/222"},
+                "jax_strain": {"link_url": "https://jax.org/strain/000222"},
                 "center": {
                     "link_text": "IU/Jax/Pitt",
                     "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/",
