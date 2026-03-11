@@ -11,11 +11,13 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     flatten_list,
     remove_duplicates_keep_order,
-    input_validation_model_info,
     extract_age_numeric,
 )
 
-from agoradatatools.etl.transform.model_ad_transform_utils import process_genetic_info
+from agoradatatools.etl.transform.model_ad_transform_utils import (
+    process_genetic_info,
+    preprocess_model_info,
+)
 
 
 REQUIRED_INPUT = {
@@ -213,10 +215,7 @@ def transform_disease_correlation(
 
     # Load datasets and prepare lookups if necessary
     disease_correlation_df = datasets["disease_correlation_results"].fillna("")
-    model_info_df = datasets["model_info"].fillna("")
-
-    # Validate model info
-    input_validation_model_info(model_info_df)
+    model_info_df = preprocess_model_info(datasets["model_info"])
 
     allele_info_mapped = process_genetic_info(
         datasets["human_transgene_allele_map"], datasets["allele_info"]

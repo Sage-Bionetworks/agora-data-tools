@@ -88,6 +88,16 @@ class TestTransformDiseaseCorrelation:
         }
     )
 
+    basic_model_info_df = pd.DataFrame(
+        [
+            {
+                "name": "LOAD1",
+                "matched_controls": "C57BL6J",
+                "model_type": "Late Onset AD",
+            },
+        ]
+    )
+
     basic_allele_info_df = pd.DataFrame(
         [
             {
@@ -222,15 +232,7 @@ class TestTransformDiseaseCorrelation:
         (
             {
                 "disease_correlation_results": basic_disease_correlation_results,
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                    ]
-                ),
+                "model_info": basic_model_info_df,
                 "allele_info": basic_allele_info_df.loc[
                     [0, 0],
                 ],  # Duplicate the row,
@@ -275,12 +277,7 @@ class TestTransformDiseaseCorrelation:
         """
         output = transform_disease_correlation(datasets)
 
-        # For the first test case, compare with expected output directly
-        if isinstance(expected_output, list):
-            assert output == expected_output
-        else:
-            # For other test cases that use assertion functions, call them
-            assert expected_output(output)
+        assert output == expected_output
 
     # Test data for dataset-level error scenarios
     dataset_error_test_data = [
@@ -302,44 +299,12 @@ class TestTransformDiseaseCorrelation:
                 "disease_correlation_results": basic_disease_correlation_results.loc[
                     [0, 0],
                 ],
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                    ]
-                ),
+                "model_info": basic_model_info_df,
                 "allele_info": basic_allele_info_df,
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             ValueError,
             "Module IFG already exists for LOAD1",
-        ),
-        # Test case 3: Inconsistent model_info entries for the same model
-        (
-            {
-                "disease_correlation_results": basic_disease_correlation_results,
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                        {
-                            "name": "LOAD1",  # Same model name but different values
-                            "matched_controls": "CTRL2",
-                            "model_type": "Wrong",
-                        },
-                    ]
-                ),
-                "allele_info": basic_allele_info_df,
-                "human_transgene_allele_map": empty_human_transgene_allele_map,
-            },
-            ValueError,
-            "Model LOAD1 has inconsistent matched_controls values:",
         ),
     ]
 
@@ -351,15 +316,7 @@ class TestTransformDiseaseCorrelation:
                 "disease_correlation_results": basic_disease_correlation_results.drop(
                     columns="age"
                 ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                    ]
-                ),
+                "model_info": basic_model_info_df,
                 "allele_info": basic_allele_info_df,
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
@@ -371,7 +328,6 @@ class TestTransformDiseaseCorrelation:
     dataset_error_test_ids = [
         "Missing model_info",
         "Duplicate results in disease_correlation_results",
-        "Inconsistent model_info",
     ]
     column_error_test_ids = ["Missing required column in disease_correlation_results"]
 
