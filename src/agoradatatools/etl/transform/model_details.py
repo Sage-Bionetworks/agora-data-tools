@@ -12,6 +12,7 @@ from agoradatatools.etl.utils import check_required_datasets_and_columns
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_gene_expression_url,
     process_genetic_info,
+    zero_pad_jax_ids,
 )
 
 
@@ -127,10 +128,7 @@ def transform_model_details(
     ).fillna({"gene_expression": False, "disease_correlation": False})
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
-    if "jax_id" in model_info_df.columns:
-        model_info_df["jax_id"] = model_info_df["jax_id"].apply(
-            lambda x: str(x).zfill(6) if pd.notna(x) and str(x).strip() != "" else x
-        )
+    model_info_df["jax_id"] = zero_pad_jax_ids(model_info_df["jax_id"])
 
     # Prepare biomarker and pathology dataframes
     grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")

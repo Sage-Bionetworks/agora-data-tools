@@ -13,6 +13,7 @@ from agoradatatools.etl.utils import (
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_gene_expression_url,
     process_genetic_info,
+    zero_pad_jax_ids,
 )
 
 REQUIRED_INPUT = {
@@ -138,6 +139,9 @@ def transform_model_overview(
     merged_df = pd.merge(
         model_info, model_results_info, on="name", how="left", validate="1:1"
     )
+
+    # Ensure jax_id preserves leading zeros by converting to string with proper formatting
+    merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
 
     merged_df = merged_df.replace({float("nan"): None})
 
