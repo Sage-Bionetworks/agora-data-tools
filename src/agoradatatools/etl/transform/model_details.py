@@ -20,7 +20,7 @@ from agoradatatools.etl.transform.model_ad_transform_utils import (
 REQUIRED_INPUT = {
     "allele_info": [
         "name",
-        "modified_gene",
+        "gene",
         "gene_ensembl_id",
         "allele",
         "allele_type",
@@ -50,7 +50,7 @@ REQUIRED_INPUT = {
     "human_transgene_allele_map": [
         "mgi_allele_id",
         "gene_symbol",
-        "human_ensembl_id",
+        "ensembl_id",
     ],
     "immunohisto_measure_order": [
         "dataset_name",
@@ -99,7 +99,7 @@ def transform_model_details(
         2. Sex and tissue values are converted to use Initial Caps (e.g. Female, Cerebral Cortex)
         3. Biomarker measure (pre-transform in source file) aka evidence_type (post-transform
         in output file)values use &beta; entity codes, instead of beta string literals
-        4. For the human_transgene_allele_map source file use the human_ensembl_id and
+        4. For the human_transgene_allele_map source file use the ensembl_id and
         gene values for rows with a matching mgi_allele_id
 
     Args:
@@ -121,7 +121,7 @@ def transform_model_details(
 
     allele_info_df = process_genetic_info(
         datasets["human_transgene_allele_map"], datasets["allele_info"]
-    )
+    ).rename(columns={"gene": "modified_gene"})
 
     # Prepare biomarker and pathology dataframes
     grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")

@@ -34,7 +34,7 @@ def process_genetic_info(
     """
 
     # Normalize gene columns to uppercase for consistent merging
-    allele_info_df["gene_upper"] = allele_info_df["modified_gene"].str.upper()
+    allele_info_df["gene_upper"] = allele_info_df["gene"].str.upper()
     human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
         "gene_symbol"
     ].str.upper()
@@ -44,25 +44,25 @@ def process_genetic_info(
         human_transgene_allele_map_df, on=["mgi_allele_id", "gene_upper"], how="left"
     )
 
-    # Only override ensembl_id if we have a valid human_ensembl_id
-    merged_df["ensembl_gene_id"] = merged_df["human_ensembl_id"].fillna(
+    # Only override ensembl_id if we have a valid human ensembl_id. "ensembl_id" = human ID,
+    # "gene_ensembl_id" = mouse ID. We make a third column called "ensembl_gene_id", which is the
+    # name expected by the explorer.
+    merged_df["ensembl_gene_id"] = merged_df["ensembl_id"].fillna(
         merged_df["gene_ensembl_id"]
     )
 
-    # Only override gene_symbol if we have a valid human_ensembl_id
-    merged_df["modified_gene"] = merged_df["gene_symbol"].fillna(
-        merged_df["modified_gene"]
-    )
+    # Only override gene_symbol if we have a valid human ensembl_id.
+    merged_df["gene"] = merged_df["gene_symbol"].fillna(merged_df["gene"])
 
     # Drop duplicates to ensure we don't have exact duplicates of the same allele
     merged_df = merged_df.drop_duplicates(
-        subset=["name", "modified_gene", "allele", "mgi_allele_id"]
+        subset=["name", "gene", "allele", "mgi_allele_id"]
     )
 
     # Change NaN to empty strings and remove the columns we added in this function, plus the now-unused gene_ensembl_id
     # column, which was replaced by "ensembl_gene_id".
     return merged_df.drop(
-        columns=["gene_upper", "human_ensembl_id", "gene_ensembl_id", "gene_symbol"]
+        columns=["gene_upper", "ensembl_id", "gene_ensembl_id", "gene_symbol"]
     ).fillna("")
 
 

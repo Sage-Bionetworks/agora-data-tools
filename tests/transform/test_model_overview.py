@@ -200,7 +200,7 @@ class TestTransformModelOverview:
         empty_allele_info = pd.DataFrame(
             columns=[
                 "name",
-                "modified_gene",
+                "gene",
                 "mgi_gene_id",
                 "gene_ensembl_id",
                 "allele",
@@ -212,7 +212,7 @@ class TestTransformModelOverview:
             columns=[
                 "mgi_allele_id",
                 "gene_symbol",
-                "human_ensembl_id",
+                "ensembl_id",
             ]
         )
 
@@ -262,7 +262,7 @@ class TestTransformModelOverview:
         allele_info = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "modified_gene": ["TestGene"],
+                "gene": ["TestGene"],
                 "mgi_gene_id": [12345],
                 "gene_ensembl_id": ["ENSMUSG00000012345"],
                 "allele": ["TestAllele"],
@@ -274,7 +274,7 @@ class TestTransformModelOverview:
             {
                 "mgi_allele_id": [67890],
                 "gene_symbol": ["TestGene"],
-                "human_ensembl_id": ["ENSG00000012345"],
+                "ensembl_id": ["ENSG00000012345"],
             }
         )
 
@@ -346,7 +346,7 @@ class TestTransformModelOverview:
         allele_info = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "modified_gene": [None],
+                "gene": [None],
                 "mgi_gene_id": [None],
                 "gene_ensembl_id": [None],
                 "allele": [None],
@@ -358,7 +358,7 @@ class TestTransformModelOverview:
             {
                 "mgi_allele_id": [None],
                 "gene_symbol": [None],
-                "human_ensembl_id": [None],
+                "ensembl_id": [None],
             }
         )
 
@@ -430,7 +430,7 @@ class TestTransformModelOverview:
         allele_info = pd.DataFrame(
             {
                 "name": ["model1", "model1", "model2"],
-                "modified_gene": ["Gene1", "Gene2", "Gene3"],
+                "gene": ["Gene1", "Gene2", "Gene3"],
                 "mgi_gene_id": [11111, 22222, 33333],
                 "gene_ensembl_id": [
                     "ENSMUSG00000011111",
@@ -446,7 +446,7 @@ class TestTransformModelOverview:
             {
                 "mgi_allele_id": [111111, 222222, 333333],
                 "gene_symbol": ["Gene1", "Gene2", "Gene3"],
-                "human_ensembl_id": [
+                "ensembl_id": [
                     "ENSG00000011111",
                     "ENSG00000022222",
                     "ENSG00000033333",

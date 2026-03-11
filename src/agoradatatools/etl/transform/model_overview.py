@@ -40,7 +40,7 @@ REQUIRED_INPUT = {
     ],
     "allele_info": [
         "name",
-        "modified_gene",
+        "gene",
         "gene_ensembl_id",
         "allele",
         "allele_type",
@@ -49,7 +49,7 @@ REQUIRED_INPUT = {
     "human_transgene_allele_map": [
         "mgi_allele_id",
         "gene_symbol",
-        "human_ensembl_id",
+        "ensembl_id",
     ],
 }
 
@@ -145,7 +145,7 @@ def transform_model_overview(
         # Get genetic info for this model
         genetic_info = allele_info_df[allele_info_df["name"] == row["name"]]
         modified_genes = remove_duplicates_keep_order(
-            genetic_info["modified_gene"].tolist()
+            genetic_info["gene"].tolist()
         )
 
         row["modified_genes"] = [gene for gene in modified_genes if gene != ""]
