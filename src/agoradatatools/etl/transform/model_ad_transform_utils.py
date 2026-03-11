@@ -11,7 +11,7 @@ import pandas as pd
 from pandas.api.types import is_numeric_dtype
 import numpy as np
 
-from agoradatatools.etl.utils import delim_string_to_list
+from agoradatatools.etl.utils import delim_string_to_list, normalize_null_values
 
 
 def process_genetic_info(
@@ -142,49 +142,64 @@ def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
 
 
 def preprocess_model_info(
-    model_info_df: pd.DataFrame, model_results_df: pd.DataFrame
+    model_info_df: pd.DataFrame, model_results_df: pd.DataFrame = None
 ) -> pd.DataFrame:
     """
-    Multiple transforms require the model_info and model_results_info datasets to be merged together, and perform some
-    of the same preprocessing steps on the merged data (e.g. filling NaN values, adjusting jax_id formatting). We use
-    this function to perform those common steps in one place.
+    Multiple transforms load the model_info data frame, often merged with the model_results_info dataset, and perform
+    some of the same preprocessing steps on the merged data (e.g. filling NaN values, adjusting jax_id formatting). We
+    use this function to perform those common steps in one place.
 
-    Both data sets have one row per model. This function merges the data on the model name ("name" column), and there
-    should be a 1:1 relationship between model names in the datasets. After the merge, any models that don't have
-    entries in model_results_info will have NaN values for the columns that came from that dataset, so we fill those
-    NaN values with False so all values in the columns are boolean.
+    Merging the model_results_df is optional. If model_results_df is provided, this function merges the data on the
+    model name ("name" column), and there should be a 1:1 relationship between model names in the datasets.
 
-    We also adjust the jax_id column to preserve leading zeros, and convert the matched_controls and aliases columns
-    from comma-delimited strings to lists. These operations aren't needed for every transform that uses this function
-    but ensures consistency across transforms that do need these adjustments.
+    Other adjustments after (optional) merge:
+        1. NaN values are filled with either None, "", or False, depending on column type. If a merge occurred, there
+           will be extra boolean columns with NaNs that should be filled with False so every value in those columns is
+           boolean.
+        2. Change the jax_id column to strings and pad with leading zeros up to a string length of 6 characters
+        3. Convert the matched_controls and aliases columns from comma-separated strings to lists
+
+    These operations aren't needed for every transform that uses model_info but ensures consistency across transforms
+    that do need these adjustments.
 
     Args:
         model_info_df (pd.DataFrame): The model_info dataset as a DataFrame
-        model_results_df (pd.DataFrame): the model_results_info dataset DataFrame
+        model_results_df (pd.DataFrame): Optional: the model_results_info dataset DataFrame. Defaults to None.
 
     Returns:
-        pd.DataFrame: The merged DataFrame with model information and results information combined.
+        pd.DataFrame: The (optionally merged) DataFrame with adjusted and normalized values. If model_results_df was
+        provided, the data from that df will be included in the output DataFrame.
     """
-    merged_df = pd.merge(
-        model_info_df, model_results_df, how="left", on="name", validate="one_to_one"
-    )
+    if model_results_df is not None:
+        merged_df = pd.merge(
+            model_info_df,
+            model_results_df,
+            how="left",
+            on="name",
+            validate="one_to_one",
+        )
+    else:
+        # drop_duplicates() included to be consistent with the 1:1 check in the merge
+        merged_df = model_info_df.drop_duplicates()
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
     merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
 
+    # Boolean columns from model_results_df
     boolean_columns = [
         "gene_expression",
         "disease_correlation",
         "pathology",
         "biomarkers",
     ]
-    merged_df[boolean_columns] = merged_df[boolean_columns].fillna(False)
 
-    # rrid and alzforum_id should be empty strings where data is missing
-    merged_df[["rrid", "alzforum_id"]] = merged_df[["rrid", "alzforum_id"]].fillna("")
-
-    # Replace all other NaN values in other columns with None
-    merged_df = merged_df.replace({np.nan: None})
+    merged_df = normalize_null_values(
+        merged_df,
+        # Fill NAs in these 4 columns with False, if they exist in the merged_df
+        boolean_columns=[col for col in boolean_columns if col in merged_df.columns],
+        # rrid and alzforum_id should be empty strings where data is missing
+        empty_string_columns=["rrid", "alzforum_id"],
+    )
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
