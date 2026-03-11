@@ -231,7 +231,9 @@ class TestTransformDiseaseCorrelation:
                         },
                     ]
                 ),
-                "allele_info": basic_allele_info_df.loc[[0, 0],],  # Duplicate the row,
+                "allele_info": basic_allele_info_df.loc[
+                    [0, 0],
+                ],  # Duplicate the row,
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             # Expected output: duplicate genes should be deduplicated
