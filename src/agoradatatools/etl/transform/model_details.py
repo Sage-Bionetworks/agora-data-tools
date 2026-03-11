@@ -8,7 +8,10 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    delim_string_to_list,
+)
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_gene_expression_url,
     process_genetic_info,
@@ -137,11 +140,7 @@ def transform_model_details(
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
         model_info_df[col_name] = model_info_df[col_name].apply(
-            lambda x: (
-                [item.strip() for item in str(x).split(",")]
-                if pd.notna(x) and x != ""
-                else []
-            )
+            delim_string_to_list, delim=","
         )
 
     # Process each model

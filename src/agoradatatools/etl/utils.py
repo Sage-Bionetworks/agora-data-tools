@@ -433,3 +433,37 @@ def extract_age_numeric(age: str) -> Union[int, None]:
         return None
     match = re.search(r"(\d+)", age)
     return int(match.group(1)) if match else None
+
+
+def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
+    """
+    Converts a delimited string into a list of strings, trimming whitespace. Empty items in the split string are
+    excluded from the final output list. If either str_obj or delim is not a string, this function throws a TypeError.
+
+    This function can be used on a pandas series using .apply():
+        df['column_name'].apply(delim_string_to_list, delim=",")
+
+    Args:
+        string_obj (str): The input string containing delimited values (e.g. 'gene1,gene2,gene3')
+        delim (str): The delimiter used to split the string (default is ','). Delimiters may be more than one character,
+                        e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"].
+
+    Returns:
+        List[str]: A list of strings obtained by splitting the input string by the delimiter and trimming whitespace
+        (e.g. ['gene1', 'gene2', 'gene3'])
+
+    Raises:
+        TypeError: If str_obj or delim is not a string
+    """
+
+    # Manually check for whether str_obj is a string and throw a TypeError. Otherwise the list comprehension can throw
+    # different types of errors depending on the type of str_obj, which may have unhelpful error messages. We do not
+    # need to check whether delim is a string because str_obj.split() will throw a TypeError if it isn't.
+    if not isinstance(str_obj, str) and str_obj is not None:
+        raise TypeError(f"Input must be a string, got {type(str_obj)}")
+
+    return (
+        [item.strip() for item in str_obj.split(delim) if item.strip() != ""]
+        if pd.notna(str_obj) and str_obj != ""
+        else []
+    )
