@@ -472,6 +472,19 @@ class TestPreprocessModelInfo:
 
         pd.testing.assert_frame_equal(output, basic_expected_output_df)
 
+    def test_process_model_info_fails_with_duplicate_models(
+        self, basic_model_info_df: pd.DataFrame
+    ) -> None:
+        """
+        Tests that a ValueError is thrown when the model_info DataFrame has two rows for the same model
+        """
+        basic_model_info_df = basic_model_info_df.loc[
+            [0, 1, 1],
+        ]  # Duplicate 2nd row
+
+        with pytest.raises(ValueError, match="model_info has duplicated rows"):
+            preprocess_model_info(basic_model_info_df)
+
 
 class TestZeroPadJaxIds:
     """

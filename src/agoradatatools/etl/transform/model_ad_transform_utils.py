@@ -170,6 +170,14 @@ def preprocess_model_info(
         pd.DataFrame: The (optionally merged) DataFrame with adjusted and normalized values. If model_results_df was
         provided, the data from that df will be included in the output DataFrame.
     """
+    if any(model_info_df["name"].duplicated()):
+        duplicates = model_info_df["name"][
+            model_info_df["name"].duplicated()
+        ].drop_duplicates()
+        raise ValueError(
+            f"model_info has duplicated rows for model(s): {list(duplicates)}"
+        )
+
     if model_results_df is not None:
         merged_df = pd.merge(
             model_info_df,
@@ -179,11 +187,11 @@ def preprocess_model_info(
             validate="one_to_one",
         )
     else:
-        # drop_duplicates() included to be consistent with the 1:1 check in the merge
-        merged_df = model_info_df.drop_duplicates()
+        merged_df = model_info_df.copy()
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
-    merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
+    if "jax_id" in merged_df.columns:
+        merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
 
     # Boolean columns from model_results_df
     boolean_columns = [
@@ -193,17 +201,24 @@ def preprocess_model_info(
         "biomarkers",
     ]
 
+    # rrid and alzforum_id should be empty strings where data is missing
+    string_columns = ["rrid", "alzforum_id"]
+
     merged_df = normalize_null_values(
         merged_df,
         # Fill NAs in these 4 columns with False, if they exist in the merged_df
         boolean_columns=[col for col in boolean_columns if col in merged_df.columns],
-        # rrid and alzforum_id should be empty strings where data is missing
-        empty_string_columns=["rrid", "alzforum_id"],
+        empty_string_columns=[
+            col for col in string_columns if col in merged_df.columns
+        ],
     )
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
-        merged_df[col_name] = merged_df[col_name].apply(delim_string_to_list, delim=",")
+        if col_name in merged_df.columns:
+            merged_df[col_name] = merged_df[col_name].apply(
+                delim_string_to_list, delim=","
+            )
 
     return merged_df
 

@@ -89,6 +89,42 @@ class TestTransformDiseaseCorrelation:
         }
     )
 
+    basic_model_info_df = pd.DataFrame(
+        [
+            {
+                "name": "LOAD1",
+                "matched_controls": "C57BL6J",
+                "model_type": "Late Onset AD",
+            },
+        ]
+    )
+
+    basic_allele_info_df = pd.DataFrame(
+        [
+            {
+                "name": "LOAD1",
+                "gene": "APOE4",
+                "mgi_allele_id": 5810209,
+                "gene_ensembl_id": "ENSMUSG00000002985",
+                "allele": "APOE4",
+            }
+        ]
+    )
+
+    basic_disease_correlation_results = pd.DataFrame(
+        [
+            {
+                "cluster": "Cluster A",
+                "module": "IFGyellow",
+                "mouse_model": "LOAD1",
+                "sex": "Female",
+                "age": "4 months",
+                "correlation": "0.5",
+                "adjusted_p_value": "0.01",
+            },
+        ]
+    )
+
     # Test data for successful transformation scenarios
     pass_test_data = [
         # Test case 1: Basic valid input with multiple models and modules
@@ -178,38 +214,9 @@ class TestTransformDiseaseCorrelation:
         # Test case 2: Duplicate allele_info entries should be deduplicated
         (
             {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
-                ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
-                        {
-                            "name": "LOAD1",
-                            "gene": "APOE4",
-                            "mgi_allele_id": 5810209,
-                        },  # Duplicate entry
-                    ]
-                ),
+                "disease_correlation_results": basic_disease_correlation_results,
+                "model_info": basic_model_info_df,
+                "allele_info": basic_allele_info_df.loc[[0, 0],],  # Duplicate the row
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             # Expected output: duplicate genes should be deduplicated
@@ -251,12 +258,7 @@ class TestTransformDiseaseCorrelation:
         """
         output = transform_disease_correlation(datasets)
 
-        # For the first test case, compare with expected output directly
-        if isinstance(expected_output, list):
-            assert output == expected_output
-        else:
-            # For other test cases that use assertion functions, call them
-            assert expected_output(output)
+        assert output == expected_output
 
     # Test data for dataset-level error scenarios
     dataset_error_test_data = [
@@ -290,86 +292,16 @@ class TestTransformDiseaseCorrelation:
         # Test case 2: Duplicate entries in disease_correlation_results
         (
             {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",  # Duplicate module for same model
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
-                ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
-                    ]
-                ),
+                # Duplicate module for same model
+                "disease_correlation_results": basic_disease_correlation_results.loc[
+                    [0, 0],
+                ],
+                "model_info": basic_model_info_df,
+                "allele_info": basic_allele_info_df,
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             ValueError,
             "Module IFG already exists for LOAD1",
-        ),
-        # Test case 3: Inconsistent model_info entries for the same model
-        (
-            {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
-                ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                        {
-                            "name": "LOAD1",  # Same model name but different values
-                            "matched_controls": "CTRL2",
-                            "model_type": "Wrong",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
-                    ]
-                ),
-                "human_transgene_allele_map": empty_human_transgene_allele_map,
-            },
-            ValueError,
-            "Model LOAD1 has inconsistent matched_controls values:",
         ),
     ]
 
@@ -378,33 +310,11 @@ class TestTransformDiseaseCorrelation:
         # Test case 1: Missing required column in disease_correlation_results
         (
             {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            # Note: 'age' column is missing
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
+                "disease_correlation_results": basic_disease_correlation_results.drop(
+                    columns="age"
                 ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
-                    ]
-                ),
+                "model_info": basic_model_info_df,
+                "allele_info": basic_allele_info_df,
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             ValueError,
@@ -415,7 +325,6 @@ class TestTransformDiseaseCorrelation:
     dataset_error_test_ids = [
         "Missing model_info",
         "Duplicate results in disease_correlation_results",
-        "Inconsistent model_info",
     ]
     column_error_test_ids = ["Missing required column in disease_correlation_results"]
 

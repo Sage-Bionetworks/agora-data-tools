@@ -11,10 +11,10 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     flatten_list,
     remove_duplicates_keep_order,
-    input_validation_model_info,
     extract_age_numeric,
 )
 
+from agoradatatools.etl.transform.model_ad_transform_utils import preprocess_model_info
 
 REQUIRED_INPUT = {
     "disease_correlation_results": [
@@ -253,12 +253,10 @@ def transform_disease_correlation(
 
     # Load datasets and prepare lookups if necessary
     disease_correlation_df = datasets["disease_correlation_results"].fillna("")
-    model_info_df = datasets["model_info"].fillna("")
     allele_info_df = datasets["allele_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
-    # Validate model info
-    input_validation_model_info(model_info_df)
+    model_info_df = preprocess_model_info(datasets["model_info"])
 
     # Map mouse gene names to human gene symbols
     allele_info_mapped = map_genes_to_human_symbols(
