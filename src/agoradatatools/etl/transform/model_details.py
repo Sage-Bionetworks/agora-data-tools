@@ -8,14 +8,12 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    delim_string_to_list,
-)
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_gene_expression_url,
     process_genetic_info,
-    zero_pad_jax_ids,
+    preprocess_model_info,
 )
 
 
@@ -118,30 +116,16 @@ def transform_model_details(
 
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")
-    model_info_df = datasets["model_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
     # Merge model_results_df into model_info to get which types of data are available for each model
-    model_info_df = pd.merge(
-        model_info_df,
-        datasets["model_results_info"],
-        how="left",
-        on="name",
-        validate="one_to_one",
-    ).fillna({"gene_expression": False, "disease_correlation": False})
-
-    # Ensure jax_id preserves leading zeros by converting to string with proper formatting
-    model_info_df["jax_id"] = zero_pad_jax_ids(model_info_df["jax_id"])
+    model_info_df = preprocess_model_info(
+        datasets["model_info"], datasets["model_results_info"]
+    )
 
     # Prepare biomarker and pathology dataframes
     grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")
     grouped_pathology = immunohisto_transform(datasets, dataset_name="pathology")
-
-    # Convert matching controls and aliases from comma-delimited strings to lists
-    for col_name in ["matched_controls", "aliases"]:
-        model_info_df[col_name] = model_info_df[col_name].apply(
-            delim_string_to_list, delim=","
-        )
 
     # Process each model
     result = []

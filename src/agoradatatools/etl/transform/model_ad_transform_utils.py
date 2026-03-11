@@ -9,6 +9,9 @@ Functions:
 from typing import Any, Dict, List, Union
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
+import numpy as np
+
+from agoradatatools.etl.utils import delim_string_to_list
 
 
 def process_genetic_info(
@@ -132,6 +135,58 @@ def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
         else None
     )
     return url
+
+
+def preprocess_model_info(
+    model_info_df: pd.DataFrame, model_results_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Multiple transforms require the model_info and model_results_info datasets to be merged together, and perform some
+    of the same preprocessing steps on the merged data (e.g. filling NaN values, adjusting jax_id formatting). We use
+    this function to perform those common steps in one place.
+
+    Both data sets have one row per model. This function merges the data on the model name ("name" column), and there
+    should be a 1:1 relationship between model names in the datasets. After the merge, any models that don't have
+    entries in model_results_info will have NaN values for the columns that came from that dataset, so we fill those
+    NaN values with False so all values in the columns are boolean.
+
+    We also adjust the jax_id column to preserve leading zeros, and convert the matched_controls and aliases columns
+    from comma-delimited strings to lists. These operations aren't needed for every transform that uses this function
+    but ensures consistency across transforms that do need these adjustments.
+
+    Args:
+        model_info_df (pd.DataFrame): The model_info dataset as a DataFrame
+        model_results_df (pd.DataFrame): the model_results_info dataset DataFrame
+
+    Returns:
+        pd.DataFrame: The merged DataFrame with model information and results information combined.
+    """
+    merged_df = pd.merge(
+        model_info_df, model_results_df, how="left", on="name", validate="one_to_one"
+    )
+
+    # Ensure jax_id preserves leading zeros by converting to string with proper formatting
+    merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
+
+    boolean_columns = [
+        "gene_expression",
+        "disease_correlation",
+        "pathology",
+        "biomarkers",
+    ]
+    merged_df[boolean_columns] = merged_df[boolean_columns].fillna(False)
+
+    # rrid and alzforum_id should be empty strings where data is missing
+    merged_df[["rrid", "alzforum_id"]] = merged_df[["rrid", "alzforum_id"]].fillna("")
+
+    # Replace all other NaN values in other columns with None
+    merged_df = merged_df.replace({np.nan: None})
+
+    # Convert matching controls and aliases from comma-delimited strings to lists
+    for col_name in ["matched_controls", "aliases"]:
+        merged_df[col_name] = merged_df[col_name].apply(delim_string_to_list, delim=",")
+
+    return merged_df
 
 
 def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
