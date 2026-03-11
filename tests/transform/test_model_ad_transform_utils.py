@@ -372,9 +372,9 @@ class TestPreprocessModelInfo:
     dataframes and merges them together, while also doing some preprocessing on the data (like converting certain string
     columns to lists, and zero-padding the jax_id column).
 
-    Some of the operations in this function use util functions that have their own tests (zero-padding jax_id and
-    changing matched_controls and aliases to lists of strings), so we don't test those operations in this class beyond
-    making sure that those three columns are altered as expected in the output.
+    Some of the operations in this function use util functions that have their own tests (zero-padding jax_id, changing
+    matched_controls and aliases to lists of strings, and normalizing NaN values), so we don't test those operations in
+    this class beyond making sure that those columns are altered as expected in the output.
     """
 
     @pytest.fixture
@@ -443,6 +443,26 @@ class TestPreprocessModelInfo:
         be present.
         """
         output = preprocess_model_info(basic_model_info_df, basic_model_results_info_df)
+
+        pd.testing.assert_frame_equal(output, basic_expected_output_df)
+
+    def test_process_model_info_passes_with_no_results_info(
+        self, basic_model_info_df: pd.DataFrame, basic_expected_output_df: pd.DataFrame
+    ) -> None:
+        """
+        Tests that the function works when model_results_info_df is not provided. model_info data should still be
+        adjusted as expected but be missing the boolean columns that exist in model_results_info_df.
+        """
+        output = preprocess_model_info(basic_model_info_df)
+
+        basic_expected_output_df = basic_expected_output_df.drop(
+            columns=[
+                "gene_expression",
+                "disease_correlation",
+                "pathology",
+                "biomarkers",
+            ]
+        )
 
         pd.testing.assert_frame_equal(output, basic_expected_output_df)
 
