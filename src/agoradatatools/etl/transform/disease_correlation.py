@@ -14,7 +14,10 @@ from agoradatatools.etl.utils import (
     extract_age_numeric,
 )
 
-from agoradatatools.etl.transform.model_ad_transform_utils import preprocess_model_info
+from agoradatatools.etl.transform.model_ad_transform_utils import (
+    preprocess_model_info,
+    process_genetic_info,
+)
 
 REQUIRED_INPUT = {
     "disease_correlation_results": [
@@ -35,11 +38,13 @@ REQUIRED_INPUT = {
         "model",
         "gene",
         "mgi_allele_id",
+        "gene_ensembl_id",
+        "allele",
     ],
     "human_transgene_allele_map": [
         "mgi_allele_id",
         "gene_symbol",
-        "human_ensembl_id",
+        "ensembl_id",
     ],
 }
 
@@ -88,52 +93,6 @@ def extract_module_name(module: str) -> str:
     """
     match = re.match(r"^[A-Z]+", module)
     return match.group(0) if match else module
-
-
-def map_genes_to_human_symbols(
-    allele_info_df: pd.DataFrame,
-    human_transgene_allele_map_df: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Maps mouse gene names to human gene symbols using the human transgene allele map.
-
-    This function normalizes gene names to uppercase for matching, then merges with the
-    human transgene map to replace mouse gene names with their human equivalents where
-    a mapping exists. For genes without a mapping, the original name is preserved.
-
-    Args:
-        allele_info_df (pd.DataFrame): DataFrame containing allele information with columns:
-            name, gene, and mgi_allele_id
-        human_transgene_allele_map_df (pd.DataFrame): DataFrame containing the mapping with columns:
-            mgi_allele_id, gene_symbol (human), human_ensembl_id
-
-    Returns:
-        pd.DataFrame: A copy of allele_info_df with gene names mapped to human symbols where applicable
-    """
-    # Copy dataframes to avoid modifying originals
-    allele_info_df = allele_info_df.copy()
-    human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
-
-    # Normalize gene columns to uppercase for consistent merging
-    allele_info_df["gene_upper"] = allele_info_df["gene"].str.upper()
-    human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
-        "gene_symbol"
-    ].str.upper()
-
-    # Merge on both mgi_allele_id and gene_upper for precise matching
-    merged_df = allele_info_df.merge(
-        human_transgene_allele_map_df[["mgi_allele_id", "gene_upper", "gene_symbol"]],
-        on=["mgi_allele_id", "gene_upper"],
-        how="left",
-    )
-
-    # Replace gene name with human symbol where mapping exists
-    merged_df["gene"] = merged_df["gene_symbol"].fillna(merged_df["gene"])
-
-    # Drop the temporary columns and gene_symbol (already merged into gene)
-    merged_df = merged_df.drop(columns=["gene_upper", "gene_symbol"])
-
-    return merged_df
 
 
 def process_group(
@@ -191,12 +150,14 @@ def process_group(
             )
 
         module_dict = {
-            "correlation": float(row["correlation"])
-            if row["correlation"] != ""
-            else None,
-            "adj_p_val": float(row["adjusted_p_value"])
-            if row["adjusted_p_value"] != ""
-            else None,
+            "correlation": (
+                float(row["correlation"]) if row["correlation"] != "" else None
+            ),
+            "adj_p_val": (
+                float(row["adjusted_p_value"])
+                if row["adjusted_p_value"] != ""
+                else None
+            ),
         }
         # Only add the module if it has valid data (not all None values)
         if (
@@ -253,14 +214,11 @@ def transform_disease_correlation(
 
     # Load datasets and prepare lookups if necessary
     disease_correlation_df = datasets["disease_correlation_results"].fillna("")
-    allele_info_df = datasets["allele_info"].fillna("")
-    human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
     model_info_df = preprocess_model_info(datasets["model_info"])
 
-    # Map mouse gene names to human gene symbols
-    allele_info_mapped = map_genes_to_human_symbols(
-        allele_info_df, human_transgene_allele_map_df
+    allele_info_mapped = process_genetic_info(
+        datasets["human_transgene_allele_map"], datasets["allele_info"]
     )
 
     model_info_lookup = create_lookup(df=model_info_df, group_by_col="model")
