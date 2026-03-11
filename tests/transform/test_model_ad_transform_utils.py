@@ -9,6 +9,7 @@ import numpy as np
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_gene_expression_url,
     process_genetic_info,
+    preprocess_model_info,
     zero_pad_jax_ids,
 )
 
@@ -310,6 +311,134 @@ class TestBuildGeneExpressionUrl:
 
         with pytest.raises(KeyError):
             build_gene_expression_url(url_test_model)
+
+
+class TestPreprocessModelInfo:
+    """
+    This class is for testing the preprocess_model_info function, which takes the model_info and model_results_info
+    dataframes and merges them together, while also doing some preprocessing on the data (like converting certain string
+    columns to lists, and zero-padding the jax_id column).
+
+    Some of the operations in this function use util functions that have their own tests (zero-padding jax_id and
+    changing matched_controls and aliases to lists of strings), so we don't test those operations in this class beyond
+    making sure that those three columns are altered as expected in the output.
+    """
+
+    @pytest.fixture
+    def basic_model_info_df(self) -> pd.DataFrame:
+        return pd.DataFrame(
+            {
+                "name": ["Model1", "Model2"],
+                "matched_controls": ["Control1", "Control2,Control3"],
+                "model_type": ["Type1", "Type2"],
+                "contributing_group": ["Group1", "Group2"],
+                "study_synid": ["syn1234", "syn5678"],
+                "rrid": ["RRID1", "RRID2"],
+                "jax_id": ["1234", "5678"],
+                "alzforum_id": ["AlzForumID1", "AlzForumID2"],
+                "genotype": ["Genotype1", "Genotype2"],
+                "aliases": ["Alias1,Alias2", "Alias3"],
+                "url_categories_value": ["Category1", "Category2"],
+                "url_models_value": ["Model1", "Model2"],
+            }
+        )
+
+    @pytest.fixture
+    def basic_model_results_info_df(self) -> pd.DataFrame:
+        return pd.DataFrame(
+            {
+                "name": ["Model1", "Model2"],
+                "gene_expression": [True, False],
+                "disease_correlation": [True, True],
+                "pathology": [False, True],
+                "biomarkers": [False, False],
+            }
+        )
+
+    @pytest.fixture
+    def basic_expected_output_df(self) -> pd.DataFrame:
+        return pd.DataFrame(
+            {
+                "name": ["Model1", "Model2"],
+                "matched_controls": [["Control1"], ["Control2", "Control3"]],
+                "model_type": ["Type1", "Type2"],
+                "contributing_group": ["Group1", "Group2"],
+                "study_synid": ["syn1234", "syn5678"],
+                "rrid": ["RRID1", "RRID2"],
+                "jax_id": ["001234", "005678"],
+                "alzforum_id": ["AlzForumID1", "AlzForumID2"],
+                "genotype": ["Genotype1", "Genotype2"],
+                "aliases": [["Alias1", "Alias2"], ["Alias3"]],
+                "url_categories_value": ["Category1", "Category2"],
+                "url_models_value": ["Model1", "Model2"],
+                "gene_expression": [True, False],
+                "disease_correlation": [True, True],
+                "pathology": [False, True],
+                "biomarkers": [False, False],
+            }
+        )
+
+    def test_preprocess_model_info_should_pass(
+        self,
+        basic_model_info_df: pd.DataFrame,
+        basic_model_results_info_df: pd.DataFrame,
+        basic_expected_output_df: pd.DataFrame,
+    ) -> None:
+        """
+        This test case tests a basic merge for 2 models with no missing values. "matched_controls" and "aliases" should
+        be converted to lists, "jax_id" should be zero-padded to 6 digits, and all columns from both data frames should
+        be present.
+        """
+        output = preprocess_model_info(basic_model_info_df, basic_model_results_info_df)
+
+        pd.testing.assert_frame_equal(output, basic_expected_output_df)
+
+    def test_preprocess_model_info_replaces_missing_values(
+        self,
+        basic_model_info_df: pd.DataFrame,
+        basic_model_results_info_df: pd.DataFrame,
+        basic_expected_output_df: pd.DataFrame,
+    ) -> None:
+        """
+        Test that different columns have their missing values replaced with the correct filler values (None, "", or
+        False depending on the column).
+
+        Column checks:
+            gene_expression, disease_correlation, pathology, biomarkers: None/NaN -> False
+            rrid, alzforum_id: None/NaN -> ""
+            all other columns: NaN -> None
+        """
+        basic_model_info_df["rrid"] = [np.NaN, None]
+        basic_model_info_df["alzforum_id"] = [np.NaN, None]
+
+        # Ignore jax_id, matched_controls, and aliases as missing values for these are tested in their own test suites
+        other_columns = [
+            "model_type",
+            "contributing_group",
+            "study_synid",
+            "genotype",
+            "url_categories_value",
+            "url_models_value",
+        ]
+        basic_model_info_df.loc[0, other_columns] = np.NaN
+
+        boolean_columns = [
+            "gene_expression",
+            "disease_correlation",
+            "pathology",
+            "biomarkers",
+        ]
+        basic_model_results_info_df.loc[0, boolean_columns] = np.NaN
+        basic_model_results_info_df.loc[1, boolean_columns] = None
+
+        basic_expected_output_df[boolean_columns] = False
+        basic_expected_output_df["rrid"] = ["", ""]
+        basic_expected_output_df["alzforum_id"] = ["", ""]
+        basic_expected_output_df.loc[0, other_columns] = None
+
+        output = preprocess_model_info(basic_model_info_df, basic_model_results_info_df)
+
+        pd.testing.assert_frame_equal(output, basic_expected_output_df)
 
 
 class TestZeroPadJaxIds:
