@@ -148,33 +148,26 @@ def transform_model_details(
         model_biomarkers = [x for x in grouped_biomarkers if x["name"] == model_name]
         model_pathology = [x for x in grouped_pathology if x["name"] == model_name]
 
-        # Build the complete model entry
+        # Build the complete model entry. This starts with all data in model_row except the url_<x>_value columns and
+        # unprocessed biomarkers, and pathology values, and then the gene_expression, and disease_correlation values are
+        # changed to URLs. Processed biomarkers and pathology data is added at the end.
+        base_dict = model_row.drop(
+            ["url_categories_value", "url_models_value", "biomarkers", "pathology"]
+        ).to_dict()
+
         model_entry = {
-            "name": model_name,
-            "matched_controls": model_row["matched_controls"],
-            "model_type": model_row["model_type"],
-            "contributing_group": model_row["contributing_group"],
-            "study_synid": model_row["study_synid"],
-            "rrid": model_row["rrid"],
-            "jax_id": model_row["jax_id"],
-            "alzforum_id": model_row["alzforum_id"],
-            "genotype": model_row["genotype"],
-            "aliases": model_row["aliases"],
-            "gene_expression": None,
-            "disease_correlation": None,
+            **base_dict,
+            "gene_expression": build_gene_expression_url(model_row),
+            "disease_correlation": (
+                f"comparison/correlation?models={model_name}"
+                if model_row["disease_correlation"]
+                else None
+            ),
             "spatial_transcriptomics": None,
             "genetic_info": genetic_info,
             "biomarkers": model_biomarkers,
             "pathology": model_pathology,
         }
-
-        # Add gene expression and disease correlation links if they exist
-        model_entry["gene_expression"] = build_gene_expression_url(model_row)
-        model_entry["disease_correlation"] = (
-            f"comparison/correlation?models={model_name}"
-            if bool(model_row["disease_correlation"])
-            else None
-        )
 
         result.append(model_entry)
 
