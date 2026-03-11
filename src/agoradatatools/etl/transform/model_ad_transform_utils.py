@@ -6,7 +6,7 @@ Functions:
     build_gene_expression_url - build a URL linking to the gene comparison table for a given study
 """
 
-from typing import Any, Dict, List, Union
+from typing import Union
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 import numpy as np
@@ -15,70 +15,52 @@ from agoradatatools.etl.utils import delim_string_to_list
 
 
 def process_genetic_info(
-    human_transgene_allele_map_df: pd.DataFrame,
-    model_alleles: pd.DataFrame,
-) -> List[Dict[str, Any]]:
+    human_transgene_allele_map_df: pd.DataFrame, allele_info_df: pd.DataFrame
+) -> pd.DataFrame:
     """
-    Processes the gene information DataFrame. If the allele is a human transgene,
-    replace the ensembl_id with the human one. Each model's alleles are processed independently.
-    Multiple entries are preserved for different alleles of the same gene.
+    Merge the allele_info data frame with the human_transgene_allele_map dataframe to fill in human gene information for
+    transgenic alleles. This is necessary because some models have human transgenes, and we want to display the human
+    Ensembl ID and gene symbol instead of the mouse versions.
 
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
-        model_alleles (pd.DataFrame): The DataFrame containing the model allele information.
+        allele_info_df (pd.DataFrame): The DataFrame containing the model allele information.
 
     Returns:
-        List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
+        pd.DataFrame: The processed allele_info dataframe with mouse values overridden by human values where applicable.
     """
-    # Copy dataframes to avoid modifying originals
-    # Using copy() to avoid warning: A value is trying to be set on a copy of a slice from a DataFrame.
-    # Warning appears even if using .loc to set the value.
-    model_alleles = model_alleles.copy()
-    human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
 
     # Normalize gene columns to uppercase for consistent merging
-    model_alleles["gene_upper"] = model_alleles["modified_gene"].str.upper()
+    allele_info_df["gene_upper"] = allele_info_df["modified_gene"].str.upper()
     human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
         "gene_symbol"
     ].str.upper()
 
     # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles
-    merged_df = model_alleles.merge(
-        human_transgene_allele_map_df[
-            ["mgi_allele_id", "gene_upper", "human_ensembl_id", "gene_symbol"]
-        ],
-        on=["mgi_allele_id", "gene_upper"],
-        how="left",
+    merged_df = allele_info_df.merge(
+        human_transgene_allele_map_df, on=["mgi_allele_id", "gene_upper"], how="left"
     )
 
     # Only override ensembl_id if we have a valid human_ensembl_id
-    merged_df["ensembl_gene_id"] = merged_df.apply(
-        lambda row: (
-            row["human_ensembl_id"]
-            if pd.notna(row["human_ensembl_id"])
-            else row["gene_ensembl_id"]
-        ),
-        axis=1,
+    merged_df["ensembl_gene_id"] = merged_df["human_ensembl_id"].fillna(
+        merged_df["gene_ensembl_id"]
     )
 
     # Only override gene_symbol if we have a valid human_ensembl_id
-    merged_df["modified_gene"] = merged_df.apply(
-        lambda row: (
-            row["gene_symbol"]
-            if pd.notna(row["human_ensembl_id"])
-            else row["modified_gene"]
-        ),
-        axis=1,
+    merged_df["modified_gene"] = merged_df["gene_symbol"].fillna(
+        merged_df["modified_gene"]
     )
 
     # Drop duplicates to ensure we don't have exact duplicates of the same allele
     merged_df = merged_df.drop_duplicates(
-        subset=["modified_gene", "allele", "mgi_allele_id"]
+        subset=["name", "modified_gene", "allele", "mgi_allele_id"]
     )
 
-    return merged_df[
-        ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
-    ].to_dict(orient="records")
+    # Change NaN to empty strings and remove the columns we added in this function, plus the now-unused gene_ensembl_id
+    # column, which was replaced by "ensembl_gene_id".
+    return merged_df.drop(
+        columns=["gene_upper", "human_ensembl_id", "gene_ensembl_id", "gene_symbol"]
+    ).fillna("")
 
 
 def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
@@ -116,22 +98,26 @@ def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
     Returns:
         a string with the completed URL, or None if there is no gene expression data for the model
     """
+
+    # Safety check: Empty strings should be treated as None, and any NaN values should be converted to None. These
+    # values should already be correct if model_row comes from the output of preprocess_model_info, but we pre-emptively
+    # fix values to avoid issues with calling this function outside of that.
+    model_row = model_row.replace({"": None, np.nan: None})
+
     categories_value = (
         # Contains the "&" at the end to separate it from the models=... statement
         f"categories={model_row['url_categories_value']}&"
         if pd.notna(model_row["url_categories_value"])
-        and len(model_row["url_categories_value"]) > 0  # must not be ""
         else ""  # Only adds to URL if the url_categories_value is specified
     )
     models_value = (
         model_row["url_models_value"]  # A comma-separated list, if specified
         if pd.notna(model_row["url_models_value"])
-        and len(model_row["url_models_value"]) > 0  # must not be ""
         else model_row["name"]  # A single model name if url_models_value is blank
     )
     url = (
         f"comparison/expression?{categories_value}models={models_value}"
-        if bool(model_row["gene_expression"])
+        if model_row["gene_expression"]
         else None
     )
     return url

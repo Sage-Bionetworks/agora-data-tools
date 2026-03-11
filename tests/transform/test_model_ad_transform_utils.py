@@ -17,66 +17,61 @@ from agoradatatools.etl.transform.model_ad_transform_utils import (
 class TestProcessGeneticInfo:
     """Test class for the process_genetic_info function."""
 
-    def test_process_genetic_info_should_pass(self) -> None:
-        # Create test input DataFrames
-        human_transgene_allele_map_df = pd.DataFrame(
+    @pytest.fixture
+    def basic_human_transgene_allele_map(self) -> pd.DataFrame:
+        return pd.DataFrame(
             {
                 "mgi_allele_id": [2672831, 1930937],
-                "gene_symbol": ["App", "Psen1"],
+                "gene_symbol": ["APP", "PSEN1"],
                 "human_ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
             }
         )
 
-        model_alleles = pd.DataFrame(
+    @pytest.fixture
+    def basic_allele_info_df(self) -> pd.DataFrame:
+        return pd.DataFrame(
             {
-                "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": [
-                    "ENSMUSG00000022892",
-                    "ENSMUSG00000018411",
-                    "ENSMUSG00000019969",
-                ],
-                "allele": [
-                    "APP K670_M671delinsNL (Swedish)",
-                    "MAPT P301L",
-                    "Psen1<sup>tm1Mpm</sup>",
-                ],
-                "allele_type": ["Transgenic", "Transgenic", "Targeted"],
-                "mgi_allele_id": [2672831, 2672831, 1930937],
+                "name": ["Model1", "Model2"],
+                "modified_gene": ["App", "Psen1"],
+                "mgi_gene_id": [11820, 19164],
+                "gene_ensembl_id": ["ENSMUSG00000022892", "ENSMUSG00000019969"],
+                "allele": ["APP_transgenic", "PSEN1_transgenic"],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [2672831, 1930937],
             }
         )
 
-        # Expected output
-        expected_output = [
+    @pytest.fixture
+    def basic_expected_output(self) -> pd.DataFrame:
+        return pd.DataFrame(
             {
-                "modified_gene": "App",
-                "ensembl_gene_id": "ENSG00000142192",  # Human Ensembl ID
-                "allele": "APP K670_M671delinsNL (Swedish)",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Mapt",
-                "ensembl_gene_id": "ENSMUSG00000018411",  # Mouse Ensembl ID (no human match)
-                "allele": "MAPT P301L",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Psen1",
-                "ensembl_gene_id": "ENSG00000080815",  # Human Ensembl ID
-                "allele": "Psen1<sup>tm1Mpm</sup>",
-                "allele_type": "Targeted",
-                "mgi_allele_id": 1930937,
-            },
-        ]
+                "name": ["Model1", "Model2"],
+                "modified_gene": ["APP", "PSEN1"],
+                "mgi_gene_id": [11820, 19164],
+                "allele": ["APP_transgenic", "PSEN1_transgenic"],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [2672831, 1930937],
+                "ensembl_gene_id": ["ENSG00000142192", "ENSG00000080815"],
+            }
+        )
 
+    def test_process_genetic_info_should_pass(
+        self,
+        basic_human_transgene_allele_map: pd.DataFrame,
+        basic_allele_info_df: pd.DataFrame,
+        basic_expected_output: pd.DataFrame,
+    ) -> None:
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(
+            basic_human_transgene_allele_map, basic_allele_info_df
+        )
 
         # Compare output with expected
-        assert output == expected_output
+        pd.testing.assert_frame_equal(output, basic_expected_output)
 
-    def test_process_genetic_info_with_no_human_matches(self) -> None:
+    def test_process_genetic_info_with_no_human_matches(
+        self, basic_allele_info_df: pd.DataFrame, basic_expected_output: pd.DataFrame
+    ) -> None:
         # Create test input DataFrames with no matching human transgenes
         human_transgene_allele_map_df = pd.DataFrame(
             {
@@ -86,63 +81,31 @@ class TestProcessGeneticInfo:
             }
         )
 
-        model_alleles = pd.DataFrame(
-            {
-                "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": [
-                    "ENSMUSG00000022892",
-                    "ENSMUSG00000018411",
-                    "ENSMUSG00000019969",
-                ],
-                "allele": [
-                    "APP K670_M671delinsNL (Swedish)",
-                    "MAPT P301L",
-                    "Psen1<sup>tm1Mpm</sup>",
-                ],
-                "allele_type": ["Transgenic", "Transgenic", "Targeted"],
-                "mgi_allele_id": [2672831, 2672831, 1930937],
-            }
-        )
-
-        # Expected output - all should keep mouse Ensembl IDs
-        expected_output = [
-            {
-                "modified_gene": "App",
-                "ensembl_gene_id": "ENSMUSG00000022892",
-                "allele": "APP K670_M671delinsNL (Swedish)",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Mapt",
-                "ensembl_gene_id": "ENSMUSG00000018411",
-                "allele": "MAPT P301L",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Psen1",
-                "ensembl_gene_id": "ENSMUSG00000019969",
-                "allele": "Psen1<sup>tm1Mpm</sup>",
-                "allele_type": "Targeted",
-                "mgi_allele_id": 1930937,
-            },
+        # Most output is the same, but keep mouse genes instead of human genes
+        basic_expected_output["modified_gene"] = ["App", "Psen1"]
+        basic_expected_output["ensembl_gene_id"] = [
+            "ENSMUSG00000022892",
+            "ENSMUSG00000019969",
         ]
 
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(
+            human_transgene_allele_map_df, basic_allele_info_df
+        )
 
         # Compare output with expected
-        assert output == expected_output
+        pd.testing.assert_frame_equal(output, basic_expected_output)
 
     def test_process_genetic_info_with_empty_input(self) -> None:
         # Create empty test input DataFrames
         human_transgene_allele_map_df = pd.DataFrame(
             columns=["mgi_allele_id", "gene_symbol", "human_ensembl_id"]
         )
-        model_alleles = pd.DataFrame(
+        allele_info = pd.DataFrame(
             columns=[
+                "name",
                 "modified_gene",
+                "mgi_gene_id",
                 "gene_ensembl_id",
                 "allele",
                 "allele_type",
@@ -150,64 +113,142 @@ class TestProcessGeneticInfo:
             ]
         )
 
-        # Expected output - empty list since no alleles to process
-        expected_output = []
+        # Expected output - empty data frame
+        expected_output = pd.DataFrame(
+            columns=[
+                "name",
+                "modified_gene",
+                "mgi_gene_id",
+                "allele",
+                "allele_type",
+                "mgi_allele_id",
+                "ensembl_gene_id",
+            ]
+        )
 
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(human_transgene_allele_map_df, allele_info)
 
         # Compare output with expected
-        assert output == expected_output
+        pd.testing.assert_frame_equal(output, expected_output)
 
-    def test_process_genetic_info_case_insensitive_mapping(self) -> None:
-        # Create test input DataFrames with different gene casing
-        human_transgene_allele_map_df = pd.DataFrame(
+    def test_process_genetic_info_case_insensitive_mapping(
+        self,
+        basic_human_transgene_allele_map: pd.DataFrame,
+        basic_allele_info_df: pd.DataFrame,
+        basic_expected_output: pd.DataFrame,
+    ) -> None:
+        # Create test input DataFrames with different gene casing to ensure that the gene names
+        # match between data frames no matter what the casing is
+        basic_human_transgene_allele_map["gene_symbol"] = ["APP", "psen1"]
+
+        basic_expected_output["modified_gene"] = ["APP", "psen1"]
+
+        # Transform data
+        output = process_genetic_info(
+            basic_human_transgene_allele_map, basic_allele_info_df
+        )
+
+        # Compare output with expected
+        pd.testing.assert_frame_equal(output, basic_expected_output)
+
+    def test_process_genetic_info_mouse_and_human(
+        self,
+        basic_human_transgene_allele_map: pd.DataFrame,
+        basic_allele_info_df: pd.DataFrame,
+        basic_expected_output: pd.DataFrame,
+    ) -> None:
+        # Test a model with both human and mouse genes altered. Model2 should have a row for human
+        # PSEN1 and a row for mouse Psen1 in this scenario.
+        new_row = pd.DataFrame(
             {
-                "mgi_allele_id": [1234567, 1234567],
-                "gene_symbol": ["APP", "mapt"],  # Upper and lower case in mapping
-                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
+                "name": ["Model2"],
+                "modified_gene": ["Psen1"],
+                "mgi_gene_id": [19164],
+                "gene_ensembl_id": ["ENSMUSG00000019969"],
+                "allele": ["Psen1_Mouse"],
+                "allele_type": ["Targeted"],
+                "mgi_allele_id": [123456],
             }
         )
 
-        model_alleles = pd.DataFrame(
+        basic_allele_info_df = pd.concat([basic_allele_info_df, new_row])
+
+        expected_new_row = pd.DataFrame(
             {
-                "modified_gene": ["App", "Mapt"],  # Title case in alleles
-                "gene_ensembl_id": [
-                    "ENSMUSG00000011111",
-                    "ENSMUSG00000022222",
-                ],
-                "allele": [
-                    "APP Example Allele",
-                    "MAPT Example Allele",
-                ],
-                "allele_type": ["Transgenic", "Transgenic"],
-                "mgi_allele_id": [1234567, 1234567],
+                "name": ["Model2"],
+                "modified_gene": ["Psen1"],
+                "mgi_gene_id": [19164],
+                "allele": ["Psen1_Mouse"],
+                "allele_type": ["Targeted"],
+                "mgi_allele_id": [123456],
+                "ensembl_gene_id": ["ENSMUSG00000019969"],
             }
         )
 
-        # Expected output: ENSG IDs should be mapped, gene names should keep original case
-        expected_output = [
-            {
-                "modified_gene": "APP",
-                "ensembl_gene_id": "ENSG00000123456",
-                "allele": "APP Example Allele",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 1234567,
-            },
-            {
-                "modified_gene": "mapt",
-                "ensembl_gene_id": "ENSG00000987654",
-                "allele": "MAPT Example Allele",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 1234567,
-            },
+        basic_expected_output = pd.concat(
+            [basic_expected_output, expected_new_row], ignore_index=True
+        )
+
+        output = process_genetic_info(
+            basic_human_transgene_allele_map, basic_allele_info_df
+        )
+
+        pd.testing.assert_frame_equal(output, basic_expected_output)
+
+    def test_process_gene_info_keeps_extra_data_columns(
+        self,
+        basic_human_transgene_allele_map: pd.DataFrame,
+        basic_allele_info_df: pd.DataFrame,
+        basic_expected_output: pd.DataFrame,
+    ) -> None:
+        # Any extra columns added to the human allele_map or allele_info df should stay in the data frame
+        basic_human_transgene_allele_map["human_extra"] = [123, 456]
+
+        basic_allele_info_df["allele_extra"] = [789, 1011]
+
+        basic_expected_output["human_extra"] = [123, 456]
+        basic_expected_output["allele_extra"] = [789, 1011]
+
+        # Put columns in the right order
+        basic_expected_output = basic_expected_output[
+            [
+                "name",
+                "modified_gene",
+                "mgi_gene_id",
+                "allele",
+                "allele_type",
+                "mgi_allele_id",
+                "allele_extra",
+                "human_extra",
+                "ensembl_gene_id",
+            ]
         ]
 
-        # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(
+            basic_human_transgene_allele_map, basic_allele_info_df
+        )
 
-        # Compare output with expected
-        assert output == expected_output
+        pd.testing.assert_frame_equal(output, basic_expected_output)
+
+    def test_process_genetic_info_removes_duplicates(
+        self,
+        basic_human_transgene_allele_map: pd.DataFrame,
+        basic_allele_info_df: pd.DataFrame,
+        basic_expected_output: pd.DataFrame,
+    ) -> None:
+        # Create a situation where the first human transgene is duplicated, which results in Model1
+        # having duplicate allele entries, and Model2 has a duplicate entry in allele_info
+        human_transgene_allele_map = basic_human_transgene_allele_map.loc[[0, 0, 1]]
+        allele_info_df = basic_allele_info_df.loc[[0, 1, 1]]
+
+        # We have to call reset_index() so output's index matches basic_expected_output's index or
+        # the assert will fail even though the data is the same.
+        output = process_genetic_info(
+            human_transgene_allele_map, allele_info_df
+        ).reset_index(drop=True)
+
+        pd.testing.assert_frame_equal(output, basic_expected_output)
 
 
 class TestBuildGeneExpressionUrl:
@@ -230,8 +271,12 @@ class TestBuildGeneExpressionUrl:
 
     @pytest.mark.parametrize(
         "false_val",
-        [False, None],
-        ids=["Pass with False boolean value", "Pass with NA value"],
+        [False, None, np.nan],
+        ids=[
+            "Pass with False boolean value",
+            "Pass with None value",
+            "Pass with NaN value",
+        ],
     )
     def test_build_gene_expression_url_no_gene_expression(
         self, false_val: bool, url_test_model: pd.Series
@@ -247,16 +292,20 @@ class TestBuildGeneExpressionUrl:
     def test_build_gene_expression_url_all_default_values(
         self, url_test_model: pd.Series
     ) -> None:
-        url_test_model["url_categories_value"] = ""
-        url_test_model["url_models_value"] = ""
+        url_test_model["url_categories_value"] = None
+        url_test_model["url_models_value"] = None
 
         url = build_gene_expression_url(url_test_model)
         assert url == "comparison/expression?models=Model"
 
     @pytest.mark.parametrize(
         "empty_val",
-        ["", None],
-        ids=["Pass with empty string value", "Pass with NA value"],
+        ["", None, np.nan],
+        ids=[
+            "Pass with empty string value",
+            "Pass with None value",
+            "Pass with NaN value",
+        ],
     )
     def test_build_gene_expression_url_default_category(
         self, empty_val: str, url_test_model: pd.Series
@@ -271,8 +320,12 @@ class TestBuildGeneExpressionUrl:
 
     @pytest.mark.parametrize(
         "empty_val",
-        ["", None],
-        ids=["Pass with empty string value", "Pass with NA value"],
+        ["", None, np.NaN],
+        ids=[
+            "Pass with empty string value",
+            "Pass with None value",
+            "Pass with NaN value",
+        ],
     )
     def test_build_gene_expression_url_default_models(
         self, empty_val: str, url_test_model: pd.Series
@@ -307,7 +360,7 @@ class TestBuildGeneExpressionUrl:
 
         # Special case: model["name"] never gets used unless we set the url_models_value to empty
         if missing_key == "name":
-            url_test_model["url_models_value"] = ""
+            url_test_model["url_models_value"] = None
 
         with pytest.raises(KeyError):
             build_gene_expression_url(url_test_model)

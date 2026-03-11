@@ -130,11 +130,12 @@ def transform_model_overview(
 
     check_required_datasets_and_columns(datasets, required_input)
 
-    allele_info = datasets["allele_info"]
-    human_transgene_allele_map = datasets["human_transgene_allele_map"]
-
     merged_df = preprocess_model_info(
         datasets["model_info"], datasets["model_results_info"]
+    )
+
+    allele_info_df = process_genetic_info(
+        datasets["human_transgene_allele_map"], datasets["allele_info"]
     )
 
     # Transform the merged dataframe into the target structure
@@ -142,41 +143,32 @@ def transform_model_overview(
 
     for _, row in merged_df.iterrows():
         # Get genetic info for this model
-        genetic_info = process_genetic_info(
-            human_transgene_allele_map,
-            model_alleles=allele_info[allele_info["name"] == row["name"]],
+        genetic_info = allele_info_df[allele_info_df["name"] == row["name"]]
+        modified_genes = remove_duplicates_keep_order(
+            genetic_info["modified_gene"].tolist()
         )
 
-        modified_genes = (
-            remove_duplicates_keep_order(
-                [gene["modified_gene"] for gene in genetic_info]
-            )
-            if genetic_info
-            else []
-        )
-        row["modified_genes"] = [
-            gene for gene in modified_genes if gene is not None and str(gene) != "nan"
-        ]
+        row["modified_genes"] = [gene for gene in modified_genes if gene != ""]
 
         # Build the links first
         row["gene_expression"] = (
             {"link_url": build_gene_expression_url(row)}
-            if bool(row["gene_expression"])
+            if row["gene_expression"]
             else None
         )
         row["disease_correlation"] = (
             {"link_url": f"comparison/correlation?models={row['name']}"}
-            if bool(row["disease_correlation"])
+            if row["disease_correlation"]
             else None
         )
         row["pathology"] = (
             {"link_url": f"models/{row['name']}/pathology"}
-            if bool(row["pathology"])
+            if row["pathology"]
             else None
         )
         row["biomarkers"] = (
             {"link_url": f"models/{row['name']}/biomarkers"}
-            if bool(row["biomarkers"])
+            if row["biomarkers"]
             else None
         )
         row["study_data"] = (
@@ -188,7 +180,7 @@ def transform_model_overview(
         )
         row["jax_strain"] = (
             {"link_url": f"https://jax.org/strain/{row['jax_id']}"}
-            if row["jax_id"]
+            if len(row["jax_id"]) > 0
             else None
         )
         row["center"] = (
