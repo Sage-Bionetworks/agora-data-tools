@@ -161,22 +161,22 @@ def transform_model_overview(
         # Build the links first
         row["gene_expression"] = (
             {"link_url": build_gene_expression_url(row)}
-            if bool(row["gene_expression"])
+            if row["gene_expression"]
             else None
         )
         row["disease_correlation"] = (
             {"link_url": f"comparison/correlation?models={row['name']}"}
-            if bool(row["disease_correlation"])
+            if row["disease_correlation"]
             else None
         )
         row["pathology"] = (
             {"link_url": f"models/{row['name']}/pathology"}
-            if bool(row["pathology"])
+            if row["pathology"]
             else None
         )
         row["biomarkers"] = (
             {"link_url": f"models/{row['name']}/biomarkers"}
-            if bool(row["biomarkers"])
+            if row["biomarkers"]
             else None
         )
         row["study_data"] = (
@@ -188,7 +188,7 @@ def transform_model_overview(
         )
         row["jax_strain"] = (
             {"link_url": f"https://jax.org/strain/{row['jax_id']}"}
-            if row["jax_id"]
+            if len(row["jax_id"]) > 0
             else None
         )
         row["center"] = (
