@@ -105,8 +105,6 @@ class TestTransformDiseaseCorrelation:
                 "model": "LOAD1",
                 "gene": "APOE4",
                 "mgi_allele_id": 5810209,
-                "gene_ensembl_id": "ENSMUSG00000002985",
-                "allele": "APOE4",
             }
         ]
     )
@@ -267,24 +265,8 @@ class TestTransformDiseaseCorrelation:
         # Test case 1: Missing required model_info dataset
         (
             {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"model": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
-                    ]
-                ),
+                "disease_correlation_results": basic_disease_correlation_results,
+                "allele_info": basic_allele_info_df,
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
                 # Note: model_info dataset is missing
             },
