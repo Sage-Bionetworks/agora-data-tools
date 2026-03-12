@@ -230,8 +230,12 @@ class TestBuildGeneExpressionUrl:
 
     @pytest.mark.parametrize(
         "false_val",
-        [False, None],
-        ids=["Pass with False boolean value", "Pass with NA value"],
+        [False, None, np.nan],
+        ids=[
+            "Pass with False boolean value",
+            "Pass with None value",
+            "Pass with NaN value",
+        ],
     )
     def test_build_gene_expression_url_no_gene_expression(
         self, false_val: bool, url_test_model: pd.Series
@@ -247,16 +251,20 @@ class TestBuildGeneExpressionUrl:
     def test_build_gene_expression_url_all_default_values(
         self, url_test_model: pd.Series
     ) -> None:
-        url_test_model["url_categories_value"] = ""
-        url_test_model["url_models_value"] = ""
+        url_test_model["url_categories_value"] = None
+        url_test_model["url_models_value"] = None
 
         url = build_gene_expression_url(url_test_model)
         assert url == "comparison/expression?models=Model"
 
     @pytest.mark.parametrize(
         "empty_val",
-        ["", None],
-        ids=["Pass with empty string value", "Pass with NA value"],
+        ["", None, np.nan],
+        ids=[
+            "Pass with empty string value",
+            "Pass with None value",
+            "Pass with NaN value",
+        ],
     )
     def test_build_gene_expression_url_default_category(
         self, empty_val: str, url_test_model: pd.Series
@@ -271,8 +279,12 @@ class TestBuildGeneExpressionUrl:
 
     @pytest.mark.parametrize(
         "empty_val",
-        ["", None],
-        ids=["Pass with empty string value", "Pass with NA value"],
+        ["", None, np.nan],
+        ids=[
+            "Pass with empty string value",
+            "Pass with None value",
+            "Pass with NaN value",
+        ],
     )
     def test_build_gene_expression_url_default_models(
         self, empty_val: str, url_test_model: pd.Series
@@ -307,7 +319,7 @@ class TestBuildGeneExpressionUrl:
 
         # Special case: model["name"] never gets used unless we set the url_models_value to empty
         if missing_key == "name":
-            url_test_model["url_models_value"] = ""
+            url_test_model["url_models_value"] = None
 
         with pytest.raises(KeyError):
             build_gene_expression_url(url_test_model)

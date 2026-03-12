@@ -116,22 +116,26 @@ def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
     Returns:
         a string with the completed URL, or None if there is no gene expression data for the model
     """
+
+    # Safety check: Empty strings should be treated as None, and any NaN values should be converted to None. These
+    # values should already be correct if model_row comes from the output of preprocess_model_info, but we pre-emptively
+    # fix values to avoid issues with calling this function outside of that.
+    model_row = model_row.replace({"": None, np.nan: None})
+
     categories_value = (
         # Contains the "&" at the end to separate it from the models=... statement
         f"categories={model_row['url_categories_value']}&"
         if pd.notna(model_row["url_categories_value"])
-        and len(model_row["url_categories_value"]) > 0  # must not be ""
         else ""  # Only adds to URL if the url_categories_value is specified
     )
     models_value = (
         model_row["url_models_value"]  # A comma-separated list, if specified
         if pd.notna(model_row["url_models_value"])
-        and len(model_row["url_models_value"]) > 0  # must not be ""
         else model_row["name"]  # A single model name if url_models_value is blank
     )
     url = (
         f"comparison/expression?{categories_value}models={models_value}"
-        if bool(model_row["gene_expression"])
+        if model_row["gene_expression"]
         else None
     )
     return url
