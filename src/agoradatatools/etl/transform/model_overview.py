@@ -135,9 +135,7 @@ def transform_model_overview(
     )
 
     allele_info_df = process_genetic_info(
-        datasets["human_transgene_allele_map"],
-        datasets["allele_info"],
-        model_name_col="name",
+        datasets["human_transgene_allele_map"], datasets["allele_info"]
     )
 
     # Transform the merged dataframe into the target structure

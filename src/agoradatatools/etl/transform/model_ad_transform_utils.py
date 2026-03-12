@@ -2,8 +2,12 @@
 This file contains utility functions that may be used across multiple transforms related to Model-AD.
 
 Functions:
-    process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
+    process_genetic_info - merge the allele_info dataset with the human_transgene_allele_map dataset to fill in human
+        gene information for transgenic alleles
     build_gene_expression_url - build a URL linking to the gene comparison table for a given study
+    preprocess_model_info - perform common preprocessing steps on the model_info dataset, and optionally merge with
+        model_results_info
+    zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
 """
 
 from typing import Union
@@ -15,9 +19,7 @@ from agoradatatools.etl.utils import delim_string_to_list, normalize_null_values
 
 
 def process_genetic_info(
-    human_transgene_allele_map_df: pd.DataFrame,
-    allele_info_df: pd.DataFrame,
-    model_name_col: str = "model",
+    human_transgene_allele_map_df: pd.DataFrame, allele_info_df: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Merge the allele_info data frame with the human_transgene_allele_map dataframe to fill in human gene information for
@@ -27,8 +29,6 @@ def process_genetic_info(
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
         allele_info_df (pd.DataFrame): The DataFrame containing the model allele information.
-        model_name_col (str): The name of the column in allele_info_df that contains the model name. Defaults to
-            "model", although some transforms rename it to "name".
 
     Returns:
         pd.DataFrame: The processed allele_info dataframe with mouse values overridden by human values where applicable.
@@ -40,9 +40,14 @@ def process_genetic_info(
         "gene_symbol"
     ].str.upper()
 
-    # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles
+    # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles. Each row in
+    # human_transgene_allele_map_df can map to multiple rows in allele_info_df, but each row in allele_info_df should
+    # only match to one row in human_transgene_allele_map_df.
     merged_df = allele_info_df.merge(
-        human_transgene_allele_map_df, on=["mgi_allele_id", "gene_upper"], how="left"
+        human_transgene_allele_map_df,
+        on=["mgi_allele_id", "gene_upper"],
+        how="left",
+        validate="many_to_one",
     )
 
     # Only override ensembl_id if we have a valid human ensembl_id. "ensembl_id" = human ID,
@@ -55,16 +60,14 @@ def process_genetic_info(
     # Only override gene_symbol if we have a valid human ensembl_id.
     merged_df["gene"] = merged_df["gene_symbol"].fillna(merged_df["gene"])
 
-    # Drop duplicates to ensure we don't have exact duplicates of the same allele
-    merged_df = merged_df.drop_duplicates(
-        subset=[model_name_col, "gene", "allele", "mgi_allele_id"]
-    )
-
     # Change NaN to empty strings and remove the columns we added in this function, plus the now-unused gene_ensembl_id
     # column, which was replaced by "ensembl_gene_id".
-    return merged_df.drop(
+    merged_df = merged_df.drop(
         columns=["gene_upper", "ensembl_id", "gene_ensembl_id", "gene_symbol"]
     ).fillna("")
+
+    # Drop duplicates to ensure we don't have exact duplicates of the same allele
+    return merged_df.drop_duplicates()
 
 
 def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
