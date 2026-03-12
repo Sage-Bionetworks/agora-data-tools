@@ -540,12 +540,16 @@ class TestPreprocessModelInfo:
         Tests that a ValueError is thrown when the model_info DataFrame has two rows for the same model, and that a
         MergeError is thrown when model_results_info has duplicate rows for the same model.
         """
-        model_info_df = basic_model_info_df.loc[[0, 1, 1],]  # Duplicated row
+        model_info_df = basic_model_info_df.loc[
+            [0, 1, 1],
+        ]  # Duplicated row
 
         with pytest.raises(ValueError, match="model_info has duplicated rows"):
             preprocess_model_info(model_info_df)
 
-        model_results_df = basic_model_results_info_df.loc[[0, 1, 1],]  # Duplicated row
+        model_results_df = basic_model_results_info_df.loc[
+            [0, 1, 1],
+        ]  # Duplicated row
 
         with pytest.raises(
             pd.errors.MergeError, match="Merge keys are not unique in right dataset"

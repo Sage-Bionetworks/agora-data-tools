@@ -416,7 +416,7 @@ def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
         df['column_name'].apply(delim_string_to_list, delim=",")
 
     Args:
-        string_obj (str): The input string containing delimited values (e.g. 'gene1,gene2,gene3')
+        str_obj (str): The input string containing delimited values (e.g. 'gene1,gene2,gene3')
         delim (str): The delimiter used to split the string (default is ','). Delimiters may be more than one character,
                         e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"].
 
@@ -490,6 +490,8 @@ def normalize_null_values(
         raise TypeError(
             f"keep_nan_columns must be a list, got {type(keep_nan_columns)}"
         )
+
+    df = df.copy()  # avoid modifying the original data frame in place
 
     # Make these sets for easier checking of overlaps and membership in the data frame
     all_columns = set(df.columns)
