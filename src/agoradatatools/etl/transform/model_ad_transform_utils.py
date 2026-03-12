@@ -4,6 +4,9 @@ This file contains utility functions that may be used across multiple transforms
 Functions:
     process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
     build_gene_expression_url - build a URL linking to the gene comparison table for a given study
+    preprocess_model_info - perform common preprocessing steps on the model_info dataset, and optionally merge with
+        model_results_info
+    zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
 """
 
 from typing import Any, Dict, List, Union

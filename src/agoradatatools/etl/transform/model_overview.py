@@ -109,7 +109,7 @@ def transform_model_overview(
         - human_transgene_allele_map: Maps mouse alleles to human Ensembl gene IDs.
 
     The transformation includes:
-        1. Merging model_info and model_results_info on the "name" column.
+        1. Merging model_info and model_results_info
         2. For each model, extracting genetic information using process_genetic_info, which maps alleles to human
            Ensembl IDs where possible.
         3. Building a structured dictionary for each model, including:
