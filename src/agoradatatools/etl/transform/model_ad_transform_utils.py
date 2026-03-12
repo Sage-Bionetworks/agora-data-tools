@@ -178,6 +178,8 @@ def preprocess_model_info(
         pd.DataFrame: The (optionally merged) DataFrame with adjusted and normalized values. If model_results_df was
         provided, the data from that df will be included in the output DataFrame.
     """
+
+    # Check for duplicate model names in model_info_df
     if any(model_info_df[model_name_col].duplicated()):
         duplicates = model_info_df[model_name_col][
             model_info_df[model_name_col].duplicated()
@@ -186,6 +188,7 @@ def preprocess_model_info(
             f"model_info has duplicated rows for model(s): {list(duplicates)}"
         )
 
+    # Merge model_info_df and model_results_df on the model name column, if model_results_df is provided
     if model_results_df is not None:
         merged_df = pd.merge(
             model_info_df,

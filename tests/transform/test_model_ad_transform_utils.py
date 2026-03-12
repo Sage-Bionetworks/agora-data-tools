@@ -472,19 +472,6 @@ class TestPreprocessModelInfo:
 
         pd.testing.assert_frame_equal(output, basic_expected_output_df)
 
-    def test_preprocess_model_info_fails_with_duplicate_models(
-        self, basic_model_info_df: pd.DataFrame
-    ) -> None:
-        """
-        Tests that a ValueError is thrown when the model_info DataFrame has two rows for the same model
-        """
-        basic_model_info_df = basic_model_info_df.loc[
-            [0, 1, 1],
-        ]  # Duplicate 2nd row
-
-        with pytest.raises(ValueError, match="model_info has duplicated rows"):
-            preprocess_model_info(basic_model_info_df)
-
     def test_preprocess_model_info_changes_model_name_col(
         self,
         basic_model_info_df: pd.DataFrame,
@@ -508,6 +495,62 @@ class TestPreprocessModelInfo:
 
         assert "new_name" in output.columns
         pd.testing.assert_frame_equal(output, basic_expected_output_df)
+
+    def test_preprocess_model_info_passes_with_empty_data_frames(
+        self,
+        basic_model_info_df: pd.DataFrame,
+        basic_model_results_info_df: pd.DataFrame,
+        basic_expected_output_df: pd.DataFrame,
+    ) -> None:
+        """
+        Tests that the function works when one or both data frames are empty.
+        """
+        empty_model_info = pd.DataFrame(columns=basic_model_info_df.columns)
+        empty_model_results_info = pd.DataFrame(
+            columns=basic_model_results_info_df.columns
+        )
+
+        # model_info empty, merged with model_results_info that has data in it
+        output = preprocess_model_info(empty_model_info, basic_model_results_info_df)
+        assert output.empty
+
+        # model_info_empty, no merge
+        output = preprocess_model_info(empty_model_info)
+        assert output.empty
+
+        # both data frames are empty
+        output = preprocess_model_info(empty_model_info, empty_model_results_info)
+        assert output.empty
+
+        # model_info has data, merged with empty model_results_info. Output will have data but all the boolean columns
+        # that come from model_results_info should be False
+        output = preprocess_model_info(basic_model_info_df, empty_model_results_info)
+        basic_expected_output_df[
+            ["gene_expression", "disease_correlation", "pathology", "biomarkers"]
+        ] = False
+
+        pd.testing.assert_frame_equal(output, basic_expected_output_df)
+
+    def test_preprocess_model_info_fails_with_duplicate_models(
+        self,
+        basic_model_info_df: pd.DataFrame,
+        basic_model_results_info_df: pd.DataFrame,
+    ) -> None:
+        """
+        Tests that a ValueError is thrown when the model_info DataFrame has two rows for the same model, and that a
+        MergeError is thrown when model_results_info has duplicate rows for the same model.
+        """
+        model_info_df = basic_model_info_df.loc[[0, 1, 1],]  # Duplicated row
+
+        with pytest.raises(ValueError, match="model_info has duplicated rows"):
+            preprocess_model_info(model_info_df)
+
+        model_results_df = basic_model_results_info_df.loc[[0, 1, 1],]  # Duplicated row
+
+        with pytest.raises(
+            pd.errors.MergeError, match="Merge keys are not unique in right dataset"
+        ):
+            preprocess_model_info(basic_model_info_df, model_results_df)
 
 
 class TestZeroPadJaxIds:
@@ -537,6 +580,8 @@ class TestZeroPadJaxIds:
             (pd.Series(["  1234", "123 ", "  "]), pd.Series(["001234", "000123", ""])),
             # IDs longer than 6 characters should stay as-is
             (pd.Series(["1234567", "12345678"]), pd.Series(["1234567", "12345678"])),
+            # Floats are converted to integers before padding
+            (pd.Series([123.0, 12345.0]), pd.Series(["000123", "012345"])),
         ],
     )
     def test_zero_pad_jax_id_should_pass(
