@@ -120,9 +120,7 @@ def transform_model_details(
     )
 
     allele_info_df = process_genetic_info(
-        datasets["human_transgene_allele_map"],
-        datasets["allele_info"],
-        model_name_col="name",
+        datasets["human_transgene_allele_map"], datasets["allele_info"]
     ).rename(columns={"gene": "modified_gene"})
 
     # Prepare biomarker and pathology dataframes

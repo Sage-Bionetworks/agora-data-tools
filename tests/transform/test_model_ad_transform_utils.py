@@ -231,47 +231,37 @@ class TestProcessGeneticInfo:
 
         pd.testing.assert_frame_equal(output, basic_expected_output)
 
-    def test_process_genetic_info_removes_duplicates(
+    def test_process_genetic_info_removes_duplicated_allele_info(
         self,
         basic_human_transgene_allele_map: pd.DataFrame,
         basic_allele_info_df: pd.DataFrame,
         basic_expected_output: pd.DataFrame,
     ) -> None:
-        # Create a situation where the first human transgene is duplicated, which results in Model1
-        # having duplicate allele entries, and Model2 has a duplicate entry in allele_info
-        human_transgene_allele_map = basic_human_transgene_allele_map.loc[[0, 0, 1]]
-        allele_info_df = basic_allele_info_df.loc[[0, 1, 1]]
+        # Duplicate the first row of allele_info
+        allele_info_df = basic_allele_info_df.loc[
+            [0, 0, 1],
+        ]
 
-        # We have to call reset_index() so output's index matches basic_expected_output's index or
-        # the assert will fail even though the data is the same.
+        # Index needs to be reset afterward to match the index of the expected output
         output = process_genetic_info(
-            human_transgene_allele_map, allele_info_df
+            basic_human_transgene_allele_map, allele_info_df
         ).reset_index(drop=True)
 
+        # The duplicated row should be removed in the output
         pd.testing.assert_frame_equal(output, basic_expected_output)
 
-    def test_process_genetic_info_changes_model_name_col(
+    def test_process_genetic_info_fails_on_duplicate_human_genes(
         self,
         basic_human_transgene_allele_map: pd.DataFrame,
         basic_allele_info_df: pd.DataFrame,
-        basic_expected_output: pd.DataFrame,
     ) -> None:
-        # Test that the function works when the model name column is different than the default "model".
-        basic_allele_info_df = basic_allele_info_df.rename(
-            columns={"model": "new_name"}
-        )
-        basic_expected_output = basic_expected_output.rename(
-            columns={"model": "new_name"}
-        )
+        # Duplicate the first human transgene is duplicated to force the merge to
+        human_transgene_allele_map = basic_human_transgene_allele_map.loc[[0, 0, 1]]
 
-        output = process_genetic_info(
-            basic_human_transgene_allele_map,
-            basic_allele_info_df,
-            model_name_col="new_name",
-        )
-
-        assert "new_name" in output.columns
-        pd.testing.assert_frame_equal(output, basic_expected_output)
+        with pytest.raises(
+            ValueError, match="Merge keys are not unique in right dataset"
+        ):
+            process_genetic_info(human_transgene_allele_map, basic_allele_info_df)
 
 
 class TestBuildGeneExpressionUrl:
