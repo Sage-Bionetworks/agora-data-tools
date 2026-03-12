@@ -135,7 +135,9 @@ def transform_model_overview(
     )
 
     allele_info_df = process_genetic_info(
-        datasets["human_transgene_allele_map"], datasets["allele_info"]
+        datasets["human_transgene_allele_map"],
+        datasets["allele_info"],
+        model_name_col="name",
     )
 
     # Transform the merged dataframe into the target structure
@@ -144,9 +146,7 @@ def transform_model_overview(
     for _, row in merged_df.iterrows():
         # Get genetic info for this model
         genetic_info = allele_info_df[allele_info_df["name"] == row["name"]]
-        modified_genes = remove_duplicates_keep_order(
-            genetic_info["gene"].tolist()
-        )
+        modified_genes = remove_duplicates_keep_order(genetic_info["gene"].tolist())
 
         row["modified_genes"] = [gene for gene in modified_genes if gene != ""]
 

@@ -18,7 +18,9 @@ from agoradatatools.etl.utils import delim_string_to_list, normalize_null_values
 
 
 def process_genetic_info(
-    human_transgene_allele_map_df: pd.DataFrame, allele_info_df: pd.DataFrame
+    human_transgene_allele_map_df: pd.DataFrame,
+    allele_info_df: pd.DataFrame,
+    model_name_col: str = "model",
 ) -> pd.DataFrame:
     """
     Merge the allele_info data frame with the human_transgene_allele_map dataframe to fill in human gene information for
@@ -28,6 +30,8 @@ def process_genetic_info(
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
         allele_info_df (pd.DataFrame): The DataFrame containing the model allele information.
+        model_name_col (str): The name of the column in allele_info_df that contains the model name. Defaults to
+            "model", although some transforms rename it to "name".
 
     Returns:
         pd.DataFrame: The processed allele_info dataframe with mouse values overridden by human values where applicable.
@@ -56,7 +60,7 @@ def process_genetic_info(
 
     # Drop duplicates to ensure we don't have exact duplicates of the same allele
     merged_df = merged_df.drop_duplicates(
-        subset=["name", "gene", "allele", "mgi_allele_id"]
+        subset=[model_name_col, "gene", "allele", "mgi_allele_id"]
     )
 
     # Change NaN to empty strings and remove the columns we added in this function, plus the now-unused gene_ensembl_id
