@@ -130,11 +130,12 @@ def transform_model_overview(
 
     check_required_datasets_and_columns(datasets, required_input)
 
-    allele_info = datasets["allele_info"]
-    human_transgene_allele_map = datasets["human_transgene_allele_map"]
-
     merged_df = preprocess_model_info(
         datasets["model_info"], datasets["model_results_info"], model_name_col="name"
+    )
+
+    allele_info_df = process_genetic_info(
+        datasets["human_transgene_allele_map"], datasets["allele_info"]
     )
 
     # Transform the merged dataframe into the target structure
@@ -142,21 +143,12 @@ def transform_model_overview(
 
     for _, row in merged_df.iterrows():
         # Get genetic info for this model
-        genetic_info = process_genetic_info(
-            human_transgene_allele_map,
-            model_alleles=allele_info[allele_info["name"] == row["name"]],
+        genetic_info = allele_info_df[allele_info_df["name"] == row["name"]]
+        modified_genes = remove_duplicates_keep_order(
+            genetic_info["modified_gene"].tolist()
         )
 
-        modified_genes = (
-            remove_duplicates_keep_order(
-                [gene["modified_gene"] for gene in genetic_info]
-            )
-            if genetic_info
-            else []
-        )
-        row["modified_genes"] = [
-            gene for gene in modified_genes if gene is not None and str(gene) != "nan"
-        ]
+        row["modified_genes"] = [gene for gene in modified_genes if gene != ""]
 
         # Build the links first
         row["gene_expression"] = (

@@ -115,12 +115,12 @@ def transform_model_details(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
-    allele_info_df = datasets["allele_info"].fillna("")
-    human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
-
-    # Merge model_results_df into model_info to get which types of data are available for each model
     model_info_df = preprocess_model_info(
         datasets["model_info"], datasets["model_results_info"], model_name_col="name"
+    )
+
+    allele_info_df = process_genetic_info(
+        datasets["human_transgene_allele_map"], datasets["allele_info"]
     )
 
     # Prepare biomarker and pathology dataframes
@@ -133,10 +133,16 @@ def transform_model_details(
         model_name = model_row["name"]
 
         # Get genetic info for this model
-        genetic_info = process_genetic_info(
-            human_transgene_allele_map_df,
-            model_alleles=allele_info_df[allele_info_df["name"] == model_name],
-        )
+        model_alleles = allele_info_df[allele_info_df["name"] == model_name]
+        genetic_info = model_alleles[
+            [
+                "modified_gene",
+                "ensembl_gene_id",
+                "allele",
+                "allele_type",
+                "mgi_allele_id",
+            ]
+        ].to_dict(orient="records")
 
         # Process the biomarkers and pathology datasets for this model
         model_biomarkers = [x for x in grouped_biomarkers if x["name"] == model_name]
