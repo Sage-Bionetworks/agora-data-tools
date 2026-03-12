@@ -134,7 +134,7 @@ def transform_model_overview(
     human_transgene_allele_map = datasets["human_transgene_allele_map"]
 
     merged_df = preprocess_model_info(
-        datasets["model_info"], datasets["model_results_info"]
+        datasets["model_info"], datasets["model_results_info"], model_name_col="name"
     )
 
     # Transform the merged dataframe into the target structure

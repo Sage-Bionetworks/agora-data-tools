@@ -27,12 +27,12 @@ REQUIRED_INPUT = {
         "adjusted_p_value",
     ],
     "model_info": [
-        "name",
+        "model",
         "matched_controls",
         "model_type",
     ],
     "allele_info": [
-        "name",
+        "model",
         "gene",
         "mgi_allele_id",
     ],
@@ -263,15 +263,8 @@ def transform_disease_correlation(
         allele_info_df, human_transgene_allele_map_df
     )
 
-    # Need to split using ', ' because the 'matched_controls' column contains comma-separated lists stored as strings
-    model_info_lookup = create_lookup(
-        df=model_info_df.applymap(
-            lambda x: x.split(", ") if isinstance(x, str) and ", " in x else x
-        ),
-        group_by_col="name",
-    )
-
-    model_allele_lookup = create_lookup(df=allele_info_mapped, group_by_col="name")
+    model_info_lookup = create_lookup(df=model_info_df, group_by_col="model")
+    model_allele_lookup = create_lookup(df=allele_info_mapped, group_by_col="model")
 
     # Group by all static fields
     output = []

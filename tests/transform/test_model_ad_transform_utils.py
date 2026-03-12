@@ -340,7 +340,7 @@ class TestPreprocessModelInfo:
     def basic_model_info_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "name": ["Model1", "Model2"],
+                "model": ["Model1", "Model2"],
                 "matched_controls": ["Control1", "Control2,Control3"],
                 "model_type": ["Type1", "Type2"],
                 "contributing_group": ["Group1", "Group2"],
@@ -359,7 +359,7 @@ class TestPreprocessModelInfo:
     def basic_model_results_info_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "name": ["Model1", "Model2"],
+                "model": ["Model1", "Model2"],
                 "gene_expression": [True, False],
                 "disease_correlation": [True, True],
                 "pathology": [False, True],
@@ -371,7 +371,7 @@ class TestPreprocessModelInfo:
     def basic_expected_output_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "name": ["Model1", "Model2"],
+                "model": ["Model1", "Model2"],
                 "matched_controls": [["Control1"], ["Control2", "Control3"]],
                 "model_type": ["Type1", "Type2"],
                 "contributing_group": ["Group1", "Group2"],
@@ -472,7 +472,7 @@ class TestPreprocessModelInfo:
 
         pd.testing.assert_frame_equal(output, basic_expected_output_df)
 
-    def test_process_model_info_fails_with_duplicate_models(
+    def test_preprocess_model_info_fails_with_duplicate_models(
         self, basic_model_info_df: pd.DataFrame
     ) -> None:
         """
@@ -484,6 +484,30 @@ class TestPreprocessModelInfo:
 
         with pytest.raises(ValueError, match="model_info has duplicated rows"):
             preprocess_model_info(basic_model_info_df)
+
+    def test_preprocess_model_info_changes_model_name_col(
+        self,
+        basic_model_info_df: pd.DataFrame,
+        basic_model_results_info_df: pd.DataFrame,
+        basic_expected_output_df: pd.DataFrame,
+    ) -> None:
+        """
+        Tests that the function works when the model name column is different than the default "model".
+        """
+        basic_model_info_df = basic_model_info_df.rename(columns={"model": "new_name"})
+        basic_model_results_info_df = basic_model_results_info_df.rename(
+            columns={"model": "new_name"}
+        )
+        basic_expected_output_df = basic_expected_output_df.rename(
+            columns={"model": "new_name"}
+        )
+
+        output = preprocess_model_info(
+            basic_model_info_df, basic_model_results_info_df, model_name_col="new_name"
+        )
+
+        assert "new_name" in output.columns
+        pd.testing.assert_frame_equal(output, basic_expected_output_df)
 
 
 class TestZeroPadJaxIds:

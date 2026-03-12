@@ -120,7 +120,7 @@ def transform_model_details(
 
     # Merge model_results_df into model_info to get which types of data are available for each model
     model_info_df = preprocess_model_info(
-        datasets["model_info"], datasets["model_results_info"]
+        datasets["model_info"], datasets["model_results_info"], model_name_col="name"
     )
 
     # Prepare biomarker and pathology dataframes

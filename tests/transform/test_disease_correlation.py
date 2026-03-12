@@ -92,7 +92,7 @@ class TestTransformDiseaseCorrelation:
     basic_model_info_df = pd.DataFrame(
         [
             {
-                "name": "LOAD1",
+                "model": "LOAD1",
                 "matched_controls": "C57BL6J",
                 "model_type": "Late Onset AD",
             },
@@ -102,7 +102,7 @@ class TestTransformDiseaseCorrelation:
     basic_allele_info_df = pd.DataFrame(
         [
             {
-                "name": "LOAD1",
+                "model": "LOAD1",
                 "gene": "APOE4",
                 "mgi_allele_id": 5810209,
                 "gene_ensembl_id": "ENSMUSG00000002985",
@@ -164,12 +164,12 @@ class TestTransformDiseaseCorrelation:
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                         {
-                            "name": "LOAD2",
+                            "model": "LOAD2",
                             "matched_controls": "C57BL6J",
                             "model_type": "Early Onset AD",
                         },
@@ -177,9 +177,9 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
-                        {"name": "LOAD1", "gene": "TREM2", "mgi_allele_id": 5770794},
-                        {"name": "LOAD2", "gene": "APP", "mgi_allele_id": 3693208},
+                        {"model": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {"model": "LOAD1", "gene": "TREM2", "mgi_allele_id": 5770794},
+                        {"model": "LOAD2", "gene": "APP", "mgi_allele_id": 3693208},
                     ]
                 ),
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
@@ -216,7 +216,9 @@ class TestTransformDiseaseCorrelation:
             {
                 "disease_correlation_results": basic_disease_correlation_results,
                 "model_info": basic_model_info_df,
-                "allele_info": basic_allele_info_df.loc[[0, 0],],  # Duplicate the row
+                "allele_info": basic_allele_info_df.loc[
+                    [0, 0],
+                ],  # Duplicate row
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             # Expected output: duplicate genes should be deduplicated
@@ -280,7 +282,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {"model": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
