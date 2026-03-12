@@ -40,6 +40,7 @@ import logging
 import gc
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns, normalize_zero
+from agoradatatools.etl.transform.model_ad_transform_utils import preprocess_model_info
 
 logger = logging.getLogger(__name__)
 
@@ -527,7 +528,7 @@ def transform_rna_de_aggregate(
     # Pre-compute lookup dictionaries for efficient lookups
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
-    model_info_df = datasets["model_info"].fillna("")
+    model_info_df = preprocess_model_info(datasets["model_info"])
     biodom_genes_mm_df = (
         datasets["biodom_genes_mm"]
         .dropna(axis="index", subset=["ensembl_id"])

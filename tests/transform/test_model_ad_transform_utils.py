@@ -31,7 +31,7 @@ class TestProcessGeneticInfo:
     def basic_allele_info_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "name": ["Model1", "Model2"],
+                "model": ["Model1", "Model2"],
                 "gene": ["App", "Psen1"],
                 "mgi_gene_id": [11820, 19164],
                 "gene_ensembl_id": ["ENSMUSG00000022892", "ENSMUSG00000019969"],
@@ -45,7 +45,7 @@ class TestProcessGeneticInfo:
     def basic_expected_output(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "name": ["Model1", "Model2"],
+                "model": ["Model1", "Model2"],
                 "gene": ["APP", "PSEN1"],
                 "mgi_gene_id": [11820, 19164],
                 "allele": ["APP_transgenic", "PSEN1_transgenic"],
@@ -103,7 +103,7 @@ class TestProcessGeneticInfo:
         )
         allele_info = pd.DataFrame(
             columns=[
-                "name",
+                "model",
                 "gene",
                 "mgi_gene_id",
                 "gene_ensembl_id",
@@ -116,7 +116,7 @@ class TestProcessGeneticInfo:
         # Expected output - empty data frame
         expected_output = pd.DataFrame(
             columns=[
-                "name",
+                "model",
                 "gene",
                 "mgi_gene_id",
                 "allele",
@@ -162,7 +162,7 @@ class TestProcessGeneticInfo:
         # PSEN1 and a row for mouse Psen1 in this scenario.
         new_row = pd.DataFrame(
             {
-                "name": ["Model2"],
+                "model": ["Model2"],
                 "gene": ["Psen1"],
                 "mgi_gene_id": [19164],
                 "gene_ensembl_id": ["ENSMUSG00000019969"],
@@ -176,7 +176,7 @@ class TestProcessGeneticInfo:
 
         expected_new_row = pd.DataFrame(
             {
-                "name": ["Model2"],
+                "model": ["Model2"],
                 "gene": ["Psen1"],
                 "mgi_gene_id": [19164],
                 "allele": ["Psen1_Mouse"],
@@ -213,7 +213,7 @@ class TestProcessGeneticInfo:
         # Put columns in the right order
         basic_expected_output = basic_expected_output[
             [
-                "name",
+                "model",
                 "gene",
                 "mgi_gene_id",
                 "allele",
@@ -248,6 +248,29 @@ class TestProcessGeneticInfo:
             human_transgene_allele_map, allele_info_df
         ).reset_index(drop=True)
 
+        pd.testing.assert_frame_equal(output, basic_expected_output)
+
+    def test_process_genetic_info_changes_model_name_col(
+        self,
+        basic_human_transgene_allele_map: pd.DataFrame,
+        basic_allele_info_df: pd.DataFrame,
+        basic_expected_output: pd.DataFrame,
+    ) -> None:
+        # Test that the function works when the model name column is different than the default "model".
+        basic_allele_info_df = basic_allele_info_df.rename(
+            columns={"model": "new_name"}
+        )
+        basic_expected_output = basic_expected_output.rename(
+            columns={"model": "new_name"}
+        )
+
+        output = process_genetic_info(
+            basic_human_transgene_allele_map,
+            basic_allele_info_df,
+            model_name_col="new_name",
+        )
+
+        assert "new_name" in output.columns
         pd.testing.assert_frame_equal(output, basic_expected_output)
 
 
@@ -381,7 +404,7 @@ class TestPreprocessModelInfo:
     def basic_model_info_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "name": ["Model1", "Model2"],
+                "model": ["Model1", "Model2"],
                 "matched_controls": ["Control1", "Control2,Control3"],
                 "model_type": ["Type1", "Type2"],
                 "contributing_group": ["Group1", "Group2"],
@@ -400,7 +423,7 @@ class TestPreprocessModelInfo:
     def basic_model_results_info_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "name": ["Model1", "Model2"],
+                "model": ["Model1", "Model2"],
                 "gene_expression": [True, False],
                 "disease_correlation": [True, True],
                 "pathology": [False, True],
@@ -412,7 +435,7 @@ class TestPreprocessModelInfo:
     def basic_expected_output_df(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "name": ["Model1", "Model2"],
+                "model": ["Model1", "Model2"],
                 "matched_controls": [["Control1"], ["Control2", "Control3"]],
                 "model_type": ["Type1", "Type2"],
                 "contributing_group": ["Group1", "Group2"],
@@ -513,13 +536,39 @@ class TestPreprocessModelInfo:
 
         pd.testing.assert_frame_equal(output, basic_expected_output_df)
 
+    def test_process_model_info_changes_model_name_col(
+        self,
+        basic_model_info_df: pd.DataFrame,
+        basic_model_results_info_df: pd.DataFrame,
+        basic_expected_output_df: pd.DataFrame,
+    ) -> None:
+        """
+        Tests that the function works when the model name column is different than the default "model".
+        """
+        basic_model_info_df = basic_model_info_df.rename(columns={"model": "new_name"})
+        basic_model_results_info_df = basic_model_results_info_df.rename(
+            columns={"model": "new_name"}
+        )
+        basic_expected_output_df = basic_expected_output_df.rename(
+            columns={"model": "new_name"}
+        )
+
+        output = preprocess_model_info(
+            basic_model_info_df, basic_model_results_info_df, model_name_col="new_name"
+        )
+
+        assert "new_name" in output.columns
+        pd.testing.assert_frame_equal(output, basic_expected_output_df)
+
     def test_process_model_info_fails_with_duplicate_models(
         self, basic_model_info_df: pd.DataFrame
     ) -> None:
         """
         Tests that a ValueError is thrown when the model_info DataFrame has two rows for the same model
         """
-        basic_model_info_df = basic_model_info_df.loc[[0, 1, 1],]  # Duplicate 2nd row
+        basic_model_info_df = basic_model_info_df.loc[
+            [0, 1, 1],
+        ]  # Duplicate 2nd row
 
         with pytest.raises(ValueError, match="model_info has duplicated rows"):
             preprocess_model_info(basic_model_info_df)

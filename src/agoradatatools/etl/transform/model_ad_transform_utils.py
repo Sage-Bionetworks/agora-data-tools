@@ -15,7 +15,9 @@ from agoradatatools.etl.utils import delim_string_to_list, normalize_null_values
 
 
 def process_genetic_info(
-    human_transgene_allele_map_df: pd.DataFrame, allele_info_df: pd.DataFrame
+    human_transgene_allele_map_df: pd.DataFrame,
+    allele_info_df: pd.DataFrame,
+    model_name_col: str = "model",
 ) -> pd.DataFrame:
     """
     Merge the allele_info data frame with the human_transgene_allele_map dataframe to fill in human gene information for
@@ -25,6 +27,8 @@ def process_genetic_info(
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
         allele_info_df (pd.DataFrame): The DataFrame containing the model allele information.
+        model_name_col (str): The name of the column in allele_info_df that contains the model name. Defaults to
+            "model", although some transforms rename it to "name".
 
     Returns:
         pd.DataFrame: The processed allele_info dataframe with mouse values overridden by human values where applicable.
@@ -53,7 +57,7 @@ def process_genetic_info(
 
     # Drop duplicates to ensure we don't have exact duplicates of the same allele
     merged_df = merged_df.drop_duplicates(
-        subset=["name", "gene", "allele", "mgi_allele_id"]
+        subset=[model_name_col, "gene", "allele", "mgi_allele_id"]
     )
 
     # Change NaN to empty strings and remove the columns we added in this function, plus the now-unused gene_ensembl_id
@@ -124,7 +128,9 @@ def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
 
 
 def preprocess_model_info(
-    model_info_df: pd.DataFrame, model_results_df: pd.DataFrame = None
+    model_info_df: pd.DataFrame,
+    model_results_df: pd.DataFrame = None,
+    model_name_col: str = "model",
 ) -> pd.DataFrame:
     """
     Multiple transforms load the model_info data frame, often merged with the model_results_info dataset, and perform
@@ -132,7 +138,8 @@ def preprocess_model_info(
     use this function to perform those common steps in one place.
 
     Merging the model_results_df is optional. If model_results_df is provided, this function merges the data on the
-    model name ("name" column), and there should be a 1:1 relationship between model names in the datasets.
+    model name (specified by model_name_col), and there should be a 1:1 relationship between model names in the
+    datasets.
 
     Other adjustments after (optional) merge:
         1. NaN values are filled with either None, "", or False, depending on column type. If a merge occurred, there
@@ -147,14 +154,16 @@ def preprocess_model_info(
     Args:
         model_info_df (pd.DataFrame): The model_info dataset as a DataFrame
         model_results_df (pd.DataFrame): Optional: the model_results_info dataset DataFrame. Defaults to None.
+        model_name_col (str): The name of the column in model_info_df and model_results_df that contains the model name.
+            Defaults to "model", although some transforms rename it to "name".
 
     Returns:
         pd.DataFrame: The (optionally merged) DataFrame with adjusted and normalized values. If model_results_df was
         provided, the data from that df will be included in the output DataFrame.
     """
-    if any(model_info_df["name"].duplicated()):
-        duplicates = model_info_df["name"][
-            model_info_df["name"].duplicated()
+    if any(model_info_df[model_name_col].duplicated()):
+        duplicates = model_info_df[model_name_col][
+            model_info_df[model_name_col].duplicated()
         ].drop_duplicates()
         raise ValueError(
             f"model_info has duplicated rows for model(s): {list(duplicates)}"
@@ -165,7 +174,7 @@ def preprocess_model_info(
             model_info_df,
             model_results_df,
             how="left",
-            on="name",
+            on=model_name_col,
             validate="one_to_one",
         )
     else:

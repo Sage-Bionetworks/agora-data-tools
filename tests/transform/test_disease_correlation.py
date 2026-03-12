@@ -91,7 +91,7 @@ class TestTransformDiseaseCorrelation:
     basic_model_info_df = pd.DataFrame(
         [
             {
-                "name": "LOAD1",
+                "model": "LOAD1",
                 "matched_controls": "C57BL6J",
                 "model_type": "Late Onset AD",
             },
@@ -101,7 +101,7 @@ class TestTransformDiseaseCorrelation:
     basic_allele_info_df = pd.DataFrame(
         [
             {
-                "name": "LOAD1",
+                "model": "LOAD1",
                 "gene": "APOE4",
                 "mgi_allele_id": 5810209,
                 "gene_ensembl_id": "ENSMUSG00000002985",
@@ -163,12 +163,12 @@ class TestTransformDiseaseCorrelation:
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                         {
-                            "name": "LOAD2",
+                            "model": "LOAD2",
                             "matched_controls": "C57BL6J",
                             "model_type": "Early Onset AD",
                         },
@@ -177,21 +177,21 @@ class TestTransformDiseaseCorrelation:
                 "allele_info": pd.DataFrame(
                     [
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "gene": "APOE4",
                             "mgi_allele_id": 5810209,
                             "gene_ensembl_id": "ENSMUSG00000002985",
                             "allele": "APOE4",
                         },
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "gene": "TREM2",
                             "mgi_allele_id": 5770794,
                             "gene_ensembl_id": "ENSMUSG00000023992",
                             "allele": "TREM2",
                         },
                         {
-                            "name": "LOAD2",
+                            "model": "LOAD2",
                             "gene": "APP",
                             "mgi_allele_id": 3693208,
                             "gene_ensembl_id": "ENSMUSG00000022892",

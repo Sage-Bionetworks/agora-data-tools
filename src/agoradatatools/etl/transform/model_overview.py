@@ -131,11 +131,13 @@ def transform_model_overview(
     check_required_datasets_and_columns(datasets, required_input)
 
     merged_df = preprocess_model_info(
-        datasets["model_info"], datasets["model_results_info"]
+        datasets["model_info"], datasets["model_results_info"], model_name_col="name"
     )
 
     allele_info_df = process_genetic_info(
-        datasets["human_transgene_allele_map"], datasets["allele_info"]
+        datasets["human_transgene_allele_map"],
+        datasets["allele_info"],
+        model_name_col="name",
     )
 
     # Transform the merged dataframe into the target structure
