@@ -19,8 +19,6 @@ from agoradatatools.etl.transform.rna_de_individual_utils import (
     prepare_genotype_label_map_df,
     log_file_processing_info,
     validate_data_file_not_empty,
-    normalize_model_group_value,
-    extract_common_metadata,
 )
 
 
@@ -437,78 +435,6 @@ class TestValidateDataFileNotEmpty:
         validate_data_file_not_empty("test.csv", df)
 
 
-class TestNormalizeModelGroupValue:
-    """Tests for normalize_model_group_value function."""
-
-    def test_converts_empty_string_to_none(self) -> None:
-        """Test that empty string is converted to None."""
-        assert normalize_model_group_value("") is None
-
-    def test_converts_nan_to_none(self) -> None:
-        """Test that NaN (from an unmatched pandas merge) is converted to None."""
-        import numpy as np
-
-        assert normalize_model_group_value(np.nan) is None
-        assert normalize_model_group_value(float("nan")) is None
-
-    def test_keeps_non_empty_strings(self) -> None:
-        """Test that non-empty strings are kept."""
-        assert normalize_model_group_value("Group1") == "Group1"
-        assert normalize_model_group_value("5xFAD") == "5xFAD"
-
-    def test_whitespace_is_not_converted(self) -> None:
-        """Test that whitespace strings are not converted to None."""
-        assert normalize_model_group_value("  ") == "  "
-
-
-class TestExtractCommonMetadata:
-    """Tests for extract_common_metadata function."""
-
-    def test_extracts_all_metadata(self) -> None:
-        """Test that all metadata fields are extracted correctly."""
-        gene_metadata_dict = {
-            "ENSMUSG00000000001": "Gene1",
-        }
-
-        result = extract_common_metadata(
-            "ENSMUSG00000000001", "Cortex", gene_metadata_dict
-        )
-
-        assert result == {
-            "ensembl_gene_id": "ENSMUSG00000000001",
-            "gene_symbol": "Gene1",
-            "tissue": "Cortex",
-        }
-
-    def test_maps_jax_tissue(self) -> None:
-        """Test that JAX tissue name is mapped."""
-        result = extract_common_metadata(
-            "ENSMUSG00000000001", "Right Cerebral Hemisphere", {}
-        )
-
-        assert result["tissue"] == "Hemibrain"
-
-    def test_converts_tissue_to_sentence_case(self) -> None:
-        """Test that tissue names are converted to sentence case."""
-        result1 = extract_common_metadata("ENSMUSG00000000001", "hippocampus", {})
-        assert result1["tissue"] == "Hippocampus"
-
-        result2 = extract_common_metadata("ENSMUSG00000000001", "CORTEX", {})
-        assert result2["tissue"] == "Cortex"
-
-    def test_handles_missing_gene_symbol(self) -> None:
-        """Test that missing gene symbol returns empty string."""
-        result = extract_common_metadata("ENSMUSG00000000001", "Cortex", {})
-
-        assert result["gene_symbol"] == ""
-
-    def test_preserves_ensembl_gene_id(self) -> None:
-        """Test that ensembl_gene_id is preserved."""
-        result = extract_common_metadata("ENSMUSG00000099999", "Cortex", {})
-
-        assert result["ensembl_gene_id"] == "ENSMUSG00000099999"
-
-
 class TestIntegration:
     """Integration tests for multiple functions working together."""
 
@@ -550,10 +476,4 @@ class TestIntegration:
         # Verify results
         assert len(filtered_data) == 2
         assert gene_metadata_dict["ENSMUSG00000000001"] == "Gene1"
-
-        # Test metadata extraction
-        metadata = extract_common_metadata(
-            "ENSMUSG00000000001", "Right Cerebral Hemisphere", gene_metadata_dict
-        )
-        assert metadata["gene_symbol"] == "Gene1"
-        assert metadata["tissue"] == "Hemibrain"
+        assert map_jax_tissue_name("Right Cerebral Hemisphere") == "Hemibrain"

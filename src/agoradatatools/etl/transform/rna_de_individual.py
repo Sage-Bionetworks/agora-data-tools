@@ -11,8 +11,8 @@ The transformation:
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
 - Groups files by effective_model_group so that models sharing a model_group (e.g. UCI
   models whose data is split across two input files) are combined before output creation
-- Groups individual expression data by gene, tissue, and effective_model_group
-- Creates age-based entries containing individual expression values for all genotypes
+- Creates one output entry per (gene, tissue, effective_model_group, age) using vectorized
+  grouping via nest_fields, nesting all individual records for that combination into a "data" list
 - Organizes data by effective_model_group to support both single and multiple control display paradigms
 - Enriches data with gene symbols from gene metadata
 - Maps genotypes to display labels for better readability
@@ -22,7 +22,6 @@ The transformation:
 
 Key Functions:
     transform_rna_de_individual: Main transformation function that orchestrates the data processing
-    _create_output_entry_from_group: Creates output entries from a grouped DataFrame, one entry per age
     _process_individual_data_file_core: Processes the core transformation logic for individual expression data
     _determine_result_order: Determines the ordering of display labels for genotypes in a model_group
 
@@ -40,16 +39,12 @@ import pandas as pd
 from typing import Dict, List, Any
 import logging
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    extract_age_numeric,
-)
+from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     validate_model_group_consistency,
     create_gene_metadata_dict,
     prepare_genotype_label_map_df,
-    normalize_model_group_value,
-    extract_common_metadata,
+    map_jax_tissue_name,
     preprocess_data_file,
 )
 
@@ -95,120 +90,6 @@ def _determine_result_order(
     return filtered.sort_values("result_order")["display_label"].tolist()
 
 
-def _create_output_entry_from_group(
-    group_key: tuple[str, str, str],
-    group: pd.DataFrame,
-    gene_metadata_dict: Dict[str, str],
-    genotype_label_map_df: pd.DataFrame,
-) -> List[Dict[str, Any]]:
-    """
-    Creates output entries from a grouped DataFrame, one entry per age timepoint.
-
-    This function takes a group of individual expression data (gene, tissue, and
-    effective_model_group combination) and creates separate output entries for each
-    age timepoint. Each entry contains all individual data points for that age,
-    potentially spanning multiple models that share the same model_group.
-
-    Args:
-        group_key: Tuple containing (ensembl_gene_id, tissue, effective_model_group).
-            effective_model_group is model_group when set, otherwise the model name.
-        group: DataFrame group containing individual expression data with columns:
-            genotype, genotype_display, age, sex, individualid, expression, result_order,
-            model_group, effective_model_group
-        gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
-        genotype_label_map_df: Enriched genotype label map DataFrame (from
-            prepare_genotype_label_map_df) with columns: model, genotype, display_label,
-            model_group, result_order, effective_model_group
-
-    Returns:
-        List of dictionaries, one per age timepoint, each containing:
-            - All metadata fields (gene, tissue, model, control info)
-            - age: Age timepoint string
-            - age_numeric: Numeric age for sorting
-            - data: List of individual data points for this age
-    """
-    ensembl_gene_id, tissue, effective_model_group = group_key
-
-    # Extract common metadata (gene_symbol, tissue mapping)
-    common_metadata = extract_common_metadata(
-        ensembl_gene_id, tissue, gene_metadata_dict
-    )
-
-    # Get the actual model_group value from data (empty string if none defined).
-    # effective_model_group equals model_group when set, or model name when not.
-    model_group = group.iloc[0]["model_group"]
-
-    # name is the effective_model_group: model_group when explicitly set,
-    # otherwise the model name. This consolidates multi-file model_groups under
-    # a single display name while preserving solo-model names.
-    name = effective_model_group
-
-    # Identify the matched control genotype as the one with the lowest result_order
-    # value present in the actual data. This uses result_order as the authoritative
-    # signal for what "control" means — not any external model_info file. Currently,
-    # result_order assignment and model_info file designations agree for all
-    # effective_model_groups with only two genotypes.
-    #
-    # Limitation for 4-genotype UCI studies: some DE analyses pair each case genotype
-    # with a *different* control (e.g., Trem2-R47H_NSS.5xFAD vs Trem2-R47H_NSS, not
-    # vs C57BL/6J). In those cases, a single matched_control value is a simplification
-    # — it reflects the overall reference genotype for the group (lowest result_order)
-    # rather than the per-case-genotype DE pairing.
-    matched_control = ""
-    min_order = group["result_order"].min()
-    control_rows = group[group["result_order"] == min_order]
-    if not control_rows.empty:
-        matched_control = control_rows.iloc[0]["genotype_display"]
-
-    # Get ordered list of display labels for this model_group
-    result_order = _determine_result_order(
-        genotype_label_map_df,
-        effective_model_group,
-    )
-
-    # Fields shared across all age timepoints for this (gene, tissue, model_group)
-    base_entry = {
-        **common_metadata,
-        "name": name,
-        "model_group": normalize_model_group_value(model_group),
-        "matched_control": matched_control,
-        "units": "Log2 Counts per Million",
-        "result_order": result_order,
-    }
-
-    # Create one output entry per age timepoint directly from grouped data
-    output_entries = []
-
-    for age, age_group in group.groupby("age"):
-        # Select and rename columns for output format
-        age_group_subset = age_group[
-            ["genotype_display", "sex", "individualid", "expression"]
-        ].rename(
-            columns={
-                "genotype_display": "genotype",
-                "individualid": "individual_id",
-                "expression": "value",
-            }
-        )
-
-        # Convert DataFrame to list of dictionaries
-        data_points = age_group_subset.to_dict("records")
-
-        output_entries.append(
-            {
-                **base_entry,
-                "age": str(age),
-                "age_numeric": extract_age_numeric(str(age)),
-                "data": data_points,
-            }
-        )
-
-    # Sort entries by numeric age value
-    output_entries.sort(key=lambda x: x["age_numeric"])
-
-    return output_entries
-
-
 def _process_individual_data_file_core(
     data_file: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
@@ -220,12 +101,14 @@ def _process_individual_data_file_core(
     This function contains the individual-transform-specific processing logic:
     1. Enriches data with genotype metadata (display labels, result_order, model_group, effective_model_group)
     2. Drops rows with no label-map match (NA effective_model_group after the left merge)
-    3. Groups data by gene, tissue, and effective_model_group
-    4. Creates output entries for each group with individual measurements
+    3. Applies tissue name mapping and renames columns for output format
+    4. Uses nest_fields to group individual records by (gene, tissue, name, age, model_group),
+       producing one output row per combination with a nested "data" list
+    5. Adds metadata columns (gene_symbol, age_numeric, units, result_order, matched_control) vectorially
 
-    Note: This function expects preprocessed data (mouse genes only, rounded numeric values).
-    Preprocessing (filtering human genes, rounding, validation) is handled by the
-    preprocess_data_file function before this function is called.
+    Note: This function expects preprocessed data (mouse genes only, rounded numeric values)
+    and is called once per effective_model_group, so result_order and matched_control are
+    constant across all rows and can be computed once as scalars.
 
     Args:
         data_file: Preprocessed DataFrame containing individual expression data with columns:
@@ -240,8 +123,6 @@ def _process_individual_data_file_core(
     """
     # Step 1: Enrich with genotype metadata using vectorized merge
     # This adds display labels, result_order, model_group, and effective_model_group to each row
-
-    # Merge directly against the enriched label map df; rename display_label for output clarity
     merge_df = genotype_label_map_df[
         [
             "model",
@@ -270,27 +151,88 @@ def _process_individual_data_file_core(
     # allowed_genotypes_set filter while being faster and simpler.
     data_file = data_file.dropna(subset=["effective_model_group"])
 
+    if data_file.empty:
+        return []
+
     # Step 3: Convert types once per file before grouping
     data_file["individualid"] = data_file["individualid"].astype(str)
     data_file["expression"] = data_file["expression"].astype(float)
 
-    # Step 4: Group and create output entries
-    # Group by gene, tissue, and effective_model_group so that all models sharing
-    # the same model_group (e.g. data split across multiple input files) are
-    # combined into a single output entry.
-    grouped = data_file.groupby(["ensembl_gene_id", "tissue", "effective_model_group"])
+    # Step 4: Pre-calculate result_order list and matched_control.
+    # This function is called once per effective_model_group, so these values are
+    # constant across all rows.
+    #
+    # matched_control: the genotype_display with the minimum result_order in the data.
+    # Limitation for 4-genotype UCI studies: some DE analyses pair each case genotype
+    # with a *different* control (e.g., Trem2-R47H_NSS.5xFAD vs Trem2-R47H_NSS, not
+    # vs C57BL/6J). In those cases, a single matched_control value is a simplification
+    # — it reflects the overall reference genotype for the group (lowest result_order)
+    # rather than the per-case-genotype DE pairing.
+    effective_model_group = data_file["effective_model_group"].iloc[0]
+    result_order_list = _determine_result_order(
+        genotype_label_map_df, effective_model_group
+    )
 
-    output_entries = []
-    for group_key, group in grouped:
-        entries_for_group = _create_output_entry_from_group(
-            group_key,
-            group,
-            gene_metadata_dict,
-            genotype_label_map_df,
-        )
-        output_entries.extend(entries_for_group)
+    min_order = data_file["result_order"].min()
+    control_rows = data_file[data_file["result_order"] == min_order]
+    matched_control = (
+        control_rows.iloc[0]["genotype_display"] if not control_rows.empty else ""
+    )
 
-    return output_entries
+    # Step 5: Apply tissue name mapping before grouping (tissue is a grouping key)
+    data_file["tissue"] = data_file["tissue"].apply(map_jax_tissue_name)
+
+    # Step 6: Rename columns for output format
+    data_file = data_file.rename(
+        columns={
+            "genotype_display": "genotype",
+            "individualid": "individual_id",
+            "expression": "value",
+            "effective_model_group": "name",
+        }
+    )
+
+    # Step 7: Nest individual records by (gene, tissue, name, age, model_group).
+    # Each combination of these grouping keys produces one output row, with all
+    # individual-level columns (genotype, sex, individual_id, value) nested into "data".
+    group_cols = ["ensembl_gene_id", "tissue", "name", "age", "model_group"]
+    cols_keep = group_cols + ["genotype", "sex", "individual_id", "value"]
+    age_groups = nest_fields(
+        data_file[cols_keep],
+        grouping=group_cols,
+        new_column="data",
+        drop_columns=group_cols,
+    )
+
+    # Step 8: Add metadata columns vectorially
+    age_groups["age_numeric"] = age_groups["age"].str.extract(r"(\d+)")[0].astype(int)
+    age_groups["gene_symbol"] = (
+        age_groups["ensembl_gene_id"].map(gene_metadata_dict).fillna("")
+    )
+    age_groups["units"] = "Log2 Counts per Million"
+    age_groups["model_group"] = age_groups["model_group"].replace("", None)
+    age_groups["result_order"] = [result_order_list] * len(age_groups)
+    age_groups["matched_control"] = matched_control
+
+    # Step 9: Select output columns, sort by gene then age, and return as records
+    output_cols = [
+        "ensembl_gene_id",
+        "gene_symbol",
+        "tissue",
+        "name",
+        "model_group",
+        "matched_control",
+        "units",
+        "age",
+        "age_numeric",
+        "result_order",
+        "data",
+    ]
+    return (
+        age_groups[output_cols]
+        .sort_values(by=["ensembl_gene_id", "age_numeric"])
+        .to_dict(orient="records")
+    )
 
 
 def transform_rna_de_individual(

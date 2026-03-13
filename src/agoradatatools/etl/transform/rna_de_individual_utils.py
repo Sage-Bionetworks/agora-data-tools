@@ -16,8 +16,6 @@ Key Functions:
     prepare_genotype_label_map_df: Enrich the genotype label map DataFrame with effective_model_group
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
-    normalize_model_group_value: Normalize model_group value by converting empty strings to None
-    extract_common_metadata: Extract common metadata fields for RNA transforms
 """
 
 import pandas as pd
@@ -269,51 +267,6 @@ def validate_data_file_not_empty(file_name: str, data_file: pd.DataFrame) -> Non
     """
     if len(data_file) == 0:
         raise ValueError(f"Data file {file_name} is empty")
-
-
-def normalize_model_group_value(model_group) -> str or None:
-    """
-    Normalize model_group value by converting empty strings or NaN to None.
-
-    Args:
-        model_group: Model group value (string or NaN from a pandas merge)
-
-    Returns:
-        None if model_group is an empty string or NaN, otherwise returns model_group
-    """
-    if pd.isna(model_group) or model_group == "":
-        return None
-    return model_group
-
-
-def extract_common_metadata(
-    ensembl_gene_id: str,
-    tissue: str,
-    gene_metadata_dict: Dict[str, str],
-) -> Dict[str, Any]:
-    """
-    Extract common metadata fields for RNA transforms.
-
-    This function handles:
-    - Gene symbol lookup
-    - JAX tissue name mapping
-
-    Args:
-        ensembl_gene_id: Ensembl gene identifier
-        tissue: Tissue name
-        gene_metadata_dict: Dictionary mapping ensembl_gene_id to gene_symbol
-
-    Returns:
-        Dictionary with extracted metadata:
-            - 'ensembl_gene_id': str
-            - 'gene_symbol': str (empty if not found)
-            - 'tissue': str (mapped tissue name)
-    """
-    return {
-        "ensembl_gene_id": ensembl_gene_id,
-        "gene_symbol": gene_metadata_dict.get(ensembl_gene_id, ""),
-        "tissue": map_jax_tissue_name(tissue),
-    }
 
 
 def preprocess_data_file(
