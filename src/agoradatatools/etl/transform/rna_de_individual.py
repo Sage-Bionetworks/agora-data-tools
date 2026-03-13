@@ -143,9 +143,17 @@ def _create_output_entry_from_group(
     # a single display name while preserving solo-model names.
     name = effective_model_group
 
-    # Identify the matched control genotype (lowest result_order value).
-    # Use genotype_display directly since the group may span multiple models.
-    # Assuming "result_order" and "genotype_display" are in group.columns
+    # Identify the matched control genotype as the one with the lowest result_order
+    # value present in the actual data. This uses result_order as the authoritative
+    # signal for what "control" means — not any external model_info file. Currently,
+    # result_order assignment and model_info file designations agree for all
+    # effective_model_groups with only two genotypes.
+    #
+    # Limitation for 4-genotype UCI studies: some DE analyses pair each case genotype
+    # with a *different* control (e.g., Trem2-R47H_NSS.5xFAD vs Trem2-R47H_NSS, not
+    # vs C57BL/6J). In those cases, a single matched_control value is a simplification
+    # — it reflects the overall reference genotype for the group (lowest result_order)
+    # rather than the per-case-genotype DE pairing.
     matched_control = ""
     min_order = group["result_order"].min()
     control_rows = group[group["result_order"] == min_order]

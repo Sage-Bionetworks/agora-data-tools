@@ -188,6 +188,8 @@ For each grouped combination, this function directly creates output entries (one
 ### 2. Result Order and Control Identification
 - **Assumption:** Lower `result_order` values always represent control genotypes
 - **Assumption:** The genotype with the minimum result_order in actual data is the matched control
+- **Authoritative source:** `result_order` from `rnaseq_genotype_label_map` is the sole signal used to determine which genotype is the control. Any external model_info file is not consulted. Currently, `result_order` assignments and model_info file designations agree for all `effective_model_groups` with only two genotypes, but `result_order` takes precedence if they ever diverge.
+- **Limitation for 4-genotype UCI studies:** Some DE analyses pair each case genotype with a *different* control (e.g., `Trem2-R47H_NSS.5xFAD` vs `Trem2-R47H_NSS` rather than vs `C57BL/6J`). The `matched_control` field cannot represent this per-case-genotype pairing — it always contains the single genotype with the lowest `result_order` for the group, which is a simplification for these multi-control scenarios.
 - **Implication:** If data is missing control samples, the matched_control field may be empty
 
 ### 3. Model Grouping Strategy
