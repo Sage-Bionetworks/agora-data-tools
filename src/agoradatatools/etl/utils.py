@@ -443,9 +443,9 @@ def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
 
 def normalize_null_values(
     df: pd.DataFrame,
-    boolean_columns: List[str] = [],
-    empty_string_columns: List[str] = [],
-    keep_nan_columns: List[str] = [],
+    boolean_columns: List[str] = None,
+    empty_string_columns: List[str] = None,
+    keep_nan_columns: List[str] = None,
 ) -> pd.DataFrame:
     """
     Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
@@ -480,18 +480,21 @@ def normalize_null_values(
     """
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"Input must be a pandas DataFrame, got {type(df)}")
-    if not isinstance(boolean_columns, list):
-        raise TypeError(f"boolean_columns must be a list, got {type(boolean_columns)}")
-    if not isinstance(empty_string_columns, list):
-        raise TypeError(
-            f"empty_string_columns must be a list, got {type(empty_string_columns)}"
-        )
-    if not isinstance(keep_nan_columns, list):
-        raise TypeError(
-            f"keep_nan_columns must be a list, got {type(keep_nan_columns)}"
-        )
 
-    df = df.copy()  # avoid modifying the original data frame in place
+    for name, value in [
+        ("boolean_columns", boolean_columns),
+        ("empty_string_columns", empty_string_columns),
+        ("keep_nan_columns", keep_nan_columns),
+    ]:
+        if not isinstance(value, list) and value is not None:
+            raise TypeError(f"{name} must be a list, got {type(value)}")
+
+    # Initialize any None arguments to empty lists
+    boolean_columns = boolean_columns or []
+    empty_string_columns = empty_string_columns or []
+    keep_nan_columns = keep_nan_columns or []
+
+    df = df.copy()
 
     # Make these sets for easier checking of overlaps and membership in the data frame
     all_columns = set(df.columns)
@@ -501,10 +504,8 @@ def normalize_null_values(
     keep_nan_columns = set(keep_nan_columns)
 
     non_existent_columns = (
-        (boolean_columns - all_columns)
-        | (empty_string_columns - all_columns)
-        | (keep_nan_columns - all_columns)
-    )
+        boolean_columns | empty_string_columns | keep_nan_columns
+    ) - all_columns
 
     if non_existent_columns:
         # Names are sorted to make testing deterministic, since sets do not have a guaranteed order
@@ -530,10 +531,6 @@ def normalize_null_values(
 
     for col in empty_string_columns:
         df[col] = df[col].fillna("")
-
-    # Make sure all missing values are NaN in these columns, just in case
-    for col in keep_nan_columns:
-        df[col] = df[col].fillna(np.nan)
 
     leftover_columns = (
         all_columns - boolean_columns - empty_string_columns - keep_nan_columns

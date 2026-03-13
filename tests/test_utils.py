@@ -913,7 +913,7 @@ class TestNormalizeNullValues:
                 "bool2": [np.nan] * 4,
                 "string1": ["abc", None, "", np.nan],
                 "string2": [np.nan] * 4,
-                "numeric1": [123, np.nan, None, None],
+                "numeric1": [123, np.nan, np.nan, np.nan],
                 "numeric2": [np.nan] * 4,
                 "extra1": ["abc", "def", None, np.nan],
                 "extra2": [np.nan] * 4,
