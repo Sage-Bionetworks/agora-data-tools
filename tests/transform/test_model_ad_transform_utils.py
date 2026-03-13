@@ -255,11 +255,11 @@ class TestProcessGeneticInfo:
         basic_human_transgene_allele_map: pd.DataFrame,
         basic_allele_info_df: pd.DataFrame,
     ) -> None:
-        # Duplicate the first human transgene is duplicated to force the merge to
+        # Duplicate the first human transgene to force the merge to fail
         human_transgene_allele_map = basic_human_transgene_allele_map.loc[[0, 0, 1]]
 
         with pytest.raises(
-            ValueError, match="Merge keys are not unique in right dataset"
+            pd.errors.MergeError, match="Merge keys are not unique in right dataset"
         ):
             process_genetic_info(human_transgene_allele_map, basic_allele_info_df)
 
