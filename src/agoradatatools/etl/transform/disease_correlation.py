@@ -39,7 +39,6 @@ REQUIRED_INPUT = {
         "gene",
         "mgi_allele_id",
         "gene_ensembl_id",
-        "allele",
     ],
     "human_transgene_allele_map": [
         "mgi_allele_id",

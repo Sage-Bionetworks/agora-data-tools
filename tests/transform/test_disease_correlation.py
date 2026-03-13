@@ -105,7 +105,6 @@ class TestTransformDiseaseCorrelation:
                 "gene": "APOE4",
                 "mgi_allele_id": 5810209,
                 "gene_ensembl_id": "ENSMUSG00000002985",
-                "allele": "APOE4",
             }
         ]
     )
@@ -181,21 +180,18 @@ class TestTransformDiseaseCorrelation:
                             "gene": "APOE4",
                             "mgi_allele_id": 5810209,
                             "gene_ensembl_id": "ENSMUSG00000002985",
-                            "allele": "APOE4",
                         },
                         {
                             "model": "LOAD1",
                             "gene": "TREM2",
                             "mgi_allele_id": 5770794,
                             "gene_ensembl_id": "ENSMUSG00000023992",
-                            "allele": "TREM2",
                         },
                         {
                             "model": "LOAD2",
                             "gene": "APP",
                             "mgi_allele_id": 3693208,
                             "gene_ensembl_id": "ENSMUSG00000022892",
-                            "allele": "APP",
                         },
                     ]
                 ),
