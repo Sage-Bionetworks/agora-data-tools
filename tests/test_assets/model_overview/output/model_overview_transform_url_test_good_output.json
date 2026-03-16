@@ -1,0 +1,103 @@
+[
+  {
+    "name": "Model_url_default",
+    "model_type": "Tauopathy",
+    "matched_controls": ["C57BL/6J"],
+    "gene_expression": {
+      "link_url": "comparison/expression?models=Model_url_default"
+    },
+    "disease_correlation": null,
+    "pathology": null,
+    "biomarkers": null,
+    "study_data": {
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn25539881"
+    },
+    "jax_strain": {
+      "link_url": "https://jax.org/strain/5491"
+    },
+    "center": {
+      "link_text": "IU/JAX/PITT",
+      "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+    },
+    "modified_genes": [],
+    "available_data": [
+      "Gene Expression"
+    ]
+  },
+  {
+    "name": "Model_url_categories",
+    "model_type": "Familial AD",
+    "matched_controls": ["B6129"],
+    "gene_expression": {
+      "link_url": "comparison/expression?categories=category_string&models=Model_url_categories"
+    },
+    "disease_correlation": null,
+    "pathology": null,
+    "biomarkers": null,
+    "study_data": {
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
+    },
+    "jax_strain": {
+      "link_url": "https://jax.org/strain/4807"
+    },
+    "center": {
+      "link_text": "UCI",
+      "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+    },
+    "modified_genes": [],
+    "available_data": [
+      "Gene Expression"
+    ]
+  },
+  {
+    "name": "Model_url_models",
+    "model_type": "Tauopathy",
+    "matched_controls": ["C57BL/6J"],
+    "gene_expression": {
+      "link_url": "comparison/expression?models=model1,model2"
+    },
+    "disease_correlation": null,
+    "pathology": null,
+    "biomarkers": null,
+    "study_data": {
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn25539881"
+    },
+    "jax_strain": {
+      "link_url": "https://jax.org/strain/5491"
+    },
+    "center": {
+      "link_text": "IU/JAX/PITT",
+      "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
+    },
+    "modified_genes": [],
+    "available_data": [
+      "Gene Expression"
+    ]
+  },
+  {
+    "name": "Model_url_both",
+    "model_type": "Familial AD",
+    "matched_controls": ["B6129"],
+    "gene_expression": {
+      "link_url": "comparison/expression?categories=category_string&models=model3,model4"
+    },
+    "disease_correlation": null,
+    "pathology": null,
+    "biomarkers": null,
+    "study_data": {
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
+    },
+    "jax_strain": {
+      "link_url": "https://jax.org/strain/4807"
+    },
+    "center": {
+      "link_text": "UCI",
+      "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
+    },
+    "modified_genes": [],
+    "available_data": [
+      "Gene Expression"
+    ]
+  }
+]
+  

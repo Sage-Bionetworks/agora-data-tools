@@ -2,6 +2,7 @@
 This module contains the transformation logic for the model_overview datasets.
 This is for the Model AD project.
 """
+
 import pandas as pd
 from typing import Any, Dict, List
 
@@ -9,7 +10,10 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     remove_duplicates_keep_order,
 )
-from agoradatatools.etl.transform.model_details import process_genetic_info
+from agoradatatools.etl.transform.model_ad_transform_utils import (
+    build_gene_expression_url,
+    process_genetic_info,
+)
 
 REQUIRED_INPUT = {
     "model_info": [
@@ -23,6 +27,8 @@ REQUIRED_INPUT = {
         "alzforum_id",
         "genotype",
         "aliases",
+        "url_categories_value",
+        "url_models_value",
     ],
     "model_results_info": [
         "name",
@@ -96,20 +102,23 @@ def transform_model_overview(
 
     This function merges and processes the following input datasets:
         - model_info: Contains metadata about each model.
-        - model_results_info: Contains information about available results for each model (e.g., gene expression, pathology).
+        - model_results_info: Contains information about available results for each model (e.g., gene expression,
+          pathology).
         - allele_info: Contains allele and genetic modification details for each model.
         - human_transgene_allele_map: Maps mouse alleles to human Ensembl gene IDs.
 
     The transformation includes:
         1. Merging model_info and model_results_info on the "name" column.
-        2. For each model, extracting genetic information using process_genetic_info, which maps alleles to human Ensembl IDs where possible.
+        2. For each model, extracting genetic information using process_genetic_info, which maps alleles to human
+           Ensembl IDs where possible.
         3. Building a structured dictionary for each model, including:
             - model metadata (name, model_type, matched_controls, etc.)
             - links to available results (gene_expression, disease_correlation, pathology, biomarkers)
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary mapping dataset names to their DataFrames.
-        required_input (Dict[str, List[str]], optional): Dictionary specifying required datasets and columns. Defaults to REQUIRED_INPUT.
+        required_input (Dict[str, List[str]], optional): Dictionary specifying required datasets and columns. Defaults
+        to REQUIRED_INPUT.
 
     Returns:
         List[Dict[str, Any]]: A list of dictionaries, each representing a transformed model overview record.
@@ -155,7 +164,7 @@ def transform_model_overview(
 
         # Build the links first
         row["gene_expression"] = (
-            {"link_url": f"comparison/expression?models={row['name']}"}
+            {"link_url": build_gene_expression_url(row)}
             if bool(row["gene_expression"])
             else None
         )
@@ -198,7 +207,7 @@ def transform_model_overview(
         # Calculate available_data based on which links are actually present
         row["available_data"] = get_list_of_available_data(row)
 
-        # Convert matched_controlss from comma-delimited strings to lists
+        # Convert matched_controls from comma-delimited strings to lists
         row["matched_controls"] = (
             [x.strip() for x in str(row["matched_controls"]).split(",")]
             if pd.notna(row["matched_controls"]) and row["matched_controls"] != ""
@@ -221,6 +230,6 @@ def transform_model_overview(
             "available_data",
         ]
 
-        transformed_records.append({k: row[k] for k in keep_columns if k in row})
+        transformed_records.append(row[keep_columns].to_dict())
 
     return transformed_records

@@ -2,13 +2,17 @@
 This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
+
 from typing import Any, Dict, List
 
-import numpy as np
 import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.transform.model_ad_transform_utils import (
+    build_gene_expression_url,
+    process_genetic_info,
+)
 
 
 REQUIRED_INPUT = {
@@ -31,6 +35,8 @@ REQUIRED_INPUT = {
         "alzforum_id",
         "genotype",
         "aliases",
+        "url_categories_value",
+        "url_models_value",
     ],
     "model_results_info": [
         "name",
@@ -73,69 +79,6 @@ REQUIRED_INPUT = {
 }
 
 
-def process_genetic_info(
-    human_transgene_allele_map_df: pd.DataFrame,
-    model_alleles: pd.DataFrame,
-) -> List[Dict[str, Any]]:
-    """
-    Processes the gene information DataFrame. If the allele is a human transgene,
-    replace the ensembl_id with the human one. Each model's alleles are processed independently.
-    Multiple entries are preserved for different alleles of the same gene.
-
-    Args:
-        human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
-        model_alleles (pd.DataFrame): The DataFrame containing the model allele information.
-
-    Returns:
-        List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
-    """
-    # Copy dataframes to avoid modifying originals
-    # Using copy() to avoid warning: A value is trying to be set on a copy of a slice from a DataFrame.
-    # Warning appears even if using .loc to set the value.
-    model_alleles = model_alleles.copy()
-    human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
-
-    # Normalize gene columns to uppercase for consistent merging
-    model_alleles["gene_upper"] = model_alleles["modified_gene"].str.upper()
-    human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
-        "gene_symbol"
-    ].str.upper()
-
-    # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles
-    merged_df = model_alleles.merge(
-        human_transgene_allele_map_df[
-            ["mgi_allele_id", "gene_upper", "human_ensembl_id", "gene_symbol"]
-        ],
-        on=["mgi_allele_id", "gene_upper"],
-        how="left",
-    )
-
-    # Only override ensembl_id if we have a valid human_ensembl_id
-    merged_df["ensembl_gene_id"] = merged_df.apply(
-        lambda row: row["human_ensembl_id"]
-        if pd.notna(row["human_ensembl_id"])
-        else row["gene_ensembl_id"],
-        axis=1,
-    )
-
-    # Only override gene_symbol if we have a valid human_ensembl_id
-    merged_df["modified_gene"] = merged_df.apply(
-        lambda row: row["gene_symbol"]
-        if pd.notna(row["human_ensembl_id"])
-        else row["modified_gene"],
-        axis=1,
-    )
-
-    # Drop duplicates to ensure we don't have exact duplicates of the same allele
-    merged_df = merged_df.drop_duplicates(
-        subset=["modified_gene", "allele", "mgi_allele_id"]
-    )
-
-    return merged_df[
-        ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
-    ].to_dict(orient="records")
-
-
 def transform_model_details(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -173,7 +116,15 @@ def transform_model_details(
     allele_info_df = datasets["allele_info"].fillna("")
     model_info_df = datasets["model_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
-    model_results_info_df = datasets["model_results_info"].fillna({np.nan: None})
+
+    # Merge model_results_df into model_info to get which types of data are available for each model
+    model_info_df = pd.merge(
+        model_info_df,
+        datasets["model_results_info"],
+        how="left",
+        on="name",
+        validate="one_to_one",
+    ).fillna({"gene_expression": False, "disease_correlation": False})
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
     if "jax_id" in model_info_df.columns:
@@ -188,9 +139,11 @@ def transform_model_details(
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
         model_info_df[col_name] = model_info_df[col_name].apply(
-            lambda x: [item.strip() for item in str(x).split(",")]
-            if pd.notna(x) and x != ""
-            else []
+            lambda x: (
+                [item.strip() for item in str(x).split(",")]
+                if pd.notna(x) and x != ""
+                else []
+            )
         )
 
     # Process each model
@@ -229,23 +182,12 @@ def transform_model_details(
         }
 
         # Add gene expression and disease correlation links if they exist
-        if model_name in model_results_info_df["name"].values:
-            model_results_info_row_dict = model_results_info_df[
-                model_results_info_df["name"] == model_name
-            ].to_dict("records")[0]
-
-            model_entry["gene_expression"] = (
-                f"comparison/expression?models={model_name}"
-                if pd.notna(model_results_info_row_dict["gene_expression"])
-                and bool(model_results_info_row_dict["gene_expression"])
-                else None
-            )
-            model_entry["disease_correlation"] = (
-                f"comparison/correlation?models={model_name}"
-                if pd.notna(model_results_info_row_dict["disease_correlation"])
-                and bool(model_results_info_row_dict["disease_correlation"])
-                else None
-            )
+        model_entry["gene_expression"] = build_gene_expression_url(model_row)
+        model_entry["disease_correlation"] = (
+            f"comparison/correlation?models={model_name}"
+            if bool(model_row["disease_correlation"])
+            else None
+        )
 
         result.append(model_entry)
 

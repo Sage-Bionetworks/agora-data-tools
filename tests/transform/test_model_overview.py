@@ -21,6 +21,16 @@ class TestTransformModelOverview:
             "model_overview_transform_good_test_output.json",
         ),
         (
+            # Pass with good test data requiring special URLs for gene expression
+            {
+                "model_info": "model_overview_model_info_url_test_good_input.csv",
+                "model_results_info": "model_overview_model_results_info_url_test_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+            },
+            "model_overview_transform_url_test_good_output.json",
+        ),
+        (
             # Pass with missing data in some fields
             {
                 "model_info": "model_overview_model_info_missing_data_input.csv",
@@ -63,6 +73,7 @@ class TestTransformModelOverview:
     ]
     pass_test_ids = [
         "Pass with good test data",
+        "Pass with good test data requiring special URLs for gene expression",
         "Pass with missing data in some fields",
         "Pass with no results data for some models",
         "Pass with extra columns",
@@ -173,6 +184,8 @@ class TestTransformModelOverview:
                 "alzforum_id",
                 "genotype",
                 "aliases",
+                "url_categories_value",
+                "url_models_value",
             ]
         )
         empty_model_results_info = pd.DataFrame(
@@ -233,6 +246,8 @@ class TestTransformModelOverview:
                 "alzforum_id": ["test"],
                 "genotype": ["Test Genotype"],
                 "aliases": ["Test Alias"],
+                "url_categories_value": [""],
+                "url_models_value": [""],
             }
         )
         model_results_info = pd.DataFrame(
@@ -315,6 +330,8 @@ class TestTransformModelOverview:
                 "alzforum_id": [None],
                 "genotype": ["Test Genotype"],
                 "aliases": [None],
+                "url_categories_value": [None],
+                "url_models_value": [None],
             }
         )
         model_results_info = pd.DataFrame(
@@ -397,6 +414,8 @@ class TestTransformModelOverview:
                 "alzforum_id": ["id1", "id2"],
                 "genotype": ["Geno1", "Geno2"],
                 "aliases": ["Alias1", "Alias2"],
+                "url_categories_value": ["", ""],
+                "url_models_value": ["", ""],
             }
         )
         model_results_info = pd.DataFrame(
