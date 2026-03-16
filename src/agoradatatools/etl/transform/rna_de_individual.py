@@ -197,7 +197,10 @@ def _process_individual_data_file_core(
     # Step 5: Apply tissue name mapping before grouping (tissue is a grouping key)
     data_file["tissue"] = data_file["tissue"].apply(map_jax_tissue_name)
 
-    # Step 6: Rename columns for output format
+    # Step 6: Rename columns for output format.
+    # Drop the raw genotype column first — it was only needed for the merge to look up
+    # display_label. Removing it before the rename prevents a duplicate "genotype" column.
+    data_file = data_file.drop(columns=["genotype"])
     data_file = data_file.rename(
         columns={
             "display_label": "genotype",
