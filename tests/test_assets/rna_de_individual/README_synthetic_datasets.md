@@ -35,8 +35,8 @@ These files are required for all transformations. Both are minimal synthetic sub
    - Synthetic subset of production `rnaseq_genotype_label_map` data; contains only the 4 models used by the test suite (APOE4, LOAD1, Trem2-R47H_NSS, Trem2-R47H_NSS.5xFAD)
 
 2. **synthetic_mouse_gene_metadata.csv**
-   - Gene symbols and aliases for Ensembl IDs
-   - Columns: ensembl_gene_id, gene_symbol, alias
+   - Gene symbols for Ensembl IDs
+   - Columns: ensembl_gene_id, gene_symbol
    - Synthetic subset of production `mouse_gene_metadata` data; contains only the entries needed by the test suite (ENSMUSG00000000001 → Gnai3, plus a few additional rows for realism)
 
 3. **rnaseq_genotype_label_map_inconsistent.csv**

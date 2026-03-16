@@ -27,7 +27,7 @@ Key Functions:
 
 Required Inputs:
     - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
-    - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
+    - mouse_gene_metadata: Gene symbols for Ensembl IDs
     - Data files: One or more CSV files containing individual expression results; required
       columns are defined by the DATA_FILE_REQUIRED_COLUMNS module constant
 """
@@ -58,7 +58,7 @@ REQUIRED_INPUT = {
         "genotype",
         "result_order",
     ],
-    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
+    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
 }
 
 DATA_FILE_REQUIRED_COLUMNS = [
@@ -292,7 +292,7 @@ def transform_rna_de_individual(
             - 'rnaseq_genotype_label_map': Maps genotypes to display labels and model_groups.
               Required columns: model, genotype, display_label, model_group, result_order
             - 'mouse_gene_metadata': Gene symbols for Ensembl IDs.
-              Required columns: ensembl_gene_id, gene_symbol, alias
+              Required columns: ensembl_gene_id, gene_symbol
             - One or more data files: CSV DataFrames containing individual expression
               results. Required columns are defined by DATA_FILE_REQUIRED_COLUMNS:
               ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid

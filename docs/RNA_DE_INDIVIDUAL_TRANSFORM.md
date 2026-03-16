@@ -32,7 +32,6 @@ The transform requires three types of input:
 **Required columns:**
 - `ensembl_gene_id`: Ensembl gene identifier (e.g., "ENSMUSG00000000001")
 - `gene_symbol`: Gene symbol (e.g., "Gnai3")
-- `alias`: Gene aliases (used for lookup fallback)
 
 **Purpose:** Provides gene symbols for Ensembl gene IDs.
 
