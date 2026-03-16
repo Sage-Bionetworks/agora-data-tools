@@ -37,7 +37,7 @@ The transform requires three types of input:
 **Purpose:** Provides gene symbols for Ensembl gene IDs.
 
 ### 3. Data Files (one or more CSV files)
-**Required columns:**
+**Required columns** (defined by the `DATA_FILE_REQUIRED_COLUMNS` module constant):
 - `ensembl_gene_id`: Ensembl gene identifier
 - `expression`: Normalized expression value (Log2 Counts per Million)
 - `model`: Model name (must match values in rnaseq_genotype_label_map)
@@ -83,7 +83,7 @@ Before transform-specific processing, the main function groups input files by th
 Applied to each file individually before it is combined within its group:
 - **Logging:** Logs file name, global index, row count, column count, and memory usage
 - **Empty file validation:** Raises error if file is empty
-- **Column validation:** Checks all required columns are present
+- **Column validation:** Checks all required columns are present (defined by `DATA_FILE_REQUIRED_COLUMNS`)
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places
 
@@ -114,6 +114,7 @@ After preprocessing and concatenation, the individual transform applies its spec
 - Those rows are removed with `dropna(subset=["effective_model_group"])`
 - **Purpose:** Ensures only genotype combinations that exist in the label map are processed
 - **Example:** If model_group "5XFAD" has genotypes ["5XFAD_carrier", "5XFAD_noncarrier"], any rows with a different genotype receive NA and are dropped
+- **All-rows-filtered case:** If every row is dropped (i.e., no genotype in the file matched the label map at all), a `WARNING` is logged and the function returns `[]` for that group. This is distinct from an empty input file (which raises `ValueError`) — it means the file had data but none of its genotypes were recognised.
 
 ### Step 3: Grouping and Output Entry Creation
 
@@ -239,7 +240,7 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Impact:** Significantly reduces data volume if input contains human genes
 
 ### 2. Dropping Unmatched Rows
-- **What:** Drops rows whose `(model, genotype)` pair had no match in the label map (NA `effective_model_group` after left merge)
+- **What:** Drops rows whose `(model, genotype)` pair had no match in the label map (NA `effective_model_group` after left merge); if all rows are dropped a `WARNING` is logged and the group returns `[]`
 - **Why:** Prevents unrecognised genotype combinations from being processed
 - **Example:** If processing model_group "5XFAD" with genotypes [A, B], rows with genotype C receive NA and are dropped
 - **Impact:** Ensures data integrity and prevents mismatched comparisons
@@ -354,11 +355,13 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 ### Processing Validation
 1. Merge validation ensures one-to-one genotype label mapping
 2. Age sorting handles unexpected formats gracefully (falls back to original order)
+3. If all rows in a group are dropped after the genotype label map merge (no genotypes matched), a `WARNING` is logged and that group contributes no output entries
 
 ### Error Scenarios
 - **Missing required datasets:** ValueError with dataset name
 - **Missing required columns:** ValueError with column names
 - **Empty data files:** ValueError with file name
+- **All genotypes unrecognised (post-merge empty):** WARNING logged, group skipped (not an error)
 - **Invalid merge relationships:** pandas MergeError with details
 
 ## Related Transforms
@@ -369,7 +372,11 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 ## Example Usage
 
 ```python
-from agoradatatools.etl.transform.rna_de_individual import transform_rna_de_individual
+from agoradatatools.etl.transform.rna_de_individual import (
+    transform_rna_de_individual,
+    REQUIRED_INPUT,
+    DATA_FILE_REQUIRED_COLUMNS,
+)
 import pandas as pd
 
 datasets = {
@@ -379,7 +386,15 @@ datasets = {
     "5XFAD_expression": pd.read_csv("5XFAD_normalized_expression.csv"),
 }
 
+# Default usage — uses REQUIRED_INPUT and DATA_FILE_REQUIRED_COLUMNS module constants
 output = transform_rna_de_individual(datasets)
+
+# Custom schema validation — override either or both constants if needed
+output = transform_rna_de_individual(
+    datasets,
+    required_input=REQUIRED_INPUT,
+    data_file_required_columns=DATA_FILE_REQUIRED_COLUMNS,
+)
 # output is a list of dictionaries with the structure described above
 ```
 

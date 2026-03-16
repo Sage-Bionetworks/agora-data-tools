@@ -159,6 +159,8 @@ class TestProcessIndividualDataFileCore:
         - test_basic_core_processing: Tests basic processing with enrichment and grouping.
         - test_genotype_filtering: Tests filtering of invalid genotypes.
         - test_uses_preprocessed_data: Tests that function expects preprocessed data.
+        - test_multiple_genotypes_with_model_group: Tests multiple genotypes in a model group.
+        - test_all_genotypes_unmatched_returns_empty_with_warning: Tests WARNING is logged and [] returned when all rows are dropped.
     """
 
     def test_basic_core_processing(self) -> None:
@@ -307,6 +309,56 @@ class TestProcessIndividualDataFileCore:
         assert result[0]["model_group"] == "GroupX"
         assert result[0]["matched_control"] == "Control_B"
 
+    def test_all_genotypes_unmatched_returns_empty_with_warning(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Test that a WARNING is logged and [] is returned when all rows are dropped.
+
+        This occurs when none of the genotypes in the data file have a match in the
+        genotype label map, causing every row to be dropped by dropna. This is distinct
+        from an empty input file (which raises ValueError) — it means the file had data
+        but no recognised genotypes.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "individualid": ["Ind001"],
+                "expression": [5.0],
+                "tissue": ["Cortex"],
+                "sex": ["Male"],
+                "age": ["6 months"],
+                "genotype": ["UnknownGenotype"],
+                "model": ["Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
+
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            result = _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+        assert result == []
+        assert any(
+            "all genotypes in this file were absent from the label map"
+            in record.message
+            for record in caplog.records
+            if record.levelno == logging.WARNING
+        )
+
 
 class TestTransformRnaDeIndividual:
     """
@@ -331,6 +383,7 @@ class TestTransformRnaDeIndividual:
         - test_synthetic_single_row_data: Tests minimal edge case (single row).
         - test_synthetic_empty_data_file: Tests error handling for empty data files.
         - test_synthetic_missing_columns_data: Tests error handling for missing columns.
+        - test_data_file_required_columns_parameter: Tests that data_file_required_columns parameter is honoured.
         - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
         - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
 
@@ -599,6 +652,40 @@ class TestTransformRnaDeIndividual:
         # Expect transformation to raise ValueError for missing required columns
         with pytest.raises(ValueError, match="Missing required columns"):
             transform_rna_de_individual(datasets=datasets)
+
+    def test_data_file_required_columns_parameter(self) -> None:
+        """Test that the data_file_required_columns parameter is honoured.
+
+        Verifies that the parameter is wired through to column validation rather than
+        the constant always being used. Passes a custom list containing a non-existent
+        column and confirms that ValueError is raised referencing that column, proving
+        the parameter — not the hardcoded constant — drives validation.
+        """
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+            ]
+        )
+
+        custom_columns = [
+            "ensembl_gene_id",
+            "expression",
+            "model",
+            "genotype",
+            "age",
+            "sex",
+            "tissue",
+            "individualid",
+            "nonexistent_column",
+        ]
+
+        with pytest.raises(ValueError, match="Missing required columns"):
+            transform_rna_de_individual(
+                datasets=datasets,
+                data_file_required_columns=custom_columns,
+            )
 
     def test_synthetic_rounding_precision(self) -> None:
         """Test that expression values are rounded to 5 decimal places.

@@ -28,8 +28,8 @@ Key Functions:
 Required Inputs:
     - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
     - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
-    - Data files: One or more CSV files containing individual expression results with columns:
-      ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
+    - Data files: One or more CSV files containing individual expression results; required
+      columns are defined by the DATA_FILE_REQUIRED_COLUMNS module constant
 """
 
 import gc
@@ -60,6 +60,17 @@ REQUIRED_INPUT = {
     ],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
 }
+
+DATA_FILE_REQUIRED_COLUMNS = [
+    "ensembl_gene_id",
+    "expression",
+    "model",
+    "genotype",
+    "age",
+    "sex",
+    "tissue",
+    "individualid",
+]
 
 
 def _determine_result_order(
@@ -242,6 +253,7 @@ def _process_individual_data_file_core(
 def transform_rna_de_individual(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
+    data_file_required_columns: List[str] = DATA_FILE_REQUIRED_COLUMNS,
 ) -> List[Dict[str, Any]]:
     """
     Main transformation function for RNA individual expression data.
@@ -252,14 +264,17 @@ def transform_rna_de_individual(
 
     Processing Steps:
         1. Validates required datasets and columns
-        2. Creates gene and genotype metadata lookup dictionaries
+        2. Prepares metadata DataFrames (enriches genotype label map with
+           effective_model_group; loads gene metadata)
         3. Validates data consistency (model_group values)
-        4. Groups input files by effective_model_group so that models whose data is
+        4. Creates gene metadata lookup dictionary (Ensembl ID → gene symbol)
+        5. Groups input files by effective_model_group so that models whose data is
            split across multiple files (e.g. UCI models) are combined before output
-           creation, while unrelated files are processed and freed independently
-        5. For each effective_model_group:
-           - Preprocesses each file (filters to mouse genes, rounds numeric values to
-             5 decimal places)
+           creation, while unrelated files are processed and freed independently;
+           each file is preprocessed using data_file_required_columns for column
+           validation (filters to mouse genes, rounds numeric values to 5 decimal
+           places)
+        6. For each effective_model_group:
            - Concatenates preprocessed DataFrames within the group (no-op for
              single-file groups)
            - Enriches with genotype metadata
@@ -267,7 +282,7 @@ def transform_rna_de_individual(
            - Groups by gene, tissue, and effective_model_group
            - Creates output entries with individual data points
            - Frees memory before moving to the next group
-        6. Consolidates output from all groups
+        7. Consolidates output from all groups
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
@@ -276,10 +291,12 @@ def transform_rna_de_individual(
             - 'mouse_gene_metadata': Gene symbols for Ensembl IDs.
               Required columns: ensembl_gene_id, gene_symbol, alias
             - One or more data files: CSV DataFrames containing individual expression
-              results with columns: ensembl_gene_id, expression, model, genotype, age,
-              sex, tissue, individualid
+              results. Required columns are defined by DATA_FILE_REQUIRED_COLUMNS:
+              ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
         required_input: Dictionary mapping required dataset names to their required columns.
             Defaults to REQUIRED_INPUT module constant.
+        data_file_required_columns: List of required column names for data files.
+            Defaults to DATA_FILE_REQUIRED_COLUMNS module constant.
 
     Returns:
         List of dictionaries, each representing a unique combination of gene, tissue,
@@ -321,19 +338,7 @@ def transform_rna_de_individual(
     # Step 4: Create gene metadata lookup dictionary (Ensembl ID → gene symbol)
     gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
 
-    # Step 5: Define required columns for data files
-    data_file_required_columns = [
-        "ensembl_gene_id",
-        "expression",
-        "model",
-        "genotype",
-        "age",
-        "sex",
-        "tissue",
-        "individualid",
-    ]
-
-    # Step 6: Group files by effective_model_group so that models sharing the same
+    # Step 5: Group files by effective_model_group so that models sharing the same
     # group (e.g. UCI models split across two input files) are processed together,
     # while unrelated files are processed and freed independently.
     #
@@ -370,7 +375,7 @@ def transform_rna_de_individual(
         + ", ".join(f"{emg}={files}" for emg, files in emg_to_files.items())
     )
 
-    # Step 7: Process one effective_model_group at a time.
+    # Step 6: Process one effective_model_group at a time.
     # Groups with a single file are processed without any extra concatenation.
     # Groups with multiple files (e.g. UCI split-file models) are concatenated
     # only within that group before processing, then freed immediately after.
