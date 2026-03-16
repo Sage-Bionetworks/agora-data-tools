@@ -37,6 +37,7 @@ import json
 from typing import Dict, List
 import pandas as pd
 import pytest
+import logging
 
 from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
@@ -160,6 +161,10 @@ class TestProcessIndividualDataFileCore:
         - test_uses_preprocessed_data: Tests that function expects preprocessed data.
         - test_multiple_genotypes_with_model_group: Tests multiple genotypes in a model group.
         - test_all_genotypes_unmatched_returns_empty_with_warning: Tests WARNING is logged and [] returned when all rows are dropped.
+        - test_non_digit_age_raises_value_error: Tests that a mix of valid and non-digit age strings raises ValueError.
+        - test_all_ages_non_digit_raises_value_error: Tests that all-non-digit age values raise ValueError.
+        - test_blank_age_raises_value_error: Tests that a blank (empty-string) age raises ValueError.
+        - test_non_digit_age_error_message_names_offending_values: Tests that the ValueError message lists every offending age value.
     """
 
     def test_basic_core_processing(self) -> None:
@@ -343,8 +348,6 @@ class TestProcessIndividualDataFileCore:
             }
         )
 
-        import logging
-
         with caplog.at_level(logging.WARNING):
             result = _process_individual_data_file_core(
                 data_file, gene_metadata_dict, genotype_label_map_df
@@ -357,6 +360,163 @@ class TestProcessIndividualDataFileCore:
             for record in caplog.records
             if record.levelno == logging.WARNING
         )
+
+    def test_non_digit_age_raises_value_error(self) -> None:
+        """Test that age strings containing no digits raise a clear ValueError.
+
+        age_numeric is extracted via regex r'(\\d+)'. If any age value contains no
+        digits (e.g. 'neonatal', 'P7', or blank), .astype(int) would previously raise
+        a confusing 'cannot convert float NaN to integer' error. The code now validates
+        explicitly and raises ValueError with the offending values listed.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "neonatal"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="age_numeric extraction failed"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+    def test_all_ages_non_digit_raises_value_error(self) -> None:
+        """Test that ValueError is raised when every age value contains no digits.
+
+        Ensures the check fires even when there is no valid age row to contrast with
+        the bad ones (i.e. the all-bad case is not silently swallowed).
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["neonatal", "adult"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="age_numeric extraction failed"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+    def test_blank_age_raises_value_error(self) -> None:
+        """Test that an empty-string age value raises ValueError.
+
+        An empty string contains no digits, so the regex returns NaN and the
+        explicit validation must catch it before the int cast.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "individualid": ["Ind001"],
+                "expression": [5.0],
+                "tissue": ["Cortex"],
+                "sex": ["Male"],
+                "age": [""],
+                "genotype": ["Tg"],
+                "model": ["Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="age_numeric extraction failed"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+    def test_non_digit_age_error_message_names_offending_values(self) -> None:
+        """Test that the ValueError message explicitly lists every offending age value.
+
+        The error message must name the bad values so that the caller can identify
+        and fix the input data without further debugging.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": [
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                ],
+                "individualid": ["Ind001", "Ind002", "Ind003"],
+                "expression": [5.0, 6.0, 7.0],
+                "tissue": ["Cortex", "Cortex", "Cortex"],
+                "sex": ["Male", "Female", "Male"],
+                "age": ["6 months", "neonatal", "adult"],
+                "genotype": ["Tg", "Tg", "Tg"],
+                "model": ["Model_A", "Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="neonatal") as exc_info:
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+        # Isolate the list of offending values (before the advice sentence) to avoid
+        # false positives from the "e.g., '6 months'" example in the message template.
+        offending_values_section = str(exc_info.value).split(". All age strings")[0]
+        assert "neonatal" in offending_values_section
+        assert "adult" in offending_values_section
+        assert "6 months" not in offending_values_section
 
 
 class TestTransformRnaDeIndividual:

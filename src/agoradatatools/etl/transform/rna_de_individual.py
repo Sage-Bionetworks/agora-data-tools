@@ -223,7 +223,15 @@ def _process_individual_data_file_core(
     )
 
     # Step 8: Add metadata columns vectorially
-    age_groups["age_numeric"] = age_groups["age"].str.extract(r"(\d+)")[0].astype(int)
+    extracted_ages = age_groups["age"].str.extract(r"(\d+)")[0]
+    non_digit_ages = age_groups.loc[extracted_ages.isna(), "age"].unique().tolist()
+    if non_digit_ages:
+        raise ValueError(
+            f"age_numeric extraction failed: the following age values contain no digits and cannot "
+            f"be converted to integers: {non_digit_ages}. All age strings must match the "
+            f"'[N] months' format (e.g., '3 months', '6 months')."
+        )
+    age_groups["age_numeric"] = extracted_ages.astype(int)
     age_groups["gene_symbol"] = (
         age_groups["ensembl_gene_id"].map(gene_metadata_dict).fillna("")
     )

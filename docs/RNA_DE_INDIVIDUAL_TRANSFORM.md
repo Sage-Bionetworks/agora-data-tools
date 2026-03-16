@@ -107,9 +107,14 @@ After preprocessing and concatenation, the individual transform applies its spec
 ### Step 3: Grouping and Output Entry Creation
 
 #### 3.1 Grouping Strategy
-- Groups data by: `(ensembl_gene_id, tissue, effective_model_group)`
-- Each group represents a unique combination of gene, tissue, and effective model group
-- **Design decision:** Groups by `effective_model_group` rather than individual model name so that all models sharing the same `model_group` (including data split across multiple input files) produce a single consolidated output entry
+- Groups data by all five columns: `(ensembl_gene_id, tissue, name, age, model_group)`
+  - `ensembl_gene_id`: Ensembl gene identifier
+  - `tissue`: Tissue name (post-mapping and sentence-case normalization)
+  - `name`: Set to `effective_model_group` — the `model_group` when explicitly provided, or the model name for solo models
+  - `age`: Age timepoint (e.g., `"4 mo"`, `"12 mo"`)
+  - `model_group`: Explicit model group name (normalized to `None` if empty)
+- Each unique combination of these five columns defines one output row
+- **Design decision:** `name` is set to `effective_model_group` rather than the raw model name so that all models sharing the same `model_group` (including data split across multiple input files) produce a single consolidated output entry
 
 #### 3.2 Transform-Specific Processing (`_process_individual_data_file_core`)
 
@@ -213,8 +218,9 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Purpose:** Ensures consistency across different data sources and standardizes capitalization
 
 ### 6. Age Format
-- **Assumption:** Age values follow format "[number] months" (e.g., "3 months", "6 months")
-- **Handling:** Numeric extraction for sorting; falls back to original order if format is unexpected
+- **Assumption:** Age values follow the format `"[N] months"` (e.g., `"3 months"`, `"6 months"`), where `N` is a non-negative integer. Every age string in the data **must** contain at least one digit.
+- **Constraint (hard failure):** The `age_numeric` field is derived by extracting the first digit sequence from the `age` string (regex `\d+`) and casting it to `int`. If any age value contains no digits (e.g., `"neonatal"`, `"P7"`, or a blank string), a `ValueError` is raised with a message listing the offending values. This is an intentional fail-fast behaviour — there is no graceful fallback.
+- **Current state:** All production data uses the `"N months"` format, so this has not been triggered in practice. The constraint is validated explicitly before the cast to provide a clear error message if non-standard values are ever introduced.
 
 ### 7. Expression Units
 - **Fixed assumption:** All expression values are "Log2 Counts per Million"
@@ -349,6 +355,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 - **Missing required datasets:** ValueError with dataset name
 - **Missing required columns:** ValueError with column names
 - **Empty data files:** ValueError with file name
+- **Non-standard age strings (no digits):** ValueError listing the offending values; see Key Assumption 6
 - **All genotypes unrecognised (post-merge empty):** WARNING logged, group skipped (not an error)
 - **Invalid merge relationships:** pandas MergeError with details
 
