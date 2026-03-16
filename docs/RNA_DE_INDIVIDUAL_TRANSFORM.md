@@ -96,12 +96,12 @@ After preprocessing and concatenation, the individual transform applies its spec
 **Genotype Enrichment (Vectorized Merge):**
 - Converts genotype metadata dictionary to DataFrame
 - Performs left join on `(model, genotype)` to add:
-  - `genotype_display`: Human-readable genotype label
+  - `display_label`: Human-readable genotype label
   - `result_order`: Ordering value for display
   - `model_group`: Explicit model group (empty string if none)
   - `effective_model_group`: `model_group` when set, otherwise `model` name
 - **Fallback for unmapped genotypes:**
-  - `genotype_display` = original `genotype` value
+  - `display_label` = original `genotype` value
   - `result_order` = 999 (treated as non-control)
 - **Merge validation:** Uses `validate="many_to_one"` to ensure each `(model, genotype)` maps to exactly one label
 
@@ -162,7 +162,7 @@ For each grouped combination, this function directly creates output entries (one
 **Measurement Information:**
 - `units`: Fixed value "Log2 Counts per Million"
 - `data`: List of individual data points containing:
-  - `genotype`: Display label (from genotype_display)
+  - `genotype`: Display label (from `display_label`, renamed for output)
   - `sex`: Sex identifier
   - `individual_id`: Sample identifier (converted to string)
   - `value`: Expression value (converted to float)

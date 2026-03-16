@@ -132,7 +132,7 @@ def _process_individual_data_file_core(
             "model_group",
             "effective_model_group",
         ]
-    ].rename(columns={"display_label": "genotype_display"})
+    ]
 
     # validate="many_to_one" ensures data integrity (each (model, genotype) has one label)
     data_file = data_file.merge(
@@ -140,7 +140,7 @@ def _process_individual_data_file_core(
     )
 
     # Handle unmapped genotypes gracefully
-    data_file["genotype_display"] = data_file["genotype_display"].fillna(
+    data_file["display_label"] = data_file["display_label"].fillna(
         data_file["genotype"]
     )
     data_file["result_order"] = data_file["result_order"].fillna(999)
@@ -162,7 +162,7 @@ def _process_individual_data_file_core(
     # This function is called once per effective_model_group, so these values are
     # constant across all rows.
     #
-    # matched_control: the genotype_display with the minimum result_order in the data.
+    # matched_control: the display_label with the minimum result_order in the data.
     # Limitation for 4-genotype UCI studies: some DE analyses pair each case genotype
     # with a *different* control (e.g., Trem2-R47H_NSS.5xFAD vs Trem2-R47H_NSS, not
     # vs C57BL/6J). In those cases, a single matched_control value is a simplification
@@ -176,7 +176,7 @@ def _process_individual_data_file_core(
     min_order = data_file["result_order"].min()
     control_rows = data_file[data_file["result_order"] == min_order]
     matched_control = (
-        control_rows.iloc[0]["genotype_display"] if not control_rows.empty else ""
+        control_rows.iloc[0]["display_label"] if not control_rows.empty else ""
     )
 
     # Step 5: Apply tissue name mapping before grouping (tissue is a grouping key)
@@ -185,7 +185,7 @@ def _process_individual_data_file_core(
     # Step 6: Rename columns for output format
     data_file = data_file.rename(
         columns={
-            "genotype_display": "genotype",
+            "display_label": "genotype",
             "individualid": "individual_id",
             "expression": "value",
             "effective_model_group": "name",
