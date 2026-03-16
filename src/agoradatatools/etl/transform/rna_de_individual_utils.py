@@ -222,9 +222,8 @@ def preprocess_data_file(
     """
     Preprocess a single data file with common validation and transformation steps.
 
-    Applies the same preprocessing as process_data_files (validation, filtering,
-    rounding) but returns the preprocessed DataFrame directly,
-    allowing callers to accumulate and concatenate multiple files before processing.
+    Returns the preprocessed DataFrame so callers can accumulate and concatenate
+    results across multiple files before further processing.
 
     Args:
         file_name: Name of the file being processed
