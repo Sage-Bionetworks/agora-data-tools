@@ -53,18 +53,7 @@ The transform requires three types of input:
 
 ### Step 1: Metadata Preparation
 
-1. **Genotype Metadata Dictionary Creation** (`create_genotype_metadata_dict`)
-   - Imported from `rna_de_individual_utils` module
-   - Creates a lookup dictionary mapping `(model, genotype)` tuples to metadata
-   - Each entry contains:
-     - `display_label`: Human-readable genotype label
-     - `result_order`: Integer for sorting/control identification
-     - `model_group`: Model group name (empty string if none)
-     - `effective_model_group`: `model_group` if present, otherwise `model` name
-   - **Purpose:** Enables O(1) lookup time for genotype properties during processing
-   - **Note:** The individual transform uses `include_result_order=True` to include ordering and effective model group information
-
-2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
+1. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
    - Imported from `rna_de_individual_utils` module
    - Maps Ensembl gene IDs to gene symbols
    - **Purpose:** Enriches output with human-readable gene names

@@ -6,7 +6,6 @@ and its helper functions, which process individual RNA-seq expression data for m
 into a structured format for the Agora platform.
 
 Test Classes:
-    - TestCreateGenotypeMetadataDict: Unit tests for the create_genotype_metadata_dict helper function (from rna_de_individual_utils)
     - TestDetermineResultOrder: Unit tests for the _determine_result_order helper function
     - TestProcessIndividualDataFileCore: Unit tests for the _process_individual_data_file_core helper function
     - TestTransformRnaDeIndividual: Integration tests for the full transformation pipeline

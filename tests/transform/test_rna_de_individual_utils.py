@@ -15,7 +15,6 @@ from agoradatatools.etl.transform.rna_de_individual_utils import (
     map_jax_tissue_name,
     validate_model_group_consistency,
     create_gene_metadata_dict,
-    create_genotype_metadata_dict,
     prepare_genotype_label_map_df,
     log_file_processing_info,
     validate_data_file_not_empty,
@@ -191,85 +190,6 @@ class TestCreateGeneMetadataDict:
         result = create_gene_metadata_dict(df)
 
         assert result == {}
-
-
-class TestCreateGenotypeMetadataDict:
-    """Tests for create_genotype_metadata_dict function."""
-
-    def test_basic_metadata_without_result_order(self) -> None:
-        """Test creating metadata dict without result_order columns in the input."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A", "Model_B"],
-                "genotype": ["Tg", "Wt", "Tg"],
-                "display_label": ["Transgenic", "Wildtype", "Transgenic_B"],
-                "model_group": ["Group1", "Group1", "Group2"],
-            }
-        )
-
-        result = create_genotype_metadata_dict(df)
-
-        assert result == {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "model_group": "Group1",
-            },
-            ("Model_A", "Wt"): {
-                "display_label": "Wildtype",
-                "model_group": "Group1",
-            },
-            ("Model_B", "Tg"): {
-                "display_label": "Transgenic_B",
-                "model_group": "Group2",
-            },
-        }
-
-    def test_metadata_with_result_order(self) -> None:
-        """Test creating metadata dict when result_order and effective_model_group are in the input."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "genotype": ["Tg", "Wt"],
-                "display_label": ["Transgenic", "Wildtype"],
-                "model_group": ["Group1", "Group1"],
-                "result_order": [2, 1],
-                "effective_model_group": ["Group1", "Group1"],
-            }
-        )
-
-        result = create_genotype_metadata_dict(df)
-
-        assert result == {
-            ("Model_A", "Tg"): {
-                "display_label": "Transgenic",
-                "model_group": "Group1",
-                "result_order": 2,
-                "effective_model_group": "Group1",
-            },
-            ("Model_A", "Wt"): {
-                "display_label": "Wildtype",
-                "model_group": "Group1",
-                "result_order": 1,
-                "effective_model_group": "Group1",
-            },
-        }
-
-    def test_effective_model_group_with_empty_model_group(self) -> None:
-        """Test that a pre-computed effective_model_group (model name) is preserved in output."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_X"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": [""],
-                "result_order": [1],
-                "effective_model_group": ["Model_X"],
-            }
-        )
-
-        result = create_genotype_metadata_dict(df)
-
-        assert result[("Model_X", "Tg")]["effective_model_group"] == "Model_X"
 
 
 class TestPrepareGenotypeLabelMapDf:
