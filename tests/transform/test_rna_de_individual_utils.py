@@ -11,7 +11,6 @@ import logging
 
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     filter_mouse_genes,
-    convert_to_sentence_case,
     map_jax_tissue_name,
     validate_model_group_consistency,
     create_gene_metadata_dict,
@@ -67,34 +66,6 @@ class TestFilterMouseGenes:
         result = filter_mouse_genes(df)
 
         assert len(result) == 0
-
-
-class TestConvertToSentenceCase:
-    """Tests for convert_to_sentence_case function."""
-
-    def test_converts_lowercase_to_sentence_case(self) -> None:
-        """Test that lowercase text is converted to sentence case."""
-        assert convert_to_sentence_case("cortex") == "Cortex"
-        assert convert_to_sentence_case("hippocampus") == "Hippocampus"
-
-    def test_converts_uppercase_to_sentence_case(self) -> None:
-        """Test that uppercase text is converted to sentence case."""
-        assert convert_to_sentence_case("CORTEX") == "Cortex"
-        assert convert_to_sentence_case("HIPPOCAMPUS") == "Hippocampus"
-
-    def test_converts_mixed_case_to_sentence_case(self) -> None:
-        """Test that mixed case text is converted to sentence case."""
-        assert convert_to_sentence_case("CoRtEx") == "Cortex"
-        assert convert_to_sentence_case("HiPpOcAmPuS") == "Hippocampus"
-
-    def test_handles_empty_string(self) -> None:
-        """Test that empty string is handled correctly."""
-        assert convert_to_sentence_case("") == ""
-
-    def test_handles_single_character(self) -> None:
-        """Test that single character strings work."""
-        assert convert_to_sentence_case("a") == "A"
-        assert convert_to_sentence_case("Z") == "Z"
 
 
 class TestMapJaxTissueName:

@@ -8,7 +8,6 @@ future reuse by other RNA-seq transforms if needed.
 
 Key Functions:
     filter_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
-    convert_to_sentence_case: Convert text to sentence case (first letter capitalized)
     map_jax_tissue_name: Map JAX-specific tissue names to standard names and apply sentence case
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
@@ -39,37 +38,17 @@ def filter_mouse_genes(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["ensembl_gene_id"].str.startswith("ENSMUSG")]
 
 
-def convert_to_sentence_case(text: str) -> str:
-    """
-    Convert text to sentence case (first letter capitalized, rest lowercase).
-
-    Handles empty strings and preserves multi-word formatting.
-
-    Args:
-        text: Text to convert
-
-    Returns:
-        Text in sentence case, or empty string if input is empty
-
-    Examples:
-        >>> convert_to_sentence_case("CORTEX")
-        "Cortex"
-        >>> convert_to_sentence_case("hippocampus")
-        "Hippocampus"
-        >>> convert_to_sentence_case("M")
-        "M"
-    """
-    if not text:
-        return text
-    return text.capitalize()
-
-
 def map_jax_tissue_name(tissue: str) -> str:
     """
     Map JAX-specific tissue names to standard names and apply sentence case.
 
     First applies special mappings (e.g., "Right Cerebral Hemisphere" to "Hemibrain"),
-    then converts the result to sentence case.
+    then converts the result to sentence case via str.capitalize().
+
+    Note: str.capitalize() lowercases every character after the first, so only
+    single-word tissue names (or already-mapped names like "Hemibrain") are safe
+    to pass through. Any new multi-word tissue name that needs capitalisation on
+    each word should be added to the special-mapping block above.
 
     Args:
         tissue: Original tissue name
@@ -85,12 +64,10 @@ def map_jax_tissue_name(tissue: str) -> str:
         >>> map_jax_tissue_name("CORTEX")
         "Cortex"
     """
-    # Apply special mapping first
     if tissue == "Right Cerebral Hemisphere":
         return "Hemibrain"
 
-    # Then apply sentence case to the tissue name
-    return convert_to_sentence_case(tissue)
+    return tissue.capitalize()
 
 
 def validate_model_group_consistency(
@@ -123,9 +100,8 @@ def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str,
     """
     Create a lookup dictionary mapping Ensembl gene IDs to gene symbols.
 
-    Note: This function (and other similar lookup dict functions below) creates a
-    dictionary to speed up processing by avoiding repeated DataFrame lookups during
-    iteration over large datasets.
+    Note: This function creates a dictionary to speed up processing by avoiding
+    repeated DataFrame lookups during iteration over large datasets.
 
     Args:
         mouse_gene_metadata_df: DataFrame with 'ensembl_gene_id' and 'gene_symbol' columns

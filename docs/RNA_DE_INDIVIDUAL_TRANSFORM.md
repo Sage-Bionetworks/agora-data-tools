@@ -111,7 +111,7 @@ After preprocessing and concatenation, the individual transform applies its spec
 - Each group represents a unique combination of gene, tissue, and effective model group
 - **Design decision:** Groups by `effective_model_group` rather than individual model name so that all models sharing the same `model_group` (including data split across multiple input files) produce a single consolidated output entry
 
-#### 3.2 Output Entry Creation (`_create_output_entry_from_group`)
+#### 3.2 Transform-Specific Processing (`_process_individual_data_file_core`)
 
 For each grouped combination, this function directly creates output entries (one per age timepoint) with:
 
