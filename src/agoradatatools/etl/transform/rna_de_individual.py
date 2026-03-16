@@ -152,6 +152,10 @@ def _process_individual_data_file_core(
     data_file = data_file.dropna(subset=["effective_model_group"])
 
     if data_file.empty:
+        logger.warning(
+            "No rows remained after filtering to mapped genotypes; "
+            "all genotypes in this file were absent from the label map. Returning []."
+        )
         return []
 
     # Step 3: Convert types once per file before grouping
