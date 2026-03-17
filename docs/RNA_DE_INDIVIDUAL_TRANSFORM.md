@@ -112,7 +112,7 @@ After preprocessing and concatenation, the individual transform applies its spec
   - `ensembl_gene_id`: Ensembl gene identifier
   - `tissue`: Tissue name (post-mapping and sentence-case normalization)
   - `name`: Set to `effective_model_group` — the `model_group` when explicitly provided, or the model name for solo models
-  - `age`: Age timepoint (e.g., `"4 mo"`, `"12 mo"`)
+  - `age`: Age timepoint (e.g., `"4 months"`, `"12 months"`)
   - `model_group`: Explicit model group name (normalized to `None` if empty)
 - Each unique combination of these five columns defines one output row
 - **Design decision:** `name` is set to `effective_model_group` rather than the raw model name so that all models sharing the same `model_group` (including data split across multiple input files) produce a single consolidated output entry
@@ -205,7 +205,7 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Effective Model Group:** When `model_group` is empty, the model itself serves as its own group (`effective_model_group = model`)
 - **Name Field:** The `name` field is set to `effective_model_group`, consolidating multi-file model_groups (e.g. UCI models) under a single display name while preserving solo-model names
 - **File Grouping:** Input files are first grouped by `effective_model_group`; only files within the same group are concatenated before processing
-- **Grouping Key:** Data is grouped by `(ensembl_gene_id, tissue, effective_model_group)` to produce one consolidated output entry per group, regardless of how many input files contributed data
+- **Grouping Key:** Data is grouped by `(ensembl_gene_id, tissue, name, age, model_group)` to produce one consolidated output entry per group, regardless of how many input files contributed data
 
 ### 4. Genotype Mapping Completeness
 - **Assumption:** Most genotypes in data files have entries in rnaseq_genotype_label_map
@@ -271,7 +271,7 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Failure mode:** Raises error if same (model, genotype) maps to multiple labels
 
 ### 2. Grouping Strategy
-- **Primary group:** (ensembl_gene_id, tissue, effective_model_group)
+- **Primary group:** (ensembl_gene_id, tissue, name, age, model_group)
 - **Secondary group:** age (within each primary group)
 - **Why:** Organizes data hierarchically for efficient display and consolidates multi-file model_groups
 - **Impact:** Creates one output entry per (gene, tissue, effective_model_group, age) regardless of how many input files contributed data
