@@ -443,9 +443,8 @@ def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
 
 def normalize_null_values(
     df: pd.DataFrame,
-    boolean_columns: List[str] = None,
-    empty_string_columns: List[str] = None,
-    keep_nan_columns: List[str] = None,
+    boolean_columns: list[str] = None,
+    empty_string_columns: list[str] = None,
 ) -> pd.DataFrame:
     """
     Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
@@ -454,29 +453,27 @@ def normalize_null_values(
     There are also several transforms that benefit from using empty strings instead of None, so this function provides
     that option too.
 
-    Boolean columns will have NaN/None values replaced with False, string columns will have NaN/None values replaced
-    with "", and numeric columns will retain np.NaN values. After that, all columns left over will have their NaN values
-    replaced with None.
+    Boolean columns will have NaN/None values replaced with False, and string columns will have NaN/None values replaced
+    with "". After that, all columns left over will have their NaN values replaced with None.
 
     All *_columns arguments are optional and default to empty lists. Values in these arguments must not overlap with
     each other and must contain only columns that appear in the data frame.
 
     Args:
         df (pd.DataFrame): The input DataFrame to be normalized.
-        boolean_columns (List[str]): A list of column names that should have NaN values replaced with False.
-        empty_string_columns (List[str]): A list of column names that should have NaN values replaced with empty
+        boolean_columns (list[str]): A list of column names that should have NaN values replaced with False.
+        empty_string_columns (list[str]): A list of column names that should have NaN values replaced with empty
             strings.
-        keep_nan_columns (List[str]): A list of column names that should have NaN values retained as np.NaN.
 
     Returns:
         pd.DataFrame: A new DataFrame with normalized null values (NaN replaced with False, empty strings, or None as
-        specified). Columns listed in keep_nan_columns will retain np.NaN values.
+        specified).
 
     Raises:
         TypeError: If any of the *_columns arguments are not lists.
-        ValueError: If there are overlaps between the boolean_columns, empty_string_columns, and keep_nan_columns lists.
-        ValueError: If any column specified in the boolean_columns, empty_string_columns, or keep_nan_columns lists does
-        not exist in the DataFrame.
+        ValueError: If there are overlaps between the boolean_columns and empty_string_columns lists.
+        ValueError: If any column specified in the boolean_columns or empty_string_columns lists does not exist in the
+        DataFrame.
     """
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"Input must be a pandas DataFrame, got {type(df)}")
@@ -484,7 +481,6 @@ def normalize_null_values(
     for name, value in [
         ("boolean_columns", boolean_columns),
         ("empty_string_columns", empty_string_columns),
-        ("keep_nan_columns", keep_nan_columns),
     ]:
         if not isinstance(value, list) and value is not None:
             raise TypeError(f"{name} must be a list, got {type(value)}")
@@ -492,7 +488,6 @@ def normalize_null_values(
     # Initialize any None arguments to empty lists
     boolean_columns = boolean_columns or []
     empty_string_columns = empty_string_columns or []
-    keep_nan_columns = keep_nan_columns or []
 
     df = df.copy()
 
@@ -501,11 +496,8 @@ def normalize_null_values(
 
     boolean_columns = set(boolean_columns)
     empty_string_columns = set(empty_string_columns)
-    keep_nan_columns = set(keep_nan_columns)
 
-    non_existent_columns = (
-        boolean_columns | empty_string_columns | keep_nan_columns
-    ) - all_columns
+    non_existent_columns = (boolean_columns | empty_string_columns) - all_columns
 
     if non_existent_columns:
         # Names are sorted to make testing deterministic, since sets do not have a guaranteed order
@@ -514,16 +506,11 @@ def normalize_null_values(
         )
 
     # Check that there are no overlaps between lists of columns
-    overlaps = (
-        (boolean_columns & empty_string_columns)
-        | (boolean_columns & keep_nan_columns)
-        | (empty_string_columns & keep_nan_columns)
-    )
+    overlaps = boolean_columns & empty_string_columns
     if overlaps:
         raise ValueError(
             # Names are sorted to make testing deterministic
-            f"Columns {sorted(overlaps)} appear in more than one of the boolean_columns, "
-            + "empty_string_columns, and keep_nan_columns lists."
+            f"Columns {sorted(overlaps)} appear in both the boolean_columns and empty_string_columns lists."
         )
 
     for col in boolean_columns:
@@ -532,9 +519,7 @@ def normalize_null_values(
     for col in empty_string_columns:
         df[col] = df[col].fillna("")
 
-    leftover_columns = (
-        all_columns - boolean_columns - empty_string_columns - keep_nan_columns
-    )
+    leftover_columns = all_columns - boolean_columns - empty_string_columns
 
     for col in leftover_columns:
         df[col] = df[col].replace(np.nan, None)
