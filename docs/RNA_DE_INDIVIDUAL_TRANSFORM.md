@@ -163,10 +163,10 @@ For each grouped combination, this function directly creates output entries (one
   - `value`: Expression value (converted to float)
 
 **Processing Steps:**
-1. Groups the input data by age within each (gene, tissue, effective_model_group) combination
-2. For each age group, creates a complete output entry with all metadata fields
-3. Sorts output entries by numeric age value for consistent ordering
-4. Returns one output entry per age timepoint
+1. Groups the input data by all five columns: (ensembl_gene_id, tissue, name, age, model_group)
+2. For each grouped combination, creates a complete output entry with all metadata fields
+3. Sorts output entries by gene then numeric age for consistent ordering
+4. Returns one output entry per unique (ensembl_gene_id, tissue, name, age, model_group) combination
 
 **Unnesting Decision:** Unlike some transforms that nest age data, this transform creates **one output entry per age** (unnested structure). Each entry has a single age with its associated data points.
 
@@ -271,10 +271,9 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Failure mode:** Raises error if same (model, genotype) maps to multiple labels
 
 ### 2. Grouping Strategy
-- **Primary group:** (ensembl_gene_id, tissue, name, age, model_group)
-- **Secondary group:** age (within each primary group)
-- **Why:** Organizes data hierarchically for efficient display and consolidates multi-file model_groups
-- **Impact:** Creates one output entry per (gene, tissue, effective_model_group, age) regardless of how many input files contributed data
+- **Grouping key:** (ensembl_gene_id, tissue, name, age, model_group)
+- **Why:** Organizes data for efficient display and consolidates multi-file model_groups; `age` is part of the key so each age timepoint produces its own output entry
+- **Impact:** Creates one output entry per (ensembl_gene_id, tissue, name, age, model_group) regardless of how many input files contributed data
 
 ### 3. Cross-File Merging
 - **Method:** Files are grouped by `effective_model_group`; within each group, preprocessed DataFrames are concatenated with `pd.concat` before core processing; memory is explicitly freed after each group
