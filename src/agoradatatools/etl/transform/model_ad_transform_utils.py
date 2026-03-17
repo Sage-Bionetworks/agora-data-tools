@@ -12,7 +12,6 @@ Functions:
 from typing import Any, Dict, List, Union
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
-import numpy as np
 
 from agoradatatools.etl.utils import delim_string_to_list, normalize_null_values
 
@@ -249,7 +248,5 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
         jax_id = jax_id.astype("Int64")
 
     return jax_id.apply(
-        lambda x: (
-            str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() else ""
-        )
+        lambda x: (str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() else "")
     )
