@@ -545,6 +545,13 @@ class TestTransformRnaDeIndividual:
         - test_data_file_required_columns_parameter: Tests that data_file_required_columns parameter is honoured.
         - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
         - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
+        - test_file_with_multiple_effective_model_groups_raises_value_error: Tests that a
+          file spanning two different effective_model_groups raises ValueError.
+        - test_mixed_emg_error_message_names_file_and_conflicting_groups: Tests that the
+          ValueError message identifies the offending file and both conflicting groups.
+        - test_multiple_models_same_effective_model_group_does_not_raise: Tests that a file
+          containing two models sharing the same effective_model_group is accepted (the
+          legitimate UCI split-file-within-a-single-file scenario).
 
     Helper Methods:
         - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
@@ -950,6 +957,131 @@ class TestTransformRnaDeIndividual:
             assert sorted(
                 out_entry["data"], key=lambda x: x["individual_id"]
             ) == sorted(exp_entry["data"], key=lambda x: x["individual_id"])
+
+    def _build_mixed_emg_datasets(
+        self, data_file_key: str = "mixed_model_file"
+    ) -> Dict[str, pd.DataFrame]:
+        """Return a minimal datasets dict whose data file contains rows from two
+        different effective_model_groups (Model_A and Model_B have no model_group,
+        so each is its own effective_model_group)."""
+        label_map = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A", "Model_B", "Model_B"],
+                "genotype": ["Tg", "Wt", "Carrier", "NonCarrier"],
+                "display_label": [
+                    "Model_A Tg",
+                    "Model_A Wt",
+                    "Model_B Carrier",
+                    "Model_B NonCarrier",
+                ],
+                "result_order": [2, 1, 2, 1],
+                "model_group": ["", "", "", ""],
+            }
+        )
+        gene_metadata = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "gene_symbol": ["Gene1"],
+            }
+        )
+        mixed_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "expression": [5.0, 6.0],
+                "model": ["Model_A", "Model_B"],
+                "genotype": ["Tg", "Carrier"],
+                "age": ["6 months", "6 months"],
+                "sex": ["M", "M"],
+                "tissue": ["Cortex", "Cortex"],
+                "individualid": ["Ind001", "Ind002"],
+            }
+        )
+        return {
+            "rnaseq_genotype_label_map": label_map,
+            "mouse_gene_metadata": gene_metadata,
+            data_file_key: mixed_file,
+        }
+
+    def test_file_with_multiple_effective_model_groups_raises_value_error(
+        self,
+    ) -> None:
+        """Test that a data file spanning two different effective_model_groups raises ValueError.
+
+        Each input file must contain data for exactly one effective_model_group so that
+        result_order and matched_control can be computed correctly. A file mixing rows
+        from Model_A (effective_model_group='Model_A') and Model_B
+        (effective_model_group='Model_B') violates this invariant and must be rejected.
+        """
+        datasets = self._build_mixed_emg_datasets()
+
+        with pytest.raises(ValueError):
+            transform_rna_de_individual(datasets=datasets)
+
+    def test_mixed_emg_error_message_names_file_and_conflicting_groups(
+        self,
+    ) -> None:
+        """Test that the ValueError message identifies the offending file and both groups.
+
+        The message must name the file (so the caller knows which input to fix) and
+        both conflicting effective_model_group values (so the caller knows why it failed).
+        """
+        datasets = self._build_mixed_emg_datasets(data_file_key="my_mixed_file")
+
+        with pytest.raises(ValueError) as exc_info:
+            transform_rna_de_individual(datasets=datasets)
+
+        error_message = str(exc_info.value)
+        assert "my_mixed_file" in error_message
+        assert "Model_A" in error_message
+        assert "Model_B" in error_message
+
+    def test_multiple_models_same_effective_model_group_does_not_raise(
+        self,
+    ) -> None:
+        """Test that a file with two models sharing the same effective_model_group is accepted.
+
+        When two models both belong to the same model_group (e.g. 'GroupX'), their rows
+        can legitimately appear in a single file and must not trigger the mixed-EMG check.
+        This mirrors the UCI scenario where split-file models happen to be combined.
+        """
+        label_map = pd.DataFrame(
+            {
+                "model": ["Model_B", "Model_B", "Model_C", "Model_C"],
+                "genotype": ["Carrier", "NonCarrier", "Carrier", "NonCarrier"],
+                "display_label": ["Model_B", "Control", "Model_C", "Control"],
+                "result_order": [2, 1, 3, 1],
+                "model_group": ["GroupX", "GroupX", "GroupX", "GroupX"],
+            }
+        )
+        gene_metadata = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "gene_symbol": ["Gene1"],
+            }
+        )
+        combined_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "expression": [5.0, 6.0],
+                "model": ["Model_B", "Model_C"],
+                "genotype": ["Carrier", "Carrier"],
+                "age": ["6 months", "6 months"],
+                "sex": ["M", "M"],
+                "tissue": ["Cortex", "Cortex"],
+                "individualid": ["Ind001", "Ind002"],
+            }
+        )
+        datasets = {
+            "rnaseq_genotype_label_map": label_map,
+            "mouse_gene_metadata": gene_metadata,
+            "combined_file": combined_file,
+        }
+
+        result = transform_rna_de_individual(datasets=datasets)
+
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0]["name"] == "GroupX"
 
     def test_inconsistent_model_group_values(self) -> None:
         """Test error handling for inconsistent model_group values within the same model.

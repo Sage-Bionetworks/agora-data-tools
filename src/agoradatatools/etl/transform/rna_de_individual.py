@@ -11,6 +11,9 @@ The transformation:
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
 - Groups files by effective_model_group so that models sharing a model_group (e.g. UCI
   models whose data is split across two input files) are combined before output creation
+- Validates that each input file contains data from only one effective_model_group;
+  raises ValueError if a file spans multiple groups, since result_order and matched_control
+  cannot be computed correctly for the secondary group(s) in that scenario
 - Creates one output entry per (gene, tissue, effective_model_group, age) using vectorized
   grouping via nest_fields, nesting all individual records for that combination into a "data" list
 - Organizes data by effective_model_group to support both single and multiple control display paradigms
@@ -284,7 +287,8 @@ def transform_rna_de_individual(
            creation, while unrelated files are processed and freed independently;
            each file is preprocessed using data_file_required_columns for column
            validation (filters to mouse genes, rounds numeric values to 5 decimal
-           places)
+           places); raises ValueError if any file contains rows from more than one
+           effective_model_group (see Key Assumption: Single Model per File)
         6. For each effective_model_group:
            - Concatenates preprocessed DataFrames within the group (no-op for
              single-file groups)
@@ -379,6 +383,18 @@ def transform_rna_de_individual(
         # A single file should contain only one model's data; use the first value.
         raw_model = df["model"].iloc[0] if len(df) > 0 else ""
         emg = model_to_emg.get(raw_model, raw_model)
+
+        unique_models = df["model"].unique()
+        if len(unique_models) > 1:
+            unique_emgs = {model_to_emg.get(m, m) for m in unique_models}
+            if len(unique_emgs) > 1:
+                raise ValueError(
+                    f"File '{file_name}' contains rows from multiple "
+                    f"effective_model_groups ({unique_emgs}). Each input file must "
+                    f"contain data for exactly one effective_model_group. Split this "
+                    f"file so that each output file contains data for only one model."
+                )
+
         emg_to_files[emg].append(file_name)
 
     logger.info(

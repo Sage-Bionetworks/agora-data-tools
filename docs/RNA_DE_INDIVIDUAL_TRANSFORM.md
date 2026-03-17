@@ -66,6 +66,7 @@ Before transform-specific processing, the main function groups input files by th
 - Groups files with the same `effective_model_group` together (e.g. UCI models whose data is split across two CSV files)
 - Single-file groups are processed without any concatenation overhead
 - This strategy keeps memory usage proportional to the largest group rather than the total dataset size
+- **Single-model-per-file validation:** After grouping, checks whether any file contains rows from more than one `effective_model_group`. If so, a `ValueError` is raised identifying the file and the conflicting groups. This is a hard failure because `result_order` and `matched_control` cannot be computed correctly when a file spans multiple groups (see [Key Assumptions: Single Model per File](#8-single-model-per-file))
 
 #### 2.2 Common Preprocessing (`preprocess_data_file`)
 Applied to each file individually before it is combined within its group:
@@ -219,12 +220,18 @@ This transform is designed to handle two distinct experimental scenarios:
 
 ### 6. Age Format
 - **Assumption:** Age values follow the format `"[N] months"` (e.g., `"3 months"`, `"6 months"`), where `N` is a non-negative integer. Every age string in the data **must** contain at least one digit.
-- **Constraint (hard failure):** The `age_numeric` field is derived by extracting the first digit sequence from the `age` string (regex `\d+`) and casting it to `int`. If any age value contains no digits (e.g., `"neonatal"`, `"P7"`, or a blank string), a `ValueError` is raised with a message listing the offending values. This is an intentional fail-fast behaviour — there is no graceful fallback.
+- **Constraint (hard failure):** The `age_numeric` field is derived by extracting the first digit sequence from the `age` string (regex `\d+`) and casting it to `int`. If any age value contains no digits (e.g., `"string"`, `"P7"`, or a blank string), a `ValueError` is raised with a message listing the offending values. This is an intentional fail-fast behaviour — there is no graceful fallback.
 - **Current state:** All production data uses the `"N months"` format, so this has not been triggered in practice. The constraint is validated explicitly before the cast to provide a clear error message if non-standard values are ever introduced.
 
 ### 7. Expression Units
 - **Fixed assumption:** All expression values are "Log2 Counts per Million"
 - **Implication:** No unit conversion is performed; assumes preprocessing has normalized data
+
+### 8. Single Model per File
+- **Assumption:** Each input data file contains rows for exactly one model, and therefore belongs to exactly one `effective_model_group`
+- **Rationale:** The file-grouping step (Step 5) assigns each file to a group based on the first `model` value it finds. If a file contains rows from two models that map to *different* `effective_model_group`s, the entire file is assigned to only the first group. Inside `_process_individual_data_file_core` the per-row merge still labels every row with its correct group (via the label-map merge on `(model, genotype)`), but `result_order` and `matched_control` are computed once per function call from the combined DataFrame — so the secondary group's rows receive the wrong ordering list and the wrong control label.
+- **Validation:** The code checks `df["model"].unique()` on every file and raises a `ValueError` if more than one `effective_model_group` is represented. This is a deliberate fail-fast behaviour — silent data corruption (wrong `result_order` and `matched_control`) is worse than an explicit error.
+- **Current state:** All production input files contain data for a single model, so this check has never been triggered in practice.
 
 ## Filtering Decisions
 
@@ -350,6 +357,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 1. Merge validation ensures one-to-one genotype label mapping
 2. Age sorting handles unexpected formats gracefully (falls back to original order)
 3. If all rows in a group are dropped after the genotype label map merge (no genotypes matched), a `WARNING` is logged and that group contributes no output entries
+4. **Mixed-group file check:** Before processing, each file is checked to confirm it contains only one `effective_model_group`. If multiple groups are detected, a `ValueError` is raised identifying the file and the conflicting groups (see Key Assumption 8)
 
 ### Error Scenarios
 - **Missing required datasets:** ValueError with dataset name
@@ -358,6 +366,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 - **Non-standard age strings (no digits):** ValueError listing the offending values; see Key Assumption 6
 - **All genotypes unrecognised (post-merge empty):** WARNING logged, group skipped (not an error)
 - **Invalid merge relationships:** pandas MergeError with details
+- **File contains multiple effective_model_groups:** ValueError raised with the file name and the set of conflicting groups; see Key Assumption 8
 
 ## Related Transforms
 
@@ -419,3 +428,8 @@ output = transform_rna_de_individual(
 - **Cause:** Processing very large expression files
 - **Impact:** Out of memory errors
 - **Solution:** Files are processed group by group with explicit memory cleanup after each group; consider splitting input files further if individual groups remain too large
+
+### Issue: ValueError — file contains rows from multiple effective_model_groups
+- **Cause:** A single input CSV file contains rows for two or more models that map to different `effective_model_group` values in the label map
+- **Impact:** The transform raises a `ValueError` and stops immediately. This is intentional — allowing processing to continue would produce silently incorrect `result_order` and `matched_control` values for the secondary group's rows.
+- **Solution:** Split the mixed file so that each output file contains data for only one model. This is the expected and supported input format.
