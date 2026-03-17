@@ -188,7 +188,7 @@ def transform_model_overview(
         )
         row["jax_strain"] = (
             {"link_url": f"https://jax.org/strain/{row['jax_id']}"}
-            if len(row["jax_id"]) > 0
+            if row["jax_id"]
             else None
         )
         row["center"] = (

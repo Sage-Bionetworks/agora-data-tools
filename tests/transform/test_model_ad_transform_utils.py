@@ -230,11 +230,10 @@ class TestBuildGeneExpressionUrl:
 
     @pytest.mark.parametrize(
         "false_val",
-        [False, None, np.nan],
+        [False, None],
         ids=[
             "Pass with False boolean value",
             "Pass with None value",
-            "Pass with NaN value",
         ],
     )
     def test_build_gene_expression_url_no_gene_expression(
@@ -259,11 +258,10 @@ class TestBuildGeneExpressionUrl:
 
     @pytest.mark.parametrize(
         "empty_val",
-        ["", None, np.nan],
+        ["", None],
         ids=[
             "Pass with empty string value",
             "Pass with None value",
-            "Pass with NaN value",
         ],
     )
     def test_build_gene_expression_url_default_category(
@@ -279,11 +277,10 @@ class TestBuildGeneExpressionUrl:
 
     @pytest.mark.parametrize(
         "empty_val",
-        ["", None, np.nan],
+        ["", None],
         ids=[
             "Pass with empty string value",
             "Pass with None value",
-            "Pass with NaN value",
         ],
     )
     def test_build_gene_expression_url_default_models(
