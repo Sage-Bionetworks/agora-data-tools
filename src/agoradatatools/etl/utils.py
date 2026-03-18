@@ -407,7 +407,7 @@ def extract_age_numeric(age: str) -> Union[int, None]:
     return int(match.group(1)) if match else None
 
 
-def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
+def delim_string_to_list(str_obj: str | None, delim: str | None = ",") -> list[str]:
     """
     Converts a delimited string into a list of strings, trimming whitespace. Empty items in the split string are
     excluded from the final output list. If either str_obj or delim is not a string, this function throws a TypeError.
@@ -418,14 +418,15 @@ def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
     Args:
         str_obj (str): The input string containing delimited values (e.g. 'gene1,gene2,gene3')
         delim (str): The delimiter used to split the string (default is ','). Delimiters may be more than one character,
-                        e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"].
+                        e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"]. If delim is
+                        None, the string will split on whitespace, which is the default for str.split().
 
     Returns:
         List[str]: A list of strings obtained by splitting the input string by the delimiter and trimming whitespace
         (e.g. ['gene1', 'gene2', 'gene3'])
 
     Raises:
-        TypeError: If str_obj or delim is not a string
+        TypeError: If either str_obj or delim is not a string or None
     """
 
     # Manually check for whether str_obj is a string and throw a TypeError. Otherwise the list comprehension can throw
@@ -435,8 +436,8 @@ def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
         raise TypeError(f"Input must be a string, got {type(str_obj)}")
 
     return (
-        [item.strip() for item in str_obj.split(delim) if item.strip() != ""]
-        if pd.notna(str_obj) and str_obj != ""
+        [item.strip() for item in str_obj.split(delim) if item.strip()]
+        if str_obj
         else []
     )
 

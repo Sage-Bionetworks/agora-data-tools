@@ -831,17 +831,22 @@ class TestDelimStringToList:
             ("a|b|c", "|", ["a", "b", "c"]),  # Non-default delimiter (|)
             ("a;;b;;c", ";;", ["a", "b", "c"]),  # Multi-character delimiter
             ("aa,bbb,c", ",", ["aa", "bbb", "c"]),  # Multi-character items
-            ("a,b,c", None, ["a,b,c"]),  # None delimiter should not split the string
+            # None delimiter should not split if there is no whitespace
+            ("a,b,c", None, ["a,b,c"]),
+            # None delimiter should split on all whitespace characters
+            ("a b\nc\td", None, ["a", "b", "c", "d"]),
             ("ab;c", ",", ["ab;c"]),  # Delimiter mismatch should not split the string
-            (
-                ",a,b,,c,",
-                ",",
-                ["a", "b", "c"],
-            ),  # Empty elements at start, end, and middle
+            # Empty elements at start, end, and middle should be removed
+            (",a,b,,c,", ",", ["a", "b", "c"]),
             (",,", ",", []),  # String with only delimiters should return empty list
             (None, ",", []),  # None input should return empty list
             ("", ",", []),  # Empty string should return empty list
-            ("   a   ,b,   c", ",", ["a", "b", "c"]),  # String with extra whitespace
+            # Extra whitespace should be stripped
+            ("   a   ,b,   c", ",", ["a", "b", "c"]),
+            # Splitting on whitespace should still strip extra whitespace
+            ("a   b c  \t", None, ["a", "b", "c"]),
+            # Extra whitespace in delimiter is respected
+            ("a  b c   ", "  ", ["a", "b c"]),
         ],
     )
     def test_delim_string_to_list(
