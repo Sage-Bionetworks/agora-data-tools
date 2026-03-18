@@ -13,7 +13,6 @@ Functions:
 from typing import Union
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
-import numpy as np
 
 from agoradatatools.etl.utils import delim_string_to_list, normalize_null_values
 
@@ -99,27 +98,21 @@ def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
 
     Args:
         model_row (pd.Series): A single row from the model_info data frame, which must contain columns "name",
-            "gene_expression", "url_categories_value", and "url_models_value". The latter two columns may be blank or
+            "gene_expression", "url_categories_value", and "url_models_value". The latter two columns may be None or
             contain strings. "gene_expression" must be True, False, or None (which is interpreted as False).
 
     Returns:
         a string with the completed URL, or None if there is no gene expression data for the model
     """
-
-    # Safety check: Empty strings should be treated as None, and any NaN values should be converted to None. These
-    # values should already be correct if model_row comes from the output of preprocess_model_info, but we pre-emptively
-    # fix values to avoid issues with calling this function outside of that.
-    model_row = model_row.replace({"": None, np.nan: None})
-
     categories_value = (
         # Contains the "&" at the end to separate it from the models=... statement
         f"categories={model_row['url_categories_value']}&"
-        if pd.notna(model_row["url_categories_value"])
+        if model_row["url_categories_value"]
         else ""  # Only adds to URL if the url_categories_value is specified
     )
     models_value = (
         model_row["url_models_value"]  # A comma-separated list, if specified
-        if pd.notna(model_row["url_models_value"])
+        if model_row["url_models_value"]
         else model_row["name"]  # A single model name if url_models_value is blank
     )
     url = (
@@ -203,7 +196,6 @@ def preprocess_model_info(
 
     merged_df = normalize_null_values(
         merged_df,
-        # Fill NAs in these 4 columns with False, if they exist in the merged_df
         boolean_columns=[col for col in boolean_columns if col in merged_df.columns],
         empty_string_columns=[
             col for col in string_columns if col in merged_df.columns
@@ -242,7 +234,5 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
         jax_id = jax_id.astype("Int64")
 
     return jax_id.apply(
-        lambda x: (
-            str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() != "" else ""
-        )
+        lambda x: (str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() else "")
     )

@@ -407,7 +407,7 @@ def extract_age_numeric(age: str) -> Union[int, None]:
     return int(match.group(1)) if match else None
 
 
-def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
+def delim_string_to_list(str_obj: str | None, delim: str | None = ",") -> list[str]:
     """
     Converts a delimited string into a list of strings, trimming whitespace. Empty items in the split string are
     excluded from the final output list. If either str_obj or delim is not a string, this function throws a TypeError.
@@ -418,14 +418,15 @@ def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
     Args:
         str_obj (str): The input string containing delimited values (e.g. 'gene1,gene2,gene3')
         delim (str): The delimiter used to split the string (default is ','). Delimiters may be more than one character,
-                        e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"].
+                        e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"]. If delim is
+                        None, the string will split on whitespace, which is the default for str.split().
 
     Returns:
         List[str]: A list of strings obtained by splitting the input string by the delimiter and trimming whitespace
         (e.g. ['gene1', 'gene2', 'gene3'])
 
     Raises:
-        TypeError: If str_obj or delim is not a string
+        TypeError: If either str_obj or delim is not a string or None
     """
 
     # Manually check for whether str_obj is a string and throw a TypeError. Otherwise the list comprehension can throw
@@ -435,17 +436,16 @@ def delim_string_to_list(str_obj: str, delim: str = ",") -> List[str]:
         raise TypeError(f"Input must be a string, got {type(str_obj)}")
 
     return (
-        [item.strip() for item in str_obj.split(delim) if item.strip() != ""]
-        if pd.notna(str_obj) and str_obj != ""
+        [item.strip() for item in str_obj.split(delim) if item.strip()]
+        if str_obj
         else []
     )
 
 
 def normalize_null_values(
     df: pd.DataFrame,
-    boolean_columns: List[str] = [],
-    empty_string_columns: List[str] = [],
-    keep_nan_columns: List[str] = [],
+    boolean_columns: list[str] = None,
+    empty_string_columns: list[str] = None,
 ) -> pd.DataFrame:
     """
     Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
@@ -454,57 +454,51 @@ def normalize_null_values(
     There are also several transforms that benefit from using empty strings instead of None, so this function provides
     that option too.
 
-    Boolean columns will have NaN/None values replaced with False, string columns will have NaN/None values replaced
-    with "", and numeric columns will retain np.NaN values. After that, all columns left over will have their NaN values
-    replaced with None.
+    Boolean columns will have NaN/None values replaced with False, and string columns will have NaN/None values replaced
+    with "". After that, all columns left over will have their NaN values replaced with None.
 
     All *_columns arguments are optional and default to empty lists. Values in these arguments must not overlap with
     each other and must contain only columns that appear in the data frame.
 
     Args:
         df (pd.DataFrame): The input DataFrame to be normalized.
-        boolean_columns (List[str]): A list of column names that should have NaN values replaced with False.
-        empty_string_columns (List[str]): A list of column names that should have NaN values replaced with empty
+        boolean_columns (list[str]): A list of column names that should have NaN values replaced with False.
+        empty_string_columns (list[str]): A list of column names that should have NaN values replaced with empty
             strings.
-        keep_nan_columns (List[str]): A list of column names that should have NaN values retained as np.NaN.
 
     Returns:
         pd.DataFrame: A new DataFrame with normalized null values (NaN replaced with False, empty strings, or None as
-        specified). Columns listed in keep_nan_columns will retain np.NaN values.
+        specified).
 
     Raises:
         TypeError: If any of the *_columns arguments are not lists.
-        ValueError: If there are overlaps between the boolean_columns, empty_string_columns, and keep_nan_columns lists.
-        ValueError: If any column specified in the boolean_columns, empty_string_columns, or keep_nan_columns lists does
-        not exist in the DataFrame.
+        ValueError: If there are overlaps between the boolean_columns and empty_string_columns lists.
+        ValueError: If any column specified in the boolean_columns or empty_string_columns lists does not exist in the
+        DataFrame.
     """
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"Input must be a pandas DataFrame, got {type(df)}")
-    if not isinstance(boolean_columns, list):
-        raise TypeError(f"boolean_columns must be a list, got {type(boolean_columns)}")
-    if not isinstance(empty_string_columns, list):
-        raise TypeError(
-            f"empty_string_columns must be a list, got {type(empty_string_columns)}"
-        )
-    if not isinstance(keep_nan_columns, list):
-        raise TypeError(
-            f"keep_nan_columns must be a list, got {type(keep_nan_columns)}"
-        )
 
-    df = df.copy()  # avoid modifying the original data frame in place
+    for name, value in [
+        ("boolean_columns", boolean_columns),
+        ("empty_string_columns", empty_string_columns),
+    ]:
+        if not isinstance(value, list) and value is not None:
+            raise TypeError(f"{name} must be a list, got {type(value)}")
+
+    # Initialize any None arguments to empty lists
+    boolean_columns = boolean_columns or []
+    empty_string_columns = empty_string_columns or []
+
+    df = df.copy()
 
     # Make these sets for easier checking of overlaps and membership in the data frame
     all_columns = set(df.columns)
 
     boolean_columns = set(boolean_columns)
     empty_string_columns = set(empty_string_columns)
-    keep_nan_columns = set(keep_nan_columns)
 
-    non_existent_columns = (
-        (boolean_columns - all_columns)
-        | (empty_string_columns - all_columns)
-        | (keep_nan_columns - all_columns)
-    )
+    non_existent_columns = (boolean_columns | empty_string_columns) - all_columns
 
     if non_existent_columns:
         # Names are sorted to make testing deterministic, since sets do not have a guaranteed order
@@ -513,31 +507,20 @@ def normalize_null_values(
         )
 
     # Check that there are no overlaps between lists of columns
-    overlaps = (
-        (boolean_columns & empty_string_columns)
-        | (boolean_columns & keep_nan_columns)
-        | (empty_string_columns & keep_nan_columns)
-    )
+    overlaps = boolean_columns & empty_string_columns
     if overlaps:
         raise ValueError(
             # Names are sorted to make testing deterministic
-            f"Columns {sorted(overlaps)} appear in more than one of the boolean_columns, "
-            + "empty_string_columns, and keep_nan_columns lists."
+            f"Columns {sorted(overlaps)} appear in both the boolean_columns and empty_string_columns lists."
         )
 
     for col in boolean_columns:
-        df[col] = df[col].fillna(False)
+        df[col] = df[col].fillna(False).astype(bool)
 
     for col in empty_string_columns:
         df[col] = df[col].fillna("")
 
-    # Make sure all missing values are NaN in these columns, just in case
-    for col in keep_nan_columns:
-        df[col] = df[col].fillna(np.nan)
-
-    leftover_columns = (
-        all_columns - boolean_columns - empty_string_columns - keep_nan_columns
-    )
+    leftover_columns = all_columns - boolean_columns - empty_string_columns
 
     for col in leftover_columns:
         df[col] = df[col].replace(np.nan, None)

@@ -1,5 +1,6 @@
 import pytest
 import pandas as pd
+import numpy as np
 import os
 import json
 from agoradatatools.etl.transform.disease_correlation import (
@@ -29,11 +30,21 @@ class TestDiseaseCorrelationAssets:
                 "human_transgene_allele_map": "human_transgene_allele_map.csv",
             },
             "disease_correlation_expected_output.json",
-        )
+        ),
+        (
+            {
+                "disease_correlation_results": "disease_correlation_results_missing_data.csv",
+                "allele_info": "model_allele_info.csv",
+                "model_info": "model_info.csv",
+                "human_transgene_allele_map": "human_transgene_allele_map.csv",
+            },
+            "disease_correlation_missing_data_expected_output.json",
+        ),
     ]
 
     pass_test_ids = [
         "Test assets should pass",
+        "Rows with missing data should be removed",
     ]
 
     @pytest.mark.parametrize(
@@ -79,292 +90,149 @@ class TestTransformDiseaseCorrelation:
     input scenarios. Tests both successful transformations and error conditions.
     """
 
-    # Empty human transgene allele map DataFrame used across multiple tests
-    empty_human_transgene_allele_map = pd.DataFrame(
-        {
-            "mgi_allele_id": pd.Series(dtype="object"),
-            "gene_symbol": pd.Series(dtype="object"),
-            "ensembl_id": pd.Series(dtype="object"),
+    @pytest.fixture
+    def datasets(self) -> dict[str, pd.DataFrame]:
+        empty_human_transgene_allele_map = pd.DataFrame(
+            {
+                "mgi_allele_id": pd.Series(dtype="object"),
+                "gene_symbol": pd.Series(dtype="object"),
+                "ensembl_id": pd.Series(dtype="object"),
+            }
+        )
+
+        model_info_df = pd.DataFrame(
+            [
+                {
+                    "model": "LOAD1",
+                    "matched_controls": "C57BL6J",
+                    "model_type": "Late Onset AD",
+                },
+            ]
+        )
+
+        allele_info_df = pd.DataFrame(
+            [
+                {
+                    "model": "LOAD1",
+                    "gene": "APOE4",
+                    "mgi_allele_id": 5810209,
+                    "gene_ensembl_id": "ENSMUSG00000002985",
+                }
+            ]
+        )
+
+        disease_correlation_results = pd.DataFrame(
+            [
+                {
+                    "cluster": "Cluster A",
+                    "module": "IFGyellow",
+                    "mouse_model": "LOAD1",
+                    "sex": "Female",
+                    "age": "4 months",
+                    "correlation": 0.5,
+                    "adjusted_p_value": 0.01,
+                },
+            ]
+        )
+
+        return {
+            "disease_correlation_results": disease_correlation_results,
+            "model_info": model_info_df,
+            "allele_info": allele_info_df,
+            "human_transgene_allele_map": empty_human_transgene_allele_map,
         }
-    )
 
-    basic_model_info_df = pd.DataFrame(
-        [
+    def test_transform_disease_correlation_deduplicates_allele_info(
+        self, datasets: dict[str, pd.DataFrame]
+    ) -> None:
+        """
+        Test that the disease correlation transformation succeeds with allele info that has duplicated rows.
+        """
+        datasets["allele_info"] = datasets["allele_info"].loc[[0, 0],]  # Duplicate row
+
+        expected_output = [
             {
-                "model": "LOAD1",
-                "matched_controls": "C57BL6J",
+                "name": "LOAD1",
+                "matched_control": "C57BL6J",
                 "model_type": "Late Onset AD",
-            },
-        ]
-    )
-
-    basic_allele_info_df = pd.DataFrame(
-        [
-            {
-                "model": "LOAD1",
-                "gene": "APOE4",
-                "mgi_allele_id": 5810209,
-                "gene_ensembl_id": "ENSMUSG00000002985",
+                "modified_genes": ["APOE4"],  # Deduplicated from duplicate entries
+                "cluster": "Cluster A",
+                "age": "4 months",
+                "age_numeric": 4,
+                "sex": "Female",
+                "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
             }
         ]
-    )
 
-    basic_disease_correlation_results = pd.DataFrame(
-        [
-            {
-                "cluster": "Cluster A",
-                "module": "IFGyellow",
-                "mouse_model": "LOAD1",
-                "sex": "Female",
-                "age": "4 months",
-                "correlation": "0.5",
-                "adjusted_p_value": "0.01",
-            },
-        ]
-    )
-
-    # Test data for successful transformation scenarios
-    pass_test_data = [
-        # Test case 1: Basic valid input with multiple models and modules
-        (
-            {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                        {
-                            "cluster": "Cluster A",
-                            "module": "PHGbrown",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.6",
-                            "adjusted_p_value": "0.02",
-                        },
-                        {
-                            "cluster": "Cluster B",
-                            "module": "TCXturquoise",
-                            "mouse_model": "LOAD2",
-                            "sex": "Male",
-                            "age": "6 months",
-                            "correlation": "0.7",
-                            "adjusted_p_value": "0.03",
-                        },
-                    ]
-                ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "model": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                        {
-                            "model": "LOAD2",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Early Onset AD",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {
-                            "model": "LOAD1",
-                            "gene": "APOE4",
-                            "mgi_allele_id": 5810209,
-                            "gene_ensembl_id": "ENSMUSG00000002985",
-                        },
-                        {
-                            "model": "LOAD1",
-                            "gene": "TREM2",
-                            "mgi_allele_id": 5770794,
-                            "gene_ensembl_id": "ENSMUSG00000023992",
-                        },
-                        {
-                            "model": "LOAD2",
-                            "gene": "APP",
-                            "mgi_allele_id": 3693208,
-                            "gene_ensembl_id": "ENSMUSG00000022892",
-                        },
-                    ]
-                ),
-                "human_transgene_allele_map": empty_human_transgene_allele_map,
-            },
-            # Expected output structure for validation
-            [
-                {
-                    "name": "LOAD1",
-                    "matched_control": "C57BL6J",
-                    "model_type": "Late Onset AD",
-                    "modified_genes": ["APOE4", "TREM2"],
-                    "cluster": "Cluster A",
-                    "age": "4 months",
-                    "age_numeric": 4,
-                    "sex": "Female",
-                    "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
-                    "PHG": {"correlation": 0.6, "adj_p_val": 0.02},
-                },
-                {
-                    "name": "LOAD2",
-                    "matched_control": "C57BL6J",
-                    "model_type": "Early Onset AD",
-                    "modified_genes": ["APP"],  # Single gene is returned as a list
-                    "cluster": "Cluster B",
-                    "age": "6 months",
-                    "age_numeric": 6,
-                    "sex": "Male",
-                    "TCX": {"correlation": 0.7, "adj_p_val": 0.03},
-                },
-            ],
-        ),
-        # Test case 2: Duplicate allele_info entries should be deduplicated
-        (
-            {
-                "disease_correlation_results": basic_disease_correlation_results,
-                "model_info": basic_model_info_df,
-                "allele_info": basic_allele_info_df.loc[
-                    [0, 0],
-                ],  # Duplicate row
-                "human_transgene_allele_map": empty_human_transgene_allele_map,
-            },
-            # Expected output: duplicate genes should be deduplicated
-            # The output should contain a single entry for "LOAD1" with the
-            # "modified_genes" field deduplicated to "APOE4" (as a string, not a list),
-            # and the "IFG" field should contain the correct correlation and
-            # adjusted p-value values (0.5 and 0.01, respectively).
-            [
-                {
-                    "name": "LOAD1",
-                    "matched_control": "C57BL6J",
-                    "model_type": "Late Onset AD",
-                    "modified_genes": ["APOE4"],  # Deduplicated from duplicate entries
-                    "cluster": "Cluster A",
-                    "age": "4 months",
-                    "age_numeric": 4,
-                    "sex": "Female",
-                    "IFG": {"correlation": 0.5, "adj_p_val": 0.01},
-                }
-            ],
-        ),
-    ]
-    pass_test_ids = [
-        "Basic valid input should pass",
-        "Duplicate allele_info includes all genes should pass",
-    ]
-
-    @pytest.mark.parametrize(
-        "datasets, expected_output", pass_test_data, ids=pass_test_ids
-    )
-    def test_transform_disease_correlation_should_pass(self, datasets, expected_output):
-        """
-        Test that the disease correlation transformation succeeds with valid input data.
-
-        Args:
-            datasets: Dictionary containing DataFrames for disease_correlation_results,
-                     model_info, and allele_info
-            expected_output: Expected output structure for validation
-        """
         output = transform_disease_correlation(datasets)
 
         assert output == expected_output
 
-    # Test data for dataset-level error scenarios
-    dataset_error_test_data = [
-        # Test case 1: Missing required model_info dataset
-        (
-            {
-                "disease_correlation_results": basic_disease_correlation_results,
-                "allele_info": basic_allele_info_df,
-                "human_transgene_allele_map": empty_human_transgene_allele_map,
-                # Note: model_info dataset is missing
-            },
-            ValueError,
-            "Missing required datasets: model_info",
-        ),
-        # Test case 2: Duplicate entries in disease_correlation_results
-        (
-            {
-                # Duplicate module for same model
-                "disease_correlation_results": basic_disease_correlation_results.loc[
-                    [0, 0],
-                ],
-                "model_info": basic_model_info_df,
-                "allele_info": basic_allele_info_df,
-                "human_transgene_allele_map": empty_human_transgene_allele_map,
-            },
-            ValueError,
-            "Module IFG already exists for LOAD1",
-        ),
-    ]
-
-    # Test data for column-level error scenarios
-    column_error_test_data = [
-        # Test case 1: Missing required column in disease_correlation_results
-        (
-            {
-                "disease_correlation_results": basic_disease_correlation_results.drop(
-                    columns="age"
-                ),
-                "model_info": basic_model_info_df,
-                "allele_info": basic_allele_info_df,
-                "human_transgene_allele_map": empty_human_transgene_allele_map,
-            },
-            ValueError,
-            "Missing required columns in disease_correlation_results dataset: age",
-        ),
-    ]
-
-    dataset_error_test_ids = [
-        "Missing model_info",
-        "Duplicate results in disease_correlation_results",
-    ]
-    column_error_test_ids = ["Missing required column in disease_correlation_results"]
-
-    @pytest.mark.parametrize(
-        "datasets, error_type, error_msg",
-        dataset_error_test_data,
-        ids=dataset_error_test_ids,
-    )
-    def test_transform_disease_correlation_missing_dataset(
-        self, datasets, error_type, error_msg
-    ):
+    def test_transform_disease_correlation_fails_with_duplicate_module(
+        self, datasets: dict[str, pd.DataFrame]
+    ) -> None:
         """
-        Test that the disease correlation transformation raises appropriate errors
-        when required datasets are missing or contain invalid data.
-
-        Args:
-            datasets: Dictionary containing incomplete or invalid DataFrames
-            error_type: Expected exception type
-            error_msg: Expected error message pattern
+        Test that the disease correlation transformation raises an error when there are duplicate modules
+        for the same model in the disease_correlation_results dataset.
         """
-        with pytest.raises(error_type, match=error_msg):
+        # Duplicate the first row to simulate duplicate modules for the same model
+        datasets["disease_correlation_results"] = datasets[
+            "disease_correlation_results"
+        ].loc[
+            [0, 0],
+        ]
+        with pytest.raises(ValueError, match="Module IFG already exists for LOAD1"):
             transform_disease_correlation(datasets)
 
     @pytest.mark.parametrize(
-        "datasets, error_type, error_msg",
-        column_error_test_data,
-        ids=column_error_test_ids,
+        "missing_dataset",
+        [
+            "human_transgene_allele_map",
+            "model_info",
+            "allele_info",
+            "disease_correlation_results",
+        ],
     )
-    def test_transform_disease_correlation_missing_column(
-        self, datasets, error_type, error_msg
-    ):
+    def test_transform_disease_correlation_fails_with_missing_dataset(
+        self, missing_dataset: str, datasets: dict[str, pd.DataFrame]
+    ) -> None:
         """
         Test that the disease correlation transformation raises appropriate errors
-        when required columns are missing from the input datasets.
-
-        Args:
-            datasets: Dictionary containing DataFrames with missing required columns
-            error_type: Expected exception type
-            error_msg: Expected error message pattern
+        when required datasets are missing or contain invalid data.
         """
-        with pytest.raises(error_type, match=error_msg):
+        datasets.pop(missing_dataset)
+        with pytest.raises(
+            ValueError, match=f"Missing required datasets: {missing_dataset}"
+        ):
+            transform_disease_correlation(datasets)
+
+    @pytest.mark.parametrize(
+        "missing_column",
+        [
+            "cluster",
+            "module",
+            "mouse_model",
+            "sex",
+            "age",
+            "correlation",
+            "adjusted_p_value",
+        ],
+    )
+    def test_transform_disease_correlation_fails_with_missing_column(
+        self, missing_column: str, datasets: dict[str, pd.DataFrame]
+    ) -> None:
+        """
+        Test that the disease correlation transformation raises appropriate errors
+        when required columns are missing from the disease_correlation_results dataset.
+        """
+        datasets["disease_correlation_results"] = datasets[
+            "disease_correlation_results"
+        ].drop(columns=[missing_column])
+
+        with pytest.raises(
+            ValueError,
+            match=f"Missing required columns in disease_correlation_results dataset: {missing_column}",
+        ):
             transform_disease_correlation(datasets)
 
 
@@ -449,13 +317,13 @@ class TestProcessGroup:
             [
                 {
                     "module": "IFGyellow",
-                    "correlation": "0.5",
-                    "adjusted_p_value": "0.01",
+                    "correlation": 0.5,
+                    "adjusted_p_value": 0.01,
                 },
                 {
                     "module": "PHGbrown",
-                    "correlation": "0.6",
-                    "adjusted_p_value": "0.02",
+                    "correlation": 0.6,
+                    "adjusted_p_value": 0.02,
                 },
             ]
         )
@@ -497,7 +365,7 @@ class TestProcessGroup:
         """
         # Create test data with single module
         group = pd.DataFrame(
-            [{"module": "IFGyellow", "correlation": "0.5", "adjusted_p_value": "0.01"}]
+            [{"module": "IFGyellow", "correlation": 0.5, "adjusted_p_value": 0.01}]
         )
 
         result = process_group(
@@ -530,7 +398,7 @@ class TestProcessGroup:
         """
         # Create test data with single module
         group = pd.DataFrame(
-            [{"module": "IFGyellow", "correlation": "0.5", "adjusted_p_value": "0.01"}]
+            [{"module": "IFGyellow", "correlation": 0.5, "adjusted_p_value": 0.01}]
         )
 
         # Model info with matched_controls as a list
@@ -551,3 +419,57 @@ class TestProcessGroup:
 
         # Should take first element from the list
         assert result["matched_control"] == "C57BL6J"
+
+    def test_process_group_with_nan_values(self) -> None:
+        """
+        Test that process_group correctly handles NaN values in the disease correlation DataFrame.
+        This tests the cases where either correlation or adjusted_p_value are NaN, and when both are NaN.
+        """
+        group = pd.DataFrame(
+            [
+                {
+                    "module": "IFGyellow",
+                    "correlation": np.nan,
+                    "adjusted_p_value": 0.01,
+                },
+                {
+                    "module": "PHGbrown",
+                    "correlation": 0.6,
+                    "adjusted_p_value": np.nan,
+                },
+                {
+                    "module": "ABCgreen",
+                    "correlation": np.nan,
+                    "adjusted_p_value": np.nan,
+                },
+            ]
+        )
+
+        # Model information dictionary
+        model_info = {"matched_controls": "C57BL6J", "model_type": "Late Onset AD"}
+
+        # Allele information with multiple genes
+        allele_info = {"gene": ["APOE4", "TREM2"]}
+
+        result = process_group(
+            group=group,
+            model_info=model_info,
+            allele_info=allele_info,
+            name="LOAD1",
+            cluster="Cluster A",
+            age="4 months",
+            sex="Female",
+        )
+
+        # We can't directly compare result to an expected result dictionary because np.nan == np.nan returns False, so
+        # we check the parts of result that should have NaNs.
+
+        assert np.isnan(result["IFG"]["correlation"]) and np.isclose(
+            result["IFG"]["adj_p_val"], 0.01
+        )
+        assert np.isnan(result["PHG"]["adj_p_val"]) and np.isclose(
+            result["PHG"]["correlation"], 0.6
+        )
+
+        # ABC should not be included because both correlation and adjusted_p_value are NaN
+        assert "ABC" not in result.keys()

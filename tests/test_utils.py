@@ -831,17 +831,22 @@ class TestDelimStringToList:
             ("a|b|c", "|", ["a", "b", "c"]),  # Non-default delimiter (|)
             ("a;;b;;c", ";;", ["a", "b", "c"]),  # Multi-character delimiter
             ("aa,bbb,c", ",", ["aa", "bbb", "c"]),  # Multi-character items
-            ("a,b,c", None, ["a,b,c"]),  # None delimiter should not split the string
+            # None delimiter should not split if there is no whitespace
+            ("a,b,c", None, ["a,b,c"]),
+            # None delimiter should split on all whitespace characters
+            ("a b\nc\td", None, ["a", "b", "c", "d"]),
             ("ab;c", ",", ["ab;c"]),  # Delimiter mismatch should not split the string
-            (
-                ",a,b,,c,",
-                ",",
-                ["a", "b", "c"],
-            ),  # Empty elements at start, end, and middle
+            # Empty elements at start, end, and middle should be removed
+            (",a,b,,c,", ",", ["a", "b", "c"]),
             (",,", ",", []),  # String with only delimiters should return empty list
             (None, ",", []),  # None input should return empty list
             ("", ",", []),  # Empty string should return empty list
-            ("   a   ,b,   c", ",", ["a", "b", "c"]),  # String with extra whitespace
+            # Extra whitespace should be stripped
+            ("   a   ,b,   c", ",", ["a", "b", "c"]),
+            # Splitting on whitespace should still strip extra whitespace
+            ("a   b c  \t", None, ["a", "b", "c"]),
+            # Extra whitespace in delimiter is respected
+            ("a  b c   ", "  ", ["a", "b c"]),
         ],
     )
     def test_delim_string_to_list(
@@ -913,7 +918,7 @@ class TestNormalizeNullValues:
                 "bool2": [np.nan] * 4,
                 "string1": ["abc", None, "", np.nan],
                 "string2": [np.nan] * 4,
-                "numeric1": [123, np.nan, None, None],
+                "numeric1": [123, np.nan, np.nan, np.nan],
                 "numeric2": [np.nan] * 4,
                 "extra1": ["abc", "def", None, np.nan],
                 "extra2": [np.nan] * 4,
@@ -981,23 +986,6 @@ class TestNormalizeNullValues:
 
         pd.testing.assert_frame_equal(output, basic_expected_output)
 
-    def test_normalize_null_values_with_only_keep_nan_columns(
-        self, test_data_frame: pd.DataFrame, basic_expected_output: pd.DataFrame
-    ) -> None:
-        """
-        Test that normalize_null_values correctly normalizes null values when only keep_nan_columns is defined.
-        """
-        output = utils.normalize_null_values(
-            test_data_frame,
-            keep_nan_columns=["numeric1", "numeric2"],
-        )
-
-        basic_expected_output[["numeric1", "numeric2"]] = basic_expected_output[
-            ["numeric1", "numeric2"]
-        ].fillna(np.nan)
-
-        pd.testing.assert_frame_equal(output, basic_expected_output)
-
     def test_normalize_null_values_with_all_column_types_defined(
         self, test_data_frame: pd.DataFrame, basic_expected_output: pd.DataFrame
     ) -> None:
@@ -1008,7 +996,6 @@ class TestNormalizeNullValues:
             test_data_frame,
             boolean_columns=["bool1", "bool2"],
             empty_string_columns=["string1", "string2"],
-            keep_nan_columns=["numeric1", "numeric2"],
         )
 
         basic_expected_output[["bool1", "bool2"]] = basic_expected_output[
@@ -1017,9 +1004,6 @@ class TestNormalizeNullValues:
         basic_expected_output[["string1", "string2"]] = basic_expected_output[
             ["string1", "string2"]
         ].fillna("")
-        basic_expected_output[["numeric1", "numeric2"]] = basic_expected_output[
-            ["numeric1", "numeric2"]
-        ].fillna(np.nan)
 
         pd.testing.assert_frame_equal(output, basic_expected_output)
 
@@ -1028,11 +1012,12 @@ class TestNormalizeNullValues:
         Test that normalize_null_values correctly handles an empty data frame without errors.
         """
         empty_df = pd.DataFrame(columns=["bool1", "string1", "numeric1"])
+        empty_df["bool1"] = empty_df["bool1"].astype(bool)
+
         output = utils.normalize_null_values(
             empty_df.copy(),
             boolean_columns=["bool1"],
             empty_string_columns=["string1"],
-            keep_nan_columns=["numeric1"],
         )
         # Should return an empty data frame with the same columns
         pd.testing.assert_frame_equal(output, empty_df)
@@ -1045,13 +1030,12 @@ class TestNormalizeNullValues:
         """
         with pytest.raises(
             ValueError,
-            match="Columns \\['bool_x', 'numeric_x', 'string_x'\\] do not exist in the DataFrame",
+            match="Columns \\['bool_x', 'string_x'\\] do not exist in the DataFrame",
         ):
             utils.normalize_null_values(
                 test_data_frame,
                 boolean_columns=["bool1", "bool_x"],
                 empty_string_columns=["string1", "string_x"],
-                keep_nan_columns=["numeric1", "numeric_x"],
             )
 
     def test_normalize_null_values_fails_with_overlapping_columns(
@@ -1061,13 +1045,12 @@ class TestNormalizeNullValues:
         Test that normalize_null_values raises a ValueError when columns are included in more than one column type list.
         """
         with pytest.raises(
-            ValueError, match="Columns \\['bool1', 'string2'\\] appear in more than one"
+            ValueError, match="Columns \\['bool1', 'string2'\\] appear in both"
         ):
             utils.normalize_null_values(
                 test_data_frame,
-                boolean_columns=["bool1", "bool2"],
+                boolean_columns=["bool1", "bool2", "string2"],
                 empty_string_columns=["string1", "string2", "bool1"],
-                keep_nan_columns=["numeric1", "numeric2", "string2"],
             )
 
     @pytest.mark.parametrize(
@@ -1117,10 +1100,4 @@ class TestNormalizeNullValues:
             utils.normalize_null_values(
                 test_data_frame,
                 empty_string_columns=column_value,
-            )
-
-        with pytest.raises(TypeError, match="keep_nan_columns must be a list"):
-            utils.normalize_null_values(
-                test_data_frame,
-                keep_nan_columns=column_value,
             )
