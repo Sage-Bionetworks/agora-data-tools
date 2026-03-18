@@ -515,7 +515,7 @@ def normalize_null_values(
         )
 
     for col in boolean_columns:
-        df[col] = df[col].fillna(False)
+        df[col] = df[col].fillna(False).astype(bool)
 
     for col in empty_string_columns:
         df[col] = df[col].fillna("")

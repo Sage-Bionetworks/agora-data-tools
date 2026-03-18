@@ -1012,6 +1012,8 @@ class TestNormalizeNullValues:
         Test that normalize_null_values correctly handles an empty data frame without errors.
         """
         empty_df = pd.DataFrame(columns=["bool1", "string1", "numeric1"])
+        empty_df["bool1"] = empty_df["bool1"].astype(bool)
+
         output = utils.normalize_null_values(
             empty_df.copy(),
             boolean_columns=["bool1"],
