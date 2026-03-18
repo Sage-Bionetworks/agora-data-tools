@@ -185,25 +185,18 @@ def process_group(
     }
 
     for _, row in group.iterrows():
-        if extract_module_name(row["module"]) in output:
+        module_name = extract_module_name(row["module"])
+        if module_name in output:
             raise ValueError(
-                f"Module {extract_module_name(row['module'])} already exists for {output['name']}"
+                f"Module {module_name} already exists for {output['name']}"
             )
 
-        module_dict = {
-            "correlation": float(row["correlation"])
-            if row["correlation"] != ""
-            else None,
-            "adj_p_val": float(row["adjusted_p_value"])
-            if row["adjusted_p_value"] != ""
-            else None,
-        }
-        # Only add the module if it has valid data (not all None values)
-        if (
-            module_dict["correlation"] is not None
-            or module_dict["adj_p_val"] is not None
-        ):
-            output[extract_module_name(row["module"])] = module_dict
+        # Only add the module if it has valid data (not all NaN values)
+        if pd.notna(row["correlation"]) or pd.notna(row["adjusted_p_value"]):
+            output[module_name] = {
+                "correlation": row["correlation"],
+                "adj_p_val": row["adjusted_p_value"],
+            }
 
     return output
 
@@ -252,7 +245,6 @@ def transform_disease_correlation(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
-    disease_correlation_df = datasets["disease_correlation_results"].fillna("")
     allele_info_df = datasets["allele_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
@@ -269,6 +261,12 @@ def transform_disease_correlation(
     # Group by all static fields
     output = []
     group_cols = ["mouse_model", "cluster", "age", "sex"]
+
+    # Drop any rows with missing values in the grouping columns or the module column
+    disease_correlation_df = datasets["disease_correlation_results"].dropna(
+        subset=group_cols + ["module"]
+    )
+
     for (name, cluster, age, sex), group in disease_correlation_df.groupby(
         group_cols, sort=False
     ):
