@@ -148,7 +148,9 @@ class TestTransformDiseaseCorrelation:
         """
         Test that the disease correlation transformation succeeds with allele info that has duplicated rows.
         """
-        datasets["allele_info"] = datasets["allele_info"].loc[[0, 0],]  # Duplicate row
+        datasets["allele_info"] = datasets["allele_info"].loc[
+            [0, 0],
+        ]  # Duplicate row
 
         expected_output = [
             {
