@@ -1,0 +1,402 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "model_overview",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "name",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "model_type",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "model_type"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "model_type",
+        "value_set": [
+          "Familial AD",
+          "Late Onset AD"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "matched_controls",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "matched_controls"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "matched_controls",
+        "list_length_range": [
+          1,
+          10
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "matched_controls",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "modified_genes",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "modified_genes"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "modified_genes",
+        "list_length_range": [
+          1,
+          10
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "modified_genes",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "available_data",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "available_data"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "available_data",
+        "list_length_range": [
+          1,
+          4
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "available_data",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members",
+      "kwargs": {
+        "column": "available_data",
+        "list_members": [
+          "Biomarkers",
+          "Gene Expression",
+          "Pathology",
+          "Disease Correlation"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "gene_expression",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "gene_expression",
+        "json_schema": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "link_url": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "link_url"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "disease_correlation",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "disease_correlation",
+        "json_schema": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "link_url": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "link_url"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "pathology",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "pathology",
+        "json_schema": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "link_url": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "link_url"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "biomarkers",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "biomarkers",
+        "json_schema": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "link_url": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "link_url"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "study_data",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "study_data",
+        "json_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "link_url": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "link_url"
+          ],
+          "type": "object"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "jax_strain",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "jax_strain",
+        "json_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "link_url": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "link_url"
+          ],
+          "type": "object"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "center",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "center",
+        "json_schema": {
+          "additionalProperties": false,
+          "properties": {
+            "link_text": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "link_url": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "link_url",
+            "link_text"
+          ],
+          "type": "object"
+        }
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}

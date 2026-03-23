@@ -98,6 +98,15 @@ datasets:
         gene: modified_gene
         ensembl_id: human_ensembl_id
         model: name
+      gx_enabled: true
+      gx_nested_columns:
+        - gene_expression
+        - disease_correlation
+        - pathology
+        - biomarkers
+        - study_data
+        - jax_strain
+        - center
 
   - rna_de_aggregate:
       files:

@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "link_url": { "type": "string", "minLength": 1 }
+  },
+  "required": ["link_url"],
+  "additionalProperties": false
+}
