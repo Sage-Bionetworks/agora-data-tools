@@ -3,12 +3,326 @@
   "expectation_suite_name": "model_details",
   "expectations": [
     {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "name",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "model_type",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "model_type"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "model_type",
+        "value_set": [
+          "Familial AD",
+          "Late Onset AD"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "contributing_group",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "contributing_group"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "study_synid",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "study_synid"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "study_synid",
+        "regex": "^syn\\d+$"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "rrid",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "rrid"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "jax_id",
+        "type_": "int"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "jax_id"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "alzforum_id",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "genotype",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "genotype"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "matched_controls",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "matched_controls"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "matched_controls",
+        "list_length_range": [
+          1,
+          10
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "matched_controls",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "aliases",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "aliases"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "aliases",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "gene_expression",
+        "condition_parser": "pandas",
+        "regex": "^comparison/expression",
+        "row_condition": "gene_expression.notnull()"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "disease_correlation",
+        "condition_parser": "pandas",
+        "regex": "^comparison/correlation",
+        "row_condition": "disease_correlation.notnull()"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_null",
+      "kwargs": {
+        "column": "spatial_transcriptomics"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "genetic_info",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "genetic_info"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "genetic_info",
+        "json_schema": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "allele": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "allele_type": {
+                "enum": [
+                  "Transgenic",
+                  "Targeted",
+                  "Endonuclease-mediated"
+                ],
+                "type": "string"
+              },
+              "ensembl_gene_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "mgi_allele_id": {
+                "type": "integer"
+              },
+              "modified_gene": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "modified_gene",
+              "ensembl_gene_id",
+              "allele",
+              "allele_type",
+              "mgi_allele_id"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_nested_object_regex_rule",
       "kwargs": {
         "column": "genetic_info",
         "regex_pattern": "^ENSMUSG",
         "target_field": "ensembl_gene_id",
         "valid_threshold": 0.4
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "biomarkers",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "biomarkers"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "pathology",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "pathology"
       },
       "meta": {}
     }
