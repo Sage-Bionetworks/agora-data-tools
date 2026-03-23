@@ -78,6 +78,8 @@ For columns that are link objects, create schemas in `src/agoradatatools/great_e
 
 ## Step 3 — Create the Authoring Notebook
 
+> **Before starting:** Ask the user for the Synapse ID of the processed output file for this dataset (e.g. `syn73774519`). This is needed for the data-loading cell in the notebook. Do not proceed without it.
+
 Copy an existing notebook (e.g., `gx_suite_definitions/biomarkers.ipynb`) as a starting point.
 
 ### Critical: Cell 0 import order
@@ -133,6 +135,45 @@ validator.expect_column_values_to_have_list_members_of_type(column="col", member
 with open("../src/agoradatatools/great_expectations/gx/json_schemas/<transform>/my_schema.json") as f:
     schema = json.load(f)
 validator.expect_column_values_to_match_json_schema("col", json_schema=schema)
+
+# Regex on a nullable string column — use row_condition to skip null rows
+validator.expect_column_values_to_match_regex(
+    "col",
+    regex="^expected/prefix",
+    row_condition="col.notnull()",
+    condition_parser="pandas",
+)
+```
+
+### Inspect the staging file before writing regex expectations
+
+Do not rely solely on the transform source code to determine URL formats or string patterns. The transform code and the actual output can differ (e.g. `?model=` vs `?models=`). Always inspect the staging file directly:
+
+```python
+import json
+with open("staging/<transform>.json") as f:
+    data = json.load(f)
+
+# Check distinct non-null values of a column
+values = [r["col"] for r in data if r.get("col") is not None]
+print(set(values))
+```
+
+### `pd.read_json()` converts numeric strings to integers
+
+`pd.read_json()` infers column types and will convert a JSON string like `"004807"` to the integer `4807`. This affects both the authoring notebook and `GreatExpectationsRunner` at runtime. For columns that are zero-padded IDs stored as strings in the output JSON:
+
+- Do NOT assert `be_of_type("str")` or use a string regex
+- DO assert `be_of_type("int")` and validate with `be_between` or just `not_be_null`
+
+```python
+# ❌ WRONG — will fail because pd.read_json() reads "004807" as 4807
+validator.expect_column_values_to_be_of_type("jax_id", "str")
+validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
+
+# ✅ CORRECT
+validator.expect_column_values_to_be_of_type("jax_id", "int")
+validator.expect_column_values_to_not_be_null("jax_id")
 ```
 
 ---
@@ -180,3 +221,6 @@ Check the output for GX validation results.
 | `InvalidExpectationConfigurationError: Invalid positional argument` | Use `column=` keyword arg for all custom expectations |
 | Suite not found at runtime | Run `pip install .` after generating the `.json` file |
 | Pre-commit hook modifies files on commit | Re-stage modified files and commit again |
+| Regex fails on a zero-padded string column (e.g. `jax_id`) | `pd.read_json()` converts `"004807"` → `4807` (int); validate as `int`, not `str` |
+| Regex fails on a nullable column | Use `row_condition="col.notnull()"` + `condition_parser="pandas"` to skip null rows |
+| Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
