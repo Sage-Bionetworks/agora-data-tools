@@ -160,15 +160,13 @@ def process_group(
     Returns:
         Dict[str, Any]: A dictionary containing the processed group data
     """
-    # If matched_controls is a list, get the first element
-    mc = model_info.get("matched_controls", "")
-    matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
+    # Get the first list element of matched_controls, default to empty string if not present
+    mc = model_info.get("matched_controls", [])
+    matched_control = next(iter(mc), "")
 
     # Ensure modified_genes is always a list
-    raw_modified_genes = allele_info.get("gene", "")
-    if raw_modified_genes == "":
-        modified_genes = []
-    elif not isinstance(raw_modified_genes, list):
+    raw_modified_genes = allele_info.get("gene", [])
+    if not isinstance(raw_modified_genes, list):
         modified_genes = [raw_modified_genes]
     else:
         modified_genes = raw_modified_genes
@@ -176,7 +174,7 @@ def process_group(
     output = {
         "name": name,
         "matched_control": matched_control,
-        "model_type": model_info.get("model_type", ""),
+        "model_type": model_info.get("model_type"),
         "modified_genes": modified_genes,
         "cluster": cluster,
         "age": age,

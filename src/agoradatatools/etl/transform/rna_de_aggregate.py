@@ -236,7 +236,7 @@ def _create_output_entry_from_group(
             - 'name': dict, Object with 'link_url' and 'link_text' keys containing the model link path and display text
             - 'matched_control': str, Display label for the control genotype
             - 'model_group': str or None, Model group name (None if empty)
-            - 'model_type': str, Model type classification (empty string if not found)
+            - 'model_type': str or None, Model type classification (None if not found)
             - 'tissue': str, Tissue name (transformed for JAX models if applicable)
             - 'sex': str, Sex category
             - Age-based entries: Dictionary keys are age strings (e.g., '3 months', '6 months')
@@ -288,7 +288,7 @@ def _create_output_entry_from_group(
     matched_control = label_map_dict[control_key]
     model_group = model_group_dict.get(model)
     biodomains = biodomain_dict.get(ensembl_gene_id, [])
-    model_type = model_info_dict.get(model, "")
+    model_type = model_info_dict.get(model)
 
     age_entries = _create_age_entries_from_group(
         group, ensembl_gene_id, model, tissue, sex
@@ -308,7 +308,7 @@ def _create_output_entry_from_group(
         "biodomains": biodomains,
         "name": {"link_url": f"models/{name}", "link_text": name},
         "matched_control": matched_control,
-        "model_group": model_group if model_group != "" else None,
+        "model_group": model_group,
         "model_type": model_type,
         "tissue": tissue,
         "sex_cohort": sex,
@@ -526,13 +526,11 @@ def transform_rna_de_aggregate(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Pre-compute lookup dictionaries for efficient lookups
-    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
-    mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
+    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"]
+    mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
     model_info_df = preprocess_model_info(datasets["model_info"])
-    biodom_genes_mm_df = (
-        datasets["biodom_genes_mm"]
-        .dropna(axis="index", subset=["ensembl_id"])
-        .fillna("")
+    biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(
+        axis="index", subset=["ensembl_id"]
     )
 
     # Create lookup dictionaries

@@ -330,8 +330,8 @@ class TestProcessGroup:
             ]
         )
 
-        # Model information dictionary
-        model_info = {"matched_controls": "C57BL6J", "model_type": "Late Onset AD"}
+        # Model information dictionary -- matched_controls is always a list after preprocess_model_info
+        model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
         allele_info = {"gene": ["APOE4", "TREM2"]}
@@ -384,7 +384,7 @@ class TestProcessGroup:
         assert result == {
             "name": "LOAD1",
             "matched_control": "",
-            "model_type": "",
+            "model_type": None,
             "modified_genes": [],
             "cluster": "Cluster A",
             "age": "4 months",
@@ -448,7 +448,7 @@ class TestProcessGroup:
         )
 
         # Model information dictionary
-        model_info = {"matched_controls": "C57BL6J", "model_type": "Late Onset AD"}
+        model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
         allele_info = {"gene": ["APOE4", "TREM2"]}
