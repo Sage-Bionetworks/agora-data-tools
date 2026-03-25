@@ -191,12 +191,15 @@ def process_group(
                 f"Module {module_name} already exists for {output['name']}"
             )
 
-        # Only add the module if it has valid data (not all NaN values)
-        if pd.notna(row["correlation"]) or pd.notna(row["adjusted_p_value"]):
-            output[module_name] = {
-                "correlation": row["correlation"],
-                "adj_p_val": row["adjusted_p_value"],
-            }
+        module_dict = {
+            "correlation": row["correlation"] if pd.notna(row["correlation"]) else None,
+            "adj_p_val": (
+                row["adjusted_p_value"] if pd.notna(row["adjusted_p_value"]) else None
+            ),
+        }
+        # Only add the module if it has valid data (not all None values)
+        if module_dict["correlation"] or module_dict["adj_p_val"]:
+            output[module_name] = module_dict
 
     return output
 
