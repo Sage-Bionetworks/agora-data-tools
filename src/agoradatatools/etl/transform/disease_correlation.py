@@ -195,8 +195,12 @@ def process_group(
                 row["adjusted_p_value"] if pd.notna(row["adjusted_p_value"]) else None
             ),
         }
-        # Only add the module if it has valid data (not all None values)
-        if module_dict["correlation"] or module_dict["adj_p_val"]:
+        # Only add the module if it has valid data (not all None values). Using "is not None" check so that 0 values
+        # are preserved and pass this check
+        if (
+            module_dict["correlation"] is not None
+            or module_dict["adj_p_val"] is not None
+        ):
             output[module_name] = module_dict
 
     return output

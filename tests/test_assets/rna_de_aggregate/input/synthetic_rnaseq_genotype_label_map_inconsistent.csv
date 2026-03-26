@@ -3,3 +3,5 @@ Model_A,GroupX,Model_A (Tg),Tg
 Model_A,GroupY,Model_A (Wt),Wt
 Model_B,GroupZ,Model_B (Tg),Tg
 Model_B,GroupZ,Model_B (Wt),Wt
+Model_C,GroupW,Model_C (Tg),Tg
+Model_C,,Model_C (Wt),Wt

@@ -444,6 +444,12 @@ class TestProcessGroup:
                     "correlation": np.nan,
                     "adjusted_p_value": np.nan,
                 },
+                # Zero-values should be preserved
+                {
+                    "module": "XYZred",
+                    "correlation": 0,
+                    "adjusted_p_value": 0,
+                },
             ]
         )
 
@@ -475,6 +481,8 @@ class TestProcessGroup:
             "IFG": {"correlation": None, "adj_p_val": 0.01},
             "PHG": {"correlation": 0.6, "adj_p_val": None},
             # ABC should be missing
+            # XYZ should be preserved with zero-values
+            "XYZ": {"correlation": 0, "adj_p_val": 0},
         }
 
         assert result == expected_result

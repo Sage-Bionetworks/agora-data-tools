@@ -555,7 +555,7 @@ def transform_rna_de_aggregate(
     # Validate that each model has consistent model_group values
     inconsistent_models = (
         rnaseq_genotype_label_map_df.groupby("model")["model_group"]
-        .nunique()
+        .nunique(dropna=False)
         .pipe(lambda x: x[x > 1].index.tolist())
     )
     if inconsistent_models:

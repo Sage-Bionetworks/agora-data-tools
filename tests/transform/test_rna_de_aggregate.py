@@ -1646,7 +1646,8 @@ class TestTransformRnaDeAggregate:
         Tests that when a model has different model_group values across multiple rows
         (e.g., different genotypes), a clear ValueError is raised identifying which
         models have inconsistent values. Uses synthetic_rnaseq_genotype_label_map_inconsistent.csv
-        where Model_A has GroupX for Tg genotype and GroupY for Wt genotype.
+        where: Model_A has GroupX for Tg genotype and GroupY for Wt genotype, and Model_C has GroupW
+        for Tg genotype and None for Wt genotype.
         """
         # Load synthetic test data with inconsistent model_group values
         datasets = self._load_synthetic_test_data(
@@ -1668,5 +1669,6 @@ class TestTransformRnaDeAggregate:
         assert "Each model must have a consistent model_group value" in error_message
         assert "rnaseq_genotype_label_map" in error_message
         assert "Model_A" in error_message
+        assert "Model_C" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
