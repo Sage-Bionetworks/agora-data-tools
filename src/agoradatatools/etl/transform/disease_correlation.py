@@ -10,6 +10,7 @@ import re
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     flatten_list,
+    normalize_null_values,
     remove_duplicates_keep_order,
     extract_age_numeric,
 )
@@ -189,19 +190,13 @@ def process_group(
                 f"Module {module_name} already exists for {output['name']}"
             )
 
-        module_dict = {
-            "correlation": row["correlation"] if pd.notna(row["correlation"]) else None,
-            "adj_p_val": (
-                row["adjusted_p_value"] if pd.notna(row["adjusted_p_value"]) else None
-            ),
-        }
         # Only add the module if it has valid data (not all None values). Using "is not None" check so that 0 values
         # are preserved and pass this check
-        if (
-            module_dict["correlation"] is not None
-            or module_dict["adj_p_val"] is not None
-        ):
-            output[module_name] = module_dict
+        if row["correlation"] is not None or row["adjusted_p_value"] is not None:
+            output[module_name] = {
+                "correlation": row["correlation"],
+                "adj_p_val": row["adjusted_p_value"],
+            }
 
     return output
 
@@ -250,6 +245,9 @@ def transform_disease_correlation(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
+    disease_correlation_df = normalize_null_values(
+        datasets["disease_correlation_results"]
+    )
     allele_info_df = datasets["allele_info"].fillna("")
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
 
@@ -268,7 +266,7 @@ def transform_disease_correlation(
     group_cols = ["mouse_model", "cluster", "age", "sex"]
 
     # Drop any rows with missing values in the grouping columns or the module column
-    disease_correlation_df = datasets["disease_correlation_results"].dropna(
+    disease_correlation_df = disease_correlation_df.dropna(
         subset=group_cols + ["module"]
     )
 

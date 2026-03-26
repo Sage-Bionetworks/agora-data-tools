@@ -431,18 +431,18 @@ class TestProcessGroup:
             [
                 {
                     "module": "IFGyellow",
-                    "correlation": np.nan,
+                    "correlation": None,
                     "adjusted_p_value": 0.01,
                 },
                 {
                     "module": "PHGbrown",
                     "correlation": 0.6,
-                    "adjusted_p_value": np.nan,
+                    "adjusted_p_value": None,
                 },
                 {
                     "module": "ABCgreen",
-                    "correlation": np.nan,
-                    "adjusted_p_value": np.nan,
+                    "correlation": None,
+                    "adjusted_p_value": None,
                 },
                 # Zero-values should be preserved
                 {
@@ -451,7 +451,8 @@ class TestProcessGroup:
                     "adjusted_p_value": 0,
                 },
             ]
-        )
+        ).replace({np.nan: None})
+        # The .replace() is necessary because pd.DataFrame instantiates numeric columns as NaN despite specifying None
 
         # Model information dictionary
         model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
