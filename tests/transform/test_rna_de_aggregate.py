@@ -594,18 +594,24 @@ class TestCreateOutputEntryFromGroup:
             model_info_dict=model_info_dict,
         )
 
-        assert result["ensembl_gene_id"] == "ENSMUSG00000000002"
-        assert result["gene_symbol"] == ""  # Default for missing
-        assert result["biodomains"] == []  # Default for missing
-        assert result["name"] == {
-            "link_url": "models/Transgenic_B",
-            "link_text": "Transgenic_B",
-        }  # Falls back to case genotype
-        assert result["matched_control"] == "Wildtype_B"  # From label_map_dict
-        assert result["model_group"] is None  # Empty string converted to None
-        assert result["model_type"] == ""  # Default for missing
-        assert result["tissue"] == "Hippocampus"
-        assert result["sex_cohort"] == "Female"
+        assert result == {
+            "ensembl_gene_id": "ENSMUSG00000000002",
+            "gene_symbol": "",
+            "biodomains": [],
+            "name": {
+                "link_url": "models/Transgenic_B",
+                "link_text": "Transgenic_B",
+            },
+            "matched_control": "Wildtype_B",
+            "model_group": None,
+            "model_type": None,
+            "tissue": "Hippocampus",
+            "sex_cohort": "Female",
+            "3 months": {
+                "log2_fc": 0.5,
+                "adj_p_val": 0.05,
+            },
+        }
 
     def test_create_output_entry_jax_tissue_mapping(self) -> None:
         """Test that JAX tissue name 'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
@@ -645,38 +651,6 @@ class TestCreateOutputEntryFromGroup:
         )
 
         assert result["tissue"] == "Hemibrain"  # Should be mapped
-
-    def test_create_output_entry_empty_model_group(self) -> None:
-        """Test that empty string model_group is converted to None."""
-        group_key = ("ENSMUSG00000000004", "Model_D", "Cortex", "Female", "Tg", "Wt")
-        group = pd.DataFrame(
-            {
-                "age": ["6 months"],
-                "log2foldchange": [1.5],
-                "padj": [0.01],
-            }
-        )
-
-        gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_D", "Tg"): "Transgenic_D",
-            ("Model_D", "Wt"): "Wildtype_D",
-        }
-        model_group_dict = {"Model_D": ""}  # Empty string
-        biodomain_dict = {}
-        model_info_dict = {}
-
-        result = _create_output_entry_from_group(
-            group_key=group_key,
-            group=group,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
-        )
-
-        assert result["model_group"] is None  # Empty string should become None
 
     def test_create_output_entry_multiple_biodomains(self) -> None:
         """Test output entry with multiple biodomain assignments."""
@@ -1162,7 +1136,7 @@ class TestTransformRnaDeAggregate:
                 "synthetic_basic_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_biodom_genes_mm.csv"
+                "synthetic_biodom_genes_mm.csv",
                 # Missing synthetic_model_info.csv
             ]
         )

@@ -330,8 +330,8 @@ class TestProcessGroup:
             ]
         )
 
-        # Model information dictionary
-        model_info = {"matched_controls": "C57BL6J", "model_type": "Late Onset AD"}
+        # Model information dictionary -- matched_controls is always a list after preprocess_model_info
+        model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
         allele_info = {"gene": ["APOE4", "TREM2"]}
@@ -384,7 +384,7 @@ class TestProcessGroup:
         assert result == {
             "name": "LOAD1",
             "matched_control": "",
-            "model_type": "",
+            "model_type": None,
             "modified_genes": [],
             "cluster": "Cluster A",
             "age": "4 months",
@@ -448,7 +448,7 @@ class TestProcessGroup:
         )
 
         # Model information dictionary
-        model_info = {"matched_controls": "C57BL6J", "model_type": "Late Onset AD"}
+        model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
         allele_info = {"gene": ["APOE4", "TREM2"]}
@@ -463,15 +463,18 @@ class TestProcessGroup:
             sex="Female",
         )
 
-        # We can't directly compare result to an expected result dictionary because np.nan == np.nan returns False, so
-        # we check the parts of result that should have NaNs.
+        expected_result = {
+            "name": "LOAD1",
+            "matched_control": "C57BL6J",
+            "model_type": "Late Onset AD",
+            "modified_genes": ["APOE4", "TREM2"],
+            "cluster": "Cluster A",
+            "age": "4 months",
+            "age_numeric": 4,
+            "sex": "Female",
+            "IFG": {"correlation": None, "adj_p_val": 0.01},
+            "PHG": {"correlation": 0.6, "adj_p_val": None},
+            # ABC should be missing
+        }
 
-        assert np.isnan(result["IFG"]["correlation"]) and np.isclose(
-            result["IFG"]["adj_p_val"], 0.01
-        )
-        assert np.isnan(result["PHG"]["adj_p_val"]) and np.isclose(
-            result["PHG"]["correlation"], 0.6
-        )
-
-        # ABC should not be included because both correlation and adjusted_p_value are NaN
-        assert "ABC" not in result.keys()
+        assert result == expected_result

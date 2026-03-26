@@ -1,0 +1,306 @@
+---
+title: "AG-1974: OpenTargets Drug Metadata"
+---
+This notebook pulls drug metadata from the OpenTargets GraphQL API and prepares it for use by downstream transforms:
+- nominated_drugs
+- drug_info
+
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- jsonlite
+- purrr
+- ghql
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "https://cloud.r-project.org"))
+}
+if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
+if (!require("purrr")) { install.packages("purrr") }
+if (!require("ghql")) { install.packages("ghql") }
+
+library(synapser)
+library(purrr)
+library(jsonlite)
+library(ghql)
+```
+
+
+
+## Set up clients, variables and functions
+Setup the required graphQL client and get nominated drug ids
+```{r}
+# ***************************
+# OPEN TARGETS GRAPHQL CLIENT
+# ***************************
+
+url <- "https://api.platform.opentargets.org/api/v4/graphql"
+con <- GraphqlClient$new(url = url)
+
+# **************************
+# PROVENANCE & LOCAL STORAGE
+# **************************
+
+# Vector to store all downloaded synIds for Synapse provenance (populated via download_csv function)
+data_sources <- character()
+
+# Local file storage
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+
+# *********
+# FUNCTIONS
+# *********
+
+# Combines the provided lists of values to produce a set of unique values, used to collapse
+# the lists of synonyms and trade names into a single list of aliases.
+# - name: The canonical name of the drug, to removed from the combined list of alias values
+# - ...: A variable number of lists of values to combine
+resolve_drug_names <- function(name, ...) {
+  combined <- unlist(list(...))
+  combined <- combined[!is.na(combined) & combined != ""]
+
+  # Remove the canonical name
+  filtered <- combined[tolower(combined) != tolower(name)]
+
+  # Case-insensitive deduplication, keeping original casing of the first occurrence found
+  final_list <- filtered[!duplicated(tolower(filtered))]
+
+  # Return as a list (or character(0) if empty for clean JSON)
+  return(if(length(final_list) > 0) final_list else list())
+}
+
+# Download a csv file from Synapse by synId and read it into a dataframe
+# - synId: synapse ID of the file to download
+# - df_name: the name to use for the resulting dataframe
+download_csv <- function(synId) {
+
+  synLogin()
+
+  # Capture all downloaded synIds for provenance
+  data_sources <<- c(data_sources, synId)
+
+  input_dir <- file.path("./", "input")
+  cat(paste0("Downloading ", synId, "..."))
+
+  file <- synGet(synId, downloadLocation = input_dir, ifcollision='overwrite.local')
+  path <- file$path
+
+  cat("\nDownload on:  ", date())
+  cat("\n", synId,
+      "\n- Modified on ", format(as.POSIXct(file$properties$modifiedOn, format="%Y-%m-%dT%H:%M:%OS"), "%b %d %H:%M:%S %Y"),
+      "\n- Version ", file$properties$versionNumber)
+  cat("\npath: ", file$path, "\n")
+
+  as.data.frame(read.csv(path))
+}
+
+# ***************
+# DRUG TARGET IDs
+# ***************
+
+# Get the list of chembl_ids from harmonized_drugs.csv
+drug_targets <- download_csv("syn73677240") # TODO pin this version once finalized?
+chembl_ids <- unique(drug_targets$chembl_id) # 67 ids
+```
+
+# Download and adapt OpenTargets drug metadata for nominated drugs
+```{r}
+# construct the GraphQL query
+drug_query <- Query$new()
+variables = list(chembl_ids = chembl_ids)
+
+drug_query$query('drug_info', 'query getDrugs($chembl_ids: [String!]!){
+  drugs (chemblIds: $chembl_ids){
+    id
+    description
+    drugType
+    maximumClinicalTrialPhase
+    yearOfFirstApproval
+    mechanismsOfAction {
+      rows {
+        mechanismOfAction
+      }
+    }
+    linkedTargets {
+      rows {
+        id
+      }
+    }
+    name
+    crossReferences {
+      source
+      ids
+    }
+    synonyms
+    tradeNames
+  }
+}')
+
+#Execute the GraphQL query
+result <- con$exec(drug_query$queries$drug_info, variables)
+
+# Uncomment to write response data to local file
+#write(prettify(result), file.path(output_dir, "drug_info_response"))
+
+# Read the JSON response into a dataframe
+response_df <- fromJSON(result, flatten = TRUE)
+drug_info <- response_df$data$drugs
+# drug_info
+
+# clean up nested row structures
+drug_info <- drug_info %>%
+  mutate(
+  mechanismsOfAction = map(mechanismsOfAction.rows, ~ unlist(.x$mechanismOfAction)),
+    linkedTargets = map(linkedTargets.rows, ~ unlist(.x$id))
+  ) %>%
+  # have to use - instead of ! to negate columns with . characters
+  select(-mechanismsOfAction.rows, -linkedTargets.rows)
+
+# Extract DrugBank ID from crossReferences
+drugbank_mapping <- drug_info %>%
+  select(id, crossReferences) %>%
+  unnest(crossReferences) %>%
+  filter(source == "drugbank") %>%
+  unnest(ids) %>%
+  select(id, drug_bank_id = ids)
+
+drug_info <- drug_info %>%
+  left_join(drugbank_mapping, by = "id") %>%
+  select(-crossReferences)
+
+# Clean up values and align colnames
+drug_info <- drug_info %>%
+
+  # Collapse synonyms and tradeNames into a single set (case-insensitive)
+  mutate(aliases = pmap(
+    .l = list(name, synonyms, tradeNames),
+    .f = resolve_drug_names
+  )) %>%
+
+  select(-tradeNames, -synonyms, -name) %>%
+
+  # Map Clinical Trial Phase enum to display values
+  mutate(maximumClinicalTrialPhase = case_when(
+    maximumClinicalTrialPhase == 1   ~ "Phase I",
+    maximumClinicalTrialPhase == 2   ~ "Phase II",
+    maximumClinicalTrialPhase == 3   ~ "Phase III",
+    maximumClinicalTrialPhase == 4   ~ "Phase IV",
+    maximumClinicalTrialPhase == -1  ~ "Unknown",
+    is.na(maximumClinicalTrialPhase) ~ "Preclinical",
+    TRUE                             ~ "Unknown"  # unexpected values
+  )) %>%
+
+  # collapse ensembl_gene_id and mechanisms_of_action lists to unique values
+  mutate(linkedTargets = map(linkedTargets, unique)) %>%
+  mutate(mechanismsOfAction = map(mechanismsOfAction, unique)) %>%
+
+  # rename columns
+  dplyr::rename(chembl_id = id) %>%
+  dplyr::rename(modality = drugType) %>%
+  dplyr::rename(maximum_clinical_trial_phase = maximumClinicalTrialPhase) %>%
+  dplyr::rename(year_of_first_approval = yearOfFirstApproval) %>%
+  dplyr::rename(mechanisms_of_action = mechanismsOfAction) %>%
+  dplyr::rename(linked_targets = linkedTargets)
+
+  # Add minimal rows for chembl_ids not available on OT
+  manual_entries <- data.frame(
+    chembl_id = c("CHEMBL449520", "CHEMBL3970532", "CHEMBL293762",
+                  "CHEMBL71851", "CHEMBL338802", "CHEMBL51934"),
+    maximum_clinical_trial_phase = c("Preclinical", "Preclinical", "Preclinical",
+                                     "Preclinical", "Phase IV", "Phase II"),
+    modality = c("Small molecule", "Small molecule", "Small molecule",
+               "Small molecule", "Small molecule", "Small molecule"),
+    year_of_first_approval = c(NA, NA, NA, NA, 1941, NA),
+    stringsAsFactors = FALSE
+  )
+  drug_info <- bind_rows(drug_info, manual_entries)
+
+  # Populate missing values as possible
+  drug_info <- drug_info %>%
+  # Missing drug_bank_ids that I could resolve by name
+  mutate(drug_bank_id = case_when(
+    chembl_id == "CHEMBL2108724" ~ "DB13928",
+    chembl_id == "CHEMBL296522"  ~ "DB04917",
+    chembl_id == "CHEMBL338802"  ~ "DB13726",
+    chembl_id == "CHEMBL4435170" ~ "DB16650",
+    chembl_id == "CHEMBL4594217" ~ "DB08907",
+    chembl_id == "CHEMBL4084119" ~ "DB06655",
+    chembl_id == "CHEMBL4788758" ~ "DB19277",
+    chembl_id == "CHEMBL545437"  ~ "DB05395",
+    TRUE                         ~ drug_bank_id  # Keeps existing values for remaining rows
+  )) %>%
+  # Populate missing descriptions with basic value
+  mutate(description = ifelse(is.na(description),
+                              paste(modality, "drug."),
+                              description))
+
+  # Ensure empty list fields serialize as empty lists in JSON
+  list_cols <- c("mechanisms_of_action", "linked_targets", "aliases")
+  for (col in list_cols) {
+    # Ensure the column is a list
+    if (!is.list(drug_info[[col]])) {
+      drug_info[[col]] <- as.list(drug_info[[col]])
+    }
+
+    # Find indices that are NULL or empty, and overwrite with list(character(0))
+    is_empty <- sapply(drug_info[[col]], function(x) is.null(x) || length(x) == 0 || all(is.na(x)))
+    drug_info[[col]][is_empty] <- list(character(0))
+}
+
+drug_info # 65 rows - missing 2 are the ones with 2 chembl_ids
+```
+
+# Validate drug_info
+```{r}
+# check for missing values; expected missing values based on the initial set of drug nominations
+tmp <- drug_info %>%
+  # expect these fields to be fully populated
+  verify(!is.na(chembl_id) & chembl_id != "") %>%
+  verify(!is.na(description) & description != "") %>%
+  verify(!is.na(modality) & modality != "") %>%
+  verify(!is.na(maximum_clinical_trial_phase) & maximum_clinical_trial_phase != "") %>%
+
+  # expect some missing values
+  verify(sum(is.na(year_of_first_approval)) == 16) %>%                                   # expect 16 (unapproved)
+  verify(sum(is.na(drug_bank_id)) == 5) %>%                                              # expect 5 (unresolvable)
+
+  # list fields
+  verify(sum(lengths(linked_targets) == 0) == 18) %>%                                    # 18 empty
+  verify(sum(lengths(mechanisms_of_action) == 0) == 16) %>%                              # 16 empty
+  verify(sum(lengths(aliases) == 0) == 9) %>%                                            # 9 empty
+
+  # cross-field sanity checks
+  verify(sum(maximum_clinical_trial_phase != 'Phase IV') == sum(is.na(year_of_first_approval))).  # N unapproved == N !phase4
+```
+
+# Generate source file and upload to Synapse
+```{r}
+json_output <- toJSON(drug_info, pretty = TRUE, auto_unbox = FALSE)
+
+# write json file
+write(json_output, file.path(output_dir, "opentargets_drug_metadata.json"))
+
+# BREAK HERE FOR LOCAL VALIDATION
+
+# upload to synapse
+synLogin()
+syn_file <- File(
+              file.path(output_dir, "opentargets_drug_metadata.json"),
+              description = "Open Targets Drug data for Agora",
+              parent = "syn7525089"
+            )
+
+res <- synStore(
+          syn_file,
+          forceVersion = FALSE,
+          used = data_sources,
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/agora/notebooks/preprocessing/AG-1974_OpenTargets_Drug_Metadata.rmd"
+        )
+# print synapse_id and new version number
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+```
+

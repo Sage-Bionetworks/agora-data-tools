@@ -19,7 +19,7 @@ datasets:
           id: syn61357279.16
           format: csv
         - name: biomarkers
-          id: syn61250724.11
+          id: syn61250724.12
           format: csv
         - name: human_transgene_allele_map
           id: syn64846805.2
@@ -95,7 +95,7 @@ datasets:
   - rna_de_aggregate:
       files:
         - name: rnaseq_genotype_label_map
-          id: syn69014401.13
+          id: syn69014401.14
           format: csv
         - name: mouse_gene_metadata
           id: syn51615422.4

@@ -202,12 +202,9 @@ def nest_fields(
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
     """
     nested = (
-        df.groupby(grouping)
-        .apply(
-            lambda row: row.replace({np.nan: None})
-            .drop(columns=drop_columns)
-            .to_dict("records")
-        )
+        normalize_null_values(df)
+        .groupby(grouping)
+        .apply(lambda x: x.drop(columns=drop_columns).to_dict("records"))
         .reset_index()
         .rename(columns={0: new_column})
     )
