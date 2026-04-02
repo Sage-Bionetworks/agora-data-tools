@@ -42,7 +42,7 @@ The transform requires three types of input:
 - `model`: Model name (must match values in rnaseq_genotype_label_map)
 - `genotype`: Genotype identifier (must match values in rnaseq_genotype_label_map)
 - `age`: Age timepoint as string (e.g., "3 months", "6 months")
-- `sex`: Sex identifier (e.g., "M", "F")
+- `sex`: Sex identifier (e.g., "Male", "Female")
 - `tissue`: Tissue name (e.g., "Right Cerebral Hemisphere", "hippocampus")
 - `individualid`: Unique identifier for each individual sample
 
@@ -52,7 +52,13 @@ The transform requires three types of input:
 
 ### Step 1: Metadata Preparation
 
-1. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
+1. **Genotype Label Map Preparation** (`prepare_genotype_label_map_df`)
+   - Imported from `rna_de_individual_utils` module
+   - Enriches the `rnaseq_genotype_label_map` DataFrame with `effective_model_group` and normalizes NaN values to empty strings
+   - Returns a DataFrame that is passed directly to `_process_individual_data_file_core` for vectorized merging
+   - **Purpose:** Produces the pre-prepared label map DataFrame used for genotype enrichment
+
+2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
    - Imported from `rna_de_individual_utils` module
    - Maps Ensembl gene IDs to gene symbols
    - **Purpose:** Enriches output with human-readable gene names
@@ -83,7 +89,7 @@ After all files in a group are preprocessed, they are concatenated (via `pd.conc
 After preprocessing and concatenation, the individual transform applies its specific logic:
 
 **Genotype Enrichment (Vectorized Merge):**
-- Converts genotype metadata dictionary to DataFrame
+- Selects relevant columns from the pre-prepared genotype label map DataFrame (produced by `prepare_genotype_label_map_df` in Step 1)
 - Performs left join on `(model, genotype)` to add:
   - `display_label`: Human-readable genotype label
   - `result_order`: Ordering value for display
@@ -145,7 +151,8 @@ For each grouped combination, this function directly creates output entries (one
 **Display Ordering:**
 - `result_order`: List of display labels in correct order for this model_group
 - **Determination logic:**
-  - Scans all genotypes belonging to the effective model_group in metadata
+  - Scans genotypes present in the already-merged data file (not the raw metadata), so only labels that exist in the actual data are included
+  - Excludes rows with an empty `display_label`
   - Sorts by result_order value (ascending)
   - Returns list of display labels in sorted order
   - **Purpose:** Enables consistent genotype ordering in visualization
