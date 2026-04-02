@@ -96,7 +96,6 @@ After preprocessing and concatenation, the individual transform applies its spec
   - `display_label`: Human-readable genotype label
   - `result_order`: Ordering value for display
   - `model_group`: Explicit model group
-- **Fallback for unmatched display labels:** If `display_label` is NA after the merge (e.g., the row had no match), it is filled with the original `genotype` value. Note that such rows are subsequently dropped (see below), so this fill is a safeguard rather than a functional path.
 - **Merge validation:** Uses `validate="many_to_one"` to ensure each `(model, genotype)` maps to exactly one label
 
 **name Field Assignment:**

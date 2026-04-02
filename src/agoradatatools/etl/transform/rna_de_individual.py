@@ -147,11 +147,6 @@ def _process_individual_data_file_core(
         merge_df, on=["model", "genotype"], how="left", validate="many_to_one"
     )
 
-    # Handle unmapped genotypes gracefully
-    data_file["display_label"] = data_file["display_label"].fillna(
-        data_file["genotype"]
-    )
-
     # Step 2: Drop rows that had no match in the label map.
     # After a left merge, any unmatched row has NA for result_order (it is never
     # filled above), so dropping those NAs identifies rows absent from the label map.
