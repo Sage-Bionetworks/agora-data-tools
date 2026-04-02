@@ -7,7 +7,7 @@ rna_de_individual transform, but are structured in a way that allows for potenti
 future reuse by other RNA-seq transforms if needed.
 
 Key Functions:
-    filter_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
+    filter_to_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
     prepare_genotype_label_map_df: Normalize the genotype label map DataFrame
@@ -27,7 +27,7 @@ from agoradatatools.etl.utils import check_required_datasets_and_columns
 logger = logging.getLogger(__name__)
 
 
-def filter_mouse_genes(df: pd.DataFrame) -> pd.DataFrame:
+def filter_to_mouse_genes(df: pd.DataFrame) -> pd.DataFrame:
     """
     Filter DataFrame to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*).
 
@@ -194,7 +194,7 @@ def preprocess_data_file(
     check_required_datasets_and_columns(
         {file_name: data_file}, {file_name: data_file_required_columns}
     )
-    data_file = filter_mouse_genes(data_file)
+    data_file = filter_to_mouse_genes(data_file)
     # Map JAX-specific names and normalize to sentence case.
     # To add a new multi-word mapping, insert another .str.replace() call in the chain.
     data_file["tissue"] = (

@@ -10,7 +10,7 @@ import pytest
 import logging
 
 from agoradatatools.etl.transform.rna_de_individual_utils import (
-    filter_mouse_genes,
+    filter_to_mouse_genes,
     validate_model_group_consistency,
     create_gene_metadata_dict,
     prepare_genotype_label_map_df,
@@ -21,7 +21,7 @@ from agoradatatools.etl.transform.rna_de_individual_utils import (
 
 
 class TestFilterMouseGenes:
-    """Tests for filter_mouse_genes function."""
+    """Tests for filter_to_mouse_genes function."""
 
     def test_filters_human_genes(self) -> None:
         """Test that human genes (ENSG*) are filtered out."""
@@ -36,7 +36,7 @@ class TestFilterMouseGenes:
             }
         )
 
-        result = filter_mouse_genes(df)
+        result = filter_to_mouse_genes(df)
 
         assert len(result) == 2
         assert all(result["ensembl_gene_id"].str.startswith("ENSMUSG"))
@@ -55,7 +55,7 @@ class TestFilterMouseGenes:
             }
         )
 
-        result = filter_mouse_genes(df)
+        result = filter_to_mouse_genes(df)
 
         assert len(result) == 3
 
@@ -63,7 +63,7 @@ class TestFilterMouseGenes:
         """Test handling of empty DataFrame."""
         df = pd.DataFrame({"ensembl_gene_id": pd.Series([], dtype=str), "value": []})
 
-        result = filter_mouse_genes(df)
+        result = filter_to_mouse_genes(df)
 
         assert len(result) == 0
 
@@ -407,7 +407,7 @@ class TestIntegration:
         # Test workflow
         validate_model_group_consistency(genotype_df)
         gene_metadata_dict = create_gene_metadata_dict(gene_metadata_df)
-        filtered_data = filter_mouse_genes(data_df)
+        filtered_data = filter_to_mouse_genes(data_df)
 
         # Verify results
         assert len(filtered_data) == 2
