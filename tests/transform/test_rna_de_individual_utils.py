@@ -11,12 +11,12 @@ import logging
 
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     filter_mouse_genes,
-    map_jax_tissue_name,
     validate_model_group_consistency,
     create_gene_metadata_dict,
     prepare_genotype_label_map_df,
     log_file_processing_info,
     validate_data_file_not_empty,
+    preprocess_data_file,
 )
 
 
@@ -68,31 +68,69 @@ class TestFilterMouseGenes:
         assert len(result) == 0
 
 
-class TestMapJaxTissueName:
-    """Tests for map_jax_tissue_name function."""
+class TestTissueNameMapping:
+    """Tests for the tissue name mapping applied inside preprocess_data_file."""
+
+    _REQUIRED_COLUMNS = [
+        "ensembl_gene_id",
+        "expression",
+        "model",
+        "genotype",
+        "age",
+        "sex",
+        "tissue",
+        "individualid",
+    ]
+
+    @staticmethod
+    def _make_df(tissues: list) -> pd.DataFrame:
+        """Build a minimal valid DataFrame with the given tissue values."""
+        n = len(tissues)
+        return pd.DataFrame(
+            {
+                "ensembl_gene_id": [f"ENSMUSG{i:011d}" for i in range(n)],
+                "expression": [1.0] * n,
+                "model": ["Model_A"] * n,
+                "genotype": ["Tg"] * n,
+                "age": ["4 months"] * n,
+                "sex": ["Male"] * n,
+                "tissue": tissues,
+                "individualid": [f"ID{i}" for i in range(n)],
+            }
+        )
+
+    def _preprocess(self, tissues: list) -> pd.Series:
+        df = self._make_df(tissues)
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        return result["tissue"].reset_index(drop=True)
 
     def test_maps_right_cerebral_hemisphere(self) -> None:
-        """Test that 'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
-        result = map_jax_tissue_name("Right Cerebral Hemisphere")
-        assert result == "Hemibrain"
+        """'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
+        assert self._preprocess(["Right Cerebral Hemisphere"]).iloc[0] == "Hemibrain"
 
     def test_applies_sentence_case_to_other_tissues(self) -> None:
-        """Test that other tissue names are converted to sentence case."""
-        assert map_jax_tissue_name("cortex") == "Cortex"
-        assert map_jax_tissue_name("hippocampus") == "Hippocampus"
-        assert map_jax_tissue_name("cerebellum") == "Cerebellum"
-        assert map_jax_tissue_name("CORTEX") == "Cortex"
-        assert map_jax_tissue_name("HIPPOCAMPUS") == "Hippocampus"
+        """Other tissue names are converted to sentence case."""
+        result = self._preprocess(
+            ["cortex", "hippocampus", "cerebellum", "CORTEX", "HIPPOCAMPUS"]
+        )
+        expected = pd.Series(
+            ["Cortex", "Hippocampus", "Cerebellum", "Cortex", "Hippocampus"]
+        )
+        pd.testing.assert_series_equal(result, expected, check_names=False)
 
     def test_preserves_sentence_case_tissues(self) -> None:
-        """Test that properly formatted tissues remain the same."""
-        assert map_jax_tissue_name("Cortex") == "Cortex"
-        assert map_jax_tissue_name("Hippocampus") == "Hippocampus"
+        """Properly formatted tissue names are unchanged."""
+        result = self._preprocess(["Cortex", "Hippocampus"])
+        expected = pd.Series(["Cortex", "Hippocampus"])
+        pd.testing.assert_series_equal(result, expected, check_names=False)
 
-    def test_special_mapping_takes_precedence(self) -> None:
-        """Test that special mappings are applied before sentence case."""
-        # This is already sentence case but should still be mapped to Hemibrain
-        assert map_jax_tissue_name("Right Cerebral Hemisphere") == "Hemibrain"
+    def test_mixed_tissue_names(self) -> None:
+        """Mixed tissue names including the special mapping are all handled correctly."""
+        result = self._preprocess(
+            ["Right Cerebral Hemisphere", "hippocampus", "CORTEX", "Cerebellum"]
+        )
+        expected = pd.Series(["Hemibrain", "Hippocampus", "Cortex", "Cerebellum"])
+        pd.testing.assert_series_equal(result, expected, check_names=False)
 
 
 class TestValidateModelGroupConsistency:
@@ -407,4 +445,3 @@ class TestIntegration:
         # Verify results
         assert len(filtered_data) == 2
         assert gene_metadata_dict["ENSMUSG00000000001"] == "Gene1"
-        assert map_jax_tissue_name("Right Cerebral Hemisphere") == "Hemibrain"

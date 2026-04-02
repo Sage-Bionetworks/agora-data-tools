@@ -80,6 +80,7 @@ Applied to each file individually before it is combined within its group:
 - **Empty file validation:** Raises error if file is empty
 - **Column validation:** Checks all required columns are present (defined by `DATA_FILE_REQUIRED_COLUMNS`)
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
+- **Tissue name mapping:** Replaces `"Right Cerebral Hemisphere"` with `"Hemibrain"` and converts all tissue names to sentence case (e.g., `"hippocampus"` → `"Hippocampus"`). To add a new multi-word mapping, add another `.str.replace()` call to the chain in `preprocess_data_file`.
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places
 - **Type casting:** Casts `individualid` to string to ensure consistent identifier handling
 
@@ -133,9 +134,7 @@ For each grouped combination, this function directly creates output entries (one
 - `gene_symbol`: Gene symbol from metadata (empty string if not found)
 
 **Tissue Information:**
-- `tissue`: Tissue name with transformations applied:
-  - **Special transformation:** "Right Cerebral Hemisphere" → "Hemibrain"
-  - **Sentence case conversion:** All tissue names converted to sentence case (e.g., "hippocampus" → "Hippocampus", "CORTEX" → "Cortex")
+- `tissue`: Tissue name, already mapped and sentence-cased by `preprocess_data_file` (Step 2.2)
 
 **Model Information:**
 - `name`: `effective_model_group` value — equals `model_group` when explicitly set, or the model name for solo models
@@ -237,7 +236,7 @@ This transform is designed to handle two distinct experimental scenarios:
 
 ### 8. Single Model per File
 - **Assumption:** Each input data file contains rows for exactly one model, and therefore belongs to exactly one `effective_model_group`
-- **Rationale:** The file-grouping step (Step 5) assigns each file to a group based on the first `model` value it finds. If a file contains rows from two models that map to *different* `effective_model_group`s, the entire file is assigned to only the first group. Inside `_process_individual_data_file_core` the per-row merge still labels every row with its correct group (via the label-map merge on `(model, genotype)`), but `result_order` and `matched_control` are computed once per function call from the combined DataFrame — so the secondary group's rows receive the wrong ordering list and the wrong control label.
+- **Rationale:** The file-grouping step (Step 2.1) assigns each file to a group based on the first `model` value it finds. If a file contains rows from two models that map to *different* `effective_model_group`s, the entire file is assigned to only the first group. Inside `_process_individual_data_file_core` the per-row merge still labels every row with its correct group (via the label-map merge on `(model, genotype)`), but `result_order` and `matched_control` are computed once per function call from the combined DataFrame — so the secondary group's rows receive the wrong ordering list and the wrong control label.
 - **Validation:** The code checks `df["model"].unique()` on every file and raises a `ValueError` immediately if more than one model is present, regardless of whether those models share an `effective_model_group`. This is a deliberate fail-fast behaviour — silent data corruption (wrong `result_order` and `matched_control`) is worse than an explicit error.
 - **Current state:** All production input files contain data for a single model, so this check has never been triggered in practice.
 
@@ -249,7 +248,7 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Impact:** Significantly reduces data volume if input contains human genes
 
 ### 2. Dropping Unmatched Rows
-- **What:** Drops rows whose `(model, genotype)` pair had no match in the label map (NA `effective_model_group` after left merge); if all rows are dropped a `WARNING` is logged and the group returns `[]`
+- **What:** Drops rows whose `(model, genotype)` pair had no match in the label map (NA `effective_model_group` after left merge); if all rows are dropped a `ValueError` is raised
 - **Why:** Prevents unrecognised genotype combinations from being processed
 - **Example:** If processing model_group "5XFAD" with genotypes [A, B], rows with genotype C receive NA and are dropped
 - **Impact:** Ensures data integrity and prevents mismatched comparisons
@@ -363,7 +362,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 ### Processing Validation
 1. Merge validation ensures one-to-one genotype label mapping
 2. Age strings are validated against the `(\d+) months` regex; non-matching values raise `ValueError` immediately
-3. If all rows in a group are dropped after the genotype label map merge (no genotypes matched), a `WARNING` is logged and that group contributes no output entries
+3. If all rows in a group are dropped after the genotype label map merge (no genotypes matched), a `ValueError` is raised with a message identifying the cause
 4. **Single-model-per-file check:** Before grouping, each file is checked to confirm it contains rows for exactly one model. If more than one model is detected, a `ValueError` is raised immediately, identifying the file and the conflicting model names (see Key Assumption 8)
 
 ### Error Scenarios
@@ -371,7 +370,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 - **Missing required columns:** ValueError with column names
 - **Empty data files:** ValueError with file name
 - **Non-standard age strings (not matching `'[N] months'`):** ValueError listing the offending values; see Key Assumption 6
-- **All genotypes unrecognised (post-merge empty):** WARNING logged, group skipped (not an error)
+- **All genotypes unrecognised (post-merge empty):** ValueError raised; the file had data but no recognised genotypes, which indicates a wrong file or a misconfigured label map
 - **Invalid merge relationships:** pandas MergeError with details
 - **File contains multiple models:** ValueError raised with the file name and the list of conflicting model names; see Key Assumption 8
 
@@ -429,7 +428,7 @@ output = transform_rna_de_individual(
 ### Issue: Unexpected tissue names
 - **Cause:** Tissue names not standardized in input data
 - **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"; all other tissues are converted to sentence case
-- **Solution:** Update input data or add transformations to `map_jax_tissue_name`
+- **Solution:** Update input data or add additional `.str.replace()` calls to the tissue mapping chain in `preprocess_data_file` in `rna_de_individual_utils.py`
 
 ### Issue: Memory errors with large files
 - **Cause:** Processing very large expression files

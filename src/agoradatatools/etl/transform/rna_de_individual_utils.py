@@ -8,12 +8,12 @@ future reuse by other RNA-seq transforms if needed.
 
 Key Functions:
     filter_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
-    map_jax_tissue_name: Map JAX-specific tissue names to standard names and apply sentence case
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
     prepare_genotype_label_map_df: Enrich the genotype label map DataFrame with effective_model_group
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
+    preprocess_data_file: Apply common validation and transformation steps to a single data file
 """
 
 import pandas as pd
@@ -35,39 +35,7 @@ def filter_mouse_genes(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         Filtered DataFrame containing only mouse genes
     """
-    return df[df["ensembl_gene_id"].str.startswith("ENSMUSG")]
-
-
-def map_jax_tissue_name(tissue: str) -> str:
-    """
-    Map JAX-specific tissue names to standard names and apply sentence case.
-
-    First applies special mappings (e.g., "Right Cerebral Hemisphere" to "Hemibrain"),
-    then converts the result to sentence case via str.capitalize().
-
-    Note: str.capitalize() lowercases every character after the first, so only
-    single-word tissue names (or already-mapped names like "Hemibrain") are safe
-    to pass through. Any new multi-word tissue name that needs capitalisation on
-    each word should be added to the special-mapping block above.
-
-    Args:
-        tissue: Original tissue name
-
-    Returns:
-        Mapped and sentence-cased tissue name
-
-    Examples:
-        >>> map_jax_tissue_name("Right Cerebral Hemisphere")
-        "Hemibrain"
-        >>> map_jax_tissue_name("hippocampus")
-        "Hippocampus"
-        >>> map_jax_tissue_name("CORTEX")
-        "Cortex"
-    """
-    if tissue == "Right Cerebral Hemisphere":
-        return "Hemibrain"
-
-    return tissue.capitalize()
+    return df[df["ensembl_gene_id"].str.startswith("ENSMUSG")].copy()
 
 
 def validate_model_group_consistency(
@@ -219,8 +187,8 @@ def preprocess_data_file(
         data_file_required_columns: List of column names that must be present
 
     Returns:
-        Preprocessed DataFrame with mouse genes only and numeric values rounded to 5
-        decimal places.
+        Preprocessed DataFrame with mouse genes only, tissue names mapped and
+        sentence-cased, and numeric values rounded to 5 decimal places.
 
     Raises:
         ValueError: If the file is empty or missing required columns.
@@ -231,6 +199,13 @@ def preprocess_data_file(
         {file_name: data_file}, {file_name: data_file_required_columns}
     )
     data_file = filter_mouse_genes(data_file)
+    # Map JAX-specific names and normalize to sentence case.
+    # To add a new multi-word mapping, insert another .str.replace() call in the chain.
+    data_file["tissue"] = (
+        data_file["tissue"]
+        .str.replace("Right Cerebral Hemisphere", "Hemibrain", regex=False)
+        .str.capitalize()
+    )
     data_file = data_file.round(decimals=5)
     data_file["individualid"] = data_file["individualid"].astype(str)
     return data_file
