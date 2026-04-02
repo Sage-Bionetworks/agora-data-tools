@@ -109,7 +109,7 @@ After preprocessing and concatenation, the individual transform applies its spec
 - Those rows are removed with `dropna(subset=["effective_model_group"])`
 - **Purpose:** Ensures only genotype combinations that exist in the label map are processed
 - **Example:** If model_group "5XFAD" has genotypes ["5XFAD_carrier", "5XFAD_noncarrier"], any rows with a different genotype receive NA and are dropped
-- **All-rows-filtered case:** If every row is dropped (i.e., no genotype in the file matched the label map at all), a `WARNING` is logged and the function returns `[]` for that group. This is distinct from an empty input file (which raises `ValueError`) — it means the file had data but none of its genotypes were recognised.
+- **All-rows-filtered case:** If every row is dropped (i.e., no genotype in the file matched the label map at all), a `ValueError` is raised. This strongly indicates either the wrong file was provided or the label map is missing entries for the model — silently producing empty output could mask a data pipeline misconfiguration. Check that the input file's `model`/`genotype` values match those in `rnaseq_genotype_label_map`.
 
 ### Step 3: Grouping and Output Entry Creation
 

@@ -37,7 +37,6 @@ import json
 from typing import Dict, List
 import pandas as pd
 import pytest
-import logging
 
 from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
@@ -143,7 +142,7 @@ class TestProcessIndividualDataFileCore:
         - test_genotype_filtering: Tests filtering of invalid genotypes.
         - test_uses_preprocessed_data: Tests that function expects preprocessed data.
         - test_multiple_genotypes_with_model_group: Tests multiple genotypes in a model group.
-        - test_all_genotypes_unmatched_returns_empty_with_warning: Tests WARNING is logged and [] returned when all rows are dropped.
+        - test_all_genotypes_unmatched_raises_value_error: Tests ValueError is raised when all rows are dropped.
         - test_non_digit_age_raises_value_error: Tests that a mix of valid and non-digit age strings raises ValueError.
         - test_all_ages_non_digit_raises_value_error: Tests that all-non-digit age values raise ValueError.
         - test_blank_age_raises_value_error: Tests that a blank (empty-string) age raises ValueError.
@@ -296,15 +295,14 @@ class TestProcessIndividualDataFileCore:
         assert result[0]["model_group"] == "GroupX"
         assert result[0]["matched_control"] == "Control_B"
 
-    def test_all_genotypes_unmatched_returns_empty_with_warning(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
-        """Test that a WARNING is logged and [] is returned when all rows are dropped.
+    def test_all_genotypes_unmatched_raises_value_error(self) -> None:
+        """Test that a ValueError is raised when all rows are dropped.
 
         This occurs when none of the genotypes in the data file have a match in the
         genotype label map, causing every row to be dropped by dropna. This is distinct
-        from an empty input file (which raises ValueError) — it means the file had data
-        but no recognised genotypes.
+        from an empty input file (which also raises ValueError) — it means the file had
+        data but no recognised genotypes, which strongly indicates a wrong file or a
+        misconfigured label map.
         """
         data_file = pd.DataFrame(
             {
@@ -331,18 +329,13 @@ class TestProcessIndividualDataFileCore:
             }
         )
 
-        with caplog.at_level(logging.WARNING):
-            result = _process_individual_data_file_core(
+        with pytest.raises(
+            ValueError,
+            match="all genotypes in this file were absent from the label map",
+        ):
+            _process_individual_data_file_core(
                 data_file, gene_metadata_dict, genotype_label_map_df
             )
-
-        assert result == []
-        assert any(
-            "all genotypes in this file were absent from the label map"
-            in record.message
-            for record in caplog.records
-            if record.levelno == logging.WARNING
-        )
 
     def test_non_digit_age_raises_value_error(self) -> None:
         """Test that age strings containing no digits raise a clear ValueError.

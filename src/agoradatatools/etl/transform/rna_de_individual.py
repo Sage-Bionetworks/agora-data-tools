@@ -161,11 +161,13 @@ def _process_individual_data_file_core(
     data_file = data_file.dropna(subset=["effective_model_group"])
 
     if data_file.empty:
-        logger.warning(
-            "No rows remained after filtering to mapped genotypes; "
-            "all genotypes in this file were absent from the label map. Returning []."
+        raise ValueError(
+            "No rows remained after filtering to mapped genotypes — "
+            "all genotypes in this file were absent from the label map. "
+            "This likely means the wrong file was provided or the label map "
+            "is missing entries for this model. Check that the input file's "
+            "model/genotype values match the rnaseq_genotype_label_map."
         )
-        return []
 
     # Step 3: Convert types once per file before grouping
     data_file["individualid"] = data_file["individualid"].astype(str)
@@ -326,7 +328,8 @@ def transform_rna_de_individual(
 
     Raises:
         ValueError: If required datasets or columns are missing, if data files are empty,
-            or if model_group values are inconsistent for any model.
+            if model_group values are inconsistent for any model, or if all rows in a
+            data file are dropped because none of its genotypes matched the label map.
     """
     # Step 1: Validate inputs
     check_required_datasets_and_columns(datasets, required_input)
