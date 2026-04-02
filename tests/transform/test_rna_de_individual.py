@@ -974,7 +974,7 @@ class TestTransformRnaDeIndividual:
                 "model": ["Model_A", "Model_B"],
                 "genotype": ["Tg", "Carrier"],
                 "age": ["6 months", "6 months"],
-                "sex": ["M", "M"],
+                "sex": ["Male", "Male"],
                 "tissue": ["Cortex", "Cortex"],
                 "individualid": ["Ind001", "Ind002"],
             }
@@ -1049,7 +1049,7 @@ class TestTransformRnaDeIndividual:
                 "model": ["Model_B", "Model_C"],
                 "genotype": ["Carrier", "Carrier"],
                 "age": ["6 months", "6 months"],
-                "sex": ["M", "M"],
+                "sex": ["Male", "Male"],
                 "tissue": ["Cortex", "Cortex"],
                 "individualid": ["Ind001", "Ind002"],
             }
