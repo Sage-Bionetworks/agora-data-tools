@@ -23,7 +23,7 @@ The transform requires three types of input:
 - `model`: Model name (e.g., "5XFAD (UCI)", "Jax.IU.Pitt_APOE4")
 - `genotype`: Genotype identifier in the data (e.g., "5XFAD_carrier", "APOE4_carrier")
 - `display_label`: Human-readable label for the genotype (e.g., "5xFAD (UCI)", "APOE4")
-- `model_group`: Grouping of models for display purposes (e.g., "5XFAD", "APOE4"; may be empty string)
+- `model_group`: Grouping of models for display purposes (e.g., "5XFAD", "APOE4"; may be empty string or NaN — both are normalized to `None`)
 - `result_order`: Integer determining display order (lower values indicate controls)
 
 **Purpose:** Maps genotype identifiers to human-readable labels and organizes models into groups.
@@ -54,7 +54,7 @@ The transform requires three types of input:
 
 1. **Genotype Label Map Preparation** (`prepare_genotype_label_map_df`)
    - Imported from `rna_de_individual_utils` module
-   - Enriches the `rnaseq_genotype_label_map` DataFrame with `effective_model_group` and normalizes NaN values to empty strings (except `model_group`, which is normalized to `None` for rows with no explicit group)
+   - Enriches the `rnaseq_genotype_label_map` DataFrame with `effective_model_group` and normalizes `model_group` to `None` for rows with no explicit group (treating both `""` and `NaN` as "no group")
    - Returns a DataFrame that is passed directly to `_process_individual_data_file_core` for vectorized merging
    - **Purpose:** Produces the pre-prepared label map DataFrame used for genotype enrichment
 

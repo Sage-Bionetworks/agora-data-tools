@@ -16,6 +16,7 @@ Key Functions:
     preprocess_data_file: Apply common validation and transformation steps to a single data file
 """
 
+import numpy as np
 import pandas as pd
 from typing import Dict, List
 import logging
@@ -87,19 +88,17 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     Enrich the genotype label map DataFrame with an effective_model_group column.
 
-    Computes effective_model_group as model_group when a non-empty value is present,
-    otherwise falls back to the model name. Fills all remaining NaN values (except
-    model_group) with empty strings, normalizes model_group to None for rows with no
-    explicit group, and casts result_order to int.
+    Normalizes model_group (treating both NaN and "" as "no group") to Python None,
+    then computes effective_model_group as model_group when present, otherwise falling
+    back to the model name. Casts result_order to int.
 
     Args:
         df: Raw rnaseq_genotype_label_map DataFrame with columns: model, genotype,
             display_label, model_group, result_order
 
     Returns:
-        Enriched DataFrame with an added effective_model_group column, NaN values
-        replaced by empty strings (except model_group, which uses None for "no group"),
-        and result_order cast to int.
+        Enriched DataFrame with an added effective_model_group column, model_group
+        normalized to None for "no group" rows, and result_order cast to int.
 
     Examples:
         >>> df = pd.DataFrame({
@@ -116,16 +115,13 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
         [None, 'GroupX']
     """
     df = df.copy()
-    # Replace empty strings with NaN before computing effective_model_group so that
-    # both NaN and "" model_group values fall back to the model name.
-    df["effective_model_group"] = (
-        df["model_group"].replace("", pd.NA).fillna(df["model"])
-    )
-    df = df.fillna("")
+    # Treat both "" and NaN as "no group"; normalize to Python None so that
+    # downstream JSON serialization produces null rather than an empty string.
+    # pandas fillna fills both None and np.nan in object columns, so this single
+    # replace is sufficient before computing effective_model_group.
+    df["model_group"] = df["model_group"].replace({np.nan: None, "": None})
+    df["effective_model_group"] = df["model_group"].fillna(df["model"])
     df["result_order"] = df["result_order"].astype(int)
-    # Normalize model_group: use None (not "") for rows with no explicit group so that
-    # the output field is null rather than an empty string.
-    df["model_group"] = df["model_group"].replace("", None)
     return df
 
 
