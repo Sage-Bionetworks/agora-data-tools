@@ -81,8 +81,8 @@ Applied to each file individually before it is combined within its group:
 - **Column validation:** Checks all required columns are present (defined by `DATA_FILE_REQUIRED_COLUMNS`)
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
 - **Tissue name mapping:** Replaces `"Right Cerebral Hemisphere"` with `"Hemibrain"` and converts all tissue names to sentence case (e.g., `"hippocampus"` → `"Hippocampus"`). To add a new multi-word mapping, add another `.str.replace()` call to the chain in `preprocess_data_file`.
-- **Numeric rounding:** Rounds all numeric columns to 5 decimal places
-- **Type casting:** Casts `individualid` to string to ensure consistent identifier handling
+- **Type casting:** Casts `expression` to `float` (guards against string-typed columns from some CSV readers) and casts `individualid` to `str` for consistent identifier handling
+- **Numeric rounding:** Rounds all numeric columns to 5 decimal places (runs after the `expression` cast so the round is guaranteed to apply)
 
 After all files in a group are preprocessed, they are concatenated (via `pd.concat`) into a single DataFrame that is passed to `_process_individual_data_file_core`. Memory is explicitly freed (via `del` and `gc.collect()`) after each group is processed.
 

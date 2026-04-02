@@ -202,6 +202,7 @@ def preprocess_data_file(
         .str.replace("Right Cerebral Hemisphere", "Hemibrain", regex=False)
         .str.capitalize()
     )
+    data_file["expression"] = data_file["expression"].astype(float)
     data_file = data_file.round(decimals=5)
     data_file["individualid"] = data_file["individualid"].astype(str)
     return data_file

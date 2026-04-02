@@ -134,6 +134,76 @@ class TestTissueNameMapping:
         pd.testing.assert_series_equal(result, expected, check_names=False)
 
 
+class TestPreprocessDataFileTypeCasting:
+    """Tests for column type casting applied inside preprocess_data_file."""
+
+    _REQUIRED_COLUMNS = [
+        "ensembl_gene_id",
+        "expression",
+        "model",
+        "genotype",
+        "age",
+        "sex",
+        "tissue",
+        "individualid",
+    ]
+
+    @staticmethod
+    def _make_df(expression_values, individualid_values) -> pd.DataFrame:
+        """Build a minimal valid DataFrame with the given expression and individualid values."""
+        n = len(expression_values)
+        return pd.DataFrame(
+            {
+                "ensembl_gene_id": [f"ENSMUSG{i:011d}" for i in range(n)],
+                "expression": expression_values,
+                "model": ["Model_A"] * n,
+                "genotype": ["Tg"] * n,
+                "age": ["4 months"] * n,
+                "sex": ["Male"] * n,
+                "tissue": ["Cortex"] * n,
+                "individualid": individualid_values,
+            }
+        )
+
+    def test_expression_string_is_cast_to_float(self) -> None:
+        """expression values arriving as strings are cast to float before rounding."""
+        df = self._make_df(
+            expression_values=["1.123456789", "2.987654321"],
+            individualid_values=["ID0", "ID1"],
+        )
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        assert result["expression"].dtype == float
+
+    def test_expression_string_is_rounded_to_5_decimals(self) -> None:
+        """expression values from strings are correctly rounded after casting."""
+        df = self._make_df(
+            expression_values=["1.123456789"],
+            individualid_values=["ID0"],
+        )
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        assert result["expression"].iloc[0] == pytest.approx(1.12346)
+
+    def test_individualid_numeric_is_cast_to_str(self) -> None:
+        """individualid values arriving as integers are cast to str."""
+        df = self._make_df(
+            expression_values=[1.0, 2.0],
+            individualid_values=[101, 202],
+        )
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        assert result["individualid"].dtype == object
+        assert result["individualid"].iloc[0] == "101"
+        assert result["individualid"].iloc[1] == "202"
+
+    def test_expression_already_float_unchanged(self) -> None:
+        """expression values that are already float pass through without error."""
+        df = self._make_df(
+            expression_values=[1.5, 2.5],
+            individualid_values=["ID0", "ID1"],
+        )
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        assert result["expression"].dtype == float
+
+
 class TestValidateModelGroupConsistency:
     """Tests for validate_model_group_consistency function."""
 
