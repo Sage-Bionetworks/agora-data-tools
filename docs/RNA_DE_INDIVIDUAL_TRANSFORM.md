@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `rna_de_individual` transform processes individual-level RNA expression (normalized expression) data from Model AD mouse models. It transforms raw individual expression measurements into a structured format that groups data by gene, tissue, and effective_model_group, with individual data points organized by age.
+The `rna_de_individual` transform processes individual-level RNA expression (normalized expression) data from Model AD mouse models. It transforms raw individual expression measurements into a structured format that groups data by gene, tissue, and model_group, with individual data points organized by age.
 
 **Module Location:** `src/agoradatatools/etl/transform/rna_de_individual.py`
 
@@ -54,9 +54,9 @@ The transform requires three types of input:
 
 1. **Genotype Label Map Preparation** (`prepare_genotype_label_map_df`)
    - Imported from `rna_de_individual_utils` module
-   - Enriches the `rnaseq_genotype_label_map` DataFrame with `effective_model_group` and normalizes `model_group` to `None` for rows with no explicit group (treating both `""` and `NaN` as "no group")
+   - Normalizes the `rnaseq_genotype_label_map` DataFrame: treats both `""` and `NaN` in `model_group` as "no group" and converts them to `None`, and casts `result_order` to `int`
    - Returns a DataFrame that is passed directly to `_process_individual_data_file_core` for vectorized merging
-   - **Purpose:** Produces the pre-prepared label map DataFrame used for genotype enrichment
+   - **Purpose:** Produces the normalized label map DataFrame used for genotype enrichment
 
 2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
    - Imported from `rna_de_individual_utils` module
@@ -65,11 +65,11 @@ The transform requires three types of input:
 
 ### Step 2: File Grouping and Preprocessing
 
-Before transform-specific processing, the main function groups input files by their `effective_model_group` and preprocesses each file individually.
+Before transform-specific processing, the main function groups input files by their `model_group` and preprocesses each file individually.
 
-#### 2.1 File Grouping by effective_model_group
-- Reads the `model` column of each input file to determine its `effective_model_group` using the genotype metadata lookup
-- Groups files with the same `effective_model_group` together (e.g. UCI models whose data is split across two CSV files)
+#### 2.1 File Grouping by model_group
+- Reads the `model` column of each input file to determine its `model_group` using the genotype label map lookup
+- Groups files with the same `model_group` together (e.g. UCI models whose data is split across two CSV files)
 - Single-file groups are processed without any concatenation overhead
 - This strategy keeps memory usage proportional to the largest group rather than the total dataset size
 - **Single-model-per-file validation:** Before grouping, checks whether any file contains rows from more than one model. If so, a `ValueError` is raised immediately, identifying the file and the conflicting model names. This is a hard failure because `result_order` and `matched_control` cannot be computed correctly when a file spans multiple models (see [Key Assumptions: Single Model per File](#8-single-model-per-file))
@@ -91,26 +91,23 @@ After all files in a group are preprocessed, they are concatenated (via `pd.conc
 After preprocessing and concatenation, the individual transform applies its specific logic:
 
 **Genotype Enrichment (Vectorized Merge):**
-- Selects relevant columns from the pre-prepared genotype label map DataFrame (produced by `prepare_genotype_label_map_df` in Step 1)
+- Selects relevant columns from the normalized genotype label map DataFrame (produced by `prepare_genotype_label_map_df` in Step 1)
 - Performs left join on `(model, genotype)` to add:
   - `display_label`: Human-readable genotype label
   - `result_order`: Ordering value for display
-  - `model_group`: Explicit model group (None if none)
-  - `effective_model_group`: `model_group` when set, otherwise `model` name
-- **Fallback for unmapped genotypes:**
-  - `display_label` = original `genotype` value
-  - `result_order` = 999 (treated as non-control)
+  - `model_group`: Explicit model group
+- **Fallback for unmatched display labels:** If `display_label` is NA after the merge (e.g., the row had no match), it is filled with the original `genotype` value. Note that such rows are subsequently dropped (see below), so this fill is a safeguard rather than a functional path.
 - **Merge validation:** Uses `validate="many_to_one"` to ensure each `(model, genotype)` maps to exactly one label
 
 **name Field Assignment:**
-- `name` is set to `effective_model_group` (the model_group when explicitly set, or the model name for solo models)
-- This consolidates multi-file model_groups (e.g. all UCI models sharing "Trem2-R47H_NSS") under a single display name while preserving solo-model names
+- `name` is set directly to `model_group`
+- This consolidates multi-file model_groups (e.g. all UCI models sharing "Trem2-R47H_NSS") under a single display name
 
 **Dropping Unmatched Rows:**
-- After the left merge with the label map, any row whose `(model, genotype)` pair had no match receives NA for `effective_model_group`
-- Those rows are removed with `dropna(subset=["effective_model_group"])`
+- After the left merge with the label map, any row whose `(model, genotype)` pair had no match receives NA for `result_order` (since it comes from the label map and is never filled with a fallback)
+- Those rows are removed with `dropna(subset=["result_order"])`
 - **Purpose:** Ensures only genotype combinations that exist in the label map are processed
-- **Example:** If model_group "5XFAD" has genotypes ["5XFAD_carrier", "5XFAD_noncarrier"], any rows with a different genotype receive NA and are dropped
+- **Example:** If model_group "5XFAD" has genotypes ["5XFAD_carrier", "5XFAD_noncarrier"], any rows with a different genotype receive NA for `result_order` and are dropped
 - **All-rows-filtered case:** If every row is dropped (i.e., no genotype in the file matched the label map at all), a `ValueError` is raised. This strongly indicates either the wrong file was provided or the label map is missing entries for the model — silently producing empty output could mask a data pipeline misconfiguration. Check that the input file's `model`/`genotype` values match those in `rnaseq_genotype_label_map`.
 
 ### Step 3: Grouping and Output Entry Creation
@@ -119,11 +116,11 @@ After preprocessing and concatenation, the individual transform applies its spec
 - Groups data by four columns: `(ensembl_gene_id, tissue, name, age)`
   - `ensembl_gene_id`: Ensembl gene identifier
   - `tissue`: Tissue name (post-mapping and sentence-case normalization)
-  - `name`: Set to `effective_model_group` — the `model_group` when explicitly provided, or the model name for solo models
+  - `name`: Set to `model_group`
   - `age`: Age timepoint (e.g., `"4 months"`, `"12 months"`)
-- `model_group` is constant for a given `name` (validated by `validate_model_group_consistency`), so it is captured in a `name → model_group` lookup before grouping and restored as a top-level output column afterward. This avoids having `None` values in the groupby keys (pandas drops `NaN` groupby keys by default).
+- `model_group` is excluded from the groupby key to avoid issues with `None` values (pandas drops `NaN`/`None` groupby keys by default). Since `name` equals `model_group`, `model_group` is restored as a top-level output column from `name` after nesting.
 - Each unique combination of these four columns defines one output row
-- **Design decision:** `name` is set to `effective_model_group` rather than the raw model name so that all models sharing the same `model_group` (including data split across multiple input files) produce a single consolidated output entry
+- **Design decision:** `name` is set to `model_group` so that all models sharing the same `model_group` (including data split across multiple input files) produce a single consolidated output entry
 
 #### 3.2 Transform-Specific Processing (`_process_individual_data_file_core`)
 
@@ -137,7 +134,7 @@ For each grouped combination, this function directly creates output entries (one
 - `tissue`: Tissue name, already mapped and sentence-cased by `preprocess_data_file` (Step 2.2)
 
 **Model Information:**
-- `name`: `effective_model_group` value — equals `model_group` when explicitly set, or the model name for solo models
+- `name`: `model_group` value
 - `model_group`: Explicit model group name (normalized to `None` if empty string)
 
 **Control Identification:**
@@ -170,15 +167,15 @@ For each grouped combination, this function directly creates output entries (one
   - `value`: Expression value
 
 **Processing Steps:**
-1. Groups the input data by four columns: (ensembl_gene_id, tissue, name, age); model_group is restored via lookup after grouping
+1. Groups the input data by four columns: (ensembl_gene_id, tissue, name, age); model_group is restored from name after grouping
 2. For each grouped combination, creates a complete output entry with all metadata fields
 3. Sorts output entries by gene then numeric age for consistent ordering
-4. Returns one output entry per unique (ensembl_gene_id, tissue, name, age, model_group) combination
+4. Returns one output entry per unique (ensembl_gene_id, tissue, name, age) combination
 
 **Unnesting Decision:** Unlike some transforms that nest age data, this transform creates **one output entry per age** (unnested structure). Each entry has a single age with its associated data points.
 
 ### Step 4: Consolidation
-- Combines output entries from all processed effective_model_groups
+- Combines output entries from all processed model_groups
 - Returns single list of all entries
 
 ## Key Assumptions
@@ -190,7 +187,7 @@ For each grouped combination, this function directly creates output entries (one
 ### 2. Result Order and Control Identification
 - **Assumption:** Lower `result_order` values always represent control genotypes
 - **Assumption:** The genotype with the minimum result_order in actual data is the matched control
-- **Authoritative source:** `result_order` from `rnaseq_genotype_label_map` is the sole signal used to determine which genotype is the control. Any external model_info file is not consulted. Currently, `result_order` assignments and model_info file designations agree for all `effective_model_groups` with only two genotypes, but `result_order` takes precedence if they ever diverge.
+- **Authoritative source:** `result_order` from `rnaseq_genotype_label_map` is the sole signal used to determine which genotype is the control. Any external model_info file is not consulted. Currently, `result_order` assignments and model_info file designations agree for all `model_group`s with only two genotypes, but `result_order` takes precedence if they ever diverge.
 - **Limitation for 4-genotype UCI studies:** Some DE analyses pair each case genotype with a *different* control (e.g., `Trem2-R47H_NSS.5xFAD` vs `Trem2-R47H_NSS` rather than vs `C57BL/6J`). The `matched_control` field cannot represent this per-case-genotype pairing — it always contains the single genotype with the lowest `result_order` for the group, which is a simplification for these multi-control scenarios.
 - **Implication:** If data is missing control samples, the matched_control field may be empty
 
@@ -198,26 +195,25 @@ For each grouped combination, this function directly creates output entries (one
 This transform is designed to handle two distinct experimental scenarios:
 
 **Scenario A: Single Model vs. Control**
-- One model compared to one control (e.g., `Jax.IU.Pitt_APOE4` vs. `C57BL/6J`)
-- The `model_group` may be empty or equal to the model name
+- One model compared to one control (e.g., `APOE4` vs. `C57BL/6J`)
+- The `model_group` equals the model name (e.g., `"APOE4"`)
 - Display shows one experimental genotype vs. one control genotype
 
 **Scenario B: Multiple Related Models Sharing Controls**
 - Multiple variants of the same model type share a common control group
-- Example: Several 5XFAD variants (`5XFAD (UCI)`, `5XFAD (JAX)`, etc.) all use the same control genotypes
-- The `model_group` field (e.g., "5XFAD") links these related models together
+- Example: `Trem2-R47H_NSS` and `Trem2-R47H_NSS.5xFAD` both belong to `model_group = "Trem2-R47H_NSS"` and their expression data lives in separate input files
+- The `model_group` field links these related models together
 - Display can show multiple model variants alongside their shared controls
 
 **Implementation Details:**
-- **Effective Model Group:** When `model_group` is empty, the model itself serves as its own group (`effective_model_group = model`)
-- **Name Field:** The `name` field is set to `effective_model_group`, consolidating multi-file model_groups (e.g. UCI models) under a single display name while preserving solo-model names
-- **File Grouping:** Input files are first grouped by `effective_model_group`; only files within the same group are concatenated before processing
-- **Grouping Key:** Data is grouped by `(ensembl_gene_id, tissue, name, age, model_group)` to produce one consolidated output entry per group, regardless of how many input files contributed data
+- **Name Field:** The `name` field is set directly to `model_group`, consolidating multi-file model_groups (e.g. UCI models) under a single display name
+- **File Grouping:** Input files are first grouped by `model_group`; only files within the same group are concatenated before processing
+- **Grouping Key:** Data is grouped by `(ensembl_gene_id, tissue, name, age)` to produce one consolidated output entry per group, regardless of how many input files contributed data; `model_group` (which equals `name`) is restored as a top-level output column after nesting
 
 ### 4. Genotype Mapping Completeness
-- **Assumption:** Most genotypes in data files have entries in rnaseq_genotype_label_map
-- **Fallback:** Unmapped genotypes use the original genotype value as display_label
-- **Treatment:** Unmapped genotypes get result_order=999 (treated as non-controls)
+- **Assumption:** All genotypes in data files have entries in `rnaseq_genotype_label_map`
+- **Behavior:** Rows whose `(model, genotype)` pair has no match in the label map receive NA for `result_order` after the left merge and are dropped by `dropna(subset=["result_order"])`. If every row in a group is dropped this way, a `ValueError` is raised.
+- **Display label safeguard:** Before the dropna, `display_label` is filled with the raw `genotype` value for any unmatched row, but since those rows are subsequently dropped this has no practical effect on output.
 
 ### 5. Tissue Name Standardization
 - **Assumption:** JAX models use "Right Cerebral Hemisphere" which should be standardized
@@ -235,9 +231,9 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Implication:** No unit conversion is performed; assumes preprocessing has normalized data
 
 ### 8. Single Model per File
-- **Assumption:** Each input data file contains rows for exactly one model, and therefore belongs to exactly one `effective_model_group`
-- **Rationale:** The file-grouping step (Step 2.1) assigns each file to a group based on the first `model` value it finds. If a file contains rows from two models that map to *different* `effective_model_group`s, the entire file is assigned to only the first group. Inside `_process_individual_data_file_core` the per-row merge still labels every row with its correct group (via the label-map merge on `(model, genotype)`), but `result_order` and `matched_control` are computed once per function call from the combined DataFrame — so the secondary group's rows receive the wrong ordering list and the wrong control label.
-- **Validation:** The code checks `df["model"].unique()` on every file and raises a `ValueError` immediately if more than one model is present, regardless of whether those models share an `effective_model_group`. This is a deliberate fail-fast behaviour — silent data corruption (wrong `result_order` and `matched_control`) is worse than an explicit error.
+- **Assumption:** Each input data file contains rows for exactly one model, and therefore belongs to exactly one `model_group`
+- **Rationale:** The file-grouping step (Step 2.1) assigns each file to a group based on the first `model` value it finds. If a file contains rows from two models that map to *different* `model_group`s, the entire file is assigned to only the first group. Inside `_process_individual_data_file_core` the per-row merge still labels every row with its correct group (via the label-map merge on `(model, genotype)`), but `result_order` and `matched_control` are computed once per function call from the combined DataFrame — so the secondary group's rows receive the wrong ordering list and the wrong control label.
+- **Validation:** The code checks `df["model"].unique()` on every file and raises a `ValueError` immediately if more than one model is present, regardless of whether those models share a `model_group`. This is a deliberate fail-fast behaviour — silent data corruption (wrong `result_order` and `matched_control`) is worse than an explicit error.
 - **Current state:** All production input files contain data for a single model, so this check has never been triggered in practice.
 
 ## Filtering Decisions
@@ -248,9 +244,9 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Impact:** Significantly reduces data volume if input contains human genes
 
 ### 2. Dropping Unmatched Rows
-- **What:** Drops rows whose `(model, genotype)` pair had no match in the label map (NA `effective_model_group` after left merge); if all rows are dropped a `ValueError` is raised
+- **What:** Drops rows whose `(model, genotype)` pair had no match in the label map (NA `result_order` after left merge); if all rows are dropped a `ValueError` is raised
 - **Why:** Prevents unrecognised genotype combinations from being processed
-- **Example:** If processing model_group "5XFAD" with genotypes [A, B], rows with genotype C receive NA and are dropped
+- **Example:** If processing model_group "5XFAD" with genotypes [A, B], rows with genotype C receive NA for `result_order` and are dropped
 - **Impact:** Ensures data integrity and prevents mismatched comparisons
 
 ### 3. Empty File Filtering
@@ -259,9 +255,9 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Impact:** Fails fast to alert of upstream problems
 
 ### 4. Unmapped Genotype Handling
-- **What:** Retains genotypes not in rnaseq_genotype_label_map with fallback values
-- **Why:** Prevents data loss due to incomplete metadata
-- **Impact:** Allows processing to continue but marks data as non-control
+- **What:** Drops rows whose `(model, genotype)` pair is not in `rnaseq_genotype_label_map` (they receive NA for `result_order` after the left merge and are removed)
+- **Why:** Prevents unrecognised genotypes from producing output with missing ordering and control information
+- **Impact:** If all rows in a group are dropped, a `ValueError` is raised
 
 ### 5. Missing Metadata Handling
 - **Gene symbols:** Returns empty string if not found (doesn't fail)
@@ -279,11 +275,11 @@ This transform is designed to handle two distinct experimental scenarios:
 
 ### 2. Grouping Strategy
 - **Grouping key:** (ensembl_gene_id, tissue, name, age)
-- **Why:** Organizes data for efficient display and consolidates multi-file model_groups; `age` is part of the key so each age timepoint produces its own output entry; `model_group` is excluded because it is constant per `name` and is restored as a top-level output column via a pre-built lookup, avoiding NaN-in-groupby issues
+- **Why:** Organizes data for efficient display and consolidates multi-file model_groups; `age` is part of the key so each age timepoint produces its own output entry; `model_group` is excluded from the groupby key (pandas drops `None` groupby keys by default) and is instead restored from `name` as a top-level output column after nesting
 - **Impact:** Creates one output entry per (ensembl_gene_id, tissue, name, age) regardless of how many input files contributed data
 
 ### 3. Cross-File Merging
-- **Method:** Files are grouped by `effective_model_group`; within each group, preprocessed DataFrames are concatenated with `pd.concat` before core processing; memory is explicitly freed after each group
+- **Method:** Files are grouped by `model_group`; within each group, preprocessed DataFrames are concatenated with `pd.concat` before core processing; memory is explicitly freed after each group
 - **Why:** Minimizes peak memory usage — only files belonging to the same group are held in memory simultaneously
 - **Trade-off:** No cross-group validation or deduplication
 
@@ -295,7 +291,7 @@ This transform is designed to handle two distinct experimental scenarios:
 
 ## Output Structure
 
-Each output entry represents a unique combination of (gene, tissue, effective_model_group, age) with the following schema:
+Each output entry represents a unique combination of (gene, tissue, model_group, age) with the following schema:
 
 ```json
 {
@@ -331,7 +327,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 - **ensembl_gene_id**: Mouse gene Ensembl identifier (ENSMUSG*)
 - **gene_symbol**: Human-readable gene symbol (empty if not found in metadata)
 - **tissue**: Tissue name (with JAX transformation and sentence case applied)
-- **name**: `effective_model_group` value — equals `model_group` when explicitly set, or the model name for solo models
+- **name**: `model_group` value
 - **model_group**: Model group for display purposes (null if empty)
 - **matched_control**: Display label of the control genotype (empty if no control present in data)
 - **units**: Always "Log2 Counts per Million"
@@ -348,7 +344,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 
 1. **Vectorized Operations:** Uses pandas merge instead of row-by-row lookups
 2. **Pre-computed Dictionaries:** Creates lookup dictionaries once before file processing
-3. **Group-Based File Processing:** Groups input files by `effective_model_group` and processes one group at a time; single-file groups incur no concatenation overhead
+3. **Group-Based File Processing:** Groups input files by `model_group` and processes one group at a time; single-file groups incur no concatenation overhead
 4. **Memory Cleanup:** Explicitly deletes DataFrames and runs `gc.collect()` after each group is processed, keeping peak memory proportional to the largest group rather than the total dataset
 5. **Efficient Grouping:** Uses pandas groupby instead of manual iteration
 
@@ -417,7 +413,7 @@ output = transform_rna_de_individual(
 
 ### Issue: Unmapped genotypes
 - **Cause:** (model, genotype) combinations in data not in rnaseq_genotype_label_map
-- **Impact:** Uses original genotype as display label, result_order=999
+- **Impact:** Rows are dropped; if all rows in a group are unmapped, a `ValueError` is raised
 - **Solution:** Add missing entries to genotype label map
 
 ### Issue: Empty matched_control

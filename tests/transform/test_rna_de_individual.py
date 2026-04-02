@@ -21,7 +21,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_individual/
 - Error handling (missing datasets, empty files, missing columns, inconsistent model_group values)
 - Result ordering logic (controls should appear first in result_order arrays)
 - Matched control determination (first item in result_order list)
-- Model group vs individual model handling
+- File grouping by model_group (including split-file models sharing the same group)
 
 Test Data Structure:
     Input files include:
@@ -52,7 +52,7 @@ class TestDetermineResultOrder:
     This class contains focused unit tests for result order determination,
     which creates an ordered list of display labels based on result_order values.
     The function accepts a data_file DataFrame (already merged with the label map
-    and filtered to a single effective_model_group) rather than the raw label map.
+    and filtered to a single model_group) rather than the raw label map.
 
     Test Methods:
         - test_single_model_result_order: Tests result ordering for a single model.
@@ -64,7 +64,7 @@ class TestDetermineResultOrder:
     """
 
     def test_single_model_result_order(self) -> None:
-        """Test result order for a single model (no model_group)."""
+        """Test result order for a model with two genotypes."""
         data_file = pd.DataFrame(
             {
                 "display_label": ["Transgenic", "Wildtype"],
@@ -173,8 +173,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -185,7 +184,7 @@ class TestProcessIndividualDataFileCore:
         assert len(result) == 1
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result[0]["gene_symbol"] == "Gene1"
-        assert result[0]["model_group"] is None
+        assert result[0]["model_group"] == "Model_A"
         assert len(result[0]["data"]) == 1
         assert result[0]["data"][0]["genotype"] == "Transgenic"
 
@@ -211,8 +210,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -248,8 +246,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -283,7 +280,6 @@ class TestProcessIndividualDataFileCore:
                 "display_label": ["Model_B", "Control_B"],
                 "result_order": [2, 1],
                 "model_group": ["GroupX", "GroupX"],
-                "effective_model_group": ["GroupX", "GroupX"],
             }
         )
 
@@ -326,8 +322,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -366,8 +361,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -402,8 +396,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -438,8 +431,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -474,8 +466,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -514,8 +505,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [None],
-                "effective_model_group": ["Model_A"],
+                "model_group": ["Model_A"],
             }
         )
 
@@ -562,9 +552,9 @@ class TestTransformRnaDeIndividual:
           rows from more than one model raises ValueError.
         - test_multiple_models_error_message_names_file_and_conflicting_models: Tests that
           the ValueError message identifies the offending file and both model names.
-        - test_multiple_models_same_effective_model_group_raises_value_error: Tests that a
-          file containing two models that share an effective_model_group still raises
-          ValueError (each file must have exactly one model regardless of EMG).
+        - test_multiple_models_same_model_group_raises_value_error: Tests that a
+          file containing two models that share a model_group still raises ValueError
+          (each file must have exactly one model regardless of model_group).
 
     Helper Methods:
         - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
@@ -971,7 +961,7 @@ class TestTransformRnaDeIndividual:
                 out_entry["data"], key=lambda x: x["individual_id"]
             ) == sorted(exp_entry["data"], key=lambda x: x["individual_id"])
 
-    def _build_mixed_emg_datasets(
+    def _build_mixed_model_datasets(
         self, data_file_key: str = "mixed_model_file"
     ) -> Dict[str, pd.DataFrame]:
         """Return a minimal datasets dict whose data file contains rows from two
@@ -988,7 +978,7 @@ class TestTransformRnaDeIndividual:
                     "Model_B NonCarrier",
                 ],
                 "result_order": [2, 1, 2, 1],
-                "model_group": [None, None, None, None],
+                "model_group": ["Model_A", "Model_A", "Model_B", "Model_B"],
             }
         )
         gene_metadata = pd.DataFrame(
@@ -1022,9 +1012,9 @@ class TestTransformRnaDeIndividual:
 
         Each input file must contain data for exactly one model. A file mixing rows
         from Model_A and Model_B violates this invariant and must be rejected regardless
-        of whether those models share an effective_model_group.
+        of whether those models share a model_group.
         """
-        datasets = self._build_mixed_emg_datasets()
+        datasets = self._build_mixed_model_datasets()
 
         with pytest.raises(ValueError):
             transform_rna_de_individual(datasets=datasets)
@@ -1037,7 +1027,7 @@ class TestTransformRnaDeIndividual:
         The message must name the file (so the caller knows which input to fix) and
         both conflicting model names (so the caller knows why it failed).
         """
-        datasets = self._build_mixed_emg_datasets(data_file_key="my_mixed_file")
+        datasets = self._build_mixed_model_datasets(data_file_key="my_mixed_file")
 
         with pytest.raises(ValueError) as exc_info:
             transform_rna_de_individual(datasets=datasets)
@@ -1047,10 +1037,10 @@ class TestTransformRnaDeIndividual:
         assert "Model_A" in error_message
         assert "Model_B" in error_message
 
-    def test_multiple_models_same_effective_model_group_raises_value_error(
+    def test_multiple_models_same_model_group_raises_value_error(
         self,
     ) -> None:
-        """Test that a file with two models raises ValueError even when they share an EMG.
+        """Test that a file with two models raises ValueError even when they share a model_group.
 
         Each input file must contain data for exactly one model. Even if Model_B and
         Model_C both belong to the same model_group ('GroupX'), combining their rows in

@@ -232,8 +232,8 @@ class TestCreateGeneMetadataDict:
 class TestPrepareGenotypeLabelMapDf:
     """Tests for prepare_genotype_label_map_df function."""
 
-    def test_adds_effective_model_group_from_model_group(self) -> None:
-        """Test that a non-empty model_group becomes effective_model_group."""
+    def test_preserves_model_group_value(self) -> None:
+        """Test that a non-empty model_group is preserved in the output."""
         df = pd.DataFrame(
             {
                 "model": ["Model_B"],
@@ -246,39 +246,7 @@ class TestPrepareGenotypeLabelMapDf:
 
         result = prepare_genotype_label_map_df(df)
 
-        assert result["effective_model_group"].iloc[0] == "GroupX"
-
-    def test_falls_back_to_model_when_model_group_empty(self) -> None:
-        """Test that an empty model_group causes effective_model_group to use model."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": [""],
-                "result_order": [1],
-            }
-        )
-
-        result = prepare_genotype_label_map_df(df)
-
-        assert result["effective_model_group"].iloc[0] == "Model_A"
-
-    def test_falls_back_to_model_when_model_group_nan(self) -> None:
-        """Test that a NaN model_group causes effective_model_group to use model."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": [None],
-                "result_order": [1],
-            }
-        )
-
-        result = prepare_genotype_label_map_df(df)
-
-        assert result["effective_model_group"].iloc[0] == "Model_A"
+        assert result["model_group"].iloc[0] == "GroupX"
 
     def test_normalizes_empty_model_group_to_none(self) -> None:
         """Test that model_group values of None or '' are normalized to None in the output.
@@ -315,7 +283,7 @@ class TestPrepareGenotypeLabelMapDf:
                 "model": ["Model_A"],
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
-                "model_group": [""],
+                "model_group": ["GroupA"],
                 "result_order": ["3"],
             }
         )
@@ -332,7 +300,7 @@ class TestPrepareGenotypeLabelMapDf:
                 "model": ["Model_A"],
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
-                "model_group": [None],
+                "model_group": ["GroupA"],
                 "result_order": [1],
             }
         )
@@ -340,16 +308,16 @@ class TestPrepareGenotypeLabelMapDf:
 
         prepare_genotype_label_map_df(df)
 
-        assert df["model_group"].iloc[0] is original_model_group
+        assert df["model_group"].iloc[0] == original_model_group
 
-    def test_mixed_model_group_values(self) -> None:
-        """Test correct handling of rows with and without model_group."""
+    def test_multiple_rows_preserved(self) -> None:
+        """Test that all rows are preserved with their model_group values intact."""
         df = pd.DataFrame(
             {
                 "model": ["Model_A", "Model_B"],
                 "genotype": ["Tg", "Carrier"],
                 "display_label": ["Transgenic", "Model_B"],
-                "model_group": ["", "GroupX"],
+                "model_group": ["GroupA", "GroupX"],
                 "result_order": [2, 1],
             }
         )
@@ -357,12 +325,10 @@ class TestPrepareGenotypeLabelMapDf:
         result = prepare_genotype_label_map_df(df)
 
         assert (
-            result.loc[result["model"] == "Model_A", "effective_model_group"].iloc[0]
-            == "Model_A"
+            result.loc[result["model"] == "Model_A", "model_group"].iloc[0] == "GroupA"
         )
         assert (
-            result.loc[result["model"] == "Model_B", "effective_model_group"].iloc[0]
-            == "GroupX"
+            result.loc[result["model"] == "Model_B", "model_group"].iloc[0] == "GroupX"
         )
 
 

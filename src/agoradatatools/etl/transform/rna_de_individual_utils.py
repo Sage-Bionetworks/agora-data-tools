@@ -10,7 +10,7 @@ Key Functions:
     filter_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
-    prepare_genotype_label_map_df: Enrich the genotype label map DataFrame with effective_model_group
+    prepare_genotype_label_map_df: Normalize the genotype label map DataFrame
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
     preprocess_data_file: Apply common validation and transformation steps to a single data file
@@ -86,41 +86,36 @@ def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str,
 
 def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Enrich the genotype label map DataFrame with an effective_model_group column.
+    Normalize the genotype label map DataFrame.
 
-    Normalizes model_group (treating both NaN and "" as "no group") to Python None,
-    then computes effective_model_group as model_group when present, otherwise falling
-    back to the model name. Casts result_order to int.
+    Normalizes model_group (treating both NaN and "" as "no group") to Python None
+    so that downstream JSON serialization produces null rather than an empty string.
+    Casts result_order to int.
 
     Args:
         df: Raw rnaseq_genotype_label_map DataFrame with columns: model, genotype,
             display_label, model_group, result_order
 
     Returns:
-        Enriched DataFrame with an added effective_model_group column, model_group
-        normalized to None for "no group" rows, and result_order cast to int.
+        Normalized DataFrame with model_group normalized to None for "no group" rows
+        and result_order cast to int.
 
     Examples:
         >>> df = pd.DataFrame({
         ...     'model': ['Model_A', 'Model_B'],
         ...     'genotype': ['Tg', 'Carrier'],
         ...     'display_label': ['Transgenic', 'Model_B'],
-        ...     'model_group': [None, 'GroupX'],
+        ...     'model_group': ['GroupA', 'GroupX'],
         ...     'result_order': [2, 1],
         ... })
         >>> result = prepare_genotype_label_map_df(df)
-        >>> result['effective_model_group'].tolist()
-        ['Model_A', 'GroupX']
         >>> result['model_group'].tolist()
-        [None, 'GroupX']
+        ['GroupA', 'GroupX']
     """
     df = df.copy()
     # Treat both "" and NaN as "no group"; normalize to Python None so that
     # downstream JSON serialization produces null rather than an empty string.
-    # pandas fillna fills both None and np.nan in object columns, so this single
-    # replace is sufficient before computing effective_model_group.
     df["model_group"] = df["model_group"].replace({np.nan: None, "": None})
-    df["effective_model_group"] = df["model_group"].fillna(df["model"])
     df["result_order"] = df["result_order"].astype(int)
     return df
 
