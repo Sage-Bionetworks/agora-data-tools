@@ -305,13 +305,13 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
   "data": [
     {
       "genotype": "C57BL/6J",
-      "sex": "M",
+      "sex": "Male",
       "individual_id": "sample001",
       "value": 8.12345
     },
     {
       "genotype": "APOE4",
-      "sex": "F",
+      "sex": "Female",
       "individual_id": "sample002",
       "value": 7.98765
     }
