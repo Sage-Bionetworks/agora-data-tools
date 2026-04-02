@@ -99,9 +99,10 @@ class TestTissueNameMapping:
             }
         )
 
-    def _preprocess(self, tissues: list) -> pd.Series:
-        df = self._make_df(tissues)
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+    @classmethod
+    def _preprocess(cls, tissues: list) -> pd.Series:
+        df = cls._make_df(tissues)
+        result = preprocess_data_file("test.csv", df, 0, 1, cls._REQUIRED_COLUMNS)
         return result["tissue"].reset_index(drop=True)
 
     def test_maps_right_cerebral_hemisphere(self) -> None:

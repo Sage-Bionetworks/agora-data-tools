@@ -148,6 +148,7 @@ class TestProcessIndividualDataFileCore:
         - test_blank_age_raises_value_error: Tests that a blank (empty-string) age raises ValueError.
         - test_wrong_unit_age_raises_value_error: Tests that an age with digits but wrong unit (e.g. '1 year') raises ValueError.
         - test_non_digit_age_error_message_names_offending_values: Tests that the ValueError message lists every offending age value.
+        - test_multiple_tissues_produce_separate_output_entries: Tests that different tissues produce one output entry each.
     """
 
     def test_basic_core_processing(self) -> None:
@@ -521,6 +522,55 @@ class TestProcessIndividualDataFileCore:
         assert "adult" in offending_values_section
         assert "6 months" not in offending_values_section
 
+    def test_multiple_tissues_produce_separate_output_entries(self) -> None:
+        """Test that data from different tissues produces one output entry per tissue.
+
+        The grouping key is (ensembl_gene_id, tissue, name, age), so the same gene
+        measured in two tissues must appear as two independent output entries, each
+        with its own 'data' list containing only the individuals from that tissue.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": [
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                ],
+                "individualid": ["Ind001", "Ind002", "Ind003", "Ind004"],
+                "expression": [5.0, 6.0, 7.0, 8.0],
+                "tissue": ["Cortex", "Cortex", "Hippocampus", "Hippocampus"],
+                "sex": ["Male", "Female", "Male", "Female"],
+                "age": ["6 months", "6 months", "6 months", "6 months"],
+                "genotype": ["Tg", "Tg", "Tg", "Tg"],
+                "model": ["Model_A", "Model_A", "Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [1],
+                "model_group": ["Model_A"],
+            }
+        )
+
+        result = _process_individual_data_file_core(
+            data_file, gene_metadata_dict, genotype_label_map_df
+        )
+
+        assert len(result) == 2
+
+        tissues_in_output = {entry["tissue"] for entry in result}
+        assert tissues_in_output == {"Cortex", "Hippocampus"}
+
+        for entry in result:
+            assert entry["ensembl_gene_id"] == "ENSMUSG00000000001"
+            assert len(entry["data"]) == 2  # 2 individuals per tissue
+
 
 class TestTransformRnaDeIndividual:
     """
@@ -631,8 +681,12 @@ class TestTransformRnaDeIndividual:
         output_data = transform_rna_de_individual(datasets=datasets)
 
         # Sort output data by ensembl_gene_id for deterministic comparison
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+        output_data_sorted = sorted(
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
+        expected_data_sorted = sorted(
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
 
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
@@ -664,8 +718,12 @@ class TestTransformRnaDeIndividual:
         output_data = transform_rna_de_individual(datasets=datasets)
 
         # Sort output data by ensembl_gene_id for deterministic comparison
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+        output_data_sorted = sorted(
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
+        expected_data_sorted = sorted(
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
 
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
@@ -701,8 +759,12 @@ class TestTransformRnaDeIndividual:
         output_data = transform_rna_de_individual(datasets=datasets)
 
         # Sort output data by ensembl_gene_id for deterministic comparison
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+        output_data_sorted = sorted(
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
+        expected_data_sorted = sorted(
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
 
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
@@ -783,8 +845,12 @@ class TestTransformRnaDeIndividual:
         output_data = transform_rna_de_individual(datasets=datasets)
 
         # Sort output data by ensembl_gene_id for deterministic comparison
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+        output_data_sorted = sorted(
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
+        expected_data_sorted = sorted(
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
 
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
@@ -885,8 +951,12 @@ class TestTransformRnaDeIndividual:
         output_data = transform_rna_de_individual(datasets=datasets)
 
         # Sort output data by ensembl_gene_id for deterministic comparison
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+        output_data_sorted = sorted(
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
+        expected_data_sorted = sorted(
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
 
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
@@ -949,8 +1019,12 @@ class TestTransformRnaDeIndividual:
         assert len(entry["data"]) == 8  # 2 individuals per genotype
 
         # Full comparison with expected JSON (data order may vary)
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+        output_data_sorted = sorted(
+            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
+        expected_data_sorted = sorted(
+            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+        )
         for out_entry, exp_entry in zip(output_data_sorted, expected_data_sorted):
             assert out_entry["ensembl_gene_id"] == exp_entry["ensembl_gene_id"]
             assert out_entry["name"] == exp_entry["name"]

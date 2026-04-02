@@ -36,11 +36,11 @@ Required Inputs:
 """
 
 import gc
+import logging
 from collections import defaultdict
+from typing import Any, Dict, List
 
 import pandas as pd
-from typing import Dict, List, Any
-import logging
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
 from agoradatatools.etl.transform.rna_de_individual_utils import (
@@ -48,6 +48,7 @@ from agoradatatools.etl.transform.rna_de_individual_utils import (
     create_gene_metadata_dict,
     prepare_genotype_label_map_df,
     preprocess_data_file,
+    validate_data_file_not_empty,
 )
 
 logger = logging.getLogger(__name__)
@@ -224,6 +225,9 @@ def _process_individual_data_file_core(
     )
     age_groups["units"] = "Log2 Counts per Million"
     age_groups["model_group"] = age_groups["name"]
+    # All rows share the same result_order list. The multiplication creates n
+    # references to the same list object, which is safe because the list is never
+    # mutated after this point — to_dict(orient="records") only reads it.
     age_groups["result_order"] = [result_order_list] * len(age_groups)
     age_groups["matched_control"] = matched_control
 
@@ -364,6 +368,8 @@ def transform_rna_de_individual(
     for file_name in file_list:
         df = datasets[file_name]
 
+        validate_data_file_not_empty(file_name, df)
+
         unique_models = df["model"].unique()
         if len(unique_models) > 1:
             raise ValueError(
@@ -374,7 +380,7 @@ def transform_rna_de_individual(
             )
 
         # Each file contains exactly one model's data; use the first value.
-        raw_model = df["model"].iloc[0] if len(df) > 0 else ""
+        raw_model = df["model"].iloc[0]
         mg = model_to_mg.get(raw_model, raw_model)
 
         mg_to_files[mg].append(file_name)

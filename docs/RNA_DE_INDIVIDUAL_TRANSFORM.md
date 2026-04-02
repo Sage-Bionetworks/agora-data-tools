@@ -72,7 +72,7 @@ Before transform-specific processing, the main function groups input files by th
 - Groups files with the same `model_group` together (e.g. UCI models whose data is split across two CSV files)
 - Single-file groups are processed without any concatenation overhead
 - This strategy keeps memory usage proportional to the largest group rather than the total dataset size
-- **Single-model-per-file validation:** Before grouping, checks whether any file contains rows from more than one model. If so, a `ValueError` is raised immediately, identifying the file and the conflicting model names. This is a hard failure because `result_order` and `matched_control` cannot be computed correctly when a file spans multiple models (see [Key Assumptions: Single Model per File](#8-single-model-per-file))
+- **Single-model-per-file validation:** Before grouping, checks whether any file contains rows from more than one model. If so, a `ValueError` is raised immediately, identifying the file and the conflicting model names. This is a hard failure because `result_order` and `matched_control` cannot be computed correctly when a file spans multiple models (see [Key Assumptions: Single Model per File](#single-model-per-file))
 
 #### 2.2 Common Preprocessing (`preprocess_data_file`)
 Applied to each file individually before it is combined within its group:
@@ -229,6 +229,8 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Fixed assumption:** All expression values are "Log2 Counts per Million"
 - **Implication:** No unit conversion is performed; assumes preprocessing has normalized data
 
+<a name="single-model-per-file"></a>
+
 ### 8. Single Model per File
 - **Assumption:** Each input data file contains rows for exactly one model, and therefore belongs to exactly one `model_group`
 - **Rationale:** The file-grouping step (Step 2.1) assigns each file to a group based on the first `model` value it finds. If a file contains rows from two models that map to *different* `model_group`s, the entire file is assigned to only the first group. Inside `_process_individual_data_file_core` the per-row merge still labels every row with its correct group (via the label-map merge on `(model, genotype)`), but `result_order` and `matched_control` are computed once per function call from the combined DataFrame — so the secondary group's rows receive the wrong ordering list and the wrong control label.
@@ -358,7 +360,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 1. Merge validation ensures one-to-one genotype label mapping
 2. Age strings are validated against the `(\d+) months` regex; non-matching values raise `ValueError` immediately
 3. If all rows in a group are dropped after the genotype label map merge (no genotypes matched), a `ValueError` is raised with a message identifying the cause
-4. **Single-model-per-file check:** Before grouping, each file is checked to confirm it contains rows for exactly one model. If more than one model is detected, a `ValueError` is raised immediately, identifying the file and the conflicting model names (see Key Assumption 8)
+4. **Single-model-per-file check:** Before grouping, each file is checked to confirm it contains rows for exactly one model. If more than one model is detected, a `ValueError` is raised immediately, identifying the file and the conflicting model names (see [Key Assumption 8](#single-model-per-file))
 
 ### Error Scenarios
 - **Missing required datasets:** ValueError with dataset name
@@ -367,7 +369,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 - **Non-standard age strings (not matching `'[N] months'`):** ValueError listing the offending values; see Key Assumption 6
 - **All genotypes unrecognised (post-merge empty):** ValueError raised; the file had data but no recognised genotypes, which indicates a wrong file or a misconfigured label map
 - **Invalid merge relationships:** pandas MergeError with details
-- **File contains multiple models:** ValueError raised with the file name and the list of conflicting model names; see Key Assumption 8
+- **File contains multiple models:** ValueError raised with the file name and the list of conflicting model names; see [Key Assumption 8](#single-model-per-file)
 
 ## Related Transforms
 

@@ -16,10 +16,11 @@ Key Functions:
     preprocess_data_file: Apply common validation and transformation steps to a single data file
 """
 
+import logging
+from typing import Dict, List
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List
-import logging
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns
 
@@ -56,6 +57,10 @@ def validate_model_group_consistency(
     Raises:
         ValueError: If any model has inconsistent model_group values
     """
+    # Normalise both "" and None/NaN to a single sentinel so that nunique()
+    # treats them as the same value (i.e. "no group assigned").  The sentinel
+    # string itself is never surfaced to users; it only needs to be distinct
+    # from any legitimate model_group name.
     inconsistent_models = (
         genotype_label_map_df.groupby("model")["model_group"]
         .apply(lambda x: x.replace("", None).fillna("__no_group__").nunique())
