@@ -111,8 +111,9 @@ def _process_individual_data_file_core(
     1. Enriches data with genotype metadata (display labels, result_order, model_group, effective_model_group)
     2. Drops rows with no label-map match (NA effective_model_group after the left merge)
     3. Applies tissue name mapping and renames columns for output format
-    4. Uses nest_fields to group individual records by (gene, tissue, name, age, model_group),
-       producing one output row per combination with a nested "data" list
+    4. Uses nest_fields to group individual records by (gene, tissue, name, age),
+       producing one output row per combination with a nested "data" list;
+       model_group (constant per name) is captured before nesting and restored after
     5. Adds metadata columns (gene_symbol, age_numeric, units, result_order, matched_control) vectorially
 
     Note: This function expects preprocessed data (mouse genes only, rounded numeric values)
@@ -201,10 +202,21 @@ def _process_individual_data_file_core(
         }
     )
 
-    # Step 6: Nest individual records by (gene, tissue, name, age, model_group).
+    # Step 6: Nest individual records by (gene, tissue, name, age).
     # Each combination of these grouping keys produces one output row, with all
     # individual-level columns (genotype, sex, individual_id, value) nested into "data".
-    group_cols = ["ensembl_gene_id", "tissue", "name", "age", "model_group"]
+    #
+    # model_group is constant for a given name (validated by validate_model_group_consistency),
+    # so it is captured in a lookup before nesting and restored as a top-level column
+    # afterward. This avoids including model_group as a groupby key, which would require
+    # special handling for None values (pandas groupby drops NaN keys by default).
+    name_to_model_group = (
+        data_file[["name", "model_group"]]
+        .drop_duplicates("name")
+        .set_index("name")["model_group"]
+        .to_dict()
+    )
+    group_cols = ["ensembl_gene_id", "tissue", "name", "age"]
     cols_keep = group_cols + ["genotype", "sex", "individual_id", "value"]
     age_groups = nest_fields(
         data_file[cols_keep],
@@ -227,7 +239,7 @@ def _process_individual_data_file_core(
         age_groups["ensembl_gene_id"].map(gene_metadata_dict).fillna("")
     )
     age_groups["units"] = "Log2 Counts per Million"
-    age_groups["model_group"] = age_groups["model_group"].replace("", None)
+    age_groups["model_group"] = age_groups["name"].map(name_to_model_group)
     age_groups["result_order"] = [result_order_list] * len(age_groups)
     age_groups["matched_control"] = matched_control
 

@@ -173,7 +173,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -185,6 +185,7 @@ class TestProcessIndividualDataFileCore:
         assert len(result) == 1
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result[0]["gene_symbol"] == "Gene1"
+        assert result[0]["model_group"] is None
         assert len(result[0]["data"]) == 1
         assert result[0]["data"][0]["genotype"] == "Transgenic"
 
@@ -210,7 +211,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -247,7 +248,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -325,7 +326,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -365,7 +366,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -401,7 +402,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -437,7 +438,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -473,7 +474,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -513,7 +514,7 @@ class TestProcessIndividualDataFileCore:
                 "genotype": ["Tg"],
                 "display_label": ["Transgenic"],
                 "result_order": [2],
-                "model_group": [""],
+                "model_group": [None],
                 "effective_model_group": ["Model_A"],
             }
         )
@@ -987,7 +988,7 @@ class TestTransformRnaDeIndividual:
                     "Model_B NonCarrier",
                 ],
                 "result_order": [2, 1, 2, 1],
-                "model_group": ["", "", "", ""],
+                "model_group": [None, None, None, None],
             }
         )
         gene_metadata = pd.DataFrame(

@@ -122,8 +122,20 @@ class TestValidateModelGroupConsistency:
         with pytest.raises(ValueError, match="consistent model_group value"):
             validate_model_group_consistency(df)
 
-    def test_empty_model_groups(self) -> None:
-        """Test handling of empty model_group values."""
+    def test_none_model_groups(self) -> None:
+        """Test handling of None model_group values (models with no explicit group)."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "model_group": [None, None],
+            }
+        )
+
+        # Should not raise — all-None model_group is consistently "no group"
+        validate_model_group_consistency(df)
+
+    def test_empty_string_model_groups(self) -> None:
+        """Test handling of empty-string model_group values (treated same as None)."""
         df = pd.DataFrame(
             {
                 "model": ["Model_A", "Model_A"],
@@ -131,8 +143,24 @@ class TestValidateModelGroupConsistency:
             }
         )
 
-        # Should not raise
+        # Should not raise — "" is treated as "no group", equivalent to None
         validate_model_group_consistency(df)
+
+    def test_mixed_none_and_real_group_raises_error(self) -> None:
+        """Test that a model with both None and a real group name raises ValueError.
+
+        Mixing None (no group) with an actual group name for the same model is
+        inconsistent and should be caught by validation.
+        """
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "model_group": [None, "GroupX"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="consistent model_group value"):
+            validate_model_group_consistency(df)
 
 
 class TestCreateGeneMetadataDict:
@@ -214,9 +242,13 @@ class TestPrepareGenotypeLabelMapDf:
 
         assert result["effective_model_group"].iloc[0] == "Model_A"
 
-    def test_fills_remaining_nan_with_empty_string(self) -> None:
-        """Test that remaining NaN values (e.g. model_group) are replaced with empty string."""
-        df = pd.DataFrame(
+    def test_normalizes_empty_model_group_to_none(self) -> None:
+        """Test that model_group values of None or '' are normalized to None in the output.
+
+        model_group uses None (not "") to represent "no explicit group", so that the
+        output field is null rather than an empty string.
+        """
+        df_none = pd.DataFrame(
             {
                 "model": ["Model_A"],
                 "genotype": ["Tg"],
@@ -225,10 +257,18 @@ class TestPrepareGenotypeLabelMapDf:
                 "result_order": [1],
             }
         )
+        df_empty = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "model_group": [""],
+                "result_order": [1],
+            }
+        )
 
-        result = prepare_genotype_label_map_df(df)
-
-        assert result["model_group"].iloc[0] == ""
+        assert prepare_genotype_label_map_df(df_none)["model_group"].iloc[0] is None
+        assert prepare_genotype_label_map_df(df_empty)["model_group"].iloc[0] is None
 
     def test_converts_result_order_to_int(self) -> None:
         """Test that result_order is cast to int."""

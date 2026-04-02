@@ -54,7 +54,7 @@ The transform requires three types of input:
 
 1. **Genotype Label Map Preparation** (`prepare_genotype_label_map_df`)
    - Imported from `rna_de_individual_utils` module
-   - Enriches the `rnaseq_genotype_label_map` DataFrame with `effective_model_group` and normalizes NaN values to empty strings
+   - Enriches the `rnaseq_genotype_label_map` DataFrame with `effective_model_group` and normalizes NaN values to empty strings (except `model_group`, which is normalized to `None` for rows with no explicit group)
    - Returns a DataFrame that is passed directly to `_process_individual_data_file_core` for vectorized merging
    - **Purpose:** Produces the pre-prepared label map DataFrame used for genotype enrichment
 
@@ -94,7 +94,7 @@ After preprocessing and concatenation, the individual transform applies its spec
 - Performs left join on `(model, genotype)` to add:
   - `display_label`: Human-readable genotype label
   - `result_order`: Ordering value for display
-  - `model_group`: Explicit model group (empty string if none)
+  - `model_group`: Explicit model group (None if none)
   - `effective_model_group`: `model_group` when set, otherwise `model` name
 - **Fallback for unmapped genotypes:**
   - `display_label` = original `genotype` value
@@ -115,13 +115,13 @@ After preprocessing and concatenation, the individual transform applies its spec
 ### Step 3: Grouping and Output Entry Creation
 
 #### 3.1 Grouping Strategy
-- Groups data by all five columns: `(ensembl_gene_id, tissue, name, age, model_group)`
+- Groups data by four columns: `(ensembl_gene_id, tissue, name, age)`
   - `ensembl_gene_id`: Ensembl gene identifier
   - `tissue`: Tissue name (post-mapping and sentence-case normalization)
   - `name`: Set to `effective_model_group` — the `model_group` when explicitly provided, or the model name for solo models
   - `age`: Age timepoint (e.g., `"4 months"`, `"12 months"`)
-  - `model_group`: Explicit model group name (normalized to `None` if empty)
-- Each unique combination of these five columns defines one output row
+- `model_group` is constant for a given `name` (validated by `validate_model_group_consistency`), so it is captured in a `name → model_group` lookup before grouping and restored as a top-level output column afterward. This avoids having `None` values in the groupby keys (pandas drops `NaN` groupby keys by default).
+- Each unique combination of these four columns defines one output row
 - **Design decision:** `name` is set to `effective_model_group` rather than the raw model name so that all models sharing the same `model_group` (including data split across multiple input files) produce a single consolidated output entry
 
 #### 3.2 Transform-Specific Processing (`_process_individual_data_file_core`)
@@ -171,7 +171,7 @@ For each grouped combination, this function directly creates output entries (one
   - `value`: Expression value
 
 **Processing Steps:**
-1. Groups the input data by all five columns: (ensembl_gene_id, tissue, name, age, model_group)
+1. Groups the input data by four columns: (ensembl_gene_id, tissue, name, age); model_group is restored via lookup after grouping
 2. For each grouped combination, creates a complete output entry with all metadata fields
 3. Sorts output entries by gene then numeric age for consistent ordering
 4. Returns one output entry per unique (ensembl_gene_id, tissue, name, age, model_group) combination
@@ -279,9 +279,9 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Failure mode:** Raises error if same (model, genotype) maps to multiple labels
 
 ### 2. Grouping Strategy
-- **Grouping key:** (ensembl_gene_id, tissue, name, age, model_group)
-- **Why:** Organizes data for efficient display and consolidates multi-file model_groups; `age` is part of the key so each age timepoint produces its own output entry
-- **Impact:** Creates one output entry per (ensembl_gene_id, tissue, name, age, model_group) regardless of how many input files contributed data
+- **Grouping key:** (ensembl_gene_id, tissue, name, age)
+- **Why:** Organizes data for efficient display and consolidates multi-file model_groups; `age` is part of the key so each age timepoint produces its own output entry; `model_group` is excluded because it is constant per `name` and is restored as a top-level output column via a pre-built lookup, avoiding NaN-in-groupby issues
+- **Impact:** Creates one output entry per (ensembl_gene_id, tissue, name, age) regardless of how many input files contributed data
 
 ### 3. Cross-File Merging
 - **Method:** Files are grouped by `effective_model_group`; within each group, preprocessed DataFrames are concatenated with `pd.concat` before core processing; memory is explicitly freed after each group

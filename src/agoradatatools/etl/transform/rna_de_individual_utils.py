@@ -78,6 +78,9 @@ def validate_model_group_consistency(
     Each model should map to exactly one unique model_group; having multiple
     different model_group values for the same model indicates a data quality issue.
 
+    Both None and "" are treated as "no model_group" and are considered the same
+    value for consistency purposes.
+
     Args:
         genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
 
@@ -86,7 +89,7 @@ def validate_model_group_consistency(
     """
     inconsistent_models = (
         genotype_label_map_df.groupby("model")["model_group"]
-        .nunique()
+        .apply(lambda x: x.replace("", None).fillna("__no_group__").nunique())
         .pipe(lambda x: x[x > 1].index.tolist())
     )
     if inconsistent_models:
@@ -117,8 +120,9 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     Enrich the genotype label map DataFrame with an effective_model_group column.
 
     Computes effective_model_group as model_group when a non-empty value is present,
-    otherwise falls back to the model name. Fills all remaining NaN values with empty
-    strings and casts result_order to int.
+    otherwise falls back to the model name. Fills all remaining NaN values (except
+    model_group) with empty strings, normalizes model_group to None for rows with no
+    explicit group, and casts result_order to int.
 
     Args:
         df: Raw rnaseq_genotype_label_map DataFrame with columns: model, genotype,
@@ -126,7 +130,8 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         Enriched DataFrame with an added effective_model_group column, NaN values
-        replaced by empty strings, and result_order cast to int.
+        replaced by empty strings (except model_group, which uses None for "no group"),
+        and result_order cast to int.
 
     Examples:
         >>> df = pd.DataFrame({
@@ -139,6 +144,8 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
         >>> result = prepare_genotype_label_map_df(df)
         >>> result['effective_model_group'].tolist()
         ['Model_A', 'GroupX']
+        >>> result['model_group'].tolist()
+        [None, 'GroupX']
     """
     df = df.copy()
     # Replace empty strings with NaN before computing effective_model_group so that
@@ -148,6 +155,9 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     )
     df = df.fillna("")
     df["result_order"] = df["result_order"].astype(int)
+    # Normalize model_group: use None (not "") for rows with no explicit group so that
+    # the output field is null rather than an empty string.
+    df["model_group"] = df["model_group"].replace("", None)
     return df
 
 
