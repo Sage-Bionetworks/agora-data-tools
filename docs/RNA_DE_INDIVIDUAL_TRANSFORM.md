@@ -81,6 +81,7 @@ Applied to each file individually before it is combined within its group:
 - **Column validation:** Checks all required columns are present (defined by `DATA_FILE_REQUIRED_COLUMNS`)
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places
+- **Type casting:** Casts `individualid` to string to ensure consistent identifier handling
 
 After all files in a group are preprocessed, they are concatenated (via `pd.concat`) into a single DataFrame that is passed to `_process_individual_data_file_core`. Memory is explicitly freed (via `del` and `gc.collect()`) after each group is processed.
 
@@ -166,8 +167,8 @@ For each grouped combination, this function directly creates output entries (one
 - `data`: List of individual data points containing:
   - `genotype`: Display label (from `display_label`, renamed for output)
   - `sex`: Sex identifier
-  - `individual_id`: Sample identifier (converted to string)
-  - `value`: Expression value (converted to float)
+  - `individual_id`: Sample identifier (cast to string during preprocessing)
+  - `value`: Expression value
 
 **Processing Steps:**
 1. Groups the input data by all five columns: (ensembl_gene_id, tissue, name, age, model_group)

@@ -222,4 +222,5 @@ def preprocess_data_file(
     )
     data_file = filter_mouse_genes(data_file)
     data_file = data_file.round(decimals=5)
+    data_file["individualid"] = data_file["individualid"].astype(str)
     return data_file

@@ -168,11 +168,7 @@ def _process_individual_data_file_core(
             "model/genotype values match the rnaseq_genotype_label_map."
         )
 
-    # Step 3: Convert types once per file before grouping
-    data_file["individualid"] = data_file["individualid"].astype(str)
-    data_file["expression"] = data_file["expression"].astype(float)
-
-    # Step 4: Pre-calculate result_order list and matched_control.
+    # Step 3: Pre-calculate result_order list and matched_control.
     # This function is called once per effective_model_group, so these values are
     # constant across all rows.
     #
@@ -189,10 +185,10 @@ def _process_individual_data_file_core(
     result_order_list = _determine_result_order(data_file)
     matched_control = result_order_list[0] if result_order_list else ""
 
-    # Step 5: Apply tissue name mapping before grouping (tissue is a grouping key)
+    # Step 4: Apply tissue name mapping before grouping (tissue is a grouping key)
     data_file["tissue"] = data_file["tissue"].apply(map_jax_tissue_name)
 
-    # Step 6: Rename columns for output format.
+    # Step 5: Rename columns for output format.
     # Drop the raw genotype column first — it was only needed for the merge to look up
     # display_label. Removing it before the rename prevents a duplicate "genotype" column.
     data_file = data_file.drop(columns=["genotype"])
@@ -205,7 +201,7 @@ def _process_individual_data_file_core(
         }
     )
 
-    # Step 7: Nest individual records by (gene, tissue, name, age, model_group).
+    # Step 6: Nest individual records by (gene, tissue, name, age, model_group).
     # Each combination of these grouping keys produces one output row, with all
     # individual-level columns (genotype, sex, individual_id, value) nested into "data".
     group_cols = ["ensembl_gene_id", "tissue", "name", "age", "model_group"]
@@ -217,7 +213,7 @@ def _process_individual_data_file_core(
         drop_columns=group_cols,
     )
 
-    # Step 8: Add metadata columns vectorially
+    # Step 7: Add metadata columns vectorially
     extracted_ages = age_groups["age"].str.extract(r"(\d+)")[0]
     non_digit_ages = age_groups.loc[extracted_ages.isna(), "age"].unique().tolist()
     if non_digit_ages:
@@ -235,7 +231,7 @@ def _process_individual_data_file_core(
     age_groups["result_order"] = [result_order_list] * len(age_groups)
     age_groups["matched_control"] = matched_control
 
-    # Step 9: Select output columns, sort by gene then age, and return as records
+    # Step 8: Select output columns, sort by gene then age, and return as records
     output_cols = [
         "ensembl_gene_id",
         "gene_symbol",
