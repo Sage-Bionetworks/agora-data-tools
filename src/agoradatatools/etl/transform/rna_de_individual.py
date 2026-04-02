@@ -76,30 +76,25 @@ DATA_FILE_REQUIRED_COLUMNS = [
 ]
 
 
-def _determine_result_order(
-    genotype_label_map_df: pd.DataFrame,
-    model_group: str,
-) -> List[str]:
+def _determine_result_order(data_file: pd.DataFrame) -> List[str]:
     """
-    Determines the result_order (ordering of display labels) for genotypes in a model_group.
+    Determines the result_order (ordering of display labels) for genotypes in a data file.
 
-    Uses the result_order values from the rnaseq_genotype_label_map CSV file to
-    determine the ordering of display labels. Handles cases where genotypes in the same
-    model_group belong to different models.
+    Operates on a data_file that has already been merged with the genotype label map
+    and filtered to a single effective_model_group, so every display_label present
+    is guaranteed to exist in the actual data. Rows with an empty display_label are
+    excluded (they are entries intentionally omitted from the ordered list).
 
     Args:
-        genotype_label_map_df: Enriched genotype label map DataFrame (from
-            prepare_genotype_label_map_df) with columns: model, genotype, display_label,
-            model_group, result_order, effective_model_group
-        model_group: Model group name (used as effective_model_group if present, otherwise model is used)
+        data_file: DataFrame already merged with the genotype label map and filtered to
+            one effective_model_group. Must have columns: display_label, result_order.
 
     Returns:
-        List of display labels in the correct order based on result_order values
+        List of display labels in the correct order based on result_order values.
     """
-    filtered = genotype_label_map_df[
-        (genotype_label_map_df["effective_model_group"] == model_group)
-        & (genotype_label_map_df["display_label"] != "")
-    ][["display_label", "result_order"]].drop_duplicates()
+    filtered = data_file[data_file["display_label"] != ""][
+        ["display_label", "result_order"]
+    ].drop_duplicates()
 
     return filtered.sort_values("result_order")["display_label"].tolist()
 
@@ -180,22 +175,18 @@ def _process_individual_data_file_core(
     # This function is called once per effective_model_group, so these values are
     # constant across all rows.
     #
-    # matched_control: the display_label with the minimum result_order in the data.
+    # Because data_file has already been merged with the label map and filtered to a
+    # single effective_model_group, every label returned by _determine_result_order is
+    # guaranteed to exist in the data. result_order_list[0] is therefore always the
+    # control (lowest result_order) that is present in this file.
+    #
     # Limitation for 4-genotype UCI studies: some DE analyses pair each case genotype
     # with a *different* control (e.g., Trem2-R47H_NSS.5xFAD vs Trem2-R47H_NSS, not
     # vs C57BL/6J). In those cases, a single matched_control value is a simplification
     # — it reflects the overall reference genotype for the group (lowest result_order)
     # rather than the per-case-genotype DE pairing.
-    effective_model_group = data_file["effective_model_group"].iloc[0]
-    result_order_list = _determine_result_order(
-        genotype_label_map_df, effective_model_group
-    )
-
-    min_order = data_file["result_order"].min()
-    control_rows = data_file[data_file["result_order"] == min_order]
-    matched_control = (
-        control_rows.iloc[0]["display_label"] if not control_rows.empty else ""
-    )
+    result_order_list = _determine_result_order(data_file)
+    matched_control = result_order_list[0] if result_order_list else ""
 
     # Step 5: Apply tissue name mapping before grouping (tissue is a grouping key)
     data_file["tissue"] = data_file["tissue"].apply(map_jax_tissue_name)

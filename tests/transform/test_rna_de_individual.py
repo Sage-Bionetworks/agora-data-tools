@@ -20,7 +20,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_individual/
 - Edge cases (single row data, missing metadata, empty files)
 - Error handling (missing datasets, empty files, missing columns, inconsistent model_group values)
 - Result ordering logic (controls should appear first in result_order arrays)
-- Matched control determination (minimum result_order value)
+- Matched control determination (first item in result_order list)
 - Model group vs individual model handling
 
 Test Data Structure:
@@ -52,97 +52,80 @@ class TestDetermineResultOrder:
 
     This class contains focused unit tests for result order determination,
     which creates an ordered list of display labels based on result_order values.
+    The function accepts a data_file DataFrame (already merged with the label map
+    and filtered to a single effective_model_group) rather than the raw label map.
 
     Test Methods:
         - test_single_model_result_order: Tests result ordering for a single model.
         - test_model_group_result_order: Tests result ordering for a model group.
         - test_result_order_sorting: Tests that display labels are sorted by result_order.
-        - test_empty_genotype_label_map_df: Tests handling of an empty label map DataFrame.
-        - test_no_matching_model_group: Tests behavior when no genotypes match the model_group.
+        - test_empty_data_file: Tests handling of an empty data_file DataFrame.
+        - test_all_empty_display_labels_returns_empty: Tests that rows with empty
+          display_label are excluded, yielding an empty list when all labels are empty.
     """
 
     def test_single_model_result_order(self) -> None:
         """Test result order for a single model (no model_group)."""
-        genotype_label_map_df = pd.DataFrame(
+        data_file = pd.DataFrame(
             {
-                "model": ["Model_A", "Model_A"],
-                "genotype": ["Tg", "Wt"],
                 "display_label": ["Transgenic", "Wildtype"],
                 "result_order": [2, 1],
-                "model_group": ["", ""],
-                "effective_model_group": ["Model_A", "Model_A"],
             }
         )
 
-        result = _determine_result_order(genotype_label_map_df, "Model_A")
+        result = _determine_result_order(data_file)
 
         assert result == ["Wildtype", "Transgenic"]
 
     def test_model_group_result_order(self) -> None:
         """Test result order for a model group with multiple models."""
-        genotype_label_map_df = pd.DataFrame(
+        data_file = pd.DataFrame(
             {
-                "model": ["Model_B", "Model_B", "Model_C"],
-                "genotype": ["Carrier", "Non-Carrier", "Mutant"],
                 "display_label": ["Model_B", "Control_B", "Model_C"],
                 "result_order": [2, 1, 3],
-                "model_group": ["GroupX", "GroupX", "GroupX"],
-                "effective_model_group": ["GroupX", "GroupX", "GroupX"],
             }
         )
 
-        result = _determine_result_order(genotype_label_map_df, "GroupX")
+        result = _determine_result_order(data_file)
 
         assert result == ["Control_B", "Model_B", "Model_C"]
 
     def test_result_order_sorting(self) -> None:
         """Test that display labels are sorted by result_order value."""
-        genotype_label_map_df = pd.DataFrame(
+        data_file = pd.DataFrame(
             {
-                "model": ["Model_A", "Model_A", "Model_A"],
-                "genotype": ["G3", "G1", "G2"],
                 "display_label": ["Label_C", "Label_A", "Label_B"],
                 "result_order": [30, 10, 20],
-                "model_group": ["", "", ""],
-                "effective_model_group": ["Model_A", "Model_A", "Model_A"],
             }
         )
 
-        result = _determine_result_order(genotype_label_map_df, "Model_A")
+        result = _determine_result_order(data_file)
 
         assert result == ["Label_A", "Label_B", "Label_C"]
 
-    def test_empty_genotype_label_map_df(self) -> None:
-        """Test handling of an empty label map DataFrame."""
-        genotype_label_map_df = pd.DataFrame(
-            columns=[
-                "model",
-                "genotype",
-                "display_label",
-                "result_order",
-                "model_group",
-                "effective_model_group",
-            ]
-        )
+    def test_empty_data_file(self) -> None:
+        """Test handling of an empty data_file DataFrame."""
+        data_file = pd.DataFrame(columns=["display_label", "result_order"])
 
-        result = _determine_result_order(genotype_label_map_df, "Model_A")
+        result = _determine_result_order(data_file)
 
         assert result == []
 
-    def test_no_matching_model_group(self) -> None:
-        """Test behavior when no genotypes match the specified model_group."""
-        genotype_label_map_df = pd.DataFrame(
+    def test_all_empty_display_labels_returns_empty(self) -> None:
+        """Test that rows with empty display_label are excluded from the result.
+
+        Entries with display_label="" are intentionally omitted from the ordered
+        list (they represent genotypes not meant to be shown). When all labels are
+        empty, the result should be an empty list.
+        """
+        data_file = pd.DataFrame(
             {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "result_order": [2],
-                "model_group": [""],
-                "effective_model_group": ["Model_A"],
+                "display_label": ["", ""],
+                "result_order": [1, 2],
             }
         )
 
-        result = _determine_result_order(genotype_label_map_df, "Model_B")
+        result = _determine_result_order(data_file)
 
         assert result == []
 

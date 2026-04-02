@@ -10,7 +10,6 @@
     "age": "6 months",
     "age_numeric": 6,
     "result_order": [
-      "C57BL/6J",
       "APOE4"
     ],
     "data": [
