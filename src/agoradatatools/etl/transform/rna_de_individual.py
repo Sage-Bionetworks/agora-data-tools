@@ -148,12 +148,9 @@ def _process_individual_data_file_core(
     )
 
     # Step 2: Drop rows that had no match in the label map.
-    # After a left merge, any unmatched row has NA for result_order (it is never
-    # filled above), so dropping those NAs identifies rows absent from the label map.
+    # After a left merge, any unmatched row has NA for result_order, so dropping
+    # those NAs identifies rows absent from the label map.
     data_file = data_file.dropna(subset=["result_order"])
-
-    # Derive the grouping key (name) directly from model_group.
-    data_file["name"] = data_file["model_group"]
 
     if data_file.empty:
         raise ValueError(
@@ -163,6 +160,9 @@ def _process_individual_data_file_core(
             "is missing entries for this model. Check that the input file's "
             "model/genotype values match the rnaseq_genotype_label_map."
         )
+
+    # Derive the grouping key (name) directly from model_group.
+    data_file["name"] = data_file["model_group"]
 
     # Step 3: Pre-calculate result_order list and matched_control.
     # This function is called once per model_group, so these values are constant across
