@@ -146,6 +146,7 @@ class TestProcessIndividualDataFileCore:
         - test_non_digit_age_raises_value_error: Tests that a mix of valid and non-digit age strings raises ValueError.
         - test_all_ages_non_digit_raises_value_error: Tests that all-non-digit age values raise ValueError.
         - test_blank_age_raises_value_error: Tests that a blank (empty-string) age raises ValueError.
+        - test_wrong_unit_age_raises_value_error: Tests that an age with digits but wrong unit (e.g. '1 year') raises ValueError.
         - test_non_digit_age_error_message_names_offending_values: Tests that the ValueError message lists every offending age value.
     """
 
@@ -338,11 +339,10 @@ class TestProcessIndividualDataFileCore:
             )
 
     def test_non_digit_age_raises_value_error(self) -> None:
-        """Test that age strings containing no digits raise a clear ValueError.
+        """Test that age strings not matching the '[N] months' format raise a clear ValueError.
 
-        age_numeric is extracted via regex r'(\\d+)'. If any age value contains no
-        digits (e.g. 'neonatal', 'P7', or blank), .astype(int) would previously raise
-        a confusing 'cannot convert float NaN to integer' error. The code now validates
+        age_numeric is extracted via regex r'(\\d+) months'. If any age value does not
+        match this pattern (e.g. 'neonatal', '1 year', or blank), the code validates
         explicitly and raises ValueError with the offending values listed.
         """
         data_file = pd.DataFrame(
@@ -414,7 +414,7 @@ class TestProcessIndividualDataFileCore:
     def test_blank_age_raises_value_error(self) -> None:
         """Test that an empty-string age value raises ValueError.
 
-        An empty string contains no digits, so the regex returns NaN and the
+        An empty string does not match r'(\\d+) months', so the regex returns NaN and the
         explicit validation must catch it before the int cast.
         """
         data_file = pd.DataFrame(
@@ -431,6 +431,42 @@ class TestProcessIndividualDataFileCore:
         )
 
         gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": [""],
+                "effective_model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="age_numeric extraction failed"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+    def test_wrong_unit_age_raises_value_error(self) -> None:
+        """Test that an age string with digits but the wrong unit raises ValueError.
+
+        A value like '1 year' contains digits but does not match r'(\\d+) months',
+        so the stricter regex returns NaN and the validation must catch it.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "1 year"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
         genotype_label_map_df = pd.DataFrame(
             {
                 "model": ["Model_A"],

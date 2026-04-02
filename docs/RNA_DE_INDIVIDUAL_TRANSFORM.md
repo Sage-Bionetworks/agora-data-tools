@@ -227,8 +227,8 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Purpose:** Ensures consistency across different data sources and standardizes capitalization
 
 ### 6. Age Format
-- **Assumption:** Age values follow the format `"[N] months"` (e.g., `"3 months"`, `"6 months"`), where `N` is a non-negative integer. Every age string in the data **must** contain at least one digit.
-- **Constraint (hard failure):** The `age_numeric` field is derived by extracting the first digit sequence from the `age` string (regex `\d+`) and casting it to `int`. If any age value contains no digits (e.g., `"string"`, `"P7"`, or a blank string), a `ValueError` is raised with a message listing the offending values. This is an intentional fail-fast behaviour — there is no graceful fallback.
+- **Assumption:** Age values follow the format `"[N] months"` (e.g., `"3 months"`, `"6 months"`), where `N` is a non-negative integer. Every age string in the data **must** match this exact pattern.
+- **Constraint (hard failure):** The `age_numeric` field is derived by matching the `age` string against the regex `(\d+) months` and casting the captured group to `int`. If any age value does not match this pattern (e.g., `"neonatal"`, `"1 year"`, or a blank string), a `ValueError` is raised with a message listing the offending values. This is an intentional fail-fast behaviour — there is no graceful fallback.
 - **Current state:** All production data uses the `"N months"` format, so this has not been triggered in practice. The constraint is validated explicitly before the cast to provide a clear error message if non-standard values are ever introduced.
 
 ### 7. Expression Units
@@ -362,7 +362,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 
 ### Processing Validation
 1. Merge validation ensures one-to-one genotype label mapping
-2. Age sorting handles unexpected formats gracefully (falls back to original order)
+2. Age strings are validated against the `(\d+) months` regex; non-matching values raise `ValueError` immediately
 3. If all rows in a group are dropped after the genotype label map merge (no genotypes matched), a `WARNING` is logged and that group contributes no output entries
 4. **Mixed-group file check:** Before processing, each file is checked to confirm it contains only one `effective_model_group`. If multiple groups are detected, a `ValueError` is raised identifying the file and the conflicting groups (see Key Assumption 8)
 
@@ -370,7 +370,7 @@ Each output entry represents a unique combination of (gene, tissue, effective_mo
 - **Missing required datasets:** ValueError with dataset name
 - **Missing required columns:** ValueError with column names
 - **Empty data files:** ValueError with file name
-- **Non-standard age strings (no digits):** ValueError listing the offending values; see Key Assumption 6
+- **Non-standard age strings (not matching `'[N] months'`):** ValueError listing the offending values; see Key Assumption 6
 - **All genotypes unrecognised (post-merge empty):** WARNING logged, group skipped (not an error)
 - **Invalid merge relationships:** pandas MergeError with details
 - **File contains multiple effective_model_groups:** ValueError raised with the file name and the set of conflicting groups; see Key Assumption 8
