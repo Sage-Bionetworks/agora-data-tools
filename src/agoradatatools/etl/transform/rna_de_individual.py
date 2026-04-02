@@ -152,7 +152,6 @@ def _process_individual_data_file_core(
     data_file["display_label"] = data_file["display_label"].fillna(
         data_file["genotype"]
     )
-    data_file["result_order"] = data_file["result_order"].fillna(999)
 
     # Step 2: Drop rows that had no match in the label map.
     # After a left merge, any unmatched row has NA for effective_model_group (it is never
