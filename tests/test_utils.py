@@ -538,7 +538,7 @@ class TestNestFields:
         )
         assert list(nested_df["e"]) == expected_column_e
 
-    def test_nest_fields_drop_columns_equal_to_multi_key_grouping(self):
+    def test_nest_fields_drop_columns_equal_to_multi_key_grouping(self) -> None:
         """Regression test: drop_columns identical to a multi-column grouping must not raise
         'cannot insert <col>, already exists' from reset_index().
 
