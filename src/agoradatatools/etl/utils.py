@@ -200,14 +200,24 @@ def nest_fields(
 
     Returns:
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
+
+    Raises:
+        ValueError: If df is empty.
     """
-    nested = (
-        df.groupby(grouping)
-        .apply(
-            lambda row: row.replace({np.nan: None})
-            .drop(columns=drop_columns)
-            .to_dict("records")
+    if df.empty:
+        raise ValueError(
+            "nest_fields received an empty DataFrame. "
+            "Ensure input data is not empty before calling this function."
         )
+
+    # Select only the columns that should appear in the nested records before grouping.
+    # This prevents the groupby keys from appearing in both the result's MultiIndex
+    # (added by group_keys=True, the pandas >=2.0 default) and its columns, which
+    # would cause reset_index() to fail with "cannot insert <col>, already exists".
+    cols_to_nest = [c for c in df.columns if c not in drop_columns]
+    nested = (
+        df.groupby(grouping)[cols_to_nest]
+        .apply(lambda row: row.replace({np.nan: None}).to_dict("records"))
         .reset_index()
         .rename(columns={0: new_column})
     )

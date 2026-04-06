@@ -538,6 +538,46 @@ class TestNestFields:
         )
         assert list(nested_df["e"]) == expected_column_e
 
+    def test_nest_fields_drop_columns_equal_to_multi_key_grouping(self):
+        """Regression test: drop_columns identical to a multi-column grouping must not raise
+        'cannot insert <col>, already exists' from reset_index().
+
+        When drop_columns == grouping (the pattern used in rna_de_individual), the groupby
+        keys must not appear as columns in the apply result before reset_index() promotes
+        them from the MultiIndex.
+        """
+        df = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG001", "ENSMUSG001", "ENSMUSG001"],
+                "tissue": ["Hippocampus", "Hippocampus", "Hippocampus"],
+                "name": ["GroupA", "GroupA", "GroupA"],
+                "age": ["6 months", "6 months", "6 months"],
+                "genotype": ["WT", "Het", "WT"],
+                "sex": ["M", "F", "M"],
+                "individual_id": ["id1", "id2", "id3"],
+                "value": [1.0, 2.0, 3.0],
+            }
+        )
+        grouping = ["ensembl_gene_id", "tissue", "name", "age"]
+
+        result = utils.nest_fields(
+            df=df,
+            grouping=grouping,
+            new_column="data",
+            drop_columns=grouping,
+        )
+
+        assert list(result.columns) == grouping + ["data"]
+        assert len(result) == 1
+        assert result["age"].iloc[0] == "6 months"
+        nested_records = result["data"].iloc[0]
+        assert len(nested_records) == 3
+        assert all("age" not in record for record in nested_records)
+        assert all(
+            set(record.keys()) == {"genotype", "sex", "individual_id", "value"}
+            for record in nested_records
+        )
+
 
 class TestCalculateDistribution:
     # NOTE: pd.describe() calls np.quantile() with interpolation when quantiles fall between values.
