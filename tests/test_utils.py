@@ -578,6 +578,36 @@ class TestNestFields:
             for record in nested_records
         )
 
+    def test_nest_fields_preserves_none_groupby_key(self) -> None:
+        """Rows whose groupby key is None must not be silently dropped.
+
+        pandas groupby drops None/NaN keys by default (dropna=True). nest_fields
+        must pass dropna=False so that groups with a None key are preserved and
+        serialised as null in the output.
+        """
+        df = pd.DataFrame(
+            {
+                "name": [None, None, "GroupA", "GroupA"],
+                "value": [1.0, 2.0, 3.0, 4.0],
+            }
+        )
+
+        result = utils.nest_fields(
+            df=df,
+            grouping="name",
+            new_column="data",
+            drop_columns=["name"],
+        )
+
+        assert len(result) == 2
+        none_row = result[result["name"].isna()]
+        assert len(none_row) == 1
+        assert len(none_row["data"].iloc[0]) == 2
+
+        group_a_row = result[result["name"] == "GroupA"]
+        assert len(group_a_row) == 1
+        assert len(group_a_row["data"].iloc[0]) == 2
+
 
 class TestCalculateDistribution:
     # NOTE: pd.describe() calls np.quantile() with interpolation when quantiles fall between values.

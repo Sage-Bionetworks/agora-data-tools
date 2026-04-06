@@ -214,9 +214,13 @@ def nest_fields(
     # This prevents the groupby keys from appearing in both the result's MultiIndex
     # (added by group_keys=True, the pandas >=2.0 default) and its columns, which
     # would cause reset_index() to fail with "cannot insert <col>, already exists".
+    #
+    # dropna=False preserves groups whose key contains None/NaN. The pandas default
+    # (dropna=True) silently drops those rows, which can hide data when an optional
+    # groupby key such as model_group is None.
     cols_to_nest = [c for c in df.columns if c not in drop_columns]
     nested = (
-        df.groupby(grouping)[cols_to_nest]
+        df.groupby(grouping, dropna=False)[cols_to_nest]
         .apply(lambda row: row.replace({np.nan: None}).to_dict("records"))
         .reset_index()
         .rename(columns={0: new_column})
