@@ -344,13 +344,13 @@ get_dc_dynamic_names <- function(cluster_label) {
 
 # Brain region acronym expansions for tooltips
 dc_tooltip_map <- c(
-  CBE = "Human gene module: Cerebellum",
-  DLPFC = "Human gene module: Dorsolateral Prefrontal Cortex",
-  FP = "Human gene module: Frontal Pole",
-  IFG = "Human gene module: Inferior Frontal Gyrus",
-  PHG = "Human gene module: Parahippocampal Gyrus",
-  STG = "Human gene module: Superior Frontal Gyrus",
-  TCX = "Human gene module: Temporal Cortex"
+  "CBE module" = "Human gene module: Cerebellum",
+  "DLPFC module" = "Human gene module: Dorsolateral Prefrontal Cortex",
+  "FP module" = "Human gene module: Frontal Pole",
+  "IFG module" = "Human gene module: Inferior Frontal Gyrus",
+  "PHG module" = "Human gene module: Parahippocampal Gyrus",
+  "STG module" = "Human gene module: Superior Frontal Gyrus",
+  "TCX module" = "Human gene module: Temporal Cortex"
 )
 
 # Disease Correlation Filters
@@ -421,9 +421,10 @@ build_dc_objects <- function() {
       tooltip_text <- dc_tooltip_map[[name]]
 
       # The data_key values for the disease_correlation dataset are exact matches to the name value
-      build_column(name, dc_dynamic_column_type, data_key = name, tooltip_text, dc_dynamic_column_sort_tooltip,
-                   NA, NA, dc_dynamic_column_is_exported, dc_dynamic_column_is_hidden)
-    })
+      build_column(name, dc_dynamic_column_type, data_key = sub(" module", "", name),
+                   tooltip_text, dc_dynamic_column_sort_tooltip, NA,
+                   NA, dc_dynamic_column_is_exported, dc_dynamic_column_is_hidden
+    )})
 
     # The column ordering is mirrored when a CSV is generated
     columns <- c(list(primary, cluster, age, sex), dynamic_columns, c(list(model_type, matched_control, modified_genes)))
@@ -452,14 +453,14 @@ mo_columns <- data.frame(
            "Center", NA, NA
   ),
   type = c("primary", "text", "text",
-           "link_internal", "link_internal", "link_internal",
-           "link_internal","link_external", "link_external",
-           "text", "text", "text"
+    "link_internal", "link_internal", "link_internal",
+    "link_internal","link_external", "link_external",
+    "text", "text", "text"
   ),
   data_key = c("name", "model_type", "matched_controls",
                "transcriptomics", "disease_correlation", "biomarkers",
-              "pathology", "study_data", "jax_strain",
-              "center", "modified_genes", "available_data"),
+               "pathology", "study_data", "jax_strain",
+               "center", "modified_genes", "available_data"),
   tooltip = c("Mouse Model",  rep(NA, times = 11)),
   sort_tooltip = rep(NA, times = 12),
   link_url = rep(NA, times = 12),
