@@ -33,7 +33,7 @@ Test Data Structure:
     - RNA-seq differential expression data (*.csv)
     - rnaseq_genotype_label_map.csv (maps genotypes to model labels)
     - mouse_gene_metadata.csv (gene symbols and metadata)
-    - model_info.csv (model metadata including tissue and group)
+    - rnaseq_genotype_label_map.csv (maps genotypes to model labels, includes model_type)
     - biodom_genes_mm.csv (biodomain assignments for mouse genes)
 
     Output files are JSON-formatted expected results for comparison.
@@ -523,7 +523,7 @@ class TestCreateOutputEntryFromGroup:
         }
         model_group_dict = {"Model_A": "Group1"}
         biodomain_dict = {"ENSMUSG00000000001": ["Synaptic"]}
-        model_info_dict = {"Model_A": "knockout"}
+        model_type_dict = {"Model_A": "knockout"}
 
         result = _create_output_entry_from_group(
             group_key=group_key,
@@ -532,7 +532,7 @@ class TestCreateOutputEntryFromGroup:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
         )
 
         assert result["ensembl_gene_id"] == "ENSMUSG00000000001"
@@ -552,7 +552,7 @@ class TestCreateOutputEntryFromGroup:
         assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
 
     def test_create_output_entry_missing_metadata(self) -> None:
-        """Test output entry creation with missing metadata (empty strings/lists for gene_metadata, biodomain, model_info).
+        """Test output entry creation with missing metadata (empty strings/lists for gene_metadata, biodomain, model_type).
 
         Note: label_map_dict must contain entries for the genotypes used, as the function
         now raises an error if they are missing.
@@ -582,7 +582,7 @@ class TestCreateOutputEntryFromGroup:
         }
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         result = _create_output_entry_from_group(
             group_key=group_key,
@@ -591,7 +591,7 @@ class TestCreateOutputEntryFromGroup:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
         )
 
         assert result["ensembl_gene_id"] == "ENSMUSG00000000002"
@@ -632,7 +632,7 @@ class TestCreateOutputEntryFromGroup:
         }
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         result = _create_output_entry_from_group(
             group_key=group_key,
@@ -641,7 +641,7 @@ class TestCreateOutputEntryFromGroup:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
         )
 
         assert result["tissue"] == "Hemibrain"  # Should be mapped
@@ -664,7 +664,7 @@ class TestCreateOutputEntryFromGroup:
         }
         model_group_dict = {"Model_D": ""}  # Empty string
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         result = _create_output_entry_from_group(
             group_key=group_key,
@@ -673,7 +673,7 @@ class TestCreateOutputEntryFromGroup:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
         )
 
         assert result["model_group"] is None  # Empty string should become None
@@ -696,7 +696,7 @@ class TestCreateOutputEntryFromGroup:
         }
         model_group_dict = {}
         biodomain_dict = {"ENSMUSG00000000005": ["Synaptic", "Metabolic"]}
-        model_info_dict = {}
+        model_type_dict = {}
 
         result = _create_output_entry_from_group(
             group_key=group_key,
@@ -705,7 +705,7 @@ class TestCreateOutputEntryFromGroup:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
         )
 
         assert len(result["biodomains"]) == 2
@@ -729,7 +729,7 @@ class TestCreateOutputEntryFromGroup:
         }
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         with pytest.raises(ValueError) as exc_info:
             _create_output_entry_from_group(
@@ -739,7 +739,7 @@ class TestCreateOutputEntryFromGroup:
                 label_map_dict=label_map_dict,
                 model_group_dict=model_group_dict,
                 biodomain_dict=biodomain_dict,
-                model_info_dict=model_info_dict,
+                model_type_dict=model_type_dict,
             )
 
         error_message = str(exc_info.value)
@@ -775,7 +775,7 @@ class TestCreateOutputEntryFromGroup:
         }
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         with pytest.raises(ValueError) as exc_info:
             _create_output_entry_from_group(
@@ -785,7 +785,7 @@ class TestCreateOutputEntryFromGroup:
                 label_map_dict=label_map_dict,
                 model_group_dict=model_group_dict,
                 biodomain_dict=biodomain_dict,
-                model_info_dict=model_info_dict,
+                model_type_dict=model_type_dict,
             )
 
         error_message = str(exc_info.value)
@@ -814,7 +814,7 @@ class TestCreateOutputEntryFromGroup:
         label_map_dict = {}
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         with pytest.raises(ValueError) as exc_info:
             _create_output_entry_from_group(
@@ -824,7 +824,7 @@ class TestCreateOutputEntryFromGroup:
                 label_map_dict=label_map_dict,
                 model_group_dict=model_group_dict,
                 biodomain_dict=biodomain_dict,
-                model_info_dict=model_info_dict,
+                model_type_dict=model_type_dict,
             )
 
         # Should raise error for case first, since case is checked before control
@@ -872,7 +872,7 @@ class TestProcessSingleDataFile:
         }
         model_group_dict = {"Model_A": "Group1"}
         biodomain_dict = {"ENSMUSG00000000001": ["Synaptic"]}
-        model_info_dict = {"Model_A": "knockout"}
+        model_type_dict = {"Model_A": "knockout"}
 
         data_file_required_columns = [
             "ensembl_gene_id",
@@ -894,7 +894,7 @@ class TestProcessSingleDataFile:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
             file_index=0,
             total_files=1,
         )
@@ -915,7 +915,7 @@ class TestProcessSingleDataFile:
         label_map_dict = {}  # Empty is OK since no data will be processed
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         data_file_required_columns = [
             "ensembl_gene_id",
@@ -938,7 +938,7 @@ class TestProcessSingleDataFile:
                 label_map_dict=label_map_dict,
                 model_group_dict=model_group_dict,
                 biodomain_dict=biodomain_dict,
-                model_info_dict=model_info_dict,
+                model_type_dict=model_type_dict,
                 file_index=0,
                 total_files=1,
             )
@@ -975,7 +975,7 @@ class TestProcessSingleDataFile:
         }
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         data_file_required_columns = [
             "ensembl_gene_id",
@@ -997,7 +997,7 @@ class TestProcessSingleDataFile:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
             file_index=0,
             total_files=1,
         )
@@ -1030,7 +1030,7 @@ class TestProcessSingleDataFile:
         }
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         data_file_required_columns = [
             "ensembl_gene_id",
@@ -1052,7 +1052,7 @@ class TestProcessSingleDataFile:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
             file_index=0,
             total_files=1,
         )
@@ -1086,7 +1086,7 @@ class TestProcessSingleDataFile:
         }
         model_group_dict = {}
         biodomain_dict = {}
-        model_info_dict = {}
+        model_type_dict = {}
 
         data_file_required_columns = [
             "ensembl_gene_id",
@@ -1108,7 +1108,7 @@ class TestProcessSingleDataFile:
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
             biodomain_dict=biodomain_dict,
-            model_info_dict=model_info_dict,
+            model_type_dict=model_type_dict,
             file_index=0,
             total_files=1,
         )
@@ -1156,14 +1156,13 @@ class TestTransformRnaDeAggregate:
 
     def test_transform_rna_de_aggregate_missing_required_dataset(self) -> None:
         """Test that missing required datasets raise ValueError."""
-        # Load datasets without one required dataset (model_info)
+        # Load datasets without one required dataset (mouse_gene_metadata)
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv"
-                # Missing synthetic_model_info.csv
+                # Missing synthetic_mouse_gene_metadata.csv
             ]
         )
 
@@ -1185,8 +1184,6 @@ class TestTransformRnaDeAggregate:
             "synthetic_rnaseq_genotype_label_map_inconsistent.csv": "rnaseq_genotype_label_map",
             "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
             "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
-            "synthetic_model_info.csv": "model_info",
-            "synthetic_model_info_no_group.csv": "model_info",
             "synthetic_biodom_genes_mm.csv": "biodom_genes_mm",
             "synthetic_biodom_genes_mm_multiple.csv": "biodom_genes_mm",
         }
@@ -1220,7 +1217,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_basic_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1254,7 +1250,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_multi_model_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1293,7 +1288,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_jax_tissue_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1329,7 +1323,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_mixed_genes_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1364,7 +1357,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_nan_negative_zero_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1384,7 +1376,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_nan_negative_zero_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1405,7 +1396,6 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1450,7 +1440,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_age_sorting_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1487,7 +1476,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_single_row_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1518,7 +1506,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_empty_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1535,7 +1522,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_missing_columns_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1556,7 +1542,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_rounding_precision_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1599,7 +1584,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_multiple_biodomains_data.csv",
                 "synthetic_rnaseq_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata_multi.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm_multiple.csv",
             ]
         )
@@ -1640,7 +1624,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_null_model_group_data.csv",
                 "synthetic_rnaseq_genotype_label_map_no_group.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info_no_group.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1680,7 +1663,6 @@ class TestTransformRnaDeAggregate:
                 "synthetic_basic_data.csv",
                 "synthetic_rnaseq_genotype_label_map_inconsistent.csv",
                 "synthetic_mouse_gene_metadata.csv",
-                "synthetic_model_info.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
