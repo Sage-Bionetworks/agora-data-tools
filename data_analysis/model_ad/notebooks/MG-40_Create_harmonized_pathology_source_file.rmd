@@ -97,7 +97,8 @@ keeps <- c('individual_id', 'model', 'type', 'measurement', 'units', 'age_death'
 # DISPLAY LABELS
 # **************
 
-# Model and genotype display names (rnaseq_genotype_label_map.csv)
+# Model display names (copied from rnaseq_genotype_label_map.csv) -- there isn't
+# a good way to get these values dynamically.
 threex_display_name <- '3xTg-AD'
 fivex_display_name <- '5xFAD (UCI)'
 abca7_display_name <- 'Abca7*V1599M'
