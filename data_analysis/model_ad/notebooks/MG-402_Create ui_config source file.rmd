@@ -447,23 +447,24 @@ build_dc_objects <- function() {
 #
 mo_columns <- data.frame(
   name = c("Model", "Model Type", "Matched Controls",
-           "Gene Expression", "Disease Correlation", "Biomarkers",
+           "Transcriptomics", "Disease Correlation", "Biomarkers",
            "Pathology", "Study Data", "JAX Strain",
            "Center", NA, NA
   ),
   type = c("primary", "text", "text",
-    "link_internal", "link_internal", "link_internal",
-    "link_internal","link_external", "link_external",
-    "link_external", "text", "text"
+           "link_internal", "link_internal", "link_internal",
+           "link_internal","link_external", "link_external",
+           "text", "text", "text"
   ),
-  data_key = c("name", "model_type", "matched_controls", "gene_expression",
-                 "disease_correlation", "biomarkers", "pathology",
-                 "study_data", "jax_strain", "center", "modified_genes", "available_data"),
+  data_key = c("name", "model_type", "matched_controls",
+               "transcriptomics", "disease_correlation", "biomarkers",
+              "pathology", "study_data", "jax_strain",
+              "center", "modified_genes", "available_data"),
   tooltip = c("Mouse Model",  rep(NA, times = 11)),
   sort_tooltip = rep(NA, times = 12),
   link_url = rep(NA, times = 12),
   link_text = c(NA, NA, NA, "Results", "Results", "Results", "Results", "View Data", "View Strain", NA, NA, NA),
-  is_exported = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE),
+  is_exported = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
   is_hidden = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, TRUE),
   stringsAsFactors = FALSE
 )
@@ -498,7 +499,7 @@ mo_modified_gene_filter_vals <- c('Abca7',
                                'Trem2')
 
 mo_filter_values <- list(
-  c('Biomarkers', 'Disease Correlation', 'Gene Expression', 'Pathology'),
+  c('Biomarkers', 'Disease Correlation', 'Pathology', 'Transcriptomics'),
   c('IU/Jax/Pitt', 'UCI'),
   model_type_filter_vals,
   mo_modified_gene_filter_vals
