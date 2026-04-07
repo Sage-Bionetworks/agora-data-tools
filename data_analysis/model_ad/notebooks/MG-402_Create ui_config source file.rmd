@@ -4,7 +4,7 @@ title: "MG-402: Create ui_config source file"
 This notebook generates the ui_config.json source file (syn66527739) containing the data required to construct Comparison Tool interfaces for the Model-AD Explorer MVP.
 
 Interfaces that are currently handled by this notebook:
-* Gene Expression
+* Differential Expression
 * Disease Correlation
 * Model Overview
 
@@ -160,16 +160,16 @@ build_filters <- function(filter_defs, filter_values) {
 
 
 # ***************
-# Gene Expression
+# Differential Expression
 # ***************
 
-# Gene Expression Dropdown Menus
+# Differential Expression Dropdown Menus
 # ------------------------------
 ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
 ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
 ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 
-# Gene Expression Columns
+# Differential Expression Columns
 # -------------------------
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
@@ -197,7 +197,7 @@ ge_dynamic_column_is_hidden <- FALSE
 ge_dynamic_names_jax <- c("4 months", "12 months")
 ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 
-# Gene Expression Filters
+# Differential Expression Filters
 # -----------------------
 ge_filters <- data.frame(
   name = c('Biological Domain', 'Model Type', 'Mouse Model'),
@@ -207,7 +207,7 @@ ge_filters <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Gene Expression Filter values
+# Differential Expression Filter values
 # -----------------------------
 # MG-750: Only include model filter values for models with results for the selected tissue
 
@@ -230,13 +230,7 @@ ge_model_name_filter_vals_hippocampus <- c(
                             'Trem2-R47H_NSS',
                             'Trem2-R47H_NSS.5xFAD')
 
-ge_filter_values <- list(
-  biodomain_filter_vals,
-  model_type_filter_vals,
-  ge_model_name_filter_vals
-)
-
-# Generates Gene Expression ui_config objects
+# Generates Differential Expression ui_config objects
 build_ge_objects <- function() {
 
   # Static columns are always the same
@@ -286,7 +280,7 @@ build_ge_objects <- function() {
     filters <- build_filters(ge_filters, ge_filter_values)
 
     list(
-      page = "Gene Expression",
+      page = "Differential Expression",
       dropdowns = c(combo$menu1, combo$menu2, combo$menu3),
       row_count = gene_expression_row_count,
       columns = columns,
