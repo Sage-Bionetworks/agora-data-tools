@@ -330,7 +330,7 @@ dc_dynamic_column_is_hidden <- FALSE
 dc_dynamic_names_A <- c("IFG module", "PHG module", "TCX module")
 dc_dynamic_names_B <- c("CBE module", "DLPFC module", "PHG module", "TCX module", "FP module", "IFG module", "STG module")
 dc_dynamic_names_C <- c("CBE module", "DLPFC module", "FP module", "IFG module", "PHG module", "STG module", "TCX module")
-dc_dynamic_names_D <- c("CBE module", "DLPFC module", "FP module", "IFG module", "PHG module", "STG module", "TCX-D module")
+dc_dynamic_names_D <- c("CBE module", "DLPFC module", "FP module", "IFG module", "PHG module", "STG module", "TCX module")
 dc_dynamic_names_E <- c("CBE module", "DLPFC module", "PHG module", "STG module", "TCX module", "FP module")
 
 get_dc_dynamic_names <- function(cluster_label) {
