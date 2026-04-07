@@ -327,11 +327,11 @@ dc_dynamic_column_is_exported <- TRUE
 dc_dynamic_column_is_hidden <- FALSE
 
 # Dynamic column names vary by consensus cluster option
-dc_dynamic_names_A <- c("IFG", "PHG", "TCX")
-dc_dynamic_names_B <- c("CBE", "DLPFC", "PHG", "TCX", "FP", "IFG", "STG")
-dc_dynamic_names_C <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
-dc_dynamic_names_D <- c("CBE", "DLPFC", "FP", "IFG", "PHG", "STG", "TCX")
-dc_dynamic_names_E <- c("CBE", "DLPFC", "PHG", "STG", "TCX", "FP")
+dc_dynamic_names_A <- c("IFG module", "PHG module", "TCX module")
+dc_dynamic_names_B <- c("CBE module", "DLPFC module", "PHG module", "TCX module", "FP module", "IFG module", "STG module")
+dc_dynamic_names_C <- c("CBE module", "DLPFC module", "FP module", "IFG module", "PHG module", "STG module", "TCX module")
+dc_dynamic_names_D <- c("CBE module", "DLPFC module", "FP module", "IFG module", "PHG module", "STG module", "TCX-D module")
+dc_dynamic_names_E <- c("CBE module", "DLPFC module", "PHG module", "STG module", "TCX module", "FP module")
 
 get_dc_dynamic_names <- function(cluster_label) {
   if (grepl("Cluster A", cluster_label)) return(dc_dynamic_names_A)
