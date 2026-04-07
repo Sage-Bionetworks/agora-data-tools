@@ -66,7 +66,7 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
         List[str]: A list of available data for the model.
     """
     fields = {
-        "gene_expression": "Gene Expression",
+        "gene_expression": "Transcriptomics",
         "disease_correlation": "Disease Correlation",
         "pathology": "Pathology",
         "biomarkers": "Biomarkers",
@@ -162,8 +162,8 @@ def transform_model_overview(
             gene for gene in modified_genes if gene is not None and str(gene) != "nan"
         ]
 
-        # Build the links first
-        row["gene_expression"] = (
+        # Build the links
+        row["transcriptomics"] = (
             {"link_url": build_gene_expression_url(row)}
             if bool(row["gene_expression"])
             else None
@@ -195,14 +195,7 @@ def transform_model_overview(
             if row["jax_id"]
             else None
         )
-        row["center"] = (
-            {
-                "link_text": row["contributing_group"],
-                "link_url": get_center_link_url(row["contributing_group"]),
-            }
-            if row["contributing_group"]
-            else None
-        )
+        row["center"] = row["contributing_group"]
 
         # Calculate available_data based on which links are actually present
         row["available_data"] = get_list_of_available_data(row)
@@ -219,7 +212,7 @@ def transform_model_overview(
             "name",
             "model_type",
             "matched_controls",
-            "gene_expression",
+            "transcriptomics",
             "disease_correlation",
             "pathology",
             "biomarkers",
