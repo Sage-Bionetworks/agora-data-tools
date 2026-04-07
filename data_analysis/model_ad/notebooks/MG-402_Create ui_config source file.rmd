@@ -463,8 +463,8 @@ mo_columns <- data.frame(
   sort_tooltip = rep(NA, times = 12),
   link_url = rep(NA, times = 12),
   link_text = c(NA, NA, NA, "Results", "Results", "Results", "Results", "View Data", "View Strain", NA, NA, NA),
-  is_exported = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
-  is_hidden = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE),
+  is_exported = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE, TRUE, FALSE),
+  is_hidden = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, TRUE),
   stringsAsFactors = FALSE
 )
 
