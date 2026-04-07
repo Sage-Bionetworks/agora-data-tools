@@ -298,11 +298,11 @@ build_ge_objects <- function() {
 # -----------------------------------
 dc_menu1 <- c("CONSENSUS NETWORK MODULES")
 dc_menu2 <- c(
-  "Consensus Cluster A - ECM Organization",
-  "Consensus Cluster B - Immune System",
-  "Consensus Cluster C - Neuronal System",
-  "Consensus Cluster D - Cell Cycle, NMD",
-  "Consensus Cluster E - Organelle Biogenesis, Cellular Stress Response"
+  "Immune System - Consensus Cluster B",
+  "Neuronal System - Consensus Cluster C",
+  "Organelle Biogenesis, Cellular Stress Response - Consensus Cluster E",
+  "Cell Cycle, NMD Consensus Cluster D",
+  "ECM Organization - Consensus Cluster A"
 )
 
 # Disease Correlation Columns
