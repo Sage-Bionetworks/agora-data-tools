@@ -43,6 +43,7 @@ datasets:
         model: name
         key: dataset_name
         items: evidence_type
+        gene_expression: transcriptomics
       gx_nested_columns:
         - genetic_info
         - biomarkers
@@ -98,6 +99,7 @@ datasets:
         gene: modified_gene
         ensembl_id: human_ensembl_id
         model: name
+        gene_expression: transcriptomics
 
   - rna_de_aggregate:
       files:

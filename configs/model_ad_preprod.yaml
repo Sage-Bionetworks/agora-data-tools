@@ -43,6 +43,7 @@ datasets:
         model: name
         key: dataset_name
         items: evidence_type
+        gene_expression: transcriptomics
       gx_nested_columns:
         - genetic_info
         - biomarkers
