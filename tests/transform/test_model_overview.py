@@ -254,9 +254,9 @@ class TestTransformModelOverview:
             {
                 "name": ["test_model"],
                 "transcriptomics": [True],
-                "disease_correlation": [None],
+                "disease_correlation": [False],
                 "pathology": [True],
-                "biomarkers": [None],
+                "biomarkers": [False],
             }
         )
         allele_info = pd.DataFrame(
