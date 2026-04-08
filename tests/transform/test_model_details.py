@@ -350,7 +350,7 @@ class TestTransformModelDetails:
         model_results_info_df = pd.DataFrame(
             {
                 "name": pd.Series(dtype="object"),
-                "gene_expression": pd.Series(dtype="object"),
+                "transcriptomics": pd.Series(dtype="object"),
                 "disease_correlation": pd.Series(dtype="object"),
                 "pathology": pd.Series(dtype="object"),
                 "biomarkers": pd.Series(dtype="object"),

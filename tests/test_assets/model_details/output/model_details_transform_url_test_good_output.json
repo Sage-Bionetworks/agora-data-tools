@@ -15,7 +15,7 @@
       "hTau",
       "Mapt-/-"
     ],
-    "gene_expression": "comparison/expression?models=Model_url_default",
+    "transcriptomics": "comparison/expression?models=Model_url_default",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [],
@@ -37,7 +37,7 @@
     "aliases": [
       "3xTg"
     ],
-    "gene_expression": "comparison/expression?categories=category_string&models=Model_url_categories",
+    "transcriptomics": "comparison/expression?categories=category_string&models=Model_url_categories",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [],
@@ -60,7 +60,7 @@
       "hTau",
       "Mapt-/-"
     ],
-    "gene_expression": "comparison/expression?models=model1,model2",
+    "transcriptomics": "comparison/expression?models=model1,model2",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [],
@@ -82,7 +82,7 @@
     "aliases": [
       "3xTg"
     ],
-    "gene_expression": "comparison/expression?categories=category_string&models=model3,model4",
+    "transcriptomics": "comparison/expression?categories=category_string&models=model3,model4",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [],

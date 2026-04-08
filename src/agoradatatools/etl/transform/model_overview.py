@@ -11,7 +11,7 @@ from agoradatatools.etl.utils import (
     remove_duplicates_keep_order,
 )
 from agoradatatools.etl.transform.model_ad_transform_utils import (
-    build_gene_expression_url,
+    build_transcriptomics_url,
     process_genetic_info,
 )
 
@@ -32,7 +32,7 @@ REQUIRED_INPUT = {
     ],
     "model_results_info": [
         "name",
-        "gene_expression",
+        "transcriptomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
@@ -66,7 +66,7 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
         List[str]: A list of available data for the model.
     """
     fields = {
-        "gene_expression": "Transcriptomics",
+        "transcriptomics": "Transcriptomics",
         "disease_correlation": "Disease Correlation",
         "pathology": "Pathology",
         "biomarkers": "Biomarkers",
@@ -164,8 +164,8 @@ def transform_model_overview(
 
         # Build the links
         row["transcriptomics"] = (
-            {"link_url": build_gene_expression_url(row)}
-            if bool(row["gene_expression"])
+            {"link_url": build_transcriptomics_url(row)}
+            if bool(row["transcriptomics"])
             else None
         )
         row["disease_correlation"] = (

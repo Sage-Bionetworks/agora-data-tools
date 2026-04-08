@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.model_ad_transform_utils import (
-    build_gene_expression_url,
+    build_transcriptomics_url,
     process_genetic_info,
 )
 
@@ -207,11 +207,11 @@ class TestProcessGeneticInfo:
         assert output == expected_output
 
 
-class TestBuildGeneExpressionUrl:
+class TestBuildTranscriptomicsUrl:
     """
-    This class is for testing the build_gene_expression_url function for the model_details transform. The function takes
-    a pd.Series object (representing a single row from the model_info file) and builds a URL if the model has gene
-    expression data.
+    This class is for testing the build_transcriptomics_url function for the model_details & model_overview transforms.
+    The function takes a pd.Series object (representing a single row from the model_info file) and builds a URL if the
+    model has transcriptomics data.
     """
 
     @pytest.fixture
@@ -221,7 +221,7 @@ class TestBuildGeneExpressionUrl:
                 "name": "Model",
                 "url_categories_value": "category_string",
                 "url_models_value": "model1,model2",
-                "gene_expression": True,
+                "transcriptomics": True,
             }
         )
 
@@ -230,24 +230,24 @@ class TestBuildGeneExpressionUrl:
         [False, None],
         ids=["Pass with False boolean value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_no_gene_expression(
+    def test_build_transcriptomics_url_no_transcriptomics(
         self, false_val: bool, url_test_model: pd.Series
     ) -> None:
         """
-        The function should treat both None and False as gene_expression = False, and return None.
+        The function should treat both None and False as transcriptomics = False, and return None.
         """
-        url_test_model["gene_expression"] = false_val
+        url_test_model["transcriptomics"] = false_val
 
-        url = build_gene_expression_url(url_test_model)
+        url = build_transcriptomics_url(url_test_model)
         assert url is None
 
-    def test_build_gene_expression_url_all_default_values(
+    def test_build_transcriptomics_url_all_default_values(
         self, url_test_model: pd.Series
     ) -> None:
         url_test_model["url_categories_value"] = ""
         url_test_model["url_models_value"] = ""
 
-        url = build_gene_expression_url(url_test_model)
+        url = build_transcriptomics_url(url_test_model)
         assert url == "comparison/expression?models=Model"
 
     @pytest.mark.parametrize(
@@ -255,7 +255,7 @@ class TestBuildGeneExpressionUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_default_category(
+    def test_build_transcriptomics_url_default_category(
         self, empty_val: str, url_test_model: pd.Series
     ) -> None:
         """
@@ -263,7 +263,7 @@ class TestBuildGeneExpressionUrl:
         """
         url_test_model["url_categories_value"] = empty_val
 
-        url = build_gene_expression_url(url_test_model)
+        url = build_transcriptomics_url(url_test_model)
         assert url == "comparison/expression?models=model1,model2"
 
     @pytest.mark.parametrize(
@@ -271,7 +271,7 @@ class TestBuildGeneExpressionUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with NA value"],
     )
-    def test_build_gene_expression_url_default_models(
+    def test_build_transcriptomics_url_default_models(
         self, empty_val: str, url_test_model: pd.Series
     ) -> None:
         """
@@ -279,25 +279,25 @@ class TestBuildGeneExpressionUrl:
         """
         url_test_model["url_models_value"] = empty_val
 
-        url = build_gene_expression_url(url_test_model)
+        url = build_transcriptomics_url(url_test_model)
         assert url == "comparison/expression?categories=category_string&models=Model"
 
     @pytest.mark.parametrize(
         "missing_key",
-        ["name", "url_categories_value", "url_models_value", "gene_expression"],
+        ["name", "url_categories_value", "url_models_value", "transcriptomics"],
         ids=[
             "Fail with missing name column",
             "Fail with missing url_categories_value column",
             "Fail with missing url_models_value column",
-            "Fail with missing gene_expression column",
+            "Fail with missing transcriptomics column",
         ],
     )
-    def test_build_gene_expression_url_missing_field(
+    def test_build_transcriptomics_url_missing_field(
         self, missing_key: str, url_test_model: pd.Series
     ) -> None:
         """
         In the transform, the model_info and model_results_info data frames have already been validated to have all the
-        required columns to correctly call build_gene_expression_url. However, we verify anyway that calling the
+        required columns to correctly call build_transcriptomics_url. However, we verify anyway that calling the
         function with missing columns will throw errors.
         """
         url_test_model.pop(missing_key)
@@ -307,4 +307,4 @@ class TestBuildGeneExpressionUrl:
             url_test_model["url_models_value"] = ""
 
         with pytest.raises(KeyError):
-            build_gene_expression_url(url_test_model)
+            build_transcriptomics_url(url_test_model)
