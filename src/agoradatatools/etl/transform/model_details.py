@@ -10,7 +10,7 @@ import pandas as pd
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.utils import check_required_datasets_and_columns
 from agoradatatools.etl.transform.model_ad_transform_utils import (
-    build_gene_expression_url,
+    build_transcriptomics_url,
     process_genetic_info,
 )
 
@@ -40,7 +40,7 @@ REQUIRED_INPUT = {
     ],
     "model_results_info": [
         "name",
-        "gene_expression",
+        "transcriptomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
@@ -124,7 +124,7 @@ def transform_model_details(
         how="left",
         on="name",
         validate="one_to_one",
-    ).fillna({"gene_expression": False, "disease_correlation": False})
+    ).fillna({"transcriptomics": False, "disease_correlation": False}) # TODO is this going to work?? I had to change a test case to use NONE instead of FALSE...
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
     if "jax_id" in model_info_df.columns:
@@ -173,7 +173,7 @@ def transform_model_details(
             "alzforum_id": model_row["alzforum_id"],
             "genotype": model_row["genotype"],
             "aliases": model_row["aliases"],
-            "gene_expression": None,
+            "transcriptomics": None,
             "disease_correlation": None,
             "spatial_transcriptomics": None,
             "genetic_info": genetic_info,
@@ -181,8 +181,8 @@ def transform_model_details(
             "pathology": model_pathology,
         }
 
-        # Add gene expression and disease correlation links if they exist
-        model_entry["gene_expression"] = build_gene_expression_url(model_row)
+        # Add transcriptomics and disease correlation links if they exist
+        model_entry["transcriptomics"] = build_transcriptomics_url(model_row)
         model_entry["disease_correlation"] = (
             f"comparison/correlation?models={model_name}"
             if bool(model_row["disease_correlation"])

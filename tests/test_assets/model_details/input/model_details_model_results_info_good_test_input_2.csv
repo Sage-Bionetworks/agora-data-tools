@@ -1,2 +1,2 @@
-name,gene_expression,disease_correlation,pathology,biomarkers
+name,transcriptomics,disease_correlation,pathology,biomarkers
 3xTg-AD,TRUE,TRUE,TRUE,TRUE

@@ -191,7 +191,7 @@ class TestTransformModelOverview:
         empty_model_results_info = pd.DataFrame(
             columns=[
                 "name",
-                "gene_expression",
+                "transcriptomics",
                 "disease_correlation",
                 "pathology",
                 "biomarkers",
@@ -253,7 +253,7 @@ class TestTransformModelOverview:
         model_results_info = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "gene_expression": [True],
+                "transcriptomics": [True],
                 "disease_correlation": [None],
                 "pathology": [True],
                 "biomarkers": [None],
@@ -334,7 +334,7 @@ class TestTransformModelOverview:
         model_results_info = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "gene_expression": [None],
+                "transcriptomics": [None],
                 "disease_correlation": [None],
                 "pathology": [None],
                 "biomarkers": [None],
@@ -415,7 +415,7 @@ class TestTransformModelOverview:
         model_results_info = pd.DataFrame(
             {
                 "name": ["model1", "model2"],
-                "gene_expression": [True, None],
+                "transcriptomics": [True, None],
                 "disease_correlation": [None, True],
                 "pathology": [True, True],
                 "biomarkers": [None, True],
@@ -507,7 +507,7 @@ class TestGetListOfAvailableData:
         )
 
         model = {
-            "gene_expression": {"link_url": "url1"},
+            "transcriptomics": {"link_url": "url1"},
             "disease_correlation": {"link_url": "url2"},
             "pathology": {"link_url": "url3"},
             "biomarkers": {"link_url": "url4"},
@@ -526,7 +526,7 @@ class TestGetListOfAvailableData:
         )
 
         model = {
-            "gene_expression": {"link_url": "url1"},
+            "transcriptomics": {"link_url": "url1"},
             "disease_correlation": None,
             "pathology": {"link_url": "url3"},
             "biomarkers": None,
@@ -540,7 +540,7 @@ class TestGetListOfAvailableData:
         )
 
         model = {
-            "gene_expression": None,
+            "transcriptomics": None,
             "disease_correlation": {"link_url": "url2"},
             "pathology": None,
             "biomarkers": {"link_url": "url1"},
@@ -554,7 +554,7 @@ class TestGetListOfAvailableData:
         )
 
         model = {
-            "gene_expression": None,
+            "transcriptomics": None,
             "disease_correlation": None,
             "pathology": None,
             "biomarkers": None,
@@ -577,7 +577,7 @@ class TestGetListOfAvailableData:
         )
 
         model = {
-            "gene_expression": {"link_url": "url1"},
+            "transcriptomics": {"link_url": "url1"},
             # disease_correlation missing
             "pathology": None,
             # biomarkers missing
