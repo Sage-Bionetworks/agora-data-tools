@@ -124,7 +124,7 @@ def transform_model_details(
         how="left",
         on="name",
         validate="one_to_one",
-    ).fillna({"transcriptomics": False, "disease_correlation": False}) # TODO is this going to work?? I had to change a test case to use NONE instead of FALSE...
+    ).fillna({"transcriptomics": False, "disease_correlation": False})
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
     if "jax_id" in model_info_df.columns:
