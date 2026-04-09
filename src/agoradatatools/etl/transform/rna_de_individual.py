@@ -165,6 +165,15 @@ def _process_individual_data_file_core(
     # Derive the grouping key (name) directly from model_group.
     data_file["name"] = data_file["model_group"]
 
+    if data_file["name"].isna().any():
+        model = data_file["model"].iloc[0]
+        raise ValueError(
+            f"model_group is None for model '{model}'. Every model must have a "
+            f"non-empty model_group in the rnaseq_genotype_label_map. "
+            f"Ensure the correct version of the label map is configured in the "
+            f"pipeline config (current source: rnaseq_genotype_label_map)."
+        )
+
     # Step 3: Pre-calculate result_order list and matched_control.
     # This function is called once per model_group, so these values are constant across
     # all rows.
@@ -197,12 +206,7 @@ def _process_individual_data_file_core(
     # Step 5: Nest individual records by (gene, tissue, name, age).
     # Each combination of these grouping keys produces one output row, with all
     # individual-level columns (genotype, sex, individual_id, value) nested into "data".
-    #
-    # Note: name == model_group (set above), so None model_group means None name.
-    # nest_fields uses dropna=True by default, which would silently drop any group
-    # whose name key is None. In practice this is not a problem because the
-    # rnaseq_genotype_label_map guarantees non-None model_group for every model.
-    # model_group is restored from name after nesting.
+    # name == model_group (validated non-None above); model_group is restored after nesting.
     group_cols = ["ensembl_gene_id", "tissue", "name", "age"]
     cols_keep = group_cols + ["genotype", "sex", "individual_id", "value"]
     age_groups = nest_fields(
@@ -210,7 +214,6 @@ def _process_individual_data_file_core(
         grouping=group_cols,
         new_column="data",
         drop_columns=group_cols,
-        dropna=False,
     )
 
     # Step 6: Add metadata columns vectorially
