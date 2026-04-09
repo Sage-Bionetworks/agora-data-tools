@@ -97,20 +97,12 @@ keeps <- c('individual_id', 'model', 'type', 'measurement', 'units', 'age_death'
 # DISPLAY LABELS
 # **************
 
-# Model and genotype display names (rnaseq_genotype_label_map.csv)
+# Model display names (copied from rnaseq_genotype_label_map.csv) -- there isn't
+# a good way to get these values dynamically.
 threex_display_name <- '3xTg-AD'
-threex_control_display_name <- 'B6129'
 fivex_display_name <- '5xFAD (UCI)'
-fivex_control_display_name <- "C57BL/6J"
-fivex_genotype_display_value <- '5xFAD' # genotype != display name due to '(UCI)' qualifier
 abca7_display_name <- 'Abca7*V1599M'
-abca7_control_display_name <- "C57BL/6J"
-abca7fivex_display_name <- "Abca7*V1599M.5xFAD"
-abca7fivex_control_display_name <- '5xFAD'
 nss_display_name <- 'Trem2-R47H_NSS'
-nss_control_display_name <- "C57BL/6J"
-nssfivex_display_name <- "Trem2-R47H_NSS.5xFAD"
-nssfivex_control_display_name <- '5xFAD'
 
 # Pathology display names
 IBA1_display_name <- 'Microglia Cell Density (IBA1)'
@@ -177,7 +169,7 @@ download_csv <- function(synId, df_name) {
 #  - fields_to_keep: the appropriate 'column specs for intermediate per-model files' from above
 transform_results <- function(results, measurement_columns, model_name, fields_to_keep) {
   results %>% pivot_longer(
-                cols = measurement_columns,
+                cols = all_of(measurement_columns),
                 names_to = "units",
                 values_to = "measurement",
                 values_transform = list(measurement = as.numeric)
@@ -246,6 +238,10 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
 
   # Join results to metadata; prevent creating duplicate data rows for 'Pool-X' specimenIDs by matching only first metadata row
   results %>% left_join(metadata, by=join_by, multiple="first"
+            ) %>% left_join(genotype_label_map, by = c('model', 'genotype')
+
+            # Correct genotypes to align with target display values
+            ) %>% mutate(genotype = display_label
 
             # Print out nrow of results before age filtering
             ) %>% { print(nrow(.)) ;.
@@ -260,33 +256,11 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
             } %>% mutate(individualID = as.character(individualID)
 
             # Rename columns
-            ) %>% rename(., c('individualID' = 'individual_id',
-                              'ageDeath' = 'age_death')
+            ) %>% rename(individual_id = individualID,
+                         age_death = ageDeath
 
             # Drop unneeded columns
-            ) %>% select(all_of(keeps)
-
-            # Correct genotypes to align with target display values
-            ) %>% mutate(biomarkers_merged,
-                           genotype = case_when(
-
-                                   # 3xTG-AD genotypes
-                                   genotype == "3xTg-AD_homozygous"  ~ threex_display_name,
-                                   genotype == "3XTg-AD_noncarrier" ~ threex_control_display_name,
-
-                                   # 5xFAD genotypes
-                                   genotype %in% c("5XFAD_hemizygous","5XFAD_carrier") ~ fivex_genotype_display_value,
-                                   genotype == "5XFAD_noncarrier"  ~ fivex_control_display_name,
-
-                                   # NSS genotypes
-                                   genotype == "Trem2-R47H_NSS_homozygous"  ~ nss_display_name,
-                                   genotype == "5XFAD_carrier, Trem2-R47H_NSS_homozygous"  ~ nssfivex_display_name,
-
-                                   # Abca7 genotypes
-                                   genotype == "Abca7-V1599M_homozygous"  ~ abca7_display_name,
-                                   genotype == "5XFAD_carrier, Abca7-V1599M_homozygous"  ~ abca7fivex_display_name,
-
-                                   TRUE ~ genotype))
+            ) %>% select(all_of(keeps))
 }
 ```
 
@@ -295,17 +269,28 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
 Note that each file's synId and version is added to the data_sources vector via the download_csv function.
 The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
 ```{r}
+# Genotype -> Display label map
+genotype_label_map <- download_csv('syn69014401.14') %>%
+  # Model name fix, plus change "5xFAD (UCI)" -> "5xFAD"
+  mutate(model = model_group,
+         display_label = str_replace(display_label, " \\(UCI\\)", ""))
+
 # 3xTG-AD
 # metadata
 threex_biospecimen <- download_csv('syn23532198.3')
-threex_individual <- download_csv('syn23532199.4')
+threex_individual <- download_csv('syn23532199.4') %>%
+  # genotype fix
+  mutate(genotype = str_replace(genotype, "_homozygous", "_carrier"),
+         genotype = str_replace(genotype, "3XTg", "3xTg"))
 # data
 threex_pathology_source <- download_csv('syn26601504.1')
 
 # 5xFAD
 # metadata
 fivex_biospecimen <- download_csv('syn18876530.10')
-fivex_individual <- download_csv('syn18880070.14')
+fivex_individual <- download_csv('syn18880070.14') %>%
+  # genotype fix
+  mutate(genotype = str_replace(genotype, "_hemizygous", "_carrier"))
 # data
 fivex_gfap_s100b_source <- download_csv('syn22049816.3')
 fivex_lamp1_source <- download_csv('syn22049817.2')
@@ -314,14 +299,18 @@ fivex_iba1_thios_source <- download_csv('syn22049825.4')
 #NSS
 # metadata
 nss_biospecimen <- download_csv('syn29568452.3')
-nss_individual <- download_csv('syn27147690.3')
+nss_individual <- download_csv('syn27147690.3') %>%
+  # genotype fix
+  mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 nss_pathology_source <- download_csv('syn42131930.1')
 
 #Abca7
 # metadata
 abca7_biospecimen <- download_csv('syn30859390.2')
-abca7_individual <- download_csv('syn30859394.2')
+abca7_individual <- download_csv('syn30859394.2') %>%
+  # genotype fix
+  mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 abca7_pathology_source <- download_csv('syn53127289.1')
 ```
@@ -375,14 +364,13 @@ fivex_iba1 <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'Iba1',] 
 
 fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'ThioS',] %>%
   select(all_of(c(fivex_source_keeps, "X.objects..sqmm", "mean.object.area..squm."))) %>%
-  mutate(X.objects..sqmm = ifelse(X.objects..sqmm == "N/A", 0, X.objects..sqmm)) %>%
   fivex_rename_cols()
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
-fivex_gfap_s100b_pivot <- transform_results(fivex_gfap_s100b, all_of(c('X.objects..sqmm')), fivex_display_name, keeps_with_join_fields)
-fivex_lamp1_pivot <- transform_results(fivex_lamp1, all_of(c('Area..')), fivex_display_name, keeps_with_join_fields)
-fivex_iba1_pivot <- transform_results(fivex_iba1, all_of(c('X.objects..sqmm')), fivex_display_name, keeps_with_join_fields)
-fivex_thios_pivot <- transform_results(fivex_thios, all_of(c('X.objects..sqmm', 'mean.object.area..squm.')), fivex_display_name, keeps_with_join_fields)
+fivex_gfap_s100b_pivot <- transform_results(fivex_gfap_s100b, c('X.objects..sqmm'), fivex_display_name, keeps_with_join_fields)
+fivex_lamp1_pivot <- transform_results(fivex_lamp1, c('Area..'), fivex_display_name, keeps_with_join_fields)
+fivex_iba1_pivot <- transform_results(fivex_iba1, c('X.objects..sqmm'), fivex_display_name, keeps_with_join_fields)
+fivex_thios_pivot <- transform_results(fivex_thios, c('X.objects..sqmm', 'mean.object.area..squm.'), fivex_display_name, keeps_with_join_fields)
 
 # Merge all results into a single data frame
 fivex_final <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_iba1_pivot, fivex_thios_pivot
@@ -441,6 +429,7 @@ Checks that ensure that the processed data includes the expected number of resul
 1. Source data vs processed data: nrow(filtered_source_data) == nrow(processed_data)
 2. Source data vs expected rows: nrow(nrow(processed_data)) == nrow(legacy_explorer_data)
    - Expected row values are calculated in the 'Immunohisto expected row counts' notebook
+3. There should be no NA values: all values with NA measurements should be dropped, and there shouldn't be any NA values introduced from the `left_join()` to metadata.
 
 
 ```{r}
@@ -483,6 +472,9 @@ stopifnot(nrow(threex_final[threex_final$type == ThioS_size_display_name,]) == n
 stopifnot(nrow(threex_final[threex_final$type == ThioS_density_display_name,]) == nrow(threex_thioss))
 stopifnot(nrow(threex_thioss) == 144) #  ThioS size :  3xTg-AD + B6129  ==  144
 
+# Check all fields were populated properly -- there should be no NAs
+stopifnot(!any(is.na(threex_final)))
+
 # *****
 # 5xFAD
 # *****
@@ -519,6 +511,9 @@ stopifnot(nrow(fivex_final[fivex_final$type == ThioS_size_display_name,]) ==five
 stopifnot(nrow(fivex_final[fivex_final$type == ThioS_density_display_name,]) == fivex_thios)
 stopifnot(nrow(fivex_thios) == 278) #  ThioS (size == density):  5xFAD + C57BL/6J  ==  278 rows expected
 
+# Check all fields were populated properly -- there should be no NAs
+stopifnot(!any(is.na(fivex_final)))
+
 # **************
 # Trem2-R47H_NSS
 # **************
@@ -551,6 +546,9 @@ stopifnot(nrow(nss_final[nss_final$type == ThioS_size_display_name,]) == nrow(ns
 stopifnot(nrow(nss_final[nss_final$type == ThioS_density_display_name,]) == nrow(nss_thiosd))
 # results not in legacy explorer
 
+# Check all fields were populated properly -- there should be no NAs
+stopifnot(!any(is.na(nss_final)))
+
 # ************
 # Abca7*V1599M
 # ************
@@ -580,6 +578,9 @@ abca7_thios <- abca7_pathology_source[abca7_pathology_source$stain == 'ThioS',]
 stopifnot(nrow(abca7_final[abca7_final$type == ThioS_size_display_name,]) == nrow(abca7_thios))
 stopifnot(nrow(abca7_final[abca7_final$type == ThioS_density_display_name,]) == nrow(abca7_thios))
 # results not in legacy explorer
+
+# Check all fields were populated properly -- there should be no NAs
+stopifnot(!any(is.na(abca7_final)))
 ```
 
 
