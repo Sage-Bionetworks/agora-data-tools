@@ -552,10 +552,12 @@ class TestNestFields:
         the nested records contain only the non-key fields.
 
         Note: this test exercises the happy path where all name values are non-None. It does
-        NOT reproduce the crash seen in CI ('cannot insert age, already exists'), which is
-        triggered when all rows have a None groupby key (name=None), causing groupby(dropna=True)
-        to drop every row and leaving reset_index() with a conflicting MultiIndex.
-        The actual regression test for that failure is test_nest_fields_preserves_none_groupby_key.
+        NOT reproduce the original CI crash ('cannot insert age, already exists'), which was
+        triggered when all rows had a None groupby key (name=None) — groupby(dropna=True) dropped
+        every row, leaving reset_index() with a conflicting MultiIndex. That root cause is now
+        handled in rna_de_individual by an explicit ValueError check before calling nest_fields.
+        test_nest_fields_dropna_true_drops_none_groupby_key documents the nest_fields behaviour
+        when None keys are present.
         """
         df = pd.DataFrame(
             {
@@ -590,7 +592,7 @@ class TestNestFields:
         )
 
     def test_nest_fields_preserves_none_groupby_key(self) -> None:
-        """dropna=False preserves groups whose groupby key is None."""
+        """dropna=False includes groups whose groupby key is None in the output."""
         result = utils.nest_fields(
             df=self.df_with_none_key.copy(),
             grouping="name",
@@ -609,7 +611,7 @@ class TestNestFields:
         assert len(group_a_row["data"].iloc[0]) == 2
 
     def test_nest_fields_dropna_true_drops_none_groupby_key(self) -> None:
-        """dropna=True silently drops groups whose groupby key is None."""
+        """dropna=True excludes groups whose groupby key is None from the output."""
         result = utils.nest_fields(
             df=self.df_with_none_key.copy(),
             grouping="name",
@@ -623,7 +625,7 @@ class TestNestFields:
         assert len(result["data"].iloc[0]) == 2
 
     def test_nest_fields_default_dropna_drops_none_groupby_key(self) -> None:
-        """The default dropna=True drops groups whose groupby key is None."""
+        """The default dropna=True excludes groups whose groupby key is None from the output."""
         result = utils.nest_fields(
             df=self.df_with_none_key.copy(),
             grouping="name",

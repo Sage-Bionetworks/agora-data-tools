@@ -198,6 +198,10 @@ def nest_fields(
                         rows for a single Ensembl ID. If False, each nested field will be a single dict. This applies
                         to data sets where there is only one row to collapse, e.g. one row of Ensembl info for one
                         Ensembl ID.
+        dropna (bool, optional): If True (default), rows with None/NaN in any groupby key column are excluded
+                        from the output. Pass False to include groups whose key is None/NaN. Callers that treat
+                        a None key as a data error should validate the input before calling this function rather
+                        than relying on this parameter.
 
     Returns:
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
@@ -216,9 +220,10 @@ def nest_fields(
     # (added by group_keys=True, the pandas >=2.0 default) and its columns, which
     # would cause reset_index() to fail with "cannot insert <col>, already exists".
     #
-    # dropna=False preserves groups whose key contains None/NaN. The pandas default
-    # (dropna=True) silently drops those rows, which can hide data when an optional
-    # groupby key such as model_group is None.
+    # dropna controls whether groups with None/NaN keys are included in the output.
+    # The default (dropna=True) drops those rows. Callers that need to handle None
+    # keys should validate the input before calling this function rather than relying
+    # on dropna=False to pass them through.
     cols_to_nest = [c for c in df.columns if c not in drop_columns]
     nested = (
         df.groupby(grouping, dropna=dropna)[cols_to_nest]
