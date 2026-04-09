@@ -149,6 +149,7 @@ class TestProcessIndividualDataFileCore:
         - test_wrong_unit_age_raises_value_error: Tests that an age with digits but wrong unit (e.g. '1 year') raises ValueError.
         - test_non_digit_age_error_message_names_offending_values: Tests that the ValueError message lists every offending age value.
         - test_multiple_tissues_produce_separate_output_entries: Tests that different tissues produce one output entry each.
+        - test_none_model_group_produces_output_with_none_name: Documents that None model_group flows through to output with None name.
     """
 
     def test_basic_core_processing(self) -> None:
@@ -570,6 +571,57 @@ class TestProcessIndividualDataFileCore:
         for entry in result:
             assert entry["ensembl_gene_id"] == "ENSMUSG00000000001"
             assert len(entry["data"]) == 2  # 2 individuals per tissue
+
+    def test_none_model_group_produces_output_with_none_name(self) -> None:
+        """Test that None model_group flows through to output with name=None and model_group=None.
+
+        When the label map supplies model_group=None for a model, name is set to None
+        (because name == model_group). nest_fields is called with dropna=False so
+        the group whose key contains None is preserved rather than dropped. The result
+        has name=None and model_group=None in the output entry.
+
+        Historical note: before nest_fields used dropna=False, this scenario caused
+        a crash ("cannot insert age, already exists") because groupby(dropna=True)
+        dropped all rows, leaving an empty result whose MultiIndex still held the
+        groupby keys; reset_index() then tried to promote those keys to regular columns
+        that already existed. This is the exact failure mode observed in CI for 3xTg-AD
+        and UCI 5XFAD when the label map had no model_group value for those models.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "6 months"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["3xTg-AD", "3xTg-AD"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        # model_group is None — as it was in the old label map for 3xTg-AD
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["3xTg-AD"],
+                "genotype": ["Tg"],
+                "display_label": ["3xTg-AD"],
+                "result_order": [1],
+                "model_group": [None],
+            }
+        )
+
+        result = _process_individual_data_file_core(
+            data_file, gene_metadata_dict, genotype_label_map_df
+        )
+
+        assert len(result) == 1
+        # reset_index() converts None groupby keys to NaN in pandas; use pd.isna() to check.
+        assert pd.isna(result[0]["name"])
+        assert pd.isna(result[0]["model_group"])
+        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert len(result[0]["data"]) == 2
 
 
 class TestTransformRnaDeIndividual:

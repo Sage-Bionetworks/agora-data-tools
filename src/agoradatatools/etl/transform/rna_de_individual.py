@@ -198,8 +198,10 @@ def _process_individual_data_file_core(
     # Each combination of these grouping keys produces one output row, with all
     # individual-level columns (genotype, sex, individual_id, value) nested into "data".
     #
-    # model_group is excluded from the groupby to avoid issues with None values
-    # (pandas groupby drops NaN/None keys by default). Since name == model_group,
+    # Note: name == model_group (set above), so None model_group means None name.
+    # nest_fields uses dropna=True by default, which would silently drop any group
+    # whose name key is None. In practice this is not a problem because the
+    # rnaseq_genotype_label_map guarantees non-None model_group for every model.
     # model_group is restored from name after nesting.
     group_cols = ["ensembl_gene_id", "tissue", "name", "age"]
     cols_keep = group_cols + ["genotype", "sex", "individual_id", "value"]
@@ -208,6 +210,7 @@ def _process_individual_data_file_core(
         grouping=group_cols,
         new_column="data",
         drop_columns=group_cols,
+        dropna=False,
     )
 
     # Step 6: Add metadata columns vectorially
