@@ -177,6 +177,7 @@ def nest_fields(
     new_column: str,
     drop_columns: list = [],
     nested_field_is_list: bool = True,
+    dropna: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame by grouping and nesting fields.
 
@@ -220,7 +221,7 @@ def nest_fields(
     # groupby key such as model_group is None.
     cols_to_nest = [c for c in df.columns if c not in drop_columns]
     nested = (
-        df.groupby(grouping, dropna=False)[cols_to_nest]
+        df.groupby(grouping, dropna=dropna)[cols_to_nest]
         .apply(lambda row: row.replace({np.nan: None}).to_dict("records"))
         .reset_index()
         .rename(columns={0: new_column})

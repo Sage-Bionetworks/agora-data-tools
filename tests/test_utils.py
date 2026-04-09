@@ -450,6 +450,12 @@ class TestNestFields:
             "d": ["1", "1", "1"],
         }
     )
+    df_with_none_key = pd.DataFrame(
+        {
+            "name": [None, None, "GroupA", "GroupA"],
+            "value": [1.0, 2.0, 3.0, 4.0],
+        }
+    )
 
     def test_nest_fields_with_dropped_column(self):
         expected_column_e = [
@@ -579,24 +585,13 @@ class TestNestFields:
         )
 
     def test_nest_fields_preserves_none_groupby_key(self) -> None:
-        """Rows whose groupby key is None must not be silently dropped.
-
-        pandas groupby drops None/NaN keys by default (dropna=True). nest_fields
-        must pass dropna=False so that groups with a None key are preserved and
-        serialised as null in the output.
-        """
-        df = pd.DataFrame(
-            {
-                "name": [None, None, "GroupA", "GroupA"],
-                "value": [1.0, 2.0, 3.0, 4.0],
-            }
-        )
-
+        """dropna=False preserves groups whose groupby key is None."""
         result = utils.nest_fields(
-            df=df,
+            df=self.df_with_none_key.copy(),
             grouping="name",
             new_column="data",
             drop_columns=["name"],
+            dropna=False,
         )
 
         assert len(result) == 2
@@ -607,6 +602,33 @@ class TestNestFields:
         group_a_row = result[result["name"] == "GroupA"]
         assert len(group_a_row) == 1
         assert len(group_a_row["data"].iloc[0]) == 2
+
+    def test_nest_fields_dropna_true_drops_none_groupby_key(self) -> None:
+        """dropna=True silently drops groups whose groupby key is None."""
+        result = utils.nest_fields(
+            df=self.df_with_none_key.copy(),
+            grouping="name",
+            new_column="data",
+            drop_columns=["name"],
+            dropna=True,
+        )
+
+        assert len(result) == 1
+        assert result["name"].iloc[0] == "GroupA"
+        assert len(result["data"].iloc[0]) == 2
+
+    def test_nest_fields_default_dropna_drops_none_groupby_key(self) -> None:
+        """The default dropna=True drops groups whose groupby key is None."""
+        result = utils.nest_fields(
+            df=self.df_with_none_key.copy(),
+            grouping="name",
+            new_column="data",
+            drop_columns=["name"],
+        )
+
+        assert len(result) == 1
+        assert result["name"].iloc[0] == "GroupA"
+        assert len(result["data"].iloc[0]) == 2
 
 
 class TestCalculateDistribution:
