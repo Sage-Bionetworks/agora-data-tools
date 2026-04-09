@@ -506,9 +506,6 @@ class TestTransformModelOverview:
 
 class TestGetListOfAvailableData:
     def test_all_data_present(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
             "transcriptomics": {"link_url": "url1"},
@@ -525,9 +522,6 @@ class TestGetListOfAvailableData:
         }
 
     def test_some_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
             "transcriptomics": {"link_url": "url1"},
@@ -548,9 +542,6 @@ class TestGetListOfAvailableData:
         assert set(result) == {"Disease Correlation", "Biomarkers"}
 
     def test_all_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
             "transcriptomics": None,
