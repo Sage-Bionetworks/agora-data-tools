@@ -4,7 +4,11 @@ import json
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform.model_overview import transform_model_overview
+from agoradatatools.etl.transform.model_overview import (
+    get_list_of_available_data,
+    get_center_link_url,
+    transform_model_overview
+)
 
 
 class TestTransformModelOverview:
@@ -502,9 +506,6 @@ class TestTransformModelOverview:
 
 class TestGetListOfAvailableData:
     def test_all_data_present(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
             "transcriptomics": {"link_url": "url1"},
@@ -521,9 +522,6 @@ class TestGetListOfAvailableData:
         }
 
     def test_some_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
             "transcriptomics": {"link_url": "url1"},
@@ -533,11 +531,6 @@ class TestGetListOfAvailableData:
         }
         result = get_list_of_available_data(model)
         assert set(result) == {"Transcriptomics", "Pathology"}
-
-    def test_some_other_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
             "transcriptomics": None,
@@ -549,9 +542,6 @@ class TestGetListOfAvailableData:
         assert set(result) == {"Disease Correlation", "Biomarkers"}
 
     def test_all_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
             "transcriptomics": None,
@@ -563,18 +553,12 @@ class TestGetListOfAvailableData:
         assert result == []
 
     def test_empty_model(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {}
         result = get_list_of_available_data(model)
         assert result == []
 
     def test_partial_keys(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
             "transcriptomics": {"link_url": "url1"},
@@ -588,7 +572,6 @@ class TestGetListOfAvailableData:
 
 class TestGetCenterLinkUrl:
     def test_uci_contributing_group(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("UCI")
         expected = (
@@ -597,7 +580,6 @@ class TestGetCenterLinkUrl:
         assert result == expected
 
     def test_uci_contributing_group_lowercase(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("uci")
         expected = (
@@ -606,21 +588,18 @@ class TestGetCenterLinkUrl:
         assert result == expected
 
     def test_iu_jax_pitt_contributing_group_lowercase(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("IU/Jax/Pitt")
         expected = "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
         assert result == expected
 
     def test_iu_jax_pitt_uppercase_contributing_group(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("IU/JAX/PITT")
         expected = "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
         assert result == expected
 
     def test_invalid_contributing_group_raises_value_error(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         with pytest.raises(
             ValueError, match="Invalid contributing group: InvalidCenter"
@@ -628,19 +607,16 @@ class TestGetCenterLinkUrl:
             get_center_link_url("InvalidCenter")
 
     def test_empty_string_raises_value_error(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         with pytest.raises(ValueError, match="Invalid contributing group: "):
             get_center_link_url("")
 
     def test_none_contributing_group_raises_value_error(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         with pytest.raises(ValueError, match="Invalid contributing group: None"):
             get_center_link_url(None)
 
     def test_partial_matches_raise_value_error(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         # Test partial matches that should not work
         with pytest.raises(ValueError, match="Invalid contributing group: IU/Jax"):
