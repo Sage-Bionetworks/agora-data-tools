@@ -7,7 +7,7 @@ import pytest
 from agoradatatools.etl.transform.model_overview import (
     get_list_of_available_data,
     get_center_link_url,
-    transform_model_overview
+    transform_model_overview,
 )
 
 
@@ -419,10 +419,10 @@ class TestTransformModelOverview:
         model_results_info = pd.DataFrame(
             {
                 "name": ["model1", "model2"],
-                "transcriptomics": [True, None],
-                "disease_correlation": [None, True],
+                "transcriptomics": [True, False],
+                "disease_correlation": [False, True],
                 "pathology": [True, True],
-                "biomarkers": [None, True],
+                "biomarkers": [False, True],
             }
         )
         allele_info = pd.DataFrame(
@@ -506,6 +506,9 @@ class TestTransformModelOverview:
 
 class TestGetListOfAvailableData:
     def test_all_data_present(self):
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
 
         model = {
             "transcriptomics": {"link_url": "url1"},
@@ -522,6 +525,9 @@ class TestGetListOfAvailableData:
         }
 
     def test_some_data_missing(self):
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
 
         model = {
             "transcriptomics": {"link_url": "url1"},
@@ -542,6 +548,9 @@ class TestGetListOfAvailableData:
         assert set(result) == {"Disease Correlation", "Biomarkers"}
 
     def test_all_data_missing(self):
+        from agoradatatools.etl.transform.model_overview import (
+            get_list_of_available_data,
+        )
 
         model = {
             "transcriptomics": None,
