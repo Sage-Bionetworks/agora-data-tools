@@ -545,12 +545,17 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_drop_columns_equal_to_multi_key_grouping(self) -> None:
-        """Regression test: drop_columns identical to a multi-column grouping must not raise
-        'cannot insert <col>, already exists' from reset_index().
+        """Test that drop_columns identical to a multi-column grouping works correctly.
 
-        When drop_columns == grouping (the pattern used in rna_de_individual), the groupby
-        keys must not appear as columns in the apply result before reset_index() promotes
-        them from the MultiIndex.
+        This verifies the rna_de_individual call pattern (drop_columns == grouping) produces
+        the right structure: groupby key columns appear in the output as regular columns and
+        the nested records contain only the non-key fields.
+
+        Note: this test exercises the happy path where all name values are non-None. It does
+        NOT reproduce the crash seen in CI ('cannot insert age, already exists'), which is
+        triggered when all rows have a None groupby key (name=None), causing groupby(dropna=True)
+        to drop every row and leaving reset_index() with a conflicting MultiIndex.
+        The actual regression test for that failure is test_nest_fields_preserves_none_groupby_key.
         """
         df = pd.DataFrame(
             {
