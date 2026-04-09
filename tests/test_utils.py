@@ -553,11 +553,9 @@ class TestNestFields:
 
         Note: this test exercises the happy path where all name values are non-None. It does
         NOT reproduce the original CI crash ('cannot insert age, already exists'), which was
-        triggered when all rows had a None groupby key (name=None) — groupby(dropna=True) dropped
-        every row, leaving reset_index() with a conflicting MultiIndex. That root cause is now
-        handled in rna_de_individual by an explicit ValueError check before calling nest_fields.
-        test_nest_fields_dropna_true_drops_none_groupby_key documents the nest_fields behaviour
-        when None keys are present.
+        triggered when all rows had a None groupby key (name=None) — groupby dropped every row,
+        leaving reset_index() with a conflicting MultiIndex. nest_fields now raises a ValueError
+        for None/NaN groupby keys directly; see test_nest_fields_raises_on_none_groupby_key.
         """
         df = pd.DataFrame(
             {
@@ -591,51 +589,23 @@ class TestNestFields:
             for record in nested_records
         )
 
-    def test_nest_fields_preserves_none_groupby_key(self) -> None:
-        """dropna=False includes groups whose groupby key is None in the output."""
-        result = utils.nest_fields(
-            df=self.df_with_none_key.copy(),
-            grouping="name",
-            new_column="data",
-            drop_columns=["name"],
-            dropna=False,
-        )
+    def test_nest_fields_raises_on_none_groupby_key(self) -> None:
+        """None/NaN values in a groupby key column raise a descriptive ValueError.
 
-        assert len(result) == 2
-        none_row = result[result["name"].isna()]
-        assert len(none_row) == 1
-        assert len(none_row["data"].iloc[0]) == 2
-
-        group_a_row = result[result["name"] == "GroupA"]
-        assert len(group_a_row) == 1
-        assert len(group_a_row["data"].iloc[0]) == 2
-
-    def test_nest_fields_dropna_true_drops_none_groupby_key(self) -> None:
-        """dropna=True excludes groups whose groupby key is None from the output."""
-        result = utils.nest_fields(
-            df=self.df_with_none_key.copy(),
-            grouping="name",
-            new_column="data",
-            drop_columns=["name"],
-            dropna=True,
-        )
-
-        assert len(result) == 1
-        assert result["name"].iloc[0] == "GroupA"
-        assert len(result["data"].iloc[0]) == 2
-
-    def test_nest_fields_default_dropna_drops_none_groupby_key(self) -> None:
-        """The default dropna=True excludes groups whose groupby key is None from the output."""
-        result = utils.nest_fields(
-            df=self.df_with_none_key.copy(),
-            grouping="name",
-            new_column="data",
-            drop_columns=["name"],
-        )
-
-        assert len(result) == 1
-        assert result["name"].iloc[0] == "GroupA"
-        assert len(result["data"].iloc[0]) == 2
+        Passing None through to groupby would silently drop those rows (dropna=True default)
+        or produce a NaN group in the output (dropna=False). Both outcomes hide data errors.
+        nest_fields catches this up front so the caller gets a clear, actionable message.
+        """
+        with pytest.raises(
+            ValueError,
+            match="nest_fields received None/NaN values in groupby key column\\(s\\): \\['name'\\]",
+        ):
+            utils.nest_fields(
+                df=self.df_with_none_key.copy(),
+                grouping="name",
+                new_column="data",
+                drop_columns=["name"],
+            )
 
 
 class TestCalculateDistribution:

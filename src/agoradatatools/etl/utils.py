@@ -177,7 +177,6 @@ def nest_fields(
     new_column: str,
     drop_columns: list = [],
     nested_field_is_list: bool = True,
-    dropna: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame by grouping and nesting fields.
 
@@ -198,16 +197,13 @@ def nest_fields(
                         rows for a single Ensembl ID. If False, each nested field will be a single dict. This applies
                         to data sets where there is only one row to collapse, e.g. one row of Ensembl info for one
                         Ensembl ID.
-        dropna (bool, optional): If True (default), rows with None/NaN in any groupby key column are excluded
-                        from the output. Pass False to include groups whose key is None/NaN. Callers that treat
-                        a None key as a data error should validate the input before calling this function rather
-                        than relying on this parameter.
 
     Returns:
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
 
     Raises:
         ValueError: If df is empty.
+        ValueError: If any groupby key column contains None/NaN values.
     """
     if df.empty:
         raise ValueError(
@@ -215,18 +211,21 @@ def nest_fields(
             "Ensure input data is not empty before calling this function."
         )
 
+    grouping_cols = [grouping] if isinstance(grouping, str) else grouping
+    none_cols = [col for col in grouping_cols if df[col].isna().any()]
+    if none_cols:
+        raise ValueError(
+            f"nest_fields received None/NaN values in groupby key column(s): {none_cols}. "
+            "Ensure all groupby key columns are fully populated before calling this function."
+        )
+
     # Select only the columns that should appear in the nested records before grouping.
     # This prevents the groupby keys from appearing in both the result's MultiIndex
     # (added by group_keys=True, the pandas >=2.0 default) and its columns, which
     # would cause reset_index() to fail with "cannot insert <col>, already exists".
-    #
-    # dropna controls whether groups with None/NaN keys are included in the output.
-    # The default (dropna=True) drops those rows. Callers that need to handle None
-    # keys should validate the input before calling this function rather than relying
-    # on dropna=False to pass them through.
     cols_to_nest = [c for c in df.columns if c not in drop_columns]
     nested = (
-        df.groupby(grouping, dropna=dropna)[cols_to_nest]
+        df.groupby(grouping)[cols_to_nest]
         .apply(lambda row: row.replace({np.nan: None}).to_dict("records"))
         .reset_index()
         .rename(columns={0: new_column})
