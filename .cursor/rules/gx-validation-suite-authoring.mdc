@@ -161,19 +161,28 @@ print(set(values))
 
 ### `pd.read_json()` converts numeric strings to integers
 
-`pd.read_json()` infers column types and will convert a JSON string like `"004807"` to the integer `4807`. This affects both the authoring notebook and `GreatExpectationsRunner` at runtime. For columns that are zero-padded IDs stored as strings in the output JSON:
+`pd.read_json()` infers column types and will convert a JSON string like `"004807"` to the integer `4807`, truncating leading zeros. For columns that are zero-padded IDs stored as strings in the output JSON, you must force string dtype when loading the data so that the original format is preserved and can be validated correctly.
 
-- Do NOT assert `be_of_type("str")` or use a string regex
-- DO assert `be_of_type("int")` and validate with `be_between` or just `not_be_null`
+In the authoring notebook, pass `dtype` when loading the data:
 
 ```python
-# ❌ WRONG — will fail because pd.read_json() reads "004807" as 4807
-validator.expect_column_values_to_be_of_type("jax_id", "str")
-validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
+import pandas as pd
 
-# ✅ CORRECT
+df = pd.read_json("path/to/output.json", dtype={"jax_id": str})
+```
+
+The `GreatExpectationsRunner` (in `gx.py`) must also be updated to accept and forward a `dtype` map when it calls `pd.read_json()`, so the same string coercion is applied at validation runtime.
+
+Once the data is loaded with the correct dtype, validate the column as a zero-padded 6-digit numeric string:
+
+```python
+# ❌ WRONG — will fail because pd.read_json() reads "004807" as 4807 without dtype override
 validator.expect_column_values_to_be_of_type("jax_id", "int")
 validator.expect_column_values_to_not_be_null("jax_id")
+
+# ✅ CORRECT — after loading with dtype={"jax_id": str}
+validator.expect_column_values_to_be_of_type("jax_id", "str")
+validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
 ```
 
 ---
