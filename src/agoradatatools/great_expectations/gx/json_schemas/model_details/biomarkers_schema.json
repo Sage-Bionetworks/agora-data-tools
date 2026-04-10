@@ -24,7 +24,7 @@
       },
       "units": {
         "type": "string",
-        "enum": ["pg/mg", "pg/ml"]
+        "enum": ["pg/mg", "pg/ml", ""]
       },
       "y_axis_max": { "type": "number" },
       "data": {

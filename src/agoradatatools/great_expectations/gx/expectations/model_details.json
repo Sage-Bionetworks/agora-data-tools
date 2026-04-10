@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Late Onset AD",
-          "Familial AD"
+          "Familial AD",
+          "Late Onset AD"
         ]
       },
       "meta": {}
@@ -70,8 +70,8 @@
       "kwargs": {
         "column": "contributing_group",
         "value_set": [
-          "IU/Jax/Pitt",
-          "UCI"
+          "UCI",
+          "IU/Jax/Pitt"
         ]
       },
       "meta": {}
@@ -405,7 +405,8 @@
               "units": {
                 "enum": [
                   "pg/mg",
-                  "pg/ml"
+                  "pg/ml",
+                  ""
                 ],
                 "type": "string"
               },
