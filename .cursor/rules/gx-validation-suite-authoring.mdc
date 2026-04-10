@@ -206,7 +206,7 @@ If you skip this, the runner will log:
 ## Step 6 — Verify with the ADT CLI
 
 ```bash
-adt process -c configs/model_ad_preprod.yaml -d model_overview
+adt configs/model_ad_preprod.yaml
 ```
 
 Check the output for GX validation results.
