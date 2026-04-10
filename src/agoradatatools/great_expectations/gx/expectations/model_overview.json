@@ -157,10 +157,10 @@
       "kwargs": {
         "column": "available_data",
         "list_members": [
-          "Disease Correlation",
-          "Biomarkers",
+          "Pathology",
           "Transcriptomics",
-          "Pathology"
+          "Disease Correlation",
+          "Biomarkers"
         ]
       },
       "meta": {}
@@ -186,7 +186,7 @@
               "additionalProperties": false,
               "properties": {
                 "link_url": {
-                  "pattern": "^comparison/expression\\?model=.+",
+                  "pattern": "^comparison/expression\\?(categories=.*&)?models=",
                   "type": "string"
                 }
               },
@@ -221,7 +221,7 @@
               "additionalProperties": false,
               "properties": {
                 "link_url": {
-                  "pattern": "^comparison/correlation\\?model=.+",
+                  "pattern": "^comparison/correlation\\?models=.+",
                   "type": "string"
                 }
               },
@@ -321,7 +321,7 @@
           "additionalProperties": false,
           "properties": {
             "link_url": {
-              "minLength": 1,
+              "pattern": "^https://adknowledgeportal\\.synapse\\.org/Explore/Studies/DetailsPage/StudyDetails\\?Study=syn\\d+$",
               "type": "string"
             }
           },
@@ -349,7 +349,7 @@
           "additionalProperties": false,
           "properties": {
             "link_url": {
-              "minLength": 1,
+              "pattern": "^https://jax\\.org/strain/\\d+$",
               "type": "string"
             }
           },
@@ -381,8 +381,8 @@
       "kwargs": {
         "column": "center",
         "value_set": [
-          "IU/Jax/Pitt",
-          "UCI"
+          "UCI",
+          "IU/Jax/Pitt"
         ]
       },
       "meta": {}

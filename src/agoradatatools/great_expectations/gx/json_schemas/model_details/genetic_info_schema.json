@@ -4,7 +4,7 @@
     "type": "object",
     "properties": {
       "modified_gene": { "type": "string", "minLength": 1 },
-      "ensembl_gene_id": { "type": "string", "minLength": 1 },
+      "ensembl_gene_id": { "type": "string", "pattern": "^ENS(MUS)?G[0-9]{11}$" },
       "allele": { "type": "string", "minLength": 1 },
       "allele_type": {
         "type": "string",
