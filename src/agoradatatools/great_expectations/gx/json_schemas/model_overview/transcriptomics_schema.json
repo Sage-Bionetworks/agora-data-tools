@@ -4,7 +4,7 @@
     {
       "type": "object",
       "properties": {
-        "link_url": { "type": "string", "pattern": "^comparison/expression\\?model=.+" }
+        "link_url": { "type": "string", "pattern": "^comparison/expression\\?models=.+" }
       },
       "required": ["link_url"],
       "additionalProperties": false
