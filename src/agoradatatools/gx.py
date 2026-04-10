@@ -228,7 +228,10 @@ class GreatExpectationsRunner:
 
         logger.info(f"Running data validation on {self.expectation_suite_name}")
 
-        gx_df = pd.read_json(self.dataset_path, dtype=False)
+        # Do not infer dtype from fields like strings that have numbers in them. The .replace is
+        # necessary because without dtype inference, all JSON nulls are read in as pd.NA, which
+        # causes issues with GX expectations expecting these values to be None.
+        gx_df = pd.read_json(self.dataset_path, dtype=False).replace({pd.NA: None})
         if self.nested_columns:
             gx_df = self.convert_nested_columns_to_json(
                 df=gx_df, nested_columns=self.nested_columns
