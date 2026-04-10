@@ -228,7 +228,7 @@ class GreatExpectationsRunner:
 
         logger.info(f"Running data validation on {self.expectation_suite_name}")
 
-        gx_df = pd.read_json(self.dataset_path)
+        gx_df = pd.read_json(self.dataset_path, dtype=False)
         if self.nested_columns:
             gx_df = self.convert_nested_columns_to_json(
                 df=gx_df, nested_columns=self.nested_columns
