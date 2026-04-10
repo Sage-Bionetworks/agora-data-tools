@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Familial AD",
-          "Late Onset AD"
+          "Late Onset AD",
+          "Familial AD"
         ]
       },
       "meta": {}
@@ -71,7 +71,7 @@
         "column": "matched_controls",
         "list_length_range": [
           1,
-          10
+          2
         ]
       },
       "meta": {}
@@ -157,10 +157,10 @@
       "kwargs": {
         "column": "available_data",
         "list_members": [
+          "Disease Correlation",
           "Biomarkers",
-          "Gene Expression",
-          "Pathology",
-          "Disease Correlation"
+          "Transcriptomics",
+          "Pathology"
         ]
       },
       "meta": {}
@@ -168,7 +168,7 @@
     {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
-        "column": "gene_expression",
+        "column": "transcriptomics",
         "type_": "str"
       },
       "meta": {}
@@ -176,7 +176,7 @@
     {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
-        "column": "gene_expression",
+        "column": "transcriptomics",
         "json_schema": {
           "oneOf": [
             {
@@ -186,7 +186,7 @@
               "additionalProperties": false,
               "properties": {
                 "link_url": {
-                  "minLength": 1,
+                  "pattern": "^comparison/expression\\?model=.+",
                   "type": "string"
                 }
               },
@@ -221,7 +221,7 @@
               "additionalProperties": false,
               "properties": {
                 "link_url": {
-                  "minLength": 1,
+                  "pattern": "^comparison/correlation\\?model=.+",
                   "type": "string"
                 }
               },
@@ -256,7 +256,7 @@
               "additionalProperties": false,
               "properties": {
                 "link_url": {
-                  "minLength": 1,
+                  "pattern": "^models/.+/pathology$",
                   "type": "string"
                 }
               },
@@ -291,7 +291,7 @@
               "additionalProperties": false,
               "properties": {
                 "link_url": {
-                  "minLength": 1,
+                  "pattern": "^models/.+/biomarkers$",
                   "type": "string"
                 }
               },
@@ -370,27 +370,20 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_match_json_schema",
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "center"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
       "kwargs": {
         "column": "center",
-        "json_schema": {
-          "additionalProperties": false,
-          "properties": {
-            "link_text": {
-              "minLength": 1,
-              "type": "string"
-            },
-            "link_url": {
-              "minLength": 1,
-              "type": "string"
-            }
-          },
-          "required": [
-            "link_url",
-            "link_text"
-          ],
-          "type": "object"
-        }
+        "value_set": [
+          "IU/Jax/Pitt",
+          "UCI"
+        ]
       },
       "meta": {}
     }
