@@ -145,6 +145,35 @@ validator.expect_column_values_to_match_regex(
 )
 ```
 
+### Regex syntax: Python vs JSON Schema
+
+Use the correct regex flavor depending on where the regex is written:
+
+| Context | Flavor | Notes |
+|---------|--------|-------|
+| Python `.py` files (e.g. `expect_column_values_to_match_regex`) | **Python `re` / RE2** | Raw strings (`r"..."`) preferred; no lookbehind of variable length |
+| JSON schema files (`json_schemas/**/*.json`) via `"pattern"` key | **ECMAScript / JavaScript** | No named groups `(?P<name>...)`, no `\A`/`\Z` anchors — use `^`/`$` instead |
+
+```python
+# ✅ Python (re/RE2) — in .py or .ipynb
+validator.expect_column_values_to_match_regex("col", regex=r"^\d{6}$")
+validator.expect_column_values_to_match_regex("url", regex=r"^https://")
+```
+
+```json
+// ✅ ECMAScript — in json_schemas/**/*.json
+{ "pattern": "^\\d{6}$" }
+{ "pattern": "^https://" }
+```
+
+```json
+// ❌ WRONG in JSON schema — Python-only syntax
+{ "pattern": "(?P<name>\\w+)" }   // named groups not supported in ECMAScript
+{ "pattern": "\\Ahttps://" }      // \A anchor not supported — use ^ instead
+```
+
+---
+
 ### Inspect the staging file before writing regex expectations
 
 Do not rely solely on the transform source code to determine URL formats or string patterns. The transform code and the actual output can differ (e.g. `?model=` vs `?models=`). Always inspect the staging file directly:
@@ -233,3 +262,4 @@ Check the output for GX validation results.
 | Regex fails on a zero-padded string column (e.g. `jax_id`) | `pd.read_json()` converts `"004807"` → `4807` (int); validate as `int`, not `str` |
 | Regex fails on a nullable column | Use `row_condition="col.notnull()"` + `condition_parser="pandas"` to skip null rows |
 | Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
+| Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
