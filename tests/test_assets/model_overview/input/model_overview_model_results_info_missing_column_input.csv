@@ -1,4 +1,4 @@
-name,gene_expression,disease_correlation,pathology
+name,transcriptomics,disease_correlation,pathology
 3xTg-AD,TRUE,,TRUE
 5xFAD (UCI),TRUE,,TRUE
 APOE4,TRUE,TRUE,

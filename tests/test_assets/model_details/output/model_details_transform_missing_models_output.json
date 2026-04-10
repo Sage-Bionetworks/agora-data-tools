@@ -14,7 +14,7 @@
     "aliases": [
       "3xTg"
     ],
-    "gene_expression": "comparison/expression?models=3xTg-AD",
+    "transcriptomics": "comparison/expression?models=3xTg-AD",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [
@@ -417,7 +417,7 @@
       "hTau",
       "Mapt-/-"
     ],
-    "gene_expression": null,
+    "transcriptomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [
@@ -640,7 +640,7 @@
     "aliases": [
       "New1"
     ],
-    "gene_expression": null,
+    "transcriptomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [
@@ -714,7 +714,7 @@
     "aliases": [
       "New2"
     ],
-    "gene_expression": null,
+    "transcriptomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [

@@ -19,13 +19,13 @@ datasets:
           id: syn61357279.16
           format: csv
         - name: biomarkers
-          id: syn61250724.11
+          id: syn61250724.12
           format: csv
         - name: human_transgene_allele_map
           id: syn64846805.2
           format: csv
         - name: model_results_info
-          id: syn68377668.4
+          id: syn68377668.5
           format: csv
         - name: immunohisto_measure_order
           id: syn71305327.2
@@ -71,7 +71,7 @@ datasets:
   - ui_config:
       files:
         - name: ui_config
-          id: syn66527739.29
+          id: syn66527739.30
           format: json
       final_format: json
       destination: *dest
@@ -83,7 +83,7 @@ datasets:
       files:
         - <<: *model_info_file
         - name: model_results_info
-          id: syn68377668.4
+          id: syn68377668.5
           format: csv
         - name: allele_info
           id: syn64618791.6
@@ -111,7 +111,7 @@ datasets:
   - rna_de_aggregate:
       files:
         - name: rnaseq_genotype_label_map
-          id: syn69014401.13
+          id: syn69014401.14
           format: csv
         - name: mouse_gene_metadata
           id: syn51615422.4
