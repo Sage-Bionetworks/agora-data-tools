@@ -177,7 +177,6 @@ def nest_fields(
     new_column: str,
     drop_columns: list = [],
     nested_field_is_list: bool = True,
-    dropna: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame by grouping and nesting fields.
 
@@ -198,17 +197,12 @@ def nest_fields(
                         rows for a single Ensembl ID. If False, each nested field will be a single dict. This applies
                         to data sets where there is only one row to collapse, e.g. one row of Ensembl info for one
                         Ensembl ID.
-        dropna (bool, optional): If True (default), rows with None/NaN in any groupby key column are dropped
-                        before grouping. Set to False to preserve groups whose key contains None/NaN. When
-                        dropna=True and ALL rows have a None key, the groupby produces an empty result that
-                        causes reset_index() to raise ValueError ("cannot insert <col>, already exists").
-                        Pass dropna=False whenever a None groupby key is a valid value rather than missing data.
 
     Returns:
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
     """
     nested = (
-        df.groupby(grouping, dropna=dropna)
+        df.groupby(grouping)
         .apply(
             lambda row: row.replace({np.nan: None})
             .drop(columns=drop_columns)
