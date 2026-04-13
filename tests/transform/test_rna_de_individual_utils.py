@@ -322,7 +322,7 @@ class TestPrepareGenotypeLabelMapDf:
 
         result = prepare_genotype_label_map_df(df)
 
-        assert result["model_group"].iloc[0] == "GroupX"
+        pd.testing.assert_frame_equal(result, df)
 
     def test_normalizes_empty_model_group_to_none(self) -> None:
         """Test that model_group values of None or '' are normalized to None in the output.
@@ -400,12 +400,7 @@ class TestPrepareGenotypeLabelMapDf:
 
         result = prepare_genotype_label_map_df(df)
 
-        assert (
-            result.loc[result["model"] == "Model_A", "model_group"].iloc[0] == "GroupA"
-        )
-        assert (
-            result.loc[result["model"] == "Model_B", "model_group"].iloc[0] == "GroupX"
-        )
+        pd.testing.assert_frame_equal(result, df)
 
 
 class TestLogFileProcessingInfo:
