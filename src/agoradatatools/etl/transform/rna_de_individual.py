@@ -156,10 +156,7 @@ def _process_individual_data_file_core(
     if data_file.empty:
         raise ValueError(
             "No rows remained after filtering to mapped genotypes — "
-            "all genotypes in this file were absent from the label map. "
-            "This likely means the wrong file was provided or the label map "
-            "is missing entries for this model. Check that the input file's "
-            "model/genotype values match the rnaseq_genotype_label_map."
+            "all genotypes in this file were absent from the label map."
         )
 
     # Derive the grouping key (name) directly from model_group.
