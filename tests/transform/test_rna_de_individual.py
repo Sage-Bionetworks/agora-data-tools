@@ -57,7 +57,6 @@ class TestDetermineResultOrder:
     Test Methods:
         - test_single_model_result_order: Tests result ordering for a single model.
         - test_model_group_result_order: Tests result ordering for a model group.
-        - test_result_order_sorting: Tests that display labels are sorted by result_order.
         - test_empty_data_file: Tests handling of an empty data_file DataFrame.
         - test_all_empty_display_labels_returns_empty: Tests that rows with empty
           display_label are excluded, yielding an empty list when all labels are empty.
@@ -81,26 +80,13 @@ class TestDetermineResultOrder:
         data_file = pd.DataFrame(
             {
                 "display_label": ["Model_B", "Control_B", "Model_C"],
-                "result_order": [2, 1, 3],
+                "result_order": [20, 10, 30],
             }
         )
 
         result = _determine_result_order(data_file)
 
         assert result == ["Control_B", "Model_B", "Model_C"]
-
-    def test_result_order_sorting(self) -> None:
-        """Test that display labels are sorted by result_order value."""
-        data_file = pd.DataFrame(
-            {
-                "display_label": ["Label_C", "Label_A", "Label_B"],
-                "result_order": [30, 10, 20],
-            }
-        )
-
-        result = _determine_result_order(data_file)
-
-        assert result == ["Label_A", "Label_B", "Label_C"]
 
     def test_empty_data_file(self) -> None:
         """Test handling of an empty data_file DataFrame."""
