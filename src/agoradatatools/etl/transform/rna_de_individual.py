@@ -133,19 +133,12 @@ def _process_individual_data_file_core(
     """
     # Step 1: Enrich with genotype metadata using vectorized merge
     # This adds display labels, result_order, and model_group to each row
-    merge_df = genotype_label_map_df[
-        [
-            "model",
-            "genotype",
-            "display_label",
-            "result_order",
-            "model_group",
-        ]
-    ]
-
     # validate="many_to_one" ensures data integrity (each (model, genotype) has one label)
     data_file = data_file.merge(
-        merge_df, on=["model", "genotype"], how="left", validate="many_to_one"
+        genotype_label_map_df,
+        on=["model", "genotype"],
+        how="left",
+        validate="many_to_one",
     )
 
     # Step 2: Drop rows that had no match in the label map.
