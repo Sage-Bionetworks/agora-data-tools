@@ -308,22 +308,6 @@ class TestCreateGeneMetadataDict:
 class TestPrepareGenotypeLabelMapDf:
     """Tests for prepare_genotype_label_map_df function."""
 
-    def test_preserves_model_group_value(self) -> None:
-        """Test that a non-empty model_group is preserved in the output."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_B"],
-                "genotype": ["Carrier"],
-                "display_label": ["Model_B"],
-                "model_group": ["GroupX"],
-                "result_order": [2],
-            }
-        )
-
-        result = prepare_genotype_label_map_df(df)
-
-        pd.testing.assert_frame_equal(result, df)
-
     def test_normalizes_empty_model_group_to_none(self) -> None:
         """Test that model_group values of None or '' are normalized to None in the output.
 
@@ -380,11 +364,11 @@ class TestPrepareGenotypeLabelMapDf:
                 "result_order": [1],
             }
         )
-        original_model_group = df["model_group"].iloc[0]
+        original_df = df.copy()
 
         prepare_genotype_label_map_df(df)
 
-        assert df["model_group"].iloc[0] == original_model_group
+        pd.testing.assert_frame_equal(df, original_df)
 
     def test_multiple_rows_preserved(self) -> None:
         """Test that all rows are preserved with their model_group values intact."""
