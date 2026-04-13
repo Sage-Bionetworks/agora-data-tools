@@ -48,8 +48,9 @@ def validate_model_group_consistency(
     Each model should map to exactly one unique model_group; having multiple
     different model_group values for the same model indicates a data quality issue.
 
-    Both None and "" are treated as "no model_group" and are considered the same
-    value for consistency purposes.
+    None/NaN values are counted as a single distinct value (i.e. "no group assigned")
+    rather than being excluded from the uniqueness check. This function expects
+    empty strings to already be normalized to None by prepare_genotype_label_map_df.
 
     Args:
         genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
@@ -57,13 +58,9 @@ def validate_model_group_consistency(
     Raises:
         ValueError: If any model has inconsistent model_group values
     """
-    # Normalise both "" and None/NaN to a single sentinel so that nunique()
-    # treats them as the same value (i.e. "no group assigned").  The sentinel
-    # string itself is never surfaced to users; it only needs to be distinct
-    # from any legitimate model_group name.
     inconsistent_models = (
         genotype_label_map_df.groupby("model")["model_group"]
-        .apply(lambda x: x.replace("", None).fillna("__no_group__").nunique())
+        .nunique(dropna=False)
         .pipe(lambda x: x[x > 1].index.tolist())
     )
     if inconsistent_models:

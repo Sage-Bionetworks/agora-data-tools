@@ -244,7 +244,12 @@ class TestValidateModelGroupConsistency:
         validate_model_group_consistency(df)
 
     def test_empty_string_model_groups(self) -> None:
-        """Test handling of empty-string model_group values (treated same as None)."""
+        """Test that consistent empty-string model_group values do not raise an error.
+
+        In practice, empty strings are normalized to None by prepare_genotype_label_map_df
+        before this function is called. Consistent "" values are still considered valid
+        because all rows agree on the same value.
+        """
         df = pd.DataFrame(
             {
                 "model": ["Model_A", "Model_A"],
@@ -252,7 +257,7 @@ class TestValidateModelGroupConsistency:
             }
         )
 
-        # Should not raise — "" is treated as "no group", equivalent to None
+        # Should not raise — both rows agree on the same value
         validate_model_group_consistency(df)
 
     def test_mixed_none_and_real_group_raises_error(self) -> None:
