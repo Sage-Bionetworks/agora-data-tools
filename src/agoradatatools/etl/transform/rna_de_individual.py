@@ -166,9 +166,7 @@ def _process_individual_data_file_core(
         model = data_file["model"].iloc[0]
         raise ValueError(
             f"model_group is None for model '{model}'. Every model must have a "
-            f"non-empty model_group in the rnaseq_genotype_label_map. "
-            f"Ensure the correct version of the label map is configured in the "
-            f"pipeline config (current source: rnaseq_genotype_label_map)."
+            f"non-empty model_group in the rnaseq_genotype_label_map."
         )
 
     # Step 3: Pre-calculate result_order list and matched_control.
