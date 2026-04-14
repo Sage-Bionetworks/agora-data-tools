@@ -125,21 +125,32 @@ Each output JSON file contains the expected transformed data structure:
 1. **Unnested Structure**: Each age creates a separate output entry (not nested in individual_results)
 2. **Result Order**: Display labels sorted by result_order value (controls first)
 3. **Matched Control**: The genotype with minimum result_order present in the data
-4. **Model Group**: null for empty string, actual value otherwise
-5. **Age Numeric**: Extracted numeric value for sorting
-6. **Tissue Mapping**: JAX tissues mapped (e.g., "Right Cerebral Hemisphere" → "Hemibrain")
-7. **Rounding**: Expression values rounded to 5 decimal places
+4. **Name**: Set to `model` for single-model groups; falls back to `model_group` for multi-model groups (e.g. UCI 4-genotype studies whose data is split across two input files)
+5. **Model Group**: null for empty string, actual value otherwise
+6. **Age Numeric**: Extracted numeric value for sorting
+7. **Tissue Mapping**: JAX tissues mapped (e.g., "Right Cerebral Hemisphere" → "Hemibrain")
+8. **Rounding**: Expression values rounded to 5 decimal places
 
 ## Test Coverage
 
-### Unit Tests
+### Unit Tests (`test_rna_de_individual.py`)
 
-1. **TestCreateGenotypeMetadataDict**: Tests genotype metadata dictionary creation
-2. **TestDetermineResultOrder**: Tests result ordering logic
-3. **TestCreateOutputEntryFromGroup**: Tests output entry creation with metadata
-4. **TestProcessIndividualDataFileCore**: Tests single file processing logic
+1. **TestDetermineResultOrder**: Tests result ordering logic
+2. **TestProcessIndividualDataFileCore**: Tests single file processing logic, including:
+   - `test_name_equals_model_for_single_model_group`: Verifies `name` is set to `model` (not `model_group`) for single-model groups where they differ
 
-### Integration Tests
+### Unit Tests (`test_rna_de_individual_utils.py`)
+
+1. **TestFilterMouseGenes**: Tests mouse gene filtering logic
+2. **TestTissueNameMapping**: Tests tissue name transformation
+3. **TestPreprocessDataFileTypeCasting**: Tests numeric type casting during preprocessing
+4. **TestValidateModelGroupConsistency**: Tests model_group consistency validation
+5. **TestCreateGeneMetadataDict**: Tests gene metadata dictionary creation
+6. **TestPrepareGenotypeLabelMapDf**: Tests label map normalization (None/empty model_group handling)
+7. **TestLogFileProcessingInfo**: Tests file processing log output
+8. **TestValidateDataFileNotEmpty**: Tests empty file error handling
+
+### Integration Tests (`test_rna_de_individual.py`)
 
 1. **test_synthetic_basic_data**: Core transformation functionality
 2. **test_synthetic_jax_tissue_mapping**: JAX tissue name mapping
@@ -149,7 +160,8 @@ Each output JSON file contains the expected transformed data structure:
 6. **test_synthetic_empty_data_file**: Empty file error handling
 7. **test_synthetic_missing_columns_data**: Missing column error handling
 8. **test_synthetic_rounding_precision**: Numeric precision rounding
-9. **test_inconsistent_model_group_values**: Inconsistent model_group error handling
+9. **test_synthetic_multi_model_data**: Multi-model group (split-file UCI models combined into one output entry)
+10. **test_inconsistent_model_group_values**: Inconsistent model_group error handling
 
 ## Notes
 
@@ -167,8 +179,8 @@ Each output JSON file contains the expected transformed data structure:
 # Activate conda environment
 conda activate adt_py310
 
-# Install package
-pip install .
+# Install package in editable mode
+pip install -e ".[dev]"
 
 # Run all rna_de_individual tests
 python -m pytest tests/transform/test_rna_de_individual.py -v

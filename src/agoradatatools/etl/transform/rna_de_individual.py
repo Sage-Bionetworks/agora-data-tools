@@ -152,14 +152,10 @@ def _process_individual_data_file_core(
             "all genotypes in this file were absent from the label map."
         )
 
-    # Derive the grouping key (name) directly from model_group.
-    data_file["name"] = data_file["model_group"]
-
-    if data_file["name"].isna().any():
-        model = data_file["model"].iloc[0]
+    if data_file["model"].isna().any() or data_file["model_group"].isna().any():
         raise ValueError(
-            f"model_group is None for model '{model}'. Every model must have a "
-            f"non-empty model_group in the rnaseq_genotype_label_map."
+            "model or model_group is None for some rows. Every model must have a "
+            "non-empty model_group in the rnaseq_genotype_label_map."
         )
 
     # Step 3: Pre-calculate result_order list and matched_control.
@@ -191,11 +187,22 @@ def _process_individual_data_file_core(
         }
     )
 
-    # Step 5: Nest individual records by (gene, tissue, name, age).
+    # Step 5: Nest individual records by (gene, tissue, model_group, age).
     # Each combination of these grouping keys produces one output row, with all
     # individual-level columns (genotype, sex, individual_id, value) nested into "data".
-    # name == model_group (validated non-None above); model_group is restored after nesting.
-    group_cols = ["ensembl_gene_id", "tissue", "name", "age"]
+    #
+    # name is derived from model before nesting because model is not a grouping key
+    # and would not survive as a top-level column after nest_fields. For groups with a
+    # single model (the common case), name == model. For multi-model groups (e.g. UCI
+    # 4-genotype studies whose data spans two input files), name falls back to model_group
+    # since there is no single model value that represents the whole group.
+    unique_models = data_file["model"].unique()
+    name_value = (
+        unique_models[0]
+        if len(unique_models) == 1
+        else data_file["model_group"].iloc[0]
+    )
+    group_cols = ["ensembl_gene_id", "tissue", "model_group", "age"]
     cols_keep = group_cols + ["genotype", "sex", "individual_id", "value"]
     age_groups = nest_fields(
         data_file[cols_keep],
@@ -218,7 +225,7 @@ def _process_individual_data_file_core(
         age_groups["ensembl_gene_id"].map(gene_metadata_dict).fillna("")
     )
     age_groups["units"] = "Log2 Counts per Million"
-    age_groups["model_group"] = age_groups["name"]
+    age_groups["name"] = name_value
     # All rows share the same result_order list. The multiplication creates n
     # references to the same list object, which is safe because the list is never
     # mutated after this point — to_dict(orient="records") only reads it.

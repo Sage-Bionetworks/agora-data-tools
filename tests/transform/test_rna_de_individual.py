@@ -136,6 +136,7 @@ class TestProcessIndividualDataFileCore:
         - test_non_digit_age_error_message_names_offending_values: Tests that the ValueError message lists every offending age value.
         - test_multiple_tissues_produce_separate_output_entries: Tests that different tissues produce one output entry each.
         - test_none_model_group_raises_value_error: Verifies that None model_group raises a clear ValueError.
+        - test_name_equals_model_for_single_model_group: Verifies that name is set to model (not model_group) for single-model groups.
     """
 
     def test_basic_core_processing(self) -> None:
@@ -561,10 +562,10 @@ class TestProcessIndividualDataFileCore:
     def test_none_model_group_raises_value_error(self) -> None:
         """Test that None model_group raises a clear ValueError rather than silently failing.
 
-        When the label map supplies model_group=None for a model, name is set to None
-        (because name == model_group). Rather than silently producing a NaN group in the
-        output (or crashing with an opaque pandas error), the transform raises a descriptive
-        ValueError pointing to the label map as the source of the problem.
+        When the label map supplies model_group=None for a model, the transform raises a
+        descriptive ValueError pointing to the label map as the source of the problem,
+        rather than silently producing a NaN group in the output or crashing with an
+        opaque pandas error.
 
         This is the failure mode observed in CI for 3xTg-AD and UCI 5XFAD when the
         preprod config still pointed at label map v13, which had no model_group value
@@ -595,10 +596,53 @@ class TestProcessIndividualDataFileCore:
             }
         )
 
-        with pytest.raises(ValueError, match="model_group is None for model '3xTg-AD'"):
+        with pytest.raises(
+            ValueError, match="model or model_group is None for some rows"
+        ):
             _process_individual_data_file_core(
                 data_file, gene_metadata_dict, genotype_label_map_df
             )
+
+    def test_name_equals_model_for_single_model_group(self) -> None:
+        """Test that name is set to model (not model_group) for single-model groups.
+
+        When a group contains data from exactly one model, name should reflect the
+        model value directly. This differs from model_group only for UCI-style models
+        where model != model_group (e.g. model='Abca7*V1599M.5xFAD',
+        model_group='Abca7*V1599M'). For models where model == model_group there
+        is no observable difference, so this test uses a case where they differ.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "6 months"],
+                "genotype": ["Carrier", "NonCarrier"],
+                "model": ["Model_X.5xFAD", "Model_X.5xFAD"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_X.5xFAD", "Model_X.5xFAD"],
+                "genotype": ["Carrier", "NonCarrier"],
+                "display_label": ["Model_X.5xFAD", "C57BL/6J"],
+                "result_order": [2, 1],
+                "model_group": ["Model_X", "Model_X"],
+            }
+        )
+
+        result = _process_individual_data_file_core(
+            data_file, gene_metadata_dict, genotype_label_map_df
+        )
+
+        assert len(result) == 1
+        assert result[0]["name"] == "Model_X.5xFAD"
+        assert result[0]["model_group"] == "Model_X"
 
 
 class TestTransformRnaDeIndividual:
