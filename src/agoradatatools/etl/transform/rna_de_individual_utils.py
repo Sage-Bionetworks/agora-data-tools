@@ -90,6 +90,7 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     Normalize the genotype label map DataFrame.
 
+    Validates that display_label is non-empty for every row (it is a required field).
     Normalizes model_group (treating both NaN and "" as "no group") to Python None
     so that downstream JSON serialization produces null rather than an empty string.
     Casts result_order to int.
@@ -101,6 +102,9 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         Normalized DataFrame with model_group normalized to None for "no group" rows
         and result_order cast to int.
+
+    Raises:
+        ValueError: If any row has an empty or missing display_label.
 
     Examples:
         >>> df = pd.DataFrame({
@@ -115,6 +119,12 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
         ['GroupA', 'GroupX']
     """
     df = df.copy()
+
+    if df["display_label"].isna().any() or (df["display_label"] == "").any():
+        raise ValueError(
+            "display_label is a required field in rnaseq_genotype_label_map and must not be empty."
+        )
+
     # Treat both "" and NaN as "no group"; normalize to Python None so that
     # downstream JSON serialization produces null rather than an empty string.
     df["model_group"] = df["model_group"].replace({np.nan: None, "": None})

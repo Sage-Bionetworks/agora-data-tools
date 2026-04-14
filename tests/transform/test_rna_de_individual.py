@@ -54,12 +54,13 @@ class TestDetermineResultOrder:
     The function accepts a data_file DataFrame (already merged with the label map
     and filtered to a single model_group) rather than the raw label map.
 
+    Empty display_label values are validated upstream by prepare_genotype_label_map_df
+    and will never reach this function.
+
     Test Methods:
         - test_single_model_result_order: Tests result ordering for a single model.
         - test_model_group_result_order: Tests result ordering for a model group.
         - test_empty_data_file: Tests handling of an empty data_file DataFrame.
-        - test_all_empty_display_labels_returns_empty: Tests that rows with empty
-          display_label are excluded, yielding an empty list when all labels are empty.
     """
 
     def test_single_model_result_order(self) -> None:
@@ -91,24 +92,6 @@ class TestDetermineResultOrder:
     def test_empty_data_file(self) -> None:
         """Test handling of an empty data_file DataFrame."""
         data_file = pd.DataFrame(columns=["display_label", "result_order"])
-
-        result = _determine_result_order(data_file)
-
-        assert result == []
-
-    def test_all_empty_display_labels_returns_empty(self) -> None:
-        """Test that rows with empty display_label are excluded from the result.
-
-        Entries with display_label="" are intentionally omitted from the ordered
-        list (they represent genotypes not meant to be shown). When all labels are
-        empty, the result should be an empty list.
-        """
-        data_file = pd.DataFrame(
-            {
-                "display_label": ["", ""],
-                "result_order": [1, 2],
-            }
-        )
 
         result = _determine_result_order(data_file)
 

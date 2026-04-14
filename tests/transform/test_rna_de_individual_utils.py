@@ -386,6 +386,66 @@ class TestPrepareGenotypeLabelMapDf:
 
         pd.testing.assert_frame_equal(result, df)
 
+    def test_raises_error_for_empty_string_display_label(self) -> None:
+        """Test that an empty string display_label raises ValueError."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": [""],
+                "model_group": ["GroupA"],
+                "result_order": [1],
+            }
+        )
+
+        with pytest.raises(ValueError, match="display_label is a required field"):
+            prepare_genotype_label_map_df(df)
+
+    def test_raises_error_for_nan_display_label(self) -> None:
+        """Test that a NaN display_label raises ValueError."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": [None],
+                "model_group": ["GroupA"],
+                "result_order": [1],
+            }
+        )
+
+        with pytest.raises(ValueError, match="display_label is a required field"):
+            prepare_genotype_label_map_df(df)
+
+    def test_raises_error_for_empty_display_label_in_mixed_rows(self) -> None:
+        """Test that a ValueError is raised when any row has an empty display_label."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_B"],
+                "genotype": ["Tg", "Carrier"],
+                "display_label": ["Valid Label", ""],
+                "model_group": ["GroupA", "GroupB"],
+                "result_order": [1, 2],
+            }
+        )
+
+        with pytest.raises(ValueError, match="display_label is a required field"):
+            prepare_genotype_label_map_df(df)
+
+    def test_valid_display_labels_do_not_raise(self) -> None:
+        """Test that non-empty display_labels pass validation without error."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_B"],
+                "genotype": ["Tg", "Carrier"],
+                "display_label": ["Transgenic", "Carrier Model"],
+                "model_group": ["GroupA", "GroupB"],
+                "result_order": [1, 2],
+            }
+        )
+
+        # Should not raise
+        prepare_genotype_label_map_df(df)
+
 
 class TestLogFileProcessingInfo:
     """Tests for log_file_processing_info function."""

@@ -82,8 +82,9 @@ def _determine_result_order(data_file: pd.DataFrame) -> List[str]:
 
     Operates on a data_file that has already been merged with the genotype label map
     and filtered to a single model_group, so every display_label present is guaranteed
-    to exist in the actual data. Rows with an empty display_label are excluded (they
-    are entries intentionally omitted from the ordered list).
+    to exist in the actual data. Empty display_label values are guaranteed not to be
+    present — prepare_genotype_label_map_df raises a ValueError if any are found in
+    the mapping file.
 
     Args:
         data_file: DataFrame already merged with the genotype label map and filtered to
@@ -92,11 +93,8 @@ def _determine_result_order(data_file: pd.DataFrame) -> List[str]:
     Returns:
         List of display labels in the correct order based on result_order values.
     """
-    filtered = data_file[data_file["display_label"] != ""][
-        ["display_label", "result_order"]
-    ].drop_duplicates()
-
-    return filtered.sort_values("result_order")["display_label"].tolist()
+    unique_labels = data_file[["display_label", "result_order"]].drop_duplicates()
+    return unique_labels.sort_values("result_order")["display_label"].tolist()
 
 
 def _process_individual_data_file_core(
