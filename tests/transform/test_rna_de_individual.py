@@ -153,12 +153,29 @@ class TestProcessIndividualDataFileCore:
             data_file, gene_metadata_dict, genotype_label_map_df
         )
 
-        assert len(result) == 1
-        assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert result[0]["gene_symbol"] == "Gene1"
-        assert result[0]["model_group"] == "Model_A"
-        assert len(result[0]["data"]) == 1
-        assert result[0]["data"][0]["genotype"] == "Transgenic"
+        expected = [
+            {
+                "ensembl_gene_id": "ENSMUSG00000000001",
+                "gene_symbol": "Gene1",
+                "tissue": "Cortex",
+                "name": "Model_A",
+                "model_group": "Model_A",
+                "matched_control": "Transgenic",
+                "units": "Log2 Counts per Million",
+                "age": "6 months",
+                "age_numeric": 6,
+                "result_order": ["Transgenic"],
+                "data": [
+                    {
+                        "genotype": "Transgenic",
+                        "sex": "Male",
+                        "individual_id": "Ind001",
+                        "value": 5.12345,
+                    }
+                ],
+            }
+        ]
+        assert result == expected
 
     def test_genotype_filtering(self) -> None:
         """Test that invalid genotypes are filtered out during core processing."""
