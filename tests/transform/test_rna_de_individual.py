@@ -1028,47 +1028,17 @@ class TestTransformRnaDeIndividual:
 
         output_data = transform_rna_de_individual(datasets=datasets)
 
-        # Should produce exactly one consolidated entry (one gene, one age)
-        assert len(output_data) == 1
-        entry = output_data[0]
+        def normalize(entries: list[dict]) -> list[dict]:
+            """Sort each entry's inner data list by individual_id, then sort the
+            outer list by (ensembl_gene_id, tissue, age) so that order-independent
+            differences don't cause false failures."""
+            for e in entries:
+                e["data"] = sorted(e["data"], key=lambda x: x["individual_id"])
+            return sorted(
+                entries, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
+            )
 
-        # Verify metadata
-        assert entry["name"] == "Trem2-R47H_NSS"
-        assert entry["model_group"] == "Trem2-R47H_NSS"
-        assert entry["matched_control"] == "C57BL/6J"
-        assert entry["result_order"] == [
-            "C57BL/6J",
-            "Trem2-R47H_NSS",
-            "5xFAD",
-            "Trem2-R47H_NSS.5xFAD",
-        ]
-
-        # All four genotypes should be present in data
-        genotypes_in_data = {d["genotype"] for d in entry["data"]}
-        assert genotypes_in_data == {
-            "C57BL/6J",
-            "Trem2-R47H_NSS",
-            "5xFAD",
-            "Trem2-R47H_NSS.5xFAD",
-        }
-        assert len(entry["data"]) == 8  # 2 individuals per genotype
-
-        # Full comparison with expected JSON (data order may vary)
-        output_data_sorted = sorted(
-            output_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
-        )
-        expected_data_sorted = sorted(
-            expected_data, key=lambda x: (x["ensembl_gene_id"], x["tissue"], x["age"])
-        )
-        for out_entry, exp_entry in zip(output_data_sorted, expected_data_sorted):
-            assert out_entry["ensembl_gene_id"] == exp_entry["ensembl_gene_id"]
-            assert out_entry["name"] == exp_entry["name"]
-            assert out_entry["model_group"] == exp_entry["model_group"]
-            assert out_entry["matched_control"] == exp_entry["matched_control"]
-            assert out_entry["result_order"] == exp_entry["result_order"]
-            assert sorted(
-                out_entry["data"], key=lambda x: x["individual_id"]
-            ) == sorted(exp_entry["data"], key=lambda x: x["individual_id"])
+        assert normalize(output_data) == normalize(expected_data)
 
     def _build_mixed_model_datasets(
         self, data_file_key: str = "mixed_model_file"
