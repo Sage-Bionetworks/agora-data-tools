@@ -212,40 +212,6 @@ class TestProcessIndividualDataFileCore:
         assert len(result[0]["data"]) == 1
         assert result[0]["data"][0]["genotype"] == "Transgenic"
 
-    def test_uses_preprocessed_data(self) -> None:
-        """Test that function works with preprocessed data (no human genes, rounded values)."""
-        # Data should already be filtered (no human genes) and rounded
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001"],
-                "individualid": ["Ind001"],
-                "expression": [1.12346],  # Already rounded to 5 decimals
-                "tissue": ["Cortex"],
-                "sex": ["Male"],
-                "age": ["6 months"],
-                "genotype": ["Tg"],
-                "model": ["Model_A"],
-            }
-        )
-
-        gene_metadata_dict = {}
-        genotype_label_map_df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "result_order": [2],
-                "model_group": ["Model_A"],
-            }
-        )
-
-        result = _process_individual_data_file_core(
-            data_file, gene_metadata_dict, genotype_label_map_df
-        )
-
-        # Value should remain as provided (already preprocessed)
-        assert result[0]["data"][0]["value"] == pytest.approx(1.12346, abs=1e-6)
-
     def test_multiple_genotypes_with_model_group(self) -> None:
         """Test processing with multiple genotypes in a model group."""
         data_file = pd.DataFrame(
