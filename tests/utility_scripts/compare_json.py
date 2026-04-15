@@ -14,20 +14,17 @@ Features:
     - Memory-efficient comparison using MD5 hashes
 
 Usage:
-    # Modify the file1 and file2 paths in the __main__ block, then run:
-    python compare_json.py
+    python compare_json.py <file1> <file2>
 
     # Exit codes:
     # 0 - Files are identical
     # 1 - Files differ
 
 Example:
-    file1 = "output/data_v1.json"
-    file2 = "output/data_v2.json"
-    result = compare_json_files(file1, file2)
-    # Prints detailed comparison results and statistics
+    python compare_json.py output/data_v1.json output/data_v2.json
 """
 
+import argparse
 import json
 import sys
 import hashlib
@@ -232,13 +229,14 @@ def compare_json_files(file1: str, file2: str) -> bool:
 
 
 if __name__ == "__main__":
-    # Configuration: Specify the two JSON files to compare
-    # Modify these paths as needed for your comparison
-    file1 = "staging/rna_de_individual/rna_de_individual.json"
-    file2 = "staging/rna_de_individual_CORRECT.json"
+    parser = argparse.ArgumentParser(
+        description="Compare two JSON files for content equality, ignoring order."
+    )
+    parser.add_argument("file1", help="Path to the first JSON file")
+    parser.add_argument("file2", help="Path to the second JSON file")
+    args = parser.parse_args()
 
-    # Perform the comparison
-    result = compare_json_files(file1, file2)
+    result = compare_json_files(args.file1, args.file2)
 
     # Exit with appropriate status code
     # 0 = success (files are identical)
