@@ -20,7 +20,8 @@ The transformation:
 - Enriches data with gene symbols from gene metadata
 - Maps genotypes to display labels for better readability
 - Passes sex values through as-is from the source data
-- Applies tissue name transformations: "Right Cerebral Hemisphere" → "Hemibrain" and converts all tissues to sentence case
+- Applies tissue name transformations: "Right Cerebral Hemisphere" → "Hemibrain" and
+  converts all tissues to sentence case
 - Rounds numeric columns to 5 decimal places for consistency
 
 Key Functions:

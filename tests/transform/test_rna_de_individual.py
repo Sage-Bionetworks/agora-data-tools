@@ -34,7 +34,7 @@ Test Data Structure:
 
 import os
 import json
-from typing import Dict, List
+from typing import Any, Dict, List
 import pandas as pd
 import pytest
 
@@ -115,11 +115,16 @@ class TestProcessIndividualDataFileCore:
         - test_non_digit_age_raises_value_error: Tests that a mix of valid and non-digit age strings raises ValueError.
         - test_all_ages_non_digit_raises_value_error: Tests that all-non-digit age values raise ValueError.
         - test_blank_age_raises_value_error: Tests that a blank (empty-string) age raises ValueError.
-        - test_wrong_unit_age_raises_value_error: Tests that an age with digits but wrong unit (e.g. '1 year') raises ValueError.
-        - test_non_digit_age_error_message_names_offending_values: Tests that the ValueError message lists every offending age value.
-        - test_multiple_tissues_produce_separate_output_entries: Tests that different tissues produce one output entry each.
-        - test_none_model_group_raises_value_error: Verifies that None model_group raises a clear ValueError.
-        - test_name_equals_model_for_single_model_group: Verifies that name is set to model (not model_group) for single-model groups.
+        - test_wrong_unit_age_raises_value_error: Tests that an age with digits but wrong unit
+          (e.g. '1 year') raises ValueError.
+        - test_non_digit_age_error_message_names_offending_values: Tests that the ValueError
+          message lists every offending age value.
+        - test_multiple_tissues_produce_separate_output_entries: Tests that different tissues
+          produce one output entry each.
+        - test_none_model_group_raises_value_error: Verifies that None model_group raises a
+          clear ValueError.
+        - test_name_equals_model_for_single_model_group: Verifies that name is set to model
+          (not model_group) for single-model groups.
     """
 
     def test_basic_core_processing(self) -> None:
@@ -1028,7 +1033,7 @@ class TestTransformRnaDeIndividual:
 
         output_data = transform_rna_de_individual(datasets=datasets)
 
-        def normalize(entries: list[dict]) -> list[dict]:
+        def normalize(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
             """Sort each entry's inner data list by individual_id, then sort the
             outer list by (ensembl_gene_id, tissue, age) so that order-independent
             differences don't cause false failures."""

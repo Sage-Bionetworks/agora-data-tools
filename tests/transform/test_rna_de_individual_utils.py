@@ -8,6 +8,7 @@ that are used by the rna_de_individual transform.
 import pandas as pd
 import pytest
 import logging
+from typing import Any
 
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     filter_to_mouse_genes,
@@ -83,7 +84,7 @@ class TestTissueNameMapping:
     ]
 
     @staticmethod
-    def _make_df(tissues: list) -> pd.DataFrame:
+    def _make_df(tissues: list[str]) -> pd.DataFrame:
         """Build a minimal valid DataFrame with the given tissue values."""
         n = len(tissues)
         return pd.DataFrame(
@@ -100,7 +101,7 @@ class TestTissueNameMapping:
         )
 
     @classmethod
-    def _preprocess(cls, tissues: list) -> pd.Series:
+    def _preprocess(cls, tissues: list[str]) -> pd.Series:
         df = cls._make_df(tissues)
         result = preprocess_data_file("test.csv", df, 0, 1, cls._REQUIRED_COLUMNS)
         return result["tissue"].reset_index(drop=True)
@@ -149,7 +150,9 @@ class TestPreprocessDataFileTypeCasting:
     ]
 
     @staticmethod
-    def _make_df(expression_values, individualid_values) -> pd.DataFrame:
+    def _make_df(
+        expression_values: list[Any], individualid_values: list[Any]
+    ) -> pd.DataFrame:
         """Build a minimal valid DataFrame with the given expression and individualid values."""
         n = len(expression_values)
         return pd.DataFrame(
@@ -450,7 +453,7 @@ class TestPrepareGenotypeLabelMapDf:
 class TestLogFileProcessingInfo:
     """Tests for log_file_processing_info function."""
 
-    def test_logs_information(self, caplog) -> None:
+    def test_logs_information(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that file processing information is logged."""
         df = pd.DataFrame(
             {
