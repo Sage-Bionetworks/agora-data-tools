@@ -532,10 +532,6 @@ class TestProcessIndividualDataFileCore:
         descriptive ValueError pointing to the label map as the source of the problem,
         rather than silently producing a NaN group in the output or crashing with an
         opaque pandas error.
-
-        This is the failure mode observed in CI for 3xTg-AD and UCI 5XFAD when the
-        preprod config still pointed at label map v13, which had no model_group value
-        for those models.
         """
         data_file = pd.DataFrame(
             {
