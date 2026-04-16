@@ -1,0 +1,42 @@
+---
+description: Run prepare_commit.py before any git commit
+alwaysApply: true
+---
+
+# Git Commit Preparation
+
+Before making any git commit in this project, always run:
+
+```bash
+python scripts/prepare_commit.py
+```
+
+## One-time developer setup
+
+The script reads your package manager and environment name from a local config file
+that is gitignored. Copy the example and fill in your own values:
+
+```bash
+cp scripts/.prepare_commit.cfg.example scripts/.prepare_commit.cfg
+```
+
+Then edit `scripts/.prepare_commit.cfg`:
+
+```ini
+[defaults]
+package_manager = conda   # or: venv, virtualenv, poetry, pipenv
+env_name = adt_py310      # your environment name
+```
+
+After that, `python scripts/prepare_commit.py` requires no arguments.
+
+## CLI override (optional)
+
+You can also pass values directly, which takes precedence over the config file:
+
+```bash
+python scripts/prepare_commit.py --package-manager conda --env-name adt_py310
+python scripts/prepare_commit.py --package-manager venv  --env-name .venv
+```
+
+This script must complete successfully before staging and committing changes.

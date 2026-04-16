@@ -138,8 +138,9 @@ data_analysis/*/output/*
 #test staging location
 test_staging_dir/
 
-# dev config file
+# dev config files
 dev_config.yaml
+scripts/.prepare_commit.cfg
 
 .vscode/
 .ipynb_checkpoints/

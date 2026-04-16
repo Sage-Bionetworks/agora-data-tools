@@ -1,0 +1,29 @@
+---
+description: Always activate the adt_py310 conda environment and pip install before running any code
+alwaysApply: true
+---
+
+# Python Environment Setup
+
+Before running any Python code, tests, or scripts in this project, always use the `adt_py310` conda environment.
+
+## Required Steps
+
+1. Activate the environment:
+   ```bash
+   conda activate adt_py310
+   ```
+2. Install the project in editable mode:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+## Shell Commands
+
+Always prefix terminal commands with the activation when the environment may not already be active:
+
+```bash
+conda run -n adt_py310 <your command>
+# or
+conda activate adt_py310 && <your command>
+```
