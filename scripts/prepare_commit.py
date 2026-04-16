@@ -29,6 +29,7 @@ CLI overrides (optional, take precedence over config file):
 import argparse
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -140,6 +141,17 @@ def run(cmd: list[str], description: str) -> subprocess.CompletedProcess:
     return result
 
 
+def ensure_pre_commit_installed() -> None:
+    """Install pre-commit via pip if it is not already available on PATH."""
+    if shutil.which("pre-commit") is not None:
+        print("[OK] pre-commit is already installed.")
+        return
+    print("[INFO] pre-commit not found — installing via pip...")
+    run(
+        [sys.executable, "-m", "pip", "install", "pre-commit"], "pip install pre-commit"
+    )
+
+
 def run_pre_commit() -> None:
     """Run pre-commit, retrying once if it exits non-zero.
 
@@ -247,6 +259,7 @@ def main() -> None:
 
     run([sys.executable, "-m", "pip", "install", "."], "pip install .")
     run([sys.executable, "-m", "pytest", "tests/"], "pytest tests/")
+    ensure_pre_commit_installed()
     run_pre_commit()
     print("\nAll steps passed. Your changes are ready to commit!")
 
