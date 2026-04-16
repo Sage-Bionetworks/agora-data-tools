@@ -1,29 +1,51 @@
 ---
-description: Always activate the adt_py310 conda environment and pip install before running any code
+description: Activate the correct virtual environment and pip install before running any code
 alwaysApply: true
 ---
 
 # Python Environment Setup
 
-Before running any Python code, tests, or scripts in this project, always use the `adt_py310` conda environment.
+Before running any Python code, tests, or scripts in this project, always use the virtual environment defined in your local dev config (`scripts/.prepare_commit.cfg`).
 
-## Required Steps
+## One-time developer setup
 
-1. Activate the environment:
-   ```bash
-   conda activate adt_py310
-   ```
-2. Install the project in editable mode:
-   ```bash
-   pip install -e ".[dev]"
-   ```
+If you haven't already, copy the example config and fill in your package manager and environment name:
+
+```bash
+cp scripts/.prepare_commit.cfg.example scripts/.prepare_commit.cfg
+```
+
+## Activating your environment
+
+Use the `package_manager` and `env_name` values from your `scripts/.prepare_commit.cfg`:
+
+| package_manager | Activation command |
+|---|---|
+| `conda` | `conda activate <env_name>` |
+| `venv` / `virtualenv` | `source <env_name>/bin/activate` |
+| `poetry` | `poetry shell` |
+| `pipenv` | `pipenv shell` |
+
+Then install the project in editable mode:
+
+```bash
+pip install -e ".[dev]"
+```
 
 ## Shell Commands
 
-Always prefix terminal commands with the activation when the environment may not already be active:
+Always prefix terminal commands so the correct environment is used:
 
 ```bash
-conda run -n adt_py310 <your command>
-# or
-conda activate adt_py310 && <your command>
+# conda example
+conda run -n <env_name> <your command>
+
+# venv/virtualenv example
+source <env_name>/bin/activate && <your command>
+
+# poetry example
+poetry run <your command>
+
+# pipenv example
+pipenv run <your command>
 ```
