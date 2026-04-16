@@ -101,30 +101,6 @@ def transform_drug_info(
         .fillna("Preclinical")
     )
 
-    # Clean & prepare drug_list data
-    # Convert 'published' string to boolean
-    # drug_list["published"] = drug_list["published"].map({"Yes": True, "No": False, "yes": True, "no": False})
-
-    # Merge computational & experimental status fields into a single list
-    status_cols = ["computational_validation_status", "experimental_validation_status"]
-    for col in status_cols:
-        drug_list[col] = drug_list[col].str.strip().replace("", np.nan)
-
-    drug_list["validation_status"] = drug_list[status_cols].apply(
-        lambda row: [val for val in row if pd.notnull(val)],
-        axis=1
-    )
-
-    # Merge computational & experimental results fields into a single list
-    results_cols = ["computational_validation_results", "experimental_validation_results"]
-    for col in results_cols:
-        drug_list[col] = drug_list[col].str.strip().replace("", np.nan)
-
-    drug_list["validation_results"] = drug_list[results_cols].apply(
-        lambda row: [val for val in row if pd.notnull(val)],
-        axis=1
-    )
-
     # Nest drug_list nomination fields
     # Temporarily replace NA iupac_id values
     drug_list["iupac_id"] = drug_list["iupac_id"].fillna("Unknown")
@@ -134,9 +110,7 @@ def transform_drug_info(
         df=drug_list,
         grouping=["chembl_id", "common_name", "iupac_id"],
         new_column="drug_nominations",
-        drop_columns=["priority_score", "priority_score_criteria", "published",
-                      "computational_validation_status", "experimental_validation_status",
-                      "computational_validation_results", "experimental_validation_results"],
+        drop_columns=["priority_score", "priority_score_criteria", "published"]
     )
 
     # collapse duplicates when multiple nominations for the same drug
