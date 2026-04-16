@@ -52,7 +52,7 @@ datasets:
   - disease_correlation:
       files:
         - name: disease_correlation_results
-          id: syn65467849.5
+          id: syn65467849.6
           format: csv
         - <<: *model_info_file
         - name: allele_info

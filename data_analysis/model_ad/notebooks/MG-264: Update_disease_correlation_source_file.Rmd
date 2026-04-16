@@ -83,11 +83,11 @@ disease_correlation_source <- download_file('syn65467849.1', type = "csv")
 Update the Cluster labels to the new display format, and fix 'Biogenesis' typo from legacy explorer data
 ```{r}
 disease_correlation_final <- disease_correlation_source %>% mutate(Cluster = case_when(
-  Cluster == "Consensus Cluster A (ECM organization)" ~ "Consensus Cluster A - ECM Organization",
-  Cluster == "Consensus Cluster B (Immune system)" ~ "Consensus Cluster B - Immune system",
-  Cluster == "Consensus Cluster C (Neuronal system)" ~ "Consensus Cluster C - Neuronal system",
-  Cluster == "Consensus Cluster D (Cell Cycle, NMD)" ~ "Consensus Cluster D - Cell Cycle, NMD",
-  Cluster == "Consensus Cluster E (Organelle Biogensis, Cellular stress response)" ~ "Consensus Cluster E - Organelle Biogenesis, Cellular stress response"
+  Cluster == "Consensus Cluster A (ECM organization)" ~ "ECM Organization - Consensus Cluster A",
+  Cluster == "Consensus Cluster B (Immune system)" ~ "Immune System - Consensus Cluster B",
+  Cluster == "Consensus Cluster C (Neuronal system)" ~ "Neuronal System - Consensus Cluster C",
+  Cluster == "Consensus Cluster D (Cell Cycle, NMD)" ~ "Cell Cycle, NMD Consensus Cluster D",
+  Cluster == "Consensus Cluster E (Organelle Biogensis, Cellular stress response)" ~ "Organelle Biogenesis, Cellular Stress Response - Consensus Cluster E"
 ))
 ```
 
