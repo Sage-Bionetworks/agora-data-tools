@@ -19,7 +19,6 @@ Key Functions:
 import logging
 from typing import Dict, List
 
-import numpy as np
 import pandas as pd
 
 from agoradatatools.etl.utils import check_required_datasets_and_columns
@@ -49,8 +48,10 @@ def validate_model_group_consistency(
     different model_group values for the same model indicates a data quality issue.
 
     None/NaN values are counted as a single distinct value (i.e. "no group assigned")
-    rather than being excluded from the uniqueness check. This function expects
-    empty strings to already be normalized to None by prepare_genotype_label_map_df.
+    rather than being excluded from the uniqueness check. When called after
+    prepare_genotype_label_map_df, None/NaN will not be present since that function
+    rejects empty model_group values; this handles the case where the function is
+    called independently.
 
     Args:
         genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
@@ -91,8 +92,7 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     Normalize the genotype label map DataFrame.
 
     Validates that display_label is non-empty for every row (it is a required field).
-    Normalizes model_group (treating both NaN and "" as "no group") to Python None
-    so that downstream JSON serialization produces null rather than an empty string.
+    Validates that model_group is non-empty for every row (it is a required field).
     Casts result_order to int.
 
     Args:
@@ -100,11 +100,10 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
             display_label, model_group, result_order
 
     Returns:
-        Normalized DataFrame with model_group normalized to None for "no group" rows
-        and result_order cast to int.
+        Normalized DataFrame with result_order cast to int.
 
     Raises:
-        ValueError: If any row has an empty or missing display_label.
+        ValueError: If any row has an empty or missing display_label or model_group.
 
     Examples:
         >>> df = pd.DataFrame({
@@ -125,9 +124,10 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
             "display_label is a required field in rnaseq_genotype_label_map and must not be empty."
         )
 
-    # Treat both "" and NaN as "no group"; normalize to Python None so that
-    # downstream JSON serialization produces null rather than an empty string.
-    df["model_group"] = df["model_group"].replace({np.nan: None, "": None})
+    if df["model_group"].isna().any() or (df["model_group"] == "").any():
+        raise ValueError(
+            "model_group is a required field in rnaseq_genotype_label_map and must not be empty."
+        )
     df["result_order"] = df["result_order"].astype(int)
     return df
 

@@ -311,13 +311,9 @@ class TestCreateGeneMetadataDict:
 class TestPrepareGenotypeLabelMapDf:
     """Tests for prepare_genotype_label_map_df function."""
 
-    def test_normalizes_empty_model_group_to_none(self) -> None:
-        """Test that model_group values of None or '' are normalized to None in the output.
-
-        model_group uses None (not "") to represent "no explicit group", so that the
-        output field is null rather than an empty string.
-        """
-        df_none = pd.DataFrame(
+    def test_raises_error_for_nan_model_group(self) -> None:
+        """Test that a NaN model_group raises ValueError."""
+        df = pd.DataFrame(
             {
                 "model": ["Model_A"],
                 "genotype": ["Tg"],
@@ -326,7 +322,13 @@ class TestPrepareGenotypeLabelMapDf:
                 "result_order": [1],
             }
         )
-        df_empty = pd.DataFrame(
+
+        with pytest.raises(ValueError, match="model_group is a required field"):
+            prepare_genotype_label_map_df(df)
+
+    def test_raises_error_for_empty_string_model_group(self) -> None:
+        """Test that an empty string model_group raises ValueError."""
+        df = pd.DataFrame(
             {
                 "model": ["Model_A"],
                 "genotype": ["Tg"],
@@ -336,8 +338,8 @@ class TestPrepareGenotypeLabelMapDf:
             }
         )
 
-        assert prepare_genotype_label_map_df(df_none)["model_group"].iloc[0] is None
-        assert prepare_genotype_label_map_df(df_empty)["model_group"].iloc[0] is None
+        with pytest.raises(ValueError, match="model_group is a required field"):
+            prepare_genotype_label_map_df(df)
 
     def test_converts_result_order_to_int(self) -> None:
         """Test that result_order is cast to int."""

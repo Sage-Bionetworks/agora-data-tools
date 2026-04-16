@@ -531,12 +531,11 @@ class TestProcessIndividualDataFileCore:
             assert len(entry["data"]) == 2  # 2 individuals per tissue
 
     def test_none_model_group_raises_value_error(self) -> None:
-        """Test that None model_group raises a clear ValueError rather than silently failing.
+        """Test that None model_group raises a ValueError in _process_individual_data_file_core.
 
-        When the label map supplies model_group=None for a model, the transform raises a
-        descriptive ValueError pointing to the label map as the source of the problem,
-        rather than silently producing a NaN group in the output or crashing with an
-        opaque pandas error.
+        In normal usage, prepare_genotype_label_map_df rejects None/empty model_group
+        values before this function is called. This test exercises the safety-net check
+        inside _process_individual_data_file_core for callers that bypass that validation.
         """
         data_file = pd.DataFrame(
             {
@@ -552,7 +551,6 @@ class TestProcessIndividualDataFileCore:
         )
 
         gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        # model_group is None — as it was in the old label map for 3xTg-AD
         genotype_label_map_df = pd.DataFrame(
             {
                 "model": ["3xTg-AD"],
