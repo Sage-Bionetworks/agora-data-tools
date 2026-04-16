@@ -4,7 +4,11 @@ import json
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform.model_overview import transform_model_overview
+from agoradatatools.etl.transform.model_overview import (
+    get_list_of_available_data,
+    get_center_link_url,
+    transform_model_overview,
+)
 
 
 class TestTransformModelOverview:
@@ -191,7 +195,7 @@ class TestTransformModelOverview:
         empty_model_results_info = pd.DataFrame(
             columns=[
                 "name",
-                "gene_expression",
+                "transcriptomics",
                 "disease_correlation",
                 "pathology",
                 "biomarkers",
@@ -253,7 +257,7 @@ class TestTransformModelOverview:
         model_results_info = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "gene_expression": [True],
+                "transcriptomics": [True],
                 "disease_correlation": [False],
                 "pathology": [True],
                 "biomarkers": [False],
@@ -294,7 +298,7 @@ class TestTransformModelOverview:
                 "name": "test_model",
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
-                "gene_expression": {
+                "transcriptomics": {
                     "link_url": "comparison/expression?models=test_model"
                 },
                 "disease_correlation": None,
@@ -304,12 +308,9 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
-                "center": {
-                    "link_text": "UCI",
-                    "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/",
-                },
+                "center": "UCI",
                 "modified_genes": ["TestGene"],
-                "available_data": ["Gene Expression", "Pathology"],
+                "available_data": ["Transcriptomics", "Pathology"],
             }
         ]
 
@@ -337,7 +338,7 @@ class TestTransformModelOverview:
         model_results_info = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "gene_expression": [None],
+                "transcriptomics": [None],
                 "disease_correlation": [None],
                 "pathology": [None],
                 "biomarkers": [None],
@@ -378,7 +379,7 @@ class TestTransformModelOverview:
                 "name": "test_model",
                 "model_type": "Familial AD",
                 "matched_controls": [],
-                "gene_expression": None,
+                "transcriptomics": None,
                 "disease_correlation": None,
                 "pathology": None,
                 "biomarkers": None,
@@ -386,10 +387,7 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn123456"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
-                "center": {
-                    "link_text": "IU/Jax/Pitt",
-                    "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/",
-                },
+                "center": "IU/Jax/Pitt",
                 "modified_genes": [],
                 "available_data": [],
             }
@@ -421,7 +419,7 @@ class TestTransformModelOverview:
         model_results_info = pd.DataFrame(
             {
                 "name": ["model1", "model2"],
-                "gene_expression": [True, False],
+                "transcriptomics": [True, False],
                 "disease_correlation": [False, True],
                 "pathology": [True, True],
                 "biomarkers": [False, True],
@@ -470,7 +468,7 @@ class TestTransformModelOverview:
                 "name": "model1",
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
-                "gene_expression": {"link_url": "comparison/expression?models=model1"},
+                "transcriptomics": {"link_url": "comparison/expression?models=model1"},
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/model1/pathology"},
                 "biomarkers": None,
@@ -478,18 +476,15 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/111"},
-                "center": {
-                    "link_text": "UCI",
-                    "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/",
-                },
+                "center": "UCI",
                 "modified_genes": ["Gene1", "Gene2"],
-                "available_data": ["Gene Expression", "Pathology"],
+                "available_data": ["Transcriptomics", "Pathology"],
             },
             {
                 "name": "model2",
                 "model_type": "Tauopathy",
                 "matched_controls": ["B6129", "B6130"],
-                "gene_expression": None,
+                "transcriptomics": None,
                 "disease_correlation": {
                     "link_url": "comparison/correlation?models=model2"
                 },
@@ -499,10 +494,7 @@ class TestTransformModelOverview:
                     "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/222"},
-                "center": {
-                    "link_text": "IU/Jax/Pitt",
-                    "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/",
-                },
+                "center": "IU/Jax/Pitt",
                 "modified_genes": ["Gene3"],
                 "available_data": ["Disease Correlation", "Pathology", "Biomarkers"],
             },
@@ -514,45 +506,45 @@ class TestTransformModelOverview:
 
 class TestGetListOfAvailableData:
     def test_all_data_present(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
-            "gene_expression": {"link_url": "url1"},
+            "transcriptomics": {"link_url": "url1"},
             "disease_correlation": {"link_url": "url2"},
             "pathology": {"link_url": "url3"},
             "biomarkers": {"link_url": "url4"},
         }
         result = get_list_of_available_data(model)
         assert set(result) == {
-            "Gene Expression",
+            "Transcriptomics",
             "Disease Correlation",
             "Pathology",
             "Biomarkers",
         }
 
     def test_some_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
-            "gene_expression": {"link_url": "url1"},
+            "transcriptomics": {"link_url": "url1"},
             "disease_correlation": None,
             "pathology": {"link_url": "url3"},
             "biomarkers": None,
         }
         result = get_list_of_available_data(model)
-        assert set(result) == {"Gene Expression", "Pathology"}
-
-    def test_all_data_missing(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
+        assert set(result) == {"Transcriptomics", "Pathology"}
 
         model = {
-            "gene_expression": None,
+            "transcriptomics": None,
+            "disease_correlation": {"link_url": "url2"},
+            "pathology": None,
+            "biomarkers": {"link_url": "url1"},
+        }
+        result = get_list_of_available_data(model)
+        assert set(result) == {"Disease Correlation", "Biomarkers"}
+
+    def test_all_data_missing(self):
+
+        model = {
+            "transcriptomics": None,
             "disease_correlation": None,
             "pathology": None,
             "biomarkers": None,
@@ -561,32 +553,25 @@ class TestGetListOfAvailableData:
         assert result == []
 
     def test_empty_model(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {}
         result = get_list_of_available_data(model)
         assert result == []
 
     def test_partial_keys(self):
-        from agoradatatools.etl.transform.model_overview import (
-            get_list_of_available_data,
-        )
 
         model = {
-            "gene_expression": {"link_url": "url1"},
+            "transcriptomics": {"link_url": "url1"},
             # disease_correlation missing
             "pathology": None,
             # biomarkers missing
         }
         result = get_list_of_available_data(model)
-        assert result == ["Gene Expression"]
+        assert result == ["Transcriptomics"]
 
 
 class TestGetCenterLinkUrl:
     def test_uci_contributing_group(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("UCI")
         expected = (
@@ -595,7 +580,6 @@ class TestGetCenterLinkUrl:
         assert result == expected
 
     def test_uci_contributing_group_lowercase(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("uci")
         expected = (
@@ -604,21 +588,18 @@ class TestGetCenterLinkUrl:
         assert result == expected
 
     def test_iu_jax_pitt_contributing_group_lowercase(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("IU/Jax/Pitt")
         expected = "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
         assert result == expected
 
     def test_iu_jax_pitt_uppercase_contributing_group(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         result = get_center_link_url("IU/JAX/PITT")
         expected = "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
         assert result == expected
 
     def test_invalid_contributing_group_raises_value_error(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         with pytest.raises(
             ValueError, match="Invalid contributing group: InvalidCenter"
@@ -626,19 +607,16 @@ class TestGetCenterLinkUrl:
             get_center_link_url("InvalidCenter")
 
     def test_empty_string_raises_value_error(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         with pytest.raises(ValueError, match="Invalid contributing group: "):
             get_center_link_url("")
 
     def test_none_contributing_group_raises_value_error(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         with pytest.raises(ValueError, match="Invalid contributing group: None"):
             get_center_link_url(None)
 
     def test_partial_matches_raise_value_error(self):
-        from agoradatatools.etl.transform.model_overview import get_center_link_url
 
         # Test partial matches that should not work
         with pytest.raises(ValueError, match="Invalid contributing group: IU/Jax"):

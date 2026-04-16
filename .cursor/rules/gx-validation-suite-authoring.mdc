@@ -1,0 +1,265 @@
+---
+description: Step-by-step guide for authoring Great Expectations (GX) validation suites for agora-data-tools transforms
+globs: gx_suite_definitions/**,src/agoradatatools/great_expectations/**,configs/model_ad_*.yaml
+alwaysApply: false
+---
+
+# GX Validation Suite Authoring Guide
+
+## Overview of Files Involved
+
+| File | Purpose |
+|------|---------|
+| `configs/model_ad_preprod.yaml` + `model_ad_prod.yaml` | Enable GX and declare nested columns |
+| `gx_suite_definitions/<transform>.ipynb` | Author and generate the expectation suite |
+| `src/agoradatatools/great_expectations/gx/expectations/<transform>.json` | Generated suite loaded at runtime |
+| `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/` | JSON schemas for nested/link columns |
+
+---
+
+## Step 1 — Enable GX in Config Files
+
+In both `model_ad_preprod.yaml` and `model_ad_prod.yaml`, add to the dataset block:
+
+```yaml
+gx_enabled: true
+gx_nested_columns:
+  - column_a   # any column that is a dict/list and needs deep inspection
+  - column_b
+```
+
+`gx_nested_columns` converts dict/list columns to JSON strings before GX validation, enabling `expect_column_values_to_match_json_schema`.
+
+---
+
+## Step 2 — Create JSON Schemas (if needed)
+
+For columns that are link objects, create schemas in `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/`.
+
+**Nullable link column** (value can be `null` OR a `{link_url}` object):
+```json
+{
+  "oneOf": [
+    { "type": "null" },
+    {
+      "type": "object",
+      "properties": { "link_url": { "type": "string", "minLength": 1 } },
+      "required": ["link_url"],
+      "additionalProperties": false
+    }
+  ]
+}
+```
+
+**Required link column** (never null, must have `link_url`):
+```json
+{
+  "type": "object",
+  "properties": { "link_url": { "type": "string", "minLength": 1 } },
+  "required": ["link_url"],
+  "additionalProperties": false
+}
+```
+
+**Center-style column** (never null, must have both `link_url` and `link_text`):
+```json
+{
+  "type": "object",
+  "properties": {
+    "link_url": { "type": "string", "minLength": 1 },
+    "link_text": { "type": "string", "minLength": 1 }
+  },
+  "required": ["link_url", "link_text"],
+  "additionalProperties": false
+}
+```
+
+---
+
+## Step 3 — Create the Authoring Notebook
+
+> **Before starting:** Ask the user for the Synapse ID of the processed output file for this dataset (e.g. `syn73774519`). This is needed for the data-loading cell in the notebook. Do not proceed without it.
+
+Copy an existing notebook (e.g., `gx_suite_definitions/biomarkers.ipynb`) as a starting point.
+
+### Critical: Cell 0 import order
+
+`gx.get_context()` MUST be called BEFORE importing custom expectations, or you get `ModuleNotFoundError: No module named 'expectations'`. The `get_context()` call adds the plugins directory to `sys.path`.
+
+```python
+import json
+import pandas as pd
+import great_expectations as gx
+import synapseclient
+from agoradatatools.gx import GreatExpectationsRunner
+
+# get_context FIRST, then custom expectation imports
+context = gx.get_context(project_root_dir='../src/agoradatatools/great_expectations')
+
+from expectations.expect_column_values_to_have_list_members import ExpectColumnValuesToHaveListMembers
+from expectations.expect_column_values_to_have_list_members_of_type import ExpectColumnValuesToHaveListMembersOfType
+from expectations.expect_column_values_to_have_list_length_in_range import ExpectColumnValuesToHaveListLengthInRange
+```
+
+### Custom expectation calls: always use `column=` keyword argument
+
+```python
+# ✅ CORRECT — keyword arg required
+validator.expect_column_values_to_have_list_length_in_range(column="my_col", list_length_range=[1, 10])
+validator.expect_column_values_to_have_list_members_of_type(column="my_col", member_type="str")
+
+# ❌ WRONG — causes InvalidExpectationConfigurationError
+validator.expect_column_values_to_have_list_length_in_range("my_col", list_length_range=[1, 10])
+```
+
+### Do NOT use `mostly`
+
+Never add `mostly=` to any expectation. All validations should be strict (100%).
+
+### Common expectations by use case
+
+```python
+# Never null
+validator.expect_column_values_to_not_be_null("col")
+
+# Specific allowed values
+validator.expect_column_values_to_be_in_set("model_type", ["Familial AD", "Late Onset AD"])
+
+# Non-empty list (at least 1 element)
+validator.expect_column_values_to_have_list_length_in_range(column="col", list_length_range=[1, 10])
+
+# List of strings
+validator.expect_column_values_to_have_list_members_of_type(column="col", member_type="str")
+
+# JSON schema for nested column
+with open("../src/agoradatatools/great_expectations/gx/json_schemas/<transform>/my_schema.json") as f:
+    schema = json.load(f)
+validator.expect_column_values_to_match_json_schema("col", json_schema=schema)
+
+# Regex on a nullable string column — use row_condition to skip null rows
+validator.expect_column_values_to_match_regex(
+    "col",
+    regex="^expected/prefix",
+    row_condition="col.notnull()",
+    condition_parser="pandas",
+)
+```
+
+### Regex syntax: Python vs JSON Schema
+
+Use the correct regex flavor depending on where the regex is written:
+
+| Context | Flavor | Notes |
+|---------|--------|-------|
+| Python `.py` files (e.g. `expect_column_values_to_match_regex`) | **Python `re` / RE2** | Raw strings (`r"..."`) preferred; no lookbehind of variable length |
+| JSON schema files (`json_schemas/**/*.json`) via `"pattern"` key | **ECMAScript / JavaScript** | No named groups `(?P<name>...)`, no `\A`/`\Z` anchors — use `^`/`$` instead |
+
+```python
+# ✅ Python (re/RE2) — in .py or .ipynb
+validator.expect_column_values_to_match_regex("col", regex=r"^\d{6}$")
+validator.expect_column_values_to_match_regex("url", regex=r"^https://")
+```
+
+```json
+// ✅ ECMAScript — in json_schemas/**/*.json
+{ "pattern": "^\\d{6}$" }
+{ "pattern": "^https://" }
+```
+
+```json
+// ❌ WRONG in JSON schema — Python-only syntax
+{ "pattern": "(?P<name>\\w+)" }   // named groups not supported in ECMAScript
+{ "pattern": "\\Ahttps://" }      // \A anchor not supported — use ^ instead
+```
+
+---
+
+### Inspect the staging file before writing regex expectations
+
+Do not rely solely on the transform source code to determine URL formats or string patterns. The transform code and the actual output can differ (e.g. `?model=` vs `?models=`). Always inspect the staging file directly:
+
+```python
+import json
+with open("staging/<transform>.json") as f:
+    data = json.load(f)
+
+# Check distinct non-null values of a column
+values = [r["col"] for r in data if r.get("col") is not None]
+print(set(values))
+```
+
+### `pd.read_json()` converts numeric strings to integers
+
+`pd.read_json()` infers column types and will convert a JSON string like `"004807"` to the integer `4807`, truncating leading zeros. For columns that are zero-padded IDs stored as strings in the output JSON, you must force string dtype when loading the data so that the original format is preserved and can be validated correctly.
+
+In the authoring notebook, pass `dtype` when loading the data:
+
+```python
+import pandas as pd
+
+df = pd.read_json("path/to/output.json", dtype={"jax_id": str})
+```
+
+The `GreatExpectationsRunner` (in `gx.py`) must also be updated to accept and forward a `dtype` map when it calls `pd.read_json()`, so the same string coercion is applied at validation runtime.
+
+Once the data is loaded with the correct dtype, validate the column as a zero-padded 6-digit numeric string:
+
+```python
+# ❌ WRONG — will fail because pd.read_json() reads "004807" as 4807 without dtype override
+validator.expect_column_values_to_be_of_type("jax_id", "int")
+validator.expect_column_values_to_not_be_null("jax_id")
+
+# ✅ CORRECT — after loading with dtype={"jax_id": str}
+validator.expect_column_values_to_be_of_type("jax_id", "str")
+validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
+```
+
+---
+
+## Step 4 — Run the Notebook
+
+Always activate the conda env and reinstall the package first:
+
+```bash
+conda activate adt_py310
+pip install . -q
+jupyter nbconvert --to notebook --inplace --execute gx_suite_definitions/<transform>.ipynb
+```
+
+---
+
+## Step 5 — Reinstall After Generating the Suite
+
+The `GreatExpectationsRunner` loads suites from the *installed* package, not from source. After the notebook generates `<transform>.json`, reinstall:
+
+```bash
+pip install . -q
+```
+
+If you skip this, the runner will log:
+> `Expectation suite <transform> does not exist. Data validation will not be performed.`
+
+---
+
+## Step 6 — Verify with the ADT CLI
+
+```bash
+adt configs/model_ad_preprod.yaml
+```
+
+Check the output for GX validation results.
+
+---
+
+## Common Pitfalls
+
+| Pitfall | Fix |
+|---------|-----|
+| `ModuleNotFoundError: No module named 'expectations'` | Move `gx.get_context()` before custom imports in Cell 0 |
+| `InvalidExpectationConfigurationError: Invalid positional argument` | Use `column=` keyword arg for all custom expectations |
+| Suite not found at runtime | Run `pip install .` after generating the `.json` file |
+| Pre-commit hook modifies files on commit | Re-stage modified files and commit again |
+| Regex fails on a zero-padded string column (e.g. `jax_id`) | `pd.read_json()` converts `"004807"` → `4807` (int); validate as `int`, not `str` |
+| Regex fails on a nullable column | Use `row_condition="col.notnull()"` + `condition_parser="pandas"` to skip null rows |
+| Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
+| Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |

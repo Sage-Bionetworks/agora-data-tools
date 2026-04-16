@@ -3,7 +3,7 @@ This file contains utility functions that may be used across multiple transforms
 
 Functions:
     process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
-    build_gene_expression_url - build a URL linking to the gene comparison table for a given study
+    build_transcriptomics_url - build a URL linking to the gene comparison table for a given study
 """
 
 from typing import Any, Dict, List, Union
@@ -77,7 +77,7 @@ def process_genetic_info(
     ].to_dict(orient="records")
 
 
-def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
+def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
     """
     Creates the link-url to the gene comparison table for a given model. The default string is
     "comparison/expression?models=<model_name>".
@@ -127,7 +127,7 @@ def build_gene_expression_url(model_row: pd.Series) -> Union[str, None]:
     )
     url = (
         f"comparison/expression?{categories_value}models={models_value}"
-        if bool(model_row["gene_expression"])
+        if bool(model_row["transcriptomics"])
         else None
     )
     return url

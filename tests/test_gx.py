@@ -246,7 +246,7 @@ class TestGreatExpectationsRunner:
             self.good_runner.run()
             patch_check_if_expectation_suite_exists.assert_called_once()
             patch_read_json.assert_called_once_with(
-                self.good_runner.dataset_path,
+                self.good_runner.dataset_path, dtype=False
             )
             patch_convert_nested_columns_to_json.assert_called_once()
             patch_checkpoint_run.assert_called_once()
@@ -281,7 +281,7 @@ class TestGreatExpectationsRunner:
             self.good_runner.run()
             patch_check_if_expectation_suite_exists.assert_called_once()
             patch_read_json.assert_called_once_with(
-                self.good_runner.dataset_path,
+                self.good_runner.dataset_path, dtype=False
             )
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
@@ -345,7 +345,9 @@ class TestGreatExpectationsRunner:
         ) as patch_set_warnings_and_failures:
             self.good_runner.run()
             patch_check_if_expectation_suite_exists.assert_called_once()
-            patch_read_json.assert_called_once_with(self.good_runner.dataset_path)
+            patch_read_json.assert_called_once_with(
+                self.good_runner.dataset_path, dtype=False
+            )
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
@@ -379,7 +381,9 @@ class TestGreatExpectationsRunner:
             self.good_runner.upload_folder = None
             self.good_runner.run()
             patch_check_if_expectation_suite_exists.assert_called_once()
-            patch_read_json.assert_called_once_with(self.good_runner.dataset_path)
+            patch_read_json.assert_called_once_with(
+                self.good_runner.dataset_path, dtype=False
+            )
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()

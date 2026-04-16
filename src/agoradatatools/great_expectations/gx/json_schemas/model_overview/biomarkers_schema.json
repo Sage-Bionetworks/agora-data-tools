@@ -1,0 +1,13 @@
+{
+  "oneOf": [
+    { "type": "null" },
+    {
+      "type": "object",
+      "properties": {
+        "link_url": { "type": "string", "pattern": "^models/.+/biomarkers$" }
+      },
+      "required": ["link_url"],
+      "additionalProperties": false
+    }
+  ]
+}
