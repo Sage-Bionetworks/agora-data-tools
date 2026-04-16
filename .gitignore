@@ -1,6 +1,3 @@
-# Local scripts (not part of the repository)
-scripts/
-
 # Byte-compiled / optimized / DLL / OSX files
 __pycache__/
 *.py[cod]
