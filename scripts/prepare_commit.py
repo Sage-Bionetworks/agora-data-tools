@@ -2,10 +2,14 @@
 """
 Pre-commit preparation script.
 
-Verifies the expected virtual environment is active, installs the package,
-runs the test suite, and (if all tests pass) runs pre-commit on all files.
+Optionally verifies the expected virtual environment is active, installs the
+package, runs the test suite, and (if all tests pass) runs pre-commit on all
+files.
 
-Developer config (recommended):
+If no package manager or environment name is configured, the script skips the
+environment check and runs everything in the current Python environment.
+
+Developer config (optional):
   Copy dev_config.yaml.example to dev_config.yaml at the repo root,
   fill in your package manager and environment name, then just run:
     python scripts/prepare_commit.py
@@ -220,32 +224,26 @@ def main() -> None:
     package_manager = args.package_manager or dev_config.get("package_manager")
     env_name = args.env_name or dev_config.get("env_name")
 
-    missing = [
-        name
-        for name, val in [
-            ("--package-manager", package_manager),
-            ("--env-name", env_name),
-        ]
-        if not val
-    ]
-    if missing:
+    if package_manager and env_name:
+        if package_manager not in PACKAGE_MANAGER_CHECKERS:
+            print(
+                f"[ERROR] Unsupported package manager '{package_manager}'. "
+                f"Supported: {', '.join(PACKAGE_MANAGER_CHECKERS)}."
+            )
+            sys.exit(1)
+        checker = PACKAGE_MANAGER_CHECKERS[package_manager]
+        checker(env_name)
+    elif package_manager or env_name:
+        missing_key = "--env-name" if package_manager else "--package-manager"
         print(
-            f"[ERROR] Missing required value(s): {', '.join(missing)}.\n"
-            f"Either pass them as CLI arguments or create {_CONFIG_FILE} from the example:\n"
-            f"  cp {_CONFIG_EXAMPLE} {_CONFIG_FILE}\n"
-            f"Then fill in your package_manager and env_name."
+            f"[ERROR] '{missing_key}' is also required when specifying the other.\n"
+            f"Either provide both or neither to run on the current environment."
         )
         sys.exit(1)
-
-    if package_manager not in PACKAGE_MANAGER_CHECKERS:
+    else:
         print(
-            f"[ERROR] Unsupported package manager '{package_manager}'. "
-            f"Supported: {', '.join(PACKAGE_MANAGER_CHECKERS)}."
+            f"[OK] No package manager configured — running on current environment ({sys.executable})."
         )
-        sys.exit(1)
-
-    checker = PACKAGE_MANAGER_CHECKERS[package_manager]
-    checker(env_name)
 
     run([sys.executable, "-m", "pip", "install", "."], "pip install .")
     run([sys.executable, "-m", "pytest", "tests/"], "pytest tests/")

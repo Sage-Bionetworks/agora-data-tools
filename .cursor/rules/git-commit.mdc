@@ -11,10 +11,10 @@ Before making any git commit in this project, always run:
 python scripts/prepare_commit.py
 ```
 
-## One-time developer setup
+## Optional developer setup
 
-The script reads your package manager and environment name from a local config file
-that is gitignored. Copy the example and fill in your own values:
+If you use a virtual environment, you can configure the script to verify it is
+active before running. Copy the example and fill in your own values:
 
 ```bash
 cp dev_config.yaml.example dev_config.yaml
@@ -27,7 +27,8 @@ package_manager: conda   # or: venv, virtualenv, poetry, pipenv
 env_name: adt_py310      # your environment name
 ```
 
-After that, `python scripts/prepare_commit.py` requires no arguments.
+If neither field is set (or `dev_config.yaml` does not exist), the script skips
+the environment check and runs on whatever Python is currently active.
 
 ## CLI override (optional)
 

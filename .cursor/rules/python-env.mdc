@@ -5,11 +5,11 @@ alwaysApply: true
 
 # Python Environment Setup
 
-Before running any Python code, tests, or scripts in this project, always use the virtual environment defined in your local `dev_config.yaml` at the repo root.
+Before running any Python code, tests, or scripts in this project, use the virtual environment defined in your local `dev_config.yaml` at the repo root. If you don't use a package manager, you can skip this setup and run on your base/current environment.
 
-## One-time developer setup
+## Optional developer setup
 
-If you haven't already, copy the example and fill in your package manager and environment name:
+If you use a virtual environment, copy the example and fill in your package manager and environment name:
 
 ```bash
 cp dev_config.yaml.example dev_config.yaml
