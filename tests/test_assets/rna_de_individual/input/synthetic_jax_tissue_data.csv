@@ -1,0 +1,5 @@
+ensembl_gene_id,individualid,expression,tissue,sex,age,genotype,model
+ENSMUSG00000000001,Ind301,5.67890,Right Cerebral Hemisphere,Male,6 months,APOE4-KI_homozygous; Trem2-R47H_homozygous,LOAD1
+ENSMUSG00000000001,Ind302,4.56789,Right Cerebral Hemisphere,Female,6 months,APOE4-KI_homozygous; Trem2-R47H_homozygous,LOAD1
+ENSMUSG00000000001,Ind303,3.45678,Right Cerebral Hemisphere,Male,6 months,APOE4-KI_WT; Trem2-R47H_WT,LOAD1
+

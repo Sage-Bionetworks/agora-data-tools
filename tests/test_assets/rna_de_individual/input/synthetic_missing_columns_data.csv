@@ -1,0 +1,3 @@
+ensembl_gene_id,individualid,expression,tissue,sex,genotype,model
+ENSMUSG00000000001,Ind501,5.12345,Cortex,Male,APOE4-KI_homozygous; Trem2-R47H_WT,APOE4
+

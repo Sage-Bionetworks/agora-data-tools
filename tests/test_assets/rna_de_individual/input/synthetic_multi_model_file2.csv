@@ -1,0 +1,5 @@
+ensembl_gene_id,individualid,expression,tissue,sex,age,genotype,model
+ENSMUSG00000000001,Ind005,6.11111,Hippocampus,Male,4 months,5XFAD_carrier; Trem2-R47H_NSS_homozygous,Trem2-R47H_NSS.5xFAD
+ENSMUSG00000000001,Ind006,5.88888,Hippocampus,Female,4 months,5XFAD_carrier; Trem2-R47H_NSS_homozygous,Trem2-R47H_NSS.5xFAD
+ENSMUSG00000000001,Ind007,4.44444,Hippocampus,Male,4 months,5XFAD_carrier,Trem2-R47H_NSS.5xFAD
+ENSMUSG00000000001,Ind008,4.22222,Hippocampus,Female,4 months,5XFAD_carrier,Trem2-R47H_NSS.5xFAD

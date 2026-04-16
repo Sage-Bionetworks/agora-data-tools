@@ -1,0 +1,72 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "tissue": "Cortex",
+    "name": "APOE4",
+    "model_group": "APOE4",
+    "matched_control": "C57BL/6J",
+    "units": "Log2 Counts per Million",
+    "age": "6 months",
+    "age_numeric": 6,
+    "result_order": [
+      "C57BL/6J",
+      "APOE4"
+    ],
+    "data": [
+      {
+        "genotype": "APOE4",
+        "sex": "Male",
+        "individual_id": "Ind001",
+        "value": 5.12345
+      },
+      {
+        "genotype": "APOE4",
+        "sex": "Female",
+        "individual_id": "Ind002",
+        "value": 4.98765
+      },
+      {
+        "genotype": "C57BL/6J",
+        "sex": "Male",
+        "individual_id": "Ind003",
+        "value": 3.55555
+      },
+      {
+        "genotype": "C57BL/6J",
+        "sex": "Female",
+        "individual_id": "Ind004",
+        "value": 3.6789
+      }
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000002",
+    "gene_symbol": "",
+    "tissue": "Cortex",
+    "name": "APOE4",
+    "model_group": "APOE4",
+    "matched_control": "C57BL/6J",
+    "units": "Log2 Counts per Million",
+    "age": "6 months",
+    "age_numeric": 6,
+    "result_order": [
+      "C57BL/6J",
+      "APOE4"
+    ],
+    "data": [
+      {
+        "genotype": "APOE4",
+        "sex": "Male",
+        "individual_id": "Ind001",
+        "value": 6.23456
+      },
+      {
+        "genotype": "APOE4",
+        "sex": "Female",
+        "individual_id": "Ind002",
+        "value": 5.87654
+      }
+    ]
+  }
+]

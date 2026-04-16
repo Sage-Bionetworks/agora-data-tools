@@ -1,0 +1,5 @@
+ensembl_gene_id,individualid,expression,tissue,sex,age,genotype,model
+ENSMUSG00000000001,Ind701,5.12345,Cortex,Male,12 months,APOE4-KI_homozygous; Trem2-R47H_WT,APOE4
+ENSMUSG00000000001,Ind702,4.23456,Cortex,Female,6 months,APOE4-KI_homozygous; Trem2-R47H_WT,APOE4
+ENSMUSG00000000001,Ind703,3.34567,Cortex,Male,3 months,APOE4-KI_homozygous; Trem2-R47H_WT,APOE4
+
