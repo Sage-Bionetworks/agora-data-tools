@@ -5,19 +5,19 @@ alwaysApply: true
 
 # Python Environment Setup
 
-Before running any Python code, tests, or scripts in this project, always use the virtual environment defined in your local dev config (`scripts/.prepare_commit.cfg`).
+Before running any Python code, tests, or scripts in this project, always use the virtual environment defined in your local `dev_config.yaml` at the repo root.
 
 ## One-time developer setup
 
-If you haven't already, copy the example config and fill in your package manager and environment name:
+If you haven't already, copy the example and fill in your package manager and environment name:
 
 ```bash
-cp scripts/.prepare_commit.cfg.example scripts/.prepare_commit.cfg
+cp dev_config.yaml.example dev_config.yaml
 ```
 
 ## Activating your environment
 
-Use the `package_manager` and `env_name` values from your `scripts/.prepare_commit.cfg`:
+Use the `package_manager` and `env_name` values from your `dev_config.yaml`:
 
 | package_manager | Activation command |
 |---|---|

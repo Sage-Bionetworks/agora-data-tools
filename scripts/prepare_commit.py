@@ -6,7 +6,7 @@ Verifies the expected virtual environment is active, installs the package,
 runs the test suite, and (if all tests pass) runs pre-commit on all files.
 
 Developer config (recommended):
-  Copy scripts/.prepare_commit.cfg.example to scripts/.prepare_commit.cfg,
+  Copy dev_config.yaml.example to dev_config.yaml at the repo root,
   fill in your package manager and environment name, then just run:
     python scripts/prepare_commit.py
 
@@ -23,29 +23,29 @@ CLI overrides (optional, take precedence over config file):
 """
 
 import argparse
-import configparser
 import os
 import pathlib
 import subprocess
 import sys
 
-_SCRIPT_DIR = pathlib.Path(__file__).parent
-_CONFIG_FILE = _SCRIPT_DIR / ".prepare_commit.cfg"
-_CONFIG_EXAMPLE = _SCRIPT_DIR / ".prepare_commit.cfg.example"
+import yaml
+
+_REPO_ROOT = pathlib.Path(__file__).parent.parent
+_CONFIG_FILE = _REPO_ROOT / "dev_config.yaml"
+_CONFIG_EXAMPLE = _REPO_ROOT / "dev_config.yaml.example"
 
 
 def load_dev_config() -> dict[str, str]:
-    """Read package_manager and env_name from scripts/.prepare_commit.cfg, if it exists."""
+    """Read package_manager and env_name from dev_config.yaml, if it exists."""
     if not _CONFIG_FILE.exists():
         return {}
-    cfg = configparser.ConfigParser()
-    cfg.read(_CONFIG_FILE)
-    defaults: dict[str, str] = {}
-    if cfg.has_option("defaults", "package_manager"):
-        defaults["package_manager"] = cfg.get("defaults", "package_manager").strip()
-    if cfg.has_option("defaults", "env_name"):
-        defaults["env_name"] = cfg.get("defaults", "env_name").strip()
-    return defaults
+    with open(_CONFIG_FILE) as f:
+        data = yaml.safe_load(f) or {}
+    return {
+        k: str(v).strip()
+        for k, v in data.items()
+        if k in ("package_manager", "env_name")
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +181,7 @@ def parse_args() -> argparse.Namespace:
         epilog="\n".join(
             [
                 "dev config (recommended one-time setup):",
-                f"  Copy {_CONFIG_EXAMPLE.name} to {_CONFIG_FILE.name} in the same directory,",
+                f"  Copy {_CONFIG_EXAMPLE.name} to {_CONFIG_FILE.name} at the repo root,",
                 "  fill in your values, then run this script with no arguments.",
                 "",
                 "CLI examples (override config file):",
@@ -199,7 +199,7 @@ def parse_args() -> argparse.Namespace:
         choices=list(PACKAGE_MANAGER_CHECKERS.keys()),
         metavar="MANAGER",
         help=f"Package manager used for your dev environment. Supported: {', '.join(PACKAGE_MANAGER_CHECKERS)}. "
-        f"If omitted, read from {_CONFIG_FILE.name}.",
+        f"If omitted, read from {_CONFIG_FILE.name} at the repo root.",
     )
     parser.add_argument(
         "-e",
@@ -207,7 +207,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         metavar="NAME",
         help=f"Name of the virtual environment to verify is active. "
-        f"If omitted, read from {_CONFIG_FILE.name}.",
+        f"If omitted, read from {_CONFIG_FILE.name} at the repo root.",
     )
     return parser.parse_args()
 

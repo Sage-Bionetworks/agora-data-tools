@@ -17,15 +17,14 @@ The script reads your package manager and environment name from a local config f
 that is gitignored. Copy the example and fill in your own values:
 
 ```bash
-cp scripts/.prepare_commit.cfg.example scripts/.prepare_commit.cfg
+cp dev_config.yaml.example dev_config.yaml
 ```
 
-Then edit `scripts/.prepare_commit.cfg`:
+Then edit `dev_config.yaml`:
 
-```ini
-[defaults]
-package_manager = conda   # or: venv, virtualenv, poetry, pipenv
-env_name = adt_py310      # your environment name
+```yaml
+package_manager: conda   # or: venv, virtualenv, poetry, pipenv
+env_name: adt_py310      # your environment name
 ```
 
 After that, `python scripts/prepare_commit.py` requires no arguments.

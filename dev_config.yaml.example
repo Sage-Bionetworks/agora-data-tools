@@ -1,0 +1,18 @@
+# Developer-local configuration for agora-data-tools
+#
+# Copy this file to dev_config.yaml (gitignored) and fill in your own values.
+# This file is used by scripts/prepare_commit.py to validate your environment
+# before committing.
+#
+# Usage:
+#   cp dev_config.yaml.example dev_config.yaml
+#   # edit dev_config.yaml with your values, then:
+#   python scripts/prepare_commit.py
+
+# Your package manager. Supported values: conda, venv, virtualenv, poetry, pipenv
+package_manager: conda
+
+# The name of your virtual environment.
+#   - conda / venv / virtualenv: the environment name (e.g. adt_py310, .venv)
+#   - poetry / pipenv: the project name used in the generated env folder
+env_name: adt_py310
