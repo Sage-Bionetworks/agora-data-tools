@@ -1,7 +1,7 @@
 ---
 title: "Agora ui_config source file"
 ---
-This notebook generates the ui_config.json source file (synTBD) containing the data required to construct Comparison Tool interfaces for Agora.
+This notebook generates the ui_config.json source file (syn73677126) containing the data required to construct Comparison Tool interfaces for Agora.
 
 Interfaces that are currently handled by this notebook:
 * Nominated Targets
@@ -15,10 +15,13 @@ This notebook must be updated when the Explorer is updated to:
 
 
 Notes:
-* `query_param_key`: Values must be plural, camelCase, and should intelligibly align with the related display values presented to users on the page:
-   - filter.name (filter panels)
-   - filter.short_name (filter chips)
-   - column.name (column header)
+* `query_param_key`: Values must be camelCase, should be plural, and should intelligibly align with the related display
+values presented to users on the page.
+  Example:
+        column.name: ""Pharos Class"
+        filter.name: "Pharos Class", <--- the filter's display name in the Filter panel
+        filter.short_name: "Pharos", <-- the filter's short display name in the "applied filter" chiclets
+        filter.query_param_key: "pharosClasses", <-- the filter's query parameter key
 
 ## Library setup
 Install required packages:
@@ -155,7 +158,7 @@ target_filters <- data.frame(
   short_name = c('Cohort', 'Data', 'First', 'Team',
                  'Pharos', "Program", "Nominations"),
   query_param_key = c('cohorts', 'data', 'firstNominations', 'teams',
-                      'pharosClass', 'programs', 'nominations'),
+                      'pharosClasses', 'programs', 'nominations'),
   stringsAsFactors = FALSE
 )
 
@@ -313,18 +316,18 @@ write(json_output, file.path(output_dir, "ui_config.json"))
 synLogin()
 syn_file <- File(
               file.path(output_dir, "ui_config.json"),
-              description = "ui_config.json for Model-AD Explorer 2.0.",
+              description = "ui_config.json for Agora.",
               parent = "syn7525089"
             )
 
 res <- synStore(
           syn_file,
           forceVersion = FALSE,
-          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/Agora ui_config source file.rmd"
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/agora/notebooks/preprocessing/AG-2005_ui_config.rmd"
         )
 # print synapse_id and new version number
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
-
+```
 
 
 -----
