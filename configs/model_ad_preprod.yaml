@@ -47,6 +47,8 @@ datasets:
         - genetic_info
         - biomarkers
         - pathology
+      gx_dtype:
+        jax_id: str
       gx_enabled: true
 
   - disease_correlation:
@@ -100,13 +102,12 @@ datasets:
         model: name
       gx_enabled: true
       gx_nested_columns:
-        - gene_expression
+        - transcriptomics
         - disease_correlation
         - pathology
         - biomarkers
         - study_data
         - jax_strain
-        - center
 
   - rna_de_aggregate:
       files:

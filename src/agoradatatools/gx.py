@@ -44,6 +44,7 @@ class GreatExpectationsRunner:
         dataset_name: str,
         upload_folder: str = None,
         nested_columns: typing.List[str] = None,
+        dtype: typing.Optional[typing.Dict[str, type]] = None,
     ):
         """Initialize the class"""
         self.syn = syn
@@ -51,6 +52,7 @@ class GreatExpectationsRunner:
         self.expectation_suite_name = dataset_name
         self.upload_folder = upload_folder
         self.nested_columns = nested_columns
+        self.dtype = dtype
         self.gx_project_dir = self._get_data_context_location()
 
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
@@ -228,7 +230,8 @@ class GreatExpectationsRunner:
 
         logger.info(f"Running data validation on {self.expectation_suite_name}")
 
-        gx_df = pd.read_json(self.dataset_path)
+        read_json_kwargs = {"dtype": self.dtype} if self.dtype else {}
+        gx_df = pd.read_json(self.dataset_path, **read_json_kwargs)
         if self.nested_columns:
             gx_df = self.convert_nested_columns_to_json(
                 df=gx_df, nested_columns=self.nested_columns
