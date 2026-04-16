@@ -39,3 +39,7 @@ python scripts/prepare_commit.py --package-manager venv  --env-name .venv
 ```
 
 This script must complete successfully before staging and committing changes.
+
+## User confirmation required
+
+NEVER create a git commit unless the user has explicitly asked you to commit. If the user has not clearly requested a commit, always ask for confirmation before proceeding.
