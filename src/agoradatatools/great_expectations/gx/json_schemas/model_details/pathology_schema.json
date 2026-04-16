@@ -1,0 +1,58 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string", "minLength": 1 },
+      "evidence_type": {
+        "type": "string",
+        "enum": [
+          "Astrocyte Cell Density (GFAP)",
+          "Astrocyte Cell Density (S100B)",
+          "Dystrophic Neurites (LAMP1)",
+          "Microglia Cell Density (IBA1)",
+          "Phospho-tau (AT8)",
+          "Plaque Density (Thio-S)",
+          "Plaque Size (Thio-S)",
+          "Tau (HT7)"
+        ]
+      },
+      "tissue": {
+        "type": "string",
+        "enum": ["Cerebral Cortex", "Hippocampus"]
+      },
+      "age": {
+        "type": "string",
+        "enum": ["4 months", "12 months", "18 months"]
+      },
+      "units": {
+        "type": "string",
+        "enum": [
+          "",
+          "# objects / square mm",
+          "%",
+          "mean object area (square mm)",
+          "mean object volume (cubic mm)",
+          "total object volume (cubic mm)"
+        ]
+      },
+      "y_axis_max": { "type": "number" },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "individual_id": { "type": "string", "minLength": 1 },
+            "value": { "type": "number" },
+            "sex": { "type": "string", "enum": ["Female", "Male"] },
+            "genotype": { "type": "string", "minLength": 1 }
+          },
+          "required": ["individual_id", "value", "sex", "genotype"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["name", "evidence_type", "tissue", "age", "units", "y_axis_max", "data"],
+    "additionalProperties": false
+  }
+}

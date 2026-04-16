@@ -3,12 +3,549 @@
   "expectation_suite_name": "model_details",
   "expectations": [
     {
-      "expectation_type": "expect_column_nested_object_regex_rule",
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "name",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "model_type",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "model_type"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "model_type",
+        "value_set": [
+          "Familial AD",
+          "Late Onset AD"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "contributing_group",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "contributing_group"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "contributing_group",
+        "value_set": [
+          "UCI",
+          "IU/Jax/Pitt"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "study_synid",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "study_synid"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "study_synid",
+        "regex": "^syn\\d+$"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "rrid",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "rrid"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "jax_id",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "jax_id"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "jax_id",
+        "regex": "^\\d{6}$"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "alzforum_id",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "genotype",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "genotype"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "matched_controls",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "matched_controls"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "matched_controls",
+        "list_length_range": [
+          1,
+          2
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "matched_controls",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "aliases",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "aliases"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "aliases",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "aliases",
+        "list_length_range": [
+          1,
+          5
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "transcriptomics",
+        "condition_parser": "pandas",
+        "regex": "^comparison/expression\\?(categories=.*&)?models=",
+        "row_condition": "transcriptomics.notnull()"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "disease_correlation",
+        "condition_parser": "pandas",
+        "regex": "^comparison/correlation",
+        "row_condition": "disease_correlation.notnull()"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_null",
+      "kwargs": {
+        "column": "spatial_transcriptomics"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "genetic_info",
-        "regex_pattern": "^ENSMUSG",
-        "target_field": "ensembl_gene_id",
-        "valid_threshold": 0.4
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "genetic_info"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "genetic_info",
+        "json_schema": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "allele": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "allele_type": {
+                "enum": [
+                  "Transgenic",
+                  "Targeted",
+                  "Endonuclease-mediated"
+                ],
+                "type": "string"
+              },
+              "ensembl_gene_id": {
+                "pattern": "^ENS(MUS)?G[0-9]{11}$",
+                "type": "string"
+              },
+              "mgi_allele_id": {
+                "type": "integer"
+              },
+              "modified_gene": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "modified_gene",
+              "ensembl_gene_id",
+              "allele",
+              "allele_type",
+              "mgi_allele_id"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "biomarkers",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "biomarkers"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "biomarkers",
+        "json_schema": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "age": {
+                "enum": [
+                  "4 months",
+                  "12 months",
+                  "18 months"
+                ],
+                "type": "string"
+              },
+              "data": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "genotype": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "individual_id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "sex": {
+                      "enum": [
+                        "Female",
+                        "Male"
+                      ],
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "individual_id",
+                    "value",
+                    "sex",
+                    "genotype"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "evidence_type": {
+                "enum": [
+                  "Insoluble A&beta;40",
+                  "Insoluble A&beta;42",
+                  "NfL",
+                  "Soluble A&beta;40",
+                  "Soluble A&beta;42"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "tissue": {
+                "enum": [
+                  "Cerebral Cortex",
+                  "Hippocampus",
+                  "Plasma"
+                ],
+                "type": "string"
+              },
+              "units": {
+                "enum": [
+                  "pg/mg",
+                  "pg/ml",
+                  ""
+                ],
+                "type": "string"
+              },
+              "y_axis_max": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "evidence_type",
+              "tissue",
+              "age",
+              "units",
+              "y_axis_max",
+              "data"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "pathology",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "pathology"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "pathology",
+        "json_schema": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "age": {
+                "enum": [
+                  "4 months",
+                  "12 months",
+                  "18 months"
+                ],
+                "type": "string"
+              },
+              "data": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "genotype": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "individual_id": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "sex": {
+                      "enum": [
+                        "Female",
+                        "Male"
+                      ],
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "individual_id",
+                    "value",
+                    "sex",
+                    "genotype"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "evidence_type": {
+                "enum": [
+                  "Astrocyte Cell Density (GFAP)",
+                  "Astrocyte Cell Density (S100B)",
+                  "Dystrophic Neurites (LAMP1)",
+                  "Microglia Cell Density (IBA1)",
+                  "Phospho-tau (AT8)",
+                  "Plaque Density (Thio-S)",
+                  "Plaque Size (Thio-S)",
+                  "Tau (HT7)"
+                ],
+                "type": "string"
+              },
+              "name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "tissue": {
+                "enum": [
+                  "Cerebral Cortex",
+                  "Hippocampus"
+                ],
+                "type": "string"
+              },
+              "units": {
+                "enum": [
+                  "",
+                  "# objects / square mm",
+                  "%",
+                  "mean object area (square mm)",
+                  "mean object volume (cubic mm)",
+                  "total object volume (cubic mm)"
+                ],
+                "type": "string"
+              },
+              "y_axis_max": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "name",
+              "evidence_type",
+              "tissue",
+              "age",
+              "units",
+              "y_axis_max",
+              "data"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
       },
       "meta": {}
     }

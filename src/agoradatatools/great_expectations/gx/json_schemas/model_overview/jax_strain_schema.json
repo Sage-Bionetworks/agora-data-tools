@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "link_url": { "type": "string", "pattern": "^https://jax\\.org/strain/\\d+$" }
+  },
+  "required": ["link_url"],
+  "additionalProperties": false
+}
