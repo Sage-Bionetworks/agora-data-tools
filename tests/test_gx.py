@@ -60,7 +60,6 @@ class TestGreatExpectationsRunner:
         assert self.good_runner.expectation_suite_name == "metabolomics"
         assert self.good_runner.upload_folder == "test_folder"
         assert self.good_runner.nested_columns is None
-        assert self.good_runner.dtype is None
         assert (
             self.good_runner.validations_path
             == self.good_runner.gx_project_dir

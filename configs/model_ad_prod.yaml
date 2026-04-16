@@ -47,8 +47,6 @@ datasets:
         - genetic_info
         - biomarkers
         - pathology
-      gx_dtype:
-        jax_id: str
       gx_enabled: true
 
   - disease_correlation:

@@ -286,7 +286,6 @@ def process_dataset(
                 if "gx_nested_columns" in dataset_obj[dataset_name].keys()
                 else None
             ),
-            dtype=dataset_obj[dataset_name].get("gx_dtype"),
         )
         gx_runner.run()
 

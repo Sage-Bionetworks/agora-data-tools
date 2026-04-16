@@ -44,7 +44,6 @@ class GreatExpectationsRunner:
         dataset_name: str,
         upload_folder: str = None,
         nested_columns: typing.List[str] = None,
-        dtype: typing.Optional[typing.Dict[str, type]] = None,
     ):
         """Initialize the class"""
         self.syn = syn
@@ -52,7 +51,6 @@ class GreatExpectationsRunner:
         self.expectation_suite_name = dataset_name
         self.upload_folder = upload_folder
         self.nested_columns = nested_columns
-        self.dtype = dtype
         self.gx_project_dir = self._get_data_context_location()
 
         self.context = gx.get_context(project_root_dir=self.gx_project_dir)
