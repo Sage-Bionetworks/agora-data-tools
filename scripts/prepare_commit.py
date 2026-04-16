@@ -191,6 +191,12 @@ def run_pre_commit() -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for the prepare_commit.py script.
+
+    Returns:
+        argparse.Namespace: The parsed arguments with possible overrides for
+            package manager and environment name.
+    """
     parser = argparse.ArgumentParser(
         description="Validate your dev environment, install the package, run tests, and run pre-commit.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
