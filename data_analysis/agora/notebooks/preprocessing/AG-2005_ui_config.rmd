@@ -1,0 +1,381 @@
+---
+title: "Agora ui_config source file"
+---
+This notebook generates the ui_config.json source file (syn73677126) containing the data required to construct Comparison Tool interfaces for Agora.
+
+Interfaces that are currently handled by this notebook:
+* Nominated Targets
+* Nominated Drugs
+
+This notebook must be updated when the Explorer is updated to:
+* Add a new CT interface
+* Add or modify a column of an existing CT interface
+* Add or modify a CT dropdown menu or dropdown value
+* Add or modify a filterset or filter value
+
+
+Notes:
+* `query_param_key`: Values must be camelCase, should be plural, and should intelligibly align with the related display
+values presented to users on the page.
+  Example:
+        column.name: ""Pharos Class"
+        filter.name: "Pharos Class", <--- the filter's display name in the Filter panel
+        filter.short_name: "Pharos", <-- the filter's short display name in the "applied filter" chiclets
+        filter.query_param_key: "pharosClasses", <-- the filter's query parameter key
+
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- jsonlite
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "https://cloud.r-project.org"))
+}
+if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
+if (!require("purrr")) { install.packages("purrr") }
+
+library(synapser)
+library(purrr)
+library(jsonlite)
+```
+
+
+## Variables and functions
+Sources the required variables and functions.
+```{r}
+# *********
+# FUNCTIONS
+# *********
+
+# Builds a ui_config object from a dataframe containing column info
+# - page_column_data: a csv-compatible dataframe containing a row of values per CT column:
+#    - name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
+build_object <- function(page_column_data) {
+
+  columns <- purrr::pmap(page_column_data, build_column)
+  names(columns) <- NULL
+  columns
+}
+
+# Builds a column object
+# - name: The column display name
+#   -- Specify NA for hidden columns; if you specify a different value, it will be ignored
+# - type: The column type
+# - tooltip: The tooltip display value for the column name
+#   -- Specify NA for column names that need no explanatory tooltip, and for hidden columns
+# - sort_tooltip: The tooltip display value for the column sort indicator
+#   -- This key is always omitted for columns with the primary type, and for hidden columns
+#   -- Specify NA to use the default sort_tooltip value for any other column: "Sort by <name> value"
+# - link_url: The optional default target URL for columns with a link_* type
+#   -- Specify NA for columns with other types
+# - link_text: The optional default link display text for columns with a link_* type
+#   -- Specify NA for columns with other types
+# - is_exported: Whether this column should be included in CSV data exports
+# - is_hidden: Whether this column should be displayed in the CT table
+build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden) {
+
+  # Use the default sort_tooltip if one isn't specified, for non-hidden columns only
+  if (is_hidden == TRUE) { sort_tooltip = NA }
+  else { sort_tooltip = if (!is.na(sort_tooltip)) sort_tooltip else paste("Sort by", name, "value") }
+
+  column <- list(
+    name = name,
+    type = type,
+    data_key = data_key,
+    tooltip = tooltip,
+    sort_tooltip = sort_tooltip,
+    link_url = link_url ,
+    link_text = link_text,
+    is_exported = is_exported,
+    is_hidden = is_hidden
+  )
+
+  # Omit keys with NA values
+  clean_column <- purrr::discard(column, ~ is.null(.x) | all(is.na(.x)))
+  clean_column
+}
+
+# Builds a list of filter definitions
+# - filter_defs: A dataframe of filterset info:
+#   - name, data_field, short_name, query_param_key, filter_values
+# - filter_vals: A list of lists specifying the filter values for each filterset
+build_filters <- function(filter_defs, filter_values) {
+
+  # Construct list of filters
+  filters <- Map(function(name, data_key, short_name, query_param_key, filter_values) {
+
+    filter <- list(
+      name = name,
+      data_key = data_key,
+      short_name = short_name,
+      query_param_key = query_param_key,
+      values = filter_values
+      )
+
+      # Omit keys with NA values
+      filter <- discard(filter, ~ is.null(.x) | all(is.na(.x)))
+
+    }, filter_defs$name, filter_defs$data_key, filter_defs$short_name, filter_defs$query_param_key, filter_values)
+
+  # Remove names to ensure JSON is an array, not object
+  names(filters) <- NULL
+  filters
+}
+
+
+# *****************
+# Nominated Targets
+# *****************
+target_columns <- data.frame(
+  name = c("Gene Symbol", NA, "Nominations",
+           "First Nominated", "Nominating Teams", "Cohorts",
+           "Data Used", "Programs", "Pharos Class"
+  ),
+  type = c("primary", "text", "numeric",
+           "numeric", "text", "text",
+           "text","text", "text"
+  ),
+  data_key = c("hgnc_symbol", "ensembl_gene_id", "total_nominations",
+               "initial_nomination", "nominating_teams", "cohort_studies",
+               "input_data", "programs", "pharos_class"),
+  tooltip = c(rep(NA, times = 9)),
+  sort_tooltip = rep(NA, times = 9),
+  link_url = rep(NA, times = 9),
+  link_text = rep(NA, times = 9),
+  is_exported = c(rep(TRUE, times = 9)),
+  is_hidden = c(FALSE, TRUE, rep(FALSE, times = 7)),
+  stringsAsFactors = FALSE
+)
+
+# Nominated Target Filters
+# ----------------------
+target_filters <- data.frame(
+  name = c('Cohort', 'Data Used', 'First Nominated', 'Nominating Team',
+           'Pharos Class', 'Program', 'Nominations'),
+  data_key = c('cohort_studies', 'input_data', 'initial_nomination', 'nominating_teams',
+               'pharos_class', "programs", "total_nominations"),
+  short_name = c('Cohort', 'Data', 'First', 'Team',
+                 'Pharos', "Program", "Nominations"),
+  query_param_key = c('cohorts', 'data', 'firstNominations', 'teams',
+                      'pharosClasses', 'programs', 'nominations'),
+  stringsAsFactors = FALSE
+)
+
+# Nominated Target Filter Values
+# ------------------------------
+targets_data_cohort_filter_values <- c(
+  "ABA", "ACT", "AD Mouse Models", "AD-BXD mice", "ADNI", "AIBL", "APP Mice",
+  "Banner", "BLSA", "Cardiovascular Health Study", "Diversity outbred mice",
+  "Emory", "Framingham Heart Study", "FreshMicro", "GSE197305", "GSE33000",
+  "GSE44772", "GSE48350", "GSE5281", "HBI_scRNAseq", "HBTRC",
+  "Health and Retirement Study", "https://doi.org/10.1002/ajmg.b.30607",
+  "https://doi.org/10.1016/j.celrep.2020.107908", "https://doi.org/10.1016/j.nbd.2019.104540",
+  "https://doi.org/10.1016/j.neulet.2013.06.061", "https://doi.org/10.1038/s41588-018-0311-9",
+  "https://doi.org/10.1038/s41588-019-0358-2", "https://doi.org/10.1038/tp.2015.55",
+  "https://doi.org/10.3233/jad-2008-15105", "Kronos",
+  "Late Onset Alzheimer's Disease Family Study", "Mayo", "MC-BrAD", "MC-CAA",
+  "MC_snRNA", "MSBB", "ROSMAP", "Rush", "syn20933797", "syn52525880",
+  "TAUAPPms", "VirusResilience"
+)
+targets_data_filter_values <- c("Behavior", "Clinical", "Genetics", "Metabolomics", "Pathway Modeling", "Phenomics", "Protein", "Risk Scores", "RNA")
+targets_first_nom_filter_values <- c(2018:2025)
+targets_team_filter_values <- c("ASU", "Chang Lab", "Columbia-Rush", "Duke", "Duke BARU", "Emory", "Emory-Sage-SGC", "Harvard-MIT", "IUSM-Purdue", "JAX-VUMC-UW Resilience", "Longo Lab", "Mayo", "Mayo-UFL-ISB", "MSSM - Roussos Lab", "MSSM - Zhang Lab")
+targets_pharos_filter_values <- c('Tbio', 'Tchem', 'Tclin', 'Tdark')
+targets_program_filter_values <- c("AMP-AD", "Community", "Resilience-AD", "TREAT-AD")
+targets_total_nom_filter_values <- c(1:5)
+
+target_filter_values <- list(
+  targets_data_cohort_filter_values,
+  targets_data_filter_values,
+  targets_first_nom_filter_values,
+  targets_team_filter_values,
+  targets_pharos_filter_values,
+  targets_program_filter_values,
+  targets_total_nom_filter_values
+)
+
+# Build Nominated Targets ui_config
+# ---------------------------------
+build_targets_object <- function() {
+  columns <- build_object(target_columns)
+  filters <- build_filters(target_filters, target_filter_values)
+
+  # Assemble the ui_config object
+  list(
+    page = "Nominated Targets",
+    dropdowns = list(),
+    row_count = NA,
+    columns = columns,
+    filters = filters
+  )
+}
+
+
+# ***************
+# Nominated Drugs
+# ***************
+# name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
+#
+drug_columns <- data.frame(
+  name = c("Drug", "Chembl ID", "Nominations",
+           "Combined with", "First Nominated", "Principal Investigators",
+           "Programs", "Modality", "First Approved",
+           "Max Clinical Trial Phase"),
+  type = c("primary", "text", "numeric",
+           "text", "numeric", "text",
+           "text", "text", "numeric",
+           "text"),
+  data_key = c("common_name", "chembl_id", "total_nominations",
+               "combined_with_common_name", "year_first_nominated", "principal_investigators",
+               "programs", "modality", "year_of_first_approval",
+               "maximum_clinical_trial_phase"),
+  tooltip = rep(NA, times = 10),
+  sort_tooltip =  rep(NA, times = 10),
+  link_url =  rep(NA, times = 10),
+  link_text =  rep(NA, times = 10),
+  is_exported = rep(TRUE, times = 10),
+  is_hidden = rep(FALSE, times = 10),
+  stringsAsFactors = FALSE
+)
+
+# AG-2042: Hide programs column, at least until it has >1 value
+drug_columns[drug_columns$name == "Programs", "is_hidden"] <- TRUE
+drug_columns[drug_columns$name == "Chembl ID", "is_hidden"] <- TRUE
+
+# Nominated Drug Filters
+# ----------------------
+drug_filters <- data.frame(
+  name = c('Modality', 'Nominating PI', 'Nominations'),
+  data_key = c('modality', 'principal_investigators', 'total_nominations'),
+  short_name = c('Modality', 'PI', 'Nominations'),
+  query_param_key = c('modalities', 'nominatingPis', 'nominations'),
+  stringsAsFactors = FALSE
+)
+
+# Nominated Drug Filter Values
+# ----------------------------
+drug_modality_filter_values <- c(
+  "Small Molecule", "Protein"
+)
+
+# These are in alpha order by last name
+drug_pi_filter_values <- c(
+ "Mark Albers", "Feixiong Cheng", "Yadong Huang",
+ "Jan Krumsiek", "Marina Sirota", "Lei Xie"
+)
+drug_total_nom_filter_values <- c(1, 2)
+
+drug_filter_values <- list(
+  drug_modality_filter_values,
+  drug_pi_filter_values,
+  drug_total_nom_filter_values
+)
+
+# Build Nominated Drugs ui_config
+# ---------------------------------
+build_drugs_object <- function() {
+  columns <- build_object(drug_columns)
+  filters <- build_filters(drug_filters, drug_filter_values)
+
+  # Assemble the ui_config object
+  list(
+    page = "Nominated Drugs",
+    dropdowns = list(),
+    row_count = NA,
+    columns = columns,
+    filters = filters
+  )
+}
+
+```
+
+# Generate and upload ui_config
+
+```{r}
+# *********************************************
+# Generate ui_config.json and upload to Synapse
+# *********************************************
+json_list <- c(
+  list(build_targets_object()),
+  list(build_drugs_object())
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+#cat(json_output)
+
+# write json file
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+
+write(json_output, file.path(output_dir, "ui_config.json"))
+
+# upload to synapse
+synLogin()
+syn_file <- File(
+              file.path(output_dir, "ui_config.json"),
+              description = "ui_config.json for Agora.",
+              parent = "syn7525089"
+            )
+
+res <- synStore(
+          syn_file,
+          forceVersion = FALSE,
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/agora/notebooks/preprocessing/AG-2005_ui_config.rmd"
+        )
+# print synapse_id and new version number
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+```
+
+
+-----
+TESTS
+-----
+
+## Test build_column
+```{r}
+col_def <- build_column("name_value", "type_value", "data_key_value", "tooltip_value", "sort_tooltip_value", "link_url_value", "link_text_value", TRUE, FALSE)
+
+print(col_def)
+
+json_output <- toJSON(col_def, pretty = TRUE, na = NULL, null = NULL, auto_unbox = TRUE)
+cat(json_output)
+
+```
+
+## Test build_object
+```{r}
+test_input <- data.frame(
+  name = c(NA, "text_name", "link_external_name", "link_internal_name"),
+  type = c("primary", "text", "link_external", "link_internal" ),
+  data_key = c("key1", "key2", "key3", "key4"),
+  tooltip = c(NA, "tooltip2", NA, "tooltip3"),
+  sort_tooltip = c(NA, "sort_tooltip1", NA, "sort_tooltip2"),
+  link_url = c(NA, NA, NA, "https://test/url/here"),
+  link_text = c(NA, NA, "Results", "View Strain"),
+  is_exported = c(TRUE, TRUE, TRUE, FALSE),
+  is_hidden = c(TRUE, FALSE, TRUE, FALSE),
+  stringsAsFactors = FALSE
+)
+
+coldefs <- build_object(test_input)
+
+json_list <- c(
+  coldefs
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, na = NULL, null = NULL, auto_unbox = TRUE)
+cat(json_output)
+
+```
+
+# tests
+```{r}
+json_list <-  list(build_targets_object())
+
+toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+```
+
+

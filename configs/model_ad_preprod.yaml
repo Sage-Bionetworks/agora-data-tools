@@ -54,7 +54,7 @@ datasets:
   - disease_correlation:
       files:
         - name: disease_correlation_results
-          id: syn65467849.5
+          id: syn65467849.6
           format: csv
         - <<: *model_info_file
         - name: allele_info
@@ -122,22 +122,22 @@ datasets:
           id: syn66351272.1
           format: csv
         - name: Jax.IU.Pitt_5XFAD_differential_expression
-          id: syn69058660.1
+          id: syn69058660.2
           format: csv
         - name: Jax.IU.Pitt_APOE4.Trem2.R47H_differential_expression
-          id: syn69693082.2
+          id: syn69693082.3
           format: csv
         - name: UCI_3xTg-AD_differential_expression
-          id: syn69058661.1
+          id: syn69058661.2
           format: csv
         - name: UCI_5XFAD_differential_expression
           id: syn69058664.1
           format: csv
         - name: UCI_ABCA7_differential_expression
-          id: syn69058663.2
+          id: syn69058663.3
           format: csv
         - name: UCI_Trem2-R47H_NSS_differential_expression
-          id: syn69058662.2
+          id: syn69058662.3
           format: csv
       final_format: json
       destination: *dest
