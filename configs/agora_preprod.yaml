@@ -281,3 +281,22 @@ datasets:
       custom_transformations: transform_proteomics_distribution_data
       destination: *dest
       gx_enabled: true
+
+  - drug_info:
+      files:
+        - name: ot_drug_metadata
+          id: syn73724873
+          format: json
+        - name: drug_list
+          id: syn73677240
+          format: csv
+        - name: gene_metadata
+          id: syn25953363.16
+          format: feather
+      final_format: json
+      custom_transformations:
+        transform_drug_info
+      column_rename:
+        source: program
+      destination: *dest
+      gx_enabled: false
