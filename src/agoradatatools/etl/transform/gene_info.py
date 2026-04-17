@@ -4,8 +4,6 @@ import numpy as np
 import pandas as pd
 
 from agoradatatools.etl.utils import (
-    ColumnRule,
-    check_column_rules,
     check_required_datasets_and_columns,
     nest_fields,
 )
@@ -27,12 +25,6 @@ REQUIRED_INPUT: Dict[str, List[str]] = {
     "ensg_to_uniprot_mapping": ["ensembl_gene_id", "uniprotkb_accessions"],
 }
 
-COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
-    "diff_exp_data": {
-        "ensembl_gene_id": [ColumnRule(rule="not_empty")],
-    },
-}
-
 
 def transform_gene_info(
     datasets: dict, adjusted_p_value_threshold: float, protein_level_threshold: float
@@ -42,7 +34,6 @@ def transform_gene_info(
     Each dataset will be left_joined onto gene_info, starting with gene_metadata.
     """
     check_required_datasets_and_columns(datasets, REQUIRED_INPUT)
-    check_column_rules(datasets, COLUMN_RULES)
 
     gene_metadata = datasets["gene_metadata"]
     igap = datasets["igap"]
