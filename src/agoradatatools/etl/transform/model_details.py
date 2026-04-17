@@ -124,11 +124,11 @@ def transform_model_details(
         how="left",
         on="name",
         validate="one_to_one",
-    ).fillna({"transcriptomics": False, "disease_correlation": False})
+    ).fillna({"transcriptomics": False, "disease_correlation": False,
+              "rrid": "", "alzforum_id": ""})
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
     model_info_df["jax_id"] = zero_pad_jax_ids(model_info_df["jax_id"])
-    model_info_df = model_info_df.fillna("")
 
     # Prepare biomarker and pathology dataframes
     grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")
