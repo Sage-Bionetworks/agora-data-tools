@@ -695,6 +695,13 @@ class TestCheckColumnRules:
                 datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
             )
 
+    def test_not_empty_raises_on_nan(self) -> None:
+        datasets = self._make_datasets({"col": ["a", np.nan, "c"]})
+        with pytest.raises(ValueError, match="col.*not_empty"):
+            utils.check_column_rules(
+                datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
+            )
+
     def test_not_empty_raises_on_empty_string(self) -> None:
         datasets = self._make_datasets({"col": ["a", "", "c"]})
         with pytest.raises(ValueError, match="col.*not_empty"):
