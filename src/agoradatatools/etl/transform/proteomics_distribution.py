@@ -1,6 +1,12 @@
 import pandas as pd
 
 from agoradatatools.etl import utils, transform
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
+
+DATASET_REQUIRED_COLUMNS = ["uniqid", "log2_fc", "tissue"]
+
+SUPPORTED_DATASET_NAMES = ["proteomics", "proteomics_tmt", "proteomics_srm"]
 
 
 def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
@@ -18,6 +24,9 @@ def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
     """
     transformed = []
     for name, dataset in datasets.items():
+        check_required_datasets_and_columns(
+            {name: dataset}, {name: DATASET_REQUIRED_COLUMNS}
+        )
         # Remove contaminant ("CON__") entries and rows with NA uniqids before calculating distribution
         dataset = transform.transform_proteomics(df=dataset)
 
