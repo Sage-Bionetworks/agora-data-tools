@@ -706,35 +706,39 @@ class TestCheckColumnRules:
                 datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
             )
 
-    # ── starts_with ──────────────────────────────────────────────────────────
+    # ── matches_regex ─────────────────────────────────────────────────────────
 
-    def test_starts_with_passes_for_all_matching_values(self):
+    def test_matches_regex_passes_for_all_matching_values(self):
         datasets = self._make_datasets({"col": ["ENSMUSG001", "ENSMUSG002"]})
         utils.check_column_rules(
             datasets,
-            {"ds": {"col": [utils.ColumnRule(rule="starts_with", value="ENSMUSG")]}},
+            {"ds": {"col": [utils.ColumnRule(rule="matches_regex", value="^ENSMUSG")]}},
         )
 
-    def test_starts_with_raises_with_correct_count(self):
+    def test_matches_regex_raises_with_correct_count(self):
         datasets = self._make_datasets({"col": ["ENSMUSG001", "ENSG002", "ENSG003"]})
-        with pytest.raises(ValueError, match="2 row\\(s\\).*starts_with.*ENSMUSG"):
+        with pytest.raises(ValueError, match="2 row\\(s\\).*matches_regex.*\\^ENSMUSG"):
             utils.check_column_rules(
                 datasets,
                 {
                     "ds": {
-                        "col": [utils.ColumnRule(rule="starts_with", value="ENSMUSG")]
+                        "col": [
+                            utils.ColumnRule(rule="matches_regex", value="^ENSMUSG")
+                        ]
                     }
                 },
             )
 
-    def test_starts_with_treats_null_as_violation(self):
+    def test_matches_regex_treats_null_as_violation(self):
         datasets = self._make_datasets({"col": ["ENSMUSG001", None]})
-        with pytest.raises(ValueError, match="starts_with"):
+        with pytest.raises(ValueError, match="matches_regex"):
             utils.check_column_rules(
                 datasets,
                 {
                     "ds": {
-                        "col": [utils.ColumnRule(rule="starts_with", value="ENSMUSG")]
+                        "col": [
+                            utils.ColumnRule(rule="matches_regex", value="^ENSMUSG")
+                        ]
                     }
                 },
             )
@@ -800,7 +804,9 @@ class TestCheckColumnRules:
         }
         column_rules = {
             "ds1": {"col_a": [utils.ColumnRule(rule="not_empty")]},
-            "ds2": {"col_b": [utils.ColumnRule(rule="starts_with", value="ENSMUSG")]},
+            "ds2": {
+                "col_b": [utils.ColumnRule(rule="matches_regex", value="^ENSMUSG")]
+            },
         }
         with pytest.raises(ValueError) as exc_info:
             utils.check_column_rules(datasets, column_rules)

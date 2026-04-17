@@ -77,7 +77,7 @@ COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
         "display_label": [ColumnRule(rule="not_empty")],
     },
     "mouse_gene_metadata": {
-        "ensembl_gene_id": [ColumnRule(rule="starts_with", value="ENSMUSG")],
+        "ensembl_gene_id": [ColumnRule(rule="matches_regex", value="^ENSMUSG")],
     },
 }
 

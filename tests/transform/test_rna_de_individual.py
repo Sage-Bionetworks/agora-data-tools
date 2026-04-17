@@ -1204,5 +1204,5 @@ class TestTransformRnaDeIndividual:
             ]
         )
         datasets["mouse_gene_metadata"].loc[0, "ensembl_gene_id"] = "ENSG00000000001"
-        with pytest.raises(ValueError, match="ensembl_gene_id.*starts_with.*ENSMUSG"):
+        with pytest.raises(ValueError, match="ensembl_gene_id.*matches_regex.*ENSMUSG"):
             transform_rna_de_individual(datasets=datasets)

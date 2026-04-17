@@ -15,14 +15,15 @@ class ColumnRule:
     Attributes:
         rule: The type of rule to apply. One of:
             - "not_empty": every value must be non-null and non-empty string
-            - "starts_with": every value must start with `value`
+            - "matches_regex": every value must fully match the regex pattern in `value`
+              (e.g. ``value="^ENSMUSG"`` to enforce a prefix)
             - "contains": every value must contain `value` as a substring
             - "one_of": every value must be a member of the collection `value`
-        value: The expected prefix, substring, or allowed set, depending on `rule`.
+        value: The expected regex pattern, substring, or allowed set, depending on `rule`.
                Not required for "not_empty".
     """
 
-    rule: Literal["not_empty", "starts_with", "contains", "one_of"]
+    rule: Literal["not_empty", "matches_regex", "contains", "one_of"]
     value: Optional[Any] = None
 
 
@@ -351,11 +352,11 @@ def _check_single_rule(
         if bad_count > 0:
             return [f"{prefix}{bad_count} row(s) violate rule 'not_empty'."]
 
-    elif rule.rule == "starts_with":
-        bad_count = (~df[col_name].str.startswith(rule.value, na=False)).sum()
+    elif rule.rule == "matches_regex":
+        bad_count = (~df[col_name].astype(str).str.match(rule.value, na=False)).sum()
         if bad_count > 0:
             return [
-                f"{prefix}{bad_count} row(s) violate rule 'starts_with' (value={rule.value!r})."
+                f"{prefix}{bad_count} row(s) violate rule 'matches_regex' (pattern={rule.value!r})."
             ]
 
     elif rule.rule == "contains":
@@ -399,7 +400,7 @@ def check_column_rules(
 
         COLUMN_RULES = {
             "mouse_gene_metadata": {
-                "ensembl_gene_id": [ColumnRule(rule="starts_with", value="ENSMUSG")],
+                "ensembl_gene_id": [ColumnRule(rule="matches_regex", value="^ENSMUSG")],
             },
             "rnaseq_genotype_label_map": {
                 "model": [ColumnRule(rule="not_empty")],
