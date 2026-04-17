@@ -153,12 +153,12 @@ PACKAGE_MANAGER_CHECKERS = {
 
 
 def run(cmd: list[str], description: str) -> subprocess.CompletedProcess:
-    """Run a shell command, printing a header and exiting on failure."""
+    """Run a shell command from the repo root, printing a header and exiting on failure."""
     print(f"\n{'='*60}")
     print(f"  {description}")
     print(f"  $ {' '.join(cmd)}")
     print(f"{'='*60}\n")
-    result = subprocess.run(cmd)
+    result = subprocess.run(cmd, cwd=_REPO_ROOT)
     if result.returncode != 0:
         print(f"\n[FAILED] {description} exited with code {result.returncode}.")
         sys.exit(result.returncode)
@@ -193,7 +193,7 @@ def run_pre_commit() -> None:
     print(f"  $ {' '.join(cmd)}")
     print(f"{'='*60}\n")
 
-    first = subprocess.run(cmd)
+    first = subprocess.run(cmd, cwd=_REPO_ROOT)
     if first.returncode == 0:
         print(f"\n[OK] {description}")
         return
@@ -201,7 +201,7 @@ def run_pre_commit() -> None:
     print(
         "\n[INFO] pre-commit made fixes on the first pass — re-running to confirm clean state...\n"
     )
-    second = subprocess.run(cmd)
+    second = subprocess.run(cmd, cwd=_REPO_ROOT)
     if second.returncode != 0:
         print(
             f"\n[FAILED] {description} exited with code {second.returncode} after retry."
