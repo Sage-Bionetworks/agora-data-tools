@@ -13,9 +13,9 @@
 # is currently active.
 
 # Your package manager. Supported values: conda, venv, virtualenv, poetry, pipenv
-# package_manager: conda
+package_manager: <package_manager>
 
 # The name of your virtual environment.
 #   - conda / venv / virtualenv: the environment name (e.g. adt_py310, .venv)
 #   - poetry / pipenv: the project name used in the generated env folder
-# env_name: adt_py310
+env_name: <env_name>
