@@ -121,8 +121,6 @@ class TestProcessIndividualDataFileCore:
           message lists every offending age value.
         - test_multiple_tissues_produce_separate_output_entries: Tests that different tissues
           produce one output entry each.
-        - test_none_model_group_raises_value_error: Verifies that None model_group raises a
-          clear ValueError.
         - test_name_equals_model_for_single_model_group: Verifies that name is set to model
           (not model_group) for single-model groups.
     """
@@ -529,44 +527,6 @@ class TestProcessIndividualDataFileCore:
         for entry in result:
             assert entry["ensembl_gene_id"] == "ENSMUSG00000000001"
             assert len(entry["data"]) == 2  # 2 individuals per tissue
-
-    def test_none_model_group_raises_value_error(self) -> None:
-        """Test that None model_group raises a ValueError in _process_individual_data_file_core.
-
-        In normal usage, prepare_genotype_label_map_df rejects None/empty model_group
-        values before this function is called. This test exercises the safety-net check
-        inside _process_individual_data_file_core for callers that bypass that validation.
-        """
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
-                "individualid": ["Ind001", "Ind002"],
-                "expression": [5.0, 6.0],
-                "tissue": ["Cortex", "Cortex"],
-                "sex": ["Male", "Female"],
-                "age": ["6 months", "6 months"],
-                "genotype": ["Tg", "Tg"],
-                "model": ["3xTg-AD", "3xTg-AD"],
-            }
-        )
-
-        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
-        genotype_label_map_df = pd.DataFrame(
-            {
-                "model": ["3xTg-AD"],
-                "genotype": ["Tg"],
-                "display_label": ["3xTg-AD"],
-                "result_order": [1],
-                "model_group": [None],
-            }
-        )
-
-        with pytest.raises(
-            ValueError, match="model or model_group is None for some rows"
-        ):
-            _process_individual_data_file_core(
-                data_file, gene_metadata_dict, genotype_label_map_df
-            )
 
     def test_name_equals_model_for_single_model_group(self) -> None:
         """Test that name is set to model (not model_group) for single-model groups.

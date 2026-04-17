@@ -239,6 +239,9 @@ When testing, verify:
 15. **Negative padj validation**: Negative adjusted p-values raise ValueError with informative error message
 16. **Log2foldchange normalization**: Negative zero (-0.0) log2foldchange values are normalized to positive zero (0.0) via normalize_zero function
 17. **NaN padj coercion**: NaN adjusted p-values are coerced to 0.0 in output
+18. **Input column rules** (enforced by `check_column_rules()` before processing):
+    - `rnaseq_genotype_label_map.model`: must be non-empty (raises ValueError if null or empty string)
+    - `mouse_gene_metadata.ensembl_gene_id`: must start with `ENSMUSG` (raises ValueError if not)
 
 ## File Structure
 ```

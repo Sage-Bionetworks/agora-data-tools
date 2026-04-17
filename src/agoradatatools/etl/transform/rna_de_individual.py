@@ -100,8 +100,8 @@ def _determine_result_order(data_file: pd.DataFrame) -> List[str]:
     Operates on a data_file that has already been merged with the genotype label map
     and filtered to a single model_group, so every display_label present is guaranteed
     to exist in the actual data. Empty display_label values are guaranteed not to be
-    present — prepare_genotype_label_map_df raises a ValueError if any are found in
-    the mapping file.
+    present — check_column_rules() raises a ValueError if any are found in the mapping
+    file before this function is called.
 
     Args:
         data_file: DataFrame already merged with the genotype label map and filtered to
@@ -165,12 +165,6 @@ def _process_individual_data_file_core(
         raise ValueError(
             "No rows remained after filtering to mapped genotypes — "
             "all genotypes in this file were absent from the label map."
-        )
-
-    if data_file["model"].isna().any() or data_file["model_group"].isna().any():
-        raise ValueError(
-            "model or model_group is None for some rows. Every model must have a "
-            "non-empty model_group in the rnaseq_genotype_label_map."
         )
 
     # Step 3: Pre-calculate result_order list and matched_control.

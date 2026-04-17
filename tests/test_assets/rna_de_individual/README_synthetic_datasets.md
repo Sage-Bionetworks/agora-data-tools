@@ -146,7 +146,7 @@ Each output JSON file contains the expected transformed data structure:
 3. **TestPreprocessDataFileTypeCasting**: Tests numeric type casting during preprocessing
 4. **TestValidateModelGroupConsistency**: Tests model_group consistency validation
 5. **TestCreateGeneMetadataDict**: Tests gene metadata dictionary creation
-6. **TestPrepareGenotypeLabelMapDf**: Tests label map normalization (None/empty model_group handling)
+6. **TestPrepareGenotypeLabelMapDf**: Tests label map normalization (result_order casting to int). Content validation — non-empty model, model_group, and display_label — is performed upstream by `check_column_rules()` in `transform_rna_de_individual()`.
 7. **TestLogFileProcessingInfo**: Tests file processing log output
 8. **TestValidateDataFileNotEmpty**: Tests empty file error handling
 
@@ -162,6 +162,10 @@ Each output JSON file contains the expected transformed data structure:
 8. **test_synthetic_rounding_precision**: Numeric precision rounding
 9. **test_synthetic_multi_model_data**: Multi-model group (split-file UCI models combined into one output entry)
 10. **test_inconsistent_model_group_values**: Inconsistent model_group error handling
+11. **test_raises_on_empty_model_in_label_map**: `check_column_rules()` rejects empty `model` in label map
+12. **test_raises_on_empty_model_group_in_label_map**: `check_column_rules()` rejects empty `model_group` in label map
+13. **test_raises_on_empty_display_label_in_label_map**: `check_column_rules()` rejects empty `display_label` in label map
+14. **test_raises_on_non_ensmusg_ensembl_gene_id**: `check_column_rules()` rejects non-ENSMUSG IDs in mouse_gene_metadata
 
 ## Notes
 

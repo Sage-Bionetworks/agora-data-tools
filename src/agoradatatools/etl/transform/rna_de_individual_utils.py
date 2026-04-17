@@ -49,9 +49,9 @@ def validate_model_group_consistency(
 
     None/NaN values are counted as a single distinct value (i.e. "no group assigned")
     rather than being excluded from the uniqueness check. When called after
-    prepare_genotype_label_map_df, None/NaN will not be present since that function
-    rejects empty model_group values; this handles the case where the function is
-    called independently.
+    check_column_rules(), None/NaN will not be present since check_column_rules()
+    rejects empty model_group values upstream; this handles the case where the function
+    is called independently.
 
     Args:
         genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
