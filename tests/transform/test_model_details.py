@@ -383,3 +383,66 @@ class TestTransformModelDetails:
         assert (
             model_info_df["jax_id"].iloc[0] == 123
         ), "Original DataFrame should not be modified"
+
+    def test_raises_on_empty_name_in_model_info(self):
+        """Test that an empty name in model_info raises ValueError from check_column_rules."""
+        datasets = {}
+        for dataset_name, file_name in {
+            "model_info": "model_details_model_info_good_test_input.csv",
+        }.items():
+            datasets[dataset_name] = pd.read_csv(
+                os.path.join(self.data_files_path, "input", file_name)
+            )
+        # Add minimal required datasets to pass check_required_datasets_and_columns
+        datasets["allele_info"] = pd.DataFrame(
+            columns=[
+                "name",
+                "modified_gene",
+                "gene_ensembl_id",
+                "allele",
+                "allele_type",
+                "mgi_allele_id",
+            ]
+        )
+        datasets["model_results_info"] = pd.DataFrame(
+            columns=[
+                "name",
+                "transcriptomics",
+                "disease_correlation",
+                "pathology",
+                "biomarkers",
+            ]
+        )
+        datasets["human_transgene_allele_map"] = pd.DataFrame(
+            columns=["mgi_allele_id", "gene_symbol", "human_ensembl_id"]
+        )
+        datasets["immunohisto_measure_order"] = _load_test_measure_order_config()
+        datasets["biomarkers"] = pd.DataFrame(
+            columns=[
+                "name",
+                "evidence_type",
+                "value",
+                "units",
+                "age",
+                "tissue",
+                "sex",
+                "genotype",
+                "individual_id",
+            ]
+        )
+        datasets["pathology"] = pd.DataFrame(
+            columns=[
+                "name",
+                "evidence_type",
+                "value",
+                "units",
+                "age",
+                "tissue",
+                "sex",
+                "genotype",
+                "individual_id",
+            ]
+        )
+        datasets["model_info"].loc[0, "name"] = None
+        with pytest.raises(ValueError, match="name.*not_empty"):
+            transform_model_details(datasets=datasets)

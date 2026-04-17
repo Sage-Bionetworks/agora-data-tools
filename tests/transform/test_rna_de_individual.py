@@ -1194,3 +1194,55 @@ class TestTransformRnaDeIndividual:
         assert "Each model must have a consistent model_group value" in error_message
         assert "rnaseq_genotype_label_map" in error_message
         assert "APOE4" in error_message
+
+    def test_raises_on_empty_model_in_label_map(self) -> None:
+        """Test that an empty model value in the label map raises ValueError from check_column_rules."""
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+            ]
+        )
+        datasets["rnaseq_genotype_label_map"].loc[0, "model"] = None
+        with pytest.raises(ValueError, match="model.*not_empty"):
+            transform_rna_de_individual(datasets=datasets)
+
+    def test_raises_on_empty_model_group_in_label_map(self) -> None:
+        """Test that an empty model_group value in the label map raises ValueError from check_column_rules."""
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+            ]
+        )
+        datasets["rnaseq_genotype_label_map"].loc[0, "model_group"] = None
+        with pytest.raises(ValueError, match="model_group.*not_empty"):
+            transform_rna_de_individual(datasets=datasets)
+
+    def test_raises_on_empty_display_label_in_label_map(self) -> None:
+        """Test that an empty display_label value in the label map raises ValueError from check_column_rules."""
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+            ]
+        )
+        datasets["rnaseq_genotype_label_map"].loc[0, "display_label"] = None
+        with pytest.raises(ValueError, match="display_label.*not_empty"):
+            transform_rna_de_individual(datasets=datasets)
+
+    def test_raises_on_non_ensmusg_gene_id_in_metadata(self) -> None:
+        """Test that a non-ENSMUSG ensembl_gene_id in mouse_gene_metadata raises ValueError."""
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+            ]
+        )
+        datasets["mouse_gene_metadata"].loc[0, "ensembl_gene_id"] = "ENSG00000000001"
+        with pytest.raises(ValueError, match="ensembl_gene_id.*starts_with.*ENSMUSG"):
+            transform_rna_de_individual(datasets=datasets)

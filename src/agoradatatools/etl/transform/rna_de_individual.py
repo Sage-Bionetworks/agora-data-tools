@@ -43,7 +43,12 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
+from agoradatatools.etl.utils import (
+    ColumnRule,
+    check_column_rules,
+    check_required_datasets_and_columns,
+    nest_fields,
+)
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     validate_model_group_consistency,
     create_gene_metadata_dict,
@@ -63,6 +68,17 @@ REQUIRED_INPUT = {
         "result_order",
     ],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
+}
+
+COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+    "rnaseq_genotype_label_map": {
+        "model": [ColumnRule(rule="not_empty")],
+        "model_group": [ColumnRule(rule="not_empty")],
+        "display_label": [ColumnRule(rule="not_empty")],
+    },
+    "mouse_gene_metadata": {
+        "ensembl_gene_id": [ColumnRule(rule="starts_with", value="ENSMUSG")],
+    },
 }
 
 DATA_FILE_REQUIRED_COLUMNS = [
@@ -326,6 +342,7 @@ def transform_rna_de_individual(
     """
     # Step 1: Validate inputs
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, COLUMN_RULES)
 
     # Step 2: Prepare metadata DataFrames
     # Normalizes genotype label map (NaN/"" → None for model_group, result_order → int)

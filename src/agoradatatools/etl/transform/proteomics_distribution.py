@@ -1,6 +1,13 @@
+from typing import List
+
 import pandas as pd
 
 from agoradatatools.etl import utils, transform
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
+SUPPORTED_PROTEOMICS_TYPES = {"proteomics", "proteomics_tmt", "proteomics_srm"}
+
+_PROTEOMICS_REQUIRED_COLUMNS: List[str] = ["tissue", "log2_fc", "uniqid"]
 
 
 def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
@@ -16,6 +23,10 @@ def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
                       containing columns "tissue", "min", "max", "first_quartile",
                       "median", "third_quartile", and "type", where "type" is LFQ or TMT.
     """
+    present = {name for name in datasets if name in SUPPORTED_PROTEOMICS_TYPES}
+    required_input = dict.fromkeys(present, _PROTEOMICS_REQUIRED_COLUMNS)
+    check_required_datasets_and_columns(datasets, required_input)
+
     transformed = []
     for name, dataset in datasets.items():
         # Remove contaminant ("CON__") entries and rows with NA uniqids before calculating distribution

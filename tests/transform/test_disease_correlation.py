@@ -459,6 +459,45 @@ class TestTransformDiseaseCorrelation:
         with pytest.raises(error_type, match=error_msg):
             transform_disease_correlation(datasets)
 
+    def test_raises_on_empty_mouse_model(self):
+        """Test that an empty mouse_model raises ValueError from check_column_rules."""
+        datasets = {
+            "disease_correlation_results": pd.DataFrame(
+                [
+                    {
+                        "cluster": "Cluster A",
+                        "module": "IFGyellow",
+                        "mouse_model": None,
+                        "sex": "Female",
+                        "age": "4 months",
+                        "correlation": "0.5",
+                        "adjusted_p_value": "0.01",
+                    }
+                ]
+            ),
+            "model_info": pd.DataFrame(
+                [
+                    {
+                        "name": "LOAD1",
+                        "matched_controls": "C57BL6J",
+                        "model_type": "Late Onset AD",
+                    }
+                ]
+            ),
+            "allele_info": pd.DataFrame(
+                [{"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209}]
+            ),
+            "human_transgene_allele_map": pd.DataFrame(
+                {
+                    "mgi_allele_id": pd.Series(dtype="object"),
+                    "gene_symbol": pd.Series(dtype="object"),
+                    "human_ensembl_id": pd.Series(dtype="object"),
+                }
+            ),
+        }
+        with pytest.raises(ValueError, match="mouse_model.*not_empty"):
+            transform_disease_correlation(datasets)
+
 
 class TestCreateLookup:
     """

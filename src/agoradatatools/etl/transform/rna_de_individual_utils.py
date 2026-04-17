@@ -91,9 +91,9 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     Normalize the genotype label map DataFrame.
 
-    Validates that display_label is non-empty for every row (it is a required field).
-    Validates that model_group is non-empty for every row (it is a required field).
-    Casts result_order to int.
+    Casts result_order to int. Content validation (non-empty model, model_group,
+    display_label) is performed upstream by check_column_rules() before this
+    function is called.
 
     Args:
         df: Raw rnaseq_genotype_label_map DataFrame with columns: model, genotype,
@@ -101,9 +101,6 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         Normalized DataFrame with result_order cast to int.
-
-    Raises:
-        ValueError: If any row has an empty or missing display_label or model_group.
 
     Examples:
         >>> df = pd.DataFrame({
@@ -118,16 +115,6 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
         ['GroupA', 'GroupX']
     """
     df = df.copy()
-
-    if df["display_label"].isna().any() or (df["display_label"] == "").any():
-        raise ValueError(
-            "display_label is a required field in rnaseq_genotype_label_map and must not be empty."
-        )
-
-    if df["model_group"].isna().any() or (df["model_group"] == "").any():
-        raise ValueError(
-            "model_group is a required field in rnaseq_genotype_label_map and must not be empty."
-        )
     df["result_order"] = df["result_order"].astype(int)
     return df
 

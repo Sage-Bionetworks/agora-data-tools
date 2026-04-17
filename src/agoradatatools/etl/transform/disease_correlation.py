@@ -8,6 +8,8 @@ from typing import Dict, List, Any
 import re
 
 from agoradatatools.etl.utils import (
+    ColumnRule,
+    check_column_rules,
     check_required_datasets_and_columns,
     flatten_list,
     remove_duplicates_keep_order,
@@ -41,6 +43,12 @@ REQUIRED_INPUT = {
         "gene_symbol",
         "human_ensembl_id",
     ],
+}
+
+COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+    "disease_correlation_results": {
+        "mouse_model": [ColumnRule(rule="not_empty")],
+    },
 }
 
 
@@ -250,6 +258,7 @@ def transform_disease_correlation(
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, COLUMN_RULES)
 
     # Load datasets and prepare lookups if necessary
     disease_correlation_df = datasets["disease_correlation_results"].fillna("")

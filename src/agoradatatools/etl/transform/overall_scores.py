@@ -1,8 +1,37 @@
+from typing import Dict, List
+
 import numpy as np
 import pandas as pd
 
+from agoradatatools.etl.utils import (
+    ColumnRule,
+    check_column_rules,
+    check_required_datasets_and_columns,
+)
+
+REQUIRED_INPUT: Dict[str, List[str]] = {
+    "overall_scores": [
+        "ensg",
+        "hgnc_gene_id",
+        "overall",
+        "geneticsscore",
+        "omicsscore",
+        "isscored_genetics",
+        "isscored_omics",
+    ],
+}
+
+COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+    "overall_scores": {
+        "ensg": [ColumnRule(rule="not_empty")],
+    },
+}
+
 
 def transform_overall_scores(df: pd.DataFrame) -> pd.DataFrame:
+    check_required_datasets_and_columns({"overall_scores": df}, REQUIRED_INPUT)
+    check_column_rules({"overall_scores": df}, COLUMN_RULES)
+
     interesting_columns = [
         "ensg",
         "hgnc_gene_id",

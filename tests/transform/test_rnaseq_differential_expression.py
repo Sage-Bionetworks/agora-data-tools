@@ -55,3 +55,17 @@ class TestTransformRnaseqDifferentialExpression:
             rnaseq_differential_expression.transform_rnaseq_differential_expression(
                 datasets={"diff_exp_data": input_df}
             )
+
+    def test_raises_on_empty_ensembl_gene_id(self):
+        input_df = pd.read_csv(
+            os.path.join(
+                self.data_files_path,
+                "input",
+                "test_rnaseq_differential_expression_good_input.csv",
+            )
+        )
+        input_df.loc[0, "ensembl_gene_id"] = None
+        with pytest.raises(ValueError, match="ensembl_gene_id.*not_empty"):
+            rnaseq_differential_expression.transform_rnaseq_differential_expression(
+                datasets={"diff_exp_data": input_df}
+            )

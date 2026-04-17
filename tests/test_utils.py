@@ -673,6 +673,159 @@ class TestCheckRequiredDatasetsAndColumns:
             utils.check_required_datasets_and_columns(datasets, self.required_input)
 
 
+class TestCheckColumnRules:
+    def _make_datasets(self, col_data: dict) -> dict:
+        return {"ds": pd.DataFrame(col_data)}
+
+    # ── not_empty ────────────────────────────────────────────────────────────
+
+    def test_not_empty_passes_for_all_non_empty_values(self):
+        datasets = self._make_datasets({"col": ["a", "b", "c"]})
+        utils.check_column_rules(
+            datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
+        )
+
+    def test_not_empty_raises_on_null(self):
+        datasets = self._make_datasets({"col": ["a", None, "c"]})
+        with pytest.raises(ValueError, match="col.*not_empty"):
+            utils.check_column_rules(
+                datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
+            )
+
+    def test_not_empty_raises_on_empty_string(self):
+        datasets = self._make_datasets({"col": ["a", "", "c"]})
+        with pytest.raises(ValueError, match="col.*not_empty"):
+            utils.check_column_rules(
+                datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
+            )
+
+    def test_not_empty_raises_on_whitespace_only_string(self):
+        datasets = self._make_datasets({"col": ["a", "   ", "c"]})
+        with pytest.raises(ValueError, match="col.*not_empty"):
+            utils.check_column_rules(
+                datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
+            )
+
+    # ── starts_with ──────────────────────────────────────────────────────────
+
+    def test_starts_with_passes_for_all_matching_values(self):
+        datasets = self._make_datasets({"col": ["ENSMUSG001", "ENSMUSG002"]})
+        utils.check_column_rules(
+            datasets,
+            {"ds": {"col": [utils.ColumnRule(rule="starts_with", value="ENSMUSG")]}},
+        )
+
+    def test_starts_with_raises_with_correct_count(self):
+        datasets = self._make_datasets({"col": ["ENSMUSG001", "ENSG002", "ENSG003"]})
+        with pytest.raises(ValueError, match="2 row\\(s\\).*starts_with.*ENSMUSG"):
+            utils.check_column_rules(
+                datasets,
+                {
+                    "ds": {
+                        "col": [utils.ColumnRule(rule="starts_with", value="ENSMUSG")]
+                    }
+                },
+            )
+
+    def test_starts_with_treats_null_as_violation(self):
+        datasets = self._make_datasets({"col": ["ENSMUSG001", None]})
+        with pytest.raises(ValueError, match="starts_with"):
+            utils.check_column_rules(
+                datasets,
+                {
+                    "ds": {
+                        "col": [utils.ColumnRule(rule="starts_with", value="ENSMUSG")]
+                    }
+                },
+            )
+
+    # ── contains ─────────────────────────────────────────────────────────────
+
+    def test_contains_passes_for_all_matching_values(self):
+        datasets = self._make_datasets({"col": ["hello world", "world cup"]})
+        utils.check_column_rules(
+            datasets,
+            {"ds": {"col": [utils.ColumnRule(rule="contains", value="world")]}},
+        )
+
+    def test_contains_raises_with_correct_count(self):
+        datasets = self._make_datasets({"col": ["hello world", "goodbye", "adieu"]})
+        with pytest.raises(ValueError, match="2 row\\(s\\).*contains.*world"):
+            utils.check_column_rules(
+                datasets,
+                {"ds": {"col": [utils.ColumnRule(rule="contains", value="world")]}},
+            )
+
+    def test_contains_treats_null_as_violation(self):
+        datasets = self._make_datasets({"col": ["hello world", None]})
+        with pytest.raises(ValueError, match="contains"):
+            utils.check_column_rules(
+                datasets,
+                {"ds": {"col": [utils.ColumnRule(rule="contains", value="world")]}},
+            )
+
+    # ── one_of ───────────────────────────────────────────────────────────────
+
+    def test_one_of_passes_for_all_allowed_values(self):
+        datasets = self._make_datasets({"col": ["male", "female", "male"]})
+        utils.check_column_rules(
+            datasets,
+            {
+                "ds": {
+                    "col": [utils.ColumnRule(rule="one_of", value={"male", "female"})]
+                }
+            },
+        )
+
+    def test_one_of_raises_with_correct_count(self):
+        datasets = self._make_datasets({"col": ["male", "unknown", "other"]})
+        with pytest.raises(ValueError, match="2 row\\(s\\).*one_of"):
+            utils.check_column_rules(
+                datasets,
+                {
+                    "ds": {
+                        "col": [
+                            utils.ColumnRule(rule="one_of", value={"male", "female"})
+                        ]
+                    }
+                },
+            )
+
+    # ── multi-violation collection ────────────────────────────────────────────
+
+    def test_all_violations_collected_in_single_error(self):
+        datasets = {
+            "ds1": pd.DataFrame({"col_a": ["a", None]}),
+            "ds2": pd.DataFrame({"col_b": ["ENSG001", "ENSG002"]}),
+        }
+        column_rules = {
+            "ds1": {"col_a": [utils.ColumnRule(rule="not_empty")]},
+            "ds2": {"col_b": [utils.ColumnRule(rule="starts_with", value="ENSMUSG")]},
+        }
+        with pytest.raises(ValueError) as exc_info:
+            utils.check_column_rules(datasets, column_rules)
+        message = str(exc_info.value)
+        assert "ds1" in message
+        assert "ds2" in message
+
+    # ── missing dataset / column graceful skip ────────────────────────────────
+
+    def test_missing_dataset_in_rules_is_skipped(self):
+        datasets = {"ds": pd.DataFrame({"col": ["a"]})}
+        utils.check_column_rules(
+            datasets,
+            {"nonexistent_ds": {"col": [utils.ColumnRule(rule="not_empty")]}},
+        )
+
+    def test_missing_column_in_rules_reports_violation(self):
+        datasets = {"ds": pd.DataFrame({"other_col": ["a"]})}
+        with pytest.raises(ValueError, match="does not exist"):
+            utils.check_column_rules(
+                datasets,
+                {"ds": {"missing_col": [utils.ColumnRule(rule="not_empty")]}},
+            )
+
+
 class TestFlattenList:
     def test_flatten_list_empty(self):
         assert utils.flatten_list([]) == []

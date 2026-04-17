@@ -1696,3 +1696,33 @@ class TestTransformRnaDeAggregate:
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
+
+    def test_raises_on_empty_model_in_label_map(self) -> None:
+        """Test that an empty model value in the label map raises ValueError from check_column_rules."""
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+        datasets["rnaseq_genotype_label_map"].loc[0, "model"] = None
+        with pytest.raises(ValueError, match="model.*not_empty"):
+            transform_rna_de_aggregate(datasets=datasets)
+
+    def test_raises_on_non_ensmusg_gene_id_in_metadata(self) -> None:
+        """Test that a non-ENSMUSG ensembl_gene_id in mouse_gene_metadata raises ValueError."""
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_model_info.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+        datasets["mouse_gene_metadata"].loc[0, "ensembl_gene_id"] = "ENSG00000000001"
+        with pytest.raises(ValueError, match="ensembl_gene_id.*starts_with.*ENSMUSG"):
+            transform_rna_de_aggregate(datasets=datasets)

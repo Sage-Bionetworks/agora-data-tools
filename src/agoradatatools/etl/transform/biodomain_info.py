@@ -1,4 +1,12 @@
+from typing import Dict, List
+
 import pandas as pd
+
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
+REQUIRED_INPUT: Dict[str, List[str]] = {
+    "genes_biodomains": ["name"],
+}
 
 
 def transform_biodomain_info(datasets: dict) -> pd.DataFrame:
@@ -12,6 +20,8 @@ def transform_biodomain_info(datasets: dict) -> pd.DataFrame:
     Returns:
         pd.DataFrame: 1-column DataFrame with column "name"
     """
+    check_required_datasets_and_columns(datasets, REQUIRED_INPUT)
+
     genes_biodomains = datasets["genes_biodomains"]
     biodomain_info = (
         genes_biodomains["name"]

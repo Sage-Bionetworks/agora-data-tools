@@ -503,6 +503,27 @@ class TestTransformModelOverview:
         # Compare output with expected
         assert output_data == expected_output
 
+    def test_raises_on_empty_name_in_model_info(self):
+        """Test that an empty name in model_info raises ValueError from check_column_rules."""
+        datasets = {
+            dataset_name: pd.read_csv(
+                os.path.join(
+                    self.data_files_path,
+                    "input",
+                    file_name,
+                )
+            )
+            for dataset_name, file_name in {
+                "model_info": "model_overview_model_info_good_test_input.csv",
+                "model_results_info": "model_overview_model_results_info_good_test_input.csv",
+                "allele_info": "model_overview_allele_info_good_test_input.csv",
+                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+            }.items()
+        }
+        datasets["model_info"].loc[0, "name"] = None
+        with pytest.raises(ValueError, match="name.*not_empty"):
+            transform_model_overview(datasets=datasets)
+
 
 class TestGetListOfAvailableData:
     def test_all_data_present(self):

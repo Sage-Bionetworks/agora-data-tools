@@ -7,6 +7,8 @@ import pandas as pd
 from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import (
+    ColumnRule,
+    check_column_rules,
     check_required_datasets_and_columns,
     remove_duplicates_keep_order,
 )
@@ -50,6 +52,12 @@ REQUIRED_INPUT = {
         "gene_symbol",
         "human_ensembl_id",
     ],
+}
+
+COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+    "model_info": {
+        "name": [ColumnRule(rule="not_empty")],
+    },
 }
 
 
@@ -128,6 +136,7 @@ def transform_model_overview(
     """
 
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, COLUMN_RULES)
 
     model_info = datasets["model_info"]
     model_results_info = datasets["model_results_info"]

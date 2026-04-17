@@ -63,3 +63,17 @@ class TestTransformRnaDistributionData:
             rna_distribution.transform_rna_distribution_data(
                 datasets={"diff_exp_data": input_df}
             )
+
+    def test_raises_on_empty_ensembl_gene_id(self):
+        input_df = pd.read_csv(
+            os.path.join(
+                self.data_files_path,
+                "input",
+                "test_rna_distribution_data_good_input.csv",
+            )
+        )
+        input_df.loc[0, "ensembl_gene_id"] = None
+        with pytest.raises(ValueError, match="ensembl_gene_id.*not_empty"):
+            rna_distribution.transform_rna_distribution_data(
+                datasets={"diff_exp_data": input_df}
+            )

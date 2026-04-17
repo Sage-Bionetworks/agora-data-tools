@@ -8,7 +8,11 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import (
+    ColumnRule,
+    check_column_rules,
+    check_required_datasets_and_columns,
+)
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
@@ -78,6 +82,12 @@ REQUIRED_INPUT = {
     ],
 }
 
+COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+    "model_info": {
+        "name": [ColumnRule(rule="not_empty")],
+    },
+}
+
 
 def transform_model_details(
     datasets: Dict[str, pd.DataFrame],
@@ -111,6 +121,7 @@ def transform_model_details(
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, COLUMN_RULES)
 
     # Load and prepare datasets
     allele_info_df = datasets["allele_info"].fillna("")

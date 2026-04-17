@@ -64,3 +64,14 @@ class TestTransformOverallScores:
             scores_df = pd.read_csv(os.path.join(self.data_files_path, "input", input_file), index_col=0)
             overall_scores.transform_overall_scores(df=scores_df)
     """
+
+    def test_raises_on_empty_ensg(self):
+        scores_df = pd.read_csv(
+            os.path.join(
+                self.data_files_path, "input", "test_overall_scores_good_input.csv"
+            ),
+            index_col=0,
+        )
+        scores_df.loc[scores_df.index[0], "ensg"] = None
+        with pytest.raises(ValueError, match="ensg.*not_empty"):
+            overall_scores.transform_overall_scores(df=scores_df)

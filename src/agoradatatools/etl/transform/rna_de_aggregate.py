@@ -39,7 +39,12 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, normalize_zero
+from agoradatatools.etl.utils import (
+    ColumnRule,
+    check_column_rules,
+    check_required_datasets_and_columns,
+    normalize_zero,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +63,15 @@ REQUIRED_INPUT = {
         "symbol",
         "ensembl_id",
     ],
+}
+
+COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+    "rnaseq_genotype_label_map": {
+        "model": [ColumnRule(rule="not_empty")],
+    },
+    "mouse_gene_metadata": {
+        "ensembl_gene_id": [ColumnRule(rule="starts_with", value="ENSMUSG")],
+    },
 }
 
 
@@ -523,6 +537,7 @@ def transform_rna_de_aggregate(
         genes (ENSG*) to ensure only mouse (Mus musculus) data is included in the output.
     """
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, COLUMN_RULES)
 
     # Pre-compute lookup dictionaries for efficient lookups
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")

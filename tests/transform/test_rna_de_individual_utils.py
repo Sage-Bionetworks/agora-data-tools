@@ -311,36 +311,6 @@ class TestCreateGeneMetadataDict:
 class TestPrepareGenotypeLabelMapDf:
     """Tests for prepare_genotype_label_map_df function."""
 
-    def test_raises_error_for_nan_model_group(self) -> None:
-        """Test that a NaN model_group raises ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": [None],
-                "result_order": [1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="model_group is a required field"):
-            prepare_genotype_label_map_df(df)
-
-    def test_raises_error_for_empty_string_model_group(self) -> None:
-        """Test that an empty string model_group raises ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": [""],
-                "result_order": [1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="model_group is a required field"):
-            prepare_genotype_label_map_df(df)
-
     def test_converts_result_order_to_int(self) -> None:
         """Test that result_order is cast to int."""
         df = pd.DataFrame(
@@ -390,51 +360,6 @@ class TestPrepareGenotypeLabelMapDf:
         result = prepare_genotype_label_map_df(df)
 
         pd.testing.assert_frame_equal(result, df)
-
-    def test_raises_error_for_empty_string_display_label(self) -> None:
-        """Test that an empty string display_label raises ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": [""],
-                "model_group": ["GroupA"],
-                "result_order": [1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="display_label is a required field"):
-            prepare_genotype_label_map_df(df)
-
-    def test_raises_error_for_nan_display_label(self) -> None:
-        """Test that a NaN display_label raises ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": [None],
-                "model_group": ["GroupA"],
-                "result_order": [1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="display_label is a required field"):
-            prepare_genotype_label_map_df(df)
-
-    def test_raises_error_for_empty_display_label_in_mixed_rows(self) -> None:
-        """Test that a ValueError is raised when any row has an empty display_label."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_B"],
-                "genotype": ["Tg", "Carrier"],
-                "display_label": ["Valid Label", ""],
-                "model_group": ["GroupA", "GroupB"],
-                "result_order": [1, 2],
-            }
-        )
-
-        with pytest.raises(ValueError, match="display_label is a required field"):
-            prepare_genotype_label_map_df(df)
 
     def test_valid_display_labels_do_not_raise(self) -> None:
         """Test that non-empty display_labels pass validation without error."""

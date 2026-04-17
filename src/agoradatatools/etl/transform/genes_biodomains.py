@@ -1,8 +1,15 @@
-from typing import Union
+from typing import Dict, List, Union
 
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    nest_fields,
+)
+
+REQUIRED_INPUT: Dict[str, List[str]] = {
+    "genes_biodomains": ["ensembl_gene_id", "biodomain", "go_terms"],
+}
 
 
 def count_grouped_total(
@@ -51,6 +58,8 @@ def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
         pd.DataFrame: 2 column DataFrame grouped by "ensembl_gene_id" including
                       a collapsed nested dictionary field "gene_biodomains"
     """
+    check_required_datasets_and_columns(datasets, REQUIRED_INPUT)
+
     genes_biodomains = datasets["genes_biodomains"]
     interesting_columns = ["ensembl_gene_id", "biodomain", "go_terms"]
     genes_biodomains = genes_biodomains[interesting_columns].dropna().drop_duplicates()

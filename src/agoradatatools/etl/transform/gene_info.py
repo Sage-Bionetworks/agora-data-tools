@@ -1,8 +1,37 @@
+from typing import Dict, List
+
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl.utils import (
+    ColumnRule,
+    check_column_rules,
+    check_required_datasets_and_columns,
+    nest_fields,
+)
 from agoradatatools.etl import transform
+
+REQUIRED_INPUT: Dict[str, List[str]] = {
+    "gene_metadata": ["ensembl_gene_id"],
+    "igap": ["ensembl_gene_id"],
+    "eqtl": ["ensembl_gene_id"],
+    "proteomics": ["ensembl_gene_id", "uniqid"],
+    "diff_exp_data": ["ensembl_gene_id", "adj_p_val"],
+    "proteomics_tmt": ["ensembl_gene_id", "uniqid"],
+    "proteomics_srm": ["ensembl_gene_id", "uniqid"],
+    "target_list": ["ensembl_gene_id"],
+    "median_expression": ["ensembl_gene_id"],
+    "pharos_classes": ["ensembl_gene_id"],
+    "genes_biodomains": ["ensembl_gene_id", "biodomain"],
+    "tep_adi_info": ["ensembl_gene_id", "hgnc_symbol", "is_adi", "is_tep"],
+    "ensg_to_uniprot_mapping": ["ensembl_gene_id", "uniprotkb_accessions"],
+}
+
+COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+    "diff_exp_data": {
+        "ensembl_gene_id": [ColumnRule(rule="not_empty")],
+    },
+}
 
 
 def transform_gene_info(
@@ -12,6 +41,9 @@ def transform_gene_info(
     This function will perform transformations and incrementally create a dataset called gene_info.
     Each dataset will be left_joined onto gene_info, starting with gene_metadata.
     """
+    check_required_datasets_and_columns(datasets, REQUIRED_INPUT)
+    check_column_rules(datasets, COLUMN_RULES)
+
     gene_metadata = datasets["gene_metadata"]
     igap = datasets["igap"]
     eqtl = datasets["eqtl"]
