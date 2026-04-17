@@ -2,12 +2,44 @@
 """
 Pre-commit preparation script.
 
-Optionally verifies the expected virtual environment is active, installs the
-package, runs the test suite, and (if all tests pass) runs pre-commit on all
-files.
+Run this script before creating a git commit to ensure the codebase is in a
+clean, tested state. It executes the following steps in order:
 
-If no package manager or environment name is configured, the script skips the
-environment check and runs everything in the current Python environment.
+1. Load configuration
+   Reads `package_manager` and `env_name` from `dev_config.yaml` at the repo
+   root (if the file exists). CLI flags `-p`/`--package-manager` and
+   `-e`/`--env-name` take precedence over the config file values.
+
+2. Verify the active virtual environment (optional)
+   If both a package manager and an environment name are provided (via config
+   or CLI), the script checks that the expected environment is currently active:
+   - conda:           compares CONDA_DEFAULT_ENV to env_name
+   - venv/virtualenv: compares the basename of VIRTUAL_ENV to env_name
+   - poetry/pipenv:   checks that env_name appears in the basename of VIRTUAL_ENV
+   The script exits immediately with an error if the wrong environment is active.
+   If neither value is configured, this step is skipped and the current Python
+   interpreter is used throughout.
+
+3. Install the package
+   Runs `pip install .` using the active Python interpreter to ensure the
+   latest local source is installed before testing.
+
+4. Run the test suite
+   Runs `pytest tests/` and exits with an error if any test fails. Pre-commit
+   hooks are not executed when tests are failing.
+
+5. Ensure pre-commit is installed
+   Checks whether the `pre-commit` executable is available on PATH. If it is
+   not found, installs it via `pip install pre-commit`.
+
+6. Run pre-commit hooks
+   Executes `pre-commit run --all-files`. Because auto-fixing hooks (e.g.
+   black, ruff, autoflake) exit with a non-zero code on the first pass to
+   signal that files were modified, the script automatically retries once. If
+   the second run still fails, the script exits with an error.
+
+If all steps pass, a success message is printed and the codebase is ready to
+commit.
 
 Developer config (optional):
   Copy dev_config.yaml.example to dev_config.yaml at the repo root,
