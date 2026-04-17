@@ -1,0 +1,68 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "tissue": "Cortex",
+    "name": "APOE4",
+    "model_group": "APOE4",
+    "matched_control": "APOE4",
+    "units": "Log2 Counts per Million",
+    "age": "3 months",
+    "age_numeric": 3,
+    "result_order": [
+      "APOE4"
+    ],
+    "data": [
+      {
+        "genotype": "APOE4",
+        "sex": "Male",
+        "individual_id": "Ind703",
+        "value": 3.34567
+      }
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "tissue": "Cortex",
+    "name": "APOE4",
+    "model_group": "APOE4",
+    "matched_control": "APOE4",
+    "units": "Log2 Counts per Million",
+    "age": "6 months",
+    "age_numeric": 6,
+    "result_order": [
+      "APOE4"
+    ],
+    "data": [
+      {
+        "genotype": "APOE4",
+        "sex": "Female",
+        "individual_id": "Ind702",
+        "value": 4.23456
+      }
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "tissue": "Cortex",
+    "name": "APOE4",
+    "model_group": "APOE4",
+    "matched_control": "APOE4",
+    "units": "Log2 Counts per Million",
+    "age": "12 months",
+    "age_numeric": 12,
+    "result_order": [
+      "APOE4"
+    ],
+    "data": [
+      {
+        "genotype": "APOE4",
+        "sex": "Male",
+        "individual_id": "Ind701",
+        "value": 5.12345
+      }
+    ]
+  }
+]

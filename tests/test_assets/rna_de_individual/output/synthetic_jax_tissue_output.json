@@ -1,0 +1,37 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "tissue": "Hemibrain",
+    "name": "LOAD1",
+    "model_group": "LOAD1",
+    "matched_control": "C57BL/6J",
+    "units": "Log2 Counts per Million",
+    "age": "6 months",
+    "age_numeric": 6,
+    "result_order": [
+      "C57BL/6J",
+      "LOAD1"
+    ],
+    "data": [
+      {
+        "genotype": "LOAD1",
+        "sex": "Male",
+        "individual_id": "Ind301",
+        "value": 5.6789
+      },
+      {
+        "genotype": "LOAD1",
+        "sex": "Female",
+        "individual_id": "Ind302",
+        "value": 4.56789
+      },
+      {
+        "genotype": "C57BL/6J",
+        "sex": "Male",
+        "individual_id": "Ind303",
+        "value": 3.45678
+      }
+    ]
+  }
+]

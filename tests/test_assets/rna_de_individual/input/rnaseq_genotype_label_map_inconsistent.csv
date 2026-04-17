@@ -1,0 +1,4 @@
+model,model_group,display_label,genotype,result_order
+APOE4,GroupA,APOE4,APOE4-KI_homozygous; Trem2-R47H_WT,2
+APOE4,GroupB,C57BL/6J,APOE4-KI_WT; Trem2-R47H_WT,1
+

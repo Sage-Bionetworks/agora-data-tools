@@ -142,6 +142,7 @@ test_staging_dir/
 dev_config.yaml
 
 .vscode/
+.cursor/
 .ipynb_checkpoints/
 .Rhistory
 .Rproj.user
