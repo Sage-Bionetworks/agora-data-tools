@@ -325,6 +325,56 @@ def check_required_datasets_and_columns(
             )
 
 
+def _check_single_rule(
+    df: pd.DataFrame,
+    dataset_name: str,
+    col_name: str,
+    rule: ColumnRule,
+) -> List[str]:
+    """Check a single ColumnRule against one column and return any violation messages.
+
+    Args:
+        df: The DataFrame containing the column to check.
+        dataset_name: Name of the dataset (used in violation messages).
+        col_name: Name of the column to validate.
+        rule: The ColumnRule to apply.
+
+    Returns:
+        A list containing a violation message if the rule is broken, or an empty list.
+    """
+    prefix = f"In dataset '{dataset_name}', column '{col_name}': "
+
+    if rule.rule == "not_empty":
+        bad_count = (
+            df[col_name].isna() | (df[col_name].astype(str).str.strip() == "")
+        ).sum()
+        if bad_count > 0:
+            return [f"{prefix}{bad_count} row(s) violate rule 'not_empty'."]
+
+    elif rule.rule == "starts_with":
+        bad_count = (~df[col_name].str.startswith(rule.value, na=False)).sum()
+        if bad_count > 0:
+            return [
+                f"{prefix}{bad_count} row(s) violate rule 'starts_with' (value={rule.value!r})."
+            ]
+
+    elif rule.rule == "contains":
+        bad_count = (~df[col_name].str.contains(rule.value, na=False)).sum()
+        if bad_count > 0:
+            return [
+                f"{prefix}{bad_count} row(s) violate rule 'contains' (value={rule.value!r})."
+            ]
+
+    elif rule.rule == "one_of":
+        bad_count = (~df[col_name].isin(rule.value)).sum()
+        if bad_count > 0:
+            return [
+                f"{prefix}{bad_count} row(s) violate rule 'one_of' (value={rule.value!r})."
+            ]
+
+    return []
+
+
 def check_column_rules(
     datasets: Dict[str, pd.DataFrame],
     column_rules: Dict[str, Dict[str, List[ColumnRule]]],
@@ -373,45 +423,7 @@ def check_column_rules(
                 continue
 
             for rule in rules:
-                if rule.rule == "not_empty":
-                    null_mask = df[col_name].isna()
-                    empty_mask = df[col_name].astype(str).str.strip() == ""
-                    bad_count = (null_mask | empty_mask).sum()
-                    if bad_count > 0:
-                        violations.append(
-                            f"In dataset '{dataset_name}', column '{col_name}': "
-                            f"{bad_count} row(s) violate rule 'not_empty'."
-                        )
-
-                elif rule.rule == "starts_with":
-                    bad_mask = ~df[col_name].str.startswith(rule.value, na=False)
-                    bad_count = bad_mask.sum()
-                    if bad_count > 0:
-                        violations.append(
-                            f"In dataset '{dataset_name}', column '{col_name}': "
-                            f"{bad_count} row(s) violate rule 'starts_with' "
-                            f"(value={rule.value!r})."
-                        )
-
-                elif rule.rule == "contains":
-                    bad_mask = ~df[col_name].str.contains(rule.value, na=False)
-                    bad_count = bad_mask.sum()
-                    if bad_count > 0:
-                        violations.append(
-                            f"In dataset '{dataset_name}', column '{col_name}': "
-                            f"{bad_count} row(s) violate rule 'contains' "
-                            f"(value={rule.value!r})."
-                        )
-
-                elif rule.rule == "one_of":
-                    bad_mask = ~df[col_name].isin(rule.value)
-                    bad_count = bad_mask.sum()
-                    if bad_count > 0:
-                        violations.append(
-                            f"In dataset '{dataset_name}', column '{col_name}': "
-                            f"{bad_count} row(s) violate rule 'one_of' "
-                            f"(value={rule.value!r})."
-                        )
+                violations.extend(_check_single_rule(df, dataset_name, col_name, rule))
 
     if violations:
         raise ValueError("\n".join(violations))
