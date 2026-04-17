@@ -47,15 +47,8 @@ Developer config (optional):
     python scripts/prepare_commit.py
 
 CLI overrides (optional, take precedence over config file):
-  python scripts/prepare_commit.py -p conda   -e adt_py310
-  python scripts/prepare_commit.py -p venv    -e .venv
-  python scripts/prepare_commit.py -p poetry  -e my-project
-  python scripts/prepare_commit.py -p pipenv  -e my-project
-
-  python scripts/prepare_commit.py --package-manager conda   --env-name adt_py310
-  python scripts/prepare_commit.py --package-manager venv    --env-name .venv
-  python scripts/prepare_commit.py --package-manager poetry  --env-name my-project
-  python scripts/prepare_commit.py --package-manager pipenv  --env-name my-project
+  python scripts/prepare_commit.py -p <your-package-manager>   -e <your-environment-name    >
+  python scripts/prepare_commit.py --package-manager <your-package-manager>  --env-name <your-environment-name>
 """
 
 import argparse
