@@ -680,13 +680,31 @@ class TestCheckColumnRules:
     def _make_datasets(self, col_data: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
         return {"ds": pd.DataFrame(col_data)}
 
-    # ── not_empty ────────────────────────────────────────────────────────────
+    # ── passes for all valid values (all rules) ──────────────────────────────
 
-    def test_not_empty_passes_for_all_non_empty_values(self) -> None:
-        datasets = self._make_datasets({"col": ["a", "b", "c"]})
-        utils.check_column_rules(
-            datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
-        )
+    @pytest.mark.parametrize(
+        "col_data, rule",
+        [
+            (["a", "b", "c"], utils.ColumnRule(rule="not_empty")),
+            (
+                ["ENSMUSG001", "ENSMUSG002"],
+                utils.ColumnRule(rule="matches_regex", value="^ENSMUSG"),
+            ),
+            (
+                ["hello world", "world cup"],
+                utils.ColumnRule(rule="contains", value="world"),
+            ),
+            (
+                ["male", "female", "male"],
+                utils.ColumnRule(rule="one_of", value={"male", "female"}),
+            ),
+        ],
+    )
+    def test_rule_passes_for_all_valid_values(self, col_data, rule) -> None:
+        datasets = self._make_datasets({"col": col_data})
+        utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
+
+    # ── not_empty: raises on blank / null ────────────────────────────────────
 
     @pytest.mark.parametrize("bad_value", [None, np.nan, "", "   "])
     def test_not_empty_raises_on_invalid_value(self, bad_value) -> None:
@@ -696,94 +714,48 @@ class TestCheckColumnRules:
                 datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
             )
 
-    # ── matches_regex ─────────────────────────────────────────────────────────
+    # ── raises with correct violation count (matches_regex / contains / one_of)
 
-    def test_matches_regex_passes_for_all_matching_values(self) -> None:
-        datasets = self._make_datasets({"col": ["ENSMUSG001", "ENSMUSG002"]})
-        utils.check_column_rules(
-            datasets,
-            {"ds": {"col": [utils.ColumnRule(rule="matches_regex", value="^ENSMUSG")]}},
-        )
+    @pytest.mark.parametrize(
+        "col_data, rule, match_pattern",
+        [
+            (
+                ["ENSMUSG001", "ENSG002", "ENSG003"],
+                utils.ColumnRule(rule="matches_regex", value="^ENSMUSG"),
+                r"2 row\(s\).*matches_regex.*\^ENSMUSG",
+            ),
+            (
+                ["hello world", "goodbye", "adieu"],
+                utils.ColumnRule(rule="contains", value="world"),
+                r"2 row\(s\).*contains.*world",
+            ),
+            (
+                ["male", "unknown", "other"],
+                utils.ColumnRule(rule="one_of", value={"male", "female"}),
+                r"2 row\(s\).*one_of",
+            ),
+        ],
+    )
+    def test_rule_raises_with_correct_count(
+        self, col_data, rule, match_pattern
+    ) -> None:
+        datasets = self._make_datasets({"col": col_data})
+        with pytest.raises(ValueError, match=match_pattern):
+            utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
 
-    def test_matches_regex_raises_with_correct_count(self) -> None:
-        datasets = self._make_datasets({"col": ["ENSMUSG001", "ENSG002", "ENSG003"]})
-        with pytest.raises(ValueError, match="2 row\\(s\\).*matches_regex.*\\^ENSMUSG"):
-            utils.check_column_rules(
-                datasets,
-                {
-                    "ds": {
-                        "col": [
-                            utils.ColumnRule(rule="matches_regex", value="^ENSMUSG")
-                        ]
-                    }
-                },
-            )
+    # ── null treated as a violation (matches_regex / contains) ───────────────
 
-    def test_matches_regex_treats_null_as_violation(self) -> None:
-        datasets = self._make_datasets({"col": ["ENSMUSG001", None]})
-        with pytest.raises(ValueError, match="matches_regex"):
-            utils.check_column_rules(
-                datasets,
-                {
-                    "ds": {
-                        "col": [
-                            utils.ColumnRule(rule="matches_regex", value="^ENSMUSG")
-                        ]
-                    }
-                },
-            )
-
-    # ── contains ─────────────────────────────────────────────────────────────
-
-    def test_contains_passes_for_all_matching_values(self) -> None:
-        datasets = self._make_datasets({"col": ["hello world", "world cup"]})
-        utils.check_column_rules(
-            datasets,
-            {"ds": {"col": [utils.ColumnRule(rule="contains", value="world")]}},
-        )
-
-    def test_contains_raises_with_correct_count(self) -> None:
-        datasets = self._make_datasets({"col": ["hello world", "goodbye", "adieu"]})
-        with pytest.raises(ValueError, match="2 row\\(s\\).*contains.*world"):
-            utils.check_column_rules(
-                datasets,
-                {"ds": {"col": [utils.ColumnRule(rule="contains", value="world")]}},
-            )
-
-    def test_contains_treats_null_as_violation(self) -> None:
-        datasets = self._make_datasets({"col": ["hello world", None]})
-        with pytest.raises(ValueError, match="contains"):
-            utils.check_column_rules(
-                datasets,
-                {"ds": {"col": [utils.ColumnRule(rule="contains", value="world")]}},
-            )
-
-    # ── one_of ───────────────────────────────────────────────────────────────
-
-    def test_one_of_passes_for_all_allowed_values(self) -> None:
-        datasets = self._make_datasets({"col": ["male", "female", "male"]})
-        utils.check_column_rules(
-            datasets,
-            {
-                "ds": {
-                    "col": [utils.ColumnRule(rule="one_of", value={"male", "female"})]
-                }
-            },
-        )
-
-    def test_one_of_raises_with_correct_count(self) -> None:
-        datasets = self._make_datasets({"col": ["male", "unknown", "other"]})
-        with pytest.raises(ValueError, match="2 row\\(s\\).*one_of"):
-            utils.check_column_rules(
-                datasets,
-                {
-                    "ds": {
-                        "col": [
-                            utils.ColumnRule(rule="one_of", value={"male", "female"})
-                        ]
-                    }
-                },
-            )
+    @pytest.mark.parametrize(
+        "good_value, rule",
+        [
+            ("ENSMUSG001", utils.ColumnRule(rule="matches_regex", value="^ENSMUSG")),
+            ("hello world", utils.ColumnRule(rule="contains", value="world")),
+        ],
+    )
+    def test_rule_treats_null_as_violation(self, good_value, rule) -> None:
+        datasets = self._make_datasets({"col": [good_value, None]})
+        with pytest.raises(ValueError, match=rule.rule):
+            utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
 
     # ── multi-violation collection ────────────────────────────────────────────
 
