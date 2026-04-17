@@ -354,10 +354,9 @@ def _check_single_rule(
     counter = _RULE_VIOLATION_COUNTERS.get(rule.rule)
     if counter is None:
         return []
-    prefix = f"In dataset '{dataset_name}', column '{col_name}': "
-    bad_count = counter(df[col_name], rule.value)
-    value_detail = "" if rule.value is None else f" (value={rule.value!r})"
-    if bad_count > 0:
+    if (bad_count := counter(df[col_name], rule.value)) > 0:
+        prefix = f"In dataset '{dataset_name}', column '{col_name}': "
+        value_detail = "" if rule.value is None else f" (value={rule.value!r})"
         return [f"{prefix}{bad_count} row(s) violate rule '{rule.rule}'{value_detail}."]
     return []
 
