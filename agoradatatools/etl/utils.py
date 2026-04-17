@@ -28,6 +28,16 @@ class ColumnRule:
     value: Optional[Any] = None
 
 
+_RULE_VIOLATION_COUNTERS: Dict[
+    str, Any
+] = {
+    "not_empty": lambda s, v: (s.isna() | (s.astype(str).str.strip() == "")).sum(),
+    "matches_regex": lambda s, v: (~s.astype(str).str.match(v, na=False)).sum(),
+    "contains": lambda s, v: (~s.str.contains(v, na=False)).sum(),
+    "one_of": lambda s, v: (~s.isin(v)).sum(),
+}
+
+
 def _check_single_rule(
     df: pd.DataFrame,
     dataset_name: str,
@@ -45,36 +55,14 @@ def _check_single_rule(
     Returns:
         A list containing a violation message if the rule is broken, or an empty list.
     """
+    counter = _RULE_VIOLATION_COUNTERS.get(rule.rule)
+    if counter is None:
+        return []
     prefix = f"In dataset '{dataset_name}', column '{col_name}': "
-
-    if rule.rule == "not_empty":
-        bad_count = (
-            df[col_name].isna() | (df[col_name].astype(str).str.strip() == "")
-        ).sum()
-        if bad_count > 0:
-            return [f"{prefix}{bad_count} row(s) violate rule 'not_empty'."]
-
-    elif rule.rule == "matches_regex":
-        bad_count = (~df[col_name].astype(str).str.match(rule.value, na=False)).sum()
-        if bad_count > 0:
-            return [
-                f"{prefix}{bad_count} row(s) violate rule 'matches_regex' (pattern={rule.value!r})."
-            ]
-
-    elif rule.rule == "contains":
-        bad_count = (~df[col_name].str.contains(rule.value, na=False)).sum()
-        if bad_count > 0:
-            return [
-                f"{prefix}{bad_count} row(s) violate rule 'contains' (value={rule.value!r})."
-            ]
-
-    elif rule.rule == "one_of":
-        bad_count = (~df[col_name].isin(rule.value)).sum()
-        if bad_count > 0:
-            return [
-                f"{prefix}{bad_count} row(s) violate rule 'one_of' (value={rule.value!r})."
-            ]
-
+    bad_count = counter(df[col_name], rule.value)
+    value_detail = "" if rule.value is None else f" (value={rule.value!r})"
+    if bad_count > 0:
+        return [f"{prefix}{bad_count} row(s) violate rule '{rule.rule}'{value_detail}."]
     return []
 
 
