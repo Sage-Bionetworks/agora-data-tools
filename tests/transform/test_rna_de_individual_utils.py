@@ -19,6 +19,7 @@ from agoradatatools.etl.transform.rna_de_individual_utils import (
     validate_data_file_not_empty,
     preprocess_data_file,
 )
+from agoradatatools.etl.utils import ColumnRule
 
 
 class TestFilterMouseGenes:
@@ -103,7 +104,7 @@ class TestTissueNameMapping:
     @classmethod
     def _preprocess(cls, tissues: list[str]) -> pd.Series:
         df = cls._make_df(tissues)
-        result = preprocess_data_file("test.csv", df, 0, 1, cls._REQUIRED_COLUMNS)
+        result = preprocess_data_file("test.csv", df, 0, 1, cls._REQUIRED_COLUMNS, {})
         return result["tissue"].reset_index(drop=True)
 
     def test_maps_right_cerebral_hemisphere(self) -> None:
@@ -174,7 +175,7 @@ class TestPreprocessDataFileTypeCasting:
             expression_values=["1.123456789", "2.987654321"],
             individualid_values=["ID0", "ID1"],
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
         assert result["expression"].dtype == float
 
     def test_expression_string_is_rounded_to_5_decimals(self) -> None:
@@ -183,7 +184,7 @@ class TestPreprocessDataFileTypeCasting:
             expression_values=["1.123456789"],
             individualid_values=["ID0"],
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
         assert result["expression"].iloc[0] == pytest.approx(1.12346)
 
     def test_individualid_numeric_is_cast_to_str(self) -> None:
@@ -192,7 +193,7 @@ class TestPreprocessDataFileTypeCasting:
             expression_values=[1.0, 2.0],
             individualid_values=[101, 202],
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
         assert result["individualid"].dtype == object
         assert result["individualid"].iloc[0] == "101"
         assert result["individualid"].iloc[1] == "202"
@@ -203,7 +204,7 @@ class TestPreprocessDataFileTypeCasting:
             expression_values=[1.5, 2.5],
             individualid_values=["ID0", "ID1"],
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS)
+        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
         assert result["expression"].dtype == float
 
 
@@ -311,36 +312,6 @@ class TestCreateGeneMetadataDict:
 class TestPrepareGenotypeLabelMapDf:
     """Tests for prepare_genotype_label_map_df function."""
 
-    def test_raises_error_for_nan_model_group(self) -> None:
-        """Test that a NaN model_group raises ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": [None],
-                "result_order": [1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="model_group is a required field"):
-            prepare_genotype_label_map_df(df)
-
-    def test_raises_error_for_empty_string_model_group(self) -> None:
-        """Test that an empty string model_group raises ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": [""],
-                "result_order": [1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="model_group is a required field"):
-            prepare_genotype_label_map_df(df)
-
     def test_converts_result_order_to_int(self) -> None:
         """Test that result_order is cast to int."""
         df = pd.DataFrame(
@@ -390,51 +361,6 @@ class TestPrepareGenotypeLabelMapDf:
         result = prepare_genotype_label_map_df(df)
 
         pd.testing.assert_frame_equal(result, df)
-
-    def test_raises_error_for_empty_string_display_label(self) -> None:
-        """Test that an empty string display_label raises ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": [""],
-                "model_group": ["GroupA"],
-                "result_order": [1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="display_label is a required field"):
-            prepare_genotype_label_map_df(df)
-
-    def test_raises_error_for_nan_display_label(self) -> None:
-        """Test that a NaN display_label raises ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": [None],
-                "model_group": ["GroupA"],
-                "result_order": [1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="display_label is a required field"):
-            prepare_genotype_label_map_df(df)
-
-    def test_raises_error_for_empty_display_label_in_mixed_rows(self) -> None:
-        """Test that a ValueError is raised when any row has an empty display_label."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_B"],
-                "genotype": ["Tg", "Carrier"],
-                "display_label": ["Valid Label", ""],
-                "model_group": ["GroupA", "GroupB"],
-                "result_order": [1, 2],
-            }
-        )
-
-        with pytest.raises(ValueError, match="display_label is a required field"):
-            prepare_genotype_label_map_df(df)
 
     def test_valid_display_labels_do_not_raise(self) -> None:
         """Test that non-empty display_labels pass validation without error."""
@@ -488,3 +414,84 @@ class TestValidateDataFileNotEmpty:
 
         # Should not raise
         validate_data_file_not_empty("test.csv", df)
+
+
+class TestPreprocessDataFileColumnRules:
+    """Tests for check_column_rules integration inside preprocess_data_file.
+
+    Verifies that data_file_column_rules are applied correctly and that violations
+    raise ValueError via check_column_rules before any transformations occur.
+
+    Test Methods:
+        - test_bad_age_format_raises_value_error: age values not matching
+          '\\d+ months' fail the matches_regex rule.
+        - test_wrong_unit_age_raises_value_error: ages with digits but the wrong
+          unit (e.g. '1 year') fail the matches_regex rule.
+        - test_empty_model_raises_value_error: an empty model value fails the
+          not_empty rule.
+        - test_valid_data_passes_column_rules: well-formed data passes without error.
+    """
+
+    _REQUIRED_COLUMNS = [
+        "ensembl_gene_id",
+        "expression",
+        "model",
+        "genotype",
+        "age",
+        "sex",
+        "tissue",
+        "individualid",
+    ]
+
+    _DEFAULT_COLUMN_RULES = {
+        "model": [ColumnRule(rule="not_empty")],
+        "age": [ColumnRule(rule="matches_regex", value=r"\d+ months$")],
+    }
+
+    @staticmethod
+    def _make_df(**overrides: Any) -> pd.DataFrame:
+        """Return a minimal valid data file DataFrame with optional column overrides."""
+        data = {
+            "ensembl_gene_id": ["ENSMUSG00000000001"],
+            "expression": [5.0],
+            "model": ["Model_A"],
+            "genotype": ["Tg"],
+            "age": ["6 months"],
+            "sex": ["Male"],
+            "tissue": ["Cortex"],
+            "individualid": ["Ind001"],
+        }
+        data.update(overrides)
+        return pd.DataFrame(data)
+
+    def _preprocess(self, df: pd.DataFrame, column_rules=None) -> pd.DataFrame:
+        rules = column_rules if column_rules is not None else self._DEFAULT_COLUMN_RULES
+        return preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, rules)
+
+    def test_bad_age_format_raises_value_error(self) -> None:
+        """age values not matching '\\d+ months' fail the matches_regex rule."""
+        df = self._make_df(age=["neonatal"])
+
+        with pytest.raises(ValueError, match="matches_regex"):
+            self._preprocess(df)
+
+    def test_wrong_unit_age_raises_value_error(self) -> None:
+        """An age like '1 year' contains digits but does not end in 'months'."""
+        df = self._make_df(age=["1 year"])
+
+        with pytest.raises(ValueError, match="matches_regex"):
+            self._preprocess(df)
+
+    def test_empty_model_raises_value_error(self) -> None:
+        """An empty model value fails the not_empty rule."""
+        df = self._make_df(model=[""])
+
+        with pytest.raises(ValueError, match="not_empty"):
+            self._preprocess(df)
+
+    def test_valid_data_passes_column_rules(self) -> None:
+        """Well-formed data passes column rules without raising an error."""
+        df = self._make_df()
+
+        # Should not raise
+        self._preprocess(df)
