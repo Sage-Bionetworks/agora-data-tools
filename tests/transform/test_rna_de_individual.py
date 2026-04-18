@@ -5,7 +5,7 @@ This module contains comprehensive tests for the `transform_rna_de_individual` f
 and its helper functions, which process individual RNA-seq expression data for mouse models
 into a structured format for the Agora platform.
 
-    Test Classes:
+Test Classes:
     - TestDetermineResultOrder: Unit tests for the _determine_result_order helper function
     - TestProcessIndividualDataFileCore: Unit tests for the _process_individual_data_file_core helper function
     - TestTransformRnaDeIndividual: Integration tests for the full transformation pipeline
@@ -19,7 +19,6 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_individual/
 - Data precision (rounding to 5 decimal places)
 - Edge cases (single row data, missing metadata, empty files)
 - Error handling (missing datasets, empty files, missing columns, inconsistent model_group values)
-- Column value rule enforcement via check_column_rules (non-empty required fields, age format)
 - Result ordering logic (controls should appear first in result_order arrays)
 - Matched control determination (first item in result_order list)
 - File grouping by model_group (including split-file models sharing the same group)
@@ -44,7 +43,6 @@ from agoradatatools.etl.transform.rna_de_individual import (
     _determine_result_order,
     _process_individual_data_file_core,
 )
-from agoradatatools.etl.utils import ColumnRule
 
 
 class TestDetermineResultOrder:
@@ -111,10 +109,20 @@ class TestProcessIndividualDataFileCore:
     Test Methods:
         - test_basic_core_processing: Tests basic processing with enrichment and grouping.
         - test_genotype_filtering: Tests filtering of invalid genotypes.
+        - test_uses_preprocessed_data: Tests that function expects preprocessed data.
         - test_multiple_genotypes_with_model_group: Tests multiple genotypes in a model group.
         - test_all_genotypes_unmatched_raises_value_error: Tests ValueError is raised when all rows are dropped.
+        - test_non_digit_age_raises_value_error: Tests that a mix of valid and non-digit age strings raises ValueError.
+        - test_all_ages_non_digit_raises_value_error: Tests that all-non-digit age values raise ValueError.
+        - test_blank_age_raises_value_error: Tests that a blank (empty-string) age raises ValueError.
+        - test_wrong_unit_age_raises_value_error: Tests that an age with digits but wrong unit
+          (e.g. '1 year') raises ValueError.
+        - test_non_digit_age_error_message_names_offending_values: Tests that the ValueError
+          message lists every offending age value.
         - test_multiple_tissues_produce_separate_output_entries: Tests that different tissues
           produce one output entry each.
+        - test_none_model_group_raises_value_error: Verifies that None model_group raises a
+          clear ValueError.
         - test_name_equals_model_for_single_model_group: Verifies that name is set to model
           (not model_group) for single-model groups.
     """
@@ -286,6 +294,193 @@ class TestProcessIndividualDataFileCore:
                 data_file, gene_metadata_dict, genotype_label_map_df
             )
 
+    def test_non_digit_age_raises_value_error(self) -> None:
+        """Test that age strings not matching the '[N] months' format raise a clear ValueError.
+
+        age_numeric is extracted via regex r'(\\d+) months'. If any age value does not
+        match this pattern (e.g. 'neonatal', '1 year', or blank), the code validates
+        explicitly and raises ValueError with the offending values listed.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "neonatal"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="age_numeric extraction failed"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+    def test_all_ages_non_digit_raises_value_error(self) -> None:
+        """Test that ValueError is raised when every age value contains no digits.
+
+        Ensures the check fires even when there is no valid age row to contrast with
+        the bad ones (i.e. the all-bad case is not silently swallowed).
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["neonatal", "adult"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="age_numeric extraction failed"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+    def test_blank_age_raises_value_error(self) -> None:
+        """Test that an empty-string age value raises ValueError.
+
+        An empty string does not match r'(\\d+) months', so the regex returns NaN and the
+        explicit validation must catch it before the int cast.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "individualid": ["Ind001"],
+                "expression": [5.0],
+                "tissue": ["Cortex"],
+                "sex": ["Male"],
+                "age": [""],
+                "genotype": ["Tg"],
+                "model": ["Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="age_numeric extraction failed"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+    def test_wrong_unit_age_raises_value_error(self) -> None:
+        """Test that an age string with digits but the wrong unit raises ValueError.
+
+        A value like '1 year' contains digits but does not match r'(\\d+) months',
+        so the stricter regex returns NaN and the validation must catch it.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "1 year"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="age_numeric extraction failed"):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+    def test_non_digit_age_error_message_names_offending_values(self) -> None:
+        """Test that the ValueError message explicitly lists every offending age value.
+
+        The error message must name the bad values so that the caller can identify
+        and fix the input data without further debugging.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": [
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                ],
+                "individualid": ["Ind001", "Ind002", "Ind003"],
+                "expression": [5.0, 6.0, 7.0],
+                "tissue": ["Cortex", "Cortex", "Cortex"],
+                "sex": ["Male", "Female", "Male"],
+                "age": ["6 months", "neonatal", "adult"],
+                "genotype": ["Tg", "Tg", "Tg"],
+                "model": ["Model_A", "Model_A", "Model_A"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["Model_A"],
+                "genotype": ["Tg"],
+                "display_label": ["Transgenic"],
+                "result_order": [2],
+                "model_group": ["Model_A"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="neonatal") as exc_info:
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
+
+        # Isolate the list of offending values (before the advice sentence) to avoid
+        # false positives from the "e.g., '6 months'" example in the message template.
+        offending_values_section = str(exc_info.value).split(". All age strings")[0]
+        assert "neonatal" in offending_values_section
+        assert "adult" in offending_values_section
+        assert "6 months" not in offending_values_section
+
     def test_multiple_tissues_produce_separate_output_entries(self) -> None:
         """Test that data from different tissues produces one output entry per tissue.
 
@@ -334,6 +529,44 @@ class TestProcessIndividualDataFileCore:
         for entry in result:
             assert entry["ensembl_gene_id"] == "ENSMUSG00000000001"
             assert len(entry["data"]) == 2  # 2 individuals per tissue
+
+    def test_none_model_group_raises_value_error(self) -> None:
+        """Test that None model_group raises a ValueError in _process_individual_data_file_core.
+
+        In normal usage, prepare_genotype_label_map_df rejects None/empty model_group
+        values before this function is called. This test exercises the safety-net check
+        inside _process_individual_data_file_core for callers that bypass that validation.
+        """
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "individualid": ["Ind001", "Ind002"],
+                "expression": [5.0, 6.0],
+                "tissue": ["Cortex", "Cortex"],
+                "sex": ["Male", "Female"],
+                "age": ["6 months", "6 months"],
+                "genotype": ["Tg", "Tg"],
+                "model": ["3xTg-AD", "3xTg-AD"],
+            }
+        )
+
+        gene_metadata_dict = {"ENSMUSG00000000001": "Gene1"}
+        genotype_label_map_df = pd.DataFrame(
+            {
+                "model": ["3xTg-AD"],
+                "genotype": ["Tg"],
+                "display_label": ["3xTg-AD"],
+                "result_order": [1],
+                "model_group": [None],
+            }
+        )
+
+        with pytest.raises(
+            ValueError, match="model or model_group is None for some rows"
+        ):
+            _process_individual_data_file_core(
+                data_file, gene_metadata_dict, genotype_label_map_df
+            )
 
     def test_name_equals_model_for_single_model_group(self) -> None:
         """Test that name is set to model (not model_group) for single-model groups.
@@ -410,16 +643,6 @@ class TestTransformRnaDeIndividual:
         - test_multiple_models_same_model_group_raises_value_error: Tests that a
           file containing two models that share a model_group still raises ValueError
           (each file must have exactly one model regardless of model_group).
-        - test_check_column_rules_rejects_empty_display_label: Tests that an empty
-          display_label in rnaseq_genotype_label_map raises ValueError via check_column_rules.
-        - test_check_column_rules_rejects_empty_model_group: Tests that an empty
-          model_group in rnaseq_genotype_label_map raises ValueError via check_column_rules.
-        - test_check_column_rules_rejects_bad_age_format: Tests that an age value not
-          matching the '[N] months' format in a data file raises ValueError via check_column_rules.
-        - test_column_rules_parameter_honoured: Tests that a custom column_rules parameter
-          overrides the module-level default.
-        - test_data_file_column_rules_parameter_honoured: Tests that a custom
-          data_file_column_rules parameter overrides the module-level default.
 
     Helper Methods:
         - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
@@ -971,117 +1194,3 @@ class TestTransformRnaDeIndividual:
         assert "Each model must have a consistent model_group value" in error_message
         assert "rnaseq_genotype_label_map" in error_message
         assert "APOE4" in error_message
-
-    def _build_minimal_datasets(
-        self,
-        label_map_overrides: Dict[str, Any] = None,
-        data_file_overrides: Dict[str, Any] = None,
-        data_file_key: str = "data_file",
-    ) -> Dict[str, pd.DataFrame]:
-        """Build minimal valid datasets, optionally overriding specific column values."""
-        label_map = {
-            "model": ["Model_A", "Model_A"],
-            "genotype": ["Tg", "Wt"],
-            "display_label": ["Transgenic", "Wildtype"],
-            "model_group": ["Model_A", "Model_A"],
-            "result_order": [2, 1],
-        }
-        data_file = {
-            "ensembl_gene_id": ["ENSMUSG00000000001"],
-            "expression": [5.0],
-            "model": ["Model_A"],
-            "genotype": ["Tg"],
-            "age": ["6 months"],
-            "sex": ["Male"],
-            "tissue": ["Cortex"],
-            "individualid": ["Ind001"],
-        }
-        if label_map_overrides:
-            label_map.update(label_map_overrides)
-        if data_file_overrides:
-            data_file.update(data_file_overrides)
-        return {
-            "rnaseq_genotype_label_map": pd.DataFrame(label_map),
-            "mouse_gene_metadata": pd.DataFrame(
-                {"ensembl_gene_id": ["ENSMUSG00000000001"], "gene_symbol": ["Gene1"]}
-            ),
-            data_file_key: pd.DataFrame(data_file),
-        }
-
-    def test_check_column_rules_rejects_empty_display_label(self) -> None:
-        """Test that an empty display_label in rnaseq_genotype_label_map raises ValueError.
-
-        check_column_rules is called on static datasets before any processing begins.
-        An empty display_label violates the not_empty rule and must be caught there.
-        """
-        datasets = self._build_minimal_datasets(
-            label_map_overrides={"display_label": ["", "Wildtype"]}
-        )
-
-        with pytest.raises(ValueError, match="not_empty"):
-            transform_rna_de_individual(datasets=datasets)
-
-    def test_check_column_rules_rejects_empty_model_group(self) -> None:
-        """Test that an empty model_group in rnaseq_genotype_label_map raises ValueError.
-
-        model_group is a required field; an empty value violates the not_empty rule
-        enforced by check_column_rules.
-        """
-        datasets = self._build_minimal_datasets(
-            label_map_overrides={"model_group": ["", "Model_A"]}
-        )
-
-        with pytest.raises(ValueError, match="not_empty"):
-            transform_rna_de_individual(datasets=datasets)
-
-    def test_check_column_rules_rejects_bad_age_format(self) -> None:
-        """Test that a data file age value not matching '[N] months' raises ValueError.
-
-        check_column_rules validates the age column of each data file against the
-        matches_regex rule before any transformation occurs.
-        """
-        datasets = self._build_minimal_datasets(
-            data_file_overrides={"age": ["neonatal"]}
-        )
-
-        with pytest.raises(ValueError, match="matches_regex"):
-            transform_rna_de_individual(datasets=datasets)
-
-    def test_column_rules_parameter_honoured(self) -> None:
-        """Test that a custom column_rules parameter overrides the module-level default.
-
-        Passing a custom rule that cannot be satisfied (requiring model to contain
-        'IMPOSSIBLE') proves that the parameter — not the hardcoded constant — drives
-        static dataset validation.
-        """
-        datasets = self._build_minimal_datasets()
-
-        custom_column_rules = {
-            "rnaseq_genotype_label_map": {
-                "model": [ColumnRule(rule="contains", value="IMPOSSIBLE")],
-            }
-        }
-
-        with pytest.raises(ValueError, match="contains"):
-            transform_rna_de_individual(
-                datasets=datasets, column_rules=custom_column_rules
-            )
-
-    def test_data_file_column_rules_parameter_honoured(self) -> None:
-        """Test that a custom data_file_column_rules parameter overrides the module-level default.
-
-        Passing a custom rule that cannot be satisfied (requiring ensembl_gene_id to
-        contain 'IMPOSSIBLE') proves that the parameter — not the hardcoded constant —
-        drives per-data-file column value validation.
-        """
-        datasets = self._build_minimal_datasets()
-
-        custom_data_file_column_rules = {
-            "ensembl_gene_id": [ColumnRule(rule="contains", value="IMPOSSIBLE")],
-        }
-
-        with pytest.raises(ValueError, match="contains"):
-            transform_rna_de_individual(
-                datasets=datasets,
-                data_file_column_rules=custom_data_file_column_rules,
-            )

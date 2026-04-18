@@ -21,11 +21,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
-    ColumnRule,
-)
+from agoradatatools.etl.utils import check_required_datasets_and_columns
 
 logger = logging.getLogger(__name__)
 
@@ -95,9 +91,9 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
     """
     Normalize the genotype label map DataFrame.
 
-    Casts result_order to int. Column value validation (non-empty display_label,
-    model_group, etc.) is handled upstream by check_column_rules before this
-    function is called.
+    Validates that display_label is non-empty for every row (it is a required field).
+    Validates that model_group is non-empty for every row (it is a required field).
+    Casts result_order to int.
 
     Args:
         df: Raw rnaseq_genotype_label_map DataFrame with columns: model, genotype,
@@ -105,6 +101,9 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns:
         Normalized DataFrame with result_order cast to int.
+
+    Raises:
+        ValueError: If any row has an empty or missing display_label or model_group.
 
     Examples:
         >>> df = pd.DataFrame({
@@ -119,6 +118,16 @@ def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
         ['GroupA', 'GroupX']
     """
     df = df.copy()
+
+    if df["display_label"].isna().any() or (df["display_label"] == "").any():
+        raise ValueError(
+            "display_label is a required field in rnaseq_genotype_label_map and must not be empty."
+        )
+
+    if df["model_group"].isna().any() or (df["model_group"] == "").any():
+        raise ValueError(
+            "model_group is a required field in rnaseq_genotype_label_map and must not be empty."
+        )
     df["result_order"] = df["result_order"].astype(int)
     return df
 
@@ -166,7 +175,6 @@ def preprocess_data_file(
     file_index: int,
     total_files: int,
     data_file_required_columns: List[str],
-    data_file_column_rules: Dict[str, List[ColumnRule]],
 ) -> pd.DataFrame:
     """
     Preprocess a single data file with common validation and transformation steps.
@@ -180,24 +188,19 @@ def preprocess_data_file(
         file_index: Index of this file in the processing sequence (0-based)
         total_files: Total number of files being processed
         data_file_required_columns: List of column names that must be present
-        data_file_column_rules: Per-column content rules to validate via
-            check_column_rules. Keys are column names; values are lists of ColumnRule
-            objects. Rules are checked after required-column validation.
 
     Returns:
         Preprocessed DataFrame with mouse genes only, tissue names mapped and
         sentence-cased, and numeric values rounded to 5 decimal places.
 
     Raises:
-        ValueError: If the file is empty, missing required columns, or any column
-            value rule is violated.
+        ValueError: If the file is empty or missing required columns.
     """
     log_file_processing_info(file_name, file_index, total_files, data_file)
     validate_data_file_not_empty(file_name, data_file)
     check_required_datasets_and_columns(
         {file_name: data_file}, {file_name: data_file_required_columns}
     )
-    check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
     data_file = filter_to_mouse_genes(data_file)
     # Map JAX-specific names and normalize to sentence case.
     # To add a new multi-word mapping, insert another .str.replace() call in the chain.
