@@ -589,8 +589,9 @@ stopifnot(!any(is.na(abca7_final)))
 pathology_final <- bind_rows(
   threex_final,
   fivex_final,
-  nss_final,
-  abca7_final)
+  nss_final)
+  # MG-848 - remove abca7 pathology data from release due to invalid metadata
+  #abca7_final)
 
 # MODEL-AD 2.0 harmonized source file directory
 # ADP Backend > Files > 2.ConsortiumStudies > MODEL-AD Data Explorer > Model AD Explorer 2.0 Source Files
