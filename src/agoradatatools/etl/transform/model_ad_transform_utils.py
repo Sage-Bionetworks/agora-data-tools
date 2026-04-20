@@ -9,7 +9,6 @@ Functions:
 
 from typing import Any, Dict, List, Union
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
 
 
 def process_genetic_info(
@@ -143,8 +142,11 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
 
     If any Jax IDs were missing in the input file, the column becomes a "float64" with NaN values. This causes
     undesirable behavior, because the float conversion turns the values into decimals that persist in the string
-    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the column to Int64, which removes
-    the decimal so the string conversion works as intended.
+    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the values to integers, which
+    allows the string conversion to work as intended. Casting with convert_dtypes() preferentially converts numeric
+    values to integers if possible, while preserving non-numeric values like strings. This is robust to the case where
+    NaNs have been converted to None values (making the column an "object" dtype) but there are still float values in
+    the column.
 
     Args:
         jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings.
@@ -153,8 +155,8 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
         pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
         NA, or all-whitespace values are set to "" (empty string).
     """
-    if is_numeric_dtype(jax_id):
-        jax_id = jax_id.astype("Int64")
+    # Convert the Series to the best possible dtypes, which will convert floats to integers if possible
+    jax_id = jax_id.convert_dtypes()
 
     return jax_id.apply(
         lambda x: (str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() else "")

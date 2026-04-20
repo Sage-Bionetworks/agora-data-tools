@@ -8,7 +8,10 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    normalize_null_values,
+)
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
@@ -114,8 +117,11 @@ def transform_model_details(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
-    allele_info_df = datasets["allele_info"].fillna("")
-    human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
+    allele_info_df = normalize_null_values(
+        datasets["allele_info"],
+        empty_string_columns=["gene_ensembl_id", "modified_gene", "allele"],
+    )
+    human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
 
     # Merge model_results_df into model_info to get which types of data are available for each model
     model_info_df = pd.merge(
@@ -124,13 +130,12 @@ def transform_model_details(
         how="left",
         on="name",
         validate="one_to_one",
-    ).fillna(
-        {
-            "transcriptomics": False,
-            "disease_correlation": False,
-            "rrid": "",
-            "alzforum_id": "",
-        }
+    )
+
+    model_info_df = normalize_null_values(
+        model_info_df,
+        boolean_columns=["transcriptomics", "disease_correlation"],
+        empty_string_columns=["rrid", "alzforum_id"],
     )
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
