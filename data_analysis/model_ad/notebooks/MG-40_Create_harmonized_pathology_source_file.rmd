@@ -240,6 +240,13 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
   results %>% left_join(metadata, by=join_by, multiple="first"
             ) %>% left_join(genotype_label_map, by = c('model', 'genotype')
 
+            # MG-850: If specimenID starts with "Pool", use specimenID. Otherwise, keep individualID.
+            ) %>% mutate(individualID = if_else(
+                grepl("^Pool", specimenID),
+                as.character(specimenID),
+                as.character(individualID)
+            )
+
             # Correct genotypes to align with target display values
             ) %>% mutate(genotype = display_label
 
@@ -603,7 +610,7 @@ if(!dir.exists(output_dir)){
   dir.create(output_dir)
 }
 write.csv(pathology_final, file.path(output_dir, "pathology.csv"), row.names = FALSE)
-
+```
 # upload to synapse
 syn_file <- File(file.path(output_dir, "pathology.csv"),
                  description = "Harmonized Pathology data for Model-AD Explorer 2.0.",
