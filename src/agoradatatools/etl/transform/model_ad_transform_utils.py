@@ -4,10 +4,12 @@ This file contains utility functions that may be used across multiple transforms
 Functions:
     process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
     build_transcriptomics_url - build a URL linking to the gene comparison table for a given study
+    zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
 """
 
 from typing import Any, Dict, List, Union
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
 
 
 def process_genetic_info(
@@ -131,3 +133,29 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
         else None
     )
     return url
+
+
+def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
+    """
+    Convert Jax IDs to strings with leading zeros preserved. Jax IDs are typically a string of numbers, so pandas reads
+    them as integers (int64), which results in loss of leading zeros. This function converts the values back to strings
+    and adds leading zeros if necessary.
+
+    If any Jax IDs were missing in the input file, the column becomes a "float64" with NaN values. This causes
+    undesirable behavior, because the float conversion turns the values into decimals that persist in the string
+    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the column to Int64, which removes
+    the decimal so the string conversion works as intended.
+
+    Args:
+        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings.
+
+    Returns:
+        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
+        NA, or all-whitespace values are set to "" (empty string).
+    """
+    if is_numeric_dtype(jax_id):
+        jax_id = jax_id.astype("Int64")
+
+    return jax_id.apply(
+        lambda x: (str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() else "")
+    )
