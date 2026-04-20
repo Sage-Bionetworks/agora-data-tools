@@ -228,6 +228,25 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
   biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
   metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
+  # *** METADATA INTEGRITY CHECK ***
+  # Check if any specimenID (pool) maps to multiple sexes, genotypes, or ages
+  mismatches <- metadata %>%
+    group_by(specimenID) %>%
+    summarise(
+      n_sex = n_distinct(sex),
+      n_genotype = n_distinct(genotype),
+      n_age = n_distinct(ageDeath)
+    ) %>%
+    filter(n_sex > 1 | n_genotype > 1 | n_age > 1)
+
+  if (nrow(mismatches) > 0) {
+    # Print the offending specimens
+    print("FATAL: Metadata inconsistency found in pooled specimens:")
+    print(mismatches)
+    stop("Script halted. Pooled specimens must have uniform sex, genotype, and ageDeath.")
+  }
+  # *** END METADATA INTEGRITY CHECK ***
+
   # Figure out what columns to merge by
   join_by <- if(all(c('specimenID', 'individualID') %in% colnames(results)) &&
               all(c('specimenID', 'individualID') %in% colnames(metadata))) {
@@ -240,7 +259,7 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
   results %>% left_join(metadata, by=join_by, multiple="first"
             ) %>% left_join(genotype_label_map, by = c('model', 'genotype')
 
-            # MG-850: If specimenID starts with "Pool", use specimenID. Otherwise, keep individualID.
+            # If specimenID starts with "Pool", use specimenID. Otherwise, keep individualID.
             ) %>% mutate(individualID = if_else(
                 grepl("^Pool", specimenID),
                 as.character(specimenID),
@@ -412,6 +431,8 @@ nss_final <- nss_pathology_source %>%
 ```
 
 ### Abca7*V1599M
+# MG-848 - remove abca7 pathology data from release due to invalid metadata
+# Skip running this chunk until MG-848 is resolved; it will fail unless the metadata has been corrected.
 ```{r}
 abca7_final <- abca7_pathology_source %>%
 
@@ -555,7 +576,10 @@ stopifnot(nrow(nss_final[nss_final$type == ThioS_density_display_name,]) == nrow
 
 # Check all fields were populated properly -- there should be no NAs
 stopifnot(!any(is.na(nss_final)))
+```
 
+# MG-848 - remove abca7 pathology data from release due to invalid metadata
+# Add this code back to the chunk above once MG-848 is resolved.
 # ************
 # Abca7*V1599M
 # ************
@@ -588,7 +612,7 @@ stopifnot(nrow(abca7_final[abca7_final$type == ThioS_density_display_name,]) == 
 
 # Check all fields were populated properly -- there should be no NAs
 stopifnot(!any(is.na(abca7_final)))
-```
+
 
 
 ## Merge model-specific results files & write csv file to synapse
