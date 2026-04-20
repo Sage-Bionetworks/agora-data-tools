@@ -6,7 +6,7 @@ Models that are currently handled by this notebook:
 * 3xTG-AD
 * 5xFAD
 * Trem2-R47H_NSS
-* Abca7*V1599M
+* Abca7*V1599M -> MG-848: Abca7 pathology results are currently excluded due to source metadata issues; search/address all instance of "MG-848" here to reenable
 
 ADDING NEW MODELS
 As data becomes available for additional models, the data for those models will need to be incorporated into the harmonized source file.
@@ -228,32 +228,36 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
   biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
   metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
-  # *** METADATA INTEGRITY CHECK ***
-  # Check if any specimenID (pool) maps to multiple sexes, genotypes, or ages
-  mismatches <- metadata %>%
-    group_by(specimenID) %>%
-    summarise(
-      n_sex = n_distinct(sex),
-      n_genotype = n_distinct(genotype),
-      n_age = n_distinct(ageDeath)
-    ) %>%
-    filter(n_sex > 1 | n_genotype > 1 | n_age > 1)
-
-  if (nrow(mismatches) > 0) {
-    # Print the offending specimens
-    print("FATAL: Metadata inconsistency found in pooled specimens:")
-    print(mismatches)
-    stop("Script halted. Pooled specimens must have uniform sex, genotype, and ageDeath.")
-  }
-  # *** END METADATA INTEGRITY CHECK ***
-
-  # Figure out what columns to merge by
+    # Figure out what columns to merge by
   join_by <- if(all(c('specimenID', 'individualID') %in% colnames(results)) &&
               all(c('specimenID', 'individualID') %in% colnames(metadata))) {
     c('specimenID', 'individualID')
   } else {
     c('specimenID')
   }
+
+  # *** DATA INTEGRITY CHECK ***
+  # Check if any specimenID (pool) maps to multiple sexes, genotypes, or ages
+  joined_temp <- results %>%
+    left_join(metadata, by = join_by, relationship = "many-to-many")
+
+  mismatches <- joined_temp %>%
+    group_by(specimenID) %>%
+    summarise(
+      n_sex = n_distinct(sex),
+      n_genotype = n_distinct(genotype),
+      n_age = n_distinct(ageDeath),
+      .groups = 'drop'
+    ) %>%
+    filter(n_sex > 1 | n_genotype > 1 | n_age > 1)
+
+  if (nrow(mismatches) > 0) {
+    # Print the offending specimens
+    cat("FATAL: Metadata inconsistency found in pooled specimens:")
+    print(mismatches)
+    stop("Script halted. Pooled specimens must have uniform sex, genotype, and ageDeath.")
+  }
+  # *** END DATA INTEGRITY CHECK ***
 
   # Join results to metadata; prevent creating duplicate data rows for 'Pool-X' specimenIDs by matching only first metadata row
   results %>% left_join(metadata, by=join_by, multiple="first"
@@ -270,13 +274,13 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
             ) %>% mutate(genotype = display_label
 
             # Print out nrow of results before age filtering
-            ) %>% { print(nrow(.)) ;.
+            ) %>% { print(nrow(.)) ; .
 
             # Filter out results for unwanted ages
             } %>% filter(ageDeath %in% age_keeps
 
             # Print out nrow of results after age filtering
-            ) %>% { print(nrow(.)) ;.
+            ) %>% { print(nrow(.)) ; .
 
             # Convert all individualID columns to string type
             } %>% mutate(individualID = as.character(individualID)
@@ -330,7 +334,14 @@ nss_individual <- download_csv('syn27147690.3') %>%
   mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 nss_pathology_source <- download_csv('syn42131930.1')
+```
 
+*********
+# MG-848 - don't download abca7 source files we aren't using
+# Add this code back to the chunk above once MG-848 is resolved.
+# ************
+# Abca7*V1599M
+# ************
 #Abca7
 # metadata
 abca7_biospecimen <- download_csv('syn30859390.2')
@@ -339,7 +350,8 @@ abca7_individual <- download_csv('syn30859394.2') %>%
   mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 abca7_pathology_source <- download_csv('syn53127289.1')
-```
+# END MG-848 abca7 source files
+*********
 
 
 ## Generate model-specific files & join to metadata
@@ -430,9 +442,10 @@ nss_final <- nss_pathology_source %>%
         ) %>% join_to_metadata(nss_individual, nss_biospecimen)
 ```
 
+*************
 ### Abca7*V1599M
-# MG-848 - remove abca7 pathology data from release due to invalid metadata
-# Skip running this chunk until MG-848 is resolved; it will fail unless the metadata has been corrected.
+# MG-848 - omit abca7 pathology data from release due to invalid metadata
+# This chunk will fail until MG-848 is resolved; don't bother running it.
 ```{r}
 abca7_final <- abca7_pathology_source %>%
 
@@ -451,6 +464,8 @@ abca7_final <- abca7_pathology_source %>%
         # Join results to metadata
         ) %>% join_to_metadata(abca7_individual, abca7_biospecimen)
 ```
+*************
+
 
 ## Sanity check generated files
 Checks that ensure that the processed data includes the expected number of results per model, per result type:
@@ -578,7 +593,8 @@ stopifnot(nrow(nss_final[nss_final$type == ThioS_density_display_name,]) == nrow
 stopifnot(!any(is.na(nss_final)))
 ```
 
-# MG-848 - remove abca7 pathology data from release due to invalid metadata
+*********
+# MG-848 - disable validation of removed results
 # Add this code back to the chunk above once MG-848 is resolved.
 # ************
 # Abca7*V1599M
@@ -613,6 +629,8 @@ stopifnot(nrow(abca7_final[abca7_final$type == ThioS_density_display_name,]) == 
 # Check all fields were populated properly -- there should be no NAs
 stopifnot(!any(is.na(abca7_final)))
 
+END MG-848 disabled validation
+*********
 
 
 ## Merge model-specific results files & write csv file to synapse

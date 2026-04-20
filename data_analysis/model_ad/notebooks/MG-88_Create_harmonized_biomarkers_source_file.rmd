@@ -161,28 +161,68 @@ results %>% pivot_longer(
 # - df: A dataframe containing result rows
 # - individual_metadata: A dataframe containing individual-level metadata
 # - biospecimen_metadata: A dataframe containing specimen metadata
+# This function prints out the number of rows before and after filtering results by age, which is useful for validation.
+# This function will fail if it identifies metadata inconsistencies for pooled samples.
 join_to_metadata <- function(results, individual_metadata, biospecimen_metadata) {
 
   # Join metadata files by individualID
-  individual_metadata <- select(individual_metadata, individualID, sex, ageDeath, genotype)
-  biospecimen_metadata <- select(biospecimen_metadata, individualID, specimenID, tissue)
+  individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
+  biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
   metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
-  # Join results to metadata
-  results %>% left_join(metadata, by = c('individualID', 'specimenID')
+    # Figure out what columns to merge by
+  join_by <- if(all(c('specimenID', 'individualID') %in% colnames(results)) &&
+              all(c('specimenID', 'individualID') %in% colnames(metadata))) {
+    c('specimenID', 'individualID')
+  } else {
+    c('specimenID')
+  }
+
+  # *** DATA INTEGRITY CHECK ***
+  # Check if any specimenID (pool) maps to multiple sexes, genotypes, or ages
+  joined_temp <- results %>%
+    left_join(metadata, by = join_by, relationship = "many-to-many")
+
+  mismatches <- joined_temp %>%
+    group_by(specimenID) %>%
+    summarise(
+      n_sex = n_distinct(sex),
+      n_genotype = n_distinct(genotype),
+      n_age = n_distinct(ageDeath),
+      .groups = 'drop'
+    ) %>%
+    filter(n_sex > 1 | n_genotype > 1 | n_age > 1)
+
+  if (nrow(mismatches) > 0) {
+    # Print the offending specimens
+    cat("FATAL: Metadata inconsistency found in pooled specimens:")
+    print(mismatches)
+    stop("Script halted. Pooled specimens must have uniform sex, genotype, and ageDeath.")
+  }
+  # *** END DATA INTEGRITY CHECK ***
+
+  # Join results to metadata; prevent creating duplicate data rows for 'Pool-X' specimenIDs by matching only first metadata row
+  results %>% left_join(metadata, by=join_by, multiple="first"
             ) %>% left_join(genotype_label_map, by = c('model', 'genotype')
+
+            # If specimenID starts with "Pool", use specimenID. Otherwise, keep individualID.
+            ) %>% mutate(individualID = if_else(
+                grepl("^Pool", specimenID),
+                as.character(specimenID),
+                as.character(individualID)
+            )
 
             # Correct genotypes to align with target display values
             ) %>% mutate(genotype = display_label
 
             # Print out nrow of results before age filtering
-            ) %>% { print(nrow(.)) ;.
+            ) %>% { print(nrow(.)) ; .
 
             # Filter out results for unwanted ages
             } %>% filter(ageDeath %in% age_keeps
 
             # Print out nrow of results after age filtering
-            ) %>% { print(nrow(.)) ;.
+            ) %>% { print(nrow(.)) ; .
 
             # Convert all individualID columns to string type
             } %>% mutate(individualID = as.character(individualID)
