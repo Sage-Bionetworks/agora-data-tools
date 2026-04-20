@@ -228,7 +228,7 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
   biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
   metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
 
-    # Figure out what columns to merge by
+  # Figure out what columns to merge by
   join_by <- if(all(c('specimenID', 'individualID') %in% colnames(results)) &&
               all(c('specimenID', 'individualID') %in% colnames(metadata))) {
     c('specimenID', 'individualID')
@@ -652,7 +652,7 @@ if(!dir.exists(output_dir)){
   dir.create(output_dir)
 }
 write.csv(pathology_final, file.path(output_dir, "pathology.csv"), row.names = FALSE)
-```
+
 # upload to synapse
 syn_file <- File(file.path(output_dir, "pathology.csv"),
                  description = "Harmonized Pathology data for Model-AD Explorer 2.0.",
