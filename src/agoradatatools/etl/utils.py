@@ -202,12 +202,9 @@ def nest_fields(
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
     """
     nested = (
-        df.groupby(grouping)
-        .apply(
-            lambda row: row.replace({np.nan: None})
-            .drop(columns=drop_columns)
-            .to_dict("records")
-        )
+        normalize_null_values(df)
+        .groupby(grouping)
+        .apply(lambda group: group.drop(columns=drop_columns).to_dict("records"))
         .reset_index()
         .rename(columns={0: new_column})
     )
@@ -433,3 +430,85 @@ def extract_age_numeric(age: str) -> Union[int, None]:
         return None
     match = re.search(r"(\d+)", age)
     return int(match.group(1)) if match else None
+
+
+def normalize_null_values(
+    df: pd.DataFrame,
+    boolean_columns: list[str] = None,
+    empty_string_columns: list[str] = None,
+) -> pd.DataFrame:
+    """
+    Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
+    on the column specification. This function is necessary because pandas fills empty values with NaN when it reads
+    from a csv file, and having NaN in boolean and string columns instead of None can produce unexpected behavior.
+    There are also several transforms that benefit from using empty strings instead of None, so this function provides
+    that option too.
+
+    Boolean columns will have NaN/None values replaced with False, and string columns will have NaN/None values replaced
+    with "". After that, all columns left over will have their NaN values replaced with None.
+
+    All *_columns arguments are optional and default to empty lists. Values in these arguments must not overlap with
+    each other and must contain only columns that appear in the data frame.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame to be normalized.
+        boolean_columns (list[str]): A list of column names that should have NaN values replaced with False.
+        empty_string_columns (list[str]): A list of column names that should have NaN values replaced with empty
+            strings.
+
+    Returns:
+        pd.DataFrame: A new DataFrame with normalized null values (NaN replaced with False, empty strings, or None as
+        specified).
+
+    Raises:
+        TypeError: If the input df is not a pandas DataFrame.
+        TypeError: If any of the *_columns arguments are not lists.
+        ValueError: If there are overlaps between the boolean_columns and empty_string_columns lists.
+        ValueError: If any column specified in the boolean_columns or empty_string_columns lists does not exist in the
+        DataFrame.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"Input must be a pandas DataFrame, got {type(df)}")
+
+    if not isinstance(boolean_columns, list) and boolean_columns is not None:
+        raise TypeError(f"boolean_columns must be a list, got {type(boolean_columns)}")
+
+    if not isinstance(empty_string_columns, list) and empty_string_columns is not None:
+        raise TypeError(
+            f"empty_string_columns must be a list, got {type(empty_string_columns)}"
+        )
+
+    # Make column lists into sets for easier checking of overlaps and membership in the data frame, and
+    # initialize any None arguments to empty lists
+    all_columns = set(df.columns)
+    boolean_columns = set(boolean_columns or [])
+    empty_string_columns = set(empty_string_columns or [])
+
+    # Check that all specified columns exist in the data frame
+    non_existent_columns = (boolean_columns | empty_string_columns) - all_columns
+    if non_existent_columns:
+        raise ValueError(
+            f"Columns {sorted(non_existent_columns)} do not exist in the DataFrame."
+        )
+
+    # Check that there are no overlaps between lists of columns
+    overlaps = boolean_columns & empty_string_columns
+    if overlaps:
+        raise ValueError(
+            f"Columns {sorted(overlaps)} appear in both the boolean_columns and empty_string_columns lists."
+        )
+
+    df = df.copy()
+
+    for col in boolean_columns:
+        df[col] = df[col].fillna(False).astype(bool)
+
+    for col in empty_string_columns:
+        df[col] = df[col].fillna("")
+
+    leftover_columns = all_columns - boolean_columns - empty_string_columns
+
+    for col in leftover_columns:
+        df[col] = df[col].replace(np.nan, None)
+
+    return df
