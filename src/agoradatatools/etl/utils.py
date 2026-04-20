@@ -470,8 +470,8 @@ def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
             f"Delimiter must be a string and must not be None, got {type(delim)}"
         )
 
-    return (
-        [item.strip() for item in str_obj.split(delim) if item.strip()]
-        if str_obj
-        else []
-    )
+    if str_obj:
+        return [item.strip() for item in str_obj.split(delim) if item.strip()]
+
+    # Return empty list for None or empty string input
+    return []
