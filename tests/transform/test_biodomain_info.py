@@ -23,10 +23,20 @@ class TestTransformBiodomainInfo:
         "Pass with missing values in each column",
     ]
     fail_test_data = [
-        # No failure cases for this transform
+        (  # Fail with missing dataset
+            {},
+            ValueError,
+            "Missing required datasets",
+        ),
+        (  # Fail with missing required column
+            {"genes_biodomains": "biodomain_info_missing_column_input.csv"},
+            ValueError,
+            "Missing required columns",
+        ),
     ]
     fail_test_ids = [
-        # No failure cases for this transform
+        "Fail with missing dataset",
+        "Fail with missing required column",
     ]
 
     @pytest.mark.parametrize(
@@ -46,13 +56,16 @@ class TestTransformBiodomainInfo:
         )
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    """
-    # Leaving code stub for failure case, in case we want to add this in the future
-    @pytest.mark.parametrize("biodomain_info_file", fail_test_data, ids=fail_test_ids)
-    def test_transform_biodomain_info_should_fail(self, biodomain_info_file):
-        with pytest.raises(<Error type>):
-            biodomain_info_df = pd.read_csv(os.path.join(self.data_files_path, "input", biodomain_info_file))
-            biodomain_info.transform_biodomain_info(
-                datasets={"genes_biodomains": biodomain_info_df}
-            )
-    """
+    @pytest.mark.parametrize(
+        "input_datasets, error_type, error_match", fail_test_data, ids=fail_test_ids
+    )
+    def test_transform_biodomain_info_should_fail(
+        self, input_datasets, error_type, error_match
+    ):
+        with pytest.raises(error_type, match=error_match):
+            datasets = {}
+            for dataset_name, file_name in input_datasets.items():
+                datasets[dataset_name] = pd.read_csv(
+                    os.path.join(self.data_files_path, "input", file_name)
+                )
+            biodomain_info.transform_biodomain_info(datasets=datasets)

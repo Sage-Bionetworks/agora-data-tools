@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "link_url": { "type": "string", "pattern": "^https://adknowledgeportal\\.synapse\\.org/Explore/Studies/DetailsPage/StudyDetails\\?Study=syn\\d+$" }
+  },
+  "required": ["link_url"],
+  "additionalProperties": false
+}

@@ -40,10 +40,32 @@ class TestTransformTeamInfo:
         "Pass with missing values in both input files",
     ]
     fail_test_data = [
-        # No failure cases for this transform
+        (  # Fail with missing team_member_info dataset
+            {"team_info": "team_info_good_input.csv"},
+            ValueError,
+            "Missing required datasets",
+        ),
+        (  # Fail with missing required column in team_info
+            {
+                "team_info": "team_info_missing_team_column_input.csv",
+                "team_member_info": "team_member_info_good_input.csv",
+            },
+            ValueError,
+            "Missing required columns",
+        ),
+        (  # Fail with missing required column in team_member_info
+            {
+                "team_info": "team_info_good_input.csv",
+                "team_member_info": "team_member_info_missing_team_column_input.csv",
+            },
+            ValueError,
+            "Missing required columns",
+        ),
     ]
     fail_test_ids = [
-        # No failure cases for this transform
+        "Fail with missing team_member_info dataset",
+        "Fail with missing required column in team_info",
+        "Fail with missing required column in team_member_info",
     ]
 
     @pytest.mark.parametrize(
@@ -68,14 +90,16 @@ class TestTransformTeamInfo:
         )
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    """
-    # Leaving code stub for failure case, in case we want to add this in the future
-    @pytest.mark.parametrize("team_info_file, team_member_file", fail_test_data, ids=fail_test_ids)
-    def test_transform_team_info_should_fail(self, team_info_file, team_member_file):
-        with pytest.raises(<Error type>):
-            team_info_df = pd.read_csv(os.path.join(self.data_files_path, "input", team_info_file))
-            team_member_df = pd.read_csv(os.path.join(self.data_files_path, "input", team_member_file))
-            team_info.transform_team_info(
-                datasets={"team_info": team_info_df, "team_member_info": team_member_df}
-            )
-    """
+    @pytest.mark.parametrize(
+        "input_datasets, error_type, error_match", fail_test_data, ids=fail_test_ids
+    )
+    def test_transform_team_info_should_fail(
+        self, input_datasets, error_type, error_match
+    ):
+        with pytest.raises(error_type, match=error_match):
+            datasets = {}
+            for dataset_name, file_name in input_datasets.items():
+                datasets[dataset_name] = pd.read_csv(
+                    os.path.join(self.data_files_path, "input", file_name)
+                )
+            team_info.transform_team_info(datasets=datasets)

@@ -1,0 +1,24 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000008",
+    "gene_symbol": "",
+    "tissue": "Cortex",
+    "name": "APOE4",
+    "model_group": "APOE4",
+    "matched_control": "APOE4",
+    "units": "Log2 Counts per Million",
+    "age": "6 months",
+    "age_numeric": 6,
+    "result_order": [
+      "APOE4"
+    ],
+    "data": [
+      {
+        "genotype": "APOE4",
+        "sex": "Male",
+        "individual_id": "Ind801",
+        "value": 5.12345
+      }
+    ]
+  }
+]

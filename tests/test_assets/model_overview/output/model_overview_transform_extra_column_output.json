@@ -3,7 +3,7 @@
     "name": "3xTg-AD",
     "model_type": "Familial AD",
     "matched_controls": ["B6129"],
-    "gene_expression": {
+    "transcriptomics": {
       "link_url": "comparison/expression?models=3xTg-AD"
     },
     "disease_correlation": null,
@@ -17,19 +17,16 @@
       "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn22964685"
     },
     "jax_strain": {
-      "link_url": "https://jax.org/strain/4807"
+      "link_url": "https://jax.org/strain/004807"
     },
-    "center": {
-      "link_text": "UCI",
-      "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
-    },
+    "center": "UCI",
     "modified_genes": [
       "App",
       "Mapt",
       "Psen1"
     ],
     "available_data": [
-      "Gene Expression",
+      "Transcriptomics",
       "Pathology",
       "Biomarkers"
     ]
@@ -38,7 +35,7 @@
     "name": "5xFAD (UCI)",
     "model_type": "Familial AD",
     "matched_controls": ["C57BL6J"],
-    "gene_expression": {
+    "transcriptomics": {
       "link_url": "comparison/expression?models=5xFAD (UCI)"
     },
     "disease_correlation": null,
@@ -52,15 +49,12 @@
       "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn16798076"
     },
     "jax_strain": {
-      "link_url": "https://jax.org/strain/8730"
+      "link_url": "https://jax.org/strain/008730"
     },
-    "center": {
-      "link_text": "UCI",
-      "link_url": "http://model-ad.org/uci-disease-model-development-and-phenotyping-dmp/"
-    },
+    "center": "UCI",
     "modified_genes": [],
     "available_data": [
-      "Gene Expression",
+      "Transcriptomics",
       "Pathology",
       "Biomarkers"
     ]
@@ -69,7 +63,7 @@
     "name": "APOE4",
     "model_type": "Late Onset AD",
     "matched_controls": ["C57BL6J"],
-    "gene_expression": {
+    "transcriptomics": {
       "link_url": "comparison/expression?models=APOE4"
     },
     "disease_correlation": {
@@ -81,15 +75,12 @@
       "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn17095980"
     },
     "jax_strain": {
-      "link_url": "https://jax.org/strain/27894"
+      "link_url": "https://jax.org/strain/027894"
     },
-    "center": {
-      "link_text": "IU/JAX/PITT",
-      "link_url": "https://www.model-ad.org/iu-jax-pitt-disease-modeling-project/"
-    },
+    "center": "IU/JAX/PITT",
     "modified_genes": [],
     "available_data": [
-      "Gene Expression",
+      "Transcriptomics",
       "Disease Correlation"
     ]
   }

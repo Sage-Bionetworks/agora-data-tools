@@ -8,11 +8,13 @@ from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
+    delim_string_to_list,
     remove_duplicates_keep_order,
 )
 from agoradatatools.etl.transform.model_ad_transform_utils import (
-    build_gene_expression_url,
+    build_transcriptomics_url,
     process_genetic_info,
+    zero_pad_jax_ids,
 )
 
 REQUIRED_INPUT = {
@@ -32,7 +34,7 @@ REQUIRED_INPUT = {
     ],
     "model_results_info": [
         "name",
-        "gene_expression",
+        "transcriptomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
@@ -66,7 +68,7 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
         List[str]: A list of available data for the model.
     """
     fields = {
-        "gene_expression": "Gene Expression",
+        "transcriptomics": "Transcriptomics",
         "disease_correlation": "Disease Correlation",
         "pathology": "Pathology",
         "biomarkers": "Biomarkers",
@@ -140,6 +142,7 @@ def transform_model_overview(
     )
 
     merged_df = merged_df.replace({float("nan"): None})
+    merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
 
     # Transform the merged dataframe into the target structure
     transformed_records = []
@@ -162,10 +165,10 @@ def transform_model_overview(
             gene for gene in modified_genes if gene is not None and str(gene) != "nan"
         ]
 
-        # Build the links first
-        row["gene_expression"] = (
-            {"link_url": build_gene_expression_url(row)}
-            if bool(row["gene_expression"])
+        # Build the links
+        row["transcriptomics"] = (
+            {"link_url": build_transcriptomics_url(row)}
+            if bool(row["transcriptomics"])
             else None
         )
         row["disease_correlation"] = (
@@ -195,23 +198,14 @@ def transform_model_overview(
             if row["jax_id"]
             else None
         )
-        row["center"] = (
-            {
-                "link_text": row["contributing_group"],
-                "link_url": get_center_link_url(row["contributing_group"]),
-            }
-            if row["contributing_group"]
-            else None
-        )
+        row["center"] = row["contributing_group"]
 
         # Calculate available_data based on which links are actually present
         row["available_data"] = get_list_of_available_data(row)
 
         # Convert matched_controls from comma-delimited strings to lists
-        row["matched_controls"] = (
-            [x.strip() for x in str(row["matched_controls"]).split(",")]
-            if pd.notna(row["matched_controls"]) and row["matched_controls"] != ""
-            else []
+        row["matched_controls"] = delim_string_to_list(
+            row["matched_controls"], delim=","
         )
 
         # Keep only the columns that will be in transformed_records in row
@@ -219,7 +213,7 @@ def transform_model_overview(
             "name",
             "model_type",
             "matched_controls",
-            "gene_expression",
+            "transcriptomics",
             "disease_correlation",
             "pathology",
             "biomarkers",

@@ -25,7 +25,7 @@ datasets:
           id: syn64846805.2
           format: csv
         - name: model_results_info
-          id: syn68377668.4
+          id: syn68377668.5
           format: csv
         - name: immunohisto_measure_order
           id: syn71305327.2
@@ -52,7 +52,7 @@ datasets:
   - disease_correlation:
       files:
         - name: disease_correlation_results
-          id: syn65467849.5
+          id: syn65467849.6
           format: csv
         - <<: *model_info_file
         - name: allele_info
@@ -71,7 +71,7 @@ datasets:
   - ui_config:
       files:
         - name: ui_config
-          id: syn66527739.29
+          id: syn66527739.30
           format: json
       final_format: json
       destination: *dest
@@ -83,7 +83,7 @@ datasets:
       files:
         - <<: *model_info_file
         - name: model_results_info
-          id: syn68377668.4
+          id: syn68377668.5
           format: csv
         - name: allele_info
           id: syn64618791.6
@@ -98,6 +98,14 @@ datasets:
         gene: modified_gene
         ensembl_id: human_ensembl_id
         model: name
+      gx_enabled: true
+      gx_nested_columns:
+        - transcriptomics
+        - disease_correlation
+        - pathology
+        - biomarkers
+        - study_data
+        - jax_strain
 
   - rna_de_aggregate:
       files:
@@ -112,23 +120,65 @@ datasets:
           id: syn66351272.1
           format: csv
         - name: Jax.IU.Pitt_5XFAD_differential_expression
-          id: syn69058660.1
+          id: syn69058660.2
           format: csv
         - name: Jax.IU.Pitt_APOE4.Trem2.R47H_differential_expression
-          id: syn69693082.2
+          id: syn69693082.3
           format: csv
         - name: UCI_3xTg-AD_differential_expression
-          id: syn69058661.1
+          id: syn69058661.2
           format: csv
         - name: UCI_5XFAD_differential_expression
           id: syn69058664.1
           format: csv
         - name: UCI_ABCA7_differential_expression
-          id: syn69058663.2
+          id: syn69058663.3
           format: csv
         - name: UCI_Trem2-R47H_NSS_differential_expression
-          id: syn69058662.2
+          id: syn69058662.3
           format: csv
       final_format: json
       destination: *dest
       custom_transformations: transform_rna_de_aggregate
+
+  - rna_de_individual:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.14
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: Jax.IU.Pitt_APOE4.Trem2.R47H_normalized_expression
+          id: syn72388432.1
+          format: csv
+        - name: Jax.IU.Pitt_APOE4_normalized_expression
+          id: syn72388431.2
+          format: csv
+        - name: Jax.IU.Pitt_Trem2.R47H_normalized_expression
+          id: syn72388430.2
+          format: csv
+        - name: UCI_ABCA7.5XFAD_normalized_expression
+          id: syn72388476.2
+          format: csv
+        - name: UCI_ABCA7_normalized_expression
+          id: syn72388477.1
+          format: csv
+        - name: UCI_Trem2-R47H_NSS.5XFAD_normalized_expression
+          id: syn72388499.2
+          format: csv
+        - name: UCI_Trem2-R47H_NSS_normalized_expression
+          id: syn72388498.1
+          format: csv
+        - name: UCI_3xTg-AD_normalized_expression
+          id: syn69058676.1
+          format: csv
+        - name: UCI_5XFAD_normalized_expression
+          id: syn69058679.1
+          format: csv
+        - name: Jax.IU.Pitt_5XFAD_normalized_expression
+          id: syn69058674.1
+          format: csv
+      final_format: json
+      destination: *dest
+      custom_transformations: transform_rna_de_individual
