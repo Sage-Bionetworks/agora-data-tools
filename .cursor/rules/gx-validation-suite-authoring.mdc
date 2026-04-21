@@ -125,10 +125,11 @@ validator.expect_column_values_to_not_be_null("col")
 # Specific allowed values
 validator.expect_column_values_to_be_in_set("model_type", ["Familial AD", "Late Onset AD"])
 
-# Non-empty list (at least 1 element)
+# Non-empty list (at least 1 element) — only valid on columns NOT in gx_nested_columns
+# (see warning below)
 validator.expect_column_values_to_have_list_length_in_range(column="col", list_length_range=[1, 10])
 
-# List of strings
+# List of strings — only valid on columns NOT in gx_nested_columns (see warning below)
 validator.expect_column_values_to_have_list_members_of_type(column="col", member_type="str")
 
 # JSON schema for nested column
@@ -142,6 +143,48 @@ validator.expect_column_values_to_match_regex(
     regex="^expected/prefix",
     row_condition="col.notnull()",
     condition_parser="pandas",
+)
+```
+
+### ⚠️ Custom list expectations do NOT work on nested columns
+
+`expect_column_values_to_have_list_length_in_range` and `expect_column_values_to_have_list_members_of_type` both check `isinstance(cell, list)` internally. By the time GX runs, any column listed in `gx_nested_columns` has already been converted to a JSON **string** by `convert_nested_columns_to_json`, so these expectations will always fail silently (returning `False` for every row).
+
+**For list/array columns declared in `gx_nested_columns`, use `expect_column_values_to_match_json_schema` exclusively.** Encode length bounds with `minItems`/`maxItems` inside the schema, and type constraints with the `"type"` and `"items"` keywords:
+
+```python
+# ❌ WRONG — list expectations fail on JSON-stringified nested columns
+validator.expect_column_values_to_have_list_length_in_range(column="result_order", list_length_range=[2, 4])
+validator.expect_column_values_to_have_list_members_of_type(column="result_order", member_type="str")
+
+# ✅ CORRECT — JSON schema works on the string representation
+validator.expect_column_values_to_match_json_schema(
+    "result_order",
+    json_schema={
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 4,
+        "items": {"type": "string", "minLength": 1},
+    },
+)
+
+# ✅ CORRECT — for an array of objects with required properties
+validator.expect_column_values_to_match_json_schema(
+    "data",
+    json_schema={
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 100,
+        "items": {
+            "type": "object",
+            "properties": {
+                "field_a": {"type": "string", "minLength": 1},
+                "field_b": {"type": "number"},
+            },
+            "required": ["field_a", "field_b"],
+            "additionalProperties": False,
+        },
+    },
 )
 ```
 
@@ -216,7 +259,9 @@ validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
 
 ---
 
-## Step 4 — Run the Notebook
+## Step 4 — Generate the Expectations Suite
+
+### Option A — Run the notebook (standard, for small/medium datasets)
 
 Always activate the conda env and reinstall the package first:
 
@@ -224,6 +269,66 @@ Always activate the conda env and reinstall the package first:
 conda activate adt_py310
 pip install . -q
 jupyter nbconvert --to notebook --inplace --execute gx_suite_definitions/<transform>.ipynb
+```
+
+### Option B — Write the JSON directly (required for large datasets, 2+ GB)
+
+For transforms whose output JSON is very large (2+ GB), `pd.read_json()` in the notebook can take 30–60+ minutes and the `nbconvert` run becomes impractical. In this case, write `src/agoradatatools/great_expectations/gx/expectations/<transform>.json` directly — it has a well-defined format and produces the identical result.
+
+> **Before proceeding with Option B:** Ask the user for a suitable data source to use for verification. Do NOT assume that a file in `staging/` is available, current, or matches the transform being validated — the staging directory is gitignored and its contents vary per developer. Good questions to ask:
+> - "Do you have a local copy of the processed output available?"
+> - "What is the Synapse ID of the processed output file? I can download a copy for verification."
+> - "Do you have a smaller sample or subset of the output I can use to smoke-test the suite?"
+>
+> Once a data source is confirmed, load only a small sample (e.g. 500 records) for verification — do not attempt to load the full large file.
+
+The format mirrors existing suites (e.g. `rnaseq_differential_expression.json`):
+
+```json
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "<transform>",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": { "column": "my_col", "type_": "str" },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": { "great_expectations_version": "0.18.1" }
+}
+```
+
+After writing the file directly, **always verify the suite passes** by running GX on a small sample in a standalone script. This catches any expectation mismatches without loading the full file.
+
+```python
+import json, pandas as pd, great_expectations as gx
+from agoradatatools.gx import GreatExpectationsRunner
+
+# get_context FIRST so plugins dir is on sys.path
+context = gx.get_context(project_root_dir='src/agoradatatools/great_expectations')
+# Import any custom expectations used in the suite AFTER get_context
+from expectations.expect_column_values_to_have_list_length_in_range import ExpectColumnValuesToHaveListLengthInRange
+
+# Use a path confirmed with the user — do not assume staging/ is available
+with open('<confirmed_data_path>') as f:
+    sample = json.load(f)[:500]   # 500 records is enough for a smoke test
+
+df = pd.DataFrame(sample)
+df = GreatExpectationsRunner.convert_nested_columns_to_json(df, ["col_a", "col_b"])
+
+validator = context.sources.pandas_default.read_dataframe(df)
+validator.expectation_suite_name = '<transform>'
+
+checkpoint = context.add_or_update_checkpoint(name='agora-test-checkpoint', validator=validator)
+result = checkpoint.run()
+results = result.list_validation_results()[0]
+print(results.statistics)
+# Inspect any failures:
+for r in results.results:
+    if not r.success:
+        print('FAILED:', r.expectation_config.expectation_type, r.expectation_config.kwargs.get('column'))
 ```
 
 ---
@@ -263,3 +368,5 @@ Check the output for GX validation results.
 | Regex fails on a nullable column | Use `row_condition="col.notnull()"` + `condition_parser="pandas"` to skip null rows |
 | Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
+| `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
+| `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
