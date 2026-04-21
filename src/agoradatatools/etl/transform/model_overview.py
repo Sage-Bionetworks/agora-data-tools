@@ -167,9 +167,7 @@ def transform_model_overview(
             if genetic_info
             else []
         )
-        row["modified_genes"] = [
-            gene for gene in modified_genes if gene is not None and gene.strip()
-        ]
+        row["modified_genes"] = [gene for gene in modified_genes if gene is not None]
 
         # Build the links
         row["transcriptomics"] = (
