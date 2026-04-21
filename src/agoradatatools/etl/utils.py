@@ -512,6 +512,8 @@ def normalize_null_values(
         df[col] = df[col].replace(np.nan, None)
 
     return df
+
+
 def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
     """
     Converts a delimited string into a list of strings, trimming whitespace. Empty items in the split string are
