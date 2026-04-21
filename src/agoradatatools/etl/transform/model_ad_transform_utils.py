@@ -9,7 +9,6 @@ Functions:
 
 from typing import Any, Dict, List, Union
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
 
 from agoradatatools.etl.utils import normalize_null_values
 
@@ -147,19 +146,22 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
 
     If any Jax IDs were missing in the input file, the column becomes a "float64" with NaN values. This causes
     undesirable behavior, because the float conversion turns the values into decimals that persist in the string
-    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the column to Int64, which removes
-    the decimal so the string conversion works as intended.
+    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the values to Int64, which removes
+    the decimal so the string conversion works as intended. Empty strings are treated as missing values.
 
     Args:
-        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings.
+        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings. It is assumed that
+        all values are able to be cast to integers, or are missing ("", NaN or None).
 
     Returns:
         pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
         NA, or all-whitespace values are set to "" (empty string).
     """
-    if is_numeric_dtype(jax_id):
-        jax_id = jax_id.astype("Int64")
+    # Convert the Series to a nullable integer type that can handle None values. Replace "" with None first, handling
+    # extra whitespace gracefully.
+    jax_id = jax_id.apply(
+        lambda x: None if isinstance(x, str) and x.strip() == "" else x
+    ).astype("Int64")
 
-    return jax_id.apply(
-        lambda x: (str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() else "")
-    )
+    # Zero-pad remaining integer values
+    return jax_id.apply(lambda x: (str(x).zfill(6) if pd.notna(x) else "")).astype("O")
