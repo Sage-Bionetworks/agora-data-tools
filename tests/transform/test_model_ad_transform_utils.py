@@ -230,7 +230,7 @@ class TestBuildTranscriptomicsUrl:
     @pytest.mark.parametrize(
         "false_val",
         [False, None],
-        ids=["Pass with False boolean value", "Pass with NA value"],
+        ids=["Pass with False boolean value", "Pass with None value"],
     )
     def test_build_transcriptomics_url_no_transcriptomics(
         self, false_val: bool, url_test_model: pd.Series
@@ -246,8 +246,8 @@ class TestBuildTranscriptomicsUrl:
     def test_build_transcriptomics_url_all_default_values(
         self, url_test_model: pd.Series
     ) -> None:
-        url_test_model["url_categories_value"] = ""
-        url_test_model["url_models_value"] = ""
+        url_test_model["url_categories_value"] = None
+        url_test_model["url_models_value"] = None
 
         url = build_transcriptomics_url(url_test_model)
         assert url == "comparison/expression?models=Model"
@@ -255,13 +255,13 @@ class TestBuildTranscriptomicsUrl:
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
-        ids=["Pass with empty string value", "Pass with NA value"],
+        ids=["Pass with empty string value", "Pass with None value"],
     )
     def test_build_transcriptomics_url_default_category(
         self, empty_val: str, url_test_model: pd.Series
     ) -> None:
         """
-        The function should treat both "" and None/NA as empty values and not have a "categories=..." in the url
+        The function should treat both "" and None as empty values and not have a "categories=..." in the url
         """
         url_test_model["url_categories_value"] = empty_val
 
@@ -271,13 +271,13 @@ class TestBuildTranscriptomicsUrl:
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
-        ids=["Pass with empty string value", "Pass with NA value"],
+        ids=["Pass with empty string value", "Pass with None value"],
     )
     def test_build_transcriptomics_url_default_models(
         self, empty_val: str, url_test_model: pd.Series
     ) -> None:
         """
-        The function should treat both "" and None/NA as empty values and have just the model name in the URL
+        The function should treat both "" and None as empty values and have just the model name in the URL
         """
         url_test_model["url_models_value"] = empty_val
 
@@ -306,7 +306,7 @@ class TestBuildTranscriptomicsUrl:
 
         # Special case: model["name"] never gets used unless we set the url_models_value to empty
         if missing_key == "name":
-            url_test_model["url_models_value"] = ""
+            url_test_model["url_models_value"] = None
 
         with pytest.raises(KeyError):
             build_transcriptomics_url(url_test_model)

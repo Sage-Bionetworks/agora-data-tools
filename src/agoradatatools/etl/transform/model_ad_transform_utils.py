@@ -10,6 +10,8 @@ Functions:
 from typing import Any, Dict, List, Union
 import pandas as pd
 
+from agoradatatools.etl.utils import normalize_null_values
+
 
 def process_genetic_info(
     human_transgene_allele_map_df: pd.DataFrame,
@@ -47,6 +49,8 @@ def process_genetic_info(
         on=["mgi_allele_id", "gene_upper"],
         how="left",
     )
+
+    merged_df = normalize_null_values(merged_df)
 
     # Only override ensembl_id if we have a valid human_ensembl_id
     merged_df["ensembl_gene_id"] = merged_df.apply(
@@ -92,7 +96,7 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
     two (or more) model names to the "models=..." part of the string.
 
     The exact values that should go in "categories=..." and "models=..." are pulled from columns in model_row. If the
-    url_categories_value is "", the "categories=..." string is not added. If the url_models_value is "", the
+    url_categories_value is None, the "categories=..." string is not added. If the url_models_value is None, the
     "models=..." string defaults to "models=<model_name>".
 
     The final url can have two different formats:
@@ -107,8 +111,10 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
 
     Args:
         model_row (pd.Series): A single row from the model_info data frame, which must contain columns "name",
-            "gene_expression", "url_categories_value", and "url_models_value". The latter two columns may be blank or
-            contain strings. "gene_expression" must be True, False, or None (which is interpreted as False).
+            "gene_expression", "url_categories_value", and "url_models_value". The latter two columns may be None or
+            contain strings. "gene_expression" must be True or False. It is assumed that normalize_null_values has
+            already been called on this data so that all missing values used in this function are None, not NA or empty
+            strings.
 
     Returns:
         a string with the completed URL, or None if there is no gene expression data for the model
@@ -116,19 +122,17 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
     categories_value = (
         # Contains the "&" at the end to separate it from the models=... statement
         f"categories={model_row['url_categories_value']}&"
-        if pd.notna(model_row["url_categories_value"])
-        and len(model_row["url_categories_value"]) > 0  # must not be ""
+        if model_row["url_categories_value"]  # must not be "" or None
         else ""  # Only adds to URL if the url_categories_value is specified
     )
     models_value = (
         model_row["url_models_value"]  # A comma-separated list, if specified
-        if pd.notna(model_row["url_models_value"])
-        and len(model_row["url_models_value"]) > 0  # must not be ""
+        if model_row["url_models_value"]  # must not be "" or None
         else model_row["name"]  # A single model name if url_models_value is blank
     )
     url = (
         f"comparison/expression?{categories_value}models={models_value}"
-        if bool(model_row["transcriptomics"])
+        if model_row["transcriptomics"]
         else None
     )
     return url
