@@ -1,8 +1,40 @@
+from typing import Dict, List
+
 import numpy as np
 import pandas as pd
 
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
+
+REQUIRED_INPUT = {
+    "overall_scores": [
+        "ensg",
+        "target_risk_score",
+        "genetics_score",
+        "multi_omics_score",
+        "isscored_genetics",
+        "isscored_omics",
+    ],
+}
+
 
 def calculate_distribution(df: pd.DataFrame, col: str, is_scored, upper_bound) -> dict:
+    """Calculates the distribution statistics for a single score column.
+
+    Filters rows based on the is_scored flag, then computes bin distributions,
+    min, max, mean, and quartile values across the specified column.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the score column and isscored columns.
+        col (str): Name of the column to compute the distribution over.
+        is_scored: Column name used to filter rows to scored entries, or None/falsy
+            to include all rows with at least one "Y" in any isscored column.
+        upper_bound: The theoretical maximum value for the score, used to anchor bins.
+
+    Returns:
+        dict: Distribution statistics including "distribution", "bins", "min", "max",
+            "mean", "first_quartile", and "third_quartile".
+    """
     if is_scored:
         df = df[df[is_scored] == "Y"]
     # If isscored is blank/NaN, take all rows with at least one "Y" in any isscored column
@@ -69,7 +101,30 @@ def transform_distribution_data(
     overall_max_score,
     genetics_max_score,
     omics_max_score,
+    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ):
+    """Transforms the overall scores dataset into distribution statistics for each score type.
+
+    Computes binned distributions, quartiles, and metadata for the target risk score,
+    genetics score, and multi-omics score columns.
+
+    Args:
+        datasets (dict): Dictionary containing an "overall_scores" DataFrame.
+        overall_max_score: Theoretical maximum value for the target risk score.
+        genetics_max_score: Theoretical maximum value for the genetics score.
+        omics_max_score: Theoretical maximum value for the multi-omics score.
+        required_input (Dict[str, List[str]]): Dictionary of required datasets and their
+            required columns. Defaults to REQUIRED_INPUT.
+
+    Returns:
+        dict: Nested dictionary keyed by score column name, each containing distribution
+            statistics and display metadata (name, syn_id, wiki_id).
+
+    Raises:
+        ValueError: If required datasets or columns are missing.
+    """
+    check_required_datasets_and_columns(datasets, required_input)
+
     overall_scores = datasets["overall_scores"]
     interesting_columns = [
         "ensg",
