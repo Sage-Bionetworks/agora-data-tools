@@ -1,5 +1,6 @@
 import sys
 from io import StringIO
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -920,3 +921,87 @@ class TestExtractAgeNumeric:
             expected: Expected numeric age value or None if no number found
         """
         assert utils.extract_age_numeric(input_age) == expected
+
+
+class TestDelimStringToList:
+    """
+    Test class for validating the delim_string_to_list utility function.
+    """
+
+    @pytest.mark.parametrize(
+        "input_string,delimiter,expected",
+        [
+            ("a,b,c", ",", ["a", "b", "c"]),  # String with default delimiter (,)
+            ("a|b|c", "|", ["a", "b", "c"]),  # Non-default delimiter (|)
+            ("a;;b;;c", ";;", ["a", "b", "c"]),  # Multi-character delimiter
+            ("aa,,bbb,,c", ",,", ["aa", "bbb", "c"]),  # Multi-character items
+            ("ab;c", ",", ["ab;c"]),  # Delimiter mismatch should not split the string
+            # Empty elements at start, end, and middle should be removed
+            (",a,b,,c,", ",", ["a", "b", "c"]),
+            (",,", ",", []),  # String with only delimiters should return empty list
+            (None, ",", []),  # None input should return empty list
+            ("", ",", []),  # Empty string should return empty list
+            # Extra whitespace should be stripped
+            ("   a   ,b,   c", ",", ["a", "b", "c"]),
+            # Splitting on whitespace should still strip extra whitespace
+            ("a   b c  \t", " ", ["a", "b", "c"]),
+            # Extra whitespace in delimiter is respected
+            ("a  b c   ", "  ", ["a", "b c"]),
+        ],
+    )
+    def test_delim_string_to_list(
+        self, input_string: str, delimiter: str, expected: list[str]
+    ) -> None:
+        """
+        Test that delim_string_to_list correctly splits the input string into a list.
+        """
+        assert utils.delim_string_to_list(input_string, delimiter) == expected
+
+    def test_delim_string_to_list_uses_default_delimiter(self) -> None:
+        """
+        Test that delim_string_to_list uses the default delimiter (comma) when none is provided.
+        """
+        assert utils.delim_string_to_list("a,b,c") == ["a", "b", "c"]
+
+        # Should not split if it's not comma-separated
+        assert utils.delim_string_to_list("a|b|c") == ["a|b|c"]
+
+    @pytest.mark.parametrize(
+        "input_value,delimiter",
+        [
+            (123, ","),  # Non-string input should raise error
+            (True, ","),  # Boolean input should raise error
+            (["a", "b", "c"], ","),  # List input should raise error
+            ({"key": "value"}, ","),  # Dict input should raise error
+            (("a", "b"), ","),  # Tuple input should raise error
+        ],
+    )
+    def test_delim_string_to_list_fails_on_non_string_input(
+        self, input_value: Any, delimiter: str
+    ) -> None:
+        """
+        Test that delim_string_to_list raises a TypeError when input is not a string.
+        """
+        with pytest.raises(TypeError, match="Input must be a string"):
+            utils.delim_string_to_list(input_value, delimiter)
+
+    @pytest.mark.parametrize(
+        "input_string,delimiter",
+        [
+            ("a,b,c", 123),  # Non-string delimiter should raise error
+            ("a,b,c", True),  # Boolean delimiter should raise error
+            ("a,b,c", ["|"]),  # List delimiter should raise error
+            ("a,b,c", {"key": "value"}),  # Dict delimiter should raise error
+            ("a,b,c", ("|",)),  # Tuple delimiter should raise error
+            ("a,b,c", np.nan),  # NaN delimiter should raise error
+            ("a,b,c", None),  # None delimiter should raise error
+        ],
+    )
+    def test_delim_string_to_list_fails_on_non_string_delimiter(
+        self, input_string: str, delimiter: Any
+    ) -> None:
+        """
+        Test that delim_string_to_list raises a TypeError when delimiter is not a string.
+        """
+        with pytest.raises(TypeError, match="Delimiter must be a string"):
+            utils.delim_string_to_list(input_string, delimiter)
