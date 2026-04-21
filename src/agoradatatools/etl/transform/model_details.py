@@ -133,6 +133,8 @@ def transform_model_details(
             "disease_correlation": False,
             "rrid": "",
             "alzforum_id": "",
+            "matched_controls": "",
+            "aliases": "",
         }
     )
 
