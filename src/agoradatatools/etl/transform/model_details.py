@@ -117,10 +117,7 @@ def transform_model_details(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
-    allele_info_df = normalize_null_values(
-        datasets["allele_info"],
-        empty_string_columns=["gene_ensembl_id", "modified_gene", "allele"],
-    )
+    allele_info_df = datasets["allele_info"]
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
 
     # Merge model_results_df into model_info to get which types of data are available for each model
