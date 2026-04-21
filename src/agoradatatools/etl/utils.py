@@ -512,3 +512,43 @@ def normalize_null_values(
         df[col] = df[col].replace(np.nan, None)
 
     return df
+def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
+    """
+    Converts a delimited string into a list of strings, trimming whitespace. Empty items in the split string are
+    excluded from the final output list. If either str_obj or delim is not a string, this function throws a TypeError.
+
+    This function can be used on a pandas series using .apply():
+        df['column_name'].apply(delim_string_to_list, delim=",")
+
+    Args:
+        str_obj (str): The input string containing delimited values (e.g. 'gene1,gene2,gene3')
+        delim (str): The delimiter used to split the string (default is ','). Delimiters may be more than one character,
+                        e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"]. Delim cannot
+                        be NA or None.
+
+    Returns:
+        List[str]: A list of strings obtained by splitting the input string by the delimiter and trimming whitespace
+        (e.g. ['gene1', 'gene2', 'gene3']). If the input string is None or empty, returns an empty list.
+
+    Raises:
+        TypeError: If either str_obj or delim is not a string
+        TypeError: If delim is None
+    """
+
+    # Manually check for whether str_obj is a string and throw a TypeError. Otherwise the list comprehension can throw
+    # different types of errors depending on the type of str_obj, which may have unhelpful error messages.
+    if not isinstance(str_obj, str) and str_obj is not None:
+        raise TypeError(f"Input must be a string, got {type(str_obj)}")
+
+    # Although str.split(None) is valid, using None as the delimiter will split on any whitespace, which may produce
+    # unexpected behavior. Therefore this function expects a defined string delimiter.
+    if not isinstance(delim, str):
+        raise TypeError(
+            f"Delimiter must be a string and must not be None, got {type(delim)}"
+        )
+
+    if str_obj:
+        return [item.strip() for item in str_obj.split(delim) if item.strip()]
+
+    # Return empty list for None or empty string input
+    return []

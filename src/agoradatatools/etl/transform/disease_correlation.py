@@ -9,6 +9,7 @@ import re
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
+    delim_string_to_list,
     flatten_list,
     remove_duplicates_keep_order,
     input_validation_model_info,
@@ -265,13 +266,11 @@ def transform_disease_correlation(
         allele_info_df, human_transgene_allele_map_df
     )
 
-    # Need to split using ', ' because the 'matched_controls' column contains comma-separated lists stored as strings
-    model_info_lookup = create_lookup(
-        df=model_info_df.applymap(
-            lambda x: x.split(", ") if isinstance(x, str) and ", " in x else x
-        ),
-        group_by_col="name",
+    # Need convert 'matched_controls' from comma-separated strings to lists
+    model_info_df["matched_controls"] = model_info_df["matched_controls"].apply(
+        lambda x: delim_string_to_list(x, delim=",")
     )
+    model_info_lookup = create_lookup(model_info_df, group_by_col="name")
 
     model_allele_lookup = create_lookup(df=allele_info_mapped, group_by_col="name")
 
