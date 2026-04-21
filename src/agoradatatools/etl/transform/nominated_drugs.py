@@ -41,12 +41,9 @@ def transform_nominated_drugs(datasets: dict) -> pd.DataFrame:
             programs=("source", lambda x: list(set(x.dropna())))
     ).reset_index()
 
-    nominated_drugs["combined_with"] = nominated_drugs.apply(
-        lambda row: {
-            "link_url": f"drugs/{row['combined_with_chembl_id']}",
-            "link_text": row['combined_with_common_name']
-        } if pd.notnull(row['combined_with_common_name']) else None,
-        axis=1
+    # Give this field a unique name to distinguish it from drug_info's version
+    nominated_drugs = nominated_drugs.rename(
+        columns={"combined_with_common_name": "combined_with"}
     )
 
     # Merge in other datasets by chembl_id
