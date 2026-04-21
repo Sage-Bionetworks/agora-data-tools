@@ -3,11 +3,13 @@ This file contains tests for utility functions used in Model-AD transforms.
 """
 
 import pandas as pd
+import numpy as np
 import pytest
 
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
+    zero_pad_jax_ids,
 )
 
 
@@ -308,3 +310,46 @@ class TestBuildTranscriptomicsUrl:
 
         with pytest.raises(KeyError):
             build_transcriptomics_url(url_test_model)
+
+
+class TestZeroPadJaxIds:
+    """
+    This class tests the util function zero_pad_jax_id and makes sure that it handles missing values and non-string
+    inputs correctly.
+    """
+
+    @pytest.mark.parametrize(
+        "input_ids, expected_output",
+        [
+            # Integer input
+            (pd.Series([123, 123456, 0]), pd.Series(["000123", "123456", "000000"])),
+            # String input
+            (
+                pd.Series(["123", "123456", "0"]),
+                pd.Series(["000123", "123456", "000000"]),
+            ),
+            # Should handle both None and np.NaN
+            (pd.Series([1234, np.NaN, 0]), pd.Series(["001234", "", "000000"])),
+            (pd.Series([1234, None, 0]), pd.Series(["001234", "", "000000"])),
+            # Empty strings shouldn't get padded
+            (pd.Series([1234, ""]), pd.Series(["001234", ""])),
+            # Empty series should return an empty series
+            (pd.Series(), pd.Series()),
+            # White space should be stripped before padding
+            (pd.Series(["  1234", "123 ", "  "]), pd.Series(["001234", "000123", ""])),
+            # IDs longer than 6 characters should stay as-is
+            (pd.Series(["1234567", "12345678"]), pd.Series(["1234567", "12345678"])),
+            # Floats are converted to integers before padding
+            (pd.Series([123.0, 12345.0]), pd.Series(["000123", "012345"])),
+        ],
+    )
+    def test_zero_pad_jax_id_should_pass(
+        self, input_ids: pd.Series, expected_output: pd.Series
+    ) -> None:
+        """
+        Tests that the function works with multiple different kinds of input. It should work on integers or strings, and
+        both np.NaN and None should be converted to empty strings.
+        """
+        output = zero_pad_jax_ids(input_ids)
+
+        pd.testing.assert_series_equal(output, expected_output)

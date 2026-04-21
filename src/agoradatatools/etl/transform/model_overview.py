@@ -8,11 +8,13 @@ from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
+    delim_string_to_list,
     remove_duplicates_keep_order,
 )
 from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
+    zero_pad_jax_ids,
 )
 
 REQUIRED_INPUT = {
@@ -140,6 +142,7 @@ def transform_model_overview(
     )
 
     merged_df = merged_df.replace({float("nan"): None})
+    merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
 
     # Transform the merged dataframe into the target structure
     transformed_records = []
@@ -201,10 +204,8 @@ def transform_model_overview(
         row["available_data"] = get_list_of_available_data(row)
 
         # Convert matched_controls from comma-delimited strings to lists
-        row["matched_controls"] = (
-            [x.strip() for x in str(row["matched_controls"]).split(",")]
-            if pd.notna(row["matched_controls"]) and row["matched_controls"] != ""
-            else []
+        row["matched_controls"] = delim_string_to_list(
+            row["matched_controls"], delim=","
         )
 
         # Keep only the columns that will be in transformed_records in row
