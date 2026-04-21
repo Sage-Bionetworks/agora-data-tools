@@ -102,8 +102,8 @@ class TestTransformDiseaseCorrelation:
                             "mouse_model": "LOAD1",
                             "sex": "Female",
                             "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
+                            "correlation": 0.5,
+                            "adjusted_p_value": 0.01,
                         },
                         {
                             "cluster": "Cluster A",
@@ -111,8 +111,8 @@ class TestTransformDiseaseCorrelation:
                             "mouse_model": "LOAD1",
                             "sex": "Female",
                             "age": "4 months",
-                            "correlation": "0.6",
-                            "adjusted_p_value": "0.02",
+                            "correlation": 0.6,
+                            "adjusted_p_value": 0.02,
                         },
                         {
                             "cluster": "Cluster B",
@@ -120,20 +120,20 @@ class TestTransformDiseaseCorrelation:
                             "mouse_model": "LOAD2",
                             "sex": "Male",
                             "age": "6 months",
-                            "correlation": "0.7",
-                            "adjusted_p_value": "0.03",
+                            "correlation": 0.7,
+                            "adjusted_p_value": 0.03,
                         },
                     ]
                 ),
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
                         {
-                            "name": "LOAD2",
+                            "model": "LOAD2",
                             "matched_controls": "C57BL6J",
                             "model_type": "Early Onset AD",
                         },
@@ -141,9 +141,9 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
-                        {"name": "LOAD1", "gene": "TREM2", "mgi_allele_id": 5770794},
-                        {"name": "LOAD2", "gene": "APP", "mgi_allele_id": 3693208},
+                        {"model": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {"model": "LOAD1", "gene": "TREM2", "mgi_allele_id": 5770794},
+                        {"model": "LOAD2", "gene": "APP", "mgi_allele_id": 3693208},
                     ]
                 ),
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
@@ -186,15 +186,15 @@ class TestTransformDiseaseCorrelation:
                             "mouse_model": "LOAD1",
                             "sex": "Female",
                             "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
+                            "correlation": 0.5,
+                            "adjusted_p_value": 0.01,
                         },
                     ]
                 ),
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
@@ -202,9 +202,9 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {"model": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "gene": "APOE4",
                             "mgi_allele_id": 5810209,
                         },  # Duplicate entry
@@ -251,12 +251,7 @@ class TestTransformDiseaseCorrelation:
         """
         output = transform_disease_correlation(datasets)
 
-        # For the first test case, compare with expected output directly
-        if isinstance(expected_output, list):
-            assert output == expected_output
-        else:
-            # For other test cases that use assertion functions, call them
-            assert expected_output(output)
+        assert output == expected_output
 
     # Test data for dataset-level error scenarios
     dataset_error_test_data = [
@@ -271,14 +266,14 @@ class TestTransformDiseaseCorrelation:
                             "mouse_model": "LOAD1",
                             "sex": "Female",
                             "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
+                            "correlation": 0.5,
+                            "adjusted_p_value": 0.01,
                         },
                     ]
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {"model": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
@@ -298,8 +293,8 @@ class TestTransformDiseaseCorrelation:
                             "mouse_model": "LOAD1",
                             "sex": "Female",
                             "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
+                            "correlation": 0.5,
+                            "adjusted_p_value": 0.01,
                         },
                         {
                             "cluster": "Cluster A",
@@ -307,15 +302,15 @@ class TestTransformDiseaseCorrelation:
                             "mouse_model": "LOAD1",
                             "sex": "Female",
                             "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
+                            "correlation": 0.5,
+                            "adjusted_p_value": 0.01,
                         },
                     ]
                 ),
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
@@ -323,53 +318,13 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {"model": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
             },
             ValueError,
             "Module IFG already exists for LOAD1",
-        ),
-        # Test case 3: Inconsistent model_info entries for the same model
-        (
-            {
-                "disease_correlation_results": pd.DataFrame(
-                    [
-                        {
-                            "cluster": "Cluster A",
-                            "module": "IFGyellow",
-                            "mouse_model": "LOAD1",
-                            "sex": "Female",
-                            "age": "4 months",
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
-                        },
-                    ]
-                ),
-                "model_info": pd.DataFrame(
-                    [
-                        {
-                            "name": "LOAD1",
-                            "matched_controls": "C57BL6J",
-                            "model_type": "Late Onset AD",
-                        },
-                        {
-                            "name": "LOAD1",  # Same model name but different values
-                            "matched_controls": "CTRL2",
-                            "model_type": "Wrong",
-                        },
-                    ]
-                ),
-                "allele_info": pd.DataFrame(
-                    [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
-                    ]
-                ),
-                "human_transgene_allele_map": empty_human_transgene_allele_map,
-            },
-            ValueError,
-            "Model LOAD1 has inconsistent matched_controls values:",
         ),
     ]
 
@@ -386,15 +341,15 @@ class TestTransformDiseaseCorrelation:
                             "mouse_model": "LOAD1",
                             "sex": "Female",
                             # Note: 'age' column is missing
-                            "correlation": "0.5",
-                            "adjusted_p_value": "0.01",
+                            "correlation": 0.5,
+                            "adjusted_p_value": 0.01,
                         },
                     ]
                 ),
                 "model_info": pd.DataFrame(
                     [
                         {
-                            "name": "LOAD1",
+                            "model": "LOAD1",
                             "matched_controls": "C57BL6J",
                             "model_type": "Late Onset AD",
                         },
@@ -402,7 +357,7 @@ class TestTransformDiseaseCorrelation:
                 ),
                 "allele_info": pd.DataFrame(
                     [
-                        {"name": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
+                        {"model": "LOAD1", "gene": "APOE4", "mgi_allele_id": 5810209},
                     ]
                 ),
                 "human_transgene_allele_map": empty_human_transgene_allele_map,
@@ -415,7 +370,6 @@ class TestTransformDiseaseCorrelation:
     dataset_error_test_ids = [
         "Missing model_info",
         "Duplicate results in disease_correlation_results",
-        "Inconsistent model_info",
     ]
     column_error_test_ids = ["Missing required column in disease_correlation_results"]
 
@@ -541,19 +495,19 @@ class TestProcessGroup:
             [
                 {
                     "module": "IFGyellow",
-                    "correlation": "0.5",
-                    "adjusted_p_value": "0.01",
+                    "correlation": 0.5,
+                    "adjusted_p_value": 0.01,
                 },
                 {
                     "module": "PHGbrown",
-                    "correlation": "0.6",
-                    "adjusted_p_value": "0.02",
+                    "correlation": 0.6,
+                    "adjusted_p_value": 0.02,
                 },
             ]
         )
 
         # Model information dictionary
-        model_info = {"matched_controls": "C57BL6J", "model_type": "Late Onset AD"}
+        model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
         allele_info = {"gene": ["APOE4", "TREM2"]}
@@ -589,7 +543,7 @@ class TestProcessGroup:
         """
         # Create test data with single module
         group = pd.DataFrame(
-            [{"module": "IFGyellow", "correlation": "0.5", "adjusted_p_value": "0.01"}]
+            [{"module": "IFGyellow", "correlation": 0.5, "adjusted_p_value": 0.01}]
         )
 
         result = process_group(
@@ -622,7 +576,7 @@ class TestProcessGroup:
         """
         # Create test data with single module
         group = pd.DataFrame(
-            [{"module": "IFGyellow", "correlation": "0.5", "adjusted_p_value": "0.01"}]
+            [{"module": "IFGyellow", "correlation": 0.5, "adjusted_p_value": 0.01}]
         )
 
         # Model info with matched_controls as a list
@@ -662,9 +616,9 @@ class TestMapGenesToHumanSymbols:
         # to correctly map each gene to its corresponding human symbol.
         allele_info_df = pd.DataFrame(
             [
-                {"name": "APOE4", "gene": "Apoe", "mgi_allele_id": 5810209},
-                {"name": "5xFAD", "gene": "App", "mgi_allele_id": 3693208},
-                {"name": "5xFAD", "gene": "Psen1", "mgi_allele_id": 3693208},
+                {"model": "APOE4", "gene": "Apoe", "mgi_allele_id": 5810209},
+                {"model": "5xFAD", "gene": "App", "mgi_allele_id": 3693208},
+                {"model": "5xFAD", "gene": "Psen1", "mgi_allele_id": 3693208},
             ]
         )
 
@@ -697,9 +651,9 @@ class TestMapGenesToHumanSymbols:
         # Construct expected dataframe with human gene symbols
         expected_df = pd.DataFrame(
             [
-                {"name": "APOE4", "gene": "APOE", "mgi_allele_id": 5810209},
-                {"name": "5xFAD", "gene": "APP", "mgi_allele_id": 3693208},
-                {"name": "5xFAD", "gene": "PSEN1", "mgi_allele_id": 3693208},
+                {"model": "APOE4", "gene": "APOE", "mgi_allele_id": 5810209},
+                {"model": "5xFAD", "gene": "APP", "mgi_allele_id": 3693208},
+                {"model": "5xFAD", "gene": "PSEN1", "mgi_allele_id": 3693208},
             ]
         )
 
@@ -713,7 +667,7 @@ class TestMapGenesToHumanSymbols:
         # Create test allele_info
         allele_info_df = pd.DataFrame(
             [
-                {"name": "Model1", "gene": "Mapt", "mgi_allele_id": 99999},
+                {"model": "Model1", "gene": "Mapt", "mgi_allele_id": 99999},
             ]
         )
 
@@ -734,7 +688,7 @@ class TestMapGenesToHumanSymbols:
         # Construct expected dataframe - original gene name should be preserved
         expected_df = pd.DataFrame(
             [
-                {"name": "Model1", "gene": "Mapt", "mgi_allele_id": 99999},
+                {"model": "Model1", "gene": "Mapt", "mgi_allele_id": 99999},
             ]
         )
 
@@ -748,7 +702,7 @@ class TestMapGenesToHumanSymbols:
         # Create test allele_info
         allele_info_df = pd.DataFrame(
             [
-                {"name": "Model1", "gene": "Apoe", "mgi_allele_id": 88057},
+                {"model": "Model1", "gene": "Apoe", "mgi_allele_id": 88057},
             ]
         )
 
@@ -767,7 +721,7 @@ class TestMapGenesToHumanSymbols:
         # Construct expected dataframe - original gene name should be preserved
         expected_df = pd.DataFrame(
             [
-                {"name": "Model1", "gene": "Apoe", "mgi_allele_id": 88057},
+                {"model": "Model1", "gene": "Apoe", "mgi_allele_id": 88057},
             ]
         )
 

@@ -12,7 +12,6 @@ from agoradatatools.etl.utils import (
     delim_string_to_list,
     flatten_list,
     remove_duplicates_keep_order,
-    input_validation_model_info,
     extract_age_numeric,
 )
 
@@ -28,12 +27,12 @@ REQUIRED_INPUT = {
         "adjusted_p_value",
     ],
     "model_info": [
-        "name",
+        "model",
         "matched_controls",
         "model_type",
     ],
     "allele_info": [
-        "name",
+        "model",
         "gene",
         "mgi_allele_id",
     ],
@@ -161,15 +160,13 @@ def process_group(
     Returns:
         Dict[str, Any]: A dictionary containing the processed group data
     """
-    # If matched_controls is a list, get the first element
-    mc = model_info.get("matched_controls", "")
-    matched_control = next(iter(mc), "") if isinstance(mc, list) else mc
+    # Get the first list element of matched_controls, default to empty string if not present
+    mc = model_info.get("matched_controls", [])
+    matched_control = next(iter(mc), "")
 
     # Ensure modified_genes is always a list
-    raw_modified_genes = allele_info.get("gene", "")
-    if raw_modified_genes == "":
-        modified_genes = []
-    elif not isinstance(raw_modified_genes, list):
+    raw_modified_genes = allele_info.get("gene", [])
+    if not isinstance(raw_modified_genes, list):
         modified_genes = [raw_modified_genes]
     else:
         modified_genes = raw_modified_genes
@@ -186,25 +183,19 @@ def process_group(
     }
 
     for _, row in group.iterrows():
-        if extract_module_name(row["module"]) in output:
+        module_name = extract_module_name(row["module"])
+        if module_name in output:
             raise ValueError(
-                f"Module {extract_module_name(row['module'])} already exists for {output['name']}"
+                f"Module {module_name} already exists for {output['name']}"
             )
 
-        module_dict = {
-            "correlation": float(row["correlation"])
-            if row["correlation"] != ""
-            else None,
-            "adj_p_val": float(row["adjusted_p_value"])
-            if row["adjusted_p_value"] != ""
-            else None,
-        }
-        # Only add the module if it has valid data (not all None values)
-        if (
-            module_dict["correlation"] is not None
-            or module_dict["adj_p_val"] is not None
-        ):
-            output[extract_module_name(row["module"])] = module_dict
+        # Only add the module if it has valid data (not all None values). Using "is not None" check so that 0 values
+        # are preserved and pass this check
+        if row["correlation"] is not None or row["adjusted_p_value"] is not None:
+            output[module_name] = {
+                "correlation": row["correlation"],
+                "adj_p_val": row["adjusted_p_value"],
+            }
 
     return output
 
@@ -253,13 +244,10 @@ def transform_disease_correlation(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
-    disease_correlation_df = datasets["disease_correlation_results"].fillna("")
-    model_info_df = datasets["model_info"].fillna("")
-    allele_info_df = datasets["allele_info"].fillna("")
-    human_transgene_allele_map_df = datasets["human_transgene_allele_map"].fillna("")
-
-    # Validate model info
-    input_validation_model_info(model_info_df)
+    disease_correlation_df = datasets["disease_correlation_results"]
+    model_info_df = datasets["model_info"]
+    allele_info_df = datasets["allele_info"]
+    human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
 
     # Map mouse gene names to human gene symbols
     allele_info_mapped = map_genes_to_human_symbols(
@@ -270,13 +258,19 @@ def transform_disease_correlation(
     model_info_df["matched_controls"] = model_info_df["matched_controls"].apply(
         lambda x: delim_string_to_list(x, delim=",")
     )
-    model_info_lookup = create_lookup(model_info_df, group_by_col="name")
+    model_info_lookup = create_lookup(model_info_df, group_by_col="model")
 
-    model_allele_lookup = create_lookup(df=allele_info_mapped, group_by_col="name")
+    model_allele_lookup = create_lookup(df=allele_info_mapped, group_by_col="model")
 
     # Group by all static fields
     output = []
     group_cols = ["mouse_model", "cluster", "age", "sex"]
+
+    # Drop any rows with missing values in the grouping columns or the module column
+    disease_correlation_df = disease_correlation_df.dropna(
+        subset=group_cols + ["module"]
+    )
+
     for (name, cluster, age, sex), group in disease_correlation_df.groupby(
         group_cols, sort=False
     ):
