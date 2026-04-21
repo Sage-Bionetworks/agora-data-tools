@@ -142,17 +142,16 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
 
     If any Jax IDs were missing in the input file, the column becomes a "float64" with NaN values. This causes
     undesirable behavior, because the float conversion turns the values into decimals that persist in the string
-    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the values to Int64, which
-    allows the string conversion to work as intended. Empty strings are treated as missing values, so they are replaced
-    with None to avoid throwing an error when cast to Int64.
+    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the values to Int64, which removes
+    the decimal so the string conversion works as intended. Empty strings are treated as missing values.
 
     Args:
         jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings. It is assumed that
         all values are able to be cast to integers, or are missing ("", NaN or None).
 
     Returns:
-        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing
-        values are set to "" (empty string).
+        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
+        NA, or all-whitespace values are set to "" (empty string).
     """
     # Convert the Series to a nullable integer type that can handle None values. Replace "" with None first, handling
     # extra whitespace gracefully.

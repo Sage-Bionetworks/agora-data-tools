@@ -329,8 +329,8 @@ class TestZeroPadJaxIds:
                 pd.Series(["000123", "123456", "000000"]),
             ),
             # Should handle both None and np.NaN. The Series with None is cast to dtype=object because otherwise the
-            # None is converted to NaN by pandas. Using dtype=object also matches the output of normalizing null values
-            # by converting NaN to None, which is what happens in the transforms.
+            # None is converted to NaN by pandas. Using dtype=object also matches the output of replacing NaN values
+            # with None, which is what happens in the transforms.
             (pd.Series([1234, np.NaN]), pd.Series(["001234", ""])),
             (pd.Series([1234, None], dtype="object"), pd.Series(["001234", ""])),
             # Empty series should return an empty series
