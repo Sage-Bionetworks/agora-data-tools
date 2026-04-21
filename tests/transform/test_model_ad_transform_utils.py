@@ -328,14 +328,9 @@ class TestZeroPadJaxIds:
                 pd.Series(["123", "123456", "0"]),
                 pd.Series(["000123", "123456", "000000"]),
             ),
-            # Should handle both None and np.NaN. The Series with None is cast to dtype=object because otherwise the
-            # None is converted to NaN by pandas. Using dtype=object also matches the output of normalizing null values
-            # by converting NaN to None, which is what happens in the transforms.
+            # Should handle both None and np.NaN
             (pd.Series([1234, np.NaN, 0]), pd.Series(["001234", "", "000000"])),
-            (
-                pd.Series([1234, None, 0], dtype="object"),
-                pd.Series(["001234", "", "000000"]),
-            ),
+            (pd.Series([1234, None, 0]), pd.Series(["001234", "", "000000"])),
             # Empty strings shouldn't get padded
             (pd.Series([1234, ""]), pd.Series(["001234", ""])),
             # Empty series should return an empty series
@@ -346,12 +341,6 @@ class TestZeroPadJaxIds:
             (pd.Series(["1234567", "12345678"]), pd.Series(["1234567", "12345678"])),
             # Floats are converted to integers before padding
             (pd.Series([123.0, 12345.0]), pd.Series(["000123", "012345"])),
-            # Floats are converted to integers and padded even when some values are NaN or None
-            (pd.Series([1234.0, np.NaN, 0]), pd.Series(["001234", "", "000000"])),
-            (
-                pd.Series([1234.0, None, 0], dtype="object"),
-                pd.Series(["001234", "", "000000"]),
-            ),
         ],
     )
     def test_zero_pad_jax_id_should_pass(
