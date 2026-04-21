@@ -182,3 +182,7 @@ datasets:
       final_format: json
       destination: *dest
       custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_nested_columns:
+        - result_order
+        - data
