@@ -17,6 +17,23 @@ alwaysApply: false
 
 ---
 
+## ⚠️ Code Changes Outside GX Files Require Explicit Approval
+
+When authoring a GX suite, you are expected to create or modify only the following file types:
+- Config files (`configs/*.yaml`)
+- GX expectation suite files (`gx_suite_definitions/*.ipynb`, `gx/expectations/*.json`)
+- JSON schema files (`gx/json_schemas/**/*.json`)
+
+If you discover that any **other** file needs to be modified (e.g. `gx.py`, transform code, utilities), you must:
+1. Run all unit and transform tests first: `pytest tests/ -x -q`
+2. Stop and prompt the user for approval **before** proceeding, including:
+   - A summary of the test results
+   - Your justification for why the change is necessary
+
+Do not make the change first and seek approval after. Seek approval before.
+
+---
+
 ## Step 0 — Research the Transform Before Planning
 
 **Do all of the following before writing any plan or authoring any expectations.** These steps give you the complete picture of the transform's inputs, logic, output schema, and edge cases.
@@ -326,6 +343,8 @@ For transforms whose output JSON is very large (2+ GB), `pd.read_json()` in the 
 > - "Do you have a smaller sample or subset of the output I can use to smoke-test the suite?"
 >
 > Once a data source is confirmed, load only a small sample (e.g. 500 records) for verification — do not attempt to load the full large file.
+>
+> **Sampling caveat:** The first 500 records may not be representative of the full dataset. Some columns (e.g. nullable nested columns, age-keyed columns) may be absent from the first N records entirely if those values only appear later in the file. Before running verification, inspect the sample DataFrame to confirm that all expected columns are present. If any are missing, expand or shift your sample window (e.g. take records from the middle or end of the file, or filter to records that contain the missing keys) so that every column in the expectations suite is exercised.
 
 The format mirrors existing suites (e.g. `rnaseq_differential_expression.json`):
 
@@ -415,3 +434,5 @@ Check the output for GX validation results.
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
 | `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
+| Verification sample is missing expected columns | The first 500 records may not be representative — some columns (e.g. nullable age keys) only appear later in the file. Expand or shift the sample window to ensure all expected columns are present before running verification |
+| Modified a file outside configs, GX files, or JSON schemas | Stop, run `pytest tests/ -x -q`, and seek user approval with test results and justification before proceeding |
