@@ -39,6 +39,7 @@ class TestDiseaseCorrelation:
     # Test data configuration for asset-based tests
     pass_test_data = [
         (
+            # Test case 1: Ideal data with complete, non-missing information in all rows/data sets.
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
                 "allele_info": "model_allele_info.csv",
@@ -48,6 +49,10 @@ class TestDiseaseCorrelation:
             "disease_correlation_expected_output.json",
         ),
         (
+            # Test case 2: Some rows in disease_correlation_results are missing an entry for one of the grouping columns
+            # (cluster, module, mouse_model, sex, or age). All but one row is missing exactly one of these values, and
+            # all grouping columns have at least one missing value in the file. One row has all non-missing data, and
+            # this is the only row that should show up in the output. Rows with missing data should be removed.
             {
                 "disease_correlation_results": "disease_correlation_results_missing_grouping_data.csv",
                 "allele_info": "model_allele_info.csv",
@@ -57,6 +62,10 @@ class TestDiseaseCorrelation:
             "disease_correlation_missing_grouping_data_expected_output.json",
         ),
         (
+            # Test case 3: Some rows in disease_correlation_results are missing correlation or p-value data. One row has
+            # both values, one is missing correlation, one is missing p-value, and one is missing both values. All rows
+            # have a unique tissue/module. Tissues with complete data or missing only one of correlation or p-value
+            # should have entries in the output, while the tissue missing both values will not show up in the output.
             {
                 "disease_correlation_results": "disease_correlation_results_missing_numeric_data.csv",
                 "allele_info": "model_allele_info.csv",
@@ -112,6 +121,8 @@ class TestDiseaseCorrelation:
         """
         datasets = self.read_input_files(
             {
+                # This file has a row with a duplicate module (IFG) for one group, but different correlation and
+                # p-value data.
                 "disease_correlation_results": "disease_correlation_results_duplicated_module.csv",
                 "allele_info": "model_allele_info.csv",
                 "model_info": "model_info.csv",
@@ -286,7 +297,7 @@ class TestProcessGroup:
             ]
         )
 
-        # Model information dictionary -- matched_controls is always a list by the time this function is called
+        # Model information dictionary -- matched_controls is always a list by the time process_group is called
         model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
@@ -385,6 +396,7 @@ class TestProcessGroup:
         """
         group = pd.DataFrame(
             [
+                # These two tissues should both show up in the output, with None values preserved as None
                 {
                     "module": "IFGyellow",
                     "correlation": None,
@@ -395,6 +407,7 @@ class TestProcessGroup:
                     "correlation": 0.6,
                     "adjusted_p_value": None,
                 },
+                # This tissue should not show up in the output because both values are missing
                 {
                     "module": "ABCgreen",
                     "correlation": None,
