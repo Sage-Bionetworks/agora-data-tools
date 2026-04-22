@@ -951,8 +951,8 @@ class TestNormalizeNullValues:
         something other than None.
 
         Default output is the same as test_data_frame but with all missing values replaced with None.
-        If fill_booleans is True, boolean columns will have None replaced with False.
-        If fill_strings is True, string columns will have None replaced with "".
+        If fill_booleans is True, "bool1" and "bool2" columns will have None replaced with False.
+        If fill_strings is True, "string1" and "string2" columns will have None replaced with "".
 
         The dtype="O" argument is necessary and prevents None from being replaced with NaN automatically in the numeric
         columns.
@@ -987,7 +987,7 @@ class TestNormalizeNullValues:
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values correctly normalizes null values when all 3 *_column arguments have default
+        Test that normalize_null_values correctly normalizes null values when both *_column arguments have default
         [] values.
         """
         output = utils.normalize_null_values(test_data_frame)
@@ -1061,7 +1061,8 @@ class TestNormalizeNullValues:
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values raises a ValueError when columns don't exist in the data frame.
+        Test that normalize_null_values raises a ValueError when boolean_column or empty_string_column values don't
+        exist in the data frame.
         """
         with pytest.raises(
             ValueError,
