@@ -4,6 +4,7 @@ This is for the Model AD project.
 """
 
 import pandas as pd
+import numpy as np
 from typing import Dict, List, Any
 import re
 
@@ -189,8 +190,8 @@ def process_group(
                 f"Module {module_name} already exists for {output['name']}"
             )
 
-        # Only add the module if it has valid data (not all None values). Using "is not None" check so that 0 values
-        # are preserved and pass this check
+        # Only add the module if it has valid data (not all None values). Using "is not None" instead of "if x" so that
+        # 0 values are preserved and pass this check
         if row["correlation"] is not None or row["adjusted_p_value"] is not None:
             output[module_name] = {
                 "correlation": row["correlation"],
@@ -244,7 +245,9 @@ def transform_disease_correlation(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
-    disease_correlation_df = datasets["disease_correlation_results"]
+    disease_correlation_df = datasets["disease_correlation_results"].replace(
+        {"correlation": {np.nan: None}, "adjusted_p_value": {np.nan: None}}
+    )
     model_info_df = datasets["model_info"]
     allele_info_df = datasets["allele_info"]
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
@@ -254,7 +257,7 @@ def transform_disease_correlation(
         allele_info_df, human_transgene_allele_map_df
     )
 
-    # Need convert 'matched_controls' from comma-separated strings to lists
+    # Need to convert 'matched_controls' from comma-separated strings to lists
     model_info_df["matched_controls"] = model_info_df["matched_controls"].apply(
         lambda x: delim_string_to_list(x, delim=",")
     )
