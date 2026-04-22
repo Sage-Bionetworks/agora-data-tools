@@ -943,11 +943,21 @@ class TestNormalizeNullValues:
             }
         )
 
-    @pytest.fixture
-    def basic_expected_output(self) -> pd.DataFrame:
-        # The .replace at the end is necessary for numeric1, which still instantiates with np.nan values despite being
-        # defined with Nones
-        return pd.DataFrame(
+    def _build_expected_output(
+        self, fill_booleans: bool = False, fill_strings: bool = False
+    ) -> pd.DataFrame:
+        """
+        Helper function to build expected output for tests where only some columns have missing values filled with
+        something other than None.
+
+        Default output is the same as test_data_frame but with all missing values replaced with None.
+        If fill_booleans is True, boolean columns will have None replaced with False.
+        If fill_strings is True, string columns will have None replaced with "".
+
+        The dtype="O" argument is necessary and prevents None from being replaced with NaN automatically in the numeric
+        columns.
+        """
+        output_df = pd.DataFrame(
             {
                 "bool1": [True, False, None, None],
                 "bool2": [None] * 4,
@@ -957,21 +967,35 @@ class TestNormalizeNullValues:
                 "numeric2": [None] * 4,
                 "extra1": ["abc", "def", None, None],
                 "extra2": [None] * 4,
-            }
-        ).replace({np.nan: None})
+            },
+            dtype="O",
+        )
+
+        # Replace None with False
+        if fill_booleans:
+            output_df["bool1"] = [True, False, False, False]
+            output_df["bool2"] = [False] * 4
+
+        # Replace None with ""
+        if fill_strings:
+            output_df["string1"] = ["abc", "", "", ""]
+            output_df["string2"] = [""] * 4
+
+        return output_df
 
     def test_normalize_null_values_with_empty_column_lists(
-        self, test_data_frame: pd.DataFrame, basic_expected_output: pd.DataFrame
+        self, test_data_frame: pd.DataFrame
     ) -> None:
         """
         Test that normalize_null_values correctly normalizes null values when all 3 *_column arguments have default
         [] values.
         """
         output = utils.normalize_null_values(test_data_frame)
-        pd.testing.assert_frame_equal(output, basic_expected_output)
+        expected_output = self._build_expected_output()
+        pd.testing.assert_frame_equal(output, expected_output)
 
     def test_normalize_null_values_with_only_boolean_columns(
-        self, test_data_frame: pd.DataFrame, basic_expected_output: pd.DataFrame
+        self, test_data_frame: pd.DataFrame
     ) -> None:
         """
         Test that normalize_null_values correctly normalizes null values when only boolean_columns is defined.
@@ -981,14 +1005,12 @@ class TestNormalizeNullValues:
             boolean_columns=["bool1", "bool2"],
         )
 
-        basic_expected_output[["bool1", "bool2"]] = basic_expected_output[
-            ["bool1", "bool2"]
-        ].fillna(False)
+        expected_output = self._build_expected_output(fill_booleans=True)
 
-        pd.testing.assert_frame_equal(output, basic_expected_output)
+        pd.testing.assert_frame_equal(output, expected_output)
 
     def test_normalize_null_values_with_only_string_columns(
-        self, test_data_frame: pd.DataFrame, basic_expected_output: pd.DataFrame
+        self, test_data_frame: pd.DataFrame
     ) -> None:
         """
         Test that normalize_null_values correctly normalizes null values when only string_columns is defined.
@@ -998,17 +1020,15 @@ class TestNormalizeNullValues:
             empty_string_columns=["string1", "string2"],
         )
 
-        basic_expected_output[["string1", "string2"]] = basic_expected_output[
-            ["string1", "string2"]
-        ].fillna("")
+        expected_output = self._build_expected_output(fill_strings=True)
 
-        pd.testing.assert_frame_equal(output, basic_expected_output)
+        pd.testing.assert_frame_equal(output, expected_output)
 
     def test_normalize_null_values_with_all_column_types_defined(
-        self, test_data_frame: pd.DataFrame, basic_expected_output: pd.DataFrame
+        self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values correctly normalizes null values when all 3 *_columns arguments are defined.
+        Test that normalize_null_values correctly normalizes null values when both *_columns arguments are defined.
         """
         output = utils.normalize_null_values(
             test_data_frame,
@@ -1016,14 +1036,11 @@ class TestNormalizeNullValues:
             empty_string_columns=["string1", "string2"],
         )
 
-        basic_expected_output[["bool1", "bool2"]] = basic_expected_output[
-            ["bool1", "bool2"]
-        ].fillna(False)
-        basic_expected_output[["string1", "string2"]] = basic_expected_output[
-            ["string1", "string2"]
-        ].fillna("")
+        expected_output = self._build_expected_output(
+            fill_booleans=True, fill_strings=True
+        )
 
-        pd.testing.assert_frame_equal(output, basic_expected_output)
+        pd.testing.assert_frame_equal(output, expected_output)
 
     def test_normalize_null_values_with_empty_data_frame(self) -> None:
         """
