@@ -10,7 +10,7 @@ alwaysApply: false
 
 | File | Purpose |
 |------|---------|
-| `configs/model_ad_preprod.yaml` + `model_ad_prod.yaml` | Enable GX and declare nested columns |
+| `configs/<pipeline>_preprod.yaml` + `<pipeline>_prod.yaml` | Enable GX and declare nested columns (config file names vary by pipeline) |
 | `gx_suite_definitions/<transform>.ipynb` | Author and generate the expectation suite |
 | `src/agoradatatools/great_expectations/gx/expectations/<transform>.json` | Generated suite loaded at runtime |
 | `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/` | JSON schemas for nested/link columns |
@@ -23,7 +23,7 @@ alwaysApply: false
 
 ### 0a — Find the transform in the config
 
-Search `configs/model_ad_preprod.yaml` (or `model_ad_prod.yaml`) for the transform name. Read the full dataset block to learn:
+Search all files in `configs/` for the transform name — do not assume it will be in `model_ad_preprod.yaml`; there may be other config files (e.g. for different studies or pipelines). Read the full dataset block to learn:
 - Every input file (`name`, `id`, `format`)
 - The `custom_transformations` function name
 - Any existing `column_rename`, `gx_nested_columns`, or `gx_enabled` entries already present
@@ -54,7 +54,7 @@ Do not proceed to plan expectations until you have a confirmed way to inspect th
 ### Example — rna_de_individual
 
 For `rna_de_individual`, this means:
-1. Open `configs/model_ad_preprod.yaml`, find the `rna_de_individual` block, note all 12 input files and the `custom_transformations: transform_rna_de_individual` entry
+1. Search all files in `configs/` for `rna_de_individual`, find the matching block (e.g. in `configs/model_ad_preprod.yaml`), note all 12 input files and the `custom_transformations: transform_rna_de_individual` entry
 2. Read `src/agoradatatools/etl/transform/rna_de_individual.py`, then follow its imports and read `src/agoradatatools/etl/transform/rna_de_individual_utils.py` and `src/agoradatatools/etl/utils.py`
 3. Read `tests/transform/test_rna_de_individual.py`, `tests/transform/test_rna_de_individual_utils.py`, and `tests/test_assets/rna_de_individual/`
 4. Ask the user whether the input CSVs are available locally in `staging/` or need to be fetched
@@ -64,7 +64,7 @@ For `rna_de_individual`, this means:
 
 ## Step 1 — Enable GX in Config Files
 
-In both `model_ad_preprod.yaml` and `model_ad_prod.yaml`, add to the dataset block:
+In the relevant config file(s) (e.g. `model_ad_preprod.yaml` and `model_ad_prod.yaml`, or whichever config files contain the transform), add to the dataset block:
 
 ```yaml
 gx_enabled: true
