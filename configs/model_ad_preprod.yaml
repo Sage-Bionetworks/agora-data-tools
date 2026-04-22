@@ -1,4 +1,4 @@
-destination: &dest syn51498091 # preprod
+ destination: &dest syn51498091 # preprod
 staging_path: ./staging
 gx_folder: syn59934608         # preprod
 gx_table: syn71888382          # preprod
@@ -140,6 +140,12 @@ datasets:
       final_format: json
       destination: *dest
       custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_nested_columns:
+        - name
+        - "4 months"
+        - "12 months"
+        - "18 months"
 
   - rna_de_individual:
       files:

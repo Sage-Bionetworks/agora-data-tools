@@ -1,0 +1,14 @@
+{
+  "oneOf": [
+    { "type": "null" },
+    {
+      "type": "object",
+      "properties": {
+        "log2_fc": { "type": "number" },
+        "adj_p_val": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["log2_fc", "adj_p_val"],
+      "additionalProperties": false
+    }
+  ]
+}
