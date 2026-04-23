@@ -3,6 +3,30 @@ import pandas as pd
 
 from agoradatatools.etl.utils import nest_fields
 
+def build_combined_with_list(name_val, id_val):
+    """Converts flat combined_with_* fields into a list of {"common_name", "chembl_id"} dicts.
+    Handles comma-delimited values for 3+ constituent combinations.
+    Returns [] for monotherapy nominations (both values null/empty).
+    Raises ValueError if the number of names and IDs do not match.
+    """
+    name_is_null = pd.isnull(name_val) or str(name_val).strip() == ""
+    id_is_null = pd.isnull(id_val) or str(id_val).strip() == ""
+
+    if name_is_null and id_is_null:
+        return []
+
+    names = [n.strip() for n in str(name_val).split(",")]
+    ids = [i.strip() for i in str(id_val).split(",")]
+
+    if len(names) != len(ids):
+        raise ValueError(
+            f"Mismatched combined_with lists: {len(names)} name(s) but {len(ids)} ID(s) "
+            f"(names: {names}, ids: {ids})"
+        )
+
+    return [{"common_name": n, "chembl_id": i} for n, i in zip(names, ids)]
+
+
 # alphabatizes nominations by PI last name, using fancy AI-generated string splitting logic
 def sort_by_pi_lastname(noms):
     if not isinstance(noms, list):
@@ -50,13 +74,30 @@ def transform_drug_info(
     gene_metadata = datasets["gene_metadata"] # TODO resolve hgnc_symbols for ENSG link display values
 
     # Validate & prepare drug_list data
-    # Validate that each drug_list.chembl_id has exactly one common_name value
-    id_counts = drug_list.groupby("chembl_id")["common_name"].nunique()
-    if (id_counts > 1).any():
-        offending_ids = id_counts[id_counts > 1].index.tolist()
+    # Validate that chembl_id <-> common_name is a 1:1 mapping across all primary and combined_with pairs
+    all_pairs = set(zip(drug_list["chembl_id"], drug_list["common_name"]))
+    for _, row in drug_list.iterrows():
+        for entry in build_combined_with_list(row["combined_with_common_name"], row["combined_with_chembl_id"]):
+            all_pairs.add((entry["chembl_id"], entry["common_name"]))
+
+    id_to_names = {}
+    name_to_ids = {}
+    for chembl_id, common_name in all_pairs:
+        id_to_names.setdefault(chembl_id, set()).add(common_name)
+        name_to_ids.setdefault(common_name, set()).add(chembl_id)
+
+    offending_ids = [k for k, v in id_to_names.items() if len(v) > 1]
+    if offending_ids:
         raise ValueError(
-            f"Data Integrity Error: The following chembl_id(s) are associated with multiple "
-            f"common_names, which would cause duplicate output rows: {offending_ids}"
+            f"Data Integrity Error: The following chembl_id(s) map to multiple common_names "
+            f"across primary and combined_with fields: {offending_ids}"
+        )
+
+    offending_names = [k for k, v in name_to_ids.items() if len(v) > 1]
+    if offending_names:
+        raise ValueError(
+            f"Data Integrity Error: The following common_name(s) map to multiple chembl_ids "
+            f"across primary and combined_with fields: {offending_names}"
         )
 
     # Ensure that all rows with the same chembl_id use the same iupac_id value, preferring non-null values
@@ -105,12 +146,21 @@ def transform_drug_info(
     # Temporarily replace NA iupac_id values
     drug_list["iupac_id"] = drug_list["iupac_id"].fillna("Unknown")
 
+    # Build combined_with list for each nomination row before nesting
+    drug_list["combined_with"] = drug_list.apply(
+        lambda row: build_combined_with_list(
+            row["combined_with_common_name"], row["combined_with_chembl_id"]
+        ),
+        axis=1
+    )
+
     # Nest nomination fields, keep drug fields at the top level
     drug_list = nest_fields(
         df=drug_list,
         grouping=["chembl_id", "common_name", "iupac_id"],
         new_column="drug_nominations",
-        drop_columns=["priority_score", "priority_score_criteria", "published"]
+        drop_columns=["priority_score", "priority_score_criteria", "published",
+                      "combined_with_common_name", "combined_with_chembl_id"]
     )
 
     # collapse duplicates when multiple nominations for the same drug
