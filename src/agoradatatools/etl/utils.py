@@ -46,17 +46,23 @@ class MatchesRegexRule(ColumnRule):
         value: The regex pattern to match against (e.g. ``"^ENSMUSG"``).
 
     Raises:
-        ValueError: If *value* is ``None``.
+        ValueError: If *value* is not a non-empty string or is an invalid regex pattern.
     """
 
     rule = "matches_regex"
 
     def __init__(self, value: str):
-        """Initialize the rule with a regex *value*, raising if it is ``None``."""
-        if value is None:
+        """Initialize the rule, raising if *value* is not a non-empty string or is an invalid regex."""
+        if not isinstance(value, str) or value == "":
             raise ValueError(
-                "MatchesRegexRule requires a non-None 'value' (the regex pattern to match against)."
+                "MatchesRegexRule requires a non-None, non-empty string 'value' (the regex pattern to match against)."
             )
+        try:
+            re.compile(value)
+        except re.error as e:
+            raise ValueError(
+                f"MatchesRegexRule requires a valid regex pattern: {e}"
+            ) from e
         self.value = value
 
     def count_violations(self, series: "pd.Series") -> int:
@@ -73,25 +79,31 @@ class ContainsRule(ColumnRule):
     """Rule that every value must contain a given substring.
 
     Args:
-        value: The substring that each value must contain.
+        value: The substring that each value must contain. Matched literally, not as a regex.
 
     Raises:
-        ValueError: If *value* is ``None``.
+        ValueError: If *value* is not a non-empty string (e.g. is ``None``, ``np.nan``, or ``""``).
     """
 
     rule = "contains"
 
     def __init__(self, value: str):
-        """Initialize the rule with a substring *value*, raising if it is ``None``."""
-        if value is None:
+        """Initialize the rule, raising if *value* is not a non-empty string."""
+        if not isinstance(value, str) or value == "":
             raise ValueError(
-                "ContainsRule requires a non-None 'value' (the substring to search for)."
+                "ContainsRule requires a non-None, non-empty string 'value' (the substring to search for)."
             )
         self.value = value
 
     def count_violations(self, series: "pd.Series") -> int:
-        """Return the number of values in *series* that do not contain the substring."""
-        return int((~series.str.contains(self.value, na=False)).sum())
+        """Return the number of values in *series* that do not contain the substring.
+
+        Non-string values are cast to string before checking. The substring is matched
+        literally, not as a regex pattern.
+        """
+        return int(
+            (~series.astype(str).str.contains(self.value, na=False, regex=False)).sum()
+        )
 
     @property
     def value_detail(self) -> str:
