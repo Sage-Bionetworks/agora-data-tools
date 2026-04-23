@@ -110,7 +110,7 @@ datasets:
   - rna_de_aggregate:
       files:
         - name: rnaseq_genotype_label_map
-          id: syn69014401.16
+          id: syn69014401.17
           format: csv
         - name: mouse_gene_metadata
           id: syn51615422.4
@@ -143,7 +143,7 @@ datasets:
   - rna_de_individual:
       files:
         - name: rnaseq_genotype_label_map
-          id: syn69014401.16
+          id: syn69014401.17
           format: csv
         - name: mouse_gene_metadata
           id: syn51615422.4
