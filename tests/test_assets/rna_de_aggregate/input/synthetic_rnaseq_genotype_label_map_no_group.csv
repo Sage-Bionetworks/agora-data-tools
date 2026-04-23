@@ -1,17 +1,17 @@
 model,model_group,display_label,genotype,model_type
-Model_A,AD,Model_A (Tg),Tg,Transgenic
-Model_A,AD,Model_A (Wt),Wt,Transgenic
-Model_B,AD,Model_B (Tg),Tg,Transgenic
-Model_B,AD,Model_B (Wt),Wt,Transgenic
-Model_C,AD,Model_C (Tg),Tg,Transgenic
-Model_C,AD,Model_C (Wt),Wt,Transgenic
-JAX_Model,AD,JAX_Model (Tg),Tg,Transgenic
-JAX_Model,AD,JAX_Model (Wt),Wt,Transgenic
-Model_D,AD,Model_D (Tg),Tg,Transgenic
-Model_D,AD,Model_D (Wt),Wt,Transgenic
-Model_E,AD,Model_E (Tg),Tg,Transgenic
-Model_E,AD,Model_E (Wt),Wt,Transgenic
-Model_F,AD,Model_F (Tg),Tg,Transgenic
-Model_F,AD,Model_F (Wt),Wt,Transgenic
-Model_NoGroup,,Model_NoGroup (Tg),Tg,Transgenic
-Model_NoGroup,,Model_NoGroup (Wt),Wt,Transgenic
+Model_A,AD,Model_A (Tg),Tg,Familial AD
+Model_A,AD,Model_A (Wt),Wt,Familial AD
+Model_B,AD,Model_B (Tg),Tg,Familial AD
+Model_B,AD,Model_B (Wt),Wt,Familial AD
+Model_C,AD,Model_C (Tg),Tg,Late Onset AD
+Model_C,AD,Model_C (Wt),Wt,Late Onset AD
+JAX_Model,AD,JAX_Model (Tg),Tg,Familial AD
+JAX_Model,AD,JAX_Model (Wt),Wt,Familial AD
+Model_D,AD,Model_D (Tg),Tg,Late Onset AD
+Model_D,AD,Model_D (Wt),Wt,Late Onset AD
+Model_E,AD,Model_E (Tg),Tg,Late Onset AD
+Model_E,AD,Model_E (Wt),Wt,Late Onset AD
+Model_F,AD,Model_F (Tg),Tg,Late Onset AD
+Model_F,AD,Model_F (Wt),Wt,Late Onset AD
+Model_NoGroup,,Model_NoGroup (Tg),Tg,Late Onset AD
+Model_NoGroup,,Model_NoGroup (Wt),Wt,Late Onset AD

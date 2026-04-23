@@ -187,7 +187,7 @@ Each output entry in the transform result has the following structure:
   },
   "matched_control": "Model_A (Wt)",
   "model_group": "AD",
-  "model_type": "Transgenic",
+  "model_type": "Familial AD",
   "tissue": "Brain",
   "sex_cohort": "Female",
   "3 months": {
@@ -211,7 +211,7 @@ Each output entry in the transform result has the following structure:
   - **link_text** (string): Display text for the link (typically the model name/label)
 - **matched_control** (string): Display label for the control genotype
 - **model_group** (string or null): Model group name (null if empty)
-- **model_type** (string): Model type classification (e.g., "Transgenic", "knockout")
+- **model_type** (string): Model type classification (e.g., "Familial AD", "Late Onset AD")
 - **tissue** (string): Tissue name (JAX models have "Right Cerebral Hemisphere" mapped to "Hemibrain")
 - **sex_cohort** (string): Sex category ("Male" or "Female")
 - **<age>** (object): Age-based entries (keys are age strings like "3 months", "6 months", etc.)
