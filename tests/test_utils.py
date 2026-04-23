@@ -780,6 +780,14 @@ class TestMatchesRegexRule:
         rule = MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(self._series(["ENSMUSG001", None])) == 1
 
+    def test_counts_nan_as_violation(self) -> None:
+        rule = MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(self._series(["ENSMUSG001", np.nan])) == 1
+
+    def test_counts_empty_string_as_violation(self) -> None:
+        rule = MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(self._series(["ENSMUSG001", ""])) == 1
+
     def test_partial_match_is_violation(self) -> None:
         rule = MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(self._series(["prefix_ENSMUSG001"])) == 1
