@@ -339,7 +339,7 @@ def _check_single_rule(
     dataset_name: str,
     col_name: str,
     rule: ColumnRule,
-) -> List[str]:
+) -> Optional[List[str]]:
     """Check a single ColumnRule against one column and return any violation messages.
 
     Args:
@@ -381,7 +381,16 @@ def check_column_rules(
         ValueError: If any rule is violated. The message lists all violations,
             each naming the dataset, column, rule, and number of offending rows.
 
-    Example::
+    Example:
+        datasets = {
+            "mouse_gene_metadata": pd.DataFrame({
+                "ensembl_gene_id": ["ENSMUSG000000000000000000", "ENSMUSG000000000000000001"],
+            }),
+            "rnaseq_genotype_label_map": pd.DataFrame({
+                "model": ["model1", "model2"],
+                "model_group": ["model_group1", "model_group2"],
+            }),
+        }
 
         COLUMN_RULES = {
             "mouse_gene_metadata": {

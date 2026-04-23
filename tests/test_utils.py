@@ -680,8 +680,6 @@ class TestCheckColumnRules:
     def _make_datasets(self, col_data: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
         return {"ds": pd.DataFrame(col_data)}
 
-    # ── passes for all valid values (all rules) ──────────────────────────────
-
     @pytest.mark.parametrize(
         "col_data, rule",
         [
@@ -704,8 +702,6 @@ class TestCheckColumnRules:
         datasets = self._make_datasets({"col": col_data})
         utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
 
-    # ── not_empty: raises on blank / null ────────────────────────────────────
-
     @pytest.mark.parametrize("bad_value", [None, np.nan, "", "   "])
     def test_not_empty_raises_on_invalid_value(self, bad_value) -> None:
         datasets = self._make_datasets({"col": ["a", bad_value, "c"]})
@@ -713,8 +709,6 @@ class TestCheckColumnRules:
             utils.check_column_rules(
                 datasets, {"ds": {"col": [utils.ColumnRule(rule="not_empty")]}}
             )
-
-    # ── raises with correct violation count (matches_regex / contains / one_of)
 
     @pytest.mark.parametrize(
         "col_data, rule, match_pattern",
@@ -725,14 +719,29 @@ class TestCheckColumnRules:
                 r"2 row\(s\).*matches_regex.*\^ENSMUSG",
             ),
             (
-                ["hello world", "goodbye", "adieu"],
+                ["hello world", "goodbye"],
                 utils.ColumnRule(rule="contains", value="world"),
-                r"2 row\(s\).*contains.*world",
+                r"1 row\(s\).*contains.*world",
             ),
             (
-                ["male", "unknown", "other"],
+                ["hello world", "goodbye", "adieu", "farewell"],
+                utils.ColumnRule(rule="contains", value="world"),
+                r"3 row\(s\).*contains.*world",
+            ),
+            (
+                ["male", "female", "unknown", "other"],
                 utils.ColumnRule(rule="one_of", value={"male", "female"}),
                 r"2 row\(s\).*one_of",
+            ),
+            (
+                ["valid", None, ""],
+                utils.ColumnRule(rule="not_empty"),
+                r"2 row\(s\).*not_empty",
+            ),
+            (
+                ["valid", None, "", "   ", "also valid"],
+                utils.ColumnRule(rule="not_empty"),
+                r"3 row\(s\).*not_empty",
             ),
         ],
     )
@@ -742,8 +751,6 @@ class TestCheckColumnRules:
         datasets = self._make_datasets({"col": col_data})
         with pytest.raises(ValueError, match=match_pattern):
             utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
-
-    # ── null treated as a violation (matches_regex / contains) ───────────────
 
     @pytest.mark.parametrize(
         "good_value, rule",
@@ -756,8 +763,6 @@ class TestCheckColumnRules:
         datasets = self._make_datasets({"col": [good_value, None]})
         with pytest.raises(ValueError, match=rule.rule):
             utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
-
-    # ── multi-violation collection ────────────────────────────────────────────
 
     def test_all_violations_collected_in_single_error(self) -> None:
         datasets = {
@@ -775,8 +780,6 @@ class TestCheckColumnRules:
         message = str(exc_info.value)
         assert "ds1" in message
         assert "ds2" in message
-
-    # ── missing dataset / column graceful skip ────────────────────────────────
 
     def test_missing_dataset_in_rules_is_skipped(self) -> None:
         datasets = {"ds": pd.DataFrame({"col": ["a"]})}
