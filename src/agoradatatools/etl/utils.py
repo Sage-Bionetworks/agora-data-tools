@@ -506,12 +506,8 @@ def normalize_null_values(
     for col in empty_string_columns:
         df[col] = df[col].fillna("")
 
-    leftover_columns = all_columns - boolean_columns - empty_string_columns
-
-    for col in leftover_columns:
-        df[col] = df[col].replace(np.nan, None)
-
-    return df
+    # Replace any remaining NaN values with None
+    return df.replace(np.nan, None)
 
 
 def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
