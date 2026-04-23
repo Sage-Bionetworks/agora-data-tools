@@ -23,13 +23,11 @@ This directory contains human-readable synthetic datasets designed to test the `
 #### Metadata Files
 - **`synthetic_rnaseq_genotype_label_map.csv`**: Model to display label mapping
 - **`synthetic_mouse_gene_metadata.csv`**: Gene ID to symbol mapping
-- **`synthetic_model_info.csv`**: Model metadata (matched controls, model type)
 - **`synthetic_biodom_genes_mm.csv`**: Biodomain assignments for genes
 - **`synthetic_biodom_genes_mm_multiple.csv`**: Biodomain assignments with genes having multiple biodomains
 - **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
 - **`synthetic_rnaseq_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
 - **`synthetic_rnaseq_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
-- **`synthetic_model_info_no_group.csv`**: Model metadata with model having no model_group
 
 ### Output Files
 - **`synthetic_*_output.json`**: Expected output for each test case
@@ -260,13 +258,11 @@ tests/test_assets/rna_de_aggregate/
 │   └── Metadata Files:
 │       ├── synthetic_rnaseq_genotype_label_map.csv
 │       ├── synthetic_mouse_gene_metadata.csv
-│       ├── synthetic_model_info.csv
 │       ├── synthetic_biodom_genes_mm.csv
 │       ├── synthetic_biodom_genes_mm_multiple.csv
 │       ├── synthetic_mouse_gene_metadata_multi.csv
 │       ├── synthetic_rnaseq_genotype_label_map_no_group.csv
-│       ├── synthetic_rnaseq_genotype_label_map_inconsistent.csv
-│       └── synthetic_model_info_no_group.csv
+│       └── synthetic_rnaseq_genotype_label_map_inconsistent.csv
 ├── output/
 │   ├── synthetic_basic_output.json
 │   ├── synthetic_multi_model_output.json

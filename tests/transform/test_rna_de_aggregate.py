@@ -31,9 +31,8 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 Test Data Structure:
     Input files include:
     - RNA-seq differential expression data (*.csv)
-    - rnaseq_genotype_label_map.csv (maps genotypes to model labels)
-    - mouse_gene_metadata.csv (gene symbols and metadata)
     - rnaseq_genotype_label_map.csv (maps genotypes to model labels, includes model_type)
+    - mouse_gene_metadata.csv (gene symbols and metadata)
     - biodom_genes_mm.csv (biodomain assignments for mouse genes)
 
     Output files are JSON-formatted expected results for comparison.
