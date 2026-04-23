@@ -150,8 +150,7 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
     which can all be cast to Int64.
 
     Args:
-        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings. It is assumed that
-        all values are able to be cast to integers, or are missing ("", NaN or None).
+        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers, strings of integers, or NaN/None.
 
     Returns:
         pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
