@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Union
+from abc import ABC, abstractmethod
+from typing import Any, Collection, Dict, List, Union
 import re
 
 import numpy as np
@@ -8,23 +8,125 @@ import synapseclient
 import yaml
 
 
-@dataclass
-class ColumnRule:
-    """Describes a single content rule for a DataFrame column.
+class ColumnRule(ABC):
+    """Abstract base class for a single content rule applied to a DataFrame column.
 
-    Attributes:
-        rule: The type of rule to apply. One of:
-            - "not_empty": every value must be non-null and non-empty string
-            - "matches_regex": every value must fully match the regex pattern in `value`
-              (e.g. ``value="^ENSMUSG"`` to enforce a prefix)
-            - "contains": every value must contain `value` as a substring
-            - "one_of": every value must be a member of the collection `value`
-        value: The expected regex pattern, substring, or allowed set, depending on `rule`.
-               Not required for "not_empty".
+    Subclasses implement ``count_violations()`` to count rows that fail the rule.
+    Rules that require a comparison value (e.g. a regex pattern) enforce that the
+    value is provided at construction time and raise ``ValueError`` if it is ``None``.
     """
 
-    rule: Literal["not_empty", "matches_regex", "contains", "one_of"]
-    value: Optional[Any] = None
+    rule: str  # Subclasses declare this as a class-level attribute.
+
+    @abstractmethod
+    def count_violations(self, series: "pd.Series") -> int:
+        """Return the number of values in *series* that violate this rule."""
+        ...
+
+    @property
+    def value_detail(self) -> str:
+        """Human-readable description of the rule's comparison value, if any."""
+        return ""
+
+
+class NotEmptyRule(ColumnRule):
+    """Rule that every value must be non-null and non-empty (after stripping whitespace)."""
+
+    rule = "not_empty"
+
+    def count_violations(self, series: "pd.Series") -> int:
+        """Return the number of null, empty, or whitespace-only values in *series*."""
+        return int((series.isna() | (series.astype(str).str.strip() == "")).sum())
+
+
+class MatchesRegexRule(ColumnRule):
+    """Rule that every value must fully match a given regex pattern.
+
+    Args:
+        value: The regex pattern to match against (e.g. ``"^ENSMUSG"``).
+
+    Raises:
+        ValueError: If *value* is ``None``.
+    """
+
+    rule = "matches_regex"
+
+    def __init__(self, value: str):
+        """Initialize the rule with a regex *value*, raising if it is ``None``."""
+        if value is None:
+            raise ValueError(
+                "MatchesRegexRule requires a non-None 'value' (the regex pattern to match against)."
+            )
+        self.value = value
+
+    def count_violations(self, series: "pd.Series") -> int:
+        """Return the number of values in *series* that do not fully match the regex."""
+        return int((~series.astype(str).str.match(self.value, na=False)).sum())
+
+    @property
+    def value_detail(self) -> str:
+        """Return the regex pattern formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
+
+
+class ContainsRule(ColumnRule):
+    """Rule that every value must contain a given substring.
+
+    Args:
+        value: The substring that each value must contain.
+
+    Raises:
+        ValueError: If *value* is ``None``.
+    """
+
+    rule = "contains"
+
+    def __init__(self, value: str):
+        """Initialize the rule with a substring *value*, raising if it is ``None``."""
+        if value is None:
+            raise ValueError(
+                "ContainsRule requires a non-None 'value' (the substring to search for)."
+            )
+        self.value = value
+
+    def count_violations(self, series: "pd.Series") -> int:
+        """Return the number of values in *series* that do not contain the substring."""
+        return int((~series.str.contains(self.value, na=False)).sum())
+
+    @property
+    def value_detail(self) -> str:
+        """Return the substring formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
+
+
+class OneOfRule(ColumnRule):
+    """Rule that every value must be a member of a given collection.
+
+    Args:
+        value: The collection of allowed values (e.g. ``{"male", "female"}``).
+
+    Raises:
+        ValueError: If *value* is ``None``.
+    """
+
+    rule = "one_of"
+
+    def __init__(self, value: Collection):
+        """Initialize the rule with an allowed-values collection, raising if it is ``None``."""
+        if value is None:
+            raise ValueError(
+                "OneOfRule requires a non-None 'value' (the collection of allowed values)."
+            )
+        self.value = value
+
+    def count_violations(self, series: "pd.Series") -> int:
+        """Return the number of values in *series* not present in the allowed collection."""
+        return int((~series.isin(self.value)).sum())
+
+    @property
+    def value_detail(self) -> str:
+        """Return the allowed collection formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
 
 
 # TODO remove "_" - these utils functions are not only used internally
@@ -326,20 +428,12 @@ def check_required_datasets_and_columns(
             )
 
 
-_RULE_VIOLATION_COUNTERS: Dict[str, Any] = {
-    "not_empty": lambda s, v: (s.isna() | (s.astype(str).str.strip() == "")).sum(),
-    "matches_regex": lambda s, v: (~s.astype(str).str.match(v, na=False)).sum(),
-    "contains": lambda s, v: (~s.str.contains(v, na=False)).sum(),
-    "one_of": lambda s, v: (~s.isin(v)).sum(),
-}
-
-
 def _check_single_rule(
     df: pd.DataFrame,
     dataset_name: str,
     col_name: str,
     rule: ColumnRule,
-) -> Optional[List[str]]:
+) -> List[str]:
     """Check a single ColumnRule against one column and return any violation messages.
 
     Args:
@@ -351,13 +445,12 @@ def _check_single_rule(
     Returns:
         A list containing a violation message if the rule is broken, or an empty list.
     """
-    counter = _RULE_VIOLATION_COUNTERS.get(rule.rule)
-    if counter is None:
-        return []
-    if (bad_count := counter(df[col_name], rule.value)) > 0:
+    bad_count = rule.count_violations(df[col_name])
+    if bad_count > 0:
         prefix = f"In dataset '{dataset_name}', column '{col_name}': "
-        value_detail = "" if rule.value is None else f" (value={rule.value!r})"
-        return [f"{prefix}{bad_count} row(s) violate rule '{rule.rule}'{value_detail}."]
+        return [
+            f"{prefix}{bad_count} row(s) violate rule '{rule.rule}'{rule.value_detail}."
+        ]
     return []
 
 
@@ -394,11 +487,11 @@ def check_column_rules(
 
         COLUMN_RULES = {
             "mouse_gene_metadata": {
-                "ensembl_gene_id": [ColumnRule(rule="matches_regex", value="^ENSMUSG")],
+                "ensembl_gene_id": [MatchesRegexRule(value="^ENSMUSG")],
             },
             "rnaseq_genotype_label_map": {
-                "model": [ColumnRule(rule="not_empty")],
-                "model_group": [ColumnRule(rule="not_empty")],
+                "model": [NotEmptyRule()],
+                "model_group": [NotEmptyRule()],
             },
         }
         check_column_rules(datasets, COLUMN_RULES)
