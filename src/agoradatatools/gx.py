@@ -167,7 +167,9 @@ class GreatExpectationsRunner:
         df = df.copy()
         for column in nested_columns:
             df[column] = df[column].apply(
-                lambda x: json.dumps(None) if isinstance(x, float) and pd.isna(x) else json.dumps(x)
+                lambda x: json.dumps(None)
+                if isinstance(x, float) and pd.isna(x)
+                else json.dumps(x)
             )
         return df
 
