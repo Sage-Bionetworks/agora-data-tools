@@ -23,7 +23,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 - Negative zero handling (negative zero log2foldchange values are normalized to positive zero)
 - Negative p-value validation (negative adjusted p-values raise ValueError)
 - Edge cases (single row data, missing metadata, empty biodomains)
-- Error handling (missing datasets, empty files, missing columns, invalid age formats, inconsistent model_group values)
+- Error handling (missing datasets, empty files, missing columns, invalid age formats, inconsistent model_group values, inconsistent model_type values)
 - Data precision (rounding to 5 decimal places)
 - Multiple biodomain assignments per gene
 - Null/empty model_group handling
@@ -1145,6 +1145,7 @@ class TestTransformRnaDeAggregate:
         - test_synthetic_multiple_biodomains: Tests genes with multiple biodomain assignments.
         - test_synthetic_null_model_group: Tests handling of null/empty model_group values.
         - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
+        - test_inconsistent_model_type_values: Tests error handling for inconsistent model_type values.
 
     Helper Methods:
         - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
@@ -1181,6 +1182,7 @@ class TestTransformRnaDeAggregate:
             "synthetic_rnaseq_genotype_label_map.csv": "rnaseq_genotype_label_map",
             "synthetic_rnaseq_genotype_label_map_no_group.csv": "rnaseq_genotype_label_map",
             "synthetic_rnaseq_genotype_label_map_inconsistent.csv": "rnaseq_genotype_label_map",
+            "synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv": "rnaseq_genotype_label_map",
             "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
             "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
             "synthetic_biodom_genes_mm.csv": "biodom_genes_mm",
@@ -1673,6 +1675,34 @@ class TestTransformRnaDeAggregate:
         # Verify the error message contains expected information
         error_message = str(exc_info.value)
         assert "Each model must have a consistent model_group value" in error_message
+        assert "rnaseq_genotype_label_map" in error_message
+        assert "Model_A" in error_message
+        # Model_B should not be in the error since it's consistent
+        assert "Model_B" not in error_message
+
+    def test_inconsistent_model_type_values(self) -> None:
+        """Test error handling for inconsistent model_type values within the same model.
+
+        Tests that when a model has different non-empty model_type values across multiple
+        rows (e.g., different genotypes), a clear ValueError is raised identifying which
+        models have inconsistent values. Uses
+        synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv where Model_A has
+        'Familial AD' for Tg genotype and 'Late Onset AD' for Wt genotype.
+        """
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            transform_rna_de_aggregate(datasets=datasets)
+
+        error_message = str(exc_info.value)
+        assert "Each model must have a consistent model_type value" in error_message
         assert "rnaseq_genotype_label_map" in error_message
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent

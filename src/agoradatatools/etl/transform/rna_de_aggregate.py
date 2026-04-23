@@ -581,9 +581,9 @@ def transform_rna_de_aggregate(
     )
     if inconsistent_model_type_models:
         raise ValueError(
-            f"Each model must have a consistent non-empty model_type value in "
-            f"rnaseq_genotype_label_map. Models with inconsistent model_type values: "
-            f"{inconsistent_model_type_models}"
+            f"Each model must have a consistent model_type value in "
+            f"rnaseq_genotype_label_map. Models with inconsistent non-empty "
+            f"model_type values: {inconsistent_model_type_models}"
         )
     model_type_dict = (
         normalized_model_type.groupby(rnaseq_genotype_label_map_df["model"])

@@ -28,6 +28,7 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
 - **`synthetic_rnaseq_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
 - **`synthetic_rnaseq_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
+- **`synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv`**: Label mapping with inconsistent model_type values for the same model (for error testing)
 
 ### Output Files
 - **`synthetic_*_output.json`**: Expected output for each test case
@@ -262,7 +263,8 @@ tests/test_assets/rna_de_aggregate/
 │       ├── synthetic_biodom_genes_mm_multiple.csv
 │       ├── synthetic_mouse_gene_metadata_multi.csv
 │       ├── synthetic_rnaseq_genotype_label_map_no_group.csv
-│       └── synthetic_rnaseq_genotype_label_map_inconsistent.csv
+│       ├── synthetic_rnaseq_genotype_label_map_inconsistent.csv
+│       └── synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv
 ├── output/
 │   ├── synthetic_basic_output.json
 │   ├── synthetic_multi_model_output.json
