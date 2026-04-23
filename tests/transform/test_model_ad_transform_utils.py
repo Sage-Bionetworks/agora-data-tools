@@ -335,7 +335,7 @@ class TestZeroPadJaxIds:
             (pd.Series([1234, None], dtype="object"), pd.Series(["001234", ""])),
             # Empty series should return an empty series
             (pd.Series(), pd.Series()),
-            # White space is stripped by the cast operation before padding
+            # White space in strings with integers is stripped by the cast operation before padding
             (pd.Series(["  1234", "123 "]), pd.Series(["001234", "000123"])),
             # IDs longer than 6 characters should stay as-is
             (pd.Series(["123456", "12345678"]), pd.Series(["123456", "12345678"])),
