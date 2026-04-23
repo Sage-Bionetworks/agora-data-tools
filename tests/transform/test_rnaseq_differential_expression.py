@@ -23,10 +23,28 @@ class TestTransformRnaseqDifferentialExpression:
         "Pass with missing data",
     ]
     fail_test_data = [
-        "test_rnaseq_differential_expression_bad_input.csv",  # fail with bad data
+        (  # Fail with bad data type
+            {"diff_exp_data": "test_rnaseq_differential_expression_bad_input.csv"},
+            TypeError,
+            None,
+        ),
+        (  # Fail with missing dataset
+            {},
+            ValueError,
+            "Missing required datasets",
+        ),
+        (  # Fail with missing required column
+            {
+                "diff_exp_data": "test_rnaseq_differential_expression_missing_column_input.csv"
+            },
+            ValueError,
+            "Missing required columns",
+        ),
     ]
     fail_test_ids = [
         "Fail with bad data type",
+        "Fail with missing dataset",
+        "Fail with missing required column",
     ]
 
     @pytest.mark.parametrize(
@@ -46,12 +64,18 @@ class TestTransformRnaseqDifferentialExpression:
         )
         pd.testing.assert_frame_equal(output_df, expected_df)
 
-    @pytest.mark.parametrize("input_file", fail_test_data, ids=fail_test_ids)
-    def test_transform_rnaseq_differential_expression_should_fail(self, input_file):
-        with pytest.raises(TypeError):
-            input_df = pd.read_csv(
-                os.path.join(self.data_files_path, "input", input_file)
-            )
+    @pytest.mark.parametrize(
+        "input_datasets, error_type, error_match", fail_test_data, ids=fail_test_ids
+    )
+    def test_transform_rnaseq_differential_expression_should_fail(
+        self, input_datasets, error_type, error_match
+    ):
+        with pytest.raises(error_type, match=error_match):
+            datasets = {}
+            for dataset_name, file_name in input_datasets.items():
+                datasets[dataset_name] = pd.read_csv(
+                    os.path.join(self.data_files_path, "input", file_name)
+                )
             rnaseq_differential_expression.transform_rnaseq_differential_expression(
-                datasets={"diff_exp_data": input_df}
+                datasets=datasets
             )

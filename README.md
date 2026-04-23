@@ -8,7 +8,8 @@
     - [Troubleshooting](#troubleshooting)
   - [Docker](#docker)
 - [Testing Github Workflow](#testing-github-workflow)
-- [Unit Tests](#unit-tests)
+- [Unit and Custom Transform Tests](#unit-and-custom-transform-tests)
+- [Precommit](#precommit)
 - [Pipeline Configuration](#pipeline-configuration)
 
 ## Intro
@@ -199,15 +200,65 @@ python -m pytest tests/transform/
 You can get detailed test failure information by appending the verbose (`-v`) or very verbose (`-vv`) flag to either command.
 
 ## Precommit
-Before pushing code to the repo, run `precommit` and commit any updates it makes to ensure that your PR will pass the precommit checks in CI.
-To install precommit:
+
+Before pushing code to the repo, run pre-commit and commit any updates it makes to ensure that your PR will pass the precommit checks in CI.
+
+If `pre-commit` is not yet installed in your environment:
+
 ```bash
 pip install pre-commit
 ```
-To run precommit:
+
+To run pre-commit manually:
+
 ```bash
- pre-commit run --all-files
+pre-commit run --all-files
 ```
+
+### Optional: `scripts/prepare_commit.py`
+
+If you want a single command that validates your environment, installs the package, runs tests, and then runs pre-commit, you can use `scripts/prepare_commit.py`. It runs the following steps in order:
+
+1. **Environment check** – verifies that the expected virtual environment is active (skipped if not configured).
+2. **Install** – runs `pip install .` to make sure the package is up to date in your environment.
+3. **Tests** – runs `pytest tests/` and exits early if any test fails.
+4. **Pre-commit** – runs `pre-commit run --all-files`, automatically retrying once if a hook auto-fixes files on the first pass.
+
+If every step passes you will see:
+
+```
+All steps passed. Your changes are ready to commit!
+```
+
+#### One-time setup (optional but recommended)
+
+Copy the example config and fill in your package manager and environment name so the script can verify the correct environment is active:
+
+```bash
+cp dev_config.yaml.example dev_config.yaml
+# then edit dev_config.yaml:
+#   package_manager: conda   # or: venv, virtualenv, poetry, pipenv
+#   env_name: adt_py310      # your environment name
+```
+
+Once `dev_config.yaml` is in place, simply run:
+
+```bash
+python scripts/prepare_commit.py
+```
+
+#### CLI usage (no config file required)
+
+You can also pass your package manager and environment name directly on the command line; these take precedence over `dev_config.yaml`:
+
+| Package manager | Command |
+|---|---|
+| conda | `python scripts/prepare_commit.py -p conda -e adt_py310` |
+| venv / virtualenv | `python scripts/prepare_commit.py -p venv -e .venv` |
+| poetry | `python scripts/prepare_commit.py -p poetry -e my-project` |
+| pipenv | `python scripts/prepare_commit.py -p pipenv -e my-project` |
+
+If neither `dev_config.yaml` nor CLI flags are provided, the environment check is skipped and the script runs on whatever Python is currently active.
 
 ## Pipeline Configuration
 Parameters:

@@ -475,7 +475,7 @@ class TestTransformModelOverview:
                 "study_data": {
                     "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn111"
                 },
-                "jax_strain": {"link_url": "https://jax.org/strain/111"},
+                "jax_strain": {"link_url": "https://jax.org/strain/000111"},
                 "center": "UCI",
                 "modified_genes": ["Gene1", "Gene2"],
                 "available_data": ["Transcriptomics", "Pathology"],
@@ -493,7 +493,7 @@ class TestTransformModelOverview:
                 "study_data": {
                     "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn222"
                 },
-                "jax_strain": {"link_url": "https://jax.org/strain/222"},
+                "jax_strain": {"link_url": "https://jax.org/strain/000222"},
                 "center": "IU/Jax/Pitt",
                 "modified_genes": ["Gene3"],
                 "available_data": ["Disease Correlation", "Pathology", "Biomarkers"],
