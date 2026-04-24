@@ -245,7 +245,9 @@ def transform_disease_correlation(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
-    disease_correlation_df = datasets["disease_correlation_results"].replace(np.nan, None)
+    disease_correlation_df = datasets["disease_correlation_results"].replace(
+        np.nan, None
+    )
     model_info_df = datasets["model_info"]
     allele_info_df = datasets["allele_info"]
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
