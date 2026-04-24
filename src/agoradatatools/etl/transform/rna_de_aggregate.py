@@ -569,28 +569,21 @@ def transform_rna_de_aggregate(
 
     # Derive model_type from rnaseq_genotype_label_map so that split variant models
     # (e.g., "Abca7*V1599M.5xFAD") are covered without requiring entries in model_info.
-    # Treat blank/whitespace-only values as empty, then validate that each model has at
-    # most one distinct non-empty model_type value across its rows.
-    normalized_model_type = rnaseq_genotype_label_map_df["model_type"].replace(
-        r"^\s*$", pd.NA, regex=True
+    model_type_df = (
+        rnaseq_genotype_label_map_df[["model", "model_type"]]
+        .drop_duplicates()
+        .fillna("")
     )
-    inconsistent_model_type_models = (
-        normalized_model_type.groupby(rnaseq_genotype_label_map_df["model"])
-        .nunique(dropna=True)
-        .pipe(lambda x: x[x > 1].index.tolist())
-    )
-    if inconsistent_model_type_models:
+    if model_type_df["model"].duplicated().any():
+        inconsistent_model_type_models = model_type_df["model"][
+            model_type_df["model"].duplicated()
+        ].tolist()
         raise ValueError(
             f"Each model must have a consistent model_type value in "
-            f"rnaseq_genotype_label_map. Models with inconsistent non-empty "
-            f"model_type values: {inconsistent_model_type_models}"
+            f"rnaseq_genotype_label_map. Models with inconsistent model_type values: "
+            f"{inconsistent_model_type_models}"
         )
-    model_type_dict = (
-        normalized_model_type.groupby(rnaseq_genotype_label_map_df["model"])
-        .first()
-        .fillna("")
-        .to_dict()
-    )
+    model_type_dict = model_type_df.set_index("model")["model_type"].to_dict()
 
     # Create biodomain lookup dictionary
     biodomain_dict = (
