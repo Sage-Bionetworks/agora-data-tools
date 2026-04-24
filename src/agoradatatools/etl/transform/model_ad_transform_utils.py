@@ -153,8 +153,8 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
         jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers, strings of integers, or NaN/None.
 
     Returns:
-        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
-        NA, or all-whitespace values are set to "" (empty string).
+        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. None or NaN
+        values are set to "" (empty string).
     """
     return (
         jax_id.astype("Int64")

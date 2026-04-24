@@ -348,7 +348,7 @@ class TestZeroPadJaxIds:
             # Floats are converted to integers and padded even when some values are NaN or None
             (pd.Series([1234.0, np.NaN]), pd.Series(["001234", ""])),
             (pd.Series([1234.0, None], dtype="object"), pd.Series(["001234", ""])),
-            # Mixed None and NaN values
+            # Mixed None and NaN values -- None and NaN should both be converted to empty strings
             (
                 pd.Series(["123", None, np.NaN], dtype="object"),
                 pd.Series(["000123", "", ""]),
@@ -391,7 +391,7 @@ class TestZeroPadJaxIds:
             (pd.Series(["1234.5", "123"]), ValueError),
             (pd.Series(["", ""]), ValueError),  # Empty strings can't be cast to Int64
             (pd.Series([123.45, 678.90]), TypeError),  # Non-integer floats
-            (pd.Series([1234, "1234"]), TypeError),  # Mixed data types
+            (pd.Series([1234, "1234"]), TypeError),  # Mixed non-missing data types
         ],
         ids=[
             "Fail with non-numeric string input",
