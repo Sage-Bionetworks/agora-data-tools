@@ -146,22 +146,22 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
 
     If any Jax IDs were missing in the input file, the column becomes a "float64" with NaN values. This causes
     undesirable behavior, because the float conversion turns the values into decimals that persist in the string
-    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the values to Int64, which removes
-    the decimal so the string conversion works as intended. Empty strings are treated as missing values.
+    (e.g. instead of "1234" it becomes "1234.0"). To solve this, we first cast the column to Int64, which removes
+    the decimal so the string conversion works as intended. Int64 is a nullable integer type that can handle missing
+    values (NaN or None) without converting the entire column to float.
+
+    This function assumes that all Jax IDs are either integers, strings with integer values, or missing (NaN or None),
+    which can all be cast to Int64.
 
     Args:
-        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings. It is assumed that
-        all values are able to be cast to integers, or are missing ("", NaN or None).
+        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers, strings of integers, or NaN/None.
 
     Returns:
-        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
-        NA, or all-whitespace values are set to "" (empty string).
+        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. None or NaN
+        values are set to "" (empty string).
     """
-    # Convert the Series to a nullable integer type that can handle None values. Replace "" with None first, handling
-    # extra whitespace gracefully.
-    jax_id = jax_id.apply(
-        lambda x: None if isinstance(x, str) and x.strip() == "" else x
-    ).astype("Int64")
-
-    # Zero-pad remaining integer values
-    return jax_id.apply(lambda x: (str(x).zfill(6) if pd.notna(x) else "")).astype("O")
+    return (
+        jax_id.astype("Int64")
+        .apply(lambda x: (str(x).zfill(6) if pd.notna(x) else ""))
+        .astype("O")  # Force object type to prevent empty columns remaining as Int64
+    )

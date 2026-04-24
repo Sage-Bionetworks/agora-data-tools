@@ -335,10 +335,8 @@ class TestZeroPadJaxIds:
             (pd.Series([1234, None], dtype="object"), pd.Series(["001234", ""])),
             # Empty series should return an empty series
             (pd.Series(), pd.Series()),
-            # White space should be stripped before padding
+            # White space in strings with integers is stripped by the cast operation before padding
             (pd.Series(["  1234", "123 "]), pd.Series(["001234", "000123"])),
-            # Empty or all-whitespace strings are treated as missing
-            (pd.Series(["", "   ", "\t"]), pd.Series(["", "", ""])),
             # IDs longer than 6 characters should stay as-is
             (pd.Series(["123456", "12345678"]), pd.Series(["123456", "12345678"])),
             (pd.Series([123456, 12345678]), pd.Series(["123456", "12345678"])),
@@ -350,7 +348,7 @@ class TestZeroPadJaxIds:
             # Floats are converted to integers and padded even when some values are NaN or None
             (pd.Series([1234.0, np.NaN]), pd.Series(["001234", ""])),
             (pd.Series([1234.0, None], dtype="object"), pd.Series(["001234", ""])),
-            # Mixed None and NaN values
+            # Mixed None and NaN values -- None and NaN should both be converted to empty strings
             (
                 pd.Series(["123", None, np.NaN], dtype="object"),
                 pd.Series(["000123", "", ""]),
@@ -363,7 +361,6 @@ class TestZeroPadJaxIds:
             "Pass with integer and None values",
             "Pass with empty series",
             "Pass with numeric strings containing extra whitespace",
-            "Pass with empty and all-whitespace strings",
             "Pass with numeric strings longer than 6 characters",
             "Pass with integer values longer than 6 characters",
             "Pass with float values longer than 6 characters",
@@ -392,12 +389,14 @@ class TestZeroPadJaxIds:
             # Non-integer float inside a string throws a ValueError when trying to convert to Int64,
             # rather than the TypeError that is thrown when casting a plain non-integer float value
             (pd.Series(["1234.5", "123"]), ValueError),
+            (pd.Series(["", ""]), ValueError),  # Empty strings can't be cast to Int64
             (pd.Series([123.45, 678.90]), TypeError),  # Non-integer floats
-            (pd.Series([1234, "1234"]), TypeError),  # Mixed data types
+            (pd.Series([1234, "1234"]), TypeError),  # Mixed non-missing data types
         ],
         ids=[
             "Fail with non-numeric string input",
             "Fail with non-integer float string input",
+            "Fail with empty string input",
             "Fail with non-integer float input",
             "Fail with mixed data types input",
         ],
