@@ -177,7 +177,12 @@ class TestDiseaseCorrelation:
             ("allele_info", "model"),
             ("human_transgene_allele_map", "mgi_allele_id"),
         ],
-        ids=[],
+        ids=[
+            "Missing 'cluster' from disease_correlation_results",
+            "Missing 'model' from model_info",
+            "Missing 'model' from allele_info",
+            "Missing 'mgi_allele_id' from human_transgene_allele_map",
+        ],
     )
     def test_transform_disease_correlation_fails_with_missing_columns(
         self, dataset: str, missing_column: str
