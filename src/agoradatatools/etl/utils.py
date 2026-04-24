@@ -40,7 +40,11 @@ class NotEmptyRule(ColumnRule):
 
 
 class MatchesRegexRule(ColumnRule):
-    """Rule that every value must fully match a given regex pattern.
+    """Rule that every value must match a given regex pattern anchored at the start.
+
+    Uses pandas ``str.match``, which anchors the pattern at the beginning of each
+    string. To require a match across the entire value, include a trailing anchor
+    in the pattern (e.g. ``"^ENSMUSG\\d+$"`` rather than just ``"^ENSMUSG"``).
 
     Args:
         value: The regex pattern to match against (e.g. ``"^ENSMUSG"``).
@@ -66,7 +70,7 @@ class MatchesRegexRule(ColumnRule):
         self.value = value
 
     def count_violations(self, series: "pd.Series") -> int:
-        """Return the number of values in *series* that do not fully match the regex."""
+        """Return the number of values in *series* that do not match the regex at the start."""
         return int((~series.astype(str).str.match(self.value, na=False)).sum())
 
     @property
@@ -118,16 +122,16 @@ class OneOfRule(ColumnRule):
         value: The collection of allowed values (e.g. ``{"male", "female"}``).
 
     Raises:
-        ValueError: If *value* is ``None``.
+        ValueError: If *value* is ``None`` or an empty collection.
     """
 
     rule = "one_of"
 
     def __init__(self, value: Collection):
-        """Initialize the rule with an allowed-values collection, raising if it is ``None``."""
-        if value is None:
+        """Initialize the rule with an allowed-values collection, raising if it is ``None`` or empty."""
+        if not value:
             raise ValueError(
-                "OneOfRule requires a non-None 'value' (the collection of allowed values)."
+                "OneOfRule requires a non-None, non-empty 'value' (the collection of allowed values)."
             )
         self.value = value
 

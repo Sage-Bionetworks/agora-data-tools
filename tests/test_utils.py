@@ -756,9 +756,10 @@ class TestMatchesRegexRule:
     def _series(self, data) -> pd.Series:
         return pd.Series(data)
 
-    def test_raises_when_value_is_none(self) -> None:
+    @pytest.mark.parametrize("bad_value", [None, "", 123, np.nan])
+    def test_raises_when_value_is_invalid(self, bad_value) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
-            MatchesRegexRule(value=None)
+            MatchesRegexRule(value=bad_value)
 
     def test_raises_when_value_is_invalid_regex(self) -> None:
         with pytest.raises(ValueError, match="valid regex"):
@@ -862,9 +863,10 @@ class TestOneOfRule:
     def _series(self, data) -> pd.Series:
         return pd.Series(data)
 
-    def test_raises_when_value_is_none(self) -> None:
+    @pytest.mark.parametrize("bad_value", [None, set(), [], {}])
+    def test_raises_when_value_is_invalid(self, bad_value) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
-            OneOfRule(value=None)
+            OneOfRule(value=bad_value)
 
     def test_no_violations_when_all_in_set(self) -> None:
         rule = OneOfRule(value={"male", "female"})
