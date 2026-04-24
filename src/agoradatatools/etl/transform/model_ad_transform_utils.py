@@ -107,17 +107,17 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
         the categories "..." is a string like
             "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hippocampus,Sex%2520-%2520Females%2520%2526%2520Males"
 
-    The url will be None if there is no gene expression data for this model.
+    The url will be None if there is no transcriptomics data for this model.
 
     Args:
         model_row (pd.Series): A single row from the model_info data frame, which must contain columns "name",
-            "gene_expression", "url_categories_value", and "url_models_value". The latter two columns may be None or
-            contain strings. "gene_expression" must be True or False. It is assumed that normalize_null_values has
+            "transcriptomics", "url_categories_value", and "url_models_value". The latter two columns may be None or
+            contain strings. "transcriptomics" must be True or False. It is assumed that normalize_null_values has
             already been called on this data so that all missing values used in this function are None, not NA or empty
             strings.
 
     Returns:
-        a string with the completed URL, or None if there is no gene expression data for the model
+        a string with the completed URL, or None if there is no transcriptomics data for the model
     """
     categories_value = (
         # Contains the "&" at the end to separate it from the models=... statement

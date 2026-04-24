@@ -434,8 +434,8 @@ def extract_age_numeric(age: str) -> Union[int, None]:
 
 def normalize_null_values(
     df: pd.DataFrame,
-    boolean_columns: list[str] = None,
-    empty_string_columns: list[str] = None,
+    boolean_columns: list[str] | None = None,
+    empty_string_columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
