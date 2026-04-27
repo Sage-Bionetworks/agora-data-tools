@@ -242,7 +242,7 @@ Note that each file's synId and version is added to the data_sources vector via 
 The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
 ```{r}
 # Genotype -> Display label map
-genotype_label_map <- download_csv('syn69014401.14') %>%
+genotype_label_map <- download_csv('syn69014401.17') %>%
   # Model name fix, plus change "5xFAD (UCI)" -> "5xFAD"
   mutate(model = model_group,
          display_label = str_replace(display_label, " \\(UCI\\)", ""))
