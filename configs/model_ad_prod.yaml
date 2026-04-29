@@ -6,7 +6,7 @@ sources:
   - model_info:
     model_info_file: &model_info_file
       - name: model_info
-        id: syn61378590.12
+        id: syn61378590.13
         format: csv
 datasets:
   - model_details:
