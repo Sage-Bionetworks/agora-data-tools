@@ -9,7 +9,7 @@
     },
     "matched_control": "Model_D (Wt)",
     "model_group": "AD",
-    "model_type": "Transgenic",
+    "model_type": "Late Onset AD",
     "tissue": "Brain",
     "sex_cohort": "Female",
     "3 months": {
@@ -27,7 +27,7 @@
     },
     "matched_control": "Model_D (Wt)",
     "model_group": "AD",
-    "model_type": "Transgenic",
+    "model_type": "Late Onset AD",
     "tissue": "Brain",
     "sex_cohort": "Male",
     "6 months": {

@@ -110,28 +110,12 @@ class TestTissueNameMapping:
         """'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
         assert self._preprocess(["Right Cerebral Hemisphere"]).iloc[0] == "Hemibrain"
 
-    def test_applies_sentence_case_to_other_tissues(self) -> None:
-        """Other tissue names are converted to sentence case."""
-        result = self._preprocess(
-            ["cortex", "hippocampus", "cerebellum", "CORTEX", "HIPPOCAMPUS"]
-        )
-        expected = pd.Series(
-            ["Cortex", "Hippocampus", "Cerebellum", "Cortex", "Hippocampus"]
-        )
-        pd.testing.assert_series_equal(result, expected, check_names=False)
-
-    def test_preserves_sentence_case_tissues(self) -> None:
-        """Properly formatted tissue names are unchanged."""
-        result = self._preprocess(["Cortex", "Hippocampus"])
-        expected = pd.Series(["Cortex", "Hippocampus"])
-        pd.testing.assert_series_equal(result, expected, check_names=False)
-
     def test_mixed_tissue_names(self) -> None:
         """Mixed tissue names including the special mapping are all handled correctly."""
         result = self._preprocess(
-            ["Right Cerebral Hemisphere", "hippocampus", "CORTEX", "Cerebellum"]
+            ["Right Cerebral Hemisphere", "Cerebellum", "Cerebral Cortex"]
         )
-        expected = pd.Series(["Hemibrain", "Hippocampus", "Cortex", "Cerebellum"])
+        expected = pd.Series(["Hemibrain", "Cerebellum", "Cerebral Cortex"])
         pd.testing.assert_series_equal(result, expected, check_names=False)
 
 

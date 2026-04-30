@@ -25,10 +25,10 @@ Key Functions:
     _process_single_data_file: Processes a single differential expression data file and transforms it into output entries
 
 Required Inputs:
-    - rnaseq_genotype_label_map: Maps (model, genotype) tuples to display labels. All genotypes
-      used in data files must have corresponding entries or a ValueError will be raised.
+    - rnaseq_genotype_label_map: Maps (model, genotype) tuples to display labels, and provides
+      model_type for each model. All genotypes used in data files must have corresponding entries
+      or a ValueError will be raised.
     - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
-    - model_info: Model types and matched controls
     - biodom_genes_mm: Biodomain annotations for mouse genes
     - Data files: One or more CSV files containing differential expression results with columns:
       ensembl_gene_id, log2foldchange, padj, model, case, control, age, sex, tissue
@@ -44,9 +44,14 @@ from agoradatatools.etl.utils import check_required_datasets_and_columns, normal
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
-    "rnaseq_genotype_label_map": ["model", "model_group", "display_label", "genotype"],
+    "rnaseq_genotype_label_map": [
+        "model",
+        "model_group",
+        "display_label",
+        "genotype",
+        "model_type",
+    ],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
-    "model_info": ["model", "matched_controls", "model_type"],
     "biodom_genes_mm": [
         "biodomain",
         "abbr",
@@ -185,7 +190,7 @@ def _create_output_entry_from_group(
     label_map_dict: Dict[tuple[str, str], str],
     model_group_dict: Dict[str, str],
     biodomain_dict: Dict[str, List[str]],
-    model_info_dict: Dict[str, str],
+    model_type_dict: Dict[str, str],
 ) -> Dict[str, Any]:
     """
     Creates a complete output entry from a grouped DataFrame by enriching it with metadata.
@@ -224,8 +229,10 @@ def _create_output_entry_from_group(
             models into groups (e.g., "5XFAD", "APP/PS1").
         biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
             Used to annotate genes with their associated biological domains.
-        model_info_dict: Dictionary mapping model names to model types. Used to classify
-            models (e.g., "knockout", "transgenic").
+        model_type_dict: Dictionary mapping model names to model types, derived from the
+            rnaseq_genotype_label_map dataset. Used to classify models (e.g., "Familial AD",
+            "Late Onset AD"). Unlike model_info, this dict includes entries for split variant
+            models such as "Abca7*V1599M.5xFAD".
 
     Returns:
         Dictionary containing a complete output entry with the following structure:
@@ -249,7 +256,7 @@ def _create_output_entry_from_group(
                 'name': {'link_url': 'models/5XFAD', 'link_text': '5XFAD'},
                 'matched_control': 'Wild-type',
                 'model_group': '5XFAD',
-                'model_type': 'transgenic',
+                'model_type': 'Familial AD',
                 'tissue': 'Hemibrain',
                 'sex': 'M',
                 '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
@@ -263,7 +270,7 @@ def _create_output_entry_from_group(
 
     Note:
         Age entries are validated and sorted numerically before being included in the output.
-        Missing values in gene_metadata_dict, biodomain_dict, and model_info_dict result
+        Missing values in gene_metadata_dict, biodomain_dict, and model_type_dict result
         in empty strings or empty lists, not errors. However, missing entries in label_map_dict
         for the case or control genotypes will raise a ValueError.
     """
@@ -287,7 +294,7 @@ def _create_output_entry_from_group(
     matched_control = label_map_dict[control_key]
     model_group = model_group_dict.get(model)
     biodomains = biodomain_dict.get(ensembl_gene_id, [])
-    model_type = model_info_dict.get(model, "")
+    model_type = model_type_dict.get(model, "")
 
     age_entries = _create_age_entries_from_group(
         group, ensembl_gene_id, model, tissue, sex
@@ -323,7 +330,7 @@ def _process_single_data_file(
     label_map_dict: Dict[tuple[str, str], str],
     model_group_dict: Dict[str, str],
     biodomain_dict: Dict[str, List[str]],
-    model_info_dict: Dict[str, str],
+    model_type_dict: Dict[str, str],
     file_index: int,
     total_files: int,
 ) -> List[Dict[str, Any]]:
@@ -366,8 +373,9 @@ def _process_single_data_file(
             categorize models into groups (e.g., "5XFAD", "APP/PS1").
         biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
             Used to annotate genes with their associated biological domains.
-        model_info_dict: Dictionary mapping model names to model types. Used to classify
-            models (e.g., "knockout", "transgenic").
+        model_type_dict: Dictionary mapping model names to model types, derived from the
+            rnaseq_genotype_label_map dataset. Used to classify models (e.g., "Familial AD",
+            "Late Onset AD").
         file_index: Current file index (0-based) for progress tracking. Used in logging
             to indicate which file is being processed (e.g., "Processing file 3/10").
         total_files: Total number of files to process. Used in logging to show progress
@@ -426,7 +434,7 @@ def _process_single_data_file(
             label_map_dict,
             model_group_dict,
             biodomain_dict,
-            model_info_dict,
+            model_type_dict,
         )
         output_entries.append(output_entry)
 
@@ -470,10 +478,10 @@ def transform_rna_de_aggregate(
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
             - 'rnaseq_genotype_label_map': Maps (model, genotype) combinations to display labels
-              and organizes models into model_groups. Each row specifies how a genotype identifier
-              should be displayed for a given model.
+              and organizes models into model_groups. Also provides model_type for each model,
+              including split variant models (e.g., "Abca7*V1599M.5xFAD") that are not present
+              in model_info.
             - 'mouse_gene_metadata': Gene symbols and aliases for Ensembl IDs
-            - 'model_info': Model types and metadata
             - 'biodom_genes_mm': Biodomain annotations for mouse genes
             - One or more data files: CSV DataFrames containing differential expression
               results with columns: ensembl_gene_id, log2foldchange, padj, model, case,
@@ -500,7 +508,7 @@ def transform_rna_de_aggregate(
                 'name': {'link_url': 'models/5XFAD', 'link_text': '5XFAD'},
                 'matched_control': 'Wild-type',
                 'model_group': '5XFAD',
-                'model_type': 'transgenic',
+                'model_type': 'Familial AD',
                 'tissue': 'Hemibrain',
                 'sex': 'M',
                 '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
@@ -527,7 +535,6 @@ def transform_rna_de_aggregate(
     # Pre-compute lookup dictionaries for efficient lookups
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
-    model_info_df = datasets["model_info"].fillna("")
     biodom_genes_mm_df = (
         datasets["biodom_genes_mm"]
         .dropna(axis="index", subset=["ensembl_id"])
@@ -538,7 +545,6 @@ def transform_rna_de_aggregate(
     gene_metadata_dict = mouse_gene_metadata_df.set_index("ensembl_gene_id")[
         "gene_symbol"
     ].to_dict()
-    model_info_dict = model_info_df.set_index("model")["model_type"].to_dict()
 
     # Create label map dictionaries for efficient lookups
     label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
@@ -560,6 +566,24 @@ def transform_rna_de_aggregate(
     model_group_dict = (
         rnaseq_genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
     )
+
+    # Derive model_type from rnaseq_genotype_label_map so that split variant models
+    # (e.g., "Abca7*V1599M.5xFAD") are covered without requiring entries in model_info.
+    model_type_df = (
+        rnaseq_genotype_label_map_df[["model", "model_type"]]
+        .drop_duplicates()
+        .fillna("")
+    )
+    if model_type_df["model"].duplicated().any():
+        inconsistent_model_type_models = model_type_df["model"][
+            model_type_df["model"].duplicated()
+        ].tolist()
+        raise ValueError(
+            f"Each model must have a consistent model_type value in "
+            f"rnaseq_genotype_label_map. Models with inconsistent model_type values: "
+            f"{inconsistent_model_type_models}"
+        )
+    model_type_dict = model_type_df.set_index("model")["model_type"].to_dict()
 
     # Create biodomain lookup dictionary
     biodomain_dict = (
@@ -602,7 +626,7 @@ def transform_rna_de_aggregate(
             label_map_dict,
             model_group_dict,
             biodomain_dict,
-            model_info_dict,
+            model_type_dict,
             i,
             total_files,
         )
