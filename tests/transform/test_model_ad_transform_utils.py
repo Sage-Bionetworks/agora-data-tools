@@ -10,6 +10,7 @@ from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
     zero_pad_jax_ids,
+    validate_jax_ids,
 )
 
 
@@ -401,7 +402,7 @@ class TestZeroPadJaxIds:
             "Fail with mixed data types input",
         ],
     )
-    def test_zero_pad_jax_ids_should_fail(
+    def test_zero_pad_jax_ids_should_fail_on_non_castable_input(
         self, input_ids: pd.Series, error_type: ValueError | TypeError
     ) -> None:
         """
@@ -414,3 +415,69 @@ class TestZeroPadJaxIds:
         )
         with pytest.raises(error_type, match=match_str):
             zero_pad_jax_ids(input_ids)
+
+    def test_zero_pad_jax_ids_should_fail_on_negative_numbers(self) -> None:
+        """
+        Tests that the function throws a ValueError when given negative numbers, since Jax IDs should not be negative.
+        """
+        input_ids = pd.Series([-1, -1234])
+        with pytest.raises(
+            ValueError, match="All Jax IDs must be strings that contain only digits"
+        ):
+            zero_pad_jax_ids(input_ids)
+
+
+class TestValidateJaxIds:
+    """
+    This class tests the validate_jax_ids function to ensure the regex correctly validates Jax ID formats.
+    """
+
+    @pytest.mark.parametrize(
+        "input_ids",
+        [
+            pd.Series(["123456", "000001", "1234567"]),  # Valid Jax IDs
+            pd.Series(["123456", "", "000001"]),  # Valid with empty string
+            pd.Series(["", ""], dtype="object"),  # All empty IDs
+        ],
+        ids=[
+            "Pass with valid Jax IDs",
+            "Pass with valid Jax IDs and empty string for missing value",
+            "Pass with all empty Jax IDs",
+        ],
+    )
+    def test_validate_jax_ids_should_pass(self, input_ids: pd.Series) -> None:
+        """
+        Tests that the function does not raise an error when given valid Jax ID formats.
+        """
+        # Should not raise an error
+        validate_jax_ids(input_ids)
+
+    @pytest.mark.parametrize(
+        "input_ids",
+        [
+            pd.Series(["12345"]),  # Too short
+            pd.Series(["-12345"]),  # Contains non-digit character
+            pd.Series(["123 456"]),  # Contains space
+            pd.Series([None]),  # None is not an empty string
+            pd.Series([np.NaN]),  # NaN is not an empty string
+            pd.Series(["\n"]),  # String with only whitespace is not valid
+        ],
+        ids=[
+            "Fail with Jax ID that is too short",
+            "Fail with Jax ID that contains non-digit character",
+            "Fail with Jax ID that contains space",
+            "Fail with None value instead of empty string",
+            "Fail with NaN value instead of empty string",
+            "Fail with string containing only whitespace",
+        ],
+    )
+    def test_validate_jax_ids_should_fail_on_invalid_formats(
+        self, input_ids: pd.Series
+    ) -> None:
+        """
+        Tests that the function raises a ValueError when given invalid Jax ID formats.
+        """
+        with pytest.raises(
+            ValueError, match="All Jax IDs must be strings that contain only digits"
+        ):
+            validate_jax_ids(input_ids)
