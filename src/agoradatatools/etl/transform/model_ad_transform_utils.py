@@ -157,8 +157,8 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
         values are set to "" (empty string).
 
     Raises:
-        ValueError: If any Jax IDs contain non-digit characters, are less than 6 characters long, or are not empty
-        strings.
+        ValueError: If any input Jax IDs can not be cast to Int64
+        ValueError: If any zero-padded Jax IDs contain non-digit characters, or missing values are not empty strings.
     """
     jax_id = (
         jax_id.astype("Int64")
@@ -192,7 +192,6 @@ def validate_jax_ids(jax_id: pd.Series) -> None:
     # ^$ matches empty strings
     if jax_id.isna().any() or not jax_id.str.fullmatch(r"\d{6}\d*|^$").all():
         raise ValueError(
-            "All Jax IDs must be strings that contain only digits and be at least 6 characters long, ",
-            'or be an empty string ("")',
+            "Jax IDs must be strings that contain only digits and are at least 6 characters long, or must be empty strings"
         )
     return None

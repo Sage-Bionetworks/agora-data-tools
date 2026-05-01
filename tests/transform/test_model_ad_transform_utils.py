@@ -422,7 +422,7 @@ class TestZeroPadJaxIds:
         """
         input_ids = pd.Series([-1, -1234])
         with pytest.raises(
-            ValueError, match="All Jax IDs must be strings that contain only digits"
+            ValueError, match="Jax IDs must be strings that contain only digits"
         ):
             zero_pad_jax_ids(input_ids)
 
@@ -478,6 +478,6 @@ class TestValidateJaxIds:
         Tests that the function raises a ValueError when given invalid Jax ID formats.
         """
         with pytest.raises(
-            ValueError, match="All Jax IDs must be strings that contain only digits"
+            ValueError, match="Jax IDs must be strings that contain only digits"
         ):
             validate_jax_ids(input_ids)
