@@ -208,6 +208,169 @@ class TestProcessGeneticInfo:
         # Compare output with expected
         assert output == expected_output
 
+    def test_process_genetic_info_normalizes_missing_values(self) -> None:
+        # Create test input DataFrames with some missing values. Only "allele" and "allele_type" can have missing
+        # values and still appear in the output.
+        human_transgene_allele_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": [1234567, 2345678],
+                "gene_symbol": ["APP", "MAPT"],
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
+            }
+        )
+
+        model_alleles = pd.DataFrame(
+            {
+                "modified_gene": ["App", "Mapt"],
+                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222"],
+                "allele": [np.NaN, np.NaN],  # Missing allele names
+                "allele_type": [np.NaN, np.NaN],  # Missing allele type
+                "mgi_allele_id": [1234567, 2345678],
+            },
+            dtype="object",
+        )
+
+        # Expected output: ENSG IDs should be mapped, gene names should keep original case
+        expected_output = [
+            {
+                "modified_gene": "APP",
+                "ensembl_gene_id": "ENSG00000123456",
+                "allele": None,  # Missing values should be normalized to None
+                "allele_type": None,
+                "mgi_allele_id": 1234567,
+            },
+            {
+                "modified_gene": "MAPT",
+                "ensembl_gene_id": "ENSG00000987654",
+                "allele": None,  # Missing values should be normalized to None
+                "allele_type": None,
+                "mgi_allele_id": 2345678,
+            },
+        ]
+
+        # Transform data
+        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+
+        # Compare output with expected
+        assert output == expected_output
+
+    def test_process_genetic_info_fails_with_non_unique_human_transgene_mapping(
+        self,
+    ) -> None:
+        # Create test input DataFrames with duplicate values in the human_transgene_allele_map_df. The function should
+        # raise an error because the merge won't work correctly if there are multiple human transgene entries for the
+        # same (mgi_allele_id, gene_symbol) pair.
+        human_transgene_allele_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": [1234567, 1234567],  # Duplicate MGI allele ID
+                "gene_symbol": ["APP", "APP"],  # Duplicate gene symbol
+                "human_ensembl_id": [
+                    "ENSG00000123456",
+                    "ENSG00000123456",
+                ],  # Duplicate human Ensembl ID
+            }
+        )
+
+        model_alleles = pd.DataFrame(
+            {
+                "modified_gene": ["App"],
+                "gene_ensembl_id": ["ENSMUSG00000011111"],
+                "allele": ["APP Example Allele"],
+                "allele_type": ["Example Allele Type"],
+                "mgi_allele_id": [1234567],
+            }
+        )
+
+        with pytest.raises(
+            pd.errors.MergeError, match="Merge keys are not unique in right dataset"
+        ):
+            process_genetic_info(human_transgene_allele_map_df, model_alleles)
+
+    @pytest.mark.parametrize(
+        "missing_col",
+        [
+            "mgi_allele_id",
+            "gene_symbol",
+            "human_ensembl_id",
+        ],
+        ids=[
+            "Fail with missing mgi_allele_id values",
+            "Fail with missing gene_symbol values",
+            "Fail with missing human_ensembl_id values",
+        ],
+    )
+    def test_process_genetic_info_fails_with_missing_human_transgene_values(
+        self, missing_col: str
+    ) -> None:
+        """
+        The function should raise an error if any values in human_transgene_allele_map_df are missing because missing
+        values will be silently dropped by the merge operation otherwise.
+        """
+        human_transgene_allele_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": [1234567, 2345678],
+                "gene_symbol": ["APP", "MAPT"],
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
+            }
+        )
+        human_transgene_allele_map_df.loc[1, missing_col] = np.NaN
+
+        model_alleles = pd.DataFrame(
+            {
+                "modified_gene": ["App", "Mapt"],
+                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222"],
+                "allele": ["APP Example Allele", "MAPT Example Allele"],
+                "allele_type": ["Example Allele Type", "Example Allele Type"],
+                "mgi_allele_id": [1234567, 2345678],
+            }
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="human_transgene_allele_map_df must have all non-null values",
+        ):
+            process_genetic_info(human_transgene_allele_map_df, model_alleles)
+
+    @pytest.mark.parametrize(
+        "missing_merge_col",
+        [
+            "mgi_allele_id",
+            "modified_gene",
+        ],
+        ids=[
+            "Fail with missing mgi_allele_id values",
+            "Fail with missing modified_gene values",
+        ],
+    )
+    def test_process_genetic_info_fails_with_missing_model_alleles_merge_values(
+        self, missing_merge_col
+    ) -> None:
+        """
+        The function should raise an error if any values in the merge columns ("mgi_allele_id" and "modified_gene") are
+        missing because missing values will be silently dropped by the merge operation otherwise.
+        """
+        human_transgene_allele_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": [1234567, 2345678],
+                "gene_symbol": ["APP", "MAPT"],
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
+            }
+        )
+
+        model_alleles = pd.DataFrame(
+            {
+                "modified_gene": ["App", "Mapt"],
+                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222"],
+                "allele": ["APP Example Allele", "MAPT Example Allele"],
+                "allele_type": ["Example Allele Type", "Example Allele Type"],
+                "mgi_allele_id": [1234567, 2345678],
+            }
+        )
+        model_alleles.loc[1, missing_merge_col] = np.NaN
+
+        with pytest.raises(ValueError, match="model_alleles must have non-null values"):
+            process_genetic_info(human_transgene_allele_map_df, model_alleles)
+
 
 class TestBuildTranscriptomicsUrl:
     """
