@@ -406,7 +406,7 @@ class TestZeroPadJaxIds:
         self, input_ids: pd.Series, error_type: ValueError | TypeError
     ) -> None:
         """
-        Tests that the function throws an ValueError or TypeError when given non-numeric input or non-castable input.
+        Tests that the function throws a ValueError or TypeError when given non-numeric input or non-castable input.
         """
         match_str = (
             "invalid literal for int\\(\\)"
