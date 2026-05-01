@@ -208,6 +208,63 @@ class TestProcessGeneticInfo:
         # Compare output with expected
         assert output == expected_output
 
+    def test_process_genetic_info_normalizes_missing_values(self) -> None:
+        # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele" and "allele_type"
+        # can have missing values and still appear in the output.
+        human_transgene_allele_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": [1234567, 2345678],
+                "gene_symbol": ["APP", "MAPT"],
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
+            }
+        )
+
+        # The third gene does not exist in the human transgene mapping, so its Ensembl ID will not get overwritten in
+        # the output and the missing value will show up.
+        model_alleles = pd.DataFrame(
+            {
+                "modified_gene": ["App", "Mapt", "Psen1"],
+                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.NaN],
+                "allele": [np.NaN, np.NaN, np.NaN],  # Missing allele names
+                "allele_type": [np.NaN, np.NaN, np.NaN],  # Missing allele type
+                "mgi_allele_id": [1234567, 2345678, 3456789],
+            },
+            dtype="object",
+        )
+
+        # Expected output: missing values should be normalized to None, and the first two genes should have their
+        # Ensembl IDs replaced with the human ones. The third gene should keep its missing mouse Ensembl ID, which
+        # should be normalized to None.
+        expected_output = [
+            {
+                "modified_gene": "APP",
+                "ensembl_gene_id": "ENSG00000123456",
+                "allele": None,  # Missing values should be normalized to None
+                "allele_type": None,
+                "mgi_allele_id": 1234567,
+            },
+            {
+                "modified_gene": "MAPT",
+                "ensembl_gene_id": "ENSG00000987654",
+                "allele": None,
+                "allele_type": None,
+                "mgi_allele_id": 2345678,
+            },
+            {
+                "modified_gene": "Psen1",
+                "ensembl_gene_id": None,
+                "allele": None,
+                "allele_type": None,
+                "mgi_allele_id": 3456789,
+            },
+        ]
+
+        # Transform data
+        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+
+        # Compare output with expected
+        assert output == expected_output
+
 
 class TestBuildTranscriptomicsUrl:
     """

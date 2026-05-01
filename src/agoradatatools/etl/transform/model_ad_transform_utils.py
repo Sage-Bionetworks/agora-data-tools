@@ -22,6 +22,13 @@ def process_genetic_info(
     replace the ensembl_id with the human one. Each model's alleles are processed independently.
     Multiple entries are preserved for different alleles of the same gene.
 
+    This function assumes the input data has been pre-validated so that:
+        1. human_transgene_allele_map_df does not have any missing/NaN/None values in any column
+        2. model_alleles does not have any missing/NaN/None values in the "modified_gene" or "mgi_allele_id" columns,
+            which are needed for the merge. Missing values in other columns of model_alleles are allowed, and will be
+            normalized to None.
+    This is to ensure that rows are not silently dropped during the merge due to missing values in the merge columns.
+
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
         model_alleles (pd.DataFrame): The DataFrame containing the model allele information.
