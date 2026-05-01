@@ -27,7 +27,8 @@ def process_genetic_info(
         2. model_alleles does not have any missing/NaN/None values in the "modified_gene" or "mgi_allele_id" columns,
             which are needed for the merge. Missing values in other columns of model_alleles are allowed, and will be
             normalized to None.
-    This is to ensure that rows are not silently dropped during the merge due to missing values in the merge columns.
+    This is to ensure that human transgene map rows are not silently dropped during the merge due to missing values, and
+    that there are no missing gene symbols or allele IDs in the merged data frame.
 
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
@@ -103,8 +104,8 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
     two (or more) model names to the "models=..." part of the string.
 
     The exact values that should go in "categories=..." and "models=..." are pulled from columns in model_row. If the
-    url_categories_value is None, the "categories=..." string is not added. If the url_models_value is None, the
-    "models=..." string defaults to "models=<model_name>".
+    url_categories_value is None or "", the "categories=..." string is not added. If the url_models_value is None or "",
+    the "models=..." string defaults to "models=<model_name>".
 
     The final url can have two different formats:
         "comparison/expression?models=..."
