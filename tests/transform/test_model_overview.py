@@ -344,25 +344,22 @@ class TestTransformModelOverview:
                 "biomarkers": [None],
             }
         )
-        # allele_info can not have None values in mgi_allele_id or modified_gene since those are required for the merge,
-        # but other fields can be None
         allele_info = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "modified_gene": ["App"],
+                "modified_gene": [None],
                 "mgi_gene_id": [None],
                 "gene_ensembl_id": [None],
                 "allele": [None],
                 "allele_type": [None],
-                "mgi_allele_id": [1234567],
+                "mgi_allele_id": [None],
             }
         )
-        # Human transgene allele map can not have any missing values
         human_transgene_allele_map = pd.DataFrame(
             {
-                "mgi_allele_id": [1234567],
-                "gene_symbol": ["APP"],
-                "human_ensembl_id": ["ENSG00000011111"],
+                "mgi_allele_id": [None],
+                "gene_symbol": [None],
+                "human_ensembl_id": [None],
             }
         )
 
@@ -391,7 +388,7 @@ class TestTransformModelOverview:
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": "IU/Jax/Pitt",
-                "modified_genes": ["APP"],
+                "modified_genes": [],
                 "available_data": [],
             }
         ]

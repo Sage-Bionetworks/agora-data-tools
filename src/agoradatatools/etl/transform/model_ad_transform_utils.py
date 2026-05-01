@@ -28,21 +28,7 @@ def process_genetic_info(
 
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
-
-    Raises:
-        ValueError: If there are missing values in the mgi_allele_id or modified_gene columns of model_alleles
-        ValueError: If there are any missing values in human_transgene_allele_map_df
     """
-    # Double .any() required: first .any() checks if there are any nulls in each column, resulting in a Series of
-    # booleans, one for each column. The second .any() checks if any of those values are True, resulting in a single
-    # boolean value.
-    if model_alleles[["mgi_allele_id", "modified_gene"]].isna().any().any():
-        raise ValueError(
-            "model_alleles must have non-null values in 'mgi_allele_id' and 'modified_gene' columns."
-        )
-    if human_transgene_allele_map_df.isna().any().any():
-        raise ValueError("human_transgene_allele_map_df must have all non-null values")
-
     # Copy dataframes to avoid modifying originals
     # Using copy() to avoid warning: A value is trying to be set on a copy of a slice from a DataFrame.
     # Warning appears even if using .loc to set the value.
@@ -55,16 +41,13 @@ def process_genetic_info(
         "gene_symbol"
     ].str.upper()
 
-    # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles. There can be multiple pairs of
-    # (mgi_allele_id, gene_upper) in the model_alleles dataframe (when a gene has multiple modifications under the same
-    # allele ID), but human_transgene_allele_map_df should only have one entry per (mgi_allele_id, gene_upper) pair.
+    # Merge on mgi_allele_id and gene_upper to ensure we preserve different alleles
     merged_df = model_alleles.merge(
         human_transgene_allele_map_df[
             ["mgi_allele_id", "gene_upper", "human_ensembl_id", "gene_symbol"]
         ],
         on=["mgi_allele_id", "gene_upper"],
         how="left",
-        validate="many_to_one",
     )
 
     merged_df = normalize_null_values(merged_df)
