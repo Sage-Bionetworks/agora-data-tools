@@ -539,6 +539,39 @@ class TestNestFields:
         )
         assert list(nested_df["e"]) == expected_column_e
 
+    def test_nest_fields_normalizes_null_values(self) -> None:
+        df_with_nulls = pd.DataFrame(
+            {
+                "a": ["group_1", "group_1", "group_2"],
+                "b": ["1", np.NaN, "1"],
+                "c": ["1", "1", np.NaN],
+            }
+        )
+
+        expected_df = pd.DataFrame(
+            {
+                "a": ["group_1", "group_2"],
+                "nested": [
+                    # group_1
+                    [
+                        {"b": "1", "c": "1"},
+                        {"b": None, "c": "1"},
+                    ],
+                    # group_2
+                    [{"b": "1", "c": None}],
+                ],
+            }
+        )
+
+        nested_df = utils.nest_fields(
+            df=df_with_nulls,
+            grouping="a",
+            new_column="nested",
+            drop_columns=["a"],
+        )
+
+        pd.testing.assert_frame_equal(nested_df, expected_df)
+
 
 class TestCalculateDistribution:
     # NOTE: pd.describe() calls np.quantile() with interpolation when quantiles fall between values.
