@@ -132,8 +132,8 @@ download_csv <- function(synId, df_name) {
   cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
   cat("\npath: ", file$path, "\n")
 
-  data <- read.csv(path)
-  df_name <- as.data.frame(data)
+  df_name <- read_csv(path, show_col_types = FALSE, na = c("", "NA", "N/A"), name_repair = ~make.names(., unique = TRUE)) %>%
+    select(where(~!all(is.na(.))))
 }
 
 
@@ -179,8 +179,10 @@ results %>% pivot_longer(
 join_to_metadata <- function(results, individual_metadata, biospecimen_metadata) {
 
   # Ensure that all individualID columns are chr type
-  results <- results %>%
-    dplyr::mutate(individualID = as.character(individualID))
+  if ("individualID" %in% colnames(results)) {
+    results <- results %>%
+      dplyr::mutate(individualID = as.character(individualID))
+  }
 
   individual_metadata <- individual_metadata %>%
     dplyr::select(individualID, sex, ageDeath, genotype) %>%
@@ -376,7 +378,7 @@ fivex_final <- join_to_metadata(fivex_biomarkers, fivex_individual, fivex_biospe
 # Convert columns to consistent types
 nss_abs_sol_12mo_source$individualID <- as.character(nss_abs_sol_12mo_source$individualID)
 nss_abs_insol_12mo_source$individualID <- as.character(nss_abs_insol_12mo_source$individualID)
-nss_abs_insol_12mo_source$Abeta42 <- suppressWarnings(as.numeric(nss_abs_insol_12mo_source$Abeta42))
+nss_abs_insol_12mo_source$Abeta42 <- as.numeric(nss_abs_insol_12mo_source$Abeta42)
 
 # Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
 nss_abs_sol_4mo <- nss_abs_sol_4mo_source %>% dplyr::mutate(fraction_type = 'Soluble')
@@ -496,9 +498,7 @@ if(!dir.exists(output_dir)){
   dir.create(output_dir)
 }
 write.csv(biomarkers_final, file.path(output_dir, "biomarkers.csv"), row.names = FALSE)
-```
 
-```{r}
 # upload to synapse
 syn_file <- File(file.path(output_dir, "biomarkers.csv"),
                  description = "Harmonized Biomarker data for Model-AD Explorer 2.0.",
@@ -523,34 +523,6 @@ old_file <- download_csv(file_synID)
   path <- old_file$path
 
 # verify changes are expected
-identical(old_file, pathology_final)
-all.equal(old_file, pathology_final)
-```
-# compare generated file to latest version in synapse
-```{r}
-file_synID <- "syn61250724.11"
-input_dir <- file.path("./", "input")
-
-file_synID2 <- "syn61250724.12"
-input_dir <- file.path("./", "input")
-
-older_file <- download_csv(file_synID)
-  path <- old_file$path
-
-old_file <- download_csv(file_synID2)
-  path <- old_file$path
-
-# verify changes are expected
-identical(old_file, older_file)
-
-```
-
-# manual genotype verification
-```{r}
-individualID <- 9733
-nss_abs_sol_4mo[nss_abs_sol_4mo$individualID == individualID, ]
-nss_individual[nss_individual$individualID == individualID, ]
-nss_biospecimen[nss_biospecimen$individualID == individualID, ]
-
-
+identical(old_file, biomarkers_final)
+all.equal(old_file, biomarkers_final)
 ```
