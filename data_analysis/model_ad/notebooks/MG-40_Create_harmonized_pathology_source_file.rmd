@@ -8,6 +8,10 @@ Models that are currently handled by this notebook:
 * Trem2-R47H_NSS
 * Abca7*V1599M -> MG-848: Abca7 pathology results are currently excluded due to source metadata issues; search/address all instance of "MG-848" here to reenable
 
+NOTE: synapser's dependency chain loads plyr, which masks dplyr's summarise(),
+mutate(), and rename(). All calls to those functions use dplyr:: explicitly
+to prevent silent use of plyr's implementations.
+
 ADDING NEW MODELS
 As data becomes available for additional models, the data for those models will need to be incorporated into the harmonized source file.
 
@@ -179,7 +183,7 @@ transform_results <- function(results, measurement_columns, model_name, fields_t
                 model = model_name
 
         # Convert various unit colnames to consistent unit display values
-        ) %>% mutate(
+        ) %>% dplyr::mutate(
 
                 units = case_match(
                         units,
@@ -191,7 +195,7 @@ transform_results <- function(results, measurement_columns, model_name, fields_t
                 )
 
         # Convert stain values to type display names; tolower() to avoids case mismatches due to variation across source files
-        ) %>% mutate(
+        ) %>% dplyr::mutate(
                 type = case_when(
                         tolower(stain) == 'iba1' & units == objectDensity_display_name ~ IBA1_display_name,
                         tolower(stain) == 'gfap'  & units == objectDensity_display_name ~  GFAP_display_name,
@@ -243,7 +247,7 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
 
   mismatches <- joined_temp %>%
     group_by(specimenID) %>%
-    summarise(
+    dplyr::summarise(
       n_sex = n_distinct(sex),
       n_genotype = n_distinct(genotype),
       n_age = n_distinct(ageDeath),
@@ -264,14 +268,14 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
             ) %>% left_join(genotype_label_map, by = c('model', 'genotype')
 
             # If specimenID starts with "Pool", use specimenID. Otherwise, keep individualID.
-            ) %>% mutate(individualID = if_else(
+            ) %>% dplyr::mutate(individualID = if_else(
                 grepl("^Pool", specimenID),
                 as.character(specimenID),
                 as.character(individualID)
             )
 
             # Correct genotypes to align with target display values
-            ) %>% mutate(genotype = display_label
+            ) %>% dplyr::mutate(genotype = display_label
 
             # Print out nrow of results before age filtering
             ) %>% { print(nrow(.)) ; .
@@ -283,10 +287,10 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
             ) %>% { print(nrow(.)) ; .
 
             # Convert all individualID columns to string type
-            } %>% mutate(individualID = as.character(individualID)
+            } %>% dplyr::mutate(individualID = as.character(individualID)
 
             # Rename columns
-            ) %>% rename(individual_id = individualID,
+            ) %>% dplyr::rename(individual_id = individualID,
                          age_death = ageDeath
 
             # Drop unneeded columns
@@ -302,7 +306,7 @@ The populated data_sources vector is used to populate Synapse provenance when th
 # Genotype -> Display label map
 genotype_label_map <- download_csv('syn69014401.17') %>%
   # Model name fix, plus change "5xFAD (UCI)" -> "5xFAD"
-  mutate(model = model_group,
+  dplyr::mutate(model = model_group,
          display_label = str_replace(display_label, " \\(UCI\\)", ""))
 
 # 3xTG-AD
@@ -310,7 +314,7 @@ genotype_label_map <- download_csv('syn69014401.17') %>%
 threex_biospecimen <- download_csv('syn23532198.3')
 threex_individual <- download_csv('syn23532199.4') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, "_homozygous", "_carrier"),
+  dplyr::mutate(genotype = str_replace(genotype, "_homozygous", "_carrier"),
          genotype = str_replace(genotype, "3XTg", "3xTg"))
 # data
 threex_pathology_source <- download_csv('syn26601504.1')
@@ -320,7 +324,7 @@ threex_pathology_source <- download_csv('syn26601504.1')
 fivex_biospecimen <- download_csv('syn18876530.10')
 fivex_individual <- download_csv('syn18880070.14') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, "_hemizygous", "_carrier"))
+  dplyr::mutate(genotype = str_replace(genotype, "_hemizygous", "_carrier"))
 # data
 fivex_gfap_s100b_source <- download_csv('syn22049816.3')
 fivex_lamp1_source <- download_csv('syn22049817.2')
@@ -331,7 +335,7 @@ fivex_iba1_thios_source <- download_csv('syn22049825.4')
 nss_biospecimen <- download_csv('syn29568452.3')
 nss_individual <- download_csv('syn27147690.3') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, ",", ";"))
+  dplyr::mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 nss_pathology_source <- download_csv('syn42131930.1')
 ```
@@ -347,7 +351,7 @@ nss_pathology_source <- download_csv('syn42131930.1')
 abca7_biospecimen <- download_csv('syn30859390.2')
 abca7_individual <- download_csv('syn30859394.2') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, ",", ";"))
+  dplyr::mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 abca7_pathology_source <- download_csv('syn53127289.1')
 # END MG-848 abca7 source files
@@ -418,7 +422,7 @@ fivex_final <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_iba1_p
           specimenID != "N/A"
 
     # MG-268: Replace N/A measurement values with 0s
-    ) %>% mutate(
+    ) %>% dplyr::mutate(
             measurement = ifelse(is.na(measurement), 0, measurement)
 
     # Join results to metadata
@@ -653,6 +657,8 @@ if(!dir.exists(output_dir)){
 }
 write.csv(pathology_final, file.path(output_dir, "pathology.csv"), row.names = FALSE)
 
+# BREAK HERE FOR LOCAL VERIFICATION
+
 # upload to synapse
 syn_file <- File(file.path(output_dir, "pathology.csv"),
                  description = "Harmonized Pathology data for Model-AD Explorer 2.0.",
@@ -664,4 +670,18 @@ res <- synStore(syn_file, forceVersion = FALSE,
 
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 
+```
+
+
+
+# compare generated file to latest version in synapse
+```{r}
+file_synID <- "syn61357279"
+input_dir <- file.path("./", "input")
+
+old_file <- download_csv(file_synID)
+  path <- old_file$path
+
+# verify changes are expected
+identical(old_file, pathology_final)
 ```
