@@ -178,12 +178,22 @@ results %>% pivot_longer(
 # This function will fail if it identifies metadata inconsistencies for pooled samples.
 join_to_metadata <- function(results, individual_metadata, biospecimen_metadata) {
 
-  # Join metadata files by individualID
-  individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
-  biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
-  metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
+  # Ensure that all individualID columns are chr type
+  results <- results %>%
+    dplyr::mutate(individualID = as.character(individualID))
 
-  # Figure out what columns to merge by
+  individual_metadata <- individual_metadata %>%
+    dplyr::select(individualID, sex, ageDeath, genotype) %>%
+    dplyr::mutate(individualID = as.character(individualID))
+
+  biospecimen_metadata <- biospecimen_metadata %>%
+    dplyr::select(individualID, specimenID, tissue) %>%
+    dplyr::mutate(individualID = as.character(individualID))
+
+  # Join metadata files by individualID
+  metadata <- left_join(biospecimen_metadata, individual_metadata, by = 'individualID')
+
+  # Figure out which join columns are in the results dataframe
   join_by <- if(all(c('specimenID', 'individualID') %in% colnames(results)) &&
               all(c('specimenID', 'individualID') %in% colnames(metadata))) {
     c('specimenID', 'individualID')
@@ -486,7 +496,9 @@ if(!dir.exists(output_dir)){
   dir.create(output_dir)
 }
 write.csv(biomarkers_final, file.path(output_dir, "biomarkers.csv"), row.names = FALSE)
+```
 
+```{r}
 # upload to synapse
 syn_file <- File(file.path(output_dir, "biomarkers.csv"),
                  description = "Harmonized Biomarker data for Model-AD Explorer 2.0.",
@@ -497,5 +509,48 @@ res <- synStore(syn_file, forceVersion = FALSE,
                 executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-88_Create_harmonized_biomarkers_source_file.rmd")
 
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
+```
+
+
+
+# compare generated file to latest version in synapse
+```{r}
+file_synID <- "syn61250724"
+input_dir <- file.path("./", "input")
+
+old_file <- download_csv(file_synID)
+  path <- old_file$path
+
+# verify changes are expected
+identical(old_file, pathology_final)
+all.equal(old_file, pathology_final)
+```
+# compare generated file to latest version in synapse
+```{r}
+file_synID <- "syn61250724.11"
+input_dir <- file.path("./", "input")
+
+file_synID2 <- "syn61250724.12"
+input_dir <- file.path("./", "input")
+
+older_file <- download_csv(file_synID)
+  path <- old_file$path
+
+old_file <- download_csv(file_synID2)
+  path <- old_file$path
+
+# verify changes are expected
+identical(old_file, older_file)
+
+```
+
+# manual genotype verification
+```{r}
+individualID <- 9733
+nss_abs_sol_4mo[nss_abs_sol_4mo$individualID == individualID, ]
+nss_individual[nss_individual$individualID == individualID, ]
+nss_biospecimen[nss_biospecimen$individualID == individualID, ]
+
 
 ```

@@ -227,12 +227,24 @@ transform_results <- function(results, measurement_columns, model_name, fields_t
 # This function prints out the number of rows before and after filtering results by age, which is useful for validation.
 join_to_metadata <- function(results, individual_metadata, biospecimen_metadata) {
 
-  # Join metadata files by individualID
-  individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
-  biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
-  metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
+  # Ensure that all individualID columns are chr type
+  if ("individualID" %in% colnames(results)) {
+    results <- results %>%
+      dplyr::mutate(individualID = as.character(individualID))
+  }
 
-  # Figure out what columns to merge by
+  individual_metadata <- individual_metadata %>%
+    dplyr::select(individualID, sex, ageDeath, genotype) %>%
+    dplyr::mutate(individualID = as.character(individualID))
+
+  biospecimen_metadata <- biospecimen_metadata %>%
+    dplyr::select(individualID, specimenID, tissue) %>%
+    dplyr::mutate(individualID = as.character(individualID))
+
+  # Join metadata files by individualID
+  metadata <- left_join(biospecimen_metadata, individual_metadata, by = 'individualID')
+
+  # Figure out which join columns are in the results dataframe
   join_by <- if(all(c('specimenID', 'individualID') %in% colnames(results)) &&
               all(c('specimenID', 'individualID') %in% colnames(metadata))) {
     c('specimenID', 'individualID')
