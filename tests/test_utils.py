@@ -976,21 +976,15 @@ class TestNormalizeNullValues:
             }
         )
 
-    def _build_expected_output(
-        self, fill_booleans: bool = False, fill_strings: bool = False
-    ) -> pd.DataFrame:
+    def test_normalize_null_values_with_empty_column_lists(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
         """
-        Helper function to build expected output for tests where only some columns have missing values filled with
-        something other than None.
-
-        Default output is the same as test_data_frame but with all missing values replaced with None.
-        If fill_booleans is True, "bool1" and "bool2" columns will have None replaced with False.
-        If fill_strings is True, "string1" and "string2" columns will have None replaced with "".
-
-        The dtype="O" argument is necessary and prevents None from being replaced with NaN automatically in the numeric
-        columns.
+        Test that normalize_null_values correctly normalizes null values when both *_column arguments have default
+        [] values.
         """
-        output_df = pd.DataFrame(
+        output = utils.normalize_null_values(test_data_frame)
+        expected_output = pd.DataFrame(
             {
                 "bool1": [True, False, None, None],
                 "bool2": [None] * 4,
@@ -1004,27 +998,6 @@ class TestNormalizeNullValues:
             dtype="O",
         )
 
-        # Replace None with False
-        if fill_booleans:
-            output_df["bool1"] = [True, False, False, False]
-            output_df["bool2"] = [False] * 4
-
-        # Replace None with ""
-        if fill_strings:
-            output_df["string1"] = ["abc", "", "", ""]
-            output_df["string2"] = [""] * 4
-
-        return output_df
-
-    def test_normalize_null_values_with_empty_column_lists(
-        self, test_data_frame: pd.DataFrame
-    ) -> None:
-        """
-        Test that normalize_null_values correctly normalizes null values when both *_column arguments have default
-        [] values.
-        """
-        output = utils.normalize_null_values(test_data_frame)
-        expected_output = self._build_expected_output()
         pd.testing.assert_frame_equal(output, expected_output)
 
     def test_normalize_null_values_with_only_boolean_columns(
@@ -1038,7 +1011,21 @@ class TestNormalizeNullValues:
             boolean_columns=["bool1", "bool2"],
         )
 
-        expected_output = self._build_expected_output(fill_booleans=True)
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, False, False],
+                "bool2": [False] * 4,
+                "string1": ["abc", None, "", None],
+                "string2": [None] * 4,
+                "numeric1": [123, None, None, None],
+                "numeric2": [None] * 4,
+                "extra1": ["abc", "def", None, None],
+                "extra2": [None] * 4,
+            },
+            dtype="O",
+        )
+        expected_output["bool1"] = expected_output["bool1"].astype(bool)
+        expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
         pd.testing.assert_frame_equal(output, expected_output)
 
@@ -1053,7 +1040,19 @@ class TestNormalizeNullValues:
             empty_string_columns=["string1", "string2"],
         )
 
-        expected_output = self._build_expected_output(fill_strings=True)
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, None, None],
+                "bool2": [None] * 4,
+                "string1": ["abc", "", "", ""],
+                "string2": [""] * 4,
+                "numeric1": [123, None, None, None],
+                "numeric2": [None] * 4,
+                "extra1": ["abc", "def", None, None],
+                "extra2": [None] * 4,
+            },
+            dtype="O",
+        )
 
         pd.testing.assert_frame_equal(output, expected_output)
 
@@ -1069,9 +1068,21 @@ class TestNormalizeNullValues:
             empty_string_columns=["string1", "string2"],
         )
 
-        expected_output = self._build_expected_output(
-            fill_booleans=True, fill_strings=True
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, False, False],
+                "bool2": [False] * 4,
+                "string1": ["abc", "", "", ""],
+                "string2": [""] * 4,
+                "numeric1": [123, None, None, None],
+                "numeric2": [None] * 4,
+                "extra1": ["abc", "def", None, None],
+                "extra2": [None] * 4,
+            },
+            dtype="O",
         )
+        expected_output["bool1"] = expected_output["bool1"].astype(bool)
+        expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
         pd.testing.assert_frame_equal(output, expected_output)
 
