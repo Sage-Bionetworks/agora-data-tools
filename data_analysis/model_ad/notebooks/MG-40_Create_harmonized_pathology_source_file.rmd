@@ -8,6 +8,10 @@ Models that are currently handled by this notebook:
 * Trem2-R47H_NSS
 * Abca7*V1599M -> MG-848: Abca7 pathology results are currently excluded due to source metadata issues; search/address all instance of "MG-848" here to reenable
 
+NOTE: synapser's dependency chain loads plyr, which masks dplyr's summarise(),
+mutate(), and rename(). All calls to those functions use dplyr:: explicitly
+to prevent silent use of plyr's implementations.
+
 ADDING NEW MODELS
 As data becomes available for additional models, the data for those models will need to be incorporated into the harmonized source file.
 
@@ -20,15 +24,15 @@ To incorporate each new model into this notebook:
 - Add a code block that generates an intermediate results file for the new model
 - You may need to modify the transform_results function to include new unit and type display value mappings
 
-3. 'Sanity check nrow in generated files' section
-- Add validation for the new model's intermediate file
-
-4. 'Join source files to metadata to populate age, tissue, and genotype values' section
+3. 'Join source files to metadata to populate age, tissue, and genotype values' section
 - Update to join metadata to the new model's intermediate file
+
+4. 'Sanity check nrow in generated files' section
+- Add validation for the new model's intermediate file
 
 5. 'Merge files, write csv file, and upload to synapse' section
 - Add the new model's intermediate file to the bind_rows call on the first line
-- Add genotype display name mappings for the new model
+- Add genotype-genotype display name mappings for the new model
 
 
 ADDING NEW MEASURES
@@ -156,8 +160,8 @@ download_csv <- function(synId, df_name) {
   cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
   cat("\npath: ", file$path, "\n")
 
-  data <- read.csv(path)
-  df_name <- as.data.frame(data)
+  df_name <- read_csv(path, show_col_types = FALSE, na = c("", "NA", "N/A"), name_repair = ~make.names(., unique = TRUE)) %>%
+    select(where(~!all(is.na(.))))
 }
 
 
@@ -179,7 +183,7 @@ transform_results <- function(results, measurement_columns, model_name, fields_t
                 model = model_name
 
         # Convert various unit colnames to consistent unit display values
-        ) %>% mutate(
+        ) %>% dplyr::mutate(
 
                 units = case_match(
                         units,
@@ -191,7 +195,7 @@ transform_results <- function(results, measurement_columns, model_name, fields_t
                 )
 
         # Convert stain values to type display names; tolower() to avoids case mismatches due to variation across source files
-        ) %>% mutate(
+        ) %>% dplyr::mutate(
                 type = case_when(
                         tolower(stain) == 'iba1' & units == objectDensity_display_name ~ IBA1_display_name,
                         tolower(stain) == 'gfap'  & units == objectDensity_display_name ~  GFAP_display_name,
@@ -221,14 +225,27 @@ transform_results <- function(results, measurement_columns, model_name, fields_t
 # - individual_metadata: A dataframe containing individual-level metadata
 # - biospecimen_metadata: A dataframe containing specimen metadata
 # This function prints out the number of rows before and after filtering results by age, which is useful for validation.
+# This function will fail if it identifies metadata inconsistencies for pooled samples.
 join_to_metadata <- function(results, individual_metadata, biospecimen_metadata) {
 
-  # Join metadata files by individualID
-  individual_metadata <- subset(individual_metadata, select=c(individualID, sex, ageDeath, genotype))
-  biospecimen_metadata <- subset(biospecimen_metadata, select=c(individualID, specimenID, tissue))
-  metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
+  # Ensure that all individualID columns are chr type
+  if ("individualID" %in% colnames(results)) {
+    results <- results %>%
+      dplyr::mutate(individualID = as.character(individualID))
+  }
 
-  # Figure out what columns to merge by
+  individual_metadata <- individual_metadata %>%
+    dplyr::select(individualID, sex, ageDeath, genotype) %>%
+    dplyr::mutate(individualID = as.character(individualID))
+
+  biospecimen_metadata <- biospecimen_metadata %>%
+    dplyr::select(individualID, specimenID, tissue) %>%
+    dplyr::mutate(individualID = as.character(individualID))
+
+  # Join metadata files by individualID
+  metadata <- left_join(biospecimen_metadata, individual_metadata, by = 'individualID')
+
+  # Figure out which join columns are in the results dataframe
   join_by <- if(all(c('specimenID', 'individualID') %in% colnames(results)) &&
               all(c('specimenID', 'individualID') %in% colnames(metadata))) {
     c('specimenID', 'individualID')
@@ -243,7 +260,7 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
 
   mismatches <- joined_temp %>%
     group_by(specimenID) %>%
-    summarise(
+    dplyr::summarise(
       n_sex = n_distinct(sex),
       n_genotype = n_distinct(genotype),
       n_age = n_distinct(ageDeath),
@@ -264,14 +281,14 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
             ) %>% left_join(genotype_label_map, by = c('model', 'genotype')
 
             # If specimenID starts with "Pool", use specimenID. Otherwise, keep individualID.
-            ) %>% mutate(individualID = if_else(
+            ) %>% dplyr::mutate(individualID = if_else(
                 grepl("^Pool", specimenID),
                 as.character(specimenID),
                 as.character(individualID)
             )
 
             # Correct genotypes to align with target display values
-            ) %>% mutate(genotype = display_label
+            ) %>% dplyr::mutate(genotype = display_label
 
             # Print out nrow of results before age filtering
             ) %>% { print(nrow(.)) ; .
@@ -283,10 +300,10 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
             ) %>% { print(nrow(.)) ; .
 
             # Convert all individualID columns to string type
-            } %>% mutate(individualID = as.character(individualID)
+            } %>% dplyr::mutate(individualID = as.character(individualID)
 
             # Rename columns
-            ) %>% rename(individual_id = individualID,
+            ) %>% dplyr::rename(individual_id = individualID,
                          age_death = ageDeath
 
             # Drop unneeded columns
@@ -302,7 +319,7 @@ The populated data_sources vector is used to populate Synapse provenance when th
 # Genotype -> Display label map
 genotype_label_map <- download_csv('syn69014401.17') %>%
   # Model name fix, plus change "5xFAD (UCI)" -> "5xFAD"
-  mutate(model = model_group,
+  dplyr::mutate(model = model_group,
          display_label = str_replace(display_label, " \\(UCI\\)", ""))
 
 # 3xTG-AD
@@ -310,7 +327,7 @@ genotype_label_map <- download_csv('syn69014401.17') %>%
 threex_biospecimen <- download_csv('syn23532198.3')
 threex_individual <- download_csv('syn23532199.4') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, "_homozygous", "_carrier"),
+  dplyr::mutate(genotype = str_replace(genotype, "_homozygous", "_carrier"),
          genotype = str_replace(genotype, "3XTg", "3xTg"))
 # data
 threex_pathology_source <- download_csv('syn26601504.1')
@@ -320,7 +337,7 @@ threex_pathology_source <- download_csv('syn26601504.1')
 fivex_biospecimen <- download_csv('syn18876530.10')
 fivex_individual <- download_csv('syn18880070.14') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, "_hemizygous", "_carrier"))
+  dplyr::mutate(genotype = str_replace(genotype, "_hemizygous", "_carrier"))
 # data
 fivex_gfap_s100b_source <- download_csv('syn22049816.3')
 fivex_lamp1_source <- download_csv('syn22049817.2')
@@ -331,7 +348,7 @@ fivex_iba1_thios_source <- download_csv('syn22049825.4')
 nss_biospecimen <- download_csv('syn29568452.3')
 nss_individual <- download_csv('syn27147690.3') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, ",", ";"))
+  dplyr::mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 nss_pathology_source <- download_csv('syn42131930.1')
 ```
@@ -347,7 +364,7 @@ nss_pathology_source <- download_csv('syn42131930.1')
 abca7_biospecimen <- download_csv('syn30859390.2')
 abca7_individual <- download_csv('syn30859394.2') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, ",", ";"))
+  dplyr::mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 abca7_pathology_source <- download_csv('syn53127289.1')
 # END MG-848 abca7 source files
@@ -400,7 +417,7 @@ fivex_iba1 <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'Iba1',] 
   select(all_of(c(fivex_source_keeps, "X.objects..sqmm"))) %>%
   fivex_rename_cols()
 
-fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'ThioS',] %>%
+fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain %in% 'ThioS',] %>%
   select(all_of(c(fivex_source_keeps, "X.objects..sqmm", "mean.object.area..squm."))) %>%
   fivex_rename_cols()
 
@@ -415,10 +432,10 @@ fivex_final <- bind_rows(fivex_gfap_s100b_pivot, fivex_lamp1_pivot, fivex_iba1_p
 
     # MG-12: drop rows with "N/A" specimenIDs
     ) %>% filter(
-          specimenID != "N/A"
+          !is.na(specimenID)
 
     # MG-268: Replace N/A measurement values with 0s
-    ) %>% mutate(
+    ) %>% dplyr::mutate(
             measurement = ifelse(is.na(measurement), 0, measurement)
 
     # Join results to metadata
@@ -480,37 +497,37 @@ Checks that ensure that the processed data includes the expected number of resul
 # 3xTG-AD
 # *******
 # IBA1
-threex_iba1 <- threex_pathology_source[threex_pathology_source$stain == 'IBA1',]
+threex_iba1 <- threex_pathology_source[threex_pathology_source$stain %in% 'IBA1',]
 stopifnot(nrow(threex_final[threex_final$type == IBA1_display_name,]) == nrow(threex_iba1))
 stopifnot(nrow(threex_iba1) == 144) # IBA1 :  3xTg-AD + B6129  ==  144
 
 # GFAP
-threex_gfap <- threex_pathology_source[threex_pathology_source$stain == 'GFAP',]
+threex_gfap <- threex_pathology_source[threex_pathology_source$stain %in% 'GFAP',]
 stopifnot(nrow(threex_final[threex_final$type == GFAP_display_name,]) == nrow(threex_gfap))
 stopifnot(nrow(threex_gfap) == 144) #  GFAP :  3xTg-AD + B6129  ==  144
 
 # S100B
-threex_s100b <- threex_pathology_source[threex_pathology_source$stain == 'S100B',]
+threex_s100b <- threex_pathology_source[threex_pathology_source$stain %in% 'S100B',]
 stopifnot(nrow(threex_final[threex_final$type == S100B_display_name,]) == nrow(threex_s100b))
 stopifnot(nrow(threex_s100b) == 144) #  S100B :  3xTg-AD + B6129  ==  144
 
 # LAMP1
-threex_lamp1 <- threex_pathology_source[threex_pathology_source$stain == 'LAMP1',]
+threex_lamp1 <- threex_pathology_source[threex_pathology_source$stain %in% 'LAMP1',]
 stopifnot(nrow(threex_final[threex_final$type == LAMP1_display_name,]) == nrow(threex_lamp1))
 stopifnot(nrow(threex_lamp1) == 142) # LAMP1 :  3xTg-AD + B6129  ==  142
 
 # AT8
-threex_at8 <- threex_pathology_source[threex_pathology_source$stain == 'AT8',]
+threex_at8 <- threex_pathology_source[threex_pathology_source$stain %in% 'AT8',]
 stopifnot(nrow(threex_final[threex_final$type == AT8_display_name,]) == nrow(threex_at8))
 stopifnot(nrow(threex_at8) == 72) # AT8 :  3xTg-AD + B6129  ==  72
 
 # HT7
-threex_ht7 <- threex_pathology_source[threex_pathology_source$stain == 'HT7',]
+threex_ht7 <- threex_pathology_source[threex_pathology_source$stain %in% 'HT7',]
 stopifnot(nrow(threex_final[threex_final$type == HT7_display_name,]) == nrow(threex_ht7))
 stopifnot(nrow(threex_ht7) == 72) # HT7 :  3xTg-AD + B6129  ==  72
 
 # ThioS size & density
-threex_thioss <- threex_pathology_source[threex_pathology_source$stain == 'ThioS',]
+threex_thioss <- threex_pathology_source[threex_pathology_source$stain %in% 'ThioS',]
 stopifnot(nrow(threex_final[threex_final$type == ThioS_size_display_name,]) == nrow(threex_thioss))
 stopifnot(nrow(threex_final[threex_final$type == ThioS_density_display_name,]) == nrow(threex_thioss))
 stopifnot(nrow(threex_thioss) == 144) #  ThioS size :  3xTg-AD + B6129  ==  144
@@ -523,31 +540,31 @@ stopifnot(!any(is.na(threex_final)))
 # *****
 # IBA1
 # Correct for 56 rows removed via age filtering
-fivex_ibas <- nrow(fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'Iba1',]) - 56
+fivex_ibas <- nrow(fivex_iba1_thios_source[fivex_iba1_thios_source$Stain %in% 'Iba1',]) - 56
 stopifnot(nrow(fivex_final[fivex_final$type == IBA1_display_name,]) == fivex_ibas)
 stopifnot(nrow(fivex_ibas) == 280) # IBA1 :  5xFAD + C57BL/6J ==  280 rows expected
 
 # GFAP
 # Correct for 54 rows removed via age filtering
-fivex_gfap <- nrow(fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain == 'GFAP',]) - 54
+fivex_gfap <- nrow(fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain %in% 'GFAP',]) - 54
 stopifnot(nrow(fivex_final[fivex_final$type == GFAP_display_name,]) == fivex_gfap)
 stopifnot(nrow(fivex_gfap) == 215) # GFAP :  5xFAD + C57BL/6J  ==  215 rows expected
 
 # S100B
 # Correct for 54 rows removed via age filtering
-fivex_s100bs <- nrow(fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain == 'S100B',]) -54
+fivex_s100bs <- nrow(fivex_gfap_s100b_source[fivex_gfap_s100b_source$Stain %in% 'S100B',]) - 54
 stopifnot(nrow(fivex_final[fivex_final$type == S100B_display_name,]) == fivex_s100bs)
 stopifnot(nrow(fivex_s100bs) == 215) #  S100B :  5xFAD + C57BL/6J  ==  215  rows expected
 
 # LAMP1
 # Correct for 56 rows removed via age filtering
-fivex_lamp1 <- nrow(fivex_lamp1_source[fivex_lamp1_source$Stain == 'LAMP1',]) - 56
+fivex_lamp1 <- nrow(fivex_lamp1_source[fivex_lamp1_source$Stain %in% 'LAMP1',]) - 56
 stopifnot(nrow(fivex_final[fivex_final$type == LAMP1_display_name,]) == fivex_lamp1)
 stopifnot(nrow(fivex_lamp1) == 264) # LAMP1 :  5xFAD + C57BL/6J  ==  264  rows expected
 
 # ThioS size & density
-fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain == 'ThioS',]
-fivex_thios <-  filter(fivex_thios, SpecimenID != 'N/A') # Remove rows with specimenID == "N/A"
+fivex_thios <- fivex_iba1_thios_source[fivex_iba1_thios_source$Stain %in% 'ThioS',]
+fivex_thios <-  filter(fivex_thios, !is.na(SpecimenID)) # Remove rows with NA specimenID
 # Correct for 56 rows removed via age filtering
 fivex_thios <- nrow(fivex_thios) - 56
 stopifnot(nrow(fivex_final[fivex_final$type == ThioS_size_display_name,]) ==fivex_thios)
@@ -561,27 +578,27 @@ stopifnot(!any(is.na(fivex_final)))
 # Trem2-R47H_NSS
 # **************
 # IBA1
-nss_iba1 <- nss_pathology_source[nss_pathology_source$stain == 'IBA1',]
+nss_iba1 <- nss_pathology_source[nss_pathology_source$stain %in% 'IBA1',]
 stopifnot(nrow(nss_final[nss_final$type == IBA1_display_name,]) == nrow(nss_iba1))
 # results not in legacy explorer
 
 # GFAP
-nss_gfap <- nss_pathology_source[nss_pathology_source$stain == 'GFAP',]
+nss_gfap <- nss_pathology_source[nss_pathology_source$stain %in% 'GFAP',]
 stopifnot(nrow(nss_final[nss_final$type == GFAP_display_name,]) == nrow(nss_gfap))
 # results not in legacy explorer
 
 # S100B
-nss_s100b <- nss_pathology_source[nss_pathology_source$stain == 'S100B',]
+nss_s100b <- nss_pathology_source[nss_pathology_source$stain %in% 'S100B',]
 stopifnot(nrow(nss_final[nss_final$type == S100B_display_name,]) == nrow(nss_s100b))
 # results not in legacy explorer
 
 # LAMP1
-nss_lamp1 <- nss_pathology_source[nss_pathology_source$stain == 'LAMP1',]
+nss_lamp1 <- nss_pathology_source[nss_pathology_source$stain %in% 'LAMP1',]
 stopifnot(nrow(nss_final[nss_final$type == LAMP1_display_name,]) == nrow(nss_lamp1))
 # results not in legacy explorer
 
 # ThioS size & density
-nss_thios <- nss_pathology_source[nss_pathology_source$stain == 'ThioS',]
+nss_thios <- nss_pathology_source[nss_pathology_source$stain %in% 'ThioS',]
 # Remove source rows with NA measurements
 nss_thioss <-  filter(nss_thios, !is.na(nss_thios$averageObjectVolume))
 nss_thiosd <-  filter(nss_thios, !is.na(nss_thios$objectDensity))
@@ -600,28 +617,28 @@ stopifnot(!any(is.na(nss_final)))
 # Abca7*V1599M
 # ************
 # IBA1
-abca7_iba1 <- abca7_pathology_source[abca7_pathology_source$stain == 'IBA1',]
+abca7_iba1 <- abca7_pathology_source[abca7_pathology_source$stain %in% 'IBA1',]
 stopifnot(nrow(abca7_final[abca7_final$type == IBA1_display_name,]) == nrow(abca7_iba1))
 # results not in legacy explorer
 
 # GFAP
-abca7_gfap <- abca7_pathology_source[abca7_pathology_source$stain == 'GFAP',]
-abca7_gfap <-  filter(abca7_gfap, abca7_gfap$objectDensity != 'N/A') # Remove source rows with 'N/A' measurements
+abca7_gfap <- abca7_pathology_source[abca7_pathology_source$stain %in% 'GFAP',]
+abca7_gfap <-  filter(abca7_gfap, !is.na(abca7_gfap$objectDensity)) # Remove source rows with NA measurements
 stopifnot(nrow(abca7_final[abca7_final$type == GFAP_display_name,]) == nrow(abca7_gfap))
 # results not in legacy explorer
 
 # S100B
-abca7_s100b <- abca7_pathology_source[abca7_pathology_source$stain == 'S100B',]
+abca7_s100b <- abca7_pathology_source[abca7_pathology_source$stain %in% 'S100B',]
 stopifnot(nrow(abca7_final[abca7_final$type == S100B_display_name,]) == nrow(abca7_s100b))
 # results not in legacy explorer
 
 # LAMP1
-abca7_lamp1 <- abca7_pathology_source[abca7_pathology_source$stain == 'LAMP1',]
+abca7_lamp1 <- abca7_pathology_source[abca7_pathology_source$stain %in% 'LAMP1',]
 stopifnot(nrow(abca7_final[abca7_final$type == LAMP1_display_name,]) == nrow(abca7_lamp1))
 # results not in legacy explorer
 
 # ThioS size & density
-abca7_thios <- abca7_pathology_source[abca7_pathology_source$stain == 'ThioS',]
+abca7_thios <- abca7_pathology_source[abca7_pathology_source$stain %in% 'ThioS',]
 stopifnot(nrow(abca7_final[abca7_final$type == ThioS_size_display_name,]) == nrow(abca7_thios))
 stopifnot(nrow(abca7_final[abca7_final$type == ThioS_density_display_name,]) == nrow(abca7_thios))
 # results not in legacy explorer
@@ -653,6 +670,8 @@ if(!dir.exists(output_dir)){
 }
 write.csv(pathology_final, file.path(output_dir, "pathology.csv"), row.names = FALSE)
 
+# BREAK HERE FOR LOCAL VERIFICATION
+
 # upload to synapse
 syn_file <- File(file.path(output_dir, "pathology.csv"),
                  description = "Harmonized Pathology data for Model-AD Explorer 2.0.",
@@ -664,4 +683,19 @@ res <- synStore(syn_file, forceVersion = FALSE,
 
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 
+```
+
+
+
+# compare generated file to latest version in synapse
+```{r}
+file_synID <- "syn61357279"
+input_dir <- file.path("./", "input")
+
+old_file <- download_csv(file_synID)
+  path <- old_file$path
+
+# verify changes are expected
+identical(old_file, pathology_final)
+all.equal(old_file, pathology_final)
 ```
