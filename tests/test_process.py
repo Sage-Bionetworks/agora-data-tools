@@ -1424,7 +1424,7 @@ class TestProcessAllFiles:
 
     def test_process_all_files_filter_datasets_no_match(self, syn: Any):
         with pytest.raises(
-            ValueError, match="No datasets found matching: \['non_existent_dataset'\]"
+            ValueError, match="No datasets found matching: \\['non_existent_dataset'\\]"
         ):
             process.process_all_files(
                 syn=syn,
@@ -1482,6 +1482,7 @@ class TestProcessCLI:
             patch.object(process, "process_all_files") as mock_process_all_files,
         ):
             self.mock_process_all_files = mock_process_all_files
+            yield
 
     def test_process_cli_no_dataset_flag(self):
         """When --dataset is omitted, filter_datasets should be None (process all)."""
