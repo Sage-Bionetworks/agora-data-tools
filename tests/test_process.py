@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from synapseclient import File
+from typer.testing import CliRunner
 
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError
@@ -1467,3 +1468,73 @@ class TestProcessAllFiles:
             syn=syn,
             upload=True,
         )
+
+
+class TestProcessCLI:
+    """Tests for the `process` CLI command"""
+
+    runner = CliRunner()
+
+    @pytest.fixture(autouse=True)
+    def patch_dependencies(self):
+        with (
+            patch.object(utils, "_login_to_synapse", return_value=None),
+            patch.object(process, "process_all_files") as mock_process_all_files,
+        ):
+            self.mock_process_all_files = mock_process_all_files
+
+    def test_process_cli_no_dataset_flag(self):
+        """When --dataset is omitted, filter_datasets should be None (process all)."""
+        result = self.runner.invoke(process.app, ["path/to/config"])
+
+        assert result.exit_code == 0
+        self.mock_process_all_files.assert_called_once()
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] is None
+
+    def test_process_cli_single_dataset(self):
+        """A single --dataset flag passes a one-element list to process_all_files."""
+        result = self.runner.invoke(
+            process.app, ["path/to/config", "--dataset", "gene_info"]
+        )
+
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] == [
+            "gene_info"
+        ]
+
+    def test_process_cli_repeated_dataset_flags(self):
+        """Repeated --dataset flags are combined into a list."""
+        result = self.runner.invoke(
+            process.app,
+            ["path/to/config", "--dataset", "gene_info", "--dataset", "team_info"],
+        )
+
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] == [
+            "gene_info",
+            "team_info",
+        ]
+
+    def test_process_cli_comma_separated_datasets(self):
+        """A comma-separated value in --dataset is split into individual names."""
+        result = self.runner.invoke(
+            process.app, ["path/to/config", "--dataset", "gene_info,team_info"]
+        )
+
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] == [
+            "gene_info",
+            "team_info",
+        ]
+
+    def test_process_cli_comma_separated_with_spaces(self):
+        """Whitespace around comma-separated names is stripped."""
+        result = self.runner.invoke(
+            process.app, ["path/to/config", "--dataset", "gene_info, team_info"]
+        )
+
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] == [
+            "gene_info",
+            "team_info",
+        ]
