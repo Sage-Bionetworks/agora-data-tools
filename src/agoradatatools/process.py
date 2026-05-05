@@ -403,7 +403,6 @@ def process_all_files(
         run_id=run_id,
         table_id=gx_table,
     )
-
     if filter_datasets:
         datasets = [d for d in datasets if list(d.keys())[0] in filter_datasets]
         if not datasets:
@@ -514,7 +513,7 @@ datasets_opt = Option(
     None,
     "--dataset",
     "-d",
-    help="Name of a dataset to process. Can be specified multiple times to process multiple datasets. "
+    help="Name of a dataset to process. Can be specified multiple times or as a comma-separated list to process multiple datasets. "
     "If omitted, all datasets in the config are processed. (Optional, defaults to None)",
     show_default=True,
 )
@@ -537,18 +536,26 @@ def process(
         run_id (str): Run ID of the process. Used to identify the run in the GX table.
         upload (bool): Boolean value to toggle whether files will be uploaded to Synapse.
         auth_token (str): Synapse authentication token. Defaults to environment variable SYNAPSE_AUTH_TOKEN.
-        dataset (Optional[List[str]]): Name of a dataset to process. Can be specified multiple times to process multiple datasets.
+        dataset (Optional[List[str]]): Name of a dataset to process. Can be specified multiple times or as a
+            comma-separated list to process multiple datasets.
             If omitted, all datasets in the config are processed. (Optional, defaults to None)
     """
     syn = utils._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
+
+    filter_datasets = (
+        [name.strip() for entry in dataset for name in entry.split(",")]
+        if dataset
+        else None
+    )
+
     process_all_files(
         syn=syn,
         config_path=config_path,
         platform=platform_enum,
         run_id=run_id,
         upload=upload,
-        filter_datasets=dataset,
+        filter_datasets=filter_datasets,
     )
 
 
