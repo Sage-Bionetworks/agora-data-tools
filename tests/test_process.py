@@ -1135,20 +1135,20 @@ class TestCreateDataManifest:
 
 class TestProcessAllFiles:
     config_path = "./path/to/config"
-    test_reporter = DatasetReport(
-        data_set="test_dataset",
-        gx_report_file="syn123",
-        gx_report_version=1,
-        gx_report_link="test_link",
-        gx_failures=False,
-        gx_failure_message="test_message",
-        adt_output_file="syn456",
-        adt_output_version=1,
-        adt_output_link="test_link",
-    )
 
     @pytest.fixture(scope="function", autouse=True)
     def setup_method(self):
+        self.test_reporter = DatasetReport(
+            data_set="test_dataset",
+            gx_report_file="syn123",
+            gx_report_version=1,
+            gx_report_link="test_link",
+            gx_failures=False,
+            gx_failure_message="test_message",
+            adt_output_file="syn456",
+            adt_output_version=1,
+            adt_output_link="test_link",
+        )
         self.patch_get_config = patch.object(
             utils,
             "_get_config",
@@ -1392,3 +1392,78 @@ class TestProcessAllFiles:
             self.patch_load.assert_not_called()
             self.patch_format_link.assert_not_called()
             self.patch_update_table.assert_called_once()
+
+    def test_process_all_files_filter_datasets(self, syn: Any):
+        process.process_all_files(
+            syn=syn,
+            config_path=self.config_path,
+            platform=Platform.LOCAL,
+            filter_datasets=["a"],
+            run_id="123",
+        )
+
+        self.patch_get_config.assert_called_once_with(config_path=self.config_path)
+        self.patch_create_temp_location.assert_called_once_with(
+            staging_path=STAGING_PATH
+        )
+
+        called_dataset = [
+            list(call.kwargs["dataset_obj"].keys())[0]
+            for call in self.patch_process_dataset.call_args_list
+        ]
+        assert called_dataset == ["a"]
+        assert self.patch_process_dataset.call_count == 1
+        self.patch_process_dataset.assert_called_once_with(
+            dataset_obj={"a": {"b": "c"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+
+    def test_process_all_files_filter_datasets_no_match(self, syn: Any):
+        with pytest.raises(
+            ValueError, match="No datasets found matching: \['non_existent_dataset'\]"
+        ):
+            process.process_all_files(
+                syn=syn,
+                config_path=self.config_path,
+                platform=Platform.LOCAL,
+                filter_datasets=["non_existent_dataset"],
+                run_id="123",
+            )
+
+    def test_process_multiple_files_filter_datasets(self, syn: Any):
+        process.process_all_files(
+            syn=syn,
+            config_path=self.config_path,
+            platform=Platform.LOCAL,
+            filter_datasets=["a", "d"],
+            run_id="123",
+        )
+
+        self.patch_get_config.assert_called_once_with(config_path=self.config_path)
+        self.patch_create_temp_location.assert_called_once_with(
+            staging_path=STAGING_PATH
+        )
+
+        called_dataset = [
+            list(call.kwargs["dataset_obj"].keys())[0]
+            for call in self.patch_process_dataset.call_args_list
+        ]
+        assert called_dataset == ["a", "d"]
+        assert self.patch_process_dataset.call_count == 2
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj={"a": {"b": "c"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj={"d": {"e": "f"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
