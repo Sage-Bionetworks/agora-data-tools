@@ -408,7 +408,8 @@ def process_all_files(
         if not datasets:
             raise ValueError(
                 f"No datasets found matching: {filter_datasets}. "
-                f"Check that the dataset names match those in the config."
+                "Check that the dataset names match those in the config. "
+                "To specify multiple datasets, use commas separated list"
             )
 
     error_list = []
@@ -548,7 +549,6 @@ def process(
         if dataset
         else None
     )
-
     process_all_files(
         syn=syn,
         config_path=config_path,
