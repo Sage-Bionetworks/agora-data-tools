@@ -15,6 +15,7 @@ from agoradatatools.etl import load, utils, extract
 from agoradatatools.reporter import DatasetReport, ADTGXReporter
 from agoradatatools.constants import Platform
 from agoradatatools.gx import GreatExpectationsRunner
+import synapseclient
 
 
 STAGING_PATH = "./staging"
@@ -1394,7 +1395,9 @@ class TestProcessAllFiles:
             self.patch_format_link.assert_not_called()
             self.patch_update_table.assert_called_once()
 
-    def test_process_all_files_filter_datasets(self, syn: Any):
+    def test_process_all_files_filter_datasets(
+        self, syn: synapseclient.Synapse
+    ) -> None:
         process.process_all_files(
             syn=syn,
             config_path=self.config_path,
@@ -1422,7 +1425,9 @@ class TestProcessAllFiles:
             upload=True,
         )
 
-    def test_process_all_files_filter_datasets_no_match(self, syn: Any):
+    def test_process_all_files_filter_datasets_no_match(
+        self, syn: synapseclient.Synapse
+    ) -> None:
         with pytest.raises(
             ValueError, match="No datasets found matching: \\['non_existent_dataset'\\]"
         ):
@@ -1434,7 +1439,9 @@ class TestProcessAllFiles:
                 run_id="123",
             )
 
-    def test_process_multiple_files_filter_datasets(self, syn: Any):
+    def test_process_multiple_files_filter_datasets(
+        self, syn: synapseclient.Synapse
+    ) -> None:
         process.process_all_files(
             syn=syn,
             config_path=self.config_path,
@@ -1484,7 +1491,7 @@ class TestProcessCLI:
             self.mock_process_all_files = mock_process_all_files
             yield
 
-    def test_process_cli_no_dataset_flag(self):
+    def test_process_cli_no_dataset_flag(self) -> None:
         """When --dataset is omitted, filter_datasets should be None (process all)."""
         result = self.runner.invoke(process.app, ["path/to/config"])
 
@@ -1492,7 +1499,7 @@ class TestProcessCLI:
         self.mock_process_all_files.assert_called_once()
         assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] is None
 
-    def test_process_cli_single_dataset(self):
+    def test_process_cli_single_dataset(self) -> None:
         """A single --dataset flag passes a one-element list to process_all_files."""
         result = self.runner.invoke(
             process.app, ["path/to/config", "--dataset", "gene_info"]
@@ -1503,7 +1510,7 @@ class TestProcessCLI:
             "gene_info"
         ]
 
-    def test_process_cli_repeated_dataset_flags(self):
+    def test_process_cli_repeated_dataset_flags(self) -> None:
         """Repeated --dataset flags are combined into a list."""
         result = self.runner.invoke(
             process.app,
@@ -1516,7 +1523,7 @@ class TestProcessCLI:
             "team_info",
         ]
 
-    def test_process_cli_comma_separated_datasets(self):
+    def test_process_cli_comma_separated_datasets(self) -> None:
         """A comma-separated value in --dataset is split into individual names."""
         result = self.runner.invoke(
             process.app, ["path/to/config", "--dataset", "gene_info,team_info"]
@@ -1528,7 +1535,7 @@ class TestProcessCLI:
             "team_info",
         ]
 
-    def test_process_cli_comma_separated_with_spaces(self):
+    def test_process_cli_comma_separated_with_spaces(self) -> None:
         """Whitespace around comma-separated names is stripped."""
         result = self.runner.invoke(
             process.app, ["path/to/config", "--dataset", "gene_info, team_info"]
