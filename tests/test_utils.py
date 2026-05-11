@@ -19,6 +19,10 @@ from agoradatatools.etl.utils import (
     OneOfRule,
 )
 
+RuleClassWithValueArg = (
+    type[MatchesRegexRule] | type[ContainsSubstringRule] | type[OneOfRule]
+)
+
 
 class TestLoginToSynapse:
     @pytest.fixture(scope="function", autouse=True)
@@ -693,7 +697,7 @@ class TestColumnRuleContract:
             OneOfRule(value={"a"}),
         ],
     )
-    def test_count_violations_returns_int(self, rule) -> None:
+    def test_count_violations_returns_int(self, rule: ColumnRule) -> None:
         assert isinstance(rule.count_violations(pd.Series(["a", None])), int)
 
     @pytest.mark.parametrize(
@@ -705,7 +709,7 @@ class TestColumnRuleContract:
             OneOfRule(value={"a"}),
         ],
     )
-    def test_count_violations_is_non_negative(self, rule) -> None:
+    def test_count_violations_is_non_negative(self, rule: ColumnRule) -> None:
         assert rule.count_violations(pd.Series(["a", None])) >= 0
 
     def test_column_rule_cannot_be_instantiated_directly(self) -> None:
@@ -716,7 +720,7 @@ class TestColumnRuleContract:
 class TestNotEmptyRule:
     """Unit tests for NotEmptyRule.count_violations()."""
 
-    def _series(self, data) -> pd.Series:
+    def _series(self, data: Any) -> pd.Series:
         return pd.Series(data)
 
     def test_no_violations_for_all_valid(self) -> None:
@@ -753,11 +757,11 @@ class TestNotEmptyRule:
 class TestMatchesRegexRule:
     """Unit tests for MatchesRegexRule.count_violations()."""
 
-    def _series(self, data) -> pd.Series:
+    def _series(self, data: Any) -> pd.Series:
         return pd.Series(data)
 
     @pytest.mark.parametrize("bad_value", [None, "", 123, np.nan])
-    def test_raises_when_value_is_invalid(self, bad_value) -> None:
+    def test_raises_when_value_is_invalid(self, bad_value: Any) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             MatchesRegexRule(value=bad_value)
 
@@ -805,11 +809,11 @@ class TestMatchesRegexRule:
 class TestContainsSubstringRule:
     """Unit tests for ContainsSubstringRule.count_violations()."""
 
-    def _series(self, data) -> pd.Series:
+    def _series(self, data: Any) -> pd.Series:
         return pd.Series(data)
 
     @pytest.mark.parametrize("bad_value", [None, np.nan, ""])
-    def test_raises_when_value_is_invalid(self, bad_value) -> None:
+    def test_raises_when_value_is_invalid(self, bad_value: Any) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             ContainsSubstringRule(value=bad_value)
 
@@ -860,11 +864,11 @@ class TestContainsSubstringRule:
 class TestOneOfRule:
     """Unit tests for OneOfRule.count_violations()."""
 
-    def _series(self, data) -> pd.Series:
+    def _series(self, data: Any) -> pd.Series:
         return pd.Series(data)
 
     @pytest.mark.parametrize("bad_value", [None, set(), [], {}])
-    def test_raises_when_value_is_invalid(self, bad_value) -> None:
+    def test_raises_when_value_is_invalid(self, bad_value: Any) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             OneOfRule(value=bad_value)
 
@@ -957,12 +961,14 @@ class TestCheckColumnRules:
             ),
         ],
     )
-    def test_rule_passes_for_all_valid_values(self, col_data, rule) -> None:
+    def test_rule_passes_for_all_valid_values(
+        self, col_data: list[Any], rule: ColumnRule
+    ) -> None:
         datasets = self._make_datasets({"col": col_data})
         utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
 
     @pytest.mark.parametrize("bad_value", [None, np.nan, "", "   "])
-    def test_not_empty_raises_on_invalid_value(self, bad_value) -> None:
+    def test_not_empty_raises_on_invalid_value(self, bad_value: Any) -> None:
         datasets = self._make_datasets({"col": ["a", bad_value, "c"]})
         with pytest.raises(ValueError, match="col.*not_empty"):
             utils.check_column_rules(datasets, {"ds": {"col": [NotEmptyRule()]}})
@@ -1003,7 +1009,7 @@ class TestCheckColumnRules:
         ],
     )
     def test_rule_raises_with_correct_count(
-        self, col_data, rule, match_pattern
+        self, col_data: list[Any], rule: ColumnRule, match_pattern: str
     ) -> None:
         datasets = self._make_datasets({"col": col_data})
         with pytest.raises(ValueError, match=match_pattern):
@@ -1016,7 +1022,9 @@ class TestCheckColumnRules:
             ("hello world", ContainsSubstringRule(value="world")),
         ],
     )
-    def test_rule_treats_null_as_violation(self, good_value, rule) -> None:
+    def test_rule_treats_null_as_violation(
+        self, good_value: str, rule: ColumnRule
+    ) -> None:
         datasets = self._make_datasets({"col": [good_value, None]})
         with pytest.raises(ValueError, match=rule.rule):
             utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
@@ -1055,7 +1063,9 @@ class TestCheckColumnRules:
         "rule_class",
         [MatchesRegexRule, ContainsSubstringRule, OneOfRule],
     )
-    def test_value_required_rule_raises_when_value_is_none(self, rule_class) -> None:
+    def test_value_required_rule_raises_when_value_is_none(
+        self, rule_class: RuleClassWithValueArg
+    ) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             rule_class(value=None)
 

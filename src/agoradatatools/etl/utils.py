@@ -63,7 +63,7 @@ class MatchesRegexRule(ColumnRule):
 
     rule = "matches_regex"
 
-    def __init__(self, value: str):
+    def __init__(self, value: str) -> None:
         """Initialize the rule, raising if *value* is not a non-empty string or is an invalid regex."""
         if not isinstance(value, str) or value == "":
             raise ValueError(
@@ -99,7 +99,7 @@ class ContainsSubstringRule(ColumnRule):
 
     rule = "contains_substring"
 
-    def __init__(self, value: str):
+    def __init__(self, value: str) -> None:
         """Initialize the rule, raising if *value* is not a non-empty string."""
         if not isinstance(value, str) or value == "":
             raise ValueError(
@@ -143,7 +143,7 @@ class OneOfRule(ColumnRule):
 
     rule = "one_of"
 
-    def __init__(self, value: Collection):
+    def __init__(self, value: Collection[Any]) -> None:
         """Initialize the rule with an allowed-values collection, raising if it is ``None`` or empty."""
         if not value:
             raise ValueError(
