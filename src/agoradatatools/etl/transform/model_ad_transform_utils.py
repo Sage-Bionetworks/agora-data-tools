@@ -167,9 +167,43 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
     Returns:
         pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. None or NaN
         values are set to "" (empty string).
+
+    Raises:
+        ValueError: If any input Jax IDs can not be cast to Int64
+        ValueError: If any zero-padded Jax IDs contain non-digit characters, or missing values are not empty strings.
     """
-    return (
+    jax_id = (
         jax_id.astype("Int64")
         .apply(lambda x: (str(x).zfill(6) if pd.notna(x) else ""))
         .astype("O")  # Force object type to prevent empty columns remaining as Int64
     )
+
+    # Check that non-missing values contain only digits and are at least 6 characters long
+    validate_jax_ids(jax_id)
+
+    return jax_id
+
+
+def validate_jax_ids(jax_id: pd.Series) -> None:
+    """
+    Validates all Jax IDs in a pandas Series are in the correct format. A valid Jax ID should contain only digits and be
+    at least 6 characters long, or be an empty string ("") to represent missing values.
+
+    Args:
+        jax_id (pd.Series): A pandas Series containing Jax ID strings to validate.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If any Jax IDs contain non-digit characters, are less than 6 characters long, or are not empty
+        strings.
+    """
+    # Regex description:
+    # \d{6}\d* matches strings that contain only digits and are at least 6 characters long
+    # ^$ matches empty strings
+    if jax_id.isna().any() or not jax_id.str.fullmatch(r"\d{6}\d*|^$").all():
+        raise ValueError(
+            "Jax IDs must be strings that contain only digits and are at least 6 characters long, or must be empty strings"
+        )
+    return None

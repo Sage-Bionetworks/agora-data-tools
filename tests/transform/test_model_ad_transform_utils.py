@@ -10,6 +10,7 @@ from agoradatatools.etl.transform.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
     zero_pad_jax_ids,
+    validate_jax_ids,
 )
 
 
@@ -442,27 +443,27 @@ class TestZeroPadJaxIds:
     @pytest.mark.parametrize(
         "input_ids, error_type",
         [
-            (pd.Series(["abc", "123"]), ValueError),  # Non-numeric string
+            (pd.Series(["abc", "123"]), ValueError),
             # Non-integer float inside a string throws a ValueError when trying to convert to Int64,
             # rather than the TypeError that is thrown when casting a plain non-integer float value
             (pd.Series(["1234.5", "123"]), ValueError),
-            (pd.Series(["", ""]), ValueError),  # Empty strings can't be cast to Int64
-            (pd.Series([123.45, 678.90]), TypeError),  # Non-integer floats
-            (pd.Series([1234, "1234"]), TypeError),  # Mixed non-missing data types
+            (pd.Series(["", ""]), ValueError),
+            (pd.Series([123.45, 678.90]), TypeError),
+            (pd.Series([1234, "1234"]), TypeError),
         ],
         ids=[
             "Fail with non-numeric string input",
-            "Fail with non-integer float string input",
+            "Fail with non-integer float inside string input",
             "Fail with empty string input",
             "Fail with non-integer float input",
             "Fail with mixed data types input",
         ],
     )
-    def test_zero_pad_jax_ids_should_fail(
+    def test_zero_pad_jax_ids_should_fail_on_non_castable_input(
         self, input_ids: pd.Series, error_type: ValueError | TypeError
     ) -> None:
         """
-        Tests that the function throws an ValueError or TypeError when given non-numeric input or non-castable input.
+        Tests that the function throws a ValueError or TypeError when given non-numeric input or non-castable input.
         """
         match_str = (
             "invalid literal for int\\(\\)"
@@ -471,3 +472,69 @@ class TestZeroPadJaxIds:
         )
         with pytest.raises(error_type, match=match_str):
             zero_pad_jax_ids(input_ids)
+
+    def test_zero_pad_jax_ids_should_fail_on_negative_numbers(self) -> None:
+        """
+        Tests that the function throws a ValueError when given negative numbers, since Jax IDs should not be negative.
+        """
+        input_ids = pd.Series([-1, -1234])
+        with pytest.raises(
+            ValueError, match="Jax IDs must be strings that contain only digits"
+        ):
+            zero_pad_jax_ids(input_ids)
+
+
+class TestValidateJaxIds:
+    """
+    This class tests the validate_jax_ids function to ensure the regex correctly validates Jax ID formats.
+    """
+
+    @pytest.mark.parametrize(
+        "input_ids",
+        [
+            pd.Series(["123456", "000001", "1234567"]),
+            pd.Series(["123456", "", "000001"]),
+            pd.Series(["", ""], dtype="object"),
+        ],
+        ids=[
+            "Pass with valid Jax IDs",
+            "Pass with valid Jax IDs and empty string for missing value",
+            "Pass with all empty Jax IDs",
+        ],
+    )
+    def test_validate_jax_ids_should_pass(self, input_ids: pd.Series) -> None:
+        """
+        Tests that the function does not raise an error when given valid Jax ID formats.
+        """
+        # Should not raise an error
+        validate_jax_ids(input_ids)
+
+    @pytest.mark.parametrize(
+        "input_ids",
+        [
+            pd.Series(["12345"]),
+            pd.Series(["-12345"]),
+            pd.Series(["123 456"]),
+            pd.Series([None]),
+            pd.Series([np.NaN]),
+            pd.Series(["\n"]),
+        ],
+        ids=[
+            "Fail with Jax ID that is too short",
+            "Fail with Jax ID that contains non-digit character",
+            "Fail with Jax ID that contains space",
+            "Fail with None value instead of empty string",
+            "Fail with NaN value instead of empty string",
+            "Fail with string containing only whitespace",
+        ],
+    )
+    def test_validate_jax_ids_should_fail_on_invalid_formats(
+        self, input_ids: pd.Series
+    ) -> None:
+        """
+        Tests that the function raises a ValueError when given invalid Jax ID formats.
+        """
+        with pytest.raises(
+            ValueError, match="Jax IDs must be strings that contain only digits"
+        ):
+            validate_jax_ids(input_ids)
