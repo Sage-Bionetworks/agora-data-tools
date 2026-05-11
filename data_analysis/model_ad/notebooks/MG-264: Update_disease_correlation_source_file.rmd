@@ -1,7 +1,8 @@
 
 # Modify Disease Correlation source (MG-264)
 
-This notebook downloads the correlation data that was exported from the legacy explorer (syn65467849.1) and aligns the model_name values with our other data.
+This notebook downloads the correlation data that was exported from the legacy explorer (syn65467849.1),
+ aligns the model_name values with our other data, then writes the updated file back to the same synID.
 
 
 ## Library setup
