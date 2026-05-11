@@ -13,7 +13,7 @@ import yaml
 from agoradatatools.etl import utils
 from agoradatatools.etl.utils import (
     ColumnRule,
-    ContainsRule,
+    ContainsSubstringRule,
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,
@@ -689,7 +689,7 @@ class TestColumnRuleContract:
         [
             NotEmptyRule(),
             MatchesRegexRule(value="^ENSMUSG"),
-            ContainsRule(value="world"),
+            ContainsSubstringRule(value="world"),
             OneOfRule(value={"a"}),
         ],
     )
@@ -701,7 +701,7 @@ class TestColumnRuleContract:
         [
             NotEmptyRule(),
             MatchesRegexRule(value="^ENSMUSG"),
-            ContainsRule(value="world"),
+            ContainsSubstringRule(value="world"),
             OneOfRule(value={"a"}),
         ],
     )
@@ -802,8 +802,8 @@ class TestMatchesRegexRule:
         assert "^ENSMUSG" in rule.value_detail
 
 
-class TestContainsRule:
-    """Unit tests for ContainsRule.count_violations()."""
+class TestContainsSubstringRule:
+    """Unit tests for ContainsSubstringRule.count_violations()."""
 
     def _series(self, data) -> pd.Series:
         return pd.Series(data)
@@ -811,49 +811,49 @@ class TestContainsRule:
     @pytest.mark.parametrize("bad_value", [None, np.nan, ""])
     def test_raises_when_value_is_invalid(self, bad_value) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
-            ContainsRule(value=bad_value)
+            ContainsSubstringRule(value=bad_value)
 
     def test_no_violations_when_all_contain_substring(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert rule.count_violations(self._series(["hello world", "world cup"])) == 0
 
     def test_counts_missing_substring(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert rule.count_violations(self._series(["hello world", "goodbye"])) == 1
 
     def test_counts_all_missing(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert rule.count_violations(self._series(["foo", "bar"])) == 2
 
     def test_counts_none_as_violation(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert rule.count_violations(self._series(["hello world", None])) == 1
 
     def test_counts_nan_as_violation(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert rule.count_violations(self._series(["hello world", np.nan])) == 1
 
     def test_counts_empty_string_as_violation(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert rule.count_violations(self._series(["hello world", ""])) == 1
 
     def test_counts_non_string_data_as_violations(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert (
             rule.count_violations(self._series(["hello world", "goodbye", 2, 5.555555]))
             == 3
         )
 
     def test_value_is_treated_as_literal_not_regex(self) -> None:
-        rule = ContainsRule(value="-")
+        rule = ContainsSubstringRule(value="-")
         assert rule.count_violations(self._series(["hello-world", "goodbye"])) == 1
 
     def test_empty_series(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert rule.count_violations(self._series([])) == 0
 
     def test_value_detail_includes_substring(self) -> None:
-        rule = ContainsRule(value="world")
+        rule = ContainsSubstringRule(value="world")
         assert "world" in rule.value_detail
 
 
@@ -896,6 +896,42 @@ class TestOneOfRule:
         rule = OneOfRule(value={"male"})
         assert "male" in rule.value_detail
 
+    def test_no_violations_numeric_allowed_values(self) -> None:
+        rule = OneOfRule(value=[1, 2, 3])
+        assert rule.count_violations(self._series([1, 1, 2])) == 0
+
+    def test_no_violations_bool_allowed_values(self) -> None:
+        rule = OneOfRule(value=[True, False])
+        assert rule.count_violations(self._series([True, False, False])) == 0
+
+    def test_no_violations_sentinel_allowed_values(self) -> None:
+        # Series.isin matches np.nan to np.nan in the allowed collection (pandas semantics).
+        rule = OneOfRule(value=["", None, [], np.nan])
+        s = self._series(["", "", None, [], np.nan])
+        assert rule.count_violations(s) == 0
+
+    def test_no_violations_mixed_int_and_string_allowed(self) -> None:
+        rule = OneOfRule(value=[2, "2"])
+        assert rule.count_violations(self._series([2, 2, "2"])) == 0
+
+    def test_violations_when_numeric_allowed_but_string_in_series(self) -> None:
+        rule = OneOfRule(value=[1, 2])
+        assert rule.count_violations(self._series([1, 1, "2"])) == 1
+
+    def test_violations_all_strings_when_numeric_allowed(self) -> None:
+        rule = OneOfRule(value=[1, 2])
+        assert rule.count_violations(self._series(["1", "1", "2"])) == 3
+
+    def test_bool_and_int_equivalence_with_bool_allowed(self) -> None:
+        rule = OneOfRule(value=[True, False])
+        s = self._series([True, 1, False, 0])
+        assert rule.count_violations(s) == 0
+
+    def test_bool_and_int_equivalence_with_int_allowed(self) -> None:
+        rule = OneOfRule(value=[0, 1])
+        s = self._series([True, 1, False, 0])
+        assert rule.count_violations(s) == 0
+
 
 class TestCheckColumnRules:
     """Tests for check_column_rules() and its supporting _check_single_rule() helper."""
@@ -913,7 +949,7 @@ class TestCheckColumnRules:
             ),
             (
                 ["hello world", "world cup"],
-                ContainsRule(value="world"),
+                ContainsSubstringRule(value="world"),
             ),
             (
                 ["male", "female", "male"],
@@ -941,13 +977,13 @@ class TestCheckColumnRules:
             ),
             (
                 ["hello world", "goodbye"],
-                ContainsRule(value="world"),
-                r"1 row\(s\).*contains.*world",
+                ContainsSubstringRule(value="world"),
+                r"1 row\(s\).*contains_substring.*world",
             ),
             (
                 ["hello world", "goodbye", "adieu", "farewell"],
-                ContainsRule(value="world"),
-                r"3 row\(s\).*contains.*world",
+                ContainsSubstringRule(value="world"),
+                r"3 row\(s\).*contains_substring.*world",
             ),
             (
                 ["male", "female", "unknown", "other"],
@@ -977,7 +1013,7 @@ class TestCheckColumnRules:
         "good_value, rule",
         [
             ("ENSMUSG001", MatchesRegexRule(value="^ENSMUSG")),
-            ("hello world", ContainsRule(value="world")),
+            ("hello world", ContainsSubstringRule(value="world")),
         ],
     )
     def test_rule_treats_null_as_violation(self, good_value, rule) -> None:
@@ -1017,7 +1053,7 @@ class TestCheckColumnRules:
 
     @pytest.mark.parametrize(
         "rule_class",
-        [MatchesRegexRule, ContainsRule, OneOfRule],
+        [MatchesRegexRule, ContainsSubstringRule, OneOfRule],
     )
     def test_value_required_rule_raises_when_value_is_none(self, rule_class) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):

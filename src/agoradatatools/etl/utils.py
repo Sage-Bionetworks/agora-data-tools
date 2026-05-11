@@ -19,7 +19,7 @@ class ColumnRule(ABC):
     rule: str  # Subclasses declare this as a class-level attribute.
 
     @abstractmethod
-    def count_violations(self, series: "pd.Series") -> int:
+    def count_violations(self, series: pd.Series) -> int:
         """Return the number of values in *series* that violate this rule."""
         ...
 
@@ -30,12 +30,20 @@ class ColumnRule(ABC):
 
 
 class NotEmptyRule(ColumnRule):
-    """Rule that every value must be non-null and non-empty (after stripping whitespace)."""
+    """Rule that every present value must be non-null and non-empty (after stripping whitespace).
+
+    This rule checks each **cell** in the column, not whether the column has any rows.
+    An empty :class:`~pandas.Series` (length 0) produces **zero** violations because there
+    are no values to evaluate.
+    """
 
     rule = "not_empty"
 
-    def count_violations(self, series: "pd.Series") -> int:
-        """Return the number of null, empty, or whitespace-only values in *series*."""
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of null, empty, or whitespace-only values in *series*.
+
+        A length-0 *series* yields 0 (no values to fail the rule).
+        """
         return int((series.isna() | (series.astype(str).str.strip() == "")).sum())
 
 
@@ -69,7 +77,7 @@ class MatchesRegexRule(ColumnRule):
             ) from e
         self.value = value
 
-    def count_violations(self, series: "pd.Series") -> int:
+    def count_violations(self, series: pd.Series) -> int:
         """Return the number of values in *series* that do not match the regex at the start."""
         return int((~series.astype(str).str.match(self.value, na=False)).sum())
 
@@ -79,7 +87,7 @@ class MatchesRegexRule(ColumnRule):
         return f" (value={self.value!r})"
 
 
-class ContainsRule(ColumnRule):
+class ContainsSubstringRule(ColumnRule):
     """Rule that every value must contain a given substring.
 
     Args:
@@ -89,17 +97,17 @@ class ContainsRule(ColumnRule):
         ValueError: If *value* is not a non-empty string (e.g. is ``None``, ``np.nan``, or ``""``).
     """
 
-    rule = "contains"
+    rule = "contains_substring"
 
     def __init__(self, value: str):
         """Initialize the rule, raising if *value* is not a non-empty string."""
         if not isinstance(value, str) or value == "":
             raise ValueError(
-                "ContainsRule requires a non-None, non-empty string 'value' (the substring to search for)."
+                "ContainsSubstringRule requires a non-None, non-empty string 'value' (the substring to search for)."
             )
         self.value = value
 
-    def count_violations(self, series: "pd.Series") -> int:
+    def count_violations(self, series: pd.Series) -> int:
         """Return the number of values in *series* that do not contain the substring.
 
         Non-string values are cast to string before checking. The substring is matched
@@ -118,6 +126,14 @@ class ContainsRule(ColumnRule):
 class OneOfRule(ColumnRule):
     """Rule that every value must be a member of a given collection.
 
+    Membership uses :meth:`pandas.Series.isin`, which compares by equality. You may include
+    non-string values (e.g. ``None``, ``np.nan``, or numeric codes) in the allowed set if
+    you intend those values to be valid.
+
+    **Boolean vs integer:** ``True`` / ``False`` are equal to ``1`` / ``0`` in Python, so
+    ``isin`` does not distinguish them from integer ``1`` / ``0``. Normalize dtypes on
+    boolean columns before validating if you need strict boolean-only membership.
+
     Args:
         value: The collection of allowed values (e.g. ``{"male", "female"}``).
 
@@ -135,7 +151,7 @@ class OneOfRule(ColumnRule):
             )
         self.value = value
 
-    def count_violations(self, series: "pd.Series") -> int:
+    def count_violations(self, series: pd.Series) -> int:
         """Return the number of values in *series* not present in the allowed collection."""
         return int((~series.isin(self.value)).sum())
 
