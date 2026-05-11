@@ -274,38 +274,38 @@ class TestBuildTranscriptomicsUrl:
     model has transcriptomics data.
     """
 
-    @pytest.fixture
-    def url_test_model(self) -> pd.Series:
-        return pd.Series(
-            {
-                "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": "model1,model2",
-                "transcriptomics": True,
-            }
-        )
-
     @pytest.mark.parametrize(
         "false_val",
         [False, None],
         ids=["Pass with False boolean value", "Pass with None value"],
     )
     def test_build_transcriptomics_url_no_transcriptomics(
-        self, false_val: bool, url_test_model: pd.Series
+        self, false_val: bool
     ) -> None:
         """
         The function should treat both None and False as transcriptomics = False, and return None.
         """
-        url_test_model["transcriptomics"] = false_val
+        url_test_model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": "category_string",
+                "url_models_value": "model1,model2",
+                "transcriptomics": false_val,
+            }
+        )
 
         url = build_transcriptomics_url(url_test_model)
         assert url is None
 
-    def test_build_transcriptomics_url_all_default_values(
-        self, url_test_model: pd.Series
-    ) -> None:
-        url_test_model["url_categories_value"] = None
-        url_test_model["url_models_value"] = None
+    def test_build_transcriptomics_url_all_default_values(self) -> None:
+        url_test_model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": None,
+                "url_models_value": None,
+                "transcriptomics": True,
+            }
+        )
 
         url = build_transcriptomics_url(url_test_model)
         assert url == "comparison/expression?models=Model"
@@ -315,13 +315,18 @@ class TestBuildTranscriptomicsUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_default_category(
-        self, empty_val: str, url_test_model: pd.Series
-    ) -> None:
+    def test_build_transcriptomics_url_default_category(self, empty_val: str) -> None:
         """
         The function should treat both "" and None as empty values and not have a "categories=..." in the url
         """
-        url_test_model["url_categories_value"] = empty_val
+        url_test_model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": empty_val,
+                "url_models_value": "model1,model2",
+                "transcriptomics": True,
+            }
+        )
 
         url = build_transcriptomics_url(url_test_model)
         assert url == "comparison/expression?models=model1,model2"
@@ -331,13 +336,18 @@ class TestBuildTranscriptomicsUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_default_models(
-        self, empty_val: str, url_test_model: pd.Series
-    ) -> None:
+    def test_build_transcriptomics_url_default_models(self, empty_val: str) -> None:
         """
         The function should treat both "" and None as empty values and have just the model name in the URL
         """
-        url_test_model["url_models_value"] = empty_val
+        url_test_model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": "category_string",
+                "url_models_value": empty_val,
+                "transcriptomics": True,
+            }
+        )
 
         url = build_transcriptomics_url(url_test_model)
         assert url == "comparison/expression?categories=category_string&models=Model"
@@ -352,14 +362,20 @@ class TestBuildTranscriptomicsUrl:
             "Fail with missing transcriptomics column",
         ],
     )
-    def test_build_transcriptomics_url_missing_field(
-        self, missing_key: str, url_test_model: pd.Series
-    ) -> None:
+    def test_build_transcriptomics_url_missing_field(self, missing_key: str) -> None:
         """
         In the transform, the model_info and model_results_info data frames have already been validated to have all the
         required columns to correctly call build_transcriptomics_url. However, we verify anyway that calling the
         function with missing columns will throw errors.
         """
+        url_test_model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": "category_string",
+                "url_models_value": "model1,model2",
+                "transcriptomics": True,
+            }
+        )
         url_test_model.pop(missing_key)
 
         # Special case: model["name"] never gets used unless we set the url_models_value to empty
