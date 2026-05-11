@@ -404,6 +404,8 @@ def process_all_files(
         table_id=gx_table,
     )
     if filter_datasets:
+        # Each entry in datasets is a single-key dict where the key is the dataset name (e.g. {"gene_info": {...}}).
+        # Keep only the datasets whose name appears in filter_datasets.
         datasets = [d for d in datasets if list(d.keys())[0] in filter_datasets]
         if not datasets:
             raise ValueError(
