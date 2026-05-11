@@ -1,4 +1,5 @@
 import sys
+from collections.abc import Sequence
 from io import StringIO
 from typing import Any, Dict
 from unittest import mock
@@ -720,7 +721,7 @@ class TestColumnRuleContract:
 class TestNotEmptyRule:
     """Unit tests for NotEmptyRule.count_violations()."""
 
-    def _series(self, data: Any) -> pd.Series:
+    def _series(self, data: Sequence[object]) -> pd.Series:
         return pd.Series(data)
 
     def test_no_violations_for_all_valid(self) -> None:
@@ -757,11 +758,13 @@ class TestNotEmptyRule:
 class TestMatchesRegexRule:
     """Unit tests for MatchesRegexRule.count_violations()."""
 
-    def _series(self, data: Any) -> pd.Series:
+    def _series(self, data: Sequence[object]) -> pd.Series:
         return pd.Series(data)
 
     @pytest.mark.parametrize("bad_value", [None, "", 123, np.nan])
-    def test_raises_when_value_is_invalid(self, bad_value: Any) -> None:
+    def test_raises_when_value_is_invalid(
+        self, bad_value: int | str | float | None
+    ) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             MatchesRegexRule(value=bad_value)
 
@@ -809,11 +812,11 @@ class TestMatchesRegexRule:
 class TestContainsSubstringRule:
     """Unit tests for ContainsSubstringRule.count_violations()."""
 
-    def _series(self, data: Any) -> pd.Series:
+    def _series(self, data: Sequence[object]) -> pd.Series:
         return pd.Series(data)
 
     @pytest.mark.parametrize("bad_value", [None, np.nan, ""])
-    def test_raises_when_value_is_invalid(self, bad_value: Any) -> None:
+    def test_raises_when_value_is_invalid(self, bad_value: str | float | None) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             ContainsSubstringRule(value=bad_value)
 
@@ -864,11 +867,11 @@ class TestContainsSubstringRule:
 class TestOneOfRule:
     """Unit tests for OneOfRule.count_violations()."""
 
-    def _series(self, data: Any) -> pd.Series:
+    def _series(self, data: Sequence[object]) -> pd.Series:
         return pd.Series(data)
 
     @pytest.mark.parametrize("bad_value", [None, set(), [], {}])
-    def test_raises_when_value_is_invalid(self, bad_value: Any) -> None:
+    def test_raises_when_value_is_invalid(self, bad_value: object) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             OneOfRule(value=bad_value)
 
@@ -968,7 +971,9 @@ class TestCheckColumnRules:
         utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
 
     @pytest.mark.parametrize("bad_value", [None, np.nan, "", "   "])
-    def test_not_empty_raises_on_invalid_value(self, bad_value: Any) -> None:
+    def test_not_empty_raises_on_invalid_value(
+        self, bad_value: str | float | None
+    ) -> None:
         datasets = self._make_datasets({"col": ["a", bad_value, "c"]})
         with pytest.raises(ValueError, match="col.*not_empty"):
             utils.check_column_rules(datasets, {"ds": {"col": [NotEmptyRule()]}})
