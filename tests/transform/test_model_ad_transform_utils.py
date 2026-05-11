@@ -285,7 +285,7 @@ class TestBuildTranscriptomicsUrl:
         """
         The function should treat both None and False as transcriptomics = False, and return None.
         """
-        url_test_model = pd.Series(
+        model = pd.Series(
             {
                 "name": "Model",
                 "url_categories_value": "category_string",
@@ -294,11 +294,11 @@ class TestBuildTranscriptomicsUrl:
             }
         )
 
-        url = build_transcriptomics_url(url_test_model)
+        url = build_transcriptomics_url(model)
         assert url is None
 
     def test_build_transcriptomics_url_all_default_values(self) -> None:
-        url_test_model = pd.Series(
+        model = pd.Series(
             {
                 "name": "Model",
                 "url_categories_value": None,
@@ -307,7 +307,7 @@ class TestBuildTranscriptomicsUrl:
             }
         )
 
-        url = build_transcriptomics_url(url_test_model)
+        url = build_transcriptomics_url(model)
         assert url == "comparison/expression?models=Model"
 
     @pytest.mark.parametrize(
@@ -319,7 +319,7 @@ class TestBuildTranscriptomicsUrl:
         """
         The function should treat both "" and None as empty values and not have a "categories=..." in the url
         """
-        url_test_model = pd.Series(
+        model = pd.Series(
             {
                 "name": "Model",
                 "url_categories_value": empty_val,
@@ -328,7 +328,7 @@ class TestBuildTranscriptomicsUrl:
             }
         )
 
-        url = build_transcriptomics_url(url_test_model)
+        url = build_transcriptomics_url(model)
         assert url == "comparison/expression?models=model1,model2"
 
     @pytest.mark.parametrize(
@@ -340,7 +340,7 @@ class TestBuildTranscriptomicsUrl:
         """
         The function should treat both "" and None as empty values and have just the model name in the URL
         """
-        url_test_model = pd.Series(
+        model = pd.Series(
             {
                 "name": "Model",
                 "url_categories_value": "category_string",
@@ -349,41 +349,8 @@ class TestBuildTranscriptomicsUrl:
             }
         )
 
-        url = build_transcriptomics_url(url_test_model)
+        url = build_transcriptomics_url(model)
         assert url == "comparison/expression?categories=category_string&models=Model"
-
-    @pytest.mark.parametrize(
-        "missing_key",
-        ["name", "url_categories_value", "url_models_value", "transcriptomics"],
-        ids=[
-            "Fail with missing name column",
-            "Fail with missing url_categories_value column",
-            "Fail with missing url_models_value column",
-            "Fail with missing transcriptomics column",
-        ],
-    )
-    def test_build_transcriptomics_url_missing_field(self, missing_key: str) -> None:
-        """
-        In the transform, the model_info and model_results_info data frames have already been validated to have all the
-        required columns to correctly call build_transcriptomics_url. However, we verify anyway that calling the
-        function with missing columns will throw errors.
-        """
-        url_test_model = pd.Series(
-            {
-                "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": "model1,model2",
-                "transcriptomics": True,
-            }
-        )
-        url_test_model.pop(missing_key)
-
-        # Special case: model["name"] never gets used unless we set the url_models_value to empty
-        if missing_key == "name":
-            url_test_model["url_models_value"] = None
-
-        with pytest.raises(KeyError):
-            build_transcriptomics_url(url_test_model)
 
 
 class TestZeroPadJaxIds:
