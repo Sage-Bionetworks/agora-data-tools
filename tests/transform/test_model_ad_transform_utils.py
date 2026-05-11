@@ -386,17 +386,17 @@ class TestZeroPadJaxIds:
     @pytest.mark.parametrize(
         "input_ids, error_type",
         [
-            (pd.Series(["abc", "123"]), ValueError),  # Non-numeric string
+            (pd.Series(["abc", "123"]), ValueError),
             # Non-integer float inside a string throws a ValueError when trying to convert to Int64,
             # rather than the TypeError that is thrown when casting a plain non-integer float value
             (pd.Series(["1234.5", "123"]), ValueError),
-            (pd.Series(["", ""]), ValueError),  # Empty strings can't be cast to Int64
-            (pd.Series([123.45, 678.90]), TypeError),  # Non-integer floats
-            (pd.Series([1234, "1234"]), TypeError),  # Mixed non-missing data types
+            (pd.Series(["", ""]), ValueError),
+            (pd.Series([123.45, 678.90]), TypeError),
+            (pd.Series([1234, "1234"]), TypeError),
         ],
         ids=[
             "Fail with non-numeric string input",
-            "Fail with non-integer float string input",
+            "Fail with non-integer float inside string input",
             "Fail with empty string input",
             "Fail with non-integer float input",
             "Fail with mixed data types input",
@@ -435,9 +435,9 @@ class TestValidateJaxIds:
     @pytest.mark.parametrize(
         "input_ids",
         [
-            pd.Series(["123456", "000001", "1234567"]),  # Valid Jax IDs
-            pd.Series(["123456", "", "000001"]),  # Valid with empty string
-            pd.Series(["", ""], dtype="object"),  # All empty IDs
+            pd.Series(["123456", "000001", "1234567"]),
+            pd.Series(["123456", "", "000001"]),
+            pd.Series(["", ""], dtype="object"),
         ],
         ids=[
             "Pass with valid Jax IDs",
@@ -455,12 +455,12 @@ class TestValidateJaxIds:
     @pytest.mark.parametrize(
         "input_ids",
         [
-            pd.Series(["12345"]),  # Too short
-            pd.Series(["-12345"]),  # Contains non-digit character
-            pd.Series(["123 456"]),  # Contains space
-            pd.Series([None]),  # None is not an empty string
-            pd.Series([np.NaN]),  # NaN is not an empty string
-            pd.Series(["\n"]),  # String with only whitespace is not valid
+            pd.Series(["12345"]),
+            pd.Series(["-12345"]),
+            pd.Series(["123 456"]),
+            pd.Series([None]),
+            pd.Series([np.NaN]),
+            pd.Series(["\n"]),
         ],
         ids=[
             "Fail with Jax ID that is too short",
