@@ -543,8 +543,8 @@ class TestNestFields:
         df_with_nulls = pd.DataFrame(
             {
                 "a": ["group_1", "group_1", "group_2"],
-                "b": ["1", np.NaN, "1"],
-                "c": ["1", "1", np.NaN],
+                "b": ["1", np.nan, "1"],
+                "c": ["1", "1", np.nan],
             }
         )
 
@@ -965,14 +965,14 @@ class TestNormalizeNullValues:
     def test_data_frame(self) -> pd.DataFrame:
         return pd.DataFrame(
             {
-                "bool1": [True, False, None, np.nan],
-                "bool2": [np.nan] * 4,
-                "string1": ["abc", None, "", np.nan],
-                "string2": [np.nan] * 4,
-                "numeric1": [123, np.nan, np.nan, np.nan],
-                "numeric2": [np.nan] * 4,
-                "extra1": ["abc", "def", None, np.nan],
-                "extra2": [np.nan] * 4,
+                "bool1": [True, False, None, np.nan, pd.NA],
+                "bool2": [np.nan] * 5,
+                "string1": ["abc", None, "", np.nan, pd.NA],
+                "string2": [np.nan] * 5,
+                "numeric1": [123, np.nan, np.nan, np.nan, np.nan],
+                "numeric2": [np.nan] * 5,
+                "extra1": ["abc", "def", None, np.nan, pd.NA],
+                "extra2": [pd.NA] * 5,
             }
         )
 
@@ -986,14 +986,14 @@ class TestNormalizeNullValues:
         output = utils.normalize_null_values(test_data_frame)
         expected_output = pd.DataFrame(
             {
-                "bool1": [True, False, None, None],
-                "bool2": [None] * 4,
-                "string1": ["abc", None, "", None],
-                "string2": [None] * 4,
-                "numeric1": [123, None, None, None],
-                "numeric2": [None] * 4,
-                "extra1": ["abc", "def", None, None],
-                "extra2": [None] * 4,
+                "bool1": [True, False, None, None, None],
+                "bool2": [None] * 5,
+                "string1": ["abc", None, "", None, None],
+                "string2": [None] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "extra1": ["abc", "def", None, None, None],
+                "extra2": [None] * 5,
             },
             dtype="O",
         )
@@ -1013,14 +1013,14 @@ class TestNormalizeNullValues:
 
         expected_output = pd.DataFrame(
             {
-                "bool1": [True, False, False, False],
-                "bool2": [False] * 4,
-                "string1": ["abc", None, "", None],
-                "string2": [None] * 4,
-                "numeric1": [123, None, None, None],
-                "numeric2": [None] * 4,
-                "extra1": ["abc", "def", None, None],
-                "extra2": [None] * 4,
+                "bool1": [True, False, False, False, False],
+                "bool2": [False] * 5,
+                "string1": ["abc", None, "", None, None],
+                "string2": [None] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "extra1": ["abc", "def", None, None, None],
+                "extra2": [None] * 5,
             },
             dtype="O",
         )
@@ -1042,14 +1042,14 @@ class TestNormalizeNullValues:
 
         expected_output = pd.DataFrame(
             {
-                "bool1": [True, False, None, None],
-                "bool2": [None] * 4,
-                "string1": ["abc", "", "", ""],
-                "string2": [""] * 4,
-                "numeric1": [123, None, None, None],
-                "numeric2": [None] * 4,
-                "extra1": ["abc", "def", None, None],
-                "extra2": [None] * 4,
+                "bool1": [True, False, None, None, None],
+                "bool2": [None] * 5,
+                "string1": ["abc", "", "", "", ""],
+                "string2": [""] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "extra1": ["abc", "def", None, None, None],
+                "extra2": [None] * 5,
             },
             dtype="O",
         )
@@ -1070,14 +1070,14 @@ class TestNormalizeNullValues:
 
         expected_output = pd.DataFrame(
             {
-                "bool1": [True, False, False, False],
-                "bool2": [False] * 4,
-                "string1": ["abc", "", "", ""],
-                "string2": [""] * 4,
-                "numeric1": [123, None, None, None],
-                "numeric2": [None] * 4,
-                "extra1": ["abc", "def", None, None],
-                "extra2": [None] * 4,
+                "bool1": [True, False, False, False, False],
+                "bool2": [False] * 5,
+                "string1": ["abc", "", "", "", ""],
+                "string2": [""] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "extra1": ["abc", "def", None, None, None],
+                "extra2": [None] * 5,
             },
             dtype="O",
         )

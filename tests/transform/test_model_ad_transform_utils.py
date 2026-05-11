@@ -225,9 +225,9 @@ class TestProcessGeneticInfo:
         model_alleles = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.NaN],
-                "allele": [np.NaN, np.NaN, np.NaN],  # Missing allele names
-                "allele_type": [np.NaN, np.NaN, np.NaN],  # Missing allele type
+                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.nan],
+                "allele": [np.nan, np.nan, np.nan],  # Missing allele names
+                "allele_type": [np.nan, np.nan, np.nan],  # Missing allele type
                 "mgi_allele_id": [1234567, 2345678, 3456789],
             },
             dtype="object",
@@ -386,10 +386,10 @@ class TestZeroPadJaxIds:
                 pd.Series(["123", "123456", "0"]),
                 pd.Series(["000123", "123456", "000000"]),
             ),
-            # Should handle both None and np.NaN. The Series with None is cast to dtype=object because otherwise the
+            # Should handle both None and np.nan. The Series with None is cast to dtype=object because otherwise the
             # None is converted to NaN by pandas. Using dtype=object also matches the output of replacing NaN values
             # with None, which is what happens in the transforms.
-            (pd.Series([1234, np.NaN]), pd.Series(["001234", ""])),
+            (pd.Series([1234, np.nan]), pd.Series(["001234", ""])),
             (pd.Series([1234, None], dtype="object"), pd.Series(["001234", ""])),
             # Empty series should return an empty series
             (pd.Series(), pd.Series()),
@@ -404,11 +404,11 @@ class TestZeroPadJaxIds:
             # Mixed floats and integers all become integers before padding
             (pd.Series([123.0, 12345]), pd.Series(["000123", "012345"])),
             # Floats are converted to integers and padded even when some values are NaN or None
-            (pd.Series([1234.0, np.NaN]), pd.Series(["001234", ""])),
+            (pd.Series([1234.0, np.nan]), pd.Series(["001234", ""])),
             (pd.Series([1234.0, None], dtype="object"), pd.Series(["001234", ""])),
             # Mixed None and NaN values -- None and NaN should both be converted to empty strings
             (
-                pd.Series(["123", None, np.NaN], dtype="object"),
+                pd.Series(["123", None, np.nan], dtype="object"),
                 pd.Series(["000123", "", ""]),
             ),
         ],
@@ -434,7 +434,7 @@ class TestZeroPadJaxIds:
     ) -> None:
         """
         Tests that the function works with multiple different kinds of input. It should work on integers or strings, and
-        both np.NaN and None should be converted to empty strings.
+        both np.nan and None should be converted to empty strings.
         """
         output = zero_pad_jax_ids(input_ids)
 
@@ -516,7 +516,7 @@ class TestValidateJaxIds:
             pd.Series(["-12345"]),
             pd.Series(["123 456"]),
             pd.Series([None]),
-            pd.Series([np.NaN]),
+            pd.Series([np.nan]),
             pd.Series(["\n"]),
         ],
         ids=[
