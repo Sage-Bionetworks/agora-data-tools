@@ -9,7 +9,6 @@ Functions:
 
 from typing import Any, Dict, List, Union
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
 
 
 def process_genetic_info(
@@ -143,19 +142,56 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
 
     If any Jax IDs were missing in the input file, the column becomes a "float64" with NaN values. This causes
     undesirable behavior, because the float conversion turns the values into decimals that persist in the string
-    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the column to Int64, which removes
-    the decimal so the string conversion works as intended.
+    (e.g. instead of "1234" it becomes "1234.0"). To solve this, we first cast the column to Int64, which removes
+    the decimal so the string conversion works as intended. Int64 is a nullable integer type that can handle missing
+    values (NaN or None) without converting the entire column to float.
+
+    This function assumes that all Jax IDs are either integers, strings with integer values, or missing (NaN or None),
+    which can all be cast to Int64.
 
     Args:
-        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings.
+        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers, strings of integers, or NaN/None.
 
     Returns:
-        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
-        NA, or all-whitespace values are set to "" (empty string).
-    """
-    if is_numeric_dtype(jax_id):
-        jax_id = jax_id.astype("Int64")
+        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. None or NaN
+        values are set to "" (empty string).
 
-    return jax_id.apply(
-        lambda x: (str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() else "")
+    Raises:
+        ValueError: If any input Jax IDs can not be cast to Int64
+        ValueError: If any zero-padded Jax IDs contain non-digit characters, or missing values are not empty strings.
+    """
+    jax_id = (
+        jax_id.astype("Int64")
+        .apply(lambda x: (str(x).zfill(6) if pd.notna(x) else ""))
+        .astype("O")  # Force object type to prevent empty columns remaining as Int64
     )
+
+    # Check that non-missing values contain only digits and are at least 6 characters long
+    validate_jax_ids(jax_id)
+
+    return jax_id
+
+
+def validate_jax_ids(jax_id: pd.Series) -> None:
+    """
+    Validates all Jax IDs in a pandas Series are in the correct format. A valid Jax ID should contain only digits and be
+    at least 6 characters long, or be an empty string ("") to represent missing values.
+
+    Args:
+        jax_id (pd.Series): A pandas Series containing Jax ID strings to validate.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If any Jax IDs contain non-digit characters, are less than 6 characters long, or are not empty
+        strings.
+    """
+    # Regex description:
+    # \d{6}\d* matches strings that contain only digits and are at least 6 characters long
+    # ^$ matches empty strings
+    if jax_id.isna().any() or not jax_id.str.fullmatch(r"\d{6}\d*|^$").all():
+        raise ValueError(
+            "Jax IDs must be strings that contain only digits and are at least 6 characters long, or must be empty strings"
+        )
+    return None
