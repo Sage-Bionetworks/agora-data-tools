@@ -1,0 +1,51 @@
+---
+description: Activate the correct virtual environment and pip install before running any code
+alwaysApply: true
+---
+
+# Python Environment Setup
+
+Before running any Python code, tests, or scripts in this project, use the virtual environment defined in your local `dev_config.yaml` at the repo root. If you don't use a package manager, you can skip this setup and run on your base/current environment.
+
+## Optional developer setup
+
+If you use a virtual environment, copy the example and fill in your package manager and environment name:
+
+```bash
+cp dev_config.yaml.example dev_config.yaml
+```
+
+## Activating your environment
+
+Use the `package_manager` and `env_name` values from your `dev_config.yaml`:
+
+| package_manager | Activation command |
+|---|---|
+| `conda` | `conda activate <env_name>` |
+| `venv` / `virtualenv` | `source <env_name>/bin/activate` |
+| `poetry` | `poetry shell` |
+| `pipenv` | `pipenv shell` |
+
+Then install the project in editable mode:
+
+```bash
+pip install -e ".[dev]"
+```
+
+## Shell Commands
+
+Always prefix terminal commands so the correct environment is used:
+
+```bash
+# conda example
+conda run -n <env_name> <your command>
+
+# venv/virtualenv example
+source <env_name>/bin/activate && <your command>
+
+# poetry example
+poetry run <your command>
+
+# pipenv example
+pipenv run <your command>
+```

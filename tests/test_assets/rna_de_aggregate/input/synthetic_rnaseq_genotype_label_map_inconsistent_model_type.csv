@@ -1,0 +1,5 @@
+model,model_group,display_label,genotype,model_type
+Model_A,AD,Model_A (Tg),Tg,Familial AD
+Model_A,AD,Model_A (Wt),Wt,Late Onset AD
+Model_B,AD,Model_B (Tg),Tg,Familial AD
+Model_B,AD,Model_B (Wt),Wt,Familial AD

@@ -1,6 +1,14 @@
 import pandas as pd
 
 from agoradatatools.etl import utils, transform
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
+
+# Unlike most transforms that use a REQUIRED_INPUT dict keyed by a fixed set of dataset
+# names, this transform accepts a variable number of proteomics datasets (e.g. LFQ, TMT,
+# SRM) and applies the same column requirements to each one dynamically in a loop. A flat
+# list is therefore used and the dataset name key is constructed at runtime.
+DATASET_REQUIRED_COLUMNS = ["uniqid", "log2_fc", "tissue"]
 
 
 def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
@@ -18,6 +26,9 @@ def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
     """
     transformed = []
     for name, dataset in datasets.items():
+        check_required_datasets_and_columns(
+            {name: dataset}, {name: DATASET_REQUIRED_COLUMNS}
+        )
         # Remove contaminant ("CON__") entries and rows with NA uniqids before calculating distribution
         dataset = transform.transform_proteomics(df=dataset)
 

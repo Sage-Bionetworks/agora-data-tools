@@ -199,12 +199,10 @@ def preprocess_data_file(
     )
     check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
     data_file = filter_to_mouse_genes(data_file)
-    # Map JAX-specific names and normalize to sentence case.
+    # Map JAX-specific names from Right Cerebral Hemisphere -> Hemibrain
     # To add a new multi-word mapping, insert another .str.replace() call in the chain.
-    data_file["tissue"] = (
-        data_file["tissue"]
-        .str.replace("Right Cerebral Hemisphere", "Hemibrain", regex=False)
-        .str.capitalize()
+    data_file["tissue"] = data_file["tissue"].str.replace(
+        "Right Cerebral Hemisphere", "Hemibrain", regex=False
     )
     data_file["expression"] = data_file["expression"].astype(float)
     data_file = data_file.round(decimals=5)

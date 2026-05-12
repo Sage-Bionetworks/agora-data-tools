@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, Union
+from abc import ABC, abstractmethod
+from typing import Any, Collection, Dict, List, Union
 import re
 
 import numpy as np
@@ -8,23 +8,157 @@ import synapseclient
 import yaml
 
 
-@dataclass
-class ColumnRule:
-    """Describes a single content rule for a DataFrame column.
+class ColumnRule(ABC):
+    """Abstract base class for a single content rule applied to a DataFrame column.
 
-    Attributes:
-        rule: The type of rule to apply. One of:
-            - "not_empty": every value must be non-null and non-empty string
-            - "matches_regex": every value must fully match the regex pattern in `value`
-              (e.g. ``value="^ENSMUSG"`` to enforce a prefix)
-            - "contains": every value must contain `value` as a substring
-            - "one_of": every value must be a member of the collection `value`
-        value: The expected regex pattern, substring, or allowed set, depending on `rule`.
-               Not required for "not_empty".
+    Subclasses implement ``count_violations()`` to count rows that fail the rule.
+    Rules that require a comparison value (e.g. a regex pattern) enforce that the
+    value is provided at construction time and raise ``ValueError`` if it is ``None``.
     """
 
-    rule: Literal["not_empty", "matches_regex", "contains", "one_of"]
-    value: Optional[Any] = None
+    rule: str  # Subclasses declare this as a class-level attribute.
+
+    @abstractmethod
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of values in *series* that violate this rule."""
+        ...
+
+    @property
+    def value_detail(self) -> str:
+        """Human-readable description of the rule's comparison value, if any."""
+        return ""
+
+
+class NotEmptyRule(ColumnRule):
+    """Rule that every present value must be non-null and non-empty (after stripping whitespace).
+
+    This rule checks each **cell** in the column, not whether the column has any rows.
+    An empty :class:`~pandas.Series` (length 0) produces **zero** violations because there
+    are no values to evaluate.
+    """
+
+    rule = "not_empty"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of null, empty, or whitespace-only values in *series*.
+
+        A length-0 *series* yields 0 (no values to fail the rule).
+        """
+        return int((series.isna() | (series.astype(str).str.strip() == "")).sum())
+
+
+class MatchesRegexRule(ColumnRule):
+    """Rule that every value must match a given regex pattern anchored at the start.
+
+    Uses pandas ``str.match``, which anchors the pattern at the beginning of each
+    string. To require a match across the entire value, include a trailing anchor
+    in the pattern (e.g. ``"^ENSMUSG\\d+$"`` rather than just ``"^ENSMUSG"``).
+
+    Args:
+        value: The regex pattern to match against (e.g. ``"^ENSMUSG"``).
+
+    Raises:
+        ValueError: If *value* is not a non-empty string or is an invalid regex pattern.
+    """
+
+    rule = "matches_regex"
+
+    def __init__(self, value: str) -> None:
+        """Initialize the rule, raising if *value* is not a non-empty string or is an invalid regex."""
+        if not isinstance(value, str) or value == "":
+            raise ValueError(
+                "MatchesRegexRule requires a non-None, non-empty string 'value' (the regex pattern to match against)."
+            )
+        try:
+            re.compile(value)
+        except re.error as e:
+            raise ValueError(
+                f"MatchesRegexRule requires a valid regex pattern: {e}"
+            ) from e
+        self.value = value
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of values in *series* that do not match the regex at the start."""
+        return int((~series.astype(str).str.match(self.value, na=False)).sum())
+
+    @property
+    def value_detail(self) -> str:
+        """Return the regex pattern formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
+
+
+class ContainsSubstringRule(ColumnRule):
+    """Rule that every value must contain a given substring.
+
+    Args:
+        value: The substring that each value must contain. Matched literally, not as a regex.
+
+    Raises:
+        ValueError: If *value* is not a non-empty string (e.g. is ``None``, ``np.nan``, or ``""``).
+    """
+
+    rule = "contains_substring"
+
+    def __init__(self, value: str) -> None:
+        """Initialize the rule, raising if *value* is not a non-empty string."""
+        if not isinstance(value, str) or value == "":
+            raise ValueError(
+                "ContainsSubstringRule requires a non-None, non-empty string 'value' (the substring to search for)."
+            )
+        self.value = value
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of values in *series* that do not contain the substring.
+
+        Non-string values are cast to string before checking. The substring is matched
+        literally, not as a regex pattern.
+        """
+        return int(
+            (~series.astype(str).str.contains(self.value, na=False, regex=False)).sum()
+        )
+
+    @property
+    def value_detail(self) -> str:
+        """Return the substring formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
+
+
+class OneOfRule(ColumnRule):
+    """Rule that every value must be a member of a given collection.
+
+    Membership uses :meth:`pandas.Series.isin`, which compares by equality. You may include
+    non-string values (e.g. ``None``, ``np.nan``, or numeric codes) in the allowed set if
+    you intend those values to be valid.
+
+    **Boolean vs integer:** ``True`` / ``False`` are equal to ``1`` / ``0`` in Python, so
+    ``isin`` does not distinguish them from integer ``1`` / ``0``. Normalize dtypes on
+    boolean columns before validating if you need strict boolean-only membership.
+
+    Args:
+        value: The collection of allowed values (e.g. ``{"male", "female"}``).
+
+    Raises:
+        ValueError: If *value* is ``None`` or an empty collection.
+    """
+
+    rule = "one_of"
+
+    def __init__(self, value: Collection[Any]) -> None:
+        """Initialize the rule with an allowed-values collection, raising if it is ``None`` or empty."""
+        if not value:
+            raise ValueError(
+                "OneOfRule requires a non-None, non-empty 'value' (the collection of allowed values)."
+            )
+        self.value = value
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of values in *series* not present in the allowed collection."""
+        return int((~series.isin(self.value)).sum())
+
+    @property
+    def value_detail(self) -> str:
+        """Return the allowed collection formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
 
 
 # TODO remove "_" - these utils functions are not only used internally
@@ -326,14 +460,6 @@ def check_required_datasets_and_columns(
             )
 
 
-_RULE_VIOLATION_COUNTERS: Dict[str, Any] = {
-    "not_empty": lambda s, v: (s.isna() | (s.astype(str).str.strip() == "")).sum(),
-    "matches_regex": lambda s, v: (~s.astype(str).str.match(v, na=False)).sum(),
-    "contains": lambda s, v: (~s.str.contains(v, na=False)).sum(),
-    "one_of": lambda s, v: (~s.isin(v)).sum(),
-}
-
-
 def _check_single_rule(
     df: pd.DataFrame,
     dataset_name: str,
@@ -351,11 +477,12 @@ def _check_single_rule(
     Returns:
         A list containing a violation message if the rule is broken, or an empty list.
     """
-    counter = _RULE_VIOLATION_COUNTERS.get(rule.rule)
-    if counter is not None and (bad_count := counter(df[col_name], rule.value)) > 0:
+    bad_count = rule.count_violations(df[col_name])
+    if bad_count > 0:
         prefix = f"In dataset '{dataset_name}', column '{col_name}': "
-        value_detail = "" if rule.value is None else f" (value={rule.value!r})"
-        return [f"{prefix}{bad_count} row(s) violate rule '{rule.rule}'{value_detail}."]
+        return [
+            f"{prefix}{bad_count} row(s) violate rule '{rule.rule}'{rule.value_detail}."
+        ]
     return []
 
 
@@ -379,15 +506,24 @@ def check_column_rules(
         ValueError: If any rule is violated. The message lists all violations,
             each naming the dataset, column, rule, and number of offending rows.
 
-    Example::
+    Example:
+        datasets = {
+            "mouse_gene_metadata": pd.DataFrame({
+                "ensembl_gene_id": ["ENSMUSG000000000000000000", "ENSMUSG000000000000000001"],
+            }),
+            "rnaseq_genotype_label_map": pd.DataFrame({
+                "model": ["model1", "model2"],
+                "model_group": ["model_group1", "model_group2"],
+            }),
+        }
 
         COLUMN_RULES = {
             "mouse_gene_metadata": {
-                "ensembl_gene_id": [ColumnRule(rule="matches_regex", value="^ENSMUSG")],
+                "ensembl_gene_id": [MatchesRegexRule(value="^ENSMUSG")],
             },
             "rnaseq_genotype_label_map": {
-                "model": [ColumnRule(rule="not_empty")],
-                "model_group": [ColumnRule(rule="not_empty")],
+                "model": [NotEmptyRule()],
+                "model_group": [NotEmptyRule()],
             },
         }
         check_column_rules(datasets, COLUMN_RULES)
@@ -540,3 +676,45 @@ def extract_age_numeric(age: str) -> Union[int, None]:
         return None
     match = re.search(r"(\d+)", age)
     return int(match.group(1)) if match else None
+
+
+def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
+    """
+    Converts a delimited string into a list of strings, trimming whitespace. Empty items in the split string are
+    excluded from the final output list. If either str_obj or delim is not a string, this function throws a TypeError.
+
+    This function can be used on a pandas series using .apply():
+        df['column_name'].apply(delim_string_to_list, delim=",")
+
+    Args:
+        str_obj (str): The input string containing delimited values (e.g. 'gene1,gene2,gene3')
+        delim (str): The delimiter used to split the string (default is ','). Delimiters may be more than one character,
+                        e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"]. Delim cannot
+                        be NA or None.
+
+    Returns:
+        List[str]: A list of strings obtained by splitting the input string by the delimiter and trimming whitespace
+        (e.g. ['gene1', 'gene2', 'gene3']). If the input string is None or empty, returns an empty list.
+
+    Raises:
+        TypeError: If either str_obj or delim is not a string
+        TypeError: If delim is None
+    """
+
+    # Manually check for whether str_obj is a string and throw a TypeError. Otherwise the list comprehension can throw
+    # different types of errors depending on the type of str_obj, which may have unhelpful error messages.
+    if not isinstance(str_obj, str) and str_obj is not None:
+        raise TypeError(f"Input must be a string, got {type(str_obj)}")
+
+    # Although str.split(None) is valid, using None as the delimiter will split on any whitespace, which may produce
+    # unexpected behavior. Therefore this function expects a defined string delimiter.
+    if not isinstance(delim, str):
+        raise TypeError(
+            f"Delimiter must be a string and must not be None, got {type(delim)}"
+        )
+
+    if str_obj:
+        return [item.strip() for item in str_obj.split(delim) if item.strip()]
+
+    # Return empty list for None or empty string input
+    return []

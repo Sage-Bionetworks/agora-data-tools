@@ -50,6 +50,7 @@ class TestTransformProteomicsDistributionData:
                 "proteomics_srm": "test_proteomics_distribution_srm_good_input.csv",
             },
             KeyError,
+            None,
         ),
         (  # fail with all NA data
             {
@@ -58,6 +59,7 @@ class TestTransformProteomicsDistributionData:
                 "proteomics_srm": "test_proteomics_distribution_srm_good_input.csv",
             },
             KeyError,
+            None,
         ),
         (  # fail with bad name
             {
@@ -66,12 +68,23 @@ class TestTransformProteomicsDistributionData:
                 "proteomics_srm": "test_proteomics_distribution_srm_good_input.csv",
             },
             ValueError,
+            None,
+        ),
+        (  # fail with missing required column
+            {
+                "proteomics": "test_proteomics_distribution_lfq_missing_column_input.csv",
+                "proteomics_tmt": "test_proteomics_distribution_tmt_good_input.csv",
+                "proteomics_srm": "test_proteomics_distribution_srm_good_input.csv",
+            },
+            ValueError,
+            "Missing required columns",
         ),
     ]
     fail_test_ids = [
         "Fail with wrong data type",
         "Fail with all NA tissue names",
         "Fail with bad data label",
+        "Fail with missing required column",
     ]
 
     @pytest.mark.parametrize(
@@ -100,12 +113,12 @@ class TestTransformProteomicsDistributionData:
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     @pytest.mark.parametrize(
-        "input_file_dict, error_type", fail_test_data, ids=fail_test_ids
+        "input_file_dict, error_type, error_match", fail_test_data, ids=fail_test_ids
     )
     def test_transform_proteomics_distribution_data_should_fail(
-        self, input_file_dict, error_type
+        self, input_file_dict, error_type, error_match
     ):
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=error_match):
             datasets = {}
             for key, filename in input_file_dict.items():
                 input_df = pd.read_csv(

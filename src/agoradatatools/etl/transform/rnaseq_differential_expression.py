@@ -1,4 +1,47 @@
-def transform_rnaseq_differential_expression(datasets: dict):
+from typing import Dict, List
+
+from agoradatatools.etl.utils import check_required_datasets_and_columns
+
+
+REQUIRED_INPUT = {
+    "diff_exp_data": [
+        "ensembl_gene_id",
+        "hgnc_symbol",
+        "logfc",
+        "ci_l",
+        "ci_r",
+        "adj_p_val",
+        "tissue",
+        "study",
+        "sex",
+        "model",
+    ],
+}
+
+
+def transform_rnaseq_differential_expression(
+    datasets: dict,
+    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
+):
+    """Transforms the RNA-seq differential expression dataset.
+
+    Applies study and sex label normalization, computes fold change from log fold change,
+    and combines model and sex into a single display model string.
+
+    Args:
+        datasets (dict): Dictionary containing a "diff_exp_data" DataFrame with RNA-seq
+            differential expression results.
+        required_input (Dict[str, List[str]]): Dictionary of required datasets and their
+            required columns. Defaults to REQUIRED_INPUT.
+
+    Returns:
+        pd.DataFrame: Transformed differential expression DataFrame.
+
+    Raises:
+        ValueError: If required datasets or columns are missing.
+    """
+    check_required_datasets_and_columns(datasets, required_input)
+
     diff_exp_data = datasets["diff_exp_data"]
 
     diff_exp_data["study"].replace(

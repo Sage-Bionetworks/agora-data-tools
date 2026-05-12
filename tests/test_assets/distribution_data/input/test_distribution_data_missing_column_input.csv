@@ -1,0 +1,2 @@
+,hgnc_gene_id,ensg,target_risk_score,overall_rank,genetics_score,literaturescore,neuropathscore,sm_druggability_bucket,safety_bucket,feasibility_bucket,abability_bucket,new_modality_bucket,tissue_engagement_bucket,pharos_class,classification,isscored_genetics,isscored_omics,isscored_lit,isscored_neuropath
+378977_429,HIVEP2,ENSG00000010818,3.185141534,3832,1.744062244,1.260049115,0.200555635,7,3,4,6,4,2,Tdark,Potentially targetable,Y,Y,Y,Y
