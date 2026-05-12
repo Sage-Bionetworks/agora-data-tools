@@ -396,8 +396,11 @@ class TestProcessGroup:
 
     def test_process_group_with_none_values(self) -> None:
         """
-        Test that process_group correctly handles None values in the disease correlation DataFrame.
-        This tests the cases where either correlation or adjusted_p_value are None, and when both are None.
+        Test that process_group correctly handles None and zero values in the disease correlation DataFrame. If both
+        correlation and p-value are None for a given module, that module should be excluded from the output. If only one
+        of the two values is None, the module should be included in the output with the None value preserved. Zero
+        values should be treated as valid numeric values and not as missing data/False, and should be preserved in the
+        output.
         """
         group = pd.DataFrame(
             [
