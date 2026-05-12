@@ -329,10 +329,10 @@ class TestZeroPadJaxIds:
                 pd.Series(["123", "123456", "0"]),
                 pd.Series(["000123", "123456", "000000"]),
             ),
-            # Should handle both None and np.NaN. The Series with None is cast to dtype=object because otherwise the
+            # Should handle both None and np.nan. The Series with None is cast to dtype=object because otherwise the
             # None is converted to NaN by pandas. Using dtype=object also matches the output of replacing NaN values
             # with None, which is what happens in the transforms.
-            (pd.Series([1234, np.NaN]), pd.Series(["001234", ""])),
+            (pd.Series([1234, np.nan]), pd.Series(["001234", ""])),
             (pd.Series([1234, None], dtype="object"), pd.Series(["001234", ""])),
             # Empty series should return an empty series
             (pd.Series(), pd.Series()),
@@ -347,11 +347,11 @@ class TestZeroPadJaxIds:
             # Mixed floats and integers all become integers before padding
             (pd.Series([123.0, 12345]), pd.Series(["000123", "012345"])),
             # Floats are converted to integers and padded even when some values are NaN or None
-            (pd.Series([1234.0, np.NaN]), pd.Series(["001234", ""])),
+            (pd.Series([1234.0, np.nan]), pd.Series(["001234", ""])),
             (pd.Series([1234.0, None], dtype="object"), pd.Series(["001234", ""])),
             # Mixed None and NaN values -- None and NaN should both be converted to empty strings
             (
-                pd.Series(["123", None, np.NaN], dtype="object"),
+                pd.Series(["123", None, np.nan], dtype="object"),
                 pd.Series(["000123", "", ""]),
             ),
         ],
@@ -377,7 +377,7 @@ class TestZeroPadJaxIds:
     ) -> None:
         """
         Tests that the function works with multiple different kinds of input. It should work on integers or strings, and
-        both np.NaN and None should be converted to empty strings.
+        both np.nan and None should be converted to empty strings.
         """
         output = zero_pad_jax_ids(input_ids)
 
@@ -459,7 +459,7 @@ class TestValidateJaxIds:
             pd.Series(["-12345"]),
             pd.Series(["123 456"]),
             pd.Series([None]),
-            pd.Series([np.NaN]),
+            pd.Series([np.nan]),
             pd.Series(["\n"]),
         ],
         ids=[
