@@ -23,13 +23,12 @@ This directory contains human-readable synthetic datasets designed to test the `
 #### Metadata Files
 - **`synthetic_rnaseq_genotype_label_map.csv`**: Model to display label mapping
 - **`synthetic_mouse_gene_metadata.csv`**: Gene ID to symbol mapping
-- **`synthetic_model_info.csv`**: Model metadata (matched controls, model type)
 - **`synthetic_biodom_genes_mm.csv`**: Biodomain assignments for genes
 - **`synthetic_biodom_genes_mm_multiple.csv`**: Biodomain assignments with genes having multiple biodomains
 - **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
 - **`synthetic_rnaseq_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
 - **`synthetic_rnaseq_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
-- **`synthetic_model_info_no_group.csv`**: Model metadata with model having no model_group
+- **`synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv`**: Label mapping with inconsistent model_type values for the same model (for error testing)
 
 ### Output Files
 - **`synthetic_*_output.json`**: Expected output for each test case
@@ -187,7 +186,7 @@ Each output entry in the transform result has the following structure:
   },
   "matched_control": "Model_A (Wt)",
   "model_group": "AD",
-  "model_type": "Transgenic",
+  "model_type": "Familial AD",
   "tissue": "Brain",
   "sex_cohort": "Female",
   "3 months": {
@@ -211,7 +210,7 @@ Each output entry in the transform result has the following structure:
   - **link_text** (string): Display text for the link (typically the model name/label)
 - **matched_control** (string): Display label for the control genotype
 - **model_group** (string or null): Model group name (null if empty)
-- **model_type** (string): Model type classification (e.g., "Transgenic", "knockout")
+- **model_type** (string): Model type classification (e.g., "Familial AD", "Late Onset AD")
 - **tissue** (string): Tissue name (JAX models have "Right Cerebral Hemisphere" mapped to "Hemibrain")
 - **sex_cohort** (string): Sex category ("Male" or "Female")
 - **<age>** (object): Age-based entries (keys are age strings like "3 months", "6 months", etc.)
@@ -260,13 +259,12 @@ tests/test_assets/rna_de_aggregate/
 │   └── Metadata Files:
 │       ├── synthetic_rnaseq_genotype_label_map.csv
 │       ├── synthetic_mouse_gene_metadata.csv
-│       ├── synthetic_model_info.csv
 │       ├── synthetic_biodom_genes_mm.csv
 │       ├── synthetic_biodom_genes_mm_multiple.csv
 │       ├── synthetic_mouse_gene_metadata_multi.csv
 │       ├── synthetic_rnaseq_genotype_label_map_no_group.csv
 │       ├── synthetic_rnaseq_genotype_label_map_inconsistent.csv
-│       └── synthetic_model_info_no_group.csv
+│       └── synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv
 ├── output/
 │   ├── synthetic_basic_output.json
 │   ├── synthetic_multi_model_output.json
