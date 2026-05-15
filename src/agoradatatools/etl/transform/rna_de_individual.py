@@ -51,6 +51,8 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
     ColumnRule,
+    MatchesRegexRule,
+    NotEmptyRule,
 )
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     validate_model_group_consistency,
@@ -86,17 +88,17 @@ DATA_FILE_REQUIRED_COLUMNS = [
 
 COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
     "rnaseq_genotype_label_map": {
-        "model": [ColumnRule(rule="not_empty")],
-        "genotype": [ColumnRule(rule="not_empty")],
-        "display_label": [ColumnRule(rule="not_empty")],
-        "model_group": [ColumnRule(rule="not_empty")],
-        "result_order": [ColumnRule(rule="not_empty")],
+        "model": [NotEmptyRule()],
+        "genotype": [NotEmptyRule()],
+        "display_label": [NotEmptyRule()],
+        "model_group": [NotEmptyRule()],
+        "result_order": [NotEmptyRule()],
     },
 }
 
 DATA_FILE_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
-    "model": [ColumnRule(rule="not_empty")],
-    "age": [ColumnRule(rule="matches_regex", value=r"\d+ months$")],
+    "model": [NotEmptyRule()],
+    "age": [MatchesRegexRule(value=r"\d+ months$")],
 }
 
 
