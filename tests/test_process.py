@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from synapseclient import File
+from typer.testing import CliRunner
 
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError
@@ -14,6 +15,7 @@ from agoradatatools.etl import load, utils, extract
 from agoradatatools.reporter import DatasetReport, ADTGXReporter
 from agoradatatools.constants import Platform
 from agoradatatools.gx import GreatExpectationsRunner
+import synapseclient
 
 
 STAGING_PATH = "./staging"
@@ -1135,20 +1137,20 @@ class TestCreateDataManifest:
 
 class TestProcessAllFiles:
     config_path = "./path/to/config"
-    test_reporter = DatasetReport(
-        data_set="test_dataset",
-        gx_report_file="syn123",
-        gx_report_version=1,
-        gx_report_link="test_link",
-        gx_failures=False,
-        gx_failure_message="test_message",
-        adt_output_file="syn456",
-        adt_output_version=1,
-        adt_output_link="test_link",
-    )
 
     @pytest.fixture(scope="function", autouse=True)
     def setup_method(self):
+        self.test_reporter = DatasetReport(
+            data_set="test_dataset",
+            gx_report_file="syn123",
+            gx_report_version=1,
+            gx_report_link="test_link",
+            gx_failures=False,
+            gx_failure_message="test_message",
+            adt_output_file="syn456",
+            adt_output_version=1,
+            adt_output_link="test_link",
+        )
         self.patch_get_config = patch.object(
             utils,
             "_get_config",
@@ -1392,3 +1394,216 @@ class TestProcessAllFiles:
             self.patch_load.assert_not_called()
             self.patch_format_link.assert_not_called()
             self.patch_update_table.assert_called_once()
+
+    def test_process_all_files_filter_datasets(
+        self, syn: synapseclient.Synapse
+    ) -> None:
+        """Verify that only the specified dataset is processed when filter_datasets is set to a single name.
+        The config contains three datasets ("a", "d", "g"), but only "a" should be processed.
+        """
+        # WHEN process_all_files is called with filter_datasets=["a"]
+        process.process_all_files(
+            syn=syn,
+            config_path=self.config_path,
+            platform=Platform.LOCAL,
+            filter_datasets=["a"],
+            run_id="123",
+        )
+
+        # THEN the config is loaded and the staging location is created as normal
+        self.patch_get_config.assert_called_once_with(config_path=self.config_path)
+        self.patch_create_temp_location.assert_called_once_with(
+            staging_path=STAGING_PATH
+        )
+
+        # AND only dataset "a" is processed — "d" and "g" are skipped
+        called_dataset = [
+            list(call.kwargs["dataset_obj"].keys())[0]
+            for call in self.patch_process_dataset.call_args_list
+        ]
+        assert called_dataset == ["a"]
+        assert self.patch_process_dataset.call_count == 1
+        self.patch_process_dataset.assert_called_once_with(
+            dataset_obj={"a": {"b": "c"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+
+    def test_process_all_files_filter_datasets_no_match(
+        self, syn: synapseclient.Synapse
+    ) -> None:
+        """Verify that a ValueError is raised when filter_datasets contains names not present in the config."""
+        # WHEN process_all_files is called with a dataset name that does not exist in the config
+        # THEN a ValueError is raised with a message identifying the unmatched names
+        with pytest.raises(
+            ValueError, match="No datasets found matching: \\['non_existent_dataset'\\]"
+        ):
+            process.process_all_files(
+                syn=syn,
+                config_path=self.config_path,
+                platform=Platform.LOCAL,
+                filter_datasets=["non_existent_dataset"],
+                run_id="123",
+            )
+
+    def test_process_multiple_files_filter_datasets(
+        self, syn: synapseclient.Synapse
+    ) -> None:
+        """Verify that multiple datasets are processed when filter_datasets contains more than one name.
+        The config contains three datasets ("a", "d", "g"), and only "a" and "d" should be processed.
+        """
+        # WHEN process_all_files is called with filter_datasets=["a", "d"]
+        process.process_all_files(
+            syn=syn,
+            config_path=self.config_path,
+            platform=Platform.LOCAL,
+            filter_datasets=["a", "d"],
+            run_id="123",
+        )
+
+        # THEN the config is loaded and the staging location is created as normal
+        self.patch_get_config.assert_called_once_with(config_path=self.config_path)
+        self.patch_create_temp_location.assert_called_once_with(
+            staging_path=STAGING_PATH
+        )
+
+        # AND exactly "a" and "d" are processed in config order — "g" is skipped
+        called_dataset = [
+            list(call.kwargs["dataset_obj"].keys())[0]
+            for call in self.patch_process_dataset.call_args_list
+        ]
+        assert called_dataset == ["a", "d"]
+        assert self.patch_process_dataset.call_count == 2
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj={"a": {"b": "c"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj={"d": {"e": "f"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+
+    def test_process_duplicated_dataset_names_filter_datasets(
+        self, syn: synapseclient.Synapse
+    ) -> None:
+        """Verify that a dataset is not processed more than once when its name appears multiple times in filter_datasets.
+        This guards against double-processing when a user passes --dataset a --dataset a or --dataset a,a.
+        """
+        # WHEN process_all_files is called with a duplicated dataset name in filter_datasets
+        process.process_all_files(
+            syn=syn,
+            config_path=self.config_path,
+            platform=Platform.LOCAL,
+            filter_datasets=["a", "a"],
+            run_id="123",
+        )
+
+        # THEN the config is loaded and the staging location is created as normal
+        self.patch_get_config.assert_called_once_with(config_path=self.config_path)
+        self.patch_create_temp_location.assert_called_once_with(
+            staging_path=STAGING_PATH
+        )
+
+        # AND dataset "a" is processed exactly once despite appearing twice in the filter
+        called_dataset = [
+            list(call.kwargs["dataset_obj"].keys())[0]
+            for call in self.patch_process_dataset.call_args_list
+        ]
+        assert called_dataset == ["a"]
+        assert self.patch_process_dataset.call_count == 1
+        self.patch_process_dataset.assert_called_once_with(
+            dataset_obj={"a": {"b": "c"}},
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+
+
+class TestProcessCLI:
+    """Tests for the `process` CLI command"""
+
+    runner = CliRunner()
+
+    @pytest.fixture(autouse=True)
+    def patch_dependencies(self):
+        with (
+            patch.object(utils, "_login_to_synapse", return_value=None),
+            patch.object(process, "process_all_files") as mock_process_all_files,
+        ):
+            self.mock_process_all_files = mock_process_all_files
+            yield
+
+    def test_process_cli_no_dataset_flag(self) -> None:
+        """When --dataset is omitted, filter_datasets should be None (process all)."""
+        # WHEN the CLI is invoked without a --dataset flag
+        result = self.runner.invoke(process.app, ["path/to/config"])
+
+        # THEN the command succeeds and filter_datasets is None, meaning all datasets are processed
+        assert result.exit_code == 0
+        self.mock_process_all_files.assert_called_once()
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] is None
+
+    def test_process_cli_single_dataset(self) -> None:
+        """A single --dataset flag passes a one-element list to process_all_files."""
+        # WHEN the CLI is invoked with a single --dataset flag
+        result = self.runner.invoke(
+            process.app, ["path/to/config", "--dataset", "gene_info"]
+        )
+
+        # THEN the command succeeds and filter_datasets contains exactly the specified dataset name
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] == [
+            "gene_info"
+        ]
+
+    def test_process_cli_repeated_dataset_flags(self) -> None:
+        """Repeated --dataset flags are combined into a list."""
+        # WHEN the CLI is invoked with --dataset specified multiple times
+        result = self.runner.invoke(
+            process.app,
+            ["path/to/config", "--dataset", "gene_info", "--dataset", "team_info"],
+        )
+
+        # THEN the command succeeds and filter_datasets contains all specified dataset names
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] == [
+            "gene_info",
+            "team_info",
+        ]
+
+    def test_process_cli_comma_separated_datasets(self) -> None:
+        """A comma-separated value in --dataset is split into individual names."""
+        # WHEN the CLI is invoked with a comma-separated list of dataset names in a single --dataset flag
+        result = self.runner.invoke(
+            process.app, ["path/to/config", "--dataset", "gene_info,team_info"]
+        )
+
+        # THEN the command succeeds and filter_datasets contains each name as a separate entry
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] == [
+            "gene_info",
+            "team_info",
+        ]
+
+    def test_process_cli_comma_separated_with_spaces(self) -> None:
+        """Whitespace around comma-separated names is stripped."""
+        # WHEN the CLI is invoked with a comma-separated list that includes surrounding whitespace
+        result = self.runner.invoke(
+            process.app, ["path/to/config", "--dataset", "gene_info, team_info"]
+        )
+
+        # THEN the command succeeds and dataset names are trimmed before being passed to process_all_files
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["filter_datasets"] == [
+            "gene_info",
+            "team_info",
+        ]
