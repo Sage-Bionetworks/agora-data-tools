@@ -2,7 +2,11 @@ from typing import Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    nest_fields,
+    normalize_null_values,
+)
 
 
 REQUIRED_INPUT = {
@@ -14,7 +18,7 @@ REQUIRED_INPUT = {
 def transform_team_info(
     datasets: dict,
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-):
+) -> pd.DataFrame:
     """Transforms team and team member info into a single joined DataFrame.
 
     Groups team members by team and merges them into the team info DataFrame.
@@ -33,16 +37,21 @@ def transform_team_info(
     check_required_datasets_and_columns(datasets, required_input)
 
     team_info = datasets["team_info"]
-    team_member_info = datasets["team_member_info"]
-
-    team_member_info = (
-        team_member_info.groupby("team")
-        .apply(
-            lambda x: x[x.columns.difference(["team"])]
-            .fillna("")
-            .to_dict(orient="records")
-        )
-        .reset_index(name="members")
+    team_member_info = normalize_null_values(
+        datasets["team_member_info"],
+        boolean_columns=["isprimaryinvestigator"],
+        empty_string_columns=["team", "name", "url"],
     )
-    joined_df = pd.merge(left=team_info, right=team_member_info, how="left", on="team")
+
+    team_member_info = nest_fields(
+        team_member_info, grouping="team", new_column="members", drop_columns=["team"]
+    )
+
+    joined_df = pd.merge(
+        left=team_info,
+        right=team_member_info,
+        how="left",
+        on="team",
+        validate="one_to_one",
+    )
     return joined_df
