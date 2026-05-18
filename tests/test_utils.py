@@ -1583,6 +1583,41 @@ class TestNormalizeNullValues:
                 empty_string_columns=column_value,
             )
 
+    def test_normalize_null_values_fails_with_non_boolean_values_in_boolean_columns(
+        self,
+    ) -> None:
+        """
+        Test that normalize_null_values raises a TypeError when boolean_columns contains non-boolean values. All columns
+        in the input data frame except "bool_col" should fail and be included in the raised error message. As an added
+        check, columns "string2" and "numeric2" have values that look like booleans but aren't. These should both fail
+        the check because casting to `bool` might produce unexpected behavior. For example, bool("False") = True.
+        Although 1 and 0 from numeric2 would be converted to booleans as expected, we still want all numeric values to
+        fail the check to avoid ambiguity.
+        """
+        input_df = pd.DataFrame(
+            {
+                "bool_col": [True, False, None, np.nan, pd.NA],
+                "string1": ["abc", None, "", np.nan, pd.NA],
+                "string2": ["True", "False", None, np.nan, pd.NA],
+                "numeric1": [123, 456, np.nan, np.nan, np.nan],
+                "numeric2": [1, 0, None, np.nan, pd.NA],
+                "mixed": [True, "abc", 123, None, np.nan],
+            }
+        )
+
+        bad_columns = ["string1", "string2", "numeric1", "numeric2", "mixed"]
+
+        with pytest.raises(
+            TypeError, match="Columns .* contain non-boolean values"
+        ) as exc_info:
+            utils.normalize_null_values(
+                input_df, boolean_columns=input_df.columns.to_list()
+            )
+
+        assert "bool_col" not in str(exc_info.value)
+        for col in bad_columns:
+            assert col in str(exc_info.value)
+
 
 class TestDelimStringToList:
     """

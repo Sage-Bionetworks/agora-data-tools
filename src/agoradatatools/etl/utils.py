@@ -691,6 +691,10 @@ def normalize_null_values(
     columns listed in `empty_string_columns` will have NaN/None values replaced with "". After that, all columns left
     over will have their NaN values replaced with None, regardless of column type.
 
+    To avoid unexpected behavior when casting to `bool`, this function verifies that all values in the columns specified
+    in `boolean_columns` are of type `bool` or missing (None or NaN) before filling NAs and casting to `bool`. A
+    TypeError will be raised if any non-boolean values are found in these columns.
+
     All *_columns arguments are optional and default to empty lists. Values in these arguments must not overlap with
     each other and must contain only columns that appear in the data frame.
 
@@ -707,6 +711,7 @@ def normalize_null_values(
     Raises:
         TypeError: If the input df is not a pandas DataFrame.
         TypeError: If any of the *_columns arguments are not lists.
+        TypeError: If any of the values in the boolean_columns columns are not of type `bool` or missing.
         ValueError: If there are overlaps between the boolean_columns and empty_string_columns lists.
         ValueError: If any column specified in the boolean_columns or empty_string_columns lists does not exist in the
         DataFrame.
@@ -744,6 +749,16 @@ def normalize_null_values(
 
     df = df.copy()
 
+    # Verify that all values in boolean columns are boolean or NaN
+    invalid_cols = [
+        col
+        for col in boolean_columns
+        if not df[col].dropna().apply(isinstance, args=[bool]).all()
+    ]
+    if len(invalid_cols) > 0:
+        raise TypeError(f"Columns {invalid_cols} contain non-boolean values")
+
+    # Fill NAs
     for col in boolean_columns:
         df[col] = df[col].fillna(False).astype(bool)
 
