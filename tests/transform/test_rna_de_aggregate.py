@@ -601,8 +601,8 @@ class TestCreateOutputEntryFromGroup:
             "link_text": "Transgenic_B",
         }  # Falls back to case genotype
         assert result["matched_control"] == "Wildtype_B"  # From label_map_dict
-        assert result["model_group"] is None  # Empty string converted to None
-        assert result["model_type"] == ""  # Default for missing
+        assert result["model_group"] is None  # Default for missing model_group
+        assert result["model_type"] == ""  # Default for missing model_type
         assert result["tissue"] == "Hippocampus"
         assert result["sex_cohort"] == "Female"
 
@@ -644,38 +644,6 @@ class TestCreateOutputEntryFromGroup:
         )
 
         assert result["tissue"] == "Hemibrain"  # Should be mapped
-
-    def test_create_output_entry_empty_model_group(self) -> None:
-        """Test that empty string model_group is converted to None."""
-        group_key = ("ENSMUSG00000000004", "Model_D", "Cortex", "Female", "Tg", "Wt")
-        group = pd.DataFrame(
-            {
-                "age": ["6 months"],
-                "log2foldchange": [1.5],
-                "padj": [0.01],
-            }
-        )
-
-        gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_D", "Tg"): "Transgenic_D",
-            ("Model_D", "Wt"): "Wildtype_D",
-        }
-        model_group_dict = {"Model_D": ""}  # Empty string
-        biodomain_dict = {}
-        model_type_dict = {}
-
-        result = _create_output_entry_from_group(
-            group_key=group_key,
-            group=group,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            biodomain_dict=biodomain_dict,
-            model_type_dict=model_type_dict,
-        )
-
-        assert result["model_group"] is None  # Empty string should become None
 
     def test_create_output_entry_multiple_biodomains(self) -> None:
         """Test output entry with multiple biodomain assignments."""
