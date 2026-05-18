@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
+    normalize_null_values,
     delim_string_to_list,
     remove_duplicates_keep_order,
 )
@@ -141,7 +142,13 @@ def transform_model_overview(
         model_info, model_results_info, on="name", how="left", validate="1:1"
     )
 
-    merged_df = merged_df.replace({float("nan"): None})
+    boolean_columns = [
+        "transcriptomics",
+        "disease_correlation",
+        "pathology",
+        "biomarkers",
+    ]
+    merged_df = normalize_null_values(merged_df, boolean_columns=boolean_columns)
     merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
 
     # Transform the merged dataframe into the target structure
@@ -161,29 +168,27 @@ def transform_model_overview(
             if genetic_info
             else []
         )
-        row["modified_genes"] = [
-            gene for gene in modified_genes if gene is not None and str(gene) != "nan"
-        ]
+        row["modified_genes"] = [gene for gene in modified_genes if gene is not None]
 
         # Build the links
         row["transcriptomics"] = (
             {"link_url": build_transcriptomics_url(row)}
-            if bool(row["transcriptomics"])
+            if row["transcriptomics"]
             else None
         )
         row["disease_correlation"] = (
             {"link_url": f"comparison/correlation?models={row['name']}"}
-            if bool(row["disease_correlation"])
+            if row["disease_correlation"]
             else None
         )
         row["pathology"] = (
             {"link_url": f"models/{row['name']}/pathology"}
-            if bool(row["pathology"])
+            if row["pathology"]
             else None
         )
         row["biomarkers"] = (
             {"link_url": f"models/{row['name']}/biomarkers"}
-            if bool(row["biomarkers"])
+            if row["biomarkers"]
             else None
         )
         row["study_data"] = (
