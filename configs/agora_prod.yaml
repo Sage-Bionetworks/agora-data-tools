@@ -285,7 +285,7 @@ datasets:
   - ui_config:
       files:
         - name: ui_config
-          id: syn73695287 # TODO pin this once source is finalized
+          id: syn73677126 # TODO pin this once source is finalized
           format: json
       final_format: json
       destination: *dest
