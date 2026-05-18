@@ -551,6 +551,39 @@ class TestNestFields:
         )
         assert list(nested_df["e"]) == expected_column_e
 
+    def test_nest_fields_normalizes_null_values(self) -> None:
+        df_with_nulls = pd.DataFrame(
+            {
+                "a": ["group_1", "group_1", "group_2"],
+                "b": ["1", np.nan, "1"],
+                "c": ["1", "1", np.nan],
+            }
+        )
+
+        expected_df = pd.DataFrame(
+            {
+                "a": ["group_1", "group_2"],
+                "nested": [
+                    # group_1
+                    [
+                        {"b": "1", "c": "1"},
+                        {"b": None, "c": "1"},
+                    ],
+                    # group_2
+                    [{"b": "1", "c": None}],
+                ],
+            }
+        )
+
+        nested_df = utils.nest_fields(
+            df=df_with_nulls,
+            grouping="a",
+            new_column="nested",
+            drop_columns=["a"],
+        )
+
+        pd.testing.assert_frame_equal(nested_df, expected_df)
+
 
 class TestCalculateDistribution:
     # NOTE: pd.describe() calls np.quantile() with interpolation when quantiles fall between values.
@@ -1322,6 +1355,233 @@ class TestExtractAgeNumeric:
             expected: Expected numeric age value or None if no number found
         """
         assert utils.extract_age_numeric(input_age) == expected
+
+
+class TestNormalizeNullValues:
+    """
+    Test class for validating the normalize_null_values utility function.
+    """
+
+    @pytest.fixture
+    def test_data_frame(self) -> pd.DataFrame:
+        return pd.DataFrame(
+            {
+                "bool1": [True, False, None, np.nan, pd.NA],
+                "bool2": [np.nan] * 5,
+                "string1": ["abc", None, "", np.nan, pd.NA],
+                "string2": [np.nan] * 5,
+                "numeric1": [123, np.nan, np.nan, np.nan, np.nan],
+                "numeric2": [np.nan] * 5,
+                "extra1": ["abc", "def", None, np.nan, pd.NA],
+                "extra2": [pd.NA] * 5,
+            }
+        )
+
+    def test_normalize_null_values_with_empty_column_lists(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values correctly normalizes null values when both *_column arguments have default
+        [] values.
+        """
+        output = utils.normalize_null_values(test_data_frame)
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, None, None, None],
+                "bool2": [None] * 5,
+                "string1": ["abc", None, "", None, None],
+                "string2": [None] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "extra1": ["abc", "def", None, None, None],
+                "extra2": [None] * 5,
+            },
+            dtype="O",
+        )
+
+        pd.testing.assert_frame_equal(output, expected_output)
+
+    def test_normalize_null_values_with_only_boolean_columns(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values correctly normalizes null values when only boolean_columns is defined.
+        """
+        output = utils.normalize_null_values(
+            test_data_frame,
+            boolean_columns=["bool1", "bool2"],
+        )
+
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, False, False, False],
+                "bool2": [False] * 5,
+                "string1": ["abc", None, "", None, None],
+                "string2": [None] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "extra1": ["abc", "def", None, None, None],
+                "extra2": [None] * 5,
+            },
+            dtype="O",
+        )
+        expected_output["bool1"] = expected_output["bool1"].astype(bool)
+        expected_output["bool2"] = expected_output["bool2"].astype(bool)
+
+        pd.testing.assert_frame_equal(output, expected_output)
+
+    def test_normalize_null_values_with_only_string_columns(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values correctly normalizes null values when only string_columns is defined.
+        """
+        output = utils.normalize_null_values(
+            test_data_frame,
+            empty_string_columns=["string1", "string2"],
+        )
+
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, None, None, None],
+                "bool2": [None] * 5,
+                "string1": ["abc", "", "", "", ""],
+                "string2": [""] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "extra1": ["abc", "def", None, None, None],
+                "extra2": [None] * 5,
+            },
+            dtype="O",
+        )
+
+        pd.testing.assert_frame_equal(output, expected_output)
+
+    def test_normalize_null_values_with_all_column_types_defined(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values correctly normalizes null values when both *_columns arguments are defined.
+        """
+        output = utils.normalize_null_values(
+            test_data_frame,
+            boolean_columns=["bool1", "bool2"],
+            empty_string_columns=["string1", "string2"],
+        )
+
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, False, False, False],
+                "bool2": [False] * 5,
+                "string1": ["abc", "", "", "", ""],
+                "string2": [""] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "extra1": ["abc", "def", None, None, None],
+                "extra2": [None] * 5,
+            },
+            dtype="O",
+        )
+        expected_output["bool1"] = expected_output["bool1"].astype(bool)
+        expected_output["bool2"] = expected_output["bool2"].astype(bool)
+
+        pd.testing.assert_frame_equal(output, expected_output)
+
+    def test_normalize_null_values_with_empty_data_frame(self) -> None:
+        """
+        Test that normalize_null_values correctly handles an empty data frame without errors.
+        """
+        empty_df = pd.DataFrame(columns=["bool1", "string1", "numeric1"])
+        empty_df["bool1"] = empty_df["bool1"].astype(bool)
+
+        output = utils.normalize_null_values(
+            empty_df.copy(),
+            boolean_columns=["bool1"],
+            empty_string_columns=["string1"],
+        )
+        # Should return an empty data frame with the same columns
+        pd.testing.assert_frame_equal(output, empty_df)
+
+    def test_normalize_null_values_fails_with_nonexistent_columns(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values raises a ValueError when boolean_column or empty_string_column values don't
+        exist in the data frame.
+        """
+        with pytest.raises(
+            ValueError,
+            match="Columns \\['bool_x', 'string_x'\\] do not exist in the DataFrame",
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                boolean_columns=["bool1", "bool_x"],
+                empty_string_columns=["string1", "string_x"],
+            )
+
+    def test_normalize_null_values_fails_with_overlapping_columns(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values raises a ValueError when columns are included in more than one column type list.
+        """
+        with pytest.raises(
+            ValueError, match="Columns \\['bool1', 'string2'\\] appear in both"
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                boolean_columns=["bool1", "bool2", "string2"],
+                empty_string_columns=["string1", "string2", "bool1"],
+            )
+
+    @pytest.mark.parametrize(
+        "df_value",
+        [
+            "not_a_dataframe",  # String
+            123,  # Integer
+            None,  # None
+            ("df1", "df2"),  # Tuple
+            [1, 2, 3],  # List
+            {"col": [1, 2]},  # Dict
+        ],
+    )
+    def test_normalize_null_values_fails_with_non_dataframe_argument(
+        self, df_value: Any
+    ) -> None:
+        """
+        Test that normalize_null_values raises a TypeError when the df argument is not a DataFrame.
+        """
+        with pytest.raises(TypeError, match="Input must be a pandas DataFrame"):
+            utils.normalize_null_values(df_value)
+
+    @pytest.mark.parametrize(
+        "column_value",
+        [
+            "bool1",  # Single string
+            123,  # Integer
+            False,  # Boolean
+            ("bool1", "bool2"),  # Tuple
+            {"bool1": "bool2"},  # Dict
+            pd.DataFrame(),  # DataFrame
+        ],
+    )
+    def test_normalize_null_values_fails_with_non_list_arguments(
+        self, column_value: Any, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values raises a TypeError when *_columns arguments are not lists.
+        """
+        with pytest.raises(TypeError, match="boolean_columns must be a list"):
+            utils.normalize_null_values(
+                test_data_frame,
+                boolean_columns=column_value,
+            )
+
+        with pytest.raises(TypeError, match="empty_string_columns must be a list"):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_string_columns=column_value,
+            )
 
 
 class TestDelimStringToList:

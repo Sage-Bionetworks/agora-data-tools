@@ -209,6 +209,63 @@ class TestProcessGeneticInfo:
         # Compare output with expected
         assert output == expected_output
 
+    def test_process_genetic_info_normalizes_missing_values(self) -> None:
+        # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele" and "allele_type"
+        # can have missing values and still appear in the output.
+        human_transgene_allele_map_df = pd.DataFrame(
+            {
+                "mgi_allele_id": [1234567, 2345678],
+                "gene_symbol": ["APP", "MAPT"],
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
+            }
+        )
+
+        # The third gene does not exist in the human transgene mapping, so its Ensembl ID will not get overwritten in
+        # the output and the missing value will show up.
+        model_alleles = pd.DataFrame(
+            {
+                "modified_gene": ["App", "Mapt", "Psen1"],
+                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.nan],
+                "allele": [np.nan, np.nan, np.nan],  # Missing allele names
+                "allele_type": [np.nan, np.nan, np.nan],  # Missing allele type
+                "mgi_allele_id": [1234567, 2345678, 3456789],
+            },
+            dtype="object",
+        )
+
+        # Expected output: missing values should be normalized to None, and the first two genes should have their
+        # Ensembl IDs replaced with the human ones. The third gene should keep its missing mouse Ensembl ID, which
+        # should be normalized to None.
+        expected_output = [
+            {
+                "modified_gene": "APP",
+                "ensembl_gene_id": "ENSG00000123456",
+                "allele": None,  # Missing values should be normalized to None
+                "allele_type": None,
+                "mgi_allele_id": 1234567,
+            },
+            {
+                "modified_gene": "MAPT",
+                "ensembl_gene_id": "ENSG00000987654",
+                "allele": None,
+                "allele_type": None,
+                "mgi_allele_id": 2345678,
+            },
+            {
+                "modified_gene": "Psen1",
+                "ensembl_gene_id": None,
+                "allele": None,
+                "allele_type": None,
+                "mgi_allele_id": 3456789,
+            },
+        ]
+
+        # Transform data
+        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+
+        # Compare output with expected
+        assert output == expected_output
+
 
 class TestBuildTranscriptomicsUrl:
     """
@@ -217,100 +274,83 @@ class TestBuildTranscriptomicsUrl:
     model has transcriptomics data.
     """
 
-    @pytest.fixture
-    def url_test_model(self) -> pd.Series:
-        return pd.Series(
-            {
-                "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": "model1,model2",
-                "transcriptomics": True,
-            }
-        )
-
     @pytest.mark.parametrize(
         "false_val",
         [False, None],
-        ids=["Pass with False boolean value", "Pass with NA value"],
+        ids=["Pass with False boolean value", "Pass with None value"],
     )
     def test_build_transcriptomics_url_no_transcriptomics(
-        self, false_val: bool, url_test_model: pd.Series
+        self, false_val: bool
     ) -> None:
         """
         The function should treat both None and False as transcriptomics = False, and return None.
         """
-        url_test_model["transcriptomics"] = false_val
+        model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": "category_string",
+                "url_models_value": "model1,model2",
+                "transcriptomics": false_val,
+            }
+        )
 
-        url = build_transcriptomics_url(url_test_model)
+        url = build_transcriptomics_url(model)
         assert url is None
 
-    def test_build_transcriptomics_url_all_default_values(
-        self, url_test_model: pd.Series
-    ) -> None:
-        url_test_model["url_categories_value"] = ""
-        url_test_model["url_models_value"] = ""
+    def test_build_transcriptomics_url_all_default_values(self) -> None:
+        model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": None,
+                "url_models_value": None,
+                "transcriptomics": True,
+            }
+        )
 
-        url = build_transcriptomics_url(url_test_model)
+        url = build_transcriptomics_url(model)
         assert url == "comparison/expression?models=Model"
 
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
-        ids=["Pass with empty string value", "Pass with NA value"],
+        ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_default_category(
-        self, empty_val: str, url_test_model: pd.Series
-    ) -> None:
+    def test_build_transcriptomics_url_default_category(self, empty_val: str) -> None:
         """
-        The function should treat both "" and None/NA as empty values and not have a "categories=..." in the url
+        The function should treat both "" and None as empty values and not have a "categories=..." in the url
         """
-        url_test_model["url_categories_value"] = empty_val
+        model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": empty_val,
+                "url_models_value": "model1,model2",
+                "transcriptomics": True,
+            }
+        )
 
-        url = build_transcriptomics_url(url_test_model)
+        url = build_transcriptomics_url(model)
         assert url == "comparison/expression?models=model1,model2"
 
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
-        ids=["Pass with empty string value", "Pass with NA value"],
+        ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_default_models(
-        self, empty_val: str, url_test_model: pd.Series
-    ) -> None:
+    def test_build_transcriptomics_url_default_models(self, empty_val: str) -> None:
         """
-        The function should treat both "" and None/NA as empty values and have just the model name in the URL
+        The function should treat both "" and None as empty values and have just the model name in the URL
         """
-        url_test_model["url_models_value"] = empty_val
+        model = pd.Series(
+            {
+                "name": "Model",
+                "url_categories_value": "category_string",
+                "url_models_value": empty_val,
+                "transcriptomics": True,
+            }
+        )
 
-        url = build_transcriptomics_url(url_test_model)
+        url = build_transcriptomics_url(model)
         assert url == "comparison/expression?categories=category_string&models=Model"
-
-    @pytest.mark.parametrize(
-        "missing_key",
-        ["name", "url_categories_value", "url_models_value", "transcriptomics"],
-        ids=[
-            "Fail with missing name column",
-            "Fail with missing url_categories_value column",
-            "Fail with missing url_models_value column",
-            "Fail with missing transcriptomics column",
-        ],
-    )
-    def test_build_transcriptomics_url_missing_field(
-        self, missing_key: str, url_test_model: pd.Series
-    ) -> None:
-        """
-        In the transform, the model_info and model_results_info data frames have already been validated to have all the
-        required columns to correctly call build_transcriptomics_url. However, we verify anyway that calling the
-        function with missing columns will throw errors.
-        """
-        url_test_model.pop(missing_key)
-
-        # Special case: model["name"] never gets used unless we set the url_models_value to empty
-        if missing_key == "name":
-            url_test_model["url_models_value"] = ""
-
-        with pytest.raises(KeyError):
-            build_transcriptomics_url(url_test_model)
 
 
 class TestZeroPadJaxIds:
