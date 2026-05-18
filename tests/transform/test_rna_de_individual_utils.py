@@ -14,7 +14,6 @@ from agoradatatools.etl.transform.rna_de_individual_utils import (
     filter_to_mouse_genes,
     validate_model_group_consistency,
     create_gene_metadata_dict,
-    prepare_genotype_label_map_df,
     log_file_processing_info,
     validate_data_file_not_empty,
     preprocess_data_file,
@@ -234,9 +233,7 @@ class TestValidateModelGroupConsistency:
     def test_empty_string_model_groups(self) -> None:
         """Test that consistent empty-string model_group values do not raise an error.
 
-        In practice, empty strings are normalized to None by prepare_genotype_label_map_df
-        before this function is called. Consistent "" values are still considered valid
-        because all rows agree on the same value.
+        Consistent "" values are considered valid because all rows agree on the same value.
         """
         df = pd.DataFrame(
             {
@@ -291,75 +288,6 @@ class TestCreateGeneMetadataDict:
         result = create_gene_metadata_dict(df)
 
         assert result == {}
-
-
-class TestPrepareGenotypeLabelMapDf:
-    """Tests for prepare_genotype_label_map_df function."""
-
-    def test_converts_result_order_to_int(self) -> None:
-        """Test that result_order is cast to int."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": ["GroupA"],
-                "result_order": ["3"],
-            }
-        )
-
-        result = prepare_genotype_label_map_df(df)
-
-        assert result["result_order"].dtype == int
-        assert result["result_order"].iloc[0] == 3
-
-    def test_does_not_mutate_input(self) -> None:
-        """Test that the original DataFrame is not modified."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A"],
-                "genotype": ["Tg"],
-                "display_label": ["Transgenic"],
-                "model_group": ["GroupA"],
-                "result_order": [1],
-            }
-        )
-        original_df = df.copy()
-
-        prepare_genotype_label_map_df(df)
-
-        pd.testing.assert_frame_equal(df, original_df)
-
-    def test_multiple_rows_preserved(self) -> None:
-        """Test that all rows are preserved with their model_group values intact."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_B"],
-                "genotype": ["Tg", "Carrier"],
-                "display_label": ["Transgenic", "Model_B"],
-                "model_group": ["GroupA", "GroupX"],
-                "result_order": [2, 1],
-            }
-        )
-
-        result = prepare_genotype_label_map_df(df)
-
-        pd.testing.assert_frame_equal(result, df)
-
-    def test_valid_display_labels_do_not_raise(self) -> None:
-        """Test that non-empty display_labels pass validation without error."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_B"],
-                "genotype": ["Tg", "Carrier"],
-                "display_label": ["Transgenic", "Carrier Model"],
-                "model_group": ["GroupA", "GroupB"],
-                "result_order": [1, 2],
-            }
-        )
-
-        # Should not raise
-        prepare_genotype_label_map_df(df)
 
 
 class TestLogFileProcessingInfo:
@@ -448,9 +376,10 @@ class TestPreprocessDataFileColumnRules:
         data.update(overrides)
         return pd.DataFrame(data)
 
-    def _preprocess(self, df: pd.DataFrame, column_rules=None) -> pd.DataFrame:
-        rules = column_rules if column_rules is not None else self._DEFAULT_COLUMN_RULES
-        return preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, rules)
+    def _preprocess(self, df: pd.DataFrame) -> pd.DataFrame:
+        return preprocess_data_file(
+            "test.csv", df, 0, 1, self._REQUIRED_COLUMNS, self._DEFAULT_COLUMN_RULES
+        )
 
     def test_bad_age_format_raises_value_error(self) -> None:
         """age values not matching '\\d+ months' fail the matches_regex rule."""

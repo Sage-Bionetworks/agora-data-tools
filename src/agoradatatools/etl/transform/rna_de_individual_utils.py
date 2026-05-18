@@ -10,7 +10,6 @@ Key Functions:
     filter_to_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
-    prepare_genotype_label_map_df: Normalize the genotype label map DataFrame
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
     preprocess_data_file: Apply common validation and transformation steps to a single data file
@@ -52,10 +51,7 @@ def validate_model_group_consistency(
     different model_group values for the same model indicates a data quality issue.
 
     None/NaN values are counted as a single distinct value (i.e. "no group assigned")
-    rather than being excluded from the uniqueness check. When called after
-    prepare_genotype_label_map_df, None/NaN will not be present since that function
-    rejects empty model_group values; this handles the case where the function is
-    called independently.
+    rather than being excluded from the uniqueness check.
 
     Args:
         genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
@@ -89,38 +85,6 @@ def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str,
         Dictionary mapping ensembl_gene_id to gene_symbol
     """
     return mouse_gene_metadata_df.set_index("ensembl_gene_id")["gene_symbol"].to_dict()
-
-
-def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Normalize the genotype label map DataFrame.
-
-    Casts result_order to int. Column value validation (non-empty display_label,
-    model_group, etc.) is handled upstream by check_column_rules before this
-    function is called.
-
-    Args:
-        df: Raw rnaseq_genotype_label_map DataFrame with columns: model, genotype,
-            display_label, model_group, result_order
-
-    Returns:
-        Normalized DataFrame with result_order cast to int.
-
-    Examples:
-        >>> df = pd.DataFrame({
-        ...     'model': ['Model_A', 'Model_B'],
-        ...     'genotype': ['Tg', 'Carrier'],
-        ...     'display_label': ['Transgenic', 'Model_B'],
-        ...     'model_group': ['GroupA', 'GroupX'],
-        ...     'result_order': [2, 1],
-        ... })
-        >>> result = prepare_genotype_label_map_df(df)
-        >>> result['model_group'].tolist()
-        ['GroupA', 'GroupX']
-    """
-    df = df.copy()
-    df["result_order"] = df["result_order"].astype(int)
-    return df
 
 
 def log_file_processing_info(

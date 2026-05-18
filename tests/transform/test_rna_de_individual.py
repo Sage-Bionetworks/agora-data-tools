@@ -56,7 +56,7 @@ class TestDetermineResultOrder:
     The function accepts a data_file DataFrame (already merged with the label map
     and filtered to a single model_group) rather than the raw label map.
 
-    Empty display_label values are validated upstream by prepare_genotype_label_map_df
+    Empty display_label values are validated upstream by check_column_rules
     and will never reach this function.
 
     Test Methods:
@@ -400,7 +400,7 @@ class TestTransformRnaDeIndividual:
         - test_synthetic_single_row_data: Tests minimal edge case (single row).
         - test_synthetic_empty_data_file: Tests error handling for empty data files.
         - test_synthetic_missing_columns_data: Tests error handling for missing columns.
-        - test_data_file_required_columns_parameter: Tests that data_file_required_columns parameter is honoured.
+        - test_data_file_required_columns_parameter: Tests that data_file_required_columns parameter is honored.
         - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
         - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
         - test_file_with_multiple_models_raises_value_error: Tests that a file containing
@@ -416,10 +416,11 @@ class TestTransformRnaDeIndividual:
           model_group in rnaseq_genotype_label_map raises ValueError via check_column_rules.
         - test_check_column_rules_rejects_bad_age_format: Tests that an age value not
           matching the '[N] months' format in a data file raises ValueError via check_column_rules.
-        - test_column_rules_parameter_honoured: Tests that a custom column_rules parameter
+        - test_column_rules_parameter_honored: Tests that a custom column_rules parameter
           overrides the module-level default.
-        - test_data_file_column_rules_parameter_honoured: Tests that a custom
+        - test_data_file_column_rules_parameter_honored: Tests that a custom
           data_file_column_rules parameter overrides the module-level default.
+        - test_result_order_cast_to_int: Tests that string result_order values are cast to int.
 
     Helper Methods:
         - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
@@ -704,7 +705,7 @@ class TestTransformRnaDeIndividual:
             transform_rna_de_individual(datasets=datasets)
 
     def test_data_file_required_columns_parameter(self) -> None:
-        """Test that the data_file_required_columns parameter is honoured.
+        """Test that the data_file_required_columns parameter is honored.
 
         Verifies that the parameter is wired through to column validation rather than
         the constant always being used. Passes a custom list containing a non-existent
@@ -1047,7 +1048,31 @@ class TestTransformRnaDeIndividual:
         with pytest.raises(ValueError, match="matches_regex"):
             transform_rna_de_individual(datasets=datasets)
 
-    def test_column_rules_parameter_honoured(self) -> None:
+    def test_result_order_cast_to_int(self) -> None:
+        """Test that string result_order values in the label map are cast to int.
+
+        Lexicographic sort would place "10" before "2"; numeric sort places 2 before 10.
+        """
+        datasets = self._build_minimal_datasets(
+            label_map_overrides={"result_order": ["10", "2"]},
+            data_file_overrides={
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "expression": [5.0, 4.0],
+                "model": ["Model_A", "Model_A"],
+                "genotype": ["Tg", "Wt"],
+                "age": ["6 months", "6 months"],
+                "sex": ["Male", "Female"],
+                "tissue": ["Cortex", "Cortex"],
+                "individualid": ["Ind001", "Ind002"],
+            },
+        )
+
+        output = transform_rna_de_individual(datasets=datasets)
+
+        assert len(output) == 1
+        assert output[0]["result_order"] == ["Wildtype", "Transgenic"]
+
+    def test_column_rules_parameter_honored(self) -> None:
         """Test that a custom column_rules parameter overrides the module-level default.
 
         Passing a custom rule that cannot be satisfied (requiring model to contain
@@ -1067,7 +1092,7 @@ class TestTransformRnaDeIndividual:
                 datasets=datasets, column_rules=custom_column_rules
             )
 
-    def test_data_file_column_rules_parameter_honoured(self) -> None:
+    def test_data_file_column_rules_parameter_honored(self) -> None:
         """Test that a custom data_file_column_rules parameter overrides the module-level default.
 
         Passing a custom rule that cannot be satisfied (requiring ensembl_gene_id to

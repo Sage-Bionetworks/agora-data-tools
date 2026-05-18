@@ -57,7 +57,6 @@ from agoradatatools.etl.utils import (
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     validate_model_group_consistency,
     create_gene_metadata_dict,
-    prepare_genotype_label_map_df,
     preprocess_data_file,
     validate_data_file_not_empty,
 )
@@ -109,8 +108,7 @@ def _determine_result_order(data_file: pd.DataFrame) -> List[str]:
     Operates on a data_file that has already been merged with the genotype label map
     and filtered to a single model_group, so every display_label present is guaranteed
     to exist in the actual data. Empty display_label values are guaranteed not to be
-    present — prepare_genotype_label_map_df raises a ValueError if any are found in
-    the mapping file.
+    present — check_column_rules validates the label map before processing begins.
 
     Args:
         data_file: DataFrame already merged with the genotype label map and filtered to
@@ -149,9 +147,8 @@ def _process_individual_data_file_core(
         data_file: Preprocessed DataFrame containing individual expression data with columns:
             ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
-        genotype_label_map_df: Normalized genotype label map DataFrame (from
-            prepare_genotype_label_map_df) with columns: model, genotype, display_label,
-            model_group, result_order
+        genotype_label_map_df: Genotype label map DataFrame with columns: model, genotype,
+            display_label, model_group, result_order (result_order cast to int)
 
     Returns:
         List of output entry dictionaries, one per (gene, tissue, model_group, age)
@@ -352,10 +349,10 @@ def transform_rna_de_individual(
     check_column_rules(datasets, column_rules)
 
     # Step 2: Prepare metadata DataFrames
-    # Normalizes genotype label map (NaN/"" → None for model_group, result_order → int)
-    rnaseq_genotype_label_map_df = prepare_genotype_label_map_df(
-        datasets["rnaseq_genotype_label_map"]
-    )
+    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].copy()
+    rnaseq_genotype_label_map_df["result_order"] = rnaseq_genotype_label_map_df[
+        "result_order"
+    ].astype(int)
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
 
     # Step 3: Validate data consistency
