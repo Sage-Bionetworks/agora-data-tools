@@ -14,6 +14,7 @@ from agoradatatools.etl.utils import (
     flatten_list,
     remove_duplicates_keep_order,
     extract_age_numeric,
+    normalize_null_values,
 )
 
 
@@ -245,9 +246,7 @@ def transform_disease_correlation(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
-    disease_correlation_df = datasets["disease_correlation_results"].replace(
-        np.nan, None
-    )
+    disease_correlation_df = normalize_null_values(datasets["disease_correlation_results"])
     model_info_df = datasets["model_info"]
     allele_info_df = datasets["allele_info"]
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
