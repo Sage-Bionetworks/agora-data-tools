@@ -162,7 +162,7 @@ def transform_gene_info(
         lambda row: (
             RESOURCE_URL_PREFIX + row["hgnc_symbol"] + RESOURCE_URL_SUFFIX
             if row["is_adi"] is True or row["is_tep"] is True
-            else np.NaN
+            else np.nan
         ),
         axis=1,
     )
@@ -263,7 +263,7 @@ def transform_gene_info(
         lambda row: (
             len(row["target_nominations"])
             if isinstance(row["target_nominations"], list)
-            else np.NaN
+            else np.nan
         ),
         axis=1,
     )

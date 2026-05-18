@@ -323,14 +323,14 @@ def _extract_ensembl_ids(
         print(entity["name"] + " has an n/A Ensembl ID")
         file_ensembl_ids.remove("n/A")
 
-    if np.NaN in file_ensembl_ids:
+    if np.nan in file_ensembl_ids:
         print(
             entity["name"]
             + " has "
-            + str(file_ensembl_ids.count(np.NaN))
+            + str(file_ensembl_ids.count(np.nan))
             + " NaN Ensembl IDs"
         )
-        file_ensembl_ids = [x for x in file_ensembl_ids if x is not np.NaN]
+        file_ensembl_ids = [x for x in file_ensembl_ids if x is not np.nan]
 
     # Remove duplicate values
     return list(set(file_ensembl_ids))
@@ -381,13 +381,13 @@ def standardize_list_item(item: Union[str, List[str]]) -> List[str]:
     column.
 
     Args:
-        item: either a string, a list of strings, or np.NaN
+        item: either a string, a list of strings, or np.nan
 
     Returns:
         A list of strings or an empty list. The list is sorted alphabetically.
     """
     # Convert NaN to an empty list
-    if item is np.NaN:
+    if item is np.nan:
         return []
 
     # Convert plain strings to a list of one string
