@@ -4,13 +4,13 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-import numpy as np
 import math
 from typing import Dict, List, Any, Union, Tuple
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
+    normalize_null_values,
 )
 
 
@@ -57,7 +57,6 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     # Fill missing values and transform text fields
-    df = df.fillna("")
     df["sex"] = df["sex"].str.title()
     df["tissue"] = df["tissue"].str.title()
 
@@ -190,8 +189,8 @@ def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Fill NA values for units. Can't use fillna to make an empty list so we add an extra line
-    fill_df = fill_df.fillna({"units": ""})
-    fill_df["data"] = fill_df["data"].apply(lambda x: [] if x is np.nan else x)
+    fill_df = normalize_null_values(fill_df, empty_string_columns=["units"])
+    fill_df["data"] = fill_df["data"].apply(lambda x: [] if x is None else x)
 
     return fill_df
 
