@@ -1497,9 +1497,21 @@ class TestNormalizeNullValues:
             {"bool1": [True, False, np.nan, np.bool_(True), np.bool_(False)]}
         )
 
+        # Ensure that pandas has not converted the np.bool_ values to bool, so that we are actually testing the
+        # intended scenario
+        assert input_df["bool1"].dtype == "O"
+        assert isinstance(input_df.loc[3, "bool1"], np.bool_) and not isinstance(
+            input_df.loc[3, "bool1"], bool
+        )
+        assert isinstance(input_df.loc[4, "bool1"], np.bool_) and not isinstance(
+            input_df.loc[4, "bool1"], bool
+        )
+
         output = utils.normalize_null_values(input_df, boolean_columns=["bool1"])
 
-        expected_output = pd.DataFrame({"bool1": [True, False, False, True, False]})
+        expected_output = pd.DataFrame(
+            {"bool1": [True, False, False, True, False]}, dtype="bool"
+        )
 
         pd.testing.assert_frame_equal(output, expected_output)
 
