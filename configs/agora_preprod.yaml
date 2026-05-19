@@ -281,3 +281,12 @@ datasets:
       custom_transformations: transform_proteomics_distribution_data
       destination: *dest
       gx_enabled: true
+
+  - ui_config:
+      files:
+        - name: ui_config
+          id: syn73677126 # TODO pin this once source is finalized
+          format: json
+      final_format: json
+      destination: *dest
+      gx_enabled: false
