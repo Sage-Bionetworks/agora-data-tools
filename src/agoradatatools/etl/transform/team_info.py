@@ -40,7 +40,7 @@ def transform_team_info(
     team_member_info = normalize_null_values(
         datasets["team_member_info"],
         boolean_columns=["isprimaryinvestigator"],
-        empty_string_columns=["team", "name", "url"],
+        empty_string_columns=["name", "url"],
     )
 
     team_member_info = nest_fields(
