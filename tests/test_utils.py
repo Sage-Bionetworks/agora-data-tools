@@ -1487,6 +1487,22 @@ class TestNormalizeNullValues:
 
         pd.testing.assert_frame_equal(output, expected_output)
 
+    def test_normalize_null_values_works_with_np_bool(self) -> None:
+        """
+        Test that normalize_null_values correctly normalizes null values in boolean columns even when they are of type
+        np.bool_. We don't expect to see np.bool_ in the data, but we want to make sure our function can handle this
+        in case of future changes to the data or transforms.
+        """
+        input_df = pd.DataFrame(
+            {"bool1": [True, False, np.nan, np.bool_(True), np.bool_(False)]}
+        )
+
+        output = utils.normalize_null_values(input_df, boolean_columns=["bool1"])
+
+        expected_output = pd.DataFrame({"bool1": [True, False, False, True, False]})
+
+        pd.testing.assert_frame_equal(output, expected_output)
+
     def test_normalize_null_values_with_empty_data_frame(self) -> None:
         """
         Test that normalize_null_values correctly handles an empty data frame without errors.
@@ -1608,7 +1624,7 @@ class TestNormalizeNullValues:
         bad_columns = ["string1", "string2", "numeric1", "numeric2", "mixed"]
 
         with pytest.raises(
-            TypeError, match="Columns .* contain non-boolean values"
+            TypeError, match="Column\\(s\\) .* contain non-boolean values"
         ) as exc_info:
             utils.normalize_null_values(
                 input_df, boolean_columns=input_df.columns.to_list()
