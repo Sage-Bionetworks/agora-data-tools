@@ -209,14 +209,14 @@ class TestTransformGeneInfo:
             {"tep_adi_info": "tep_adi_info_type_error_2.csv"},
             param_set_1,
             TypeError,
-            "'is_adi' column must be 'bool'",
+            "Columns \\['is_adi'\\] contain non-boolean values",
         ),
         (  # is_tep is a string
             core_files,
             {"tep_adi_info": "tep_adi_info_type_error_3.csv"},
             param_set_1,
             TypeError,
-            "'is_tep' column must be 'bool'",
+            "Columns \\['is_tep'\\] contain non-boolean values",
         ),
     ]
     fail_test_ids = [

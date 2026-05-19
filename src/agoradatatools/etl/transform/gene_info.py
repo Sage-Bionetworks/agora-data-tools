@@ -3,7 +3,11 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    nest_fields,
+    normalize_null_values,
+)
 from agoradatatools.etl import transform
 
 
@@ -132,19 +136,6 @@ def transform_gene_info(
     # sort biodomains list alphabetically
     biodomains["biodomains"] = biodomains["biodomains"].apply(sorted)
 
-    # Type-check the 'is_adi' and 'is_tep' columns of tep_info to make sure they are booleans and not strings.
-    # Explicitly make NaN is_adi and is_tep values "False" to avoid having to check for boolean and NaN in the
-    # check below.
-    tep_info = tep_info.fillna({"is_adi": False, "is_tep": False})
-    if tep_info["is_adi"].dtype != bool:
-        raise TypeError(
-            f"'is_adi' column must be 'bool', current type is {tep_info['is_adi'].dtype}"
-        )
-    if tep_info["is_tep"].dtype != bool:
-        raise TypeError(
-            f"'is_tep' column must be 'bool', current type is {tep_info['is_tep'].dtype}"
-        )
-
     # For genes with either is_adi or is_tep set to True, create a resource URL that opens
     # the portal page to the specific gene. This must be done using the hgnc_symbol from the
     # tep_info file and not the symbol in gene_info, because there are some mismatches
@@ -162,7 +153,7 @@ def transform_gene_info(
         lambda row: (
             RESOURCE_URL_PREFIX + row["hgnc_symbol"] + RESOURCE_URL_SUFFIX
             if row["is_adi"] is True or row["is_tep"] is True
-            else np.nan
+            else None
         ),
         axis=1,
     )
@@ -197,30 +188,20 @@ def transform_gene_info(
             validate="one_to_one",
         )
 
-    # Populate values for rows that didn't exist in the individual datasets
-
-    gene_info.fillna(
-        {
-            "is_igap": False,
-            "is_eqtl": False,
-            "adj_p_val": -1,
-            "cor_pval": -1,
-            "is_adi": False,
-            "is_tep": False,
-        },
-        inplace=True,
-    )
+    # Populate values for rows that didn't exist in the individual datasets with normalize_null_values. Fill special
+    # values (-1 for adj_p_val and cor_pval, empty lists for alias and ensembl_possible_replacements) manually, since
+    # normalize_null_values doesn't support filling NA values with numbers or lists.
+    gene_info = normalize_null_values(
+        gene_info, boolean_columns=["is_igap", "is_eqtl", "is_adi", "is_tep"]
+    ).fillna({"adj_p_val": -1, "cor_pval": -1})
 
     # fillna doesn't work for creating an empty array, need this function instead for alias and possible replacements
-    gene_info["alias"] = gene_info["alias"].apply(
-        lambda row: row if isinstance(row, np.ndarray) else np.ndarray(0, dtype=object)
-    )
-
-    gene_info["ensembl_possible_replacements"] = gene_info[
-        "ensembl_possible_replacements"
-    ].apply(
-        lambda row: row if isinstance(row, np.ndarray) else np.ndarray(0, dtype=object)
-    )
+    for col in ["alias", "ensembl_possible_replacements"]:
+        gene_info[col] = gene_info[col].apply(
+            lambda row: row
+            if isinstance(row, np.ndarray)
+            else np.ndarray(0, dtype=object)
+        )
 
     # Add ensembl_info as a nested field. This is done after merging all other data sets so it applies to
     # all possible Ensembl IDs in all data sets.
