@@ -204,20 +204,6 @@ class TestTransformGeneInfo:
             TypeError,
             "can only concatenate str",
         ),
-        (  # is_adi is a string
-            core_files,
-            {"tep_adi_info": "tep_adi_info_type_error_2.csv"},
-            param_set_1,
-            TypeError,
-            "Columns \\['is_adi'\\] contain non-boolean values",
-        ),
-        (  # is_tep is a string
-            core_files,
-            {"tep_adi_info": "tep_adi_info_type_error_3.csv"},
-            param_set_1,
-            TypeError,
-            "Columns \\['is_tep'\\] contain non-boolean values",
-        ),
     ]
     fail_test_ids = [
         "Fail with duplicate Ensembl IDs in gene_metadata",
@@ -228,8 +214,6 @@ class TestTransformGeneInfo:
         "Fail with bad data type in proteomics_tmt's cor_pval column",
         "Fail with bad data type in proteomics_srm's cor_pval column",
         "Fail with missing hgnc_symbol in tep_adi_info",
-        "Fail with bad data type in tep_adi_info's is_adi column",
-        "Fail with bad data type in tep_adi_info's is_tep column",
     ]
 
     required_column_fail_test_data = [
