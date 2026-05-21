@@ -1,0 +1,5 @@
+common_name,chembl_id,combined_with_common_name,combined_with_chembl_id,initial_nomination,contact_pi,source
+DrugA,CHEMBL1,,,2025,PI One,Program A
+DrugA,CHEMBL1,,,2024,PI Two,Program B
+DrugB,CHEMBL2,DrugA,CHEMBL1,2023,PI Three,Program A
+DrugC,CHEMBL3,,,2022,PI Four,Program C

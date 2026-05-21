@@ -457,6 +457,39 @@ def check_required_datasets_and_columns(
             )
 
 
+def _column_value_present(series: pd.Series) -> pd.Series:
+    """Return True for non-null, non-empty (after strip) values."""
+    return series.notna() & (series.astype(str).str.strip() != "")
+
+
+def validate_paired_columns(df: pd.DataFrame, col_a: str, col_b: str) -> None:
+    """Fail if any row has a value in only one of two paired columns."""
+    present_a = _column_value_present(df[col_a])
+    present_b = _column_value_present(df[col_b])
+    mismatched = present_a != present_b
+    if mismatched.any():
+        row_indices = df.index[mismatched].tolist()
+        raise ValueError(
+            f"Data Integrity Error: {int(mismatched.sum())} row(s) have a value in "
+            f"{col_a} but not in {col_b}, or vice versa. "
+            f"Affected row index(es): {row_indices}. "
+            "Please fix the source data before re-running."
+        )
+
+
+def validate_linkages(df: pd.DataFrame, name_col: str, id_col: str) -> None:
+    """Fail if any value in name_col maps to more than one distinct id_col value."""
+    valid_rows = df.dropna(subset=[name_col, id_col])
+    counts = valid_rows.groupby(name_col)[id_col].nunique()
+    offending_names = counts[counts > 1].index.tolist()
+    if offending_names:
+        raise ValueError(
+            f"Data Integrity Error: The following {name_col}(s) are associated with "
+            f"multiple {id_col} values: {offending_names}. "
+            "Please fix the source data before re-running."
+        )
+
+
 def _check_single_rule(
     df: pd.DataFrame,
     dataset_name: str,

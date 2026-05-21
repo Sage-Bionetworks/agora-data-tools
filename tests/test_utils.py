@@ -1108,6 +1108,56 @@ class TestCheckColumnRules:
             rule_class(value=None)
 
 
+class TestValidateLinkages:
+    """Tests for validate_linkages()."""
+
+    def test_validate_linkages_passes_one_to_one_mapping(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1", "CHEMBL2"],
+            }
+        )
+        utils.validate_linkages(df, "common_name", "chembl_id")
+
+    def test_validate_linkages_raises_when_name_maps_to_multiple_ids(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugA"],
+                "chembl_id": ["CHEMBL1", "CHEMBL2"],
+            }
+        )
+        with pytest.raises(ValueError, match="Data Integrity Error"):
+            utils.validate_linkages(df, "common_name", "chembl_id")
+
+
+class TestValidatePairedColumns:
+    """Tests for validate_paired_columns()."""
+
+    def test_validate_paired_columns_passes_when_both_missing(self) -> None:
+        df = pd.DataFrame(
+            {
+                "combined_with_common_name": [None, ""],
+                "combined_with_chembl_id": [None, np.nan],
+            }
+        )
+        utils.validate_paired_columns(
+            df, "combined_with_common_name", "combined_with_chembl_id"
+        )
+
+    def test_validate_paired_columns_raises_when_only_name_present(self) -> None:
+        df = pd.DataFrame(
+            {
+                "combined_with_common_name": ["DrugA"],
+                "combined_with_chembl_id": [None],
+            }
+        )
+        with pytest.raises(ValueError, match="Data Integrity Error"):
+            utils.validate_paired_columns(
+                df, "combined_with_common_name", "combined_with_chembl_id"
+            )
+
+
 class TestFlattenList:
     def test_flatten_list_empty(self):
         assert utils.flatten_list([]) == []

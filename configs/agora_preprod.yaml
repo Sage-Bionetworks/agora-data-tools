@@ -282,6 +282,19 @@ datasets:
       destination: *dest
       gx_enabled: true
 
+  - nominated_drugs:
+      files:
+        - name: drug_list
+          id: syn73677240.14
+          format: csv
+        - name: drug_metadata
+          id: syn73724873.11
+          format: json
+      final_format: json
+      custom_transformations: transform_nominated_drugs
+      destination: *dest
+      gx_enabled: true
+
   - ui_config:
       files:
         - name: ui_config
