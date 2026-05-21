@@ -799,3 +799,59 @@ def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
 
     # Return empty list for None or empty string input
     return []
+
+
+def apply_sentence_case(df: pd.DataFrame, fields: List[str]) -> pd.DataFrame:
+    """Capitalize the first character of string fields without changing the rest.
+
+    Preserves acronyms and mixed-case values (e.g. APOE, DRIAD-SP). Supports
+    top-level columns and nested dict fields via ``parent.child`` notation.
+
+    Args:
+        df: DataFrame to modify in place (also returned).
+        fields: Column names, or ``nested_column.field`` for dicts inside a list column.
+
+    Returns:
+        The same DataFrame with sentence casing applied.
+    """
+
+    def capitalize_text(text: Any) -> Any:
+        if not isinstance(text, str) or not text:
+            return text
+        return text[0].upper() + text[1:]
+
+    def process_nested(noms: Any, target_key: str) -> Any:
+        if not isinstance(noms, list):
+            return noms
+        for d in noms:
+            if not isinstance(d, dict) or target_key not in d:
+                continue
+            val = d[target_key]
+            if isinstance(val, list):
+                d[target_key] = [capitalize_text(i) for i in val]
+            else:
+                d[target_key] = capitalize_text(val)
+        return noms
+
+    for field in fields:
+        if "." in field:
+            parent, child = field.split(".", 1)
+            if parent not in df.columns:
+                continue
+            df[parent] = df[parent].apply(
+                lambda x, nested_key=child: process_nested(x, nested_key)
+            )
+            continue
+
+        if field not in df.columns:
+            continue
+
+        sample = df[field].dropna().iloc[0] if not df[field].dropna().empty else None
+        if isinstance(sample, list):
+            df[field] = df[field].apply(
+                lambda x: [capitalize_text(i) for i in x] if isinstance(x, list) else x
+            )
+        else:
+            df[field] = df[field].apply(capitalize_text)
+
+    return df

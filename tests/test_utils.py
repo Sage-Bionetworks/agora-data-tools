@@ -1612,3 +1612,26 @@ class TestDelimStringToList:
         """
         with pytest.raises(TypeError, match="Delimiter must be a string"):
             utils.delim_string_to_list(input_string, delimiter)
+
+
+class TestApplySentenceCase:
+    def test_capitalizes_top_level_string(self):
+        df = pd.DataFrame({"name": ["lowercase text"]})
+        result = utils.apply_sentence_case(df, ["name"])
+        assert result["name"].iloc[0] == "Lowercase text"
+
+    def test_preserves_mixed_case_after_first_character(self):
+        df = pd.DataFrame({"name": ["aPOE variant"]})
+        result = utils.apply_sentence_case(df, ["name"])
+        assert result["name"].iloc[0] == "APOE variant"
+
+    def test_capitalizes_nested_field(self):
+        df = pd.DataFrame(
+            {
+                "items": [
+                    [{"status": "pending review"}, {"status": "approved"}],
+                ]
+            }
+        )
+        result = utils.apply_sentence_case(df, ["items.status"])
+        assert result["items"].iloc[0][0]["status"] == "Pending review"
