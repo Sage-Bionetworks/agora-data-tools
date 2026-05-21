@@ -2,14 +2,18 @@ from typing import Dict, List
 
 import pandas as pd
 
+from agoradatatools.etl.transform.drug_transform_utils import (
+    CHEMBL_ID_REGEX,
+    DISPLAY_CLINICAL_PHASES,
+    map_clinical_trial_phase,
+    prepare_drug_list,
+)
 from agoradatatools.etl.utils import (
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,
     check_column_rules,
     check_required_datasets_and_columns,
-    validate_linkages,
-    validate_paired_columns,
 )
 
 REQUIRED_INPUT = {
@@ -33,7 +37,7 @@ REQUIRED_INPUT = {
 COLUMN_RULES = {
     "drug_list": {
         "common_name": [NotEmptyRule()],
-        "chembl_id": [NotEmptyRule(), MatchesRegexRule(r"^CHEMBL\d+$")],
+        "chembl_id": [NotEmptyRule(), MatchesRegexRule(CHEMBL_ID_REGEX)],
         "initial_nomination": [NotEmptyRule()],
     },
     # Allowed values match syn73724873 OpenTargets export; modality and phase are
@@ -42,18 +46,9 @@ COLUMN_RULES = {
     "drug_metadata": {
         "chembl_id": [NotEmptyRule()],
         "modality": [OneOfRule({"Small molecule", "Protein"})],
-        "maximum_clinical_trial_phase": [
-            OneOfRule({"Phase II", "Phase III", "Phase IV", "Preclinical", "Unknown"})
-        ],
+        "maximum_clinical_trial_phase": [OneOfRule(DISPLAY_CLINICAL_PHASES)],
     },
 }
-
-_STRIP_COLUMNS = [
-    "common_name",
-    "combined_with_common_name",
-    "chembl_id",
-    "combined_with_chembl_id",
-]
 
 _OUTPUT_COLUMNS = [
     "common_name",
@@ -89,13 +84,9 @@ def transform_nominated_drugs(
 
     Processing steps:
         1. Validate required datasets and columns.
-        2. Strip whitespace from drug name and ChEMBL ID columns in drug_list.
-        3. Validate per-column content rules on stripped drug_list and metadata.
-        4. Require combined_with_common_name and combined_with_chembl_id to be
-           both present or both empty on each row; then enforce bijective mappings
-           (unique in both directions) for common_name and chembl_id, and for
-           combined_with_common_name and combined_with_chembl_id, among non-null
-           pairs.
+        2. Strip whitespace and validate paired/linkage integrity on drug_list.
+        3. Validate per-column content rules on drug_list and metadata.
+        4. Map numeric OpenTargets phases to display strings on metadata.
         5. Group drug_list by (common_name, chembl_id, combined_with_*) and
            aggregate: row count, min(initial_nomination), sorted unique PIs and
            programs.
@@ -119,26 +110,18 @@ def transform_nominated_drugs(
     """
     check_required_datasets_and_columns(datasets, required_input)
 
-    drug_list = datasets["drug_list"].copy()
-    drug_metadata = datasets["drug_metadata"]
+    drug_list = prepare_drug_list(datasets["drug_list"])
+    drug_metadata = datasets["drug_metadata"].copy()
+    drug_metadata["maximum_clinical_trial_phase"] = drug_metadata[
+        "maximum_clinical_trial_phase"
+    ].apply(map_clinical_trial_phase)
 
-    for col in _STRIP_COLUMNS:
-        present = drug_list[col].notna()
-        if present.any():
-            drug_list.loc[present, col] = (
-                drug_list.loc[present, col].astype(str).str.strip()
-            )
-
-    datasets_for_rules = {**datasets, "drug_list": drug_list}
+    datasets_for_rules = {
+        **datasets,
+        "drug_list": drug_list,
+        "drug_metadata": drug_metadata,
+    }
     check_column_rules(datasets_for_rules, COLUMN_RULES)
-
-    validate_paired_columns(
-        drug_list, "combined_with_common_name", "combined_with_chembl_id"
-    )
-    validate_linkages(drug_list, "common_name", "chembl_id")
-    validate_linkages(drug_list, "chembl_id", "common_name")
-    validate_linkages(drug_list, "combined_with_common_name", "combined_with_chembl_id")
-    validate_linkages(drug_list, "combined_with_chembl_id", "combined_with_common_name")
 
     nominated_drugs = (
         drug_list.groupby(
