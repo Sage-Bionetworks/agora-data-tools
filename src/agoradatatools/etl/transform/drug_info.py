@@ -187,8 +187,8 @@ def _resolve_linked_targets(
     return drug_metadata
 
 
-def _prepare_drug_list(drug_list: pd.DataFrame) -> pd.DataFrame:
-    """Nest and collapse drug nominations by chembl_id.
+def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
+    """Nest nomination rows into drug_nominations and collapse to one row per chembl_id.
 
     Expects *drug_list* already passed through ``validate_drug_list_integrity``.
     """
@@ -267,11 +267,11 @@ def transform_drug_info(
     }
     check_column_rules(datasets_for_rules, COLUMN_RULES)
 
-    prepared_drug_list = _prepare_drug_list(drug_list)
+    collapsed_drug_list = _collapse_drug_nominations(drug_list)
 
     drug_info = pd.merge(
         drug_metadata,
-        prepared_drug_list,
+        collapsed_drug_list,
         on="chembl_id",
         how="outer",
         validate="one_to_one",
