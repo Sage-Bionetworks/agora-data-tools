@@ -54,7 +54,7 @@ from agoradatatools.etl.utils import (
     MatchesRegexRule,
     NotEmptyRule,
 )
-from agoradatatools.etl.transform.rna_de_individual_utils import (
+from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
     validate_model_group_consistency,
     create_gene_metadata_dict,
     preprocess_data_file,
