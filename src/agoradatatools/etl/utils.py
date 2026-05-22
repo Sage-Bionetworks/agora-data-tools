@@ -802,7 +802,69 @@ def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
     return []
 
 
-def apply_sentence_case(df: pd.DataFrame, fields: List[str]) -> pd.DataFrame:
+def _capitalize_text(text: str) -> str:
+    """Capitalize the first character of a string without changing the rest."""
+    return text[:1].upper() + text[1:] if text else text
+
+
+def _capitalize_value(val: Union[str, list[str], Any]) -> Union[str, list[str], Any]:
+    """Capitalize a string or each string element in a list."""
+    if isinstance(val, list):
+        return [_capitalize_text(i) if isinstance(i, str) else i for i in val]
+    if isinstance(val, str) and val:
+        return _capitalize_text(val)
+    return val
+
+
+def _capitalize_nested_dicts(
+    noms: list[dict[str, Any]], target_key: str
+) -> list[dict[str, Any]]:
+    """Return nomination dicts with *target_key* values capitalized."""
+    result: list[dict[str, Any]] = []
+    for d in noms:
+        if not isinstance(d, dict):
+            result.append(d)
+            continue
+        new_d = dict(d)
+        if target_key in new_d:
+            new_d[target_key] = _capitalize_value(new_d[target_key])
+        result.append(new_d)
+    return result
+
+
+def _capitalize_nested_field(noms: object, target_key: str) -> object:
+    """Capitalize *target_key* inside each dict in a list column cell."""
+    if not isinstance(noms, list):
+        return noms
+    return _capitalize_nested_dicts(noms, target_key)
+
+
+def _capitalize_top_level_column(df: pd.DataFrame, field: str) -> None:
+    """Capitalize string values in a top-level DataFrame column in place."""
+    if field not in df.columns:
+        return
+
+    sample = df[field].dropna().iloc[0] if not df[field].dropna().empty else None
+    if isinstance(sample, list):
+        df[field] = df[field].apply(
+            lambda x: _capitalize_value(x) if isinstance(x, list) else x
+        )
+    else:
+        df[field] = df[field].apply(
+            lambda x: _capitalize_text(x) if isinstance(x, str) and x else x
+        )
+
+
+def _capitalize_nested_column(df: pd.DataFrame, parent: str, child: str) -> None:
+    """Capitalize a nested dict field inside a list column in place."""
+    if parent not in df.columns:
+        return
+    df[parent] = df[parent].apply(
+        lambda x, nested_key=child: _capitalize_nested_field(x, nested_key)
+    )
+
+
+def capitalize_first_character(df: pd.DataFrame, fields: List[str]) -> pd.DataFrame:
     """Capitalize the first character of string fields without changing the rest.
 
     Preserves acronyms and mixed-case values (e.g. APOE, DRIAD-SP). Supports
@@ -813,46 +875,13 @@ def apply_sentence_case(df: pd.DataFrame, fields: List[str]) -> pd.DataFrame:
         fields: Column names, or ``nested_column.field`` for dicts inside a list column.
 
     Returns:
-        The same DataFrame with sentence casing applied.
+        The same DataFrame with first-character capitalization applied.
     """
-
-    def capitalize_text(text: Any) -> Any:
-        if not isinstance(text, str) or not text:
-            return text
-        return text[0].upper() + text[1:]
-
-    def process_nested(noms: Any, target_key: str) -> Any:
-        if not isinstance(noms, list):
-            return noms
-        for d in noms:
-            if not isinstance(d, dict) or target_key not in d:
-                continue
-            val = d[target_key]
-            if isinstance(val, list):
-                d[target_key] = [capitalize_text(i) for i in val]
-            else:
-                d[target_key] = capitalize_text(val)
-        return noms
-
     for field in fields:
         if "." in field:
             parent, child = field.split(".", 1)
-            if parent not in df.columns:
-                continue
-            df[parent] = df[parent].apply(
-                lambda x, nested_key=child: process_nested(x, nested_key)
-            )
-            continue
-
-        if field not in df.columns:
-            continue
-
-        sample = df[field].dropna().iloc[0] if not df[field].dropna().empty else None
-        if isinstance(sample, list):
-            df[field] = df[field].apply(
-                lambda x: [capitalize_text(i) for i in x] if isinstance(x, list) else x
-            )
+            _capitalize_nested_column(df, parent, child)
         else:
-            df[field] = df[field].apply(capitalize_text)
+            _capitalize_top_level_column(df, field)
 
     return df

@@ -1633,18 +1633,20 @@ class TestDelimStringToList:
             utils.delim_string_to_list(input_string, delimiter)
 
 
-class TestApplySentenceCase:
-    def test_capitalizes_top_level_string(self):
+class TestCapitalizeFirstCharacter:
+    """Tests for capitalize_first_character on top-level and nested fields."""
+
+    def test_capitalizes_top_level_string(self) -> None:
         df = pd.DataFrame({"name": ["lowercase text"]})
-        result = utils.apply_sentence_case(df, ["name"])
+        result = utils.capitalize_first_character(df, ["name"])
         assert result["name"].iloc[0] == "Lowercase text"
 
-    def test_preserves_mixed_case_after_first_character(self):
+    def test_preserves_mixed_case_after_first_character(self) -> None:
         df = pd.DataFrame({"name": ["aPOE variant"]})
-        result = utils.apply_sentence_case(df, ["name"])
+        result = utils.capitalize_first_character(df, ["name"])
         assert result["name"].iloc[0] == "APOE variant"
 
-    def test_capitalizes_nested_field(self):
+    def test_capitalizes_nested_field(self) -> None:
         df = pd.DataFrame(
             {
                 "items": [
@@ -1652,5 +1654,5 @@ class TestApplySentenceCase:
                 ]
             }
         )
-        result = utils.apply_sentence_case(df, ["items.status"])
+        result = utils.capitalize_first_character(df, ["items.status"])
         assert result["items"].iloc[0][0]["status"] == "Pending review"

@@ -14,7 +14,7 @@ from agoradatatools.etl.utils import (
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,
-    apply_sentence_case,
+    capitalize_first_character,
     check_column_rules,
     check_required_datasets_and_columns,
     nest_fields,
@@ -96,7 +96,7 @@ OUTPUT_COLUMN_ORDER = [
     "drug_nominations",
 ]
 
-SENTENCE_CASE_FIELDS = [
+CAPITALIZE_FIRST_CHARACTER_FIELDS = [
     "common_name",
     "description",
     "evidence",
@@ -109,22 +109,55 @@ SENTENCE_CASE_FIELDS = [
     "drug_nominations.experimental_validation_results",
 ]
 
+_NOMINATION_STRIP_KEYS = frozenset({"chembl_id", "common_name", "iupac_id"})
 
-def _sort_by_pi_lastname(nominations: Any) -> Any:
+
+def _pi_lastname_sort_key(nomination: dict[str, Any]) -> str:
+    """Return lowercase PI last name for sorting nomination rows."""
+    name = nomination.get("contact_pi")
+    if not name or not isinstance(name, str):
+        return ""
+    name_part = name.split(",")[0].strip()
+    parts = name_part.split()
+    return parts[-1].lower() if parts else ""
+
+
+def _sort_by_pi_lastname(
+    nominations: list[dict[str, Any]] | object,
+) -> list[dict[str, Any]] | object:
     """Sort nomination dicts alphabetically by PI last name."""
     if not isinstance(nominations, list):
         return nominations
-
-    def get_sort_key(nomination: dict) -> str:
-        name = nomination.get("contact_pi")
-        if not name or not isinstance(name, str):
-            return ""
-        name_part = name.split(",")[0].strip()
-        parts = name_part.split()
-        return parts[-1].lower() if parts else ""
-
-    nominations.sort(key=get_sort_key)
+    nominations.sort(key=_pi_lastname_sort_key)
     return nominations
+
+
+def _strip_redundant_nomination_keys(
+    nominations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return nominations without chembl_id, common_name, and iupac_id keys."""
+    return [
+        {k: v for k, v in d.items() if k not in _NOMINATION_STRIP_KEYS}
+        if isinstance(d, dict)
+        else d
+        for d in nominations
+    ]
+
+
+def _resolve_target_list(
+    target_list: list[str] | None, gene_map: dict[str, str]
+) -> List[Dict[str, str]]:
+    """Map Ensembl IDs in *target_list* to {ensembl_gene_id, hgnc_symbol} dicts."""
+    if not isinstance(target_list, list):
+        return []
+    return [
+        {
+            "ensembl_gene_id": g_id,
+            "hgnc_symbol": gene_map.get(g_id, g_id),
+        }
+        for g_id in target_list
+        if pd.notnull(g_id)
+    ]
 
 
 def _get_best_iupac_id(group: pd.Series) -> str:
@@ -147,21 +180,9 @@ def _resolve_linked_targets(
         .to_dict()
     )
 
-    def resolve_targets(target_list: Any) -> List[Dict[str, str]]:
-        if not isinstance(target_list, list):
-            return []
-        return [
-            {
-                "ensembl_gene_id": g_id,
-                "hgnc_symbol": gene_map.get(g_id, g_id),
-            }
-            for g_id in target_list
-            if pd.notnull(g_id)
-        ]
-
     drug_metadata = drug_metadata.copy()
     drug_metadata["linked_targets"] = drug_metadata["linked_targets"].apply(
-        resolve_targets
+        lambda target_list: _resolve_target_list(target_list, gene_map)
     )
     return drug_metadata
 
@@ -202,24 +223,18 @@ def _prepare_drug_list(drug_list: pd.DataFrame) -> pd.DataFrame:
         _sort_by_pi_lastname
     )
 
-    def clean_nominations(row: pd.Series) -> Any:
-        noms = row["drug_nominations"]
-        if not isinstance(noms, list):
-            return noms
-        for d in noms:
-            if isinstance(d, dict):
-                for col in ["chembl_id", "common_name", "iupac_id"]:
-                    d.pop(col, None)
-        return noms
-
-    drug_list["drug_nominations"] = drug_list.apply(clean_nominations, axis=1)
+    drug_list["drug_nominations"] = drug_list["drug_nominations"].apply(
+        lambda noms: _strip_redundant_nomination_keys(noms)
+        if isinstance(noms, list)
+        else noms
+    )
     drug_list["iupac_id"] = drug_list["iupac_id"].replace("Unknown", None)
 
     return drug_list
 
 
 def transform_drug_info(
-    datasets: dict,
+    datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> pd.DataFrame:
     """Build drug_info by joining OpenTargets metadata with harmonized drug nominations.
@@ -268,6 +283,6 @@ def transform_drug_info(
         ].astype("Int64")
 
     drug_info = drug_info.reindex(columns=OUTPUT_COLUMN_ORDER)
-    drug_info = apply_sentence_case(drug_info, SENTENCE_CASE_FIELDS)
+    drug_info = capitalize_first_character(drug_info, CAPITALIZE_FIRST_CHARACTER_FIELDS)
 
     return drug_info

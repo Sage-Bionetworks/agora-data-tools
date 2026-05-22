@@ -9,9 +9,16 @@ from agoradatatools.etl.transform import drug_info
 
 
 class TestTransformDrugInfo:
+    """Tests for transform_drug_info pass/fail paths using drug_info fixtures."""
+
     data_files_path = "tests/test_assets/drug_info"
 
-    def _load_datasets(self, ot_file, dl_file, gm_file="gene_metadata_good.feather"):
+    def _load_datasets(
+        self,
+        ot_file: str,
+        dl_file: str,
+        gm_file: str = "gene_metadata_good.feather",
+    ) -> dict[str, pd.DataFrame]:
         drug_list = pd.read_csv(os.path.join(self.data_files_path, "input", dl_file))
         if "source" in drug_list.columns and "program" not in drug_list.columns:
             drug_list = drug_list.rename(columns={"source": "program"})
@@ -26,7 +33,7 @@ class TestTransformDrugInfo:
             ),
         }
 
-    def test_transform_drug_info_should_pass(self):
+    def test_transform_drug_info_should_pass(self) -> None:
         datasets = self._load_datasets(
             "ot_drug_metadata_good.json", "drug_list_good.csv"
         )
@@ -97,7 +104,9 @@ class TestTransformDrugInfo:
             "invalid maximum_clinical_trial_phase",
         ],
     )
-    def test_transform_drug_info_should_fail(self, input_datasets, error_match):
+    def test_transform_drug_info_should_fail(
+        self, input_datasets: dict[str, str], error_match: str
+    ) -> None:
         with pytest.raises(ValueError, match=error_match):
             if "drug_list" in input_datasets and input_datasets["drug_list"].endswith(
                 ".csv"
@@ -135,7 +144,7 @@ class TestDrugInfoSynapseGolden:
     discovery_path = "staging/synapse_discovery"
 
     @pytest.fixture
-    def synapse_inputs_available(self):
+    def synapse_inputs_available(self) -> bool:
         required = [
             "harmonized_drug_nominations_4_23_26.csv",
             "opentargets_drug_metadata.json",
@@ -146,7 +155,9 @@ class TestDrugInfoSynapseGolden:
             os.path.exists(os.path.join(self.discovery_path, f)) for f in required
         )
 
-    def test_output_matches_golden_schema_and_row_count(self, synapse_inputs_available):
+    def test_output_matches_golden_schema_and_row_count(
+        self, synapse_inputs_available: bool
+    ) -> None:
         if not synapse_inputs_available:
             pytest.skip("Synapse discovery files not present")
 
