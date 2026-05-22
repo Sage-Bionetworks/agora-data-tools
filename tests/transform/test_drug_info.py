@@ -259,6 +259,14 @@ class TestTransformDrugInfo:
             ),
             (
                 {
+                    "ot_drug_metadata": "ot_drug_metadata_missing_drug_bank_id.json",
+                    "drug_list": "drug_list_good.csv",
+                    "gene_metadata": "gene_metadata_good.feather",
+                },
+                "Missing required columns",
+            ),
+            (
+                {
                     "ot_drug_metadata": "ot_drug_metadata_minimal.json",
                     "drug_list": "drug_list_mismatched_combined.csv",
                     "gene_metadata": "gene_metadata_minimal.feather",
@@ -293,6 +301,7 @@ class TestTransformDrugInfo:
         ids=[
             "missing gene_metadata dataset",
             "missing program column",
+            "missing drug_bank_id column",
             "mismatched combined_with",
             "unpaired combined_with columns",
             "chembl_id common_name conflict",

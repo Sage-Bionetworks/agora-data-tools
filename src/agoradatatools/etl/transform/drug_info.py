@@ -29,6 +29,8 @@ REQUIRED_INPUT = {
         "mechanisms_of_action",
         "linked_targets",
         "aliases",
+        "drug_bank_id",
+        "year_of_first_approval",
     ],
     "drug_list": [
         "chembl_id",
@@ -99,10 +101,10 @@ OUTPUT_COLUMN_ORDER = [
 CAPITALIZE_FIRST_CHARACTER_FIELDS = [
     "common_name",
     "description",
-    "evidence",
-    "data_used",
-    "ad_moa",
-    "additional_evidence",
+    "drug_nominations.evidence",
+    "drug_nominations.data_used",
+    "drug_nominations.ad_moa",
+    "drug_nominations.additional_evidence",
     "drug_nominations.computational_validation_status",
     "drug_nominations.computational_validation_results",
     "drug_nominations.experimental_validation_status",
