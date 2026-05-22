@@ -4,15 +4,16 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.transform.drug_transform_utils import (
+from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
+    DISPLAY_CLINICAL_PHASES,
     build_combined_with_list,
-    map_clinical_trial_phase,
     validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
     MatchesRegexRule,
     NotEmptyRule,
+    OneOfRule,
     apply_sentence_case,
     check_column_rules,
     check_required_datasets_and_columns,
@@ -54,13 +55,17 @@ REQUIRED_INPUT = {
 }
 
 COLUMN_RULES = {
+    # Allowed values match syn73724873 OpenTargets export (see nominated_drugs).
     "ot_drug_metadata": {
         "chembl_id": [
             NotEmptyRule(),
             MatchesRegexRule(CHEMBL_ID_REGEX),
         ],
+        "modality": [OneOfRule({"Small molecule", "Protein"})],
+        "maximum_clinical_trial_phase": [OneOfRule(DISPLAY_CLINICAL_PHASES)],
     },
     "drug_list": {
+        "common_name": [NotEmptyRule()],
         "chembl_id": [
             NotEmptyRule(),
             MatchesRegexRule(CHEMBL_ID_REGEX),
@@ -162,9 +167,10 @@ def _resolve_linked_targets(
 
 
 def _prepare_drug_list(drug_list: pd.DataFrame) -> pd.DataFrame:
-    """Nest and collapse drug nominations by chembl_id."""
-    drug_list = validate_drug_list_integrity(drug_list)
+    """Nest and collapse drug nominations by chembl_id.
 
+    Expects *drug_list* already passed through ``validate_drug_list_integrity``.
+    """
     drug_list["iupac_id"] = drug_list.groupby("chembl_id")["iupac_id"].transform(
         _get_best_iupac_id
     )
@@ -225,24 +231,28 @@ def transform_drug_info(
 
     Returns:
         One row per drug with nested ``drug_nominations`` and resolved ``linked_targets``.
+
+    Raises:
+        ValueError: If required datasets or columns are missing, column content rules
+            are violated, or drug_list integrity checks fail.
     """
     check_required_datasets_and_columns(datasets, required_input)
+
+    drug_list = validate_drug_list_integrity(datasets["drug_list"])
 
     drug_metadata = datasets["ot_drug_metadata"].copy()
     gene_metadata = datasets["gene_metadata"]
 
     drug_metadata = _resolve_linked_targets(drug_metadata, gene_metadata)
-    drug_metadata["maximum_clinical_trial_phase"] = drug_metadata[
-        "maximum_clinical_trial_phase"
-    ].apply(map_clinical_trial_phase)
 
     datasets_for_rules = {
         **datasets,
         "ot_drug_metadata": drug_metadata,
+        "drug_list": drug_list,
     }
     check_column_rules(datasets_for_rules, COLUMN_RULES)
 
-    prepared_drug_list = _prepare_drug_list(datasets["drug_list"])
+    prepared_drug_list = _prepare_drug_list(drug_list)
 
     drug_info = pd.merge(
         drug_metadata,

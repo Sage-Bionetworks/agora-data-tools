@@ -6,24 +6,6 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform import drug_info
-from agoradatatools.etl.transform.drug_transform_utils import build_combined_with_list
-
-
-class TestBuildCombinedWithList:
-    def test_monotherapy_returns_empty_list(self):
-        assert build_combined_with_list(None, None) == []
-        assert build_combined_with_list("", "") == []
-
-    def test_combination_parses_comma_delimited_pairs(self):
-        result = build_combined_with_list("DrugX, DrugY", "CHEMBL1, CHEMBL2")
-        assert result == [
-            {"common_name": "DrugX", "chembl_id": "CHEMBL1"},
-            {"common_name": "DrugY", "chembl_id": "CHEMBL2"},
-        ]
-
-    def test_mismatched_counts_raise(self):
-        with pytest.raises(ValueError, match="Mismatched combined_with lists"):
-            build_combined_with_list("A, B", "CHEMBL1")
 
 
 class TestTransformDrugInfo:
@@ -97,6 +79,14 @@ class TestTransformDrugInfo:
                 },
                 "Data Integrity Error",
             ),
+            (
+                {
+                    "ot_drug_metadata": "ot_drug_metadata_invalid_phase.json",
+                    "drug_list": "drug_list_good.csv",
+                    "gene_metadata": "gene_metadata_good.feather",
+                },
+                "maximum_clinical_trial_phase",
+            ),
         ],
         ids=[
             "missing gene_metadata dataset",
@@ -104,6 +94,7 @@ class TestTransformDrugInfo:
             "mismatched combined_with",
             "unpaired combined_with columns",
             "chembl_id common_name conflict",
+            "invalid maximum_clinical_trial_phase",
         ],
     )
     def test_transform_drug_info_should_fail(self, input_datasets, error_match):
