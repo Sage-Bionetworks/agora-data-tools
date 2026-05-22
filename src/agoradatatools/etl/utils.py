@@ -479,7 +479,8 @@ def validate_paired_columns(df: pd.DataFrame, col_a: str, col_b: str) -> None:
 
 def validate_linkages(df: pd.DataFrame, name_col: str, id_col: str) -> None:
     """Fail if any value in name_col maps to more than one distinct id_col value."""
-    valid_rows = df.dropna(subset=[name_col, id_col])
+    present = _column_value_present(df[name_col]) & _column_value_present(df[id_col])
+    valid_rows = df.loc[present]
     counts = valid_rows.groupby(name_col)[id_col].nunique()
     offending_names = counts[counts > 1].index.tolist()
     if offending_names:

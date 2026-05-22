@@ -7,6 +7,8 @@ from agoradatatools.etl.transform import nominated_drugs
 
 
 class TestTransformNominatedDrugs:
+    """Tests for transform_nominated_drugs pass/fail paths using nominated_drugs fixtures."""
+
     data_files_path = "tests/test_assets/nominated_drugs"
 
     pass_test_data = [
@@ -120,6 +122,22 @@ class TestTransformNominatedDrugs:
             pd.errors.MergeError,
             "Merge keys are not unique",
         ),
+        (
+            {
+                "drug_list": "drug_list_cross_field_combined_with_input.csv",
+                "drug_metadata": "drug_metadata_good_input.json",
+            },
+            ValueError,
+            "common_name",
+        ),
+        (
+            {
+                "drug_list": "drug_list_empty_contact_pi_input.csv",
+                "drug_metadata": "drug_metadata_good_input.json",
+            },
+            ValueError,
+            "violate rule",
+        ),
     ]
     fail_test_ids = [
         "Fail with missing drug_metadata dataset",
@@ -134,10 +152,14 @@ class TestTransformNominatedDrugs:
         "Fail with chembl_id not matching CHEMBL prefix",
         "Fail with invalid maximum_clinical_trial_phase in drug_metadata",
         "Fail with duplicate chembl_id in drug_metadata",
+        "Fail with cross-field common_name to chembl_id conflict in combined_with",
+        "Fail with empty contact_pi in drug_list",
     ]
 
     @staticmethod
-    def _load_datasets(drug_list_file: str, drug_metadata_file: str) -> dict:
+    def _load_datasets(
+        drug_list_file: str, drug_metadata_file: str
+    ) -> dict[str, pd.DataFrame]:
         drug_list_df = pd.read_csv(
             os.path.join(
                 TestTransformNominatedDrugs.data_files_path, "input", drug_list_file
@@ -158,24 +180,32 @@ class TestTransformNominatedDrugs:
         ids=pass_test_ids,
     )
     def test_transform_nominated_drugs_should_pass(
-        self, drug_list_file, drug_metadata_file, expected_output_file
-    ):
+        self,
+        drug_list_file: str,
+        drug_metadata_file: str,
+        expected_output_file: str,
+    ) -> None:
         datasets = self._load_datasets(drug_list_file, drug_metadata_file)
         output_df = nominated_drugs.transform_nominated_drugs(datasets=datasets)
+        output_df = output_df.reset_index(drop=True)
         expected_df = pd.read_json(
             os.path.join(self.data_files_path, "output", expected_output_file),
         )
         expected_df["year_of_first_approval"] = expected_df[
             "year_of_first_approval"
         ].astype("Int64")
+        expected_df = expected_df.reset_index(drop=True)
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     @pytest.mark.parametrize(
         "input_datasets, error_type, error_match", fail_test_data, ids=fail_test_ids
     )
     def test_transform_nominated_drugs_should_fail(
-        self, input_datasets, error_type, error_match
-    ):
+        self,
+        input_datasets: dict[str, str],
+        error_type: type[BaseException],
+        error_match: str,
+    ) -> None:
         with pytest.raises(error_type, match=error_match):
             datasets = {}
             for dataset_name, file_name in input_datasets.items():

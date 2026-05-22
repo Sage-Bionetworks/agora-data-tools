@@ -1,18 +1,12 @@
 """Shared helpers for drug_list and OpenTargets drug metadata transforms."""
 
-from typing import Any, Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import pandas as pd
 
 from agoradatatools.etl.utils import validate_linkages, validate_paired_columns
 
-CLINICAL_PHASE_MAP = {
-    1: "Phase I",
-    2: "Phase II",
-    3: "Phase III",
-    4: "Phase IV",
-    -1: "Unknown",
-}
+DrugScalar = str | int | float | None
 
 DISPLAY_CLINICAL_PHASES = {
     "Phase I",
@@ -50,7 +44,12 @@ def strip_drug_list_columns(
 def prepare_drug_list(drug_list: pd.DataFrame) -> pd.DataFrame:
     """Strip drug_list and validate paired columns and name/ID linkages.
 
-    Used by ``nominated_drugs`` and as the first step of ``validate_drug_list_integrity``.
+    Production drug_list rows use a single combined-with partner per row (not
+    comma-delimited lists). Combination nominations may appear as separate
+    directional rows (e.g. Irinotecan+Letrozole and Letrozole+Irinotecan).
+
+    Used as the first step of ``validate_drug_list_integrity`` (``nominated_drugs``,
+    ``drug_info``).
 
     Returns:
         Stripped copy of *drug_list*.
@@ -66,13 +65,26 @@ def prepare_drug_list(drug_list: pd.DataFrame) -> pd.DataFrame:
     return drug_list
 
 
-def build_combined_with_list(name_val: Any, id_val: Any) -> List[Dict[str, str]]:
-    """Convert comma-delimited combined_with fields into partner drug dicts."""
+def build_combined_with_list(
+    name_val: DrugScalar, id_val: DrugScalar
+) -> List[Dict[str, str]]:
+    """Convert combined_with fields into partner drug dicts.
+
+    Supports comma-delimited values for reuse across transforms; production
+    drug_list uses one partner per row (no commas). Used by cross-field mapping
+    validation in ``validate_drug_name_chembl_mappings``.
+    """
     name_is_null = pd.isnull(name_val) or str(name_val).strip() == ""
     id_is_null = pd.isnull(id_val) or str(id_val).strip() == ""
 
     if name_is_null and id_is_null:
         return []
+
+    if name_is_null != id_is_null:
+        raise ValueError(
+            "Data Integrity Error: combined_with name and chembl_id must both be "
+            "present or both be empty."
+        )
 
     names = [n.strip() for n in str(name_val).split(",")]
     ids = [i.strip() for i in str(id_val).split(",")]
@@ -116,17 +128,6 @@ def validate_drug_name_chembl_mappings(drug_list: pd.DataFrame) -> None:
             "Data Integrity Error: The following common_name(s) map to multiple "
             f"chembl_ids across primary and combined_with fields: {offending_names}"
         )
-
-
-def map_clinical_trial_phase(value: Any) -> str:
-    """Map OpenTargets numeric phase codes to display strings; pass through existing labels."""
-    if pd.isna(value):
-        return "Preclinical"
-    if value in CLINICAL_PHASE_MAP:
-        return CLINICAL_PHASE_MAP[value]
-    if isinstance(value, str):
-        return value
-    return "Unknown"
 
 
 def validate_drug_list_integrity(drug_list: pd.DataFrame) -> pd.DataFrame:

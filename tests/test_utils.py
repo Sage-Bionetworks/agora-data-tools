@@ -1130,6 +1130,25 @@ class TestValidateLinkages:
         with pytest.raises(ValueError, match="Data Integrity Error"):
             utils.validate_linkages(df, "common_name", "chembl_id")
 
+    def test_validate_linkages_raises_when_id_maps_to_multiple_names(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1"],
+            }
+        )
+        with pytest.raises(ValueError, match="Data Integrity Error"):
+            utils.validate_linkages(df, "chembl_id", "common_name")
+
+    def test_validate_linkages_ignores_empty_string_pairs(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["", "DrugA"],
+                "chembl_id": ["", "CHEMBL1"],
+            }
+        )
+        utils.validate_linkages(df, "common_name", "chembl_id")
+
 
 class TestValidatePairedColumns:
     """Tests for validate_paired_columns()."""
