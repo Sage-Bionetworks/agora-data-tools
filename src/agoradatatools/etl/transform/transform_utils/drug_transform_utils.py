@@ -1,10 +1,12 @@
 """Shared helpers for drug_list and OpenTargets drug metadata transforms."""
 
-from typing import Any, Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import pandas as pd
 
 from agoradatatools.etl.utils import validate_linkages, validate_paired_columns
+
+DrugScalar = str | int | float | None
 
 CLINICAL_PHASE_MAP = {
     1: "Phase I",
@@ -66,7 +68,9 @@ def prepare_drug_list(drug_list: pd.DataFrame) -> pd.DataFrame:
     return drug_list
 
 
-def build_combined_with_list(name_val: Any, id_val: Any) -> List[Dict[str, str]]:
+def build_combined_with_list(
+    name_val: DrugScalar, id_val: DrugScalar
+) -> List[Dict[str, str]]:
     """Convert comma-delimited combined_with fields into partner drug dicts."""
     name_is_null = pd.isnull(name_val) or str(name_val).strip() == ""
     id_is_null = pd.isnull(id_val) or str(id_val).strip() == ""
@@ -118,15 +122,17 @@ def validate_drug_name_chembl_mappings(drug_list: pd.DataFrame) -> None:
         )
 
 
-def map_clinical_trial_phase(value: Any) -> str:
+def map_clinical_trial_phase(value: DrugScalar) -> str:
     """Map OpenTargets numeric phase codes to display strings; pass through existing labels."""
     if pd.isna(value):
-        return "Preclinical"
-    if value in CLINICAL_PHASE_MAP:
-        return CLINICAL_PHASE_MAP[value]
-    if isinstance(value, str):
-        return value
-    return "Unknown"
+        result = "Preclinical"
+    elif value in CLINICAL_PHASE_MAP:
+        result = CLINICAL_PHASE_MAP[value]
+    elif isinstance(value, str):
+        result = value
+    else:
+        result = "Unknown"
+    return result
 
 
 def validate_drug_list_integrity(drug_list: pd.DataFrame) -> pd.DataFrame:

@@ -7,6 +7,8 @@ from agoradatatools.etl.transform import nominated_drugs
 
 
 class TestTransformNominatedDrugs:
+    """Tests for transform_nominated_drugs pass/fail paths using nominated_drugs fixtures."""
+
     data_files_path = "tests/test_assets/nominated_drugs"
 
     pass_test_data = [
@@ -137,7 +139,9 @@ class TestTransformNominatedDrugs:
     ]
 
     @staticmethod
-    def _load_datasets(drug_list_file: str, drug_metadata_file: str) -> dict:
+    def _load_datasets(
+        drug_list_file: str, drug_metadata_file: str
+    ) -> dict[str, pd.DataFrame]:
         drug_list_df = pd.read_csv(
             os.path.join(
                 TestTransformNominatedDrugs.data_files_path, "input", drug_list_file
@@ -158,8 +162,11 @@ class TestTransformNominatedDrugs:
         ids=pass_test_ids,
     )
     def test_transform_nominated_drugs_should_pass(
-        self, drug_list_file, drug_metadata_file, expected_output_file
-    ):
+        self,
+        drug_list_file: str,
+        drug_metadata_file: str,
+        expected_output_file: str,
+    ) -> None:
         datasets = self._load_datasets(drug_list_file, drug_metadata_file)
         output_df = nominated_drugs.transform_nominated_drugs(datasets=datasets)
         expected_df = pd.read_json(
@@ -174,8 +181,11 @@ class TestTransformNominatedDrugs:
         "input_datasets, error_type, error_match", fail_test_data, ids=fail_test_ids
     )
     def test_transform_nominated_drugs_should_fail(
-        self, input_datasets, error_type, error_match
-    ):
+        self,
+        input_datasets: dict[str, str],
+        error_type: type[BaseException],
+        error_match: str,
+    ) -> None:
         with pytest.raises(error_type, match=error_match):
             datasets = {}
             for dataset_name, file_name in input_datasets.items():

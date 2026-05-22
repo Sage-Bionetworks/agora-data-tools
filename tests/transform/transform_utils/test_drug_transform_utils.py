@@ -7,6 +7,8 @@ from agoradatatools.etl.transform.transform_utils import drug_transform_utils as
 
 
 class TestMapClinicalTrialPhase:
+    """Tests for map_clinical_trial_phase numeric and string phase mapping."""
+
     @pytest.mark.parametrize(
         "value,expected",
         [
@@ -17,12 +19,14 @@ class TestMapClinicalTrialPhase:
             (pd.NA, "Preclinical"),
         ],
     )
-    def test_maps_numeric_and_string_phases(self, value, expected):
+    def test_maps_numeric_and_string_phases(self, value: object, expected: str) -> None:
         assert dtu.map_clinical_trial_phase(value) == expected
 
 
 class TestPrepareDrugList:
-    def test_passes_for_consistent_drug_list(self):
+    """Tests for prepare_drug_list stripping and validation."""
+
+    def test_passes_for_consistent_drug_list(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA"],
@@ -34,7 +38,7 @@ class TestPrepareDrugList:
         result = dtu.prepare_drug_list(df)
         assert result["chembl_id"].iloc[0] == "CHEMBL1"
 
-    def test_raises_for_unpaired_combined_with(self):
+    def test_raises_for_unpaired_combined_with(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA"],
