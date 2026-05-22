@@ -10,7 +10,7 @@ import pytest
 import logging
 from typing import Any
 
-from agoradatatools.etl.transform.rna_de_individual_utils import (
+from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
     filter_to_mouse_genes,
     validate_model_group_consistency,
     create_gene_metadata_dict,
