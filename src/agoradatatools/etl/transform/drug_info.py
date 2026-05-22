@@ -130,8 +130,7 @@ def _sort_by_pi_lastname(
     """Sort nomination dicts alphabetically by PI last name."""
     if not isinstance(nominations, list):
         return nominations
-    nominations.sort(key=_pi_lastname_sort_key)
-    return nominations
+    return sorted(nominations, key=_pi_lastname_sort_key)
 
 
 def _strip_redundant_nomination_keys(
@@ -149,7 +148,11 @@ def _strip_redundant_nomination_keys(
 def _resolve_target_list(
     target_list: list[str] | None, gene_map: dict[str, str]
 ) -> List[Dict[str, str]]:
-    """Map Ensembl IDs in *target_list* to {ensembl_gene_id, hgnc_symbol} dicts."""
+    """Map Ensembl IDs in *target_list* to {ensembl_gene_id, hgnc_symbol} dicts.
+
+    When *g_id* is missing from *gene_map*, ``hgnc_symbol`` is set to the Ensembl ID.
+    Pending data-team decision (AG-1795): may switch to null, omit, or fail instead.
+    """
     if not isinstance(target_list, list):
         return []
     return [
@@ -194,6 +197,7 @@ def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
 
     Expects *drug_list* already passed through ``validate_drug_list_integrity``.
     """
+    drug_list = drug_list.copy()
     drug_list["iupac_id"] = drug_list.groupby("chembl_id")["iupac_id"].transform(
         _get_best_iupac_id
     )
@@ -247,7 +251,9 @@ def transform_drug_info(
         required_input: Required datasets and columns (overridable in tests).
 
     Returns:
-        One row per drug with nested ``drug_nominations`` and resolved ``linked_targets``.
+        One row per nominated drug (``chembl_id`` in drug_list) with nested
+        ``drug_nominations`` and OpenTargets fields when metadata exists. Nominated
+        drugs without an OT metadata row retain null metadata fields.
 
     Raises:
         ValueError: If required datasets or columns are missing, column content rules
@@ -267,16 +273,17 @@ def transform_drug_info(
         "ot_drug_metadata": drug_metadata,
         "drug_list": drug_list,
     }
+    # COLUMN_RULES apply to metadata before linked_targets is resolved to dicts.
     check_column_rules(datasets_for_rules, COLUMN_RULES)
 
     collapsed_drug_list = _collapse_drug_nominations(drug_list)
 
     drug_info = pd.merge(
-        drug_metadata,
-        collapsed_drug_list,
+        left=collapsed_drug_list,
+        right=drug_metadata,
         on="chembl_id",
-        how="outer",
-        validate="one_to_one",
+        how="left",
+        validate="m:1",
     )
 
     if "year_of_first_approval" in drug_info.columns:

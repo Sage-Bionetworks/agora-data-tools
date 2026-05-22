@@ -233,6 +233,7 @@ class TestTransformDrugInfo:
             "ot_drug_metadata_good.json", "drug_list_good.csv"
         )
         output_df = drug_info.transform_drug_info(datasets=datasets)
+        assert output_df["year_of_first_approval"].dtype == pd.Int64Dtype()
         expected_df = pd.read_json(
             os.path.join(self.data_files_path, "output", "drug_info_good_output.json"),
         )
@@ -242,12 +243,30 @@ class TestTransformDrugInfo:
             check_dtype=False,
         )
 
+    def test_keeps_nominated_drugs_without_ot_metadata(self) -> None:
+        """Left merge: nominated chembl_ids without OT rows keep null metadata fields."""
+        datasets = self._load_datasets(
+            "ot_drug_metadata_minimal.json", "drug_list_good.csv"
+        )
+        output_df = drug_info.transform_drug_info(datasets=datasets)
+        assert set(output_df["chembl_id"]) == {"CHEMBL111", "CHEMBL222"}
+
+        drug_a = output_df.loc[output_df["chembl_id"] == "CHEMBL111"].iloc[0]
+        assert drug_a["common_name"] == "DrugA"
+        assert pd.isna(drug_a["description"])
+        assert pd.isna(drug_a["modality"])
+        assert len(drug_a["drug_nominations"]) == 2
+
+        drug_b = output_df.loc[output_df["chembl_id"] == "CHEMBL222"].iloc[0]
+        assert drug_b["description"] == "Protein drug."
+
     @pytest.mark.parametrize(
-        "input_datasets,error_match",
+        "input_datasets,error_match,error_type",
         [
             (
                 {"ot_drug_metadata": "ot_drug_metadata_good.json"},
                 "Missing required datasets",
+                ValueError,
             ),
             (
                 {
@@ -256,6 +275,7 @@ class TestTransformDrugInfo:
                     "gene_metadata": "gene_metadata_good.feather",
                 },
                 "Missing required columns",
+                ValueError,
             ),
             (
                 {
@@ -264,6 +284,7 @@ class TestTransformDrugInfo:
                     "gene_metadata": "gene_metadata_good.feather",
                 },
                 "Missing required columns",
+                ValueError,
             ),
             (
                 {
@@ -272,14 +293,16 @@ class TestTransformDrugInfo:
                     "gene_metadata": "gene_metadata_minimal.feather",
                 },
                 "Mismatched combined_with",
+                ValueError,
             ),
             (
                 {
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
-                    "drug_list": "drug_list_mismatched_combined_with_input.csv",
+                    "drug_list": "drug_list_unpaired_combined_with.csv",
                     "gene_metadata": "gene_metadata_good.feather",
                 },
-                "combined_with_common_name",
+                "combined_with_common_name but not in combined_with_chembl_id",
+                ValueError,
             ),
             (
                 {
@@ -288,6 +311,7 @@ class TestTransformDrugInfo:
                     "gene_metadata": "gene_metadata_good.feather",
                 },
                 "Data Integrity Error",
+                ValueError,
             ),
             (
                 {
@@ -296,6 +320,34 @@ class TestTransformDrugInfo:
                     "gene_metadata": "gene_metadata_good.feather",
                 },
                 "maximum_clinical_trial_phase",
+                ValueError,
+            ),
+            (
+                {
+                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_list": "drug_list_bad_linkage.csv",
+                    "gene_metadata": "gene_metadata_good.feather",
+                },
+                "Data Integrity Error",
+                ValueError,
+            ),
+            (
+                {
+                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_list": "drug_list_invalid_chembl_id.csv",
+                    "gene_metadata": "gene_metadata_good.feather",
+                },
+                "matches_regex",
+                ValueError,
+            ),
+            (
+                {
+                    "ot_drug_metadata": "ot_drug_metadata_duplicate_chembl_id.json",
+                    "drug_list": "drug_list_good.csv",
+                    "gene_metadata": "gene_metadata_good.feather",
+                },
+                "Merge keys are not unique",
+                pd.errors.MergeError,
             ),
         ],
         ids=[
@@ -306,12 +358,18 @@ class TestTransformDrugInfo:
             "unpaired combined_with columns",
             "chembl_id common_name conflict",
             "invalid maximum_clinical_trial_phase",
+            "bad common_name to chembl_id linkage",
+            "invalid chembl_id regex",
+            "duplicate chembl_id in ot metadata",
         ],
     )
     def test_transform_drug_info_should_fail(
-        self, input_datasets: dict[str, str], error_match: str
+        self,
+        input_datasets: dict[str, str],
+        error_match: str,
+        error_type: type[BaseException],
     ) -> None:
-        with pytest.raises(ValueError, match=error_match):
+        with pytest.raises(error_type, match=error_match):
             if "drug_list" in input_datasets and input_datasets["drug_list"].endswith(
                 ".csv"
             ):
@@ -343,7 +401,11 @@ class TestTransformDrugInfo:
 
 
 class TestDrugInfoSynapseGolden:
-    """Compare transform output to prototype golden when Synapse discovery files exist."""
+    """Smoke test against Synapse discovery golden when local files exist.
+
+    Asserts column schema, row count, and chembl_id set only — not byte-for-byte
+    equality with the prototype (syn73880976).
+    """
 
     discovery_path = "staging/synapse_discovery"
 
