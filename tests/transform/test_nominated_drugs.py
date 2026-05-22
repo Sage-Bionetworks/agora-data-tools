@@ -122,6 +122,22 @@ class TestTransformNominatedDrugs:
             pd.errors.MergeError,
             "Merge keys are not unique",
         ),
+        (
+            {
+                "drug_list": "drug_list_cross_field_combined_with_input.csv",
+                "drug_metadata": "drug_metadata_good_input.json",
+            },
+            ValueError,
+            "common_name",
+        ),
+        (
+            {
+                "drug_list": "drug_list_empty_contact_pi_input.csv",
+                "drug_metadata": "drug_metadata_good_input.json",
+            },
+            ValueError,
+            "violate rule",
+        ),
     ]
     fail_test_ids = [
         "Fail with missing drug_metadata dataset",
@@ -136,6 +152,8 @@ class TestTransformNominatedDrugs:
         "Fail with chembl_id not matching CHEMBL prefix",
         "Fail with invalid maximum_clinical_trial_phase in drug_metadata",
         "Fail with duplicate chembl_id in drug_metadata",
+        "Fail with cross-field common_name to chembl_id conflict in combined_with",
+        "Fail with empty contact_pi in drug_list",
     ]
 
     @staticmethod
@@ -169,12 +187,14 @@ class TestTransformNominatedDrugs:
     ) -> None:
         datasets = self._load_datasets(drug_list_file, drug_metadata_file)
         output_df = nominated_drugs.transform_nominated_drugs(datasets=datasets)
+        output_df = output_df.reset_index(drop=True)
         expected_df = pd.read_json(
             os.path.join(self.data_files_path, "output", expected_output_file),
         )
         expected_df["year_of_first_approval"] = expected_df[
             "year_of_first_approval"
         ].astype("Int64")
+        expected_df = expected_df.reset_index(drop=True)
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     @pytest.mark.parametrize(

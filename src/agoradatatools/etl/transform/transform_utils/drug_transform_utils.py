@@ -52,7 +52,12 @@ def strip_drug_list_columns(
 def prepare_drug_list(drug_list: pd.DataFrame) -> pd.DataFrame:
     """Strip drug_list and validate paired columns and name/ID linkages.
 
-    Used by ``nominated_drugs`` and as the first step of ``validate_drug_list_integrity``.
+    Production drug_list rows use a single combined-with partner per row (not
+    comma-delimited lists). Combination nominations may appear as separate
+    directional rows (e.g. Irinotecan+Letrozole and Letrozole+Irinotecan).
+
+    Used as the first step of ``validate_drug_list_integrity`` (``nominated_drugs``,
+    ``drug_info``).
 
     Returns:
         Stripped copy of *drug_list*.
@@ -71,7 +76,12 @@ def prepare_drug_list(drug_list: pd.DataFrame) -> pd.DataFrame:
 def build_combined_with_list(
     name_val: DrugScalar, id_val: DrugScalar
 ) -> List[Dict[str, str]]:
-    """Convert comma-delimited combined_with fields into partner drug dicts."""
+    """Convert combined_with fields into partner drug dicts.
+
+    Supports comma-delimited values for reuse across transforms; production
+    drug_list uses one partner per row (no commas). Used by cross-field mapping
+    validation in ``validate_drug_name_chembl_mappings``.
+    """
     name_is_null = pd.isnull(name_val) or str(name_val).strip() == ""
     id_is_null = pd.isnull(id_val) or str(id_val).strip() == ""
 
@@ -123,7 +133,12 @@ def validate_drug_name_chembl_mappings(drug_list: pd.DataFrame) -> None:
 
 
 def map_clinical_trial_phase(value: DrugScalar) -> str:
-    """Map OpenTargets numeric phase codes to display strings; pass through existing labels."""
+    """Map OpenTargets numeric phase codes to display strings; pass through existing labels.
+
+    Production drug_metadata JSON uses string phases (e.g. ``Phase IV``). Numeric
+    codes apply to raw OpenTargets API values; unrecognized numerics map to
+    ``Unknown``, and null maps to ``Preclinical``.
+    """
     if pd.isna(value):
         result = "Preclinical"
     elif value in CLINICAL_PHASE_MAP:

@@ -6,7 +6,7 @@ from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
     DISPLAY_CLINICAL_PHASES,
     map_clinical_trial_phase,
-    prepare_drug_list,
+    validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
     MatchesRegexRule,
@@ -39,6 +39,7 @@ COLUMN_RULES = {
         "common_name": [NotEmptyRule()],
         "chembl_id": [NotEmptyRule(), MatchesRegexRule(CHEMBL_ID_REGEX)],
         "initial_nomination": [NotEmptyRule()],
+        "contact_pi": [NotEmptyRule()],
     },
     # Allowed values match syn73724873 OpenTargets export; modality and phase are
     # non-null in that file. Null modality/phase in output come from left-merge when
@@ -64,6 +65,11 @@ _OUTPUT_COLUMNS = [
 ]
 
 
+def _unique_sorted_pis(series: pd.Series) -> list:
+    """Return sorted unique non-empty principal investigator names."""
+    return sorted({v.strip() for v in series.dropna().astype(str) if v.strip()})
+
+
 def transform_nominated_drugs(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -84,7 +90,8 @@ def transform_nominated_drugs(
 
     Processing steps:
         1. Validate required datasets and columns.
-        2. Strip whitespace and validate paired/linkage integrity on drug_list.
+        2. Strip whitespace and validate drug_list integrity (paired columns,
+           per-column linkages, and cross-field name/ChEMBL bijection).
         3. Validate per-column content rules on drug_list and metadata.
         4. Map numeric OpenTargets phases to display strings on metadata.
         5. Group drug_list by (common_name, chembl_id, combined_with_*) and
@@ -93,6 +100,7 @@ def transform_nominated_drugs(
         6. Rename combined_with_common_name to combined_with.
         7. Left-merge drug_metadata on chembl_id (drugs without metadata retain
            null modality/phase/approval fields).
+        8. Sort rows for deterministic output.
 
     Args:
         datasets: Dictionary containing "drug_list" and "drug_metadata" DataFrames.
@@ -105,12 +113,12 @@ def transform_nominated_drugs(
 
     Raises:
         ValueError: If required datasets or columns are missing, column content
-            rules are violated, paired combined_with columns are mismatched, or
-            name/ID linkages are not bijective.
+            rules are violated, paired combined_with columns are mismatched,
+            per-column or cross-field name/ID linkages are not bijective.
     """
     check_required_datasets_and_columns(datasets, required_input)
 
-    drug_list = prepare_drug_list(datasets["drug_list"])
+    drug_list = validate_drug_list_integrity(datasets["drug_list"])
     drug_metadata = datasets["drug_metadata"].copy()
     drug_metadata["maximum_clinical_trial_phase"] = drug_metadata[
         "maximum_clinical_trial_phase"
@@ -136,10 +144,7 @@ def transform_nominated_drugs(
         .agg(
             total_nominations=("common_name", "size"),
             initial_nomination=("initial_nomination", "min"),
-            principal_investigators=(
-                "contact_pi",
-                lambda x: sorted(set(x.dropna())),
-            ),
+            principal_investigators=("contact_pi", _unique_sorted_pis),
             programs=("source", lambda x: sorted(set(x.dropna()))),
         )
         .reset_index()
@@ -160,6 +165,11 @@ def transform_nominated_drugs(
     nominated_drugs["year_of_first_approval"] = nominated_drugs[
         "year_of_first_approval"
     ].astype("Int64")
+
+    nominated_drugs = nominated_drugs.sort_values(
+        ["common_name", "chembl_id", "combined_with"],
+        na_position="last",
+    ).reset_index(drop=True)
 
     nominated_drugs = nominated_drugs[_OUTPUT_COLUMNS]
 
