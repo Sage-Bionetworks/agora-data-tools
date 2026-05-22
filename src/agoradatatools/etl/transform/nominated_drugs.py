@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.transform.drug_transform_utils import (
+from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
     DISPLAY_CLINICAL_PHASES,
     map_clinical_trial_phase,

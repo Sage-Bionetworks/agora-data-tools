@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform import drug_transform_utils as dtu
+from agoradatatools.etl.transform.transform_utils import drug_transform_utils as dtu
 
 
 class TestMapClinicalTrialPhase:
