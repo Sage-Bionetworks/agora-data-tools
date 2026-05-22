@@ -5,7 +5,6 @@ import pandas as pd
 from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
     DISPLAY_CLINICAL_PHASES,
-    map_clinical_trial_phase,
     validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
@@ -119,15 +118,10 @@ def transform_nominated_drugs(
     check_required_datasets_and_columns(datasets, required_input)
 
     drug_list = validate_drug_list_integrity(datasets["drug_list"])
-    drug_metadata = datasets["drug_metadata"].copy()
-    drug_metadata["maximum_clinical_trial_phase"] = drug_metadata[
-        "maximum_clinical_trial_phase"
-    ].apply(map_clinical_trial_phase)
 
     datasets_for_rules = {
         **datasets,
         "drug_list": drug_list,
-        "drug_metadata": drug_metadata,
     }
     check_column_rules(datasets_for_rules, COLUMN_RULES)
 
@@ -156,7 +150,7 @@ def transform_nominated_drugs(
 
     nominated_drugs = pd.merge(
         left=nominated_drugs,
-        right=drug_metadata,
+        right=datasets["drug_metadata"],
         on="chembl_id",
         how="left",
         validate="m:1",

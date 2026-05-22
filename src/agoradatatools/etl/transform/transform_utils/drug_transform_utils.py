@@ -8,14 +8,6 @@ from agoradatatools.etl.utils import validate_linkages, validate_paired_columns
 
 DrugScalar = str | int | float | None
 
-CLINICAL_PHASE_MAP = {
-    1: "Phase I",
-    2: "Phase II",
-    3: "Phase III",
-    4: "Phase IV",
-    -1: "Unknown",
-}
-
 DISPLAY_CLINICAL_PHASES = {
     "Phase I",
     "Phase II",
@@ -136,24 +128,6 @@ def validate_drug_name_chembl_mappings(drug_list: pd.DataFrame) -> None:
             "Data Integrity Error: The following common_name(s) map to multiple "
             f"chembl_ids across primary and combined_with fields: {offending_names}"
         )
-
-
-def map_clinical_trial_phase(value: DrugScalar) -> str:
-    """Map OpenTargets numeric phase codes to display strings; pass through existing labels.
-
-    Production drug_metadata JSON uses string phases (e.g. ``Phase IV``). Numeric
-    codes apply to raw OpenTargets API values; unrecognized numerics map to
-    ``Unknown``, and null maps to ``Preclinical``.
-    """
-    if pd.isna(value):
-        result = "Preclinical"
-    elif value in CLINICAL_PHASE_MAP:
-        result = CLINICAL_PHASE_MAP[value]
-    elif isinstance(value, str):
-        result = value
-    else:
-        result = "Unknown"
-    return result
 
 
 def validate_drug_list_integrity(drug_list: pd.DataFrame) -> pd.DataFrame:

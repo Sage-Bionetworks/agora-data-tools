@@ -6,24 +6,6 @@ import pytest
 from agoradatatools.etl.transform.transform_utils import drug_transform_utils as dtu
 
 
-class TestMapClinicalTrialPhase:
-    """Tests for map_clinical_trial_phase numeric and string phase mapping."""
-
-    @pytest.mark.parametrize(
-        "value,expected",
-        [
-            (1, "Phase I"),
-            (4, "Phase IV"),
-            (-1, "Unknown"),
-            ("Phase III", "Phase III"),
-            (pd.NA, "Preclinical"),
-            (0, "Unknown"),
-        ],
-    )
-    def test_maps_numeric_and_string_phases(self, value: object, expected: str) -> None:
-        assert dtu.map_clinical_trial_phase(value) == expected
-
-
 class TestStripDrugListColumns:
     """Tests for strip_drug_list_columns."""
 
