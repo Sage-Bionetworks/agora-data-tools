@@ -8,6 +8,8 @@ The transformation includes gene metadata, genotype labels, and individual expre
 values to create a structured output format grouped by model_group.
 
 The transformation:
+- Validates column values up-front via check_column_rules (required fields non-empty,
+  age strings matching the '[N] months' format) before any processing begins
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
 - Groups files by model_group so that models sharing a model_group (e.g. UCI
   models whose data is split across two input files) are combined before output creation
@@ -33,7 +35,8 @@ Required Inputs:
     - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
     - mouse_gene_metadata: Gene symbols for Ensembl IDs
     - Data files: One or more CSV files containing individual expression results; required
-      columns are defined by the DATA_FILE_REQUIRED_COLUMNS module constant
+      columns are defined by the DATA_FILE_REQUIRED_COLUMNS module constant, and column
+      value rules are defined by DATA_FILE_COLUMN_RULES
 """
 
 import gc
@@ -43,11 +46,17 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
+from agoradatatools.etl.utils import (
+    check_column_rules,
+    check_required_datasets_and_columns,
+    nest_fields,
+    ColumnRule,
+    MatchesRegexRule,
+    NotEmptyRule,
+)
 from agoradatatools.etl.transform.rna_de_individual_utils import (
     validate_model_group_consistency,
     create_gene_metadata_dict,
-    prepare_genotype_label_map_df,
     preprocess_data_file,
     validate_data_file_not_empty,
 )
@@ -76,6 +85,21 @@ DATA_FILE_REQUIRED_COLUMNS = [
     "individualid",
 ]
 
+COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+    "rnaseq_genotype_label_map": {
+        "model": [NotEmptyRule()],
+        "genotype": [NotEmptyRule()],
+        "display_label": [NotEmptyRule()],
+        "model_group": [NotEmptyRule()],
+        "result_order": [NotEmptyRule()],
+    },
+}
+
+DATA_FILE_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
+    "model": [NotEmptyRule()],
+    "age": [MatchesRegexRule(value=r"\d+ months$")],
+}
+
 
 def _determine_result_order(data_file: pd.DataFrame) -> List[str]:
     """
@@ -84,8 +108,7 @@ def _determine_result_order(data_file: pd.DataFrame) -> List[str]:
     Operates on a data_file that has already been merged with the genotype label map
     and filtered to a single model_group, so every display_label present is guaranteed
     to exist in the actual data. Empty display_label values are guaranteed not to be
-    present — prepare_genotype_label_map_df raises a ValueError if any are found in
-    the mapping file.
+    present — check_column_rules validates the label map before processing begins.
 
     Args:
         data_file: DataFrame already merged with the genotype label map and filtered to
@@ -115,17 +138,17 @@ def _process_individual_data_file_core(
        model_group is restored from name after nesting
     5. Adds metadata columns (gene_symbol, age_numeric, units, result_order, matched_control) vectorially
 
-    Note: This function expects preprocessed data (mouse genes only, rounded numeric values)
-    and is called once per model_group, so result_order and matched_control are
-    constant across all rows and can be computed once as scalars.
+    Note: This function expects preprocessed data (mouse genes only, rounded numeric values,
+    age strings already validated to match r'\\d+ months$') and is called once per
+    model_group, so result_order and matched_control are constant across all rows and
+    can be computed once as scalars.
 
     Args:
         data_file: Preprocessed DataFrame containing individual expression data with columns:
             ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
-        genotype_label_map_df: Normalized genotype label map DataFrame (from
-            prepare_genotype_label_map_df) with columns: model, genotype, display_label,
-            model_group, result_order
+        genotype_label_map_df: Genotype label map DataFrame with columns: model, genotype,
+            display_label, model_group, result_order (result_order cast to int)
 
     Returns:
         List of output entry dictionaries, one per (gene, tissue, model_group, age)
@@ -149,12 +172,6 @@ def _process_individual_data_file_core(
         raise ValueError(
             "No rows remained after filtering to mapped genotypes — "
             "all genotypes in this file were absent from the label map."
-        )
-
-    if data_file["model"].isna().any() or data_file["model_group"].isna().any():
-        raise ValueError(
-            "model or model_group is None for some rows. Every model must have a "
-            "non-empty model_group in the rnaseq_genotype_label_map."
         )
 
     # Step 3: Pre-calculate result_order list and matched_control.
@@ -210,16 +227,11 @@ def _process_individual_data_file_core(
         drop_columns=group_cols,
     )
 
-    # Step 6: Add metadata columns vectorially
-    extracted_ages = age_groups["age"].str.extract(r"(\d+) months")[0]
-    non_matching_ages = age_groups.loc[extracted_ages.isna(), "age"].unique().tolist()
-    if non_matching_ages:
-        raise ValueError(
-            f"age_numeric extraction failed: the following age values do not match the "
-            f"'[N] months' format and cannot be converted to integers: {non_matching_ages}. "
-            f"All age strings must match the '[N] months' format (e.g., '3 months', '6 months')."
-        )
-    age_groups["age_numeric"] = extracted_ages.astype(int)
+    # Step 6: Add metadata columns vectorially.
+    # age values are guaranteed to match r'\d+ months$' by check_column_rules upstream.
+    age_groups["age_numeric"] = (
+        age_groups["age"].str.extract(r"(\d+) months")[0].astype(int)
+    )
     age_groups["gene_symbol"] = (
         age_groups["ensembl_gene_id"].map(gene_metadata_dict).fillna("")
     )
@@ -256,6 +268,8 @@ def transform_rna_de_individual(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
     data_file_required_columns: List[str] = DATA_FILE_REQUIRED_COLUMNS,
+    column_rules: Dict[str, Dict[str, List[ColumnRule]]] = COLUMN_RULES,
+    data_file_column_rules: Dict[str, List[ColumnRule]] = DATA_FILE_COLUMN_RULES,
 ) -> List[Dict[str, Any]]:
     """
     Main transformation function for RNA individual expression data.
@@ -265,18 +279,20 @@ def transform_rna_de_individual(
     for models with single or multiple controls.
 
     Processing Steps:
-        1. Validates required datasets and columns
-        2. Prepares metadata DataFrames (normalizes genotype label map; loads gene metadata)
-        3. Validates data consistency (model_group values)
-        4. Creates gene metadata lookup dictionary (Ensembl ID → gene symbol)
-        5. Groups input files by model_group so that models whose data is split across
+        1. Validates required datasets and columns (check_required_datasets_and_columns)
+        2. Validates column values for static datasets (check_column_rules on COLUMN_RULES)
+        3. Prepares metadata DataFrames (normalizes genotype label map; loads gene metadata)
+        4. Validates data consistency (model_group values)
+        5. Creates gene metadata lookup dictionary (Ensembl ID → gene symbol)
+        6. Groups input files by model_group so that models whose data is split across
            multiple files (e.g. UCI models) are combined before output creation, while
            unrelated files are processed and freed independently; each file is
-           preprocessed using data_file_required_columns for column validation (filters
-           to mouse genes, rounds numeric values to 5 decimal places); raises ValueError
-           if any file contains rows from more than one model (each input file must
-           contain data for exactly one model)
-        6. For each model_group:
+           preprocessed using data_file_required_columns for column validation and
+           data_file_column_rules for column value rules (filters to mouse genes,
+           rounds numeric values to 5 decimal places); raises ValueError if any file
+           contains rows from more than one model (each input file must contain data
+           for exactly one model)
+        7. For each model_group:
            - Concatenates preprocessed DataFrames within the group (no-op for
              single-file groups)
            - Enriches with genotype metadata
@@ -284,7 +300,7 @@ def transform_rna_de_individual(
            - Groups by gene, tissue, and model_group
            - Creates output entries with individual data points
            - Frees memory before moving to the next group
-        7. Consolidates output from all groups
+        8. Consolidates output from all groups
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
@@ -299,6 +315,10 @@ def transform_rna_de_individual(
             Defaults to REQUIRED_INPUT module constant.
         data_file_required_columns: List of required column names for data files.
             Defaults to DATA_FILE_REQUIRED_COLUMNS module constant.
+        column_rules: Per-column content rules for static datasets (rnaseq_genotype_label_map).
+            Defaults to COLUMN_RULES module constant.
+        data_file_column_rules: Per-column content rules applied to each data file.
+            Defaults to DATA_FILE_COLUMN_RULES module constant.
 
     Returns:
         List of dictionaries, each representing a unique combination of gene, tissue,
@@ -326,12 +346,13 @@ def transform_rna_de_individual(
     """
     # Step 1: Validate inputs
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, column_rules)
 
     # Step 2: Prepare metadata DataFrames
-    # Normalizes genotype label map (NaN/"" → None for model_group, result_order → int)
-    rnaseq_genotype_label_map_df = prepare_genotype_label_map_df(
-        datasets["rnaseq_genotype_label_map"]
-    )
+    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].copy()
+    rnaseq_genotype_label_map_df["result_order"] = rnaseq_genotype_label_map_df[
+        "result_order"
+    ].astype(int)
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
 
     # Step 3: Validate data consistency
@@ -410,6 +431,7 @@ def transform_rna_de_individual(
                 file_index=global_file_idx,
                 total_files=total_files,
                 data_file_required_columns=data_file_required_columns,
+                data_file_column_rules=data_file_column_rules,
             )
             preprocessed_dfs.append(preprocessed_df)
             global_file_idx += 1
