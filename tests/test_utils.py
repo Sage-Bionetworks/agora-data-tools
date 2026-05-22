@@ -1295,7 +1295,10 @@ class TestNormalizeNullValues:
             dtype="O",
         )
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        # pd.testing.assert_frame_equal treats None, np.nan, and pd.NA as equivalent, so we use np.array_equal to verify
+        # that the missing values are correctly set to None in the output data frame.
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
     def test_normalize_null_values_with_only_boolean_columns(
         self, test_data_frame: pd.DataFrame
@@ -1324,7 +1327,8 @@ class TestNormalizeNullValues:
         expected_output["bool1"] = expected_output["bool1"].astype(bool)
         expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
     def test_normalize_null_values_with_only_string_columns(
         self, test_data_frame: pd.DataFrame
@@ -1351,7 +1355,8 @@ class TestNormalizeNullValues:
             dtype="O",
         )
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
     def test_normalize_null_values_with_all_column_types_defined(
         self, test_data_frame: pd.DataFrame
@@ -1381,7 +1386,8 @@ class TestNormalizeNullValues:
         expected_output["bool1"] = expected_output["bool1"].astype(bool)
         expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
     def test_normalize_null_values_with_empty_data_frame(self) -> None:
         """
