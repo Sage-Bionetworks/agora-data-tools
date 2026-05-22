@@ -293,7 +293,7 @@ datasets:
       final_format: json
       custom_transformations: transform_nominated_drugs
       destination: *dest
-      gx_enabled: true
+      gx_enabled: false
 
   - ui_config:
       files:

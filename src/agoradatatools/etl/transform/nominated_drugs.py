@@ -92,14 +92,13 @@ def transform_nominated_drugs(
         2. Strip whitespace and validate drug_list integrity (paired columns,
            per-column linkages, and cross-field name/ChEMBL bijection).
         3. Validate per-column content rules on drug_list and metadata.
-        4. Map numeric OpenTargets phases to display strings on metadata.
-        5. Group drug_list by (common_name, chembl_id, combined_with_*) and
+        4. Group drug_list by (common_name, chembl_id, combined_with_*) and
            aggregate: row count, min(initial_nomination), sorted unique PIs and
            programs.
-        6. Rename combined_with_common_name to combined_with.
-        7. Left-merge drug_metadata on chembl_id (drugs without metadata retain
+        5. Rename combined_with_common_name to combined_with.
+        6. Left-merge drug_metadata on chembl_id (drugs without metadata retain
            null modality/phase/approval fields).
-        8. Sort rows for deterministic output.
+        7. Sort rows for deterministic output.
 
     Args:
         datasets: Dictionary containing "drug_list" and "drug_metadata" DataFrames.
