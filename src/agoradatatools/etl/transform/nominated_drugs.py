@@ -64,7 +64,7 @@ _OUTPUT_COLUMNS = [
 ]
 
 
-def _unique_sorted_pis(series: pd.Series) -> list:
+def _unique_sorted_pis(series: pd.Series) -> list[str]:
     """Return sorted unique non-empty principal investigator names."""
     return sorted({v.strip() for v in series.dropna().astype(str) if v.strip()})
 
