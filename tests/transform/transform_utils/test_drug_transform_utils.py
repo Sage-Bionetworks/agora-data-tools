@@ -59,6 +59,12 @@ class TestBuildCombinedWithList:
         with pytest.raises(ValueError, match="Mismatched combined_with lists"):
             dtu.build_combined_with_list("DrugA, DrugB", "CHEMBL1")
 
+    def test_raises_when_only_one_side_present(self) -> None:
+        with pytest.raises(ValueError, match="both be present"):
+            dtu.build_combined_with_list(None, "CHEMBL1")
+        with pytest.raises(ValueError, match="both be present"):
+            dtu.build_combined_with_list("DrugA", None)
+
 
 class TestValidateDrugNameChemblMappings:
     """Tests for validate_drug_name_chembl_mappings cross-field checks."""

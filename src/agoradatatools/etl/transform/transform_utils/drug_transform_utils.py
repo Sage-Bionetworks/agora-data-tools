@@ -88,6 +88,12 @@ def build_combined_with_list(
     if name_is_null and id_is_null:
         return []
 
+    if name_is_null != id_is_null:
+        raise ValueError(
+            "Data Integrity Error: combined_with name and chembl_id must both be "
+            "present or both be empty."
+        )
+
     names = [n.strip() for n in str(name_val).split(",")]
     ids = [i.strip() for i in str(id_val).split(",")]
 
