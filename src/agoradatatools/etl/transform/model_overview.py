@@ -12,7 +12,7 @@ from agoradatatools.etl.utils import (
     delim_string_to_list,
     remove_duplicates_keep_order,
 )
-from agoradatatools.etl.transform.model_ad_transform_utils import (
+from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
     zero_pad_jax_ids,
