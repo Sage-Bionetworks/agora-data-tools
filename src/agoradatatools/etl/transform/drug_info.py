@@ -150,8 +150,7 @@ def _resolve_target_list(
 ) -> List[Dict[str, str]]:
     """Map Ensembl IDs in *target_list* to {ensembl_gene_id, hgnc_symbol} dicts.
 
-    When *g_id* is missing from *gene_map*, ``hgnc_symbol`` is set to the Ensembl ID.
-    Pending data-team decision (AG-1795): may switch to null, omit, or fail instead.
+    When *g_id* is missing from *gene_map*, ``hgnc_symbol`` falls back to the Ensembl ID.
     """
     if not isinstance(target_list, list):
         return []
@@ -243,7 +242,12 @@ def transform_drug_info(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> pd.DataFrame:
-    """Build drug_info by joining OpenTargets metadata with harmonized drug nominations.
+    """Build drug_info for nominated drugs only, enriched with OpenTargets metadata.
+
+    Output is driven by ``drug_list``: only nominated ``chembl_id`` values appear.
+    OpenTargets-only drugs are excluded. Nominated drugs without a metadata row keep
+    null OT fields. Unmapped ``linked_targets`` Ensembl IDs use the Ensembl ID as
+    ``hgnc_symbol``.
 
     Args:
         datasets: ``ot_drug_metadata``, ``drug_list`` (with ``program`` column), and
@@ -251,9 +255,8 @@ def transform_drug_info(
         required_input: Required datasets and columns (overridable in tests).
 
     Returns:
-        One row per nominated drug (``chembl_id`` in drug_list) with nested
-        ``drug_nominations`` and OpenTargets fields when metadata exists. Nominated
-        drugs without an OT metadata row retain null metadata fields.
+        One row per nominated drug with nested ``drug_nominations`` and resolved
+        ``linked_targets``.
 
     Raises:
         ValueError: If required datasets or columns are missing, column content rules

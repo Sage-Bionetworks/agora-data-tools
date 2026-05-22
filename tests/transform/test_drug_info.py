@@ -103,6 +103,13 @@ class TestResolveTargetList:
             {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
         ]
 
+    def test_falls_back_to_ensembl_id_when_symbol_unresolved(self) -> None:
+        """D2: hgnc_symbol uses Ensembl ID when gene is absent from gene_metadata."""
+        result = drug_info._resolve_target_list(["ENSG000099"], {})
+        assert result == [
+            {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
+        ]
+
     def test_returns_empty_for_non_list_input(self) -> None:
         assert drug_info._resolve_target_list(None, {}) == []
 
