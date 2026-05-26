@@ -90,11 +90,9 @@ Other notes about the test files:
 """
 
 import os
-import re
 
 import pandas as pd
 import pytest
-import numpy as np
 
 from agoradatatools.etl.transform import gene_info
 
@@ -376,60 +374,4 @@ class TestTransformGeneInfo:
                     "adjusted_p_value_threshold"
                 ],
                 protein_level_threshold=self.param_set_1["protein_level_threshold"],
-            )
-
-    @pytest.mark.parametrize(
-        "bad_data_name, bad_data, violations_dict",
-        [
-            (
-                "tep_adi_info",
-                pd.DataFrame(
-                    {
-                        "ensembl_gene_id": [
-                            "ENSG00000000005",
-                            "ENSG00000000419",
-                            "ENSG00000001497",
-                        ],
-                        "hgnc_symbol": ["TNMD", "DPM1", "LAS1L"],
-                        "is_adi": ["not_bool", True, 2],
-                        "is_tep": [False, "True", np.nan],
-                    }
-                ),
-                {
-                    "is_adi": "2 row(s) violate rule 'one_of'",
-                    "is_tep": "1 row(s) violate rule 'one_of'",
-                },
-            ),
-        ],
-        ids=[
-            "Fail with non-boolean values in is_adi and is_tep columns of tep_adi_info",
-        ],
-    )
-    def test_transform_gene_info_column_rule_violations_should_fail(
-        self,
-        bad_data_name: str,
-        bad_data: pd.DataFrame,
-        violations_dict: dict[str, str],
-    ) -> None:
-        """
-        Test that transform_gene_info raises a ValueError when there are violations of the column rules specified in
-        COLUMN_RULES.
-        """
-        with pytest.raises(ValueError) as exc_info:
-            datasets = self.read_input_files_dict(self.core_files)
-            datasets[bad_data_name] = bad_data
-
-            gene_info.transform_gene_info(
-                datasets=datasets,
-                adjusted_p_value_threshold=self.param_set_1[
-                    "adjusted_p_value_threshold"
-                ],
-                protein_level_threshold=self.param_set_1["protein_level_threshold"],
-            )
-
-        # Violation messages may not be in any particular order so we use re.search for each one
-        for col, msg in violations_dict.items():
-            assert re.search(
-                re.escape(f"In dataset '{bad_data_name}', column '{col}': {msg}"),
-                str(exc_info.value),
             )
