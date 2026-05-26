@@ -39,11 +39,7 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    normalize_null_values,
-    normalize_zero,
-)
+from agoradatatools.etl.utils import check_required_datasets_and_columns, normalize_zero
 
 logger = logging.getLogger(__name__)
 
@@ -537,9 +533,7 @@ def transform_rna_de_aggregate(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Pre-compute lookup dictionaries for efficient lookups
-    rnaseq_genotype_label_map_df = normalize_null_values(
-        datasets["rnaseq_genotype_label_map"], empty_string_columns=["model_type"]
-    )
+    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"]
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
     biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(
         axis="index", subset=["ensembl_id"]
@@ -558,7 +552,7 @@ def transform_rna_de_aggregate(
     # Validate that each model has consistent model_group values
     inconsistent_models = (
         rnaseq_genotype_label_map_df.groupby("model")["model_group"]
-        .nunique(dropna=False)
+        .nunique()
         .pipe(lambda x: x[x > 1].index.tolist())
     )
     if inconsistent_models:
