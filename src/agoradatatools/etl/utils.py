@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Dict, List, Union
+from typing import Any, Collection, Dict, List, Optional, Union
 import re
 
 import numpy as np
@@ -458,35 +458,86 @@ def check_required_datasets_and_columns(
 
 
 def _column_value_present(series: pd.Series) -> pd.Series:
-    """Return True for non-null, non-empty (after strip) values."""
+    """Return a boolean mask of values that are present (non-null and non-empty).
+
+    Each value is cast to a string and stripped of surrounding whitespace before
+    the emptiness check, so ``None``, ``NaN``, ``""``, and whitespace-only values
+    like ``"   "`` are all treated as absent. Casting to string is only used for
+    the comparison; the returned mask aligns with the original *series* index.
+
+    Args:
+        series: The column to evaluate.
+
+    Returns:
+        A boolean Series that is True where the value is present.
+    """
     return series.notna() & (series.astype(str).str.strip() != "")
 
 
-def validate_paired_columns(df: pd.DataFrame, col_a: str, col_b: str) -> None:
-    """Fail if any row has a value in only one of two paired columns."""
-    present_a = _column_value_present(df[col_a])
-    present_b = _column_value_present(df[col_b])
-    mismatched = present_a != present_b
-    if mismatched.any():
-        row_indices = df.index[mismatched].tolist()
-        raise ValueError(
-            f"Data Integrity Error: {int(mismatched.sum())} row(s) have a value in "
-            f"{col_a} but not in {col_b}, or vice versa. "
-            f"Affected row index(es): {row_indices}. "
-            "Please fix the source data before re-running."
-        )
+def strip_whitespace_columns(
+    df: pd.DataFrame, columns: Optional[List[str]] = None
+) -> pd.DataFrame:
+    """Strip leading/trailing whitespace from the given columns of a copy of *df*.
+
+    Args:
+        df: The DataFrame to strip. It is not modified in place.
+        columns: Column names to strip. If None (the default), every column in
+            *df* is stripped. Column names listed here but not present in *df*
+            are ignored.
+
+    Returns:
+        A copy of *df* in which present (non-null) values in the selected columns
+        have been cast to string and stripped. NA/None values are left as NA/None.
+    """
+    result = df.copy()
+    target_columns = list(result.columns) if columns is None else columns
+    for col in target_columns:
+        if col not in result.columns:
+            continue
+        present = result[col].notna()
+        if present.any():
+            result.loc[present, col] = result.loc[present, col].astype(str).str.strip()
+    return result
 
 
-def validate_linkages(df: pd.DataFrame, name_col: str, id_col: str) -> None:
-    """Fail if any value in name_col maps to more than one distinct id_col value."""
-    present = _column_value_present(df[name_col]) & _column_value_present(df[id_col])
-    valid_rows = df.loc[present]
-    counts = valid_rows.groupby(name_col)[id_col].nunique()
-    offending_names = counts[counts > 1].index.tolist()
-    if offending_names:
+def validate_one_to_one_mapping(
+    df: pd.DataFrame,
+    left_col: str,
+    right_col: str,
+    bidirectional: bool = False,
+) -> None:
+    """Validate that two columns form a consistent mapping.
+
+    By default this checks that each present value in *left_col* maps to at most
+    one distinct value in *right_col*. When *bidirectional* is True it also checks
+    the reverse direction, enforcing a true 1:1 mapping in a single call. Rows
+    where the key side is missing/empty (see ``_column_value_present``) are
+    ignored for that direction.
+
+    Args:
+        df: The DataFrame to validate.
+        left_col: The first column in the pair.
+        right_col: The second column in the pair.
+        bidirectional: If True, validate the mapping in both directions.
+
+    Raises:
+        ValueError: If a value in the key column maps to more than one distinct
+            value in the paired column.
+    """
+    _validate_mapping_direction(df, left_col, right_col)
+    if bidirectional:
+        _validate_mapping_direction(df, right_col, left_col)
+
+
+def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) -> None:
+    """Fail if any present value in *key_col* maps to multiple *value_col* values."""
+    present_keys = _column_value_present(df[key_col])
+    counts = df.loc[present_keys].groupby(key_col)[value_col].nunique(dropna=False)
+    offending_keys = counts[counts > 1].index.tolist()
+    if offending_keys:
         raise ValueError(
-            f"Data Integrity Error: The following {name_col}(s) are associated with "
-            f"multiple {id_col} values: {offending_names}. "
+            f"Data Integrity Error: The following {key_col}(s) are associated with "
+            f"multiple {value_col} values: {offending_keys}. "
             "Please fix the source data before re-running."
         )
 

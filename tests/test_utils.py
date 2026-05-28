@@ -1108,73 +1108,93 @@ class TestCheckColumnRules:
             rule_class(value=None)
 
 
-class TestValidateLinkages:
-    """Tests for validate_linkages()."""
+class TestValidateOneToOneMapping:
+    """Tests for validate_one_to_one_mapping()."""
 
-    def test_validate_linkages_passes_one_to_one_mapping(self) -> None:
+    def test_passes_one_to_one_mapping(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugA", "DrugB"],
                 "chembl_id": ["CHEMBL1", "CHEMBL1", "CHEMBL2"],
             }
         )
-        utils.validate_linkages(df, "common_name", "chembl_id")
+        utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
-    def test_validate_linkages_raises_when_name_maps_to_multiple_ids(self) -> None:
+    def test_raises_when_left_maps_to_multiple_right(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugA"],
                 "chembl_id": ["CHEMBL1", "CHEMBL2"],
             }
         )
-        with pytest.raises(ValueError, match="Data Integrity Error"):
-            utils.validate_linkages(df, "common_name", "chembl_id")
+        with pytest.raises(ValueError, match="common_name"):
+            utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
-    def test_validate_linkages_raises_when_id_maps_to_multiple_names(self) -> None:
+    def test_default_does_not_check_reverse_direction(self) -> None:
+        # Two names share an ID; without bidirectional this passes because each
+        # name still maps to a single ID.
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugB"],
                 "chembl_id": ["CHEMBL1", "CHEMBL1"],
             }
         )
-        with pytest.raises(ValueError, match="Data Integrity Error"):
-            utils.validate_linkages(df, "chembl_id", "common_name")
+        utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
-    def test_validate_linkages_ignores_empty_string_pairs(self) -> None:
+    def test_bidirectional_catches_reverse_violation(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1"],
+            }
+        )
+        with pytest.raises(ValueError, match="chembl_id"):
+            utils.validate_one_to_one_mapping(
+                df, "common_name", "chembl_id", bidirectional=True
+            )
+
+    def test_ignores_empty_string_keys(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["", "DrugA"],
                 "chembl_id": ["", "CHEMBL1"],
             }
         )
-        utils.validate_linkages(df, "common_name", "chembl_id")
+        utils.validate_one_to_one_mapping(
+            df, "common_name", "chembl_id", bidirectional=True
+        )
 
 
-class TestValidatePairedColumns:
-    """Tests for validate_paired_columns()."""
+class TestStripWhitespaceColumns:
+    """Tests for strip_whitespace_columns()."""
 
-    def test_validate_paired_columns_passes_when_both_missing(self) -> None:
+    def test_strips_selected_columns(self) -> None:
         df = pd.DataFrame(
             {
-                "combined_with_common_name": [None, ""],
-                "combined_with_chembl_id": [None, np.nan],
+                "common_name": ["  DrugA  "],
+                "chembl_id": [" CHEMBL1 "],
             }
         )
-        utils.validate_paired_columns(
-            df, "combined_with_common_name", "combined_with_chembl_id"
-        )
+        result = utils.strip_whitespace_columns(df, ["common_name", "chembl_id"])
+        assert result["common_name"].iloc[0] == "DrugA"
+        assert result["chembl_id"].iloc[0] == "CHEMBL1"
 
-    def test_validate_paired_columns_raises_when_only_name_present(self) -> None:
-        df = pd.DataFrame(
-            {
-                "combined_with_common_name": ["DrugA"],
-                "combined_with_chembl_id": [None],
-            }
-        )
-        with pytest.raises(ValueError, match="Data Integrity Error"):
-            utils.validate_paired_columns(
-                df, "combined_with_common_name", "combined_with_chembl_id"
-            )
+    def test_strips_all_columns_when_columns_none(self) -> None:
+        df = pd.DataFrame({"a": [" x "], "b": [" y "]})
+        result = utils.strip_whitespace_columns(df)
+        assert result["a"].iloc[0] == "x"
+        assert result["b"].iloc[0] == "y"
+
+    def test_ignores_columns_not_in_df_and_leaves_na(self) -> None:
+        df = pd.DataFrame({"common_name": [" DrugA ", None]})
+        result = utils.strip_whitespace_columns(df, ["common_name", "missing_col"])
+        assert result["common_name"].iloc[0] == "DrugA"
+        assert pd.isna(result["common_name"].iloc[1])
+
+    def test_does_not_mutate_input(self) -> None:
+        df = pd.DataFrame({"common_name": ["  DrugA  "]})
+        utils.strip_whitespace_columns(df, ["common_name"])
+        assert df["common_name"].iloc[0] == "  DrugA  "
 
 
 class TestFlattenList:

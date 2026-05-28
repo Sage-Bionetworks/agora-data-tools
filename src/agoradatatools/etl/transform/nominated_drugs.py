@@ -5,6 +5,7 @@ import pandas as pd
 from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
     DISPLAY_CLINICAL_PHASES,
+    MODALITY_VALUES,
     validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
@@ -45,7 +46,7 @@ COLUMN_RULES = {
     # a nominated chembl_id has no metadata row.
     "drug_metadata": {
         "chembl_id": [NotEmptyRule()],
-        "modality": [OneOfRule({"Small molecule", "Protein"})],
+        "modality": [OneOfRule(MODALITY_VALUES)],
         "maximum_clinical_trial_phase": [OneOfRule(DISPLAY_CLINICAL_PHASES)],
     },
 }
@@ -62,11 +63,6 @@ _OUTPUT_COLUMNS = [
     "year_of_first_approval",
     "maximum_clinical_trial_phase",
 ]
-
-
-def _unique_sorted_pis(series: pd.Series) -> list[str]:
-    """Return sorted unique non-empty principal investigator names."""
-    return sorted({v.strip() for v in series.dropna().astype(str) if v.strip()})
 
 
 def transform_nominated_drugs(
@@ -137,7 +133,7 @@ def transform_nominated_drugs(
         .agg(
             total_nominations=("common_name", "size"),
             initial_nomination=("initial_nomination", "min"),
-            principal_investigators=("contact_pi", _unique_sorted_pis),
+            principal_investigators=("contact_pi", lambda x: sorted(set(x.dropna()))),
             programs=("source", lambda x: sorted(set(x.dropna()))),
         )
         .reset_index()
@@ -155,6 +151,9 @@ def transform_nominated_drugs(
         validate="m:1",
     )
 
+    # Nullable Int64 (not int): the left-merge leaves year_of_first_approval as
+    # NaN for nominated drugs that have no metadata row, and a plain int cast
+    # cannot represent missing values.
     nominated_drugs["year_of_first_approval"] = nominated_drugs[
         "year_of_first_approval"
     ].astype("Int64")

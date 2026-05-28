@@ -88,7 +88,7 @@ class TestTransformNominatedDrugs:
                 "drug_metadata": "drug_metadata_good_input.json",
             },
             ValueError,
-            "combined_with_common_name",
+            "common_name",
         ),
         (
             {
@@ -96,7 +96,7 @@ class TestTransformNominatedDrugs:
                 "drug_metadata": "drug_metadata_good_input.json",
             },
             ValueError,
-            "combined_with_chembl_id",
+            "chembl_id",
         ),
         (
             {
