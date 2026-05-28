@@ -651,6 +651,7 @@ def normalize_null_values(
     df: pd.DataFrame,
     boolean_columns: list[str] | None = None,
     empty_string_columns: list[str] | None = None,
+    empty_list_columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
@@ -671,6 +672,7 @@ def normalize_null_values(
         boolean_columns (list[str]): A list of column names that should have NaN values replaced with False.
         empty_string_columns (list[str]): A list of column names that should have NaN values replaced with empty
             strings.
+        empty_list_columns (list[str]): A list of column names that should have NaN values replaced with empty lists.
 
     Returns:
         pd.DataFrame: A new DataFrame with normalized null values (NaN replaced with False, empty strings, or None as
@@ -679,40 +681,47 @@ def normalize_null_values(
     Raises:
         TypeError: If the input df is not a pandas DataFrame.
         TypeError: If any of the *_columns arguments are not lists.
-        ValueError: If there are overlaps between the boolean_columns and empty_string_columns lists.
-        ValueError: If any column specified in the boolean_columns or empty_string_columns lists does not exist in the
-        DataFrame.
+        ValueError: If there are overlaps between the *_columns lists.
+        ValueError: If any column specified in the *_columns lists does not exist in the DataFrame.
     """
     if not isinstance(df, pd.DataFrame):
-        raise TypeError(f"Input must be a pandas DataFrame, got {type(df)}")
+        raise TypeError(f"'df' must be a pandas DataFrame, got {type(df)}")
 
-    if not isinstance(boolean_columns, list) and boolean_columns is not None:
-        raise TypeError(f"boolean_columns must be a list, got {type(boolean_columns)}")
-
-    if not isinstance(empty_string_columns, list) and empty_string_columns is not None:
-        raise TypeError(
-            f"empty_string_columns must be a list, got {type(empty_string_columns)}"
-        )
+    for arg_name, arg_value in [
+        ("boolean_columns", boolean_columns),
+        ("empty_string_columns", empty_string_columns),
+        ("empty_list_columns", empty_list_columns),
+    ]:
+        if not isinstance(arg_value, list) and arg_value is not None:
+            raise TypeError(f"'{arg_name}' must be a list, got {type(arg_value)}")
 
     # Make column lists into sets for easier checking of overlaps and membership in the data frame, and
     # initialize any None arguments to empty lists
     all_columns = set(df.columns)
     boolean_columns = set(boolean_columns or [])
     empty_string_columns = set(empty_string_columns or [])
+    empty_list_columns = set(empty_list_columns or [])
 
     # Check that all specified columns exist in the data frame
-    non_existent_columns = (boolean_columns | empty_string_columns) - all_columns
+    non_existent_columns = (
+        boolean_columns | empty_string_columns | empty_list_columns
+    ) - all_columns
     if non_existent_columns:
         raise ValueError(
             f"Columns {sorted(non_existent_columns)} do not exist in the DataFrame."
         )
 
     # Check that there are no overlaps between lists of columns
-    overlaps = boolean_columns & empty_string_columns
-    if overlaps:
-        raise ValueError(
-            f"Columns {sorted(overlaps)} appear in both the boolean_columns and empty_string_columns lists."
-        )
+    for pair in [
+        (boolean_columns, empty_string_columns),
+        (boolean_columns, empty_list_columns),
+        (empty_string_columns, empty_list_columns),
+    ]:
+        overlaps = pair[0] & pair[1]
+        if overlaps:
+            raise ValueError(
+                f"Columns {sorted(overlaps)} appear in both the {pair[0]} and {pair[1]} lists."
+            )
 
     df = df.copy()
 
@@ -721,6 +730,12 @@ def normalize_null_values(
 
     for col in empty_string_columns:
         df[col] = df[col].fillna("")
+
+    # .fillna() doesn't work for empty lists, so we manually set NA values to empty lists
+    for col in empty_list_columns:
+        df[col] = df[col].apply(
+            lambda x: [] if not isinstance(x, list) and pd.isna(x) else x
+        )
 
     # Replace any remaining NaN values with None
     return df.replace({np.nan: None, pd.NA: None})
