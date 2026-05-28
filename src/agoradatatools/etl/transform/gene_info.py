@@ -192,16 +192,10 @@ def transform_gene_info(
     # values (-1 for adj_p_val and cor_pval, empty lists for alias and ensembl_possible_replacements) manually, since
     # normalize_null_values doesn't support filling NA values with numbers or lists.
     gene_info = normalize_null_values(
-        gene_info, boolean_columns=["is_igap", "is_eqtl", "is_adi", "is_tep"]
+        gene_info,
+        boolean_columns=["is_igap", "is_eqtl", "is_adi", "is_tep"],
+        empty_list_columns=["alias", "ensembl_possible_replacements"],
     ).fillna({"adj_p_val": -1, "cor_pval": -1})
-
-    # fillna doesn't work for creating an empty array, need this function instead for alias and possible replacements
-    for col in ["alias", "ensembl_possible_replacements"]:
-        gene_info[col] = gene_info[col].apply(
-            lambda row: row
-            if isinstance(row, np.ndarray)
-            else np.ndarray(0, dtype=object)
-        )
 
     # Add ensembl_info as a nested field. This is done after merging all other data sets so it applies to
     # all possible Ensembl IDs in all data sets.
