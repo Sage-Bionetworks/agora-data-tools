@@ -457,7 +457,7 @@ def check_required_datasets_and_columns(
             )
 
 
-def _column_value_present(series: pd.Series) -> pd.Series:
+def column_value_present(series: pd.Series) -> pd.Series:
     """Return a boolean mask of values that are present (non-null and non-empty).
 
     Each value is cast to a string and stripped of surrounding whitespace before
@@ -511,7 +511,7 @@ def validate_one_to_one_mapping(
     By default this checks that each present value in *left_col* maps to at most
     one distinct value in *right_col*. When *bidirectional* is True it also checks
     the reverse direction, enforcing a true 1:1 mapping in a single call. Rows
-    where the key side is missing/empty (see ``_column_value_present``) are
+    where the key side is missing/empty (see ``column_value_present``) are
     ignored for that direction.
 
     Args:
@@ -531,7 +531,7 @@ def validate_one_to_one_mapping(
 
 def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) -> None:
     """Fail if any present value in *key_col* maps to multiple *value_col* values."""
-    present_keys = _column_value_present(df[key_col])
+    present_keys = column_value_present(df[key_col])
     counts = df.loc[present_keys].groupby(key_col)[value_col].nunique(dropna=False)
     offending_keys = counts[counts > 1].index.tolist()
     if offending_keys:

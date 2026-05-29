@@ -3,6 +3,7 @@
 import pandas as pd
 
 from agoradatatools.etl.utils import (
+    column_value_present,
     strip_whitespace_columns,
     validate_one_to_one_mapping,
 )
@@ -42,12 +43,8 @@ def validate_combined_with_column_pairs(drug_list: pd.DataFrame) -> None:
         ValueError: If any row has a value in only one of the two combined_with
             columns.
     """
-    present_name = drug_list["combined_with_common_name"].notna() & (
-        drug_list["combined_with_common_name"].astype(str).str.strip() != ""
-    )
-    present_id = drug_list["combined_with_chembl_id"].notna() & (
-        drug_list["combined_with_chembl_id"].astype(str).str.strip() != ""
-    )
+    present_name = column_value_present(drug_list["combined_with_common_name"])
+    present_id = column_value_present(drug_list["combined_with_chembl_id"])
     mismatched = present_name != present_id
     if mismatched.any():
         row_indices = drug_list.index[mismatched].tolist()
