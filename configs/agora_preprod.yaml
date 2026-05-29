@@ -293,6 +293,9 @@ datasets:
         - name: gene_metadata
           id: syn25953363.16
           format: feather
+        - name: harmonized_targets
+          id: syn12540368.62
+          format: csv
       final_format: json
       custom_transformations: transform_drug_info
       column_rename:

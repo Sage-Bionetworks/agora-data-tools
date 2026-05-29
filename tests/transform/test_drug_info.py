@@ -97,25 +97,47 @@ class TestResolveTargetList:
 
     def test_maps_ensembl_ids_to_symbols(self) -> None:
         gene_map = {"ENSG000001": "GENE1"}
-        result = drug_info._resolve_target_list(["ENSG000001", "ENSG000099"], gene_map)
+        result = drug_info._resolve_target_list(
+            ["ENSG000001", "ENSG000099"], gene_map, {"ENSG000001"}
+        )
         assert result == [
-            {"ensembl_gene_id": "ENSG000001", "hgnc_symbol": "GENE1"},
-            {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
+            {
+                "ensembl_gene_id": "ENSG000001",
+                "hgnc_symbol": "GENE1",
+                "is_nominated_target": True,
+            },
+            {
+                "ensembl_gene_id": "ENSG000099",
+                "hgnc_symbol": "ENSG000099",
+                "is_nominated_target": False,
+            },
         ]
 
     def test_falls_back_to_ensembl_id_when_symbol_unresolved(self) -> None:
         """D2: hgnc_symbol uses Ensembl ID when gene is absent from gene_metadata."""
-        result = drug_info._resolve_target_list(["ENSG000099"], {})
+        result = drug_info._resolve_target_list(["ENSG000099"], {}, set())
         assert result == [
-            {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
+            {
+                "ensembl_gene_id": "ENSG000099",
+                "hgnc_symbol": "ENSG000099",
+                "is_nominated_target": False,
+            },
         ]
 
     def test_returns_empty_for_non_list_input(self) -> None:
-        assert drug_info._resolve_target_list(None, {}) == []
+        assert drug_info._resolve_target_list(None, {}, set()) == []
 
     def test_skips_null_ensembl_ids(self) -> None:
-        result = drug_info._resolve_target_list([None, "ENSG1"], {"ENSG1": "G1"})
-        assert result == [{"ensembl_gene_id": "ENSG1", "hgnc_symbol": "G1"}]
+        result = drug_info._resolve_target_list(
+            [None, "ENSG1"], {"ENSG1": "G1"}, {"ENSG1"}
+        )
+        assert result == [
+            {
+                "ensembl_gene_id": "ENSG1",
+                "hgnc_symbol": "G1",
+                "is_nominated_target": True,
+            }
+        ]
 
 
 class TestGetBestIupacId:
@@ -146,10 +168,20 @@ class TestResolveLinkedTargets:
                 "symbol": ["GENE1"],
             }
         )
-        result = drug_info._resolve_linked_targets(drug_metadata, gene_metadata)
+        result = drug_info._resolve_linked_targets(
+            drug_metadata, gene_metadata, {"ENSG000001"}
+        )
         assert result["linked_targets"].iloc[0] == [
-            {"ensembl_gene_id": "ENSG000001", "hgnc_symbol": "GENE1"},
-            {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
+            {
+                "ensembl_gene_id": "ENSG000001",
+                "hgnc_symbol": "GENE1",
+                "is_nominated_target": True,
+            },
+            {
+                "ensembl_gene_id": "ENSG000099",
+                "hgnc_symbol": "ENSG000099",
+                "is_nominated_target": False,
+            },
         ]
 
 
@@ -220,6 +252,7 @@ class TestTransformDrugInfo:
         ot_file: str,
         dl_file: str,
         gm_file: str = "gene_metadata_good.feather",
+        ht_file: str = "harmonized_targets_good.csv",
     ) -> dict[str, pd.DataFrame]:
         drug_list = pd.read_csv(os.path.join(self.data_files_path, "input", dl_file))
         if "source" in drug_list.columns and "program" not in drug_list.columns:
@@ -232,6 +265,9 @@ class TestTransformDrugInfo:
             "drug_list": drug_list,
             "gene_metadata": pd.read_feather(
                 os.path.join(self.data_files_path, "input", gm_file)
+            ),
+            "harmonized_targets": pd.read_csv(
+                os.path.join(self.data_files_path, "input", ht_file)
             ),
         }
 
@@ -266,6 +302,39 @@ class TestTransformDrugInfo:
 
         drug_b = output_df.loc[output_df["chembl_id"] == "CHEMBL222"].iloc[0]
         assert drug_b["description"] == "Protein drug."
+
+    def test_sets_is_nominated_target_from_harmonized_targets(self) -> None:
+        """is_nominated_target is true only for ENSGs in harmonized_targets."""
+        datasets = self._load_datasets(
+            "ot_drug_metadata_good.json", "drug_list_good.csv"
+        )
+        output_df = drug_info.transform_drug_info(datasets=datasets)
+
+        drug_a = output_df.loc[output_df["chembl_id"] == "CHEMBL111"].iloc[0]
+        assert drug_a["linked_targets"] == [
+            {
+                "ensembl_gene_id": "ENSG000001",
+                "hgnc_symbol": "GENE1",
+                "is_nominated_target": True,
+            }
+        ]
+
+        drug_b = output_df.loc[output_df["chembl_id"] == "CHEMBL222"].iloc[0]
+        assert drug_b["linked_targets"] == [
+            {
+                "ensembl_gene_id": "ENSG000099",
+                "hgnc_symbol": "GENE9",
+                "is_nominated_target": False,
+            }
+        ]
+
+    def test_missing_harmonized_targets_dataset_raises(self) -> None:
+        datasets = self._load_datasets(
+            "ot_drug_metadata_good.json", "drug_list_good.csv"
+        )
+        del datasets["harmonized_targets"]
+        with pytest.raises(ValueError, match="Missing required datasets"):
+            drug_info.transform_drug_info(datasets=datasets)
 
     @pytest.mark.parametrize(
         "input_datasets,error_match,error_type",
@@ -422,6 +491,7 @@ class TestDrugInfoSynapseGolden:
             "harmonized_drug_nominations_4_23_26.csv",
             "opentargets_drug_metadata.json",
             "gene_table_merged_GRCh38.p14.feather",
+            "harmonized_targets.csv",
             "drug_info.json",
         ]
         return all(
@@ -447,6 +517,7 @@ class TestDrugInfoSynapseGolden:
         gm = pd.read_feather(
             os.path.join(self.discovery_path, "gene_table_merged_GRCh38.p14.feather")
         )
+        ht = pd.read_csv(os.path.join(self.discovery_path, "harmonized_targets.csv"))
         golden = pd.read_json(
             os.path.join(self.discovery_path, "drug_info.json"), orient="records"
         )
@@ -456,6 +527,7 @@ class TestDrugInfoSynapseGolden:
                 "ot_drug_metadata": ot,
                 "drug_list": drug_list,
                 "gene_metadata": gm,
+                "harmonized_targets": ht,
             }
         )
 
