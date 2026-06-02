@@ -51,7 +51,7 @@ class TestValidateCombinedWithColumnPairs:
 class TestValidateDrugListIntegrity:
     """Tests for validate_drug_list_integrity full validation pipeline."""
 
-    def test_returns_drug_list_on_pass(self) -> None:
+    def test_passes_on_valid_drug_list(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA"],
@@ -60,9 +60,7 @@ class TestValidateDrugListIntegrity:
                 "combined_with_chembl_id": [None],
             }
         )
-        result = dtu.validate_drug_list_integrity(df)
-        assert result["common_name"].iloc[0] == "DrugA"
-        assert result["chembl_id"].iloc[0] == "CHEMBL1"
+        dtu.validate_drug_list_integrity(df)
 
     def test_passes_for_consistent_combined_with(self) -> None:
         df = pd.DataFrame(
@@ -73,8 +71,7 @@ class TestValidateDrugListIntegrity:
                 "combined_with_chembl_id": [None, "CHEMBL1"],
             }
         )
-        result = dtu.validate_drug_list_integrity(df)
-        assert result["chembl_id"].iloc[0] == "CHEMBL1"
+        dtu.validate_drug_list_integrity(df)
 
     def test_raises_for_unpaired_combined_with(self) -> None:
         df = pd.DataFrame(

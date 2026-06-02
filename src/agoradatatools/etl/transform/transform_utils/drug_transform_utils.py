@@ -2,10 +2,7 @@
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    column_value_present,
-    validate_one_to_one_mapping,
-)
+from agoradatatools.etl.utils import validate_one_to_one_mapping
 
 DISPLAY_CLINICAL_PHASES = {
     "Phase I",
@@ -35,8 +32,8 @@ def validate_combined_with_column_pairs(drug_list: pd.DataFrame) -> None:
         ValueError: If any row has a value in only one of the two combined_with
             columns.
     """
-    present_name = column_value_present(drug_list["combined_with_common_name"])
-    present_id = column_value_present(drug_list["combined_with_chembl_id"])
+    present_name = drug_list["combined_with_common_name"].notna()
+    present_id = drug_list["combined_with_chembl_id"].notna()
     mismatched = present_name != present_id
     if mismatched.any():
         row_indices = drug_list.index[mismatched].tolist()
@@ -49,7 +46,7 @@ def validate_combined_with_column_pairs(drug_list: pd.DataFrame) -> None:
         )
 
 
-def validate_drug_list_integrity(drug_list: pd.DataFrame) -> pd.DataFrame:
+def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
     """Validate a drug_list before aggregation.
 
     Validation steps:
@@ -60,10 +57,7 @@ def validate_drug_list_integrity(drug_list: pd.DataFrame) -> pd.DataFrame:
            primary drug and as a combination partner must agree.
 
     Args:
-        drug_list: The raw drug_list DataFrame.
-
-    Returns:
-        The validated *drug_list* (returned unchanged).
+        drug_list: The drug_list DataFrame to validate.
 
     Raises:
         ValueError: If the combined_with columns are unevenly populated, or if a
@@ -85,4 +79,3 @@ def validate_drug_list_integrity(drug_list: pd.DataFrame) -> pd.DataFrame:
     validate_one_to_one_mapping(
         name_id_pairs, "chembl_id", "common_name", bidirectional=True
     )
-    return drug_list

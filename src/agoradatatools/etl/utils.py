@@ -457,23 +457,6 @@ def check_required_datasets_and_columns(
             )
 
 
-def column_value_present(series: pd.Series) -> pd.Series:
-    """Return a boolean mask of values that are present (non-null and non-empty).
-
-    Each value is cast to a string and stripped of surrounding whitespace before
-    the emptiness check, so ``None``, ``NaN``, ``""``, and whitespace-only values
-    like ``"   "`` are all treated as absent. Casting to string is only used for
-    the comparison; the returned mask aligns with the original *series* index.
-
-    Args:
-        series: The column to evaluate.
-
-    Returns:
-        A boolean Series that is True where the value is present.
-    """
-    return series.notna() & (series.astype(str).str.strip() != "")
-
-
 def validate_one_to_one_mapping(
     df: pd.DataFrame,
     left_col: str,
@@ -482,11 +465,10 @@ def validate_one_to_one_mapping(
 ) -> None:
     """Validate that two columns form a consistent mapping.
 
-    By default this checks that each present value in *left_col* maps to at most
+    By default this checks that each non-null value in *left_col* maps to at most
     one distinct value in *right_col*. When *bidirectional* is True it also checks
     the reverse direction, enforcing a true 1:1 mapping in a single call. Rows
-    where the key side is missing/empty (see ``column_value_present``) are
-    ignored for that direction.
+    where the key column is null are ignored for that direction.
 
     Args:
         df: The DataFrame to validate.
@@ -504,8 +486,8 @@ def validate_one_to_one_mapping(
 
 
 def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) -> None:
-    """Fail if any present value in *key_col* maps to multiple *value_col* values."""
-    present_keys = column_value_present(df[key_col])
+    """Fail if any non-null value in *key_col* maps to multiple *value_col* values."""
+    present_keys = df[key_col].notna()
     counts = df.loc[present_keys].groupby(key_col)[value_col].nunique(dropna=False)
     offending_keys = counts[counts > 1].index.tolist()
     if offending_keys:

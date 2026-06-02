@@ -1153,11 +1153,11 @@ class TestValidateOneToOneMapping:
                 df, "common_name", "chembl_id", bidirectional=True
             )
 
-    def test_ignores_empty_string_keys(self) -> None:
+    def test_ignores_missing_keys(self) -> None:
         df = pd.DataFrame(
             {
-                "common_name": ["", "DrugA"],
-                "chembl_id": ["", "CHEMBL1"],
+                "common_name": [None, "DrugA"],
+                "chembl_id": [None, "CHEMBL1"],
             }
         )
         utils.validate_one_to_one_mapping(

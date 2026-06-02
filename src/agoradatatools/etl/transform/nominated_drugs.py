@@ -113,13 +113,11 @@ def transform_nominated_drugs(
     """
     check_required_datasets_and_columns(datasets, required_input)
 
-    drug_list = validate_drug_list_integrity(datasets["drug_list"])
+    validate_drug_list_integrity(datasets["drug_list"])
 
-    datasets_for_rules = {
-        **datasets,
-        "drug_list": drug_list,
-    }
-    check_column_rules(datasets_for_rules, COLUMN_RULES)
+    check_column_rules(datasets, COLUMN_RULES)
+
+    drug_list = datasets["drug_list"]
 
     nominated_drugs = (
         drug_list.groupby(
