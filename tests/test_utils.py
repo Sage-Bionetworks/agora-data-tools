@@ -1165,38 +1165,6 @@ class TestValidateOneToOneMapping:
         )
 
 
-class TestStripWhitespaceColumns:
-    """Tests for strip_whitespace_columns()."""
-
-    def test_strips_selected_columns(self) -> None:
-        df = pd.DataFrame(
-            {
-                "common_name": ["  DrugA  "],
-                "chembl_id": [" CHEMBL1 "],
-            }
-        )
-        result = utils.strip_whitespace_columns(df, ["common_name", "chembl_id"])
-        assert result["common_name"].iloc[0] == "DrugA"
-        assert result["chembl_id"].iloc[0] == "CHEMBL1"
-
-    def test_strips_all_columns_when_columns_none(self) -> None:
-        df = pd.DataFrame({"a": [" x "], "b": [" y "]})
-        result = utils.strip_whitespace_columns(df)
-        assert result["a"].iloc[0] == "x"
-        assert result["b"].iloc[0] == "y"
-
-    def test_ignores_columns_not_in_df_and_leaves_na(self) -> None:
-        df = pd.DataFrame({"common_name": [" DrugA ", None]})
-        result = utils.strip_whitespace_columns(df, ["common_name", "missing_col"])
-        assert result["common_name"].iloc[0] == "DrugA"
-        assert pd.isna(result["common_name"].iloc[1])
-
-    def test_does_not_mutate_input(self) -> None:
-        df = pd.DataFrame({"common_name": ["  DrugA  "]})
-        utils.strip_whitespace_columns(df, ["common_name"])
-        assert df["common_name"].iloc[0] == "  DrugA  "
-
-
 class TestFlattenList:
     def test_flatten_list_empty(self):
         assert utils.flatten_list([]) == []

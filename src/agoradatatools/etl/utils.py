@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Dict, List, Optional, Union
+from typing import Any, Collection, Dict, List, Union
 import re
 
 import numpy as np
@@ -472,32 +472,6 @@ def column_value_present(series: pd.Series) -> pd.Series:
         A boolean Series that is True where the value is present.
     """
     return series.notna() & (series.astype(str).str.strip() != "")
-
-
-def strip_whitespace_columns(
-    df: pd.DataFrame, columns: Optional[List[str]] = None
-) -> pd.DataFrame:
-    """Strip leading/trailing whitespace from the given columns of a copy of *df*.
-
-    Args:
-        df: The DataFrame to strip. It is not modified in place.
-        columns: Column names to strip. If None (the default), every column in
-            *df* is stripped. Column names listed here but not present in *df*
-            are ignored.
-
-    Returns:
-        A copy of *df* in which present (non-null) values in the selected columns
-        have been cast to string and stripped. NA/None values are left as NA/None.
-    """
-    result = df.copy()
-    target_columns = list(result.columns) if columns is None else columns
-    for col in target_columns:
-        if col not in result.columns:
-            continue
-        present = result[col].notna()
-        if present.any():
-            result.loc[present, col] = result.loc[present, col].astype(str).str.strip()
-    return result
 
 
 def validate_one_to_one_mapping(

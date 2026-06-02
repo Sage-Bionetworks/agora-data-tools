@@ -85,10 +85,9 @@ def transform_nominated_drugs(
 
     Processing steps:
         1. Validate required datasets and columns.
-        2. Strip whitespace and validate drug_list integrity: require the
-           combined_with name/ID columns to be populated together, and enforce a
-           1:1 common_name <-> chembl_id mapping across the primary and
-           combined_with columns.
+        2. Validate drug_list integrity: require the combined_with name/ID
+           columns to be populated together, and enforce a 1:1 common_name <->
+           chembl_id mapping across the primary and combined_with columns.
         3. Validate per-column content rules on drug_list and metadata.
         4. Group drug_list by (common_name, chembl_id, combined_with_*) and
            aggregate: row count, min(initial_nomination), sorted unique PIs and

@@ -51,11 +51,11 @@ class TestValidateCombinedWithColumnPairs:
 class TestValidateDrugListIntegrity:
     """Tests for validate_drug_list_integrity full validation pipeline."""
 
-    def test_returns_stripped_copy_on_pass(self) -> None:
+    def test_returns_drug_list_on_pass(self) -> None:
         df = pd.DataFrame(
             {
-                "common_name": ["  DrugA  "],
-                "chembl_id": [" CHEMBL1 "],
+                "common_name": ["DrugA"],
+                "chembl_id": ["CHEMBL1"],
                 "combined_with_common_name": [None],
                 "combined_with_chembl_id": [None],
             }
