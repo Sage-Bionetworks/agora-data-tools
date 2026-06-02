@@ -117,10 +117,9 @@ def transform_nominated_drugs(
 
     check_column_rules(datasets, COLUMN_RULES)
 
-    drug_list = datasets["drug_list"]
-
     nominated_drugs = (
-        drug_list.groupby(
+        datasets["drug_list"]
+        .groupby(
             [
                 "common_name",
                 "chembl_id",

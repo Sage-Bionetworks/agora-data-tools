@@ -18,19 +18,24 @@ MODALITY_VALUES = {"Small molecule", "Protein"}
 CHEMBL_ID_REGEX = r"^CHEMBL\d+$"
 
 
-def validate_combined_with_column_pairs(drug_list: pd.DataFrame) -> None:
-    """Ensure the combined_with name and ChEMBL ID columns are populated together.
+def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
+    """Validate a drug_list before aggregation.
 
-    Each row must either name a combination partner with both
-    ``combined_with_common_name`` and ``combined_with_chembl_id`` set, or leave
-    both empty. A row with exactly one of the two set is a data integrity error.
+    Validation steps:
+        1. Require the combined_with name/ID columns to be set or empty together:
+           each row must have both ``combined_with_common_name`` and
+           ``combined_with_chembl_id`` set, or both empty.
+        2. Enforce a 1:1 mapping between common_name and chembl_id across both the
+           primary columns and the combined_with partner columns. The two column
+           pairs are stacked into a single frame so a name (or ID) used as a
+           primary drug and as a combination partner must agree.
 
     Args:
         drug_list: The drug_list DataFrame to validate.
 
     Raises:
-        ValueError: If any row has a value in only one of the two combined_with
-            columns.
+        ValueError: If the combined_with columns are unevenly populated, or if a
+            common_name maps to multiple chembl_ids (or vice versa).
     """
     present_name = drug_list["combined_with_common_name"].notna()
     present_id = drug_list["combined_with_chembl_id"].notna()
@@ -44,26 +49,6 @@ def validate_combined_with_column_pairs(drug_list: pd.DataFrame) -> None:
             f"Affected row index(es): {row_indices}. "
             "Please fix the source data before re-running."
         )
-
-
-def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
-    """Validate a drug_list before aggregation.
-
-    Validation steps:
-        1. Require the combined_with name/ID columns to be set or empty together.
-        2. Enforce a 1:1 mapping between common_name and chembl_id across both the
-           primary columns and the combined_with partner columns. The two column
-           pairs are stacked into a single frame so a name (or ID) used as a
-           primary drug and as a combination partner must agree.
-
-    Args:
-        drug_list: The drug_list DataFrame to validate.
-
-    Raises:
-        ValueError: If the combined_with columns are unevenly populated, or if a
-            common_name maps to multiple chembl_ids (or vice versa).
-    """
-    validate_combined_with_column_pairs(drug_list)
 
     name_id_pairs = pd.concat(
         [

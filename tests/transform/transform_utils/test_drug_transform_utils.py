@@ -6,48 +6,6 @@ import pytest
 from agoradatatools.etl.transform.transform_utils import drug_transform_utils as dtu
 
 
-class TestValidateCombinedWithColumnPairs:
-    """Tests for validate_combined_with_column_pairs."""
-
-    def test_passes_when_both_present(self) -> None:
-        df = pd.DataFrame(
-            {
-                "combined_with_common_name": ["DrugA"],
-                "combined_with_chembl_id": ["CHEMBL1"],
-            }
-        )
-        dtu.validate_combined_with_column_pairs(df)
-
-    def test_passes_when_both_missing(self) -> None:
-        df = pd.DataFrame(
-            {
-                "combined_with_common_name": [None, ""],
-                "combined_with_chembl_id": [None, "  "],
-            }
-        )
-        dtu.validate_combined_with_column_pairs(df)
-
-    def test_raises_when_only_name_present(self) -> None:
-        df = pd.DataFrame(
-            {
-                "combined_with_common_name": ["DrugA"],
-                "combined_with_chembl_id": [None],
-            }
-        )
-        with pytest.raises(ValueError, match="combined_with_common_name"):
-            dtu.validate_combined_with_column_pairs(df)
-
-    def test_raises_when_only_id_present(self) -> None:
-        df = pd.DataFrame(
-            {
-                "combined_with_common_name": [None],
-                "combined_with_chembl_id": ["CHEMBL1"],
-            }
-        )
-        with pytest.raises(ValueError, match="combined_with_chembl_id"):
-            dtu.validate_combined_with_column_pairs(df)
-
-
 class TestValidateDrugListIntegrity:
     """Tests for validate_drug_list_integrity full validation pipeline."""
 
@@ -73,7 +31,7 @@ class TestValidateDrugListIntegrity:
         )
         dtu.validate_drug_list_integrity(df)
 
-    def test_raises_for_unpaired_combined_with(self) -> None:
+    def test_raises_for_unpaired_combined_with_name_only(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA"],
@@ -83,6 +41,18 @@ class TestValidateDrugListIntegrity:
             }
         )
         with pytest.raises(ValueError, match="combined_with_common_name"):
+            dtu.validate_drug_list_integrity(df)
+
+    def test_raises_for_unpaired_combined_with_id_only(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA"],
+                "chembl_id": ["CHEMBL1"],
+                "combined_with_common_name": [None],
+                "combined_with_chembl_id": ["CHEMBL2"],
+            }
+        )
+        with pytest.raises(ValueError, match="combined_with_chembl_id"):
             dtu.validate_drug_list_integrity(df)
 
     def test_raises_when_name_maps_to_multiple_ids(self) -> None:
