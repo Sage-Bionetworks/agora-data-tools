@@ -149,9 +149,8 @@ def transform_nominated_drugs(
         validate="m:1",
     )
 
-    # Nullable Int64 (not int): the left-merge leaves year_of_first_approval as
-    # NaN for nominated drugs that have no metadata row, and a plain int cast
-    # cannot represent missing values.
+    # Nullable Int64 (not int): a plain int cast cannot represent missing values.
+    # float cast would add decimal places to the year.
     nominated_drugs["year_of_first_approval"] = nominated_drugs[
         "year_of_first_approval"
     ].astype("Int64")
