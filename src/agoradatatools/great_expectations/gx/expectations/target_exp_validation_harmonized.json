@@ -185,6 +185,7 @@
           "Human",
           "Human, Mouse",
           "Human, Drosophila",
+          "Human, Zebrafish",
           "Drosophila",
           "Drosophila, Human",
           "Human ",
@@ -343,7 +344,8 @@
           "MSSM - Zhang Lab",
           "Emory",
           "Mayo-UFL-ISB",
-          "Mayo"
+          "Mayo",
+          "Columbia"
         ]
       },
       "meta": {}
