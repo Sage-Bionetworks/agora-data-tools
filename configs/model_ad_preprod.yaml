@@ -139,6 +139,7 @@ datasets:
       destination: *dest
       custom_transformations: transform_rna_de_aggregate
       gx_enabled: true
+      gx_chunk_size: 100000
       gx_nested_columns:
         - name
         - "4 months"
