@@ -178,23 +178,39 @@ class GreatExpectationsRunner:
         warning_dict = {self.expectation_suite_name: {}}
         fail_dict = {self.expectation_suite_name: {}}
         expectation_results = checkpoint_result.list_validation_results()[0]["results"]
-
         for result in expectation_results:
             column = result["expectation_config"]["kwargs"].get(
                 "column",
                 "/".join(result["expectation_config"]["kwargs"].get("column_list", [])),
             )
+            target_field = result["expectation_config"]["kwargs"].get(
+                "target_field", None
+            )
+            if target_field:
+                column = f"{column}.{target_field}"
             expectation = result["expectation_config"]["expectation_type"]
+            kwargs = result["expectation_config"]["kwargs"]
+            result_data = result["result"]
+            observed_ratio = next(
+                (v for k, v in result_data.items() if k.endswith("_ratio")), None
+            )
+            threshold = next(
+                (v for k, v in kwargs.items() if k.endswith("_threshold")), None
+            )
+            entry = {
+                "expectation": expectation,
+                "observed_ratio": observed_ratio,
+                "threshold": threshold,
+            }
             if result["success"]:
-                if result["result"].get("partial_unexpected_list", None):
+                if result_data.get("partial_unexpected_list", None):
                     warning_dict[self.expectation_suite_name].setdefault(
                         column, []
-                    ).append(expectation)
+                    ).append(entry)
             else:
                 fail_dict[self.expectation_suite_name].setdefault(column, []).append(
-                    expectation
+                    entry
                 )
-
         self.warning_message, self.warnings = self._generate_message(
             warning_dict, "warnings"
         )
@@ -208,13 +224,22 @@ class GreatExpectationsRunner:
         """Generate message and status for warnings or failures."""
         messages = []
         for suite_name, fields_dict in result_dict.items():
-            for field, expectations in fields_dict.items():
-                messages.append(
-                    f"In the {suite_name} dataset, '{field}' has failed values for expectations {', '.join(expectations)}"
-                )
+            for field, expectation_list in fields_dict.items():
+                for exp in expectation_list:
+                    expectation_name = exp["expectation"]
+                    observed = exp["observed_ratio"]
+                    threshold = exp["threshold"]
+                    detail = (
+                        f" (required: {threshold}, observed: {observed})"
+                        if observed is not None and threshold is not None
+                        else ""
+                    )
+                    messages.append(
+                        f"  - {suite_name} / '{field}': {expectation_name} failed{detail}"
+                    )
         message = (
-            (f"Great Expectations data validation has the following {message_type}: ")
-            + "; ".join(messages)
+            f"Great Expectations data validation has the following {message_type}:\n"
+            + "\n".join(messages)
             if messages
             else None
         )

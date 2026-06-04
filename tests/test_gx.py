@@ -157,16 +157,23 @@ class TestGreatExpectationsRunner:
 
     def test_generate_message_returns_formatted_strings_as_expected(self):
         result_dict = {
-            "test_suite": {"test_column": ["expect_column_values_to_be_unique"]}
+            "test_suite": {
+                "test_column": [
+                    {
+                        "expectation": "expect_column_values_to_be_unique",
+                        "observed_ratio": None,
+                        "threshold": None,
+                    }
+                ]
+            }
         }
         test_warn_message, test_warn_status = self.good_runner._generate_message(
             result_dict, "warnings"
         )
         assert (
             test_warn_message
-            == "Great Expectations data validation has the following warnings: "
-            "In the test_suite dataset, 'test_column' has failed values for "
-            "expectations expect_column_values_to_be_unique"
+            == "Great Expectations data validation has the following warnings:\n"
+            "  - test_suite / 'test_column': expect_column_values_to_be_unique failed"
         )
         assert test_warn_status is True
 
@@ -175,9 +182,8 @@ class TestGreatExpectationsRunner:
         )
         assert (
             test_fail_message
-            == "Great Expectations data validation has the following failures: "
-            "In the test_suite dataset, 'test_column' has failed values for "
-            "expectations expect_column_values_to_be_unique"
+            == "Great Expectations data validation has the following failures:\n"
+            "  - test_suite / 'test_column': expect_column_values_to_be_unique failed"
         )
         assert test_fail_status is True
 
@@ -207,17 +213,14 @@ class TestGreatExpectationsRunner:
     ):
         self.good_runner.set_warnings_and_failures(self.failed_checkpoint_result)
         assert self.good_runner.warnings is True
-        assert (
-            self.good_runner.warning_message
-            == "Great Expectations data validation has the following warnings: "
-            "In the metabolomics dataset, 'ensembl_gene_id' has failed values for "
-            "expectations expect_column_value_lengths_to_equal"
+        assert self.good_runner.warning_message == (
+            "Great Expectations data validation has the following warnings:\n"
+            "  - metabolomics / 'ensembl_gene_id': expect_column_value_lengths_to_equal failed"
         )
         assert self.good_runner.failures is True
         assert self.good_runner.failure_message == (
-            "Great Expectations data validation has the following failures: "
-            "In the metabolomics dataset, 'ensembl_gene_id' has failed values for "
-            "expectations expect_column_values_to_match_regex"
+            "Great Expectations data validation has the following failures:\n"
+            "  - metabolomics / 'ensembl_gene_id': expect_column_values_to_match_regex failed"
         )
 
     def test_run_when_expectation_suite_exists_and_nested_columns(
