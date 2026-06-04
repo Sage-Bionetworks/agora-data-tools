@@ -10,7 +10,7 @@ alwaysApply: false
 
 | File | Purpose |
 |------|---------|
-| `configs/model_ad_preprod.yaml` + `model_ad_prod.yaml` | Enable GX and declare nested columns |
+| `configs/<pipeline>_preprod.yaml` + `<pipeline>_prod.yaml` | Enable GX and declare nested columns (config file names vary by pipeline) |
 | `gx_suite_definitions/<transform>.ipynb` | Author and generate the expectation suite |
 | `src/agoradatatools/great_expectations/gx/expectations/<transform>.json` | Generated suite loaded at runtime |
 | `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/` | JSON schemas for nested/link columns |
@@ -81,7 +81,7 @@ For `rna_de_individual`, this means:
 
 ## Step 1 — Enable GX in Config Files
 
-In both `model_ad_preprod.yaml` and `model_ad_prod.yaml`, add to the dataset block:
+In the relevant config file(s) (e.g. `model_ad_preprod.yaml` and `model_ad_prod.yaml`, or whichever config files contain the transform), add to the dataset block:
 
 ```yaml
 gx_enabled: true
@@ -187,10 +187,11 @@ validator.expect_column_values_to_not_be_null("col")
 # Specific allowed values
 validator.expect_column_values_to_be_in_set("model_type", ["Familial AD", "Late Onset AD"])
 
-# Non-empty list (at least 1 element)
+# Non-empty list (at least 1 element) — only valid on columns NOT in gx_nested_columns
+# (see warning below)
 validator.expect_column_values_to_have_list_length_in_range(column="col", list_length_range=[1, 10])
 
-# List of strings
+# List of strings — only valid on columns NOT in gx_nested_columns (see warning below)
 validator.expect_column_values_to_have_list_members_of_type(column="col", member_type="str")
 
 # JSON schema for nested column
@@ -204,6 +205,48 @@ validator.expect_column_values_to_match_regex(
     regex="^expected/prefix",
     row_condition="col.notnull()",
     condition_parser="pandas",
+)
+```
+
+### ⚠️ Custom list expectations do NOT work on nested columns
+
+`expect_column_values_to_have_list_length_in_range` and `expect_column_values_to_have_list_members_of_type` both check `isinstance(cell, list)` internally. By the time GX runs, any column listed in `gx_nested_columns` has already been converted to a JSON **string** by `convert_nested_columns_to_json`, so these expectations will always fail silently (returning `False` for every row).
+
+**For list/array columns declared in `gx_nested_columns`, use `expect_column_values_to_match_json_schema` exclusively.** Encode length bounds with `minItems`/`maxItems` inside the schema, and type constraints with the `"type"` and `"items"` keywords:
+
+```python
+# ❌ WRONG — list expectations fail on JSON-stringified nested columns
+validator.expect_column_values_to_have_list_length_in_range(column="result_order", list_length_range=[2, 4])
+validator.expect_column_values_to_have_list_members_of_type(column="result_order", member_type="str")
+
+# ✅ CORRECT — JSON schema works on the string representation
+validator.expect_column_values_to_match_json_schema(
+    "result_order",
+    json_schema={
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 4,
+        "items": {"type": "string", "minLength": 1},
+    },
+)
+
+# ✅ CORRECT — for an array of objects with required properties
+validator.expect_column_values_to_match_json_schema(
+    "data",
+    json_schema={
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 100,
+        "items": {
+            "type": "object",
+            "properties": {
+                "field_a": {"type": "string", "minLength": 1},
+                "field_b": {"type": "number"},
+            },
+            "required": ["field_a", "field_b"],
+            "additionalProperties": False,
+        },
+    },
 )
 ```
 
@@ -278,7 +321,9 @@ validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
 
 ---
 
-## Step 4 — Run the Notebook
+## Step 4 — Generate the Expectations Suite
+
+### Option A — Run the notebook (standard, for small/medium datasets)
 
 Always activate the conda env and reinstall the package first:
 

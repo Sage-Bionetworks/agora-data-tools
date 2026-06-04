@@ -9,7 +9,7 @@
     },
     "matched_control": "Model_B (Wt)",
     "model_group": "AD",
-    "model_type": "Transgenic",
+    "model_type": "Familial AD",
     "tissue": "Hippocampus",
     "sex_cohort": "Male",
     "3 months": {
@@ -31,7 +31,7 @@
     },
     "matched_control": "Model_C (Wt)",
     "model_group": "AD",
-    "model_type": "Transgenic",
+    "model_type": "Late Onset AD",
     "tissue": "Cortex",
     "sex_cohort": "Female",
     "3 months": {

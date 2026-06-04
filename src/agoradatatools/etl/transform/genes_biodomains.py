@@ -1,8 +1,13 @@
-from typing import Union
+from typing import Dict, List, Union
 
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
+
+
+REQUIRED_INPUT = {
+    "genes_biodomains": ["ensembl_gene_id", "biodomain", "go_terms"],
+}
 
 
 def count_grouped_total(
@@ -37,7 +42,10 @@ def count_grouped_total(
     return df
 
 
-def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
+def transform_genes_biodomains(
+    datasets: dict,
+    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
+) -> pd.DataFrame:
     """Takes dictionary of dataset DataFrames, extracts the genes_biodomains
     DataFrame, calculates some metrics on GO terms per gene / biodomain, and
     performs nest_fields on the final DataFrame. This results in a 2 column
@@ -50,7 +58,12 @@ def transform_genes_biodomains(datasets: dict) -> pd.DataFrame:
     Returns:
         pd.DataFrame: 2 column DataFrame grouped by "ensembl_gene_id" including
                       a collapsed nested dictionary field "gene_biodomains"
+
+    Raises:
+        ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
+    check_required_datasets_and_columns(datasets, required_input)
+
     genes_biodomains = datasets["genes_biodomains"]
     interesting_columns = ["ensembl_gene_id", "biodomain", "go_terms"]
     genes_biodomains = genes_biodomains[interesting_columns].dropna().drop_duplicates()

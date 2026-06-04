@@ -43,26 +43,43 @@ class TestTransformDistributionData:
         "Pass with missing values in each column",
     ]
     fail_test_data = [
-        (  # Bad data type
-            "test_distribution_data_wrong_data_type_overall.csv",
+        (  # Bad data type in overall score column
+            {"overall_scores": "test_distribution_data_wrong_data_type_overall.csv"},
             param_set_1,
             ValueError,
+            None,
         ),
-        (  # Bad data type
-            "test_distribution_data_wrong_data_type_genetics.csv",
+        (  # Bad data type in genetics score column
+            {"overall_scores": "test_distribution_data_wrong_data_type_genetics.csv"},
             param_set_1,
             ValueError,
+            None,
         ),
-        (  # Bad data type
-            "test_distribution_data_wrong_data_type_omics.csv",
+        (  # Bad data type in omics score column
+            {"overall_scores": "test_distribution_data_wrong_data_type_omics.csv"},
             param_set_1,
             ValueError,
+            None,
+        ),
+        (  # Fail with missing dataset
+            {},
+            param_set_1,
+            ValueError,
+            "Missing required datasets",
+        ),
+        (  # Fail with missing required column
+            {"overall_scores": "test_distribution_data_missing_column_input.csv"},
+            param_set_1,
+            ValueError,
+            "Missing required columns",
         ),
     ]
     fail_test_ids = [
         "Fail with bad data type in overall score column",
         "Fail with bad data type in genetics score column",
         "Fail with bad data type in omics score column",
+        "Fail with missing dataset",
+        "Fail with missing required column",
     ]
 
     @pytest.mark.parametrize(
@@ -95,20 +112,22 @@ class TestTransformDistributionData:
             assert output_dict == expected_dict
 
     @pytest.mark.parametrize(
-        "distribution_data_file, param_set, error_type",
+        "input_datasets, param_set, error_type, error_match",
         fail_test_data,
         ids=fail_test_ids,
     )
     def test_transform_distribution_data_should_fail(
-        self, distribution_data_file, param_set, error_type
+        self, input_datasets, param_set, error_type, error_match
     ):
-        with pytest.raises(error_type):
-            distribution_data_df = pd.read_csv(
-                os.path.join(self.data_files_path, "input", distribution_data_file),
-                index_col=0,
-            )
+        with pytest.raises(error_type, match=error_match):
+            datasets = {}
+            for dataset_name, file_name in input_datasets.items():
+                datasets[dataset_name] = pd.read_csv(
+                    os.path.join(self.data_files_path, "input", file_name),
+                    index_col=0,
+                )
             distribution_data.transform_distribution_data(
-                datasets={"overall_scores": distribution_data_df},
+                datasets=datasets,
                 overall_max_score=param_set["overall_max_score"],
                 genetics_max_score=param_set["genetics_max_score"],
                 omics_max_score=param_set["omics_max_score"],

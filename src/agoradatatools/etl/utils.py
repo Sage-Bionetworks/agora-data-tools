@@ -1,10 +1,164 @@
-from typing import Union, Dict, Any, List
+from abc import ABC, abstractmethod
+from typing import Any, Collection, Dict, List, Union
 import re
 
 import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
+
+
+class ColumnRule(ABC):
+    """Abstract base class for a single content rule applied to a DataFrame column.
+
+    Subclasses implement ``count_violations()`` to count rows that fail the rule.
+    Rules that require a comparison value (e.g. a regex pattern) enforce that the
+    value is provided at construction time and raise ``ValueError`` if it is ``None``.
+    """
+
+    rule: str  # Subclasses declare this as a class-level attribute.
+
+    @abstractmethod
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of values in *series* that violate this rule."""
+        ...
+
+    @property
+    def value_detail(self) -> str:
+        """Human-readable description of the rule's comparison value, if any."""
+        return ""
+
+
+class NotEmptyRule(ColumnRule):
+    """Rule that every present value must be non-null and non-empty (after stripping whitespace).
+
+    This rule checks each **cell** in the column, not whether the column has any rows.
+    An empty :class:`~pandas.Series` (length 0) produces **zero** violations because there
+    are no values to evaluate.
+    """
+
+    rule = "not_empty"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of null, empty, or whitespace-only values in *series*.
+
+        A length-0 *series* yields 0 (no values to fail the rule).
+        """
+        return int((series.isna() | (series.astype(str).str.strip() == "")).sum())
+
+
+class MatchesRegexRule(ColumnRule):
+    """Rule that every value must match a given regex pattern anchored at the start.
+
+    Uses pandas ``str.match``, which anchors the pattern at the beginning of each
+    string. To require a match across the entire value, include a trailing anchor
+    in the pattern (e.g. ``"^ENSMUSG\\d+$"`` rather than just ``"^ENSMUSG"``).
+
+    Args:
+        value: The regex pattern to match against (e.g. ``"^ENSMUSG"``).
+
+    Raises:
+        ValueError: If *value* is not a non-empty string or is an invalid regex pattern.
+    """
+
+    rule = "matches_regex"
+
+    def __init__(self, value: str) -> None:
+        """Initialize the rule, raising if *value* is not a non-empty string or is an invalid regex."""
+        if not isinstance(value, str) or value == "":
+            raise ValueError(
+                "MatchesRegexRule requires a non-None, non-empty string 'value' (the regex pattern to match against)."
+            )
+        try:
+            re.compile(value)
+        except re.error as e:
+            raise ValueError(
+                f"MatchesRegexRule requires a valid regex pattern: {e}"
+            ) from e
+        self.value = value
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of values in *series* that do not match the regex at the start."""
+        return int((~series.astype(str).str.match(self.value, na=False)).sum())
+
+    @property
+    def value_detail(self) -> str:
+        """Return the regex pattern formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
+
+
+class ContainsSubstringRule(ColumnRule):
+    """Rule that every value must contain a given substring.
+
+    Args:
+        value: The substring that each value must contain. Matched literally, not as a regex.
+
+    Raises:
+        ValueError: If *value* is not a non-empty string (e.g. is ``None``, ``np.nan``, or ``""``).
+    """
+
+    rule = "contains_substring"
+
+    def __init__(self, value: str) -> None:
+        """Initialize the rule, raising if *value* is not a non-empty string."""
+        if not isinstance(value, str) or value == "":
+            raise ValueError(
+                "ContainsSubstringRule requires a non-None, non-empty string 'value' (the substring to search for)."
+            )
+        self.value = value
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of values in *series* that do not contain the substring.
+
+        Non-string values are cast to string before checking. The substring is matched
+        literally, not as a regex pattern.
+        """
+        return int(
+            (~series.astype(str).str.contains(self.value, na=False, regex=False)).sum()
+        )
+
+    @property
+    def value_detail(self) -> str:
+        """Return the substring formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
+
+
+class OneOfRule(ColumnRule):
+    """Rule that every value must be a member of a given collection.
+
+    Membership uses :meth:`pandas.Series.isin`, which compares by equality. You may include
+    non-string values (e.g. ``None``, ``np.nan``, or numeric codes) in the allowed set if
+    you intend those values to be valid.
+
+    **Boolean vs integer:** ``True`` / ``False`` are equal to ``1`` / ``0`` in Python, so
+    ``isin`` does not distinguish them from integer ``1`` / ``0``. Normalize dtypes on
+    boolean columns before validating if you need strict boolean-only membership.
+
+    Args:
+        value: The collection of allowed values (e.g. ``{"male", "female"}``).
+
+    Raises:
+        ValueError: If *value* is ``None`` or an empty collection.
+    """
+
+    rule = "one_of"
+
+    def __init__(self, value: Collection[Any]) -> None:
+        """Initialize the rule with an allowed-values collection, raising if it is ``None`` or empty."""
+        if not value:
+            raise ValueError(
+                "OneOfRule requires a non-None, non-empty 'value' (the collection of allowed values)."
+            )
+        self.value = value
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of values in *series* not present in the allowed collection."""
+        return int((~series.isin(self.value)).sum())
+
+    @property
+    def value_detail(self) -> str:
+        """Return the allowed collection formatted for inclusion in a violation message."""
+        return f" (value={self.value!r})"
 
 
 # TODO remove "_" - these utils functions are not only used internally
@@ -202,12 +356,9 @@ def nest_fields(
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
     """
     nested = (
-        df.groupby(grouping)
-        .apply(
-            lambda row: row.replace({np.nan: None})
-            .drop(columns=drop_columns)
-            .to_dict("records")
-        )
+        normalize_null_values(df)
+        .groupby(grouping)
+        .apply(lambda group: group.drop(columns=drop_columns).to_dict("records"))
         .reset_index()
         .rename(columns={0: new_column})
     )
@@ -306,6 +457,95 @@ def check_required_datasets_and_columns(
             )
 
 
+def _check_single_rule(
+    df: pd.DataFrame,
+    dataset_name: str,
+    col_name: str,
+    rule: ColumnRule,
+) -> List[str]:
+    """Check a single ColumnRule against one column and return any violation messages.
+
+    Args:
+        df: The DataFrame containing the column to check.
+        dataset_name: Name of the dataset (used in violation messages).
+        col_name: Name of the column to validate.
+        rule: The ColumnRule to apply.
+
+    Returns:
+        A list containing a violation message if the rule is broken, or an empty list.
+    """
+    bad_count = rule.count_violations(df[col_name])
+    if bad_count > 0:
+        prefix = f"In dataset '{dataset_name}', column '{col_name}': "
+        return [
+            f"{prefix}{bad_count} row(s) violate rule '{rule.rule}'{rule.value_detail}."
+        ]
+    return []
+
+
+def check_column_rules(
+    datasets: Dict[str, pd.DataFrame],
+    column_rules: Dict[str, Dict[str, List[ColumnRule]]],
+) -> None:
+    """Validate per-column content rules across one or more datasets.
+
+    Iterates over every (dataset, column, rule) triple in `column_rules` and
+    checks that every value in that column satisfies the rule. All violations
+    are collected before raising so callers see every problem in a single error.
+
+    Args:
+        datasets: Dictionary mapping dataset names to their DataFrames.
+        column_rules: Nested mapping of
+            dataset_name -> column_name -> list of ColumnRule objects.
+            Only datasets and columns present in this mapping are checked.
+
+    Raises:
+        ValueError: If any rule is violated. The message lists all violations,
+            each naming the dataset, column, rule, and number of offending rows.
+
+    Example:
+        datasets = {
+            "mouse_gene_metadata": pd.DataFrame({
+                "ensembl_gene_id": ["ENSMUSG000000000000000000", "ENSMUSG000000000000000001"],
+            }),
+            "rnaseq_genotype_label_map": pd.DataFrame({
+                "model": ["model1", "model2"],
+                "model_group": ["model_group1", "model_group2"],
+            }),
+        }
+
+        COLUMN_RULES = {
+            "mouse_gene_metadata": {
+                "ensembl_gene_id": [MatchesRegexRule(value="^ENSMUSG")],
+            },
+            "rnaseq_genotype_label_map": {
+                "model": [NotEmptyRule()],
+                "model_group": [NotEmptyRule()],
+            },
+        }
+        check_column_rules(datasets, COLUMN_RULES)
+    """
+    violations: List[str] = []
+
+    for dataset_name, col_rules in column_rules.items():
+        if dataset_name not in datasets:
+            continue
+        df = datasets[dataset_name]
+
+        for col_name, rules in col_rules.items():
+            if col_name not in df.columns:
+                violations.append(
+                    f"In dataset '{dataset_name}', column '{col_name}' does not exist."
+                )
+                continue
+
+            for rule in rules:
+                violations.extend(_check_single_rule(df, dataset_name, col_name, rule))
+
+    if violations:
+        raise ValueError("\n".join(violations))
+
+
 def flatten_list(lst: List[Any]) -> List[Any]:
     """
     Recursively flattens a nested list into a single list of values.
@@ -365,34 +605,6 @@ def convert_numpy_types(obj: Any) -> Any:
     return obj
 
 
-def input_validation_model_info(df: pd.DataFrame) -> None:
-    """
-    Validates that each model has consistent matched_controls and model_type values.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing model information with columns 'name',
-                          'matched_controls', and 'model_type'
-
-    Raises:
-        ValueError: If any model has inconsistent matched_controls or model_type values
-    """
-    # Group by model and check for consistency
-    for model, group in df.groupby("name"):
-        # Check matched_controls consistency
-        unique_matched_controls = group["matched_controls"].unique()
-        if len(unique_matched_controls) > 1:
-            raise ValueError(
-                f"Model {model} has inconsistent matched_controls values: {unique_matched_controls}"
-            )
-
-        # Check model_type consistency
-        unique_model_types = group["model_type"].unique()
-        if len(unique_model_types) > 1:
-            raise ValueError(
-                f"Model {model} has inconsistent model_type values: {unique_model_types}"
-            )
-
-
 def normalize_zero(value: float) -> float:
     """
     Convert -0.0 to 0.0 while preserving other values.
@@ -433,3 +645,124 @@ def extract_age_numeric(age: str) -> Union[int, None]:
         return None
     match = re.search(r"(\d+)", age)
     return int(match.group(1)) if match else None
+
+
+def normalize_null_values(
+    df: pd.DataFrame,
+    boolean_columns: list[str] | None = None,
+    empty_string_columns: list[str] | None = None,
+) -> pd.DataFrame:
+    """
+    Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
+    on the column specification. This function is necessary because pandas fills empty values with NaN when it reads
+    from a csv file, and having NaN in boolean and string columns instead of None can produce unexpected behavior.
+    There are also several transforms that benefit from using empty strings instead of None, so this function provides
+    that option too.
+
+    Columns listed in `boolean_columns` will have NaN/None values replaced with False and their type set to "bool", and
+    columns listed in `empty_string_columns` will have NaN/None values replaced with "". After that, all columns left
+    over will have their NaN values replaced with None, regardless of column type.
+
+    All *_columns arguments are optional and default to empty lists. Values in these arguments must not overlap with
+    each other and must contain only columns that appear in the data frame.
+
+    Args:
+        df (pd.DataFrame): The input DataFrame to be normalized.
+        boolean_columns (list[str]): A list of column names that should have NaN values replaced with False.
+        empty_string_columns (list[str]): A list of column names that should have NaN values replaced with empty
+            strings.
+
+    Returns:
+        pd.DataFrame: A new DataFrame with normalized null values (NaN replaced with False, empty strings, or None as
+        specified).
+
+    Raises:
+        TypeError: If the input df is not a pandas DataFrame.
+        TypeError: If any of the *_columns arguments are not lists.
+        ValueError: If there are overlaps between the boolean_columns and empty_string_columns lists.
+        ValueError: If any column specified in the boolean_columns or empty_string_columns lists does not exist in the
+        DataFrame.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"Input must be a pandas DataFrame, got {type(df)}")
+
+    if not isinstance(boolean_columns, list) and boolean_columns is not None:
+        raise TypeError(f"boolean_columns must be a list, got {type(boolean_columns)}")
+
+    if not isinstance(empty_string_columns, list) and empty_string_columns is not None:
+        raise TypeError(
+            f"empty_string_columns must be a list, got {type(empty_string_columns)}"
+        )
+
+    # Make column lists into sets for easier checking of overlaps and membership in the data frame, and
+    # initialize any None arguments to empty lists
+    all_columns = set(df.columns)
+    boolean_columns = set(boolean_columns or [])
+    empty_string_columns = set(empty_string_columns or [])
+
+    # Check that all specified columns exist in the data frame
+    non_existent_columns = (boolean_columns | empty_string_columns) - all_columns
+    if non_existent_columns:
+        raise ValueError(
+            f"Columns {sorted(non_existent_columns)} do not exist in the DataFrame."
+        )
+
+    # Check that there are no overlaps between lists of columns
+    overlaps = boolean_columns & empty_string_columns
+    if overlaps:
+        raise ValueError(
+            f"Columns {sorted(overlaps)} appear in both the boolean_columns and empty_string_columns lists."
+        )
+
+    df = df.copy()
+
+    for col in boolean_columns:
+        df[col] = df[col].fillna(False).astype(bool)
+
+    for col in empty_string_columns:
+        df[col] = df[col].fillna("")
+
+    # Replace any remaining NaN values with None
+    return df.replace({np.nan: None, pd.NA: None})
+
+
+def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
+    """
+    Converts a delimited string into a list of strings, trimming whitespace. Empty items in the split string are
+    excluded from the final output list. If either str_obj or delim is not a string, this function throws a TypeError.
+
+    This function can be used on a pandas series using .apply():
+        df['column_name'].apply(delim_string_to_list, delim=",")
+
+    Args:
+        str_obj (str): The input string containing delimited values (e.g. 'gene1,gene2,gene3')
+        delim (str): The delimiter used to split the string (default is ','). Delimiters may be more than one character,
+                        e.g. delim="; " would split "gene1; gene2; gene3" into ["gene1", "gene2", "gene3"]. Delim cannot
+                        be NA or None.
+
+    Returns:
+        List[str]: A list of strings obtained by splitting the input string by the delimiter and trimming whitespace
+        (e.g. ['gene1', 'gene2', 'gene3']). If the input string is None or empty, returns an empty list.
+
+    Raises:
+        TypeError: If either str_obj or delim is not a string
+        TypeError: If delim is None
+    """
+
+    # Manually check for whether str_obj is a string and throw a TypeError. Otherwise the list comprehension can throw
+    # different types of errors depending on the type of str_obj, which may have unhelpful error messages.
+    if not isinstance(str_obj, str) and str_obj is not None:
+        raise TypeError(f"Input must be a string, got {type(str_obj)}")
+
+    # Although str.split(None) is valid, using None as the delimiter will split on any whitespace, which may produce
+    # unexpected behavior. Therefore this function expects a defined string delimiter.
+    if not isinstance(delim, str):
+        raise TypeError(
+            f"Delimiter must be a string and must not be None, got {type(delim)}"
+        )
+
+    if str_obj:
+        return [item.strip() for item in str_obj.split(delim) if item.strip()]
+
+    # Return empty list for None or empty string input
+    return []

@@ -52,11 +52,10 @@ The transform requires three types of input:
 
 ### Step 1: Metadata Preparation
 
-1. **Genotype Label Map Preparation** (`prepare_genotype_label_map_df`)
-   - Imported from `rna_de_individual_utils` module
-   - Normalizes the `rnaseq_genotype_label_map` DataFrame: treats both `""` and `NaN` in `model_group` as "no group" and converts them to `None`, and casts `result_order` to `int`
-   - Returns a DataFrame that is passed directly to `_process_individual_data_file_core` for vectorized merging
-   - **Purpose:** Produces the normalized label map DataFrame used for genotype enrichment
+1. **Genotype Label Map Preparation**
+   - Copies `rnaseq_genotype_label_map` and casts `result_order` to `int`
+   - Column value validation (non-empty required fields) is enforced by `check_column_rules` before this step
+   - **Purpose:** Produces the label map DataFrame used for genotype enrichment
 
 2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
    - Imported from `rna_de_individual_utils` module
@@ -91,7 +90,7 @@ After all files in a group are preprocessed, they are concatenated (via `pd.conc
 After preprocessing and concatenation, the individual transform applies its specific logic:
 
 **Genotype Enrichment (Vectorized Merge):**
-- Selects relevant columns from the normalized genotype label map DataFrame (produced by `prepare_genotype_label_map_df` in Step 1)
+- Selects relevant columns from the genotype label map DataFrame (prepared in Step 1)
 - Performs left join on `(model, genotype)` to add:
   - `display_label`: Human-readable genotype label
   - `result_order`: Ordering value for display

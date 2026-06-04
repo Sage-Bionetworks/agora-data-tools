@@ -370,6 +370,7 @@ def process_all_files(
     platform: Platform = Platform.LOCAL,
     run_id: str = None,
     upload: bool = True,
+    filter_datasets: Optional[List[str]] = None,
 ):
     """This function will read through the entire configuration and process each file listed.
 
@@ -379,6 +380,7 @@ def process_all_files(
         platform (Platform, optional): Platform where the process is being run. One of LOCAL, GITHUB, NEXTFLOW. Defaults to LOCAL.
         run_id (str, optional): Unique identifier for the processing run. Defaults to None.
         upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
+        filter_datasets (List[str], optional): List of dataset names to process. If None, all datasets in the config will be processed. Defaults to None.
     """
     if platform == Platform.LOCAL and upload is True:
         logger.warning(
@@ -401,6 +403,16 @@ def process_all_files(
         run_id=run_id,
         table_id=gx_table,
     )
+    if filter_datasets:
+        # Each entry in datasets is a single-key dict where the key is the dataset name (e.g. {"gene_info": {...}}).
+        # Keep only the datasets whose name appears in filter_datasets.
+        datasets = [d for d in datasets if list(d.keys())[0] in filter_datasets]
+        if not datasets:
+            raise ValueError(
+                f"No datasets found matching: {filter_datasets}. "
+                "Check that the dataset names match those in the config. "
+                "To specify multiple datasets, use a comma-separated list"
+            )
 
     error_list = []
     for dataset in datasets:
@@ -500,6 +512,14 @@ synapse_auth_opt = Option(
     "https://python-docs.synapse.org/reference/client/?h=syn.login#synapseclient.Synapse.login)",
     show_default=False,
 )
+datasets_opt = Option(
+    None,
+    "--dataset",
+    "-d",
+    help="Name of a dataset to process. Can be specified multiple times or as a comma-separated list to process multiple datasets. "
+    "If omitted, all datasets in the config are processed. (Optional, defaults to None)",
+    show_default=True,
+)
 
 
 @app.command()
@@ -509,6 +529,7 @@ def process(
     run_id: str = run_id_opt,
     upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
+    dataset: Optional[List[str]] = datasets_opt,
 ) -> None:
     """Process the configuration file and execute the data processing pipeline based on options.
 
@@ -518,15 +539,25 @@ def process(
         run_id (str): Run ID of the process. Used to identify the run in the GX table.
         upload (bool): Boolean value to toggle whether files will be uploaded to Synapse.
         auth_token (str): Synapse authentication token. Defaults to environment variable SYNAPSE_AUTH_TOKEN.
+        dataset (Optional[List[str]]): Name of a dataset to process. Can be specified multiple times or as a
+            comma-separated list to process multiple datasets.
+            If omitted, all datasets in the config are processed. (Optional, defaults to None)
     """
     syn = utils._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
+
+    filter_datasets = (
+        [name.strip() for entry in dataset for name in entry.split(",")]
+        if dataset
+        else None
+    )
     process_all_files(
         syn=syn,
         config_path=config_path,
         platform=platform_enum,
         run_id=run_id,
         upload=upload,
+        filter_datasets=filter_datasets,
     )
 
 

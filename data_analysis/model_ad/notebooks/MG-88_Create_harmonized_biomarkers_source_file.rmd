@@ -9,6 +9,10 @@ Models that are currently handled by this notebook:
 * Trem2-R47H_NSS
 * Abca7*V1599M
 
+NOTE: synapser's dependency chain loads plyr, which masks dplyr's summarise(),
+mutate(), and rename(). All calls to those functions use dplyr:: explicitly
+to prevent silent use of plyr's implementations.
+
 ADDING NEW MODELS
 As data becomes available for additional models, the data for those models will need to be incorporated into the harmonized source file.
 
@@ -19,6 +23,7 @@ To incorporate each new model into this notebook:
 
 2. 'Generate model-specific intermediate files' section
 - Add a code block that generates an intermediate results file for the new model
+- You may need to modify the transform_results function to include new unit and type display value mappings
 
 3. 'Join source files to metadata to populate age, tissue, and genotype values' section
 - Update to join metadata to the new model's intermediate file
@@ -66,6 +71,7 @@ library(tidyverse)
 ```
 
 ## Utility functions & variables
+Run this to initialize shared variables and functions.
 ```{r}
 # *******
 # FILTERS
@@ -126,10 +132,17 @@ download_csv <- function(synId, df_name) {
   cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
   cat("\npath: ", file$path, "\n")
 
-  data <- read.csv(path)
-  df_name <- as.data.frame(data)
+  df_name <- read_csv(path, show_col_types = FALSE, na = c("", "NA", "N/A"), name_repair = ~make.names(., unique = TRUE)) %>%
+    select(where(~!all(is.na(.))))
 }
 
+
+# Transforms source data into the desired format, converts type and unit values to standardized display labels,
+# and drops unneeded columns
+#  - results: A dataframe containing result rows
+#  - measurement_columns: A vector containing the colname(s) of the results column(s) that contain the targeted measure(s)
+#  - model_name: the model display name; canonical display names are defined in model_info.csv [syn61378590]
+#  - fields_to_keep: the appropriate 'column specs for intermediate per-model files' from above
 transform_results <- function(results, measurement_columns, model_name, fields_to_keep) {
 
 # If no fraction_type column, add one with empty strings
@@ -141,7 +154,7 @@ results %>% pivot_longer(
                 values_to = "measurement"
 
        #
-       ) %>% mutate(type = if_else(type %in% c("Abeta40", "Abeta42"), paste(fraction_type, type), type)
+       ) %>% dplyr::mutate(type = if_else(type %in% c("Abeta40", "Abeta42"), paste(fraction_type, type), type)
 
         # drop rows with no measurement
         ) %>% filter(
@@ -161,34 +174,86 @@ results %>% pivot_longer(
 # - df: A dataframe containing result rows
 # - individual_metadata: A dataframe containing individual-level metadata
 # - biospecimen_metadata: A dataframe containing specimen metadata
+# This function prints out the number of rows before and after filtering results by age, which is useful for validation.
+# This function will fail if it identifies metadata inconsistencies for pooled samples.
 join_to_metadata <- function(results, individual_metadata, biospecimen_metadata) {
 
-  # Join metadata files by individualID
-  individual_metadata <- select(individual_metadata, individualID, sex, ageDeath, genotype)
-  biospecimen_metadata <- select(biospecimen_metadata, individualID, specimenID, tissue)
-  metadata <- merge(individual_metadata, biospecimen_metadata, by = 'individualID')
+  # Ensure that all individualID columns are chr type
+  if ("individualID" %in% colnames(results)) {
+    results <- results %>%
+      dplyr::mutate(individualID = as.character(individualID))
+  }
 
-  # Join results to metadata
-  results %>% left_join(metadata, by = c('individualID', 'specimenID')
+  individual_metadata <- individual_metadata %>%
+    dplyr::select(individualID, sex, ageDeath, genotype) %>%
+    dplyr::mutate(individualID = as.character(individualID))
+
+  biospecimen_metadata <- biospecimen_metadata %>%
+    dplyr::select(individualID, specimenID, tissue) %>%
+    dplyr::mutate(individualID = as.character(individualID))
+
+  # Join metadata files by individualID
+  metadata <- left_join(biospecimen_metadata, individual_metadata, by = 'individualID')
+
+  # Figure out which join columns are in the results dataframe
+  join_by <- if(all(c('specimenID', 'individualID') %in% colnames(results)) &&
+              all(c('specimenID', 'individualID') %in% colnames(metadata))) {
+    c('specimenID', 'individualID')
+  } else {
+    c('specimenID')
+  }
+
+  # *** DATA INTEGRITY CHECK ***
+  # Check if any specimenID (pool) maps to multiple sexes, genotypes, or ages
+  joined_temp <- results %>%
+    left_join(metadata, by = join_by, relationship = "many-to-many")
+
+  mismatches <- joined_temp %>%
+    group_by(specimenID) %>%
+    dplyr::summarise(
+      n_sex = n_distinct(sex),
+      n_genotype = n_distinct(genotype),
+      n_age = n_distinct(ageDeath),
+      .groups = 'drop'
+    ) %>%
+    filter(n_sex > 1 | n_genotype > 1 | n_age > 1)
+
+  if (nrow(mismatches) > 0) {
+    # Print the offending specimens
+    cat("FATAL: Metadata inconsistency found in pooled specimens:")
+    print(mismatches)
+    stop("Script halted. Pooled specimens must have uniform sex, genotype, and ageDeath.")
+  }
+  # *** END DATA INTEGRITY CHECK ***
+
+  # Join results to metadata; prevent creating duplicate data rows for 'Pool-X' specimenIDs by matching only first metadata row
+  results %>% left_join(metadata, by=join_by, multiple="first"
             ) %>% left_join(genotype_label_map, by = c('model', 'genotype')
 
+            # If specimenID starts with "Pool", use specimenID. Otherwise, keep individualID.
+            ) %>% dplyr::mutate(individualID = if_else(
+                grepl("^Pool", specimenID),
+                as.character(specimenID),
+                as.character(individualID)
+            )
+
             # Correct genotypes to align with target display values
-            ) %>% mutate(genotype = display_label
+            ) %>% dplyr::mutate(genotype = display_label
 
             # Print out nrow of results before age filtering
-            ) %>% { print(nrow(.)) ;.
+            ) %>% { print(nrow(.)) ; .
 
             # Filter out results for unwanted ages
             } %>% filter(ageDeath %in% age_keeps
 
             # Print out nrow of results after age filtering
-            ) %>% { print(nrow(.)) ;.
+            ) %>% { print(nrow(.)) ; .
 
             # Convert all individualID columns to string type
-            } %>% mutate(individualID = as.character(individualID)
+            } %>% dplyr::mutate(individualID = as.character(individualID)
 
             # Rename columns
-            ) %>% rename(individual_id = individualID,
+            ) %>% dplyr::rename(individual_id = individualID,
                          age_death = ageDeath
 
             # Drop unneeded columns
@@ -202,9 +267,9 @@ Note that each file's synId and version is added to the data_sources vector via 
 The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
 ```{r}
 # Genotype -> Display label map
-genotype_label_map <- download_csv('syn69014401.14') %>%
+genotype_label_map <- download_csv('syn69014401.17') %>%
   # Model name fix, plus change "5xFAD (UCI)" -> "5xFAD"
-  mutate(model = model_group,
+  dplyr::mutate(model = model_group,
          display_label = str_replace(display_label, " \\(UCI\\)", ""))
 
 # 3xTG-AD
@@ -212,7 +277,7 @@ genotype_label_map <- download_csv('syn69014401.14') %>%
 threex_biospecimen <- download_csv('syn23532198.3')
 threex_individual <- download_csv('syn23532199.4') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, "_homozygous", "_carrier"),
+  dplyr::mutate(genotype = str_replace(genotype, "_homozygous", "_carrier"),
          genotype = str_replace(genotype, "3XTg", "3xTg"))
 # Abetas
 threex_abs_sol_source <- download_csv('syn25913411.7')
@@ -224,7 +289,7 @@ threex_abs_insol_source <- download_csv('syn25913418.8')
 fivex_biospecimen <- download_csv('syn18876530.10')
 fivex_individual <- download_csv('syn18880070.14') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, "_hemizygous", "_carrier"))
+  dplyr::mutate(genotype = str_replace(genotype, "_hemizygous", "_carrier"))
 # Abetas
 fivex_abs_sol_source <- download_csv('syn22101767.3')
 fivex_abs_insol_source <- download_csv('syn22101766.1')
@@ -235,7 +300,7 @@ fivex_abs_insol_source <- download_csv('syn22101766.1')
 nss_biospecimen <- download_csv('syn29568452.3')
 nss_individual <- download_csv('syn27147690.3') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, ",", ";"))
+  dplyr::mutate(genotype = str_replace(genotype, ",", ";"))
 # Abetas
 nss_abs_sol_4mo_source <- download_csv('syn29568621.2')
 nss_abs_sol_12mo_source <- download_csv('syn29568624.2')
@@ -250,7 +315,7 @@ nss_nfl_plasma_source <- download_csv('syn29568490.1')
 abca7_biospecimen <- download_csv('syn30859390.2')
 abca7_individual <- download_csv('syn30859394.2') %>%
   # genotype fix
-  mutate(genotype = str_replace(genotype, ",", ";"))
+  dplyr::mutate(genotype = str_replace(genotype, ",", ";"))
 # Abetas
 abca7_abs_sol_4mo_source <- download_csv('syn30859386.1')
 abca7_abs_sol_12mo_source <- download_csv('syn30859377.1')
@@ -268,8 +333,8 @@ abca7_nfl_plasma_source <- download_csv('syn30859380.1')
 ```{r}
 # Abeta measures
 # Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
-threex_abs_sol <- threex_abs_sol_source %>% mutate(fraction_type = 'Soluble')
-threex_abs_insol <- threex_abs_insol_source %>% mutate(fraction_type = 'Insoluble')
+threex_abs_sol <- threex_abs_sol_source %>% dplyr::mutate(fraction_type = 'Soluble')
+threex_abs_insol <- threex_abs_insol_source %>% dplyr::mutate(fraction_type = 'Insoluble')
 threex_abs_merged <- bind_rows(threex_abs_sol, threex_abs_insol)
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
@@ -286,12 +351,12 @@ threex_final <- join_to_metadata(threex_biomarkers, threex_individual, threex_bi
 ```{r}
 # Abeta measures
 # Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
-fivex_abs_sol <- fivex_abs_sol_source %>% mutate(fraction_type = 'Soluble')
-fivex_abs_insol <- fivex_abs_insol_source %>% mutate(fraction_type = 'Insoluble')
+fivex_abs_sol <- fivex_abs_sol_source %>% dplyr::mutate(fraction_type = 'Soluble')
+fivex_abs_insol <- fivex_abs_insol_source %>% dplyr::mutate(fraction_type = 'Insoluble')
 fivex_abs_merged <- bind_rows(fivex_abs_sol, fivex_abs_insol
 
     # MG-268: Replace N/A measurement values with 0s
-    ) %>% mutate(
+    ) %>% dplyr::mutate(
             Abeta40 = ifelse(is.na(Abeta40), 0, Abeta40),
             Abeta42 = ifelse(is.na(Abeta42), 0, Abeta42)
 )
@@ -313,13 +378,13 @@ fivex_final <- join_to_metadata(fivex_biomarkers, fivex_individual, fivex_biospe
 # Convert columns to consistent types
 nss_abs_sol_12mo_source$individualID <- as.character(nss_abs_sol_12mo_source$individualID)
 nss_abs_insol_12mo_source$individualID <- as.character(nss_abs_insol_12mo_source$individualID)
-nss_abs_insol_12mo_source$Abeta42 <- suppressWarnings(as.numeric(nss_abs_insol_12mo_source$Abeta42))
+nss_abs_insol_12mo_source$Abeta42 <- as.numeric(nss_abs_insol_12mo_source$Abeta42)
 
 # Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
-nss_abs_sol_4mo <- nss_abs_sol_4mo_source %>% mutate(fraction_type = 'Soluble')
-nss_abs_sol_12mo <- nss_abs_sol_12mo_source %>% mutate(fraction_type = 'Soluble')
-nss_abs_insol_4mo <- nss_abs_insol_4mo_source %>% mutate(fraction_type = 'Insoluble')
-nss_abs_insol_12mo <- nss_abs_insol_12mo_source %>% mutate(fraction_type = 'Insoluble')
+nss_abs_sol_4mo <- nss_abs_sol_4mo_source %>% dplyr::mutate(fraction_type = 'Soluble')
+nss_abs_sol_12mo <- nss_abs_sol_12mo_source %>% dplyr::mutate(fraction_type = 'Soluble')
+nss_abs_insol_4mo <- nss_abs_insol_4mo_source %>% dplyr::mutate(fraction_type = 'Insoluble')
+nss_abs_insol_12mo <- nss_abs_insol_12mo_source %>% dplyr::mutate(fraction_type = 'Insoluble')
 nss_abs_merged <- bind_rows(nss_abs_sol_4mo, nss_abs_sol_12mo, nss_abs_insol_4mo, nss_abs_insol_12mo)
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
@@ -343,10 +408,10 @@ nss_final <- join_to_metadata(nss_biomarkers, nss_individual, nss_biospecimen)
 ```{r}
 # Abeta measures
 # Capture fraction types from file names in temp 'fraction_type' column and merge resulting dfs
-abca7_abs_sol_4mo <- abca7_abs_sol_4mo_source %>% mutate(fraction_type = 'Soluble')
-abca7_abs_sol_12mo <- abca7_abs_sol_12mo_source %>% mutate(fraction_type = 'Soluble')
-abca7_abs_insol_4mo <- abca7_abs_insol_4mo_source %>% mutate(fraction_type = 'Insoluble')
-abca7_abs_insol_12mo <- abca7_abs_insol_12mo_source %>% mutate(fraction_type = 'Insoluble')
+abca7_abs_sol_4mo <- abca7_abs_sol_4mo_source %>% dplyr::mutate(fraction_type = 'Soluble')
+abca7_abs_sol_12mo <- abca7_abs_sol_12mo_source %>% dplyr::mutate(fraction_type = 'Soluble')
+abca7_abs_insol_4mo <- abca7_abs_insol_4mo_source %>% dplyr::mutate(fraction_type = 'Insoluble')
+abca7_abs_insol_12mo <- abca7_abs_insol_12mo_source %>% dplyr::mutate(fraction_type = 'Insoluble')
 abca7_abs_merged <- bind_rows(abca7_abs_sol_4mo, abca7_abs_sol_12mo, abca7_abs_insol_4mo, abca7_abs_insol_12mo)
 
 # Pivot targeted measurement columns; capture colname as 'unit' and value as 'measurement'
@@ -445,4 +510,19 @@ res <- synStore(syn_file, forceVersion = FALSE,
 
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
 
+```
+
+
+
+# compare generated file to latest version in synapse
+```{r}
+file_synID <- "syn61250724"
+input_dir <- file.path("./", "input")
+
+old_file <- download_csv(file_synID)
+  path <- old_file$path
+
+# verify changes are expected
+identical(old_file, biomarkers_final)
+all.equal(old_file, biomarkers_final)
 ```
