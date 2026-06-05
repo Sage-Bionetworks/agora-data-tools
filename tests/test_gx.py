@@ -394,3 +394,56 @@ class TestGreatExpectationsRunner:
             patch_set_warnings_and_failures.assert_called_once_with(
                 self.passed_checkpoint_result
             )
+
+
+class TestCustomJSONSchemaRulesRunner:
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_method(self, syn):
+        self.bad_runner = GreatExpectationsRunner(
+            syn=syn,
+            dataset_path="./tests/test_assets/gx/test_nested_columns.json",
+            dataset_name="combined",
+            upload_folder="test_folder",
+            nested_columns=["columns"],
+        )
+        self.good_runner = GreatExpectationsRunner(
+            syn=syn,
+            dataset_path="./tests/test_assets/gx/test_nested_columns.json",
+            dataset_name="combined",
+            upload_folder="test_folder",
+            nested_columns=["columns"],
+        )
+        self.failed_checkpoint_result = CheckpointResult(
+            **json.load(open("./tests/test_assets/gx/check_result_nested_fail.json"))
+        )
+
+        self.passed_checkpoint_result = CheckpointResult(
+            **json.load(open("./tests/test_assets/gx/check_result_nested_pass.json"))
+        )
+
+    def test_failure_message_includes_observed_and_threshold_for_custom_nested_expectations(
+        self,
+    ):
+        self.bad_runner.set_warnings_and_failures(self.failed_checkpoint_result)
+        assert self.bad_runner.failures is True
+        assert self.bad_runner.failure_message == (
+            "Great Expectations data validation has the following failures:\n"
+            "  - combined / 'columns.tooltip': expect_column_nested_object_string_length failed (required: 0.9, observed: 0.8)\n"
+            "  - combined / 'columns.tooltip': expect_column_nested_object_not_null failed (required: 0.9, observed: 0.8)\n"
+            "  - combined / 'columns.data_key': expect_column_nested_object_regex_rule failed (required: 0.9, observed: 0.0)"
+        )
+
+    def test_generate_message_returns_none_if_no_messages(self):
+        self.good_runner.set_warnings_and_failures(self.passed_checkpoint_result)
+        result_dict = {}
+        test_warn_message, test_warn_status = self.good_runner._generate_message(
+            result_dict, "warnings"
+        )
+        assert test_warn_message is None
+        assert test_warn_status is False
+
+        test_fail_message, test_fail_status = self.good_runner._generate_message(
+            result_dict, "failures"
+        )
+        assert test_fail_message is None
+        assert test_fail_status is False

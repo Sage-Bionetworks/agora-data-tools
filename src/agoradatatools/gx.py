@@ -179,23 +179,25 @@ class GreatExpectationsRunner:
         fail_dict = {self.expectation_suite_name: {}}
         expectation_results = checkpoint_result.list_validation_results()[0]["results"]
         for result in expectation_results:
-            column = result["expectation_config"]["kwargs"].get(
+            kwargs = result["expectation_config"]["kwargs"]
+            column = kwargs.get(
                 "column",
-                "/".join(result["expectation_config"]["kwargs"].get("column_list", [])),
+                "/".join(kwargs.get("column_list", [])),
             )
-            target_field = result["expectation_config"]["kwargs"].get(
-                "target_field", None
-            )
+            target_field = kwargs.get("target_field", None)
             if target_field:
                 column = f"{column}.{target_field}"
             expectation = result["expectation_config"]["expectation_type"]
-            kwargs = result["expectation_config"]["kwargs"]
             result_data = result["result"]
-            observed_ratio = next(
-                (v for k, v in result_data.items() if k.endswith("_ratio")), None
+            observed_ratio = (
+                result_data.get("observed_valid_ratio")
+                if "observed_valid_ratio" in result_data
+                else result_data.get("observed_not_null_ratio")
             )
-            threshold = next(
-                (v for k, v in kwargs.items() if k.endswith("_threshold")), None
+            threshold = (
+                kwargs.get("valid_threshold")
+                if "valid_threshold" in kwargs
+                else kwargs.get("non_null_threshold")
             )
             entry = {
                 "expectation": expectation,
@@ -277,7 +279,6 @@ class GreatExpectationsRunner:
             f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
         )
         latest_reults_path = self.get_results_path(checkpoint_result)
-
         self.set_warnings_and_failures(checkpoint_result)
 
         if self.upload_folder:
