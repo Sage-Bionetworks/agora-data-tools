@@ -264,7 +264,7 @@ If neither `dev_config.yaml` nor CLI flags are provided, the environment check i
 Parameters:
 - `destination`: Defines the default target location (folder) that the generated json files are written to; this value can be overridden on a per-dataset basis
 - `staging_path`: Defines the location of the staging folder that the generated json files are written to
-- `gx_folder`: Defines the Synapse ID of the folder that generated GX reports are written to. This key must always be present in the config file. A valid Synapse ID assigned to ` _folder` is required if `gx_enabled` is set to `true` for any dataset. If this key is missing from the dataset, or if it is set to `none` when `gx_enabled` is `true` for any dataset, an error will be thrown.
+- `gx_folder`: Defines the Synapse ID of the folder that generated GX reports are written to. This key must always be present in the config file. A valid Synapse ID assigned to `gx_folder` is required if `gx_enabled` is set to `true` for any dataset. If this key is missing from the dataset, or if it is set to `none` when `gx_enabled` is `true` for any dataset, an error will be thrown.
 - `gx_table`: Defines the Synapse ID of the table that generated GX reporting is posted to. This key must always be present in the config file. A valid Synapse ID assigned to `gx_table` is required if `gx_enabled` is set to `true` for any dataset. If this key is missing from the dataset, or if it is set to `none` when `gx_enabled` is `true` for any dataset, an error will be thrown.
 - `sources/<source>`: Source files for each dataset are defined in the `sources` section of the config file.
 - `sources/<source>/<source>_files`: A list of source file information for the dataset.

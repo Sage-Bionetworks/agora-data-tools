@@ -68,7 +68,7 @@ datasets:
       gx_nested_columns:
         - gene_biodomains
 
-  - neuroneuropath_corr:
+  - neuropath_corr:
       files:
         - name: neuropath_regression_results
           id: syn22017882.5
