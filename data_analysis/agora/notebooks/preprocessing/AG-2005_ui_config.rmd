@@ -73,7 +73,9 @@ build_object <- function(page_column_data) {
 #   -- Specify NA for columns with other types
 # - is_exported: Whether this column should be included in CSV data exports
 # - is_hidden: Whether this column should be displayed in the CT table
-build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden) {
+# - column_width: Optional override that specifies the column's width, in pixels
+#   -- Specify NA to use the default behavior of automatically calculating the column width
+build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width) {
 
   # Use the default sort_tooltip if one isn't specified, for non-hidden columns only
   if (is_hidden == TRUE) { sort_tooltip = NA }
@@ -88,7 +90,8 @@ build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, 
     link_url = link_url ,
     link_text = link_text,
     is_exported = is_exported,
-    is_hidden = is_hidden
+    is_hidden = is_hidden,
+    column_width = column_width
   )
 
   # Omit keys with NA values
@@ -145,6 +148,7 @@ target_columns <- data.frame(
   link_text = rep(NA, times = 9),
   is_exported = c(rep(TRUE, times = 9)),
   is_hidden = c(FALSE, TRUE, rep(FALSE, times = 7)),
+  column_width = c(NA, NA, NA, NA, 300, NA, NA, NA, NA),
   stringsAsFactors = FALSE
 )
 
@@ -236,6 +240,7 @@ drug_columns <- data.frame(
   link_text =  rep(NA, times = 10),
   is_exported = rep(TRUE, times = 10),
   is_hidden = rep(FALSE, times = 10),
+  column_width = rep(NA, times = 10),
   stringsAsFactors = FALSE
 )
 
