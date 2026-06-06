@@ -287,7 +287,8 @@
                   "Community",
                   "AMP-AD",
                   "Resilience-AD",
-                  "TREAT-AD"
+                  "TREAT-AD",
+                  "FunGen-AD"
                 ],
                 "type": "string"
               },
