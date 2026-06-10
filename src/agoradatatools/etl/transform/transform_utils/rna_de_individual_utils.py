@@ -10,7 +10,6 @@ Key Functions:
     filter_to_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
-    prepare_genotype_label_map_df: Normalize the genotype label map DataFrame
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
     preprocess_data_file: Apply common validation and transformation steps to a single data file
@@ -21,7 +20,11 @@ from typing import Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import (
+    check_column_rules,
+    check_required_datasets_and_columns,
+    ColumnRule,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +51,7 @@ def validate_model_group_consistency(
     different model_group values for the same model indicates a data quality issue.
 
     None/NaN values are counted as a single distinct value (i.e. "no group assigned")
-    rather than being excluded from the uniqueness check. When called after
-    prepare_genotype_label_map_df, None/NaN will not be present since that function
-    rejects empty model_group values; this handles the case where the function is
-    called independently.
+    rather than being excluded from the uniqueness check.
 
     Args:
         genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
@@ -85,51 +85,6 @@ def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str,
         Dictionary mapping ensembl_gene_id to gene_symbol
     """
     return mouse_gene_metadata_df.set_index("ensembl_gene_id")["gene_symbol"].to_dict()
-
-
-def prepare_genotype_label_map_df(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Normalize the genotype label map DataFrame.
-
-    Validates that display_label is non-empty for every row (it is a required field).
-    Validates that model_group is non-empty for every row (it is a required field).
-    Casts result_order to int.
-
-    Args:
-        df: Raw rnaseq_genotype_label_map DataFrame with columns: model, genotype,
-            display_label, model_group, result_order
-
-    Returns:
-        Normalized DataFrame with result_order cast to int.
-
-    Raises:
-        ValueError: If any row has an empty or missing display_label or model_group.
-
-    Examples:
-        >>> df = pd.DataFrame({
-        ...     'model': ['Model_A', 'Model_B'],
-        ...     'genotype': ['Tg', 'Carrier'],
-        ...     'display_label': ['Transgenic', 'Model_B'],
-        ...     'model_group': ['GroupA', 'GroupX'],
-        ...     'result_order': [2, 1],
-        ... })
-        >>> result = prepare_genotype_label_map_df(df)
-        >>> result['model_group'].tolist()
-        ['GroupA', 'GroupX']
-    """
-    df = df.copy()
-
-    if df["display_label"].isna().any() or (df["display_label"] == "").any():
-        raise ValueError(
-            "display_label is a required field in rnaseq_genotype_label_map and must not be empty."
-        )
-
-    if df["model_group"].isna().any() or (df["model_group"] == "").any():
-        raise ValueError(
-            "model_group is a required field in rnaseq_genotype_label_map and must not be empty."
-        )
-    df["result_order"] = df["result_order"].astype(int)
-    return df
 
 
 def log_file_processing_info(
@@ -175,6 +130,7 @@ def preprocess_data_file(
     file_index: int,
     total_files: int,
     data_file_required_columns: List[str],
+    data_file_column_rules: Dict[str, List[ColumnRule]],
 ) -> pd.DataFrame:
     """
     Preprocess a single data file with common validation and transformation steps.
@@ -188,26 +144,29 @@ def preprocess_data_file(
         file_index: Index of this file in the processing sequence (0-based)
         total_files: Total number of files being processed
         data_file_required_columns: List of column names that must be present
+        data_file_column_rules: Per-column content rules to validate via
+            check_column_rules. Keys are column names; values are lists of ColumnRule
+            objects. Rules are checked after required-column validation.
 
     Returns:
         Preprocessed DataFrame with mouse genes only, tissue names mapped and
         sentence-cased, and numeric values rounded to 5 decimal places.
 
     Raises:
-        ValueError: If the file is empty or missing required columns.
+        ValueError: If the file is empty, missing required columns, or any column
+            value rule is violated.
     """
     log_file_processing_info(file_name, file_index, total_files, data_file)
     validate_data_file_not_empty(file_name, data_file)
     check_required_datasets_and_columns(
         {file_name: data_file}, {file_name: data_file_required_columns}
     )
+    check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
     data_file = filter_to_mouse_genes(data_file)
-    # Map JAX-specific names and normalize to sentence case.
+    # Map JAX-specific names from Right Cerebral Hemisphere -> Hemibrain
     # To add a new multi-word mapping, insert another .str.replace() call in the chain.
-    data_file["tissue"] = (
-        data_file["tissue"]
-        .str.replace("Right Cerebral Hemisphere", "Hemibrain", regex=False)
-        .str.capitalize()
+    data_file["tissue"] = data_file["tissue"].str.replace(
+        "Right Cerebral Hemisphere", "Hemibrain", regex=False
     )
     data_file["expression"] = data_file["expression"].astype(float)
     data_file = data_file.round(decimals=5)

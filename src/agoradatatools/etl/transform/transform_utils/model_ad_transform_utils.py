@@ -9,7 +9,8 @@ Functions:
 
 from typing import Any, Dict, List, Union
 import pandas as pd
-from pandas.api.types import is_numeric_dtype
+
+from agoradatatools.etl.utils import normalize_null_values
 
 
 def process_genetic_info(
@@ -20,6 +21,14 @@ def process_genetic_info(
     Processes the gene information DataFrame. If the allele is a human transgene,
     replace the ensembl_id with the human one. Each model's alleles are processed independently.
     Multiple entries are preserved for different alleles of the same gene.
+
+    This function assumes the input data has been pre-validated so that:
+        1. human_transgene_allele_map_df does not have any missing/NaN/None values in any column
+        2. model_alleles does not have any missing/NaN/None values in the "modified_gene" or "mgi_allele_id" columns,
+            which are needed for the merge. Missing values in other columns of model_alleles are allowed, and will be
+            normalized to None.
+    This is to ensure that human transgene map rows are not silently dropped during the merge due to missing values, and
+    that there are no missing gene symbols or allele IDs in the merged data frame.
 
     Args:
         human_transgene_allele_map_df (pd.DataFrame): The DataFrame containing the human transgene allele information.
@@ -48,6 +57,8 @@ def process_genetic_info(
         on=["mgi_allele_id", "gene_upper"],
         how="left",
     )
+
+    merged_df = normalize_null_values(merged_df)
 
     # Only override ensembl_id if we have a valid human_ensembl_id
     merged_df["ensembl_gene_id"] = merged_df.apply(
@@ -93,8 +104,8 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
     two (or more) model names to the "models=..." part of the string.
 
     The exact values that should go in "categories=..." and "models=..." are pulled from columns in model_row. If the
-    url_categories_value is "", the "categories=..." string is not added. If the url_models_value is "", the
-    "models=..." string defaults to "models=<model_name>".
+    url_categories_value is None or "", the "categories=..." string is not added. If the url_models_value is None or "",
+    the "models=..." string defaults to "models=<model_name>".
 
     The final url can have two different formats:
         "comparison/expression?models=..."
@@ -104,32 +115,32 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
         the categories "..." is a string like
             "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hippocampus,Sex%2520-%2520Females%2520%2526%2520Males"
 
-    The url will be None if there is no gene expression data for this model.
+    The url will be None if there is no transcriptomics data for this model.
 
     Args:
         model_row (pd.Series): A single row from the model_info data frame, which must contain columns "name",
-            "gene_expression", "url_categories_value", and "url_models_value". The latter two columns may be blank or
-            contain strings. "gene_expression" must be True, False, or None (which is interpreted as False).
+            "transcriptomics", "url_categories_value", and "url_models_value". The latter two columns may be None or
+            contain strings. "transcriptomics" must be True or False. It is assumed that normalize_null_values has
+            already been called on this data so that all missing values used in this function are None, not NA or empty
+            strings.
 
     Returns:
-        a string with the completed URL, or None if there is no gene expression data for the model
+        a string with the completed URL, or None if there is no transcriptomics data for the model
     """
     categories_value = (
         # Contains the "&" at the end to separate it from the models=... statement
         f"categories={model_row['url_categories_value']}&"
-        if pd.notna(model_row["url_categories_value"])
-        and len(model_row["url_categories_value"]) > 0  # must not be ""
+        if model_row["url_categories_value"]  # must not be "" or None
         else ""  # Only adds to URL if the url_categories_value is specified
     )
     models_value = (
         model_row["url_models_value"]  # A comma-separated list, if specified
-        if pd.notna(model_row["url_models_value"])
-        and len(model_row["url_models_value"]) > 0  # must not be ""
+        if model_row["url_models_value"]  # must not be "" or None
         else model_row["name"]  # A single model name if url_models_value is blank
     )
     url = (
         f"comparison/expression?{categories_value}models={models_value}"
-        if bool(model_row["transcriptomics"])
+        if model_row["transcriptomics"]
         else None
     )
     return url
@@ -143,19 +154,56 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
 
     If any Jax IDs were missing in the input file, the column becomes a "float64" with NaN values. This causes
     undesirable behavior, because the float conversion turns the values into decimals that persist in the string
-    (e.g. instead of "1234" it becomes "1234.0"). If this is the case, we first cast the column to Int64, which removes
-    the decimal so the string conversion works as intended.
+    (e.g. instead of "1234" it becomes "1234.0"). To solve this, we first cast the column to Int64, which removes
+    the decimal so the string conversion works as intended. Int64 is a nullable integer type that can handle missing
+    values (NaN or None) without converting the entire column to float.
+
+    This function assumes that all Jax IDs are either integers, strings with integer values, or missing (NaN or None),
+    which can all be cast to Int64.
 
     Args:
-        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers or strings.
+        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers, strings of integers, or NaN/None.
 
     Returns:
-        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. Missing,
-        NA, or all-whitespace values are set to "" (empty string).
-    """
-    if is_numeric_dtype(jax_id):
-        jax_id = jax_id.astype("Int64")
+        pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. None or NaN
+        values are set to "" (empty string).
 
-    return jax_id.apply(
-        lambda x: (str(x).strip().zfill(6) if pd.notna(x) and str(x).strip() else "")
+    Raises:
+        ValueError: If any input Jax IDs can not be cast to Int64
+        ValueError: If any zero-padded Jax IDs contain non-digit characters, or missing values are not empty strings.
+    """
+    jax_id = (
+        jax_id.astype("Int64")
+        .apply(lambda x: (str(x).zfill(6) if pd.notna(x) else ""))
+        .astype("O")  # Force object type to prevent empty columns remaining as Int64
     )
+
+    # Check that non-missing values contain only digits and are at least 6 characters long
+    validate_jax_ids(jax_id)
+
+    return jax_id
+
+
+def validate_jax_ids(jax_id: pd.Series) -> None:
+    """
+    Validates all Jax IDs in a pandas Series are in the correct format. A valid Jax ID should contain only digits and be
+    at least 6 characters long, or be an empty string ("") to represent missing values.
+
+    Args:
+        jax_id (pd.Series): A pandas Series containing Jax ID strings to validate.
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If any Jax IDs contain non-digit characters, are less than 6 characters long, or are not empty
+        strings.
+    """
+    # Regex description:
+    # \d{6}\d* matches strings that contain only digits and are at least 6 characters long
+    # ^$ matches empty strings
+    if jax_id.isna().any() or not jax_id.str.fullmatch(r"\d{6}\d*|^$").all():
+        raise ValueError(
+            "Jax IDs must be strings that contain only digits and are at least 6 characters long, or must be empty strings"
+        )
+    return None

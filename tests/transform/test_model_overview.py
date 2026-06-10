@@ -250,8 +250,8 @@ class TestTransformModelOverview:
                 "alzforum_id": ["test"],
                 "genotype": ["Test Genotype"],
                 "aliases": ["Test Alias"],
-                "url_categories_value": [""],
-                "url_models_value": [""],
+                "url_categories_value": [None],
+                "url_models_value": [None],
             }
         )
         model_results_info = pd.DataFrame(
@@ -412,8 +412,8 @@ class TestTransformModelOverview:
                 "alzforum_id": ["id1", "id2"],
                 "genotype": ["Geno1", "Geno2"],
                 "aliases": ["Alias1", "Alias2"],
-                "url_categories_value": ["", ""],
-                "url_models_value": ["", ""],
+                "url_categories_value": [None, None],
+                "url_models_value": [None, None],
             }
         )
         model_results_info = pd.DataFrame(

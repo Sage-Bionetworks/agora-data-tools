@@ -1,0 +1,7 @@
+cluster,module,mouse_model,sex,age,correlation,adjusted_p_value
+,IFGyellow,5xFAD,Female,4 months,0.08292285577172838,0.4617459764146099
+Consensus Cluster A (ECM organization),,5xFAD,Female,12 months,0.09705334229520347,0.38871997486146614
+Consensus Cluster A (ECM organization),IFGyellow,,Male,4 months,0.034163995569938904,0.7620534740342116
+Consensus Cluster A (ECM organization),IFGyellow,5xFAD,,12 months,0.18020254711996359,0.10743634367352842
+Consensus Cluster A (ECM organization),IFGyellow,APOE4,Female,,0.07048233616950102,0.5318004865047494
+Consensus Cluster A (ECM organization),IFGyellow,APOE4,Female,8 months,0.06956482920369983,0.5371683491780308

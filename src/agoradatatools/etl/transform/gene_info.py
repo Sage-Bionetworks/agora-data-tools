@@ -1,17 +1,62 @@
+from typing import Dict, List
+
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
 from agoradatatools.etl import transform
 
 
+REQUIRED_INPUT = {
+    "gene_metadata": ["ensembl_gene_id"],
+    "igap": ["ensembl_gene_id"],
+    "eqtl": ["ensembl_gene_id"],
+    "proteomics": [
+        "ensembl_gene_id",
+        "uniqid",
+        "log2_fc",
+        "cor_pval",
+        "ci_lwr",
+        "ci_upr",
+    ],
+    "diff_exp_data": ["ensembl_gene_id", "adj_p_val"],
+    "proteomics_tmt": [
+        "ensembl_gene_id",
+        "uniqid",
+        "log2_fc",
+        "cor_pval",
+        "ci_lwr",
+        "ci_upr",
+    ],
+    "proteomics_srm": [
+        "ensembl_gene_id",
+        "uniqid",
+        "log2_fc",
+        "cor_pval",
+        "ci_lwr",
+        "ci_upr",
+    ],
+    "target_list": ["ensembl_gene_id"],
+    "median_expression": ["ensembl_gene_id"],
+    "pharos_classes": ["ensembl_gene_id", "pharos_class"],
+    "genes_biodomains": ["ensembl_gene_id", "biodomain"],
+    "tep_adi_info": ["hgnc_symbol", "is_adi", "is_tep"],
+    "ensg_to_uniprot_mapping": ["ensembl_gene_id", "uniprotkb_accessions"],
+}
+
+
 def transform_gene_info(
-    datasets: dict, adjusted_p_value_threshold: float, protein_level_threshold: float
+    datasets: dict,
+    adjusted_p_value_threshold: float,
+    protein_level_threshold: float,
+    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> pd.DataFrame:
     """
     This function will perform transformations and incrementally create a dataset called gene_info.
     Each dataset will be left_joined onto gene_info, starting with gene_metadata.
     """
+    check_required_datasets_and_columns(datasets, required_input)
+
     gene_metadata = datasets["gene_metadata"]
     igap = datasets["igap"]
     eqtl = datasets["eqtl"]
@@ -117,7 +162,7 @@ def transform_gene_info(
         lambda row: (
             RESOURCE_URL_PREFIX + row["hgnc_symbol"] + RESOURCE_URL_SUFFIX
             if row["is_adi"] is True or row["is_tep"] is True
-            else np.NaN
+            else np.nan
         ),
         axis=1,
     )
@@ -218,7 +263,7 @@ def transform_gene_info(
         lambda row: (
             len(row["target_nominations"])
             if isinstance(row["target_nominations"], list)
-            else np.NaN
+            else np.nan
         ),
         axis=1,
     )

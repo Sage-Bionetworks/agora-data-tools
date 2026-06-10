@@ -232,6 +232,25 @@ class TestTransformGeneInfo:
         "Fail with bad data type in tep_adi_info's is_tep column",
     ]
 
+    required_column_fail_test_data = [
+        (  # Missing dataset: provide only igap, all others missing
+            {},
+            {},
+            ValueError,
+            "Missing required datasets",
+        ),
+        (  # Missing required column in igap: override igap with file missing ensembl_gene_id
+            core_files,
+            {"igap": "igap_missing_column.csv"},
+            ValueError,
+            "Missing required columns",
+        ),
+    ]
+    required_column_fail_test_ids = [
+        "Fail with missing dataset",
+        "Fail with missing required column in igap",
+    ]
+
     def read_input_files_dict(self, input_files_dict: dict) -> dict:
         """Utility function to read a dictionary of filenames into a dictionary of data frames. Most files for
         gene_info are in csv format, but the 'gene_metadata' file is in feather format and needs special casing.
@@ -333,4 +352,42 @@ class TestTransformGeneInfo:
                 datasets=datasets,
                 adjusted_p_value_threshold=param_set["adjusted_p_value_threshold"],
                 protein_level_threshold=param_set["protein_level_threshold"],
+            )
+
+    @pytest.mark.parametrize(
+        "base_files_dict, failure_case_files_dict, error_type, error_match_string",
+        required_column_fail_test_data,
+        ids=required_column_fail_test_ids,
+    )
+    def test_transform_gene_info_required_datasets_and_columns_should_fail(
+        self,
+        base_files_dict: dict,
+        failure_case_files_dict: dict,
+        error_type: BaseException,
+        error_match_string: str,
+    ):
+        """
+        Test that transform_gene_info raises a ValueError when required datasets or columns are missing.
+
+        Args:
+            base_files_dict: the base dictionary of input files to start with (may be empty to test
+                             a completely missing datasets scenario)
+            failure_case_files_dict: a dictionary where the keys are the names of the datasets with bad data,
+                                     and the values override entries in base_files_dict
+            error_type: the type of error that should be raised
+            error_match_string: a string to match against the error message
+        """
+        updated_files_dict = base_files_dict.copy()
+        for key, value in failure_case_files_dict.items():
+            updated_files_dict[key] = value
+
+        with pytest.raises(error_type, match=error_match_string):
+            datasets = self.read_input_files_dict(updated_files_dict)
+
+            gene_info.transform_gene_info(
+                datasets=datasets,
+                adjusted_p_value_threshold=self.param_set_1[
+                    "adjusted_p_value_threshold"
+                ],
+                protein_level_threshold=self.param_set_1["protein_level_threshold"],
             )
