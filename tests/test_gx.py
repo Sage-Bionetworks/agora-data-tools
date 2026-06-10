@@ -410,22 +410,22 @@ class TestCustomJSONSchemaRulesRunner:
         self.bad_runner = GreatExpectationsRunner(
             syn=syn,
             dataset_path="./tests/test_assets/gx/test_nested_columns.json",
-            dataset_name="combined",
+            dataset_name="test_nested_columns",
             upload_folder="test_folder",
             nested_columns=["columns"],
         )
         self.good_runner = GreatExpectationsRunner(
             syn=syn,
             dataset_path="./tests/test_assets/gx/test_nested_columns.json",
-            dataset_name="combined",
+            dataset_name="test_nested_columns",
             upload_folder="test_folder",
             nested_columns=["columns"],
         )
 
-        with open("./tests/test_assets/gx/check_result_nested_fail.json") as f:
+        with open("./tests/test_assets/gx/checkpoint_result_nested_fail.json") as f:
             self.failed_checkpoint_result = CheckpointResult(**json.load(f))
 
-        with open("./tests/test_assets/gx/check_result_nested_pass.json") as f:
+        with open("./tests/test_assets/gx/checkpoint_result_nested_pass.json") as f:
             self.passed_checkpoint_result = CheckpointResult(**json.load(f))
 
     def test_failure_message_includes_observed_and_threshold_for_custom_nested_expectations(
@@ -439,9 +439,9 @@ class TestCustomJSONSchemaRulesRunner:
         assert self.bad_runner.failures is True
         assert self.bad_runner.failure_message == (
             "Great Expectations data validation has the following failures:\n"
-            "  - combined / 'columns.tooltip': expect_column_nested_object_string_length failed (required: 0.9, observed: 0.8)\n"
-            "  - combined / 'columns.tooltip': expect_column_nested_object_not_null failed (required: 0.9, observed: 0.8)\n"
-            "  - combined / 'columns.data_key': expect_column_nested_object_regex_rule failed (required: 0.9, observed: 0.0)"
+            "  - test_nested_columns / 'columns.tooltip': expect_column_nested_object_string_length failed (required: 0.9, observed: 0.8)\n"
+            "  - test_nested_columns / 'columns.tooltip': expect_column_nested_object_not_null failed (required: 0.9, observed: 0.8)\n"
+            "  - test_nested_columns / 'columns.data_key': expect_column_nested_object_regex_rule failed (required: 0.9, observed: 0.0)"
         )
 
     def test_no_failures_or_warnings_when_all_custom_nested_expectations_pass(

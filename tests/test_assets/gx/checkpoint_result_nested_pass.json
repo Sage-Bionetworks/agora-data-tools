@@ -1,10 +1,10 @@
 {
   "run_id": {
     "run_name": null,
-    "run_time": "2026-06-05T10:47:23.013577-04:00"
+    "run_time": "2026-06-10T15:10:58.493522-04:00"
   },
   "run_results": {
-    "ValidationResultIdentifier::combined/__none__/20260605T144723.013577Z/default_pandas_datasource-#ephemeral_pandas_asset": {
+    "ValidationResultIdentifier::test_nested_columns/__none__/20260610T191058.493522Z/default_pandas_datasource-#ephemeral_pandas_asset": {
       "validation_result": {
         "success": true,
         "results": [
@@ -172,16 +172,16 @@
         },
         "meta": {
           "great_expectations_version": "0.18.1",
-          "expectation_suite_name": "combined",
+          "expectation_suite_name": "test_nested_columns",
           "run_id": {
             "run_name": null,
-            "run_time": "2026-06-05T10:47:23.013577-04:00"
+            "run_time": "2026-06-10T15:10:58.493522-04:00"
           },
           "batch_spec": {
             "batch_data": "PandasDataFrame"
           },
           "batch_markers": {
-            "ge_load_time": "20260605T144723.019850Z",
+            "ge_load_time": "20260610T191058.499831Z",
             "pandas_data_fingerprint": "864e4fbfbcd18aa28808518065e8242c"
           },
           "active_batch_definition": {
@@ -190,8 +190,8 @@
             "data_asset_name": "#ephemeral_pandas_asset",
             "batch_identifiers": {}
           },
-          "validation_time": "20260605T144723.024112Z",
-          "checkpoint_name": "combined",
+          "validation_time": "20260610T191058.504529Z",
+          "checkpoint_name": "test_nested_columns",
           "validation_id": null,
           "checkpoint_id": null
         }
@@ -204,44 +204,40 @@
           "class": "StoreEvaluationParametersAction"
         },
         "update_data_docs": {
-          "local_site": "file:///Users/lpeng/code/agora-data-tools/src/agoradatatools/great_expectations/gx/uncommitted/data_docs/local_site/validations/combined/__none__/20260605T144723.013577Z/default_pandas_datasource-%23ephemeral_pandas_asset.html",
+          "local_site": "file:///Users/lpeng/code/agora-data-tools/src/agoradatatools/great_expectations/gx/uncommitted/data_docs/local_site/validations/test_nested_columns/__none__/20260610T191058.493522Z/default_pandas_datasource-%23ephemeral_pandas_asset.html",
           "class": "UpdateDataDocsAction"
         }
       }
     }
   },
   "checkpoint_config": {
-    "config_version": 1.0,
-    "batch_request": {},
-    "notify_with": null,
-    "notify_on": null,
+    "run_name_template": null,
+    "expectation_suite_name": null,
+    "name": "test_nested_columns",
     "slack_webhook": null,
     "runtime_configuration": {},
+    "notify_on": null,
+    "evaluation_parameters": {},
+    "ge_cloud_id": null,
+    "expectation_suite_ge_cloud_id": null,
     "site_names": null,
+    "default_validation_id": null,
+    "class_name": "Checkpoint",
     "validations": [
       {
-        "expectation_suite_name": "combined",
-        "name": null,
         "id": null,
+        "expectation_suite_name": "test_nested_columns",
         "batch_request": {
           "datasource_name": "default_pandas_datasource",
           "data_asset_name": "#ephemeral_pandas_asset",
           "options": {},
           "batch_slice": null
         },
-        "expectation_suite_ge_cloud_id": null
+        "expectation_suite_ge_cloud_id": null,
+        "name": null
       }
     ],
-    "template_name": null,
-    "run_name_template": null,
-    "module_name": "great_expectations.checkpoint",
-    "profilers": [],
-    "expectation_suite_name": null,
-    "ge_cloud_id": null,
-    "evaluation_parameters": {},
-    "class_name": "Checkpoint",
-    "name": "combined",
-    "default_validation_id": null,
+    "notify_with": null,
     "action_list": [
       {
         "name": "store_validation_result",
@@ -262,7 +258,11 @@
         }
       }
     ],
-    "expectation_suite_ge_cloud_id": null
+    "template_name": null,
+    "config_version": 1.0,
+    "profilers": [],
+    "module_name": "great_expectations.checkpoint",
+    "batch_request": {}
   },
   "success": true
 }
