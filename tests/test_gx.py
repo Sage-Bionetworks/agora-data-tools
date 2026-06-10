@@ -421,13 +421,12 @@ class TestCustomJSONSchemaRulesRunner:
             upload_folder="test_folder",
             nested_columns=["columns"],
         )
-        self.failed_checkpoint_result = CheckpointResult(
-            **json.load(open("./tests/test_assets/gx/check_result_nested_fail.json"))
-        )
 
-        self.passed_checkpoint_result = CheckpointResult(
-            **json.load(open("./tests/test_assets/gx/check_result_nested_pass.json"))
-        )
+        with open("./tests/test_assets/gx/check_result_nested_fail.json") as f:
+            self.failed_checkpoint_result = CheckpointResult(**json.load(f))
+
+        with open("./tests/test_assets/gx/check_result_nested_pass.json") as f:
+            self.passed_checkpoint_result = CheckpointResult(**json.load(f))
 
     def test_failure_message_includes_observed_and_threshold_for_custom_nested_expectations(
         self,
