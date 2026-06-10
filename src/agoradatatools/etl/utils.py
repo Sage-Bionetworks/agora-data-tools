@@ -486,7 +486,22 @@ def validate_one_to_one_mapping(
 
 
 def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) -> None:
-    """Fail if any non-null value in *key_col* maps to multiple *value_col* values."""
+    """Validate that each key in *key_col* maps to at most one *value_col* value.
+
+    Groups the DataFrame by *key_col* (ignoring rows where the key is null) and
+    checks that every key is associated with a single distinct value in
+    *value_col*. Null values in *value_col* are counted as a distinct value.
+
+    Args:
+        df: The DataFrame containing the mapping to validate.
+        key_col: Name of the column whose values act as mapping keys.
+        value_col: Name of the column whose values should be uniquely determined
+            by each key.
+
+    Raises:
+        ValueError: If any non-null key in *key_col* maps to more than one
+            distinct value in *value_col*.
+    """
     present_keys = df[key_col].notna()
     counts = df.loc[present_keys].groupby(key_col)[value_col].nunique(dropna=False)
     offending_keys = counts[counts > 1].index.tolist()
