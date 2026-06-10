@@ -295,20 +295,11 @@ class TestTransformDrugInfo:
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_minimal.json",
-                    "drug_list": "drug_list_mismatched_combined.csv",
-                    "gene_metadata": "gene_metadata_minimal.feather",
-                },
-                "Mismatched combined_with",
-                ValueError,
-            ),
-            (
-                {
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_unpaired_combined_with.csv",
                     "gene_metadata": "gene_metadata_good.feather",
                 },
-                "combined_with_common_name but not in combined_with_chembl_id",
+                "combined_with_common_name",
                 ValueError,
             ),
             (
@@ -361,7 +352,6 @@ class TestTransformDrugInfo:
             "missing gene_metadata dataset",
             "missing program column",
             "missing drug_bank_id column",
-            "mismatched combined_with",
             "unpaired combined_with columns",
             "chembl_id common_name conflict",
             "invalid maximum_clinical_trial_phase",

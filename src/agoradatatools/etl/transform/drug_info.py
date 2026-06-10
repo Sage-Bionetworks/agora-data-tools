@@ -7,7 +7,7 @@ import pandas as pd
 from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
     DISPLAY_CLINICAL_PHASES,
-    build_combined_with_list,
+    MODALITY_VALUES,
     validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
@@ -63,7 +63,7 @@ COLUMN_RULES = {
             NotEmptyRule(),
             MatchesRegexRule(CHEMBL_ID_REGEX),
         ],
-        "modality": [OneOfRule({"Small molecule", "Protein"})],
+        "modality": [OneOfRule(MODALITY_VALUES)],
         "maximum_clinical_trial_phase": [OneOfRule(DISPLAY_CLINICAL_PHASES)],
     },
     "drug_list": {
@@ -191,6 +191,18 @@ def _resolve_linked_targets(
     return drug_metadata
 
 
+def _build_combined_with(common_name: Any, chembl_id: Any) -> List[Dict[str, str]]:
+    """Wrap a single combined-with partner as a one-element list of partner dicts.
+
+    Production drug_list rows carry at most one combined-with partner per row, and
+    ``validate_drug_list_integrity`` guarantees the name and ID columns are populated
+    together. Returns an empty list when no partner is present.
+    """
+    if pd.isnull(common_name) or pd.isnull(chembl_id):
+        return []
+    return [{"common_name": common_name, "chembl_id": chembl_id}]
+
+
 def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
     """Nest nomination rows into drug_nominations and collapse to one row per chembl_id.
 
@@ -203,25 +215,20 @@ def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
     drug_list["iupac_id"] = drug_list["iupac_id"].fillna("Unknown")
 
     drug_list["combined_with"] = drug_list.apply(
-        lambda row: build_combined_with_list(
+        lambda row: _build_combined_with(
             row["combined_with_common_name"], row["combined_with_chembl_id"]
         ),
         axis=1,
     )
 
+    # common_name is 1:1 with chembl_id (validate_drug_list_integrity) and iupac_id
+    # is uniform per chembl_id (_get_best_iupac_id), so this grouping already yields
+    # one row per chembl_id.
     drug_list = nest_fields(
         df=drug_list,
         grouping=["chembl_id", "common_name", "iupac_id"],
         new_column="drug_nominations",
         drop_columns=DRUG_LIST_NEST_DROP_COLUMNS,
-    )
-
-    drug_list = drug_list.groupby("chembl_id", as_index=False).agg(
-        {
-            "common_name": "first",
-            "iupac_id": "first",
-            "drug_nominations": "sum",
-        }
     )
 
     drug_list["drug_nominations"] = drug_list["drug_nominations"].apply(
@@ -264,7 +271,8 @@ def transform_drug_info(
     """
     check_required_datasets_and_columns(datasets, required_input)
 
-    drug_list = validate_drug_list_integrity(datasets["drug_list"])
+    validate_drug_list_integrity(datasets["drug_list"])
+    drug_list = datasets["drug_list"]
 
     drug_metadata = datasets["ot_drug_metadata"].copy()
     gene_metadata = datasets["gene_metadata"]

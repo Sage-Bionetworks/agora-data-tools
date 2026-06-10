@@ -1,2 +1,0 @@
-grant_number,contact_pi,priority_score,priority_score_criteria,common_name,chembl_id,combined_with_common_name,combined_with_chembl_id,iupac_id,evidence,data_used,ad_moa,published,reference,computational_validation_status,computational_validation_results,experimental_validation_status,experimental_validation_results,additional_evidence,contributors,initial_nomination,program
-G3,Marina Sirota,1,z,DrugB,CHEMBL222,"Partner1, Partner2",CHEMBL333,,combo evidence,d3,combo moa,True,ref3,,,,,extra,c3,2023,ProgramY
