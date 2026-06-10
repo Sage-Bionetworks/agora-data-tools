@@ -306,7 +306,7 @@ datasets:
           id: syn73677240.14
           format: csv
         - name: drug_metadata
-          id: syn73724873.11
+          id: syn73724873.12
           format: json
       final_format: json
       custom_transformations: transform_nominated_drugs

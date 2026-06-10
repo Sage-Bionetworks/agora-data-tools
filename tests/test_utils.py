@@ -1108,73 +1108,61 @@ class TestCheckColumnRules:
             rule_class(value=None)
 
 
-class TestValidateLinkages:
-    """Tests for validate_linkages()."""
+class TestValidateOneToOneMapping:
+    """Tests for validate_one_to_one_mapping()."""
 
-    def test_validate_linkages_passes_one_to_one_mapping(self) -> None:
+    def test_passes_one_to_one_mapping(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugA", "DrugB"],
                 "chembl_id": ["CHEMBL1", "CHEMBL1", "CHEMBL2"],
             }
         )
-        utils.validate_linkages(df, "common_name", "chembl_id")
+        utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
-    def test_validate_linkages_raises_when_name_maps_to_multiple_ids(self) -> None:
+    def test_raises_when_left_maps_to_multiple_right(self) -> None:
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugA"],
                 "chembl_id": ["CHEMBL1", "CHEMBL2"],
             }
         )
-        with pytest.raises(ValueError, match="Data Integrity Error"):
-            utils.validate_linkages(df, "common_name", "chembl_id")
+        with pytest.raises(ValueError, match="common_name"):
+            utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
-    def test_validate_linkages_raises_when_id_maps_to_multiple_names(self) -> None:
+    def test_default_does_not_check_reverse_direction(self) -> None:
+        # Two names share an ID; without bidirectional this passes because each
+        # name still maps to a single ID.
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugB"],
                 "chembl_id": ["CHEMBL1", "CHEMBL1"],
             }
         )
-        with pytest.raises(ValueError, match="Data Integrity Error"):
-            utils.validate_linkages(df, "chembl_id", "common_name")
+        utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
-    def test_validate_linkages_ignores_empty_string_pairs(self) -> None:
+    def test_bidirectional_catches_reverse_violation(self) -> None:
         df = pd.DataFrame(
             {
-                "common_name": ["", "DrugA"],
-                "chembl_id": ["", "CHEMBL1"],
+                "common_name": ["DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1"],
             }
         )
-        utils.validate_linkages(df, "common_name", "chembl_id")
-
-
-class TestValidatePairedColumns:
-    """Tests for validate_paired_columns()."""
-
-    def test_validate_paired_columns_passes_when_both_missing(self) -> None:
-        df = pd.DataFrame(
-            {
-                "combined_with_common_name": [None, ""],
-                "combined_with_chembl_id": [None, np.nan],
-            }
-        )
-        utils.validate_paired_columns(
-            df, "combined_with_common_name", "combined_with_chembl_id"
-        )
-
-    def test_validate_paired_columns_raises_when_only_name_present(self) -> None:
-        df = pd.DataFrame(
-            {
-                "combined_with_common_name": ["DrugA"],
-                "combined_with_chembl_id": [None],
-            }
-        )
-        with pytest.raises(ValueError, match="Data Integrity Error"):
-            utils.validate_paired_columns(
-                df, "combined_with_common_name", "combined_with_chembl_id"
+        with pytest.raises(ValueError, match="chembl_id"):
+            utils.validate_one_to_one_mapping(
+                df, "common_name", "chembl_id", bidirectional=True
             )
+
+    def test_ignores_missing_keys(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": [None, "DrugA"],
+                "chembl_id": [None, "CHEMBL1"],
+            }
+        )
+        utils.validate_one_to_one_mapping(
+            df, "common_name", "chembl_id", bidirectional=True
+        )
 
 
 class TestFlattenList:

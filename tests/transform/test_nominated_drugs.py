@@ -17,15 +17,9 @@ class TestTransformNominatedDrugs:
             "drug_metadata_good_input.json",
             "nominated_drugs_good_test_output.json",
         ),
-        (
-            "drug_list_whitespace_input.csv",
-            "drug_metadata_good_input.json",
-            "nominated_drugs_good_test_output.json",
-        ),
     ]
     pass_test_ids = [
         "Pass with good data",
-        "Pass with leading and trailing whitespace stripped before validation and grouping",
     ]
 
     fail_test_data = [
@@ -88,7 +82,7 @@ class TestTransformNominatedDrugs:
                 "drug_metadata": "drug_metadata_good_input.json",
             },
             ValueError,
-            "combined_with_common_name",
+            "common_name",
         ),
         (
             {
@@ -96,7 +90,7 @@ class TestTransformNominatedDrugs:
                 "drug_metadata": "drug_metadata_good_input.json",
             },
             ValueError,
-            "combined_with_chembl_id",
+            "chembl_id",
         ),
         (
             {

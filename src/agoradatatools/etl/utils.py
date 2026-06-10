@@ -457,36 +457,58 @@ def check_required_datasets_and_columns(
             )
 
 
-def _column_value_present(series: pd.Series) -> pd.Series:
-    """Return True for non-null, non-empty (after strip) values."""
-    return series.notna() & (series.astype(str).str.strip() != "")
+def validate_one_to_one_mapping(
+    df: pd.DataFrame,
+    left_col: str,
+    right_col: str,
+    bidirectional: bool = False,
+) -> None:
+    """Validate that two columns form a consistent mapping.
+
+    By default this checks that each non-null value in *left_col* maps to at most
+    one distinct value in *right_col*. When *bidirectional* is True it also checks
+    the reverse direction, enforcing a true 1:1 mapping in a single call. Rows
+    where the key column is null are ignored for that direction.
+
+    Args:
+        df: The DataFrame to validate.
+        left_col: The first column in the pair.
+        right_col: The second column in the pair.
+        bidirectional: If True, validate the mapping in both directions.
+
+    Raises:
+        ValueError: If a value in the key column maps to more than one distinct
+            value in the paired column.
+    """
+    _validate_mapping_direction(df, left_col, right_col)
+    if bidirectional:
+        _validate_mapping_direction(df, right_col, left_col)
 
 
-def validate_paired_columns(df: pd.DataFrame, col_a: str, col_b: str) -> None:
-    """Fail if any row has a value in only one of two paired columns."""
-    present_a = _column_value_present(df[col_a])
-    present_b = _column_value_present(df[col_b])
-    mismatched = present_a != present_b
-    if mismatched.any():
-        row_indices = df.index[mismatched].tolist()
+def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) -> None:
+    """Validate that each key in *key_col* maps to at most one *value_col* value.
+
+    Groups the DataFrame by *key_col* (ignoring rows where the key is null) and
+    checks that every key is associated with a single distinct value in
+    *value_col*. Null values in *value_col* are counted as a distinct value.
+
+    Args:
+        df: The DataFrame containing the mapping to validate.
+        key_col: Name of the column whose values act as mapping keys.
+        value_col: Name of the column whose values should be uniquely determined
+            by each key.
+
+    Raises:
+        ValueError: If any non-null key in *key_col* maps to more than one
+            distinct value in *value_col*.
+    """
+    present_keys = df[key_col].notna()
+    counts = df.loc[present_keys].groupby(key_col)[value_col].nunique(dropna=False)
+    offending_keys = counts[counts > 1].index.tolist()
+    if offending_keys:
         raise ValueError(
-            f"Data Integrity Error: {int(mismatched.sum())} row(s) have a value in "
-            f"{col_a} but not in {col_b}, or vice versa. "
-            f"Affected row index(es): {row_indices}. "
-            "Please fix the source data before re-running."
-        )
-
-
-def validate_linkages(df: pd.DataFrame, name_col: str, id_col: str) -> None:
-    """Fail if any value in name_col maps to more than one distinct id_col value."""
-    present = _column_value_present(df[name_col]) & _column_value_present(df[id_col])
-    valid_rows = df.loc[present]
-    counts = valid_rows.groupby(name_col)[id_col].nunique()
-    offending_names = counts[counts > 1].index.tolist()
-    if offending_names:
-        raise ValueError(
-            f"Data Integrity Error: The following {name_col}(s) are associated with "
-            f"multiple {id_col} values: {offending_names}. "
+            f"Data Integrity Error: The following {key_col}(s) are associated with "
+            f"multiple {value_col} values: {offending_keys}. "
             "Please fix the source data before re-running."
         )
 
