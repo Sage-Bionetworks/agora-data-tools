@@ -204,7 +204,7 @@
           "class": "StoreEvaluationParametersAction"
         },
         "update_data_docs": {
-          "local_site": "file:///Users/lpeng/code/agora-data-tools/src/agoradatatools/great_expectations/gx/uncommitted/data_docs/local_site/validations/test_nested_columns/__none__/20260610T191058.493522Z/default_pandas_datasource-%23ephemeral_pandas_asset.html",
+          "local_site": "file:///path/to/local_site/validations/test_nested_columns/__none__/20260610T191058.493522Z/default_pandas_datasource-%23ephemeral_pandas_asset.html",
           "class": "UpdateDataDocsAction"
         }
       }
