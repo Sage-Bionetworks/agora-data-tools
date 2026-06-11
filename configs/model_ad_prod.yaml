@@ -65,7 +65,6 @@ datasets:
       destination: *dest
       custom_transformations: transform_disease_correlation
       column_rename:
-        model: name
         ensembl_id: human_ensembl_id
 
   - ui_config:
