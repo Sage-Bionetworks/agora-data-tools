@@ -40,7 +40,9 @@ class TestValidateDrugListIntegrity:
                 "combined_with_chembl_id": [None],
             }
         )
-        with pytest.raises(ValueError, match="combined_with_common_name"):
+        with pytest.raises(
+            ValueError, match="have a value in only one of.*combined_with_common_name"
+        ):
             dtu.validate_drug_list_integrity(df)
 
     def test_raises_for_unpaired_combined_with_id_only(self) -> None:
@@ -52,7 +54,9 @@ class TestValidateDrugListIntegrity:
                 "combined_with_chembl_id": ["CHEMBL2"],
             }
         )
-        with pytest.raises(ValueError, match="combined_with_chembl_id"):
+        with pytest.raises(
+            ValueError, match="have a value in only one of.*combined_with_chembl_id"
+        ):
             dtu.validate_drug_list_integrity(df)
 
     def test_raises_when_name_maps_to_multiple_ids(self) -> None:
@@ -64,7 +68,7 @@ class TestValidateDrugListIntegrity:
                 "combined_with_chembl_id": [None, None],
             }
         )
-        with pytest.raises(ValueError, match="common_name"):
+        with pytest.raises(ValueError, match="common_name.*multiple chembl_id values"):
             dtu.validate_drug_list_integrity(df)
 
     def test_raises_when_id_maps_to_multiple_names(self) -> None:
@@ -76,7 +80,7 @@ class TestValidateDrugListIntegrity:
                 "combined_with_chembl_id": [None, None],
             }
         )
-        with pytest.raises(ValueError, match="chembl_id"):
+        with pytest.raises(ValueError, match="chembl_id.*multiple common_name values"):
             dtu.validate_drug_list_integrity(df)
 
     def test_raises_on_cross_field_mapping_conflict(self) -> None:
@@ -89,5 +93,5 @@ class TestValidateDrugListIntegrity:
                 "combined_with_chembl_id": [None, "CHEMBL999"],
             }
         )
-        with pytest.raises(ValueError, match="common_name"):
+        with pytest.raises(ValueError, match="common_name.*multiple chembl_id values"):
             dtu.validate_drug_list_integrity(df)

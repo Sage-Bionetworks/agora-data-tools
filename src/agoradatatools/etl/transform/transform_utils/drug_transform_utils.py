@@ -23,8 +23,8 @@ def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
 
     Validation steps:
         1. Require the combined_with name/ID columns to be set or empty together:
-           each row must have both ``combined_with_common_name`` and
-           ``combined_with_chembl_id`` set, or both empty.
+           each row must have both combined_with_common_name and
+           combined_with_chembl_id set, or both empty.
         2. Enforce a 1:1 mapping between common_name and chembl_id across both the
            primary columns and the combined_with partner columns. The two column
            pairs are stacked into a single frame so a name (or ID) used as a
@@ -46,6 +46,7 @@ def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
             "Data Integrity Error: "
             f"{int(mismatched.sum())} row(s) have a value in only one of "
             "combined_with_common_name and combined_with_chembl_id. "
+            "Values must be either both present or both missing. "
             f"Affected row index(es): {row_indices}. "
             "Please fix the source data before re-running."
         )
