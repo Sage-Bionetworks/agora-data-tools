@@ -138,6 +138,12 @@ datasets:
       final_format: json
       destination: *dest
       custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_nested_columns:
+        - name
+        - "4 months"
+        - "12 months"
+        - "18 months"
 
   - rna_de_individual:
       files:

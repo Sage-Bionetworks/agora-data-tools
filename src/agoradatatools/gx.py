@@ -166,7 +166,11 @@ class GreatExpectationsRunner:
         """
         df = df.copy()
         for column in nested_columns:
-            df[column] = df[column].apply(json.dumps)
+            df[column] = df[column].apply(
+                lambda x: json.dumps(None)
+                if isinstance(x, float) and pd.isna(x)
+                else json.dumps(x)
+            )
         return df
 
     def set_warnings_and_failures(self, checkpoint_result: CheckpointResult) -> None:
