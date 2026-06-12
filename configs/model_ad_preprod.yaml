@@ -25,7 +25,7 @@ datasets:
           id: syn64846805.2
           format: csv
         - name: model_results_info
-          id: syn68377668.6
+          id: syn68377668.7
           format: csv
         - name: immunohisto_measure_order
           id: syn71305327.2
@@ -82,7 +82,7 @@ datasets:
       files:
         - <<: *model_info_file
         - name: model_results_info
-          id: syn68377668.6
+          id: syn68377668.7
           format: csv
         - name: allele_info
           id: syn64618791.6
