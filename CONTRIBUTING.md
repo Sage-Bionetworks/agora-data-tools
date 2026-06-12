@@ -303,6 +303,6 @@ git commit -m "Test with custom agora-data-tools image for <your-branch-name>"
 git push --set-upstream origin <your-branch-name>
 ```
 
-Then follow the [nf-agora pipeline launch instructions](https://github.com/Sage-Bionetworks-Workflows/nf-agora/blob/main/README.md#launching-the-pipeline). When selecting the **Revision**, make sure to choose your `nf-agora` feature branch — not `main` — so that the run uses your custom container image.
+Then follow the [nf-agora pipeline launch instructions](https://github.com/Sage-Bionetworks-Workflows/nf-agora/blob/main/README.md#launching-the-pipeline). When selecting the **Revision**, make sure to choose your `nf-agora` feature branch (not Main)
 
 Once your `agora-data-tools` branch is merged to `dev`, delete your temporary `nf-agora` branch and the custom GHCR image to avoid clutter.
