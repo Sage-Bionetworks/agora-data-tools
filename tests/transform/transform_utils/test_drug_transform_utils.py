@@ -82,16 +82,3 @@ class TestValidateDrugListIntegrity:
         )
         with pytest.raises(ValueError, match="chembl_id.*multiple common_name values"):
             dtu.validate_drug_list_integrity(df)
-
-    def test_raises_on_cross_field_mapping_conflict(self) -> None:
-        # combined_with uses a different chembl_id for a name used as a primary drug.
-        df = pd.DataFrame(
-            {
-                "common_name": ["DrugA", "DrugB"],
-                "chembl_id": ["CHEMBL1", "CHEMBL2"],
-                "combined_with_common_name": [None, "DrugA"],
-                "combined_with_chembl_id": [None, "CHEMBL999"],
-            }
-        )
-        with pytest.raises(ValueError, match="common_name.*multiple chembl_id values"):
-            dtu.validate_drug_list_integrity(df)

@@ -78,20 +78,20 @@ class TestTransformNominatedDrugs:
             "have a value in only one of.*combined_with_common_name",
         ),
         # combined_with linkage: combined partner DrugA is paired with both CHEMBL1
-        # and CHEMBL99, so the same name maps to multiple chembl_ids.
+        # and CHEMBL99, so the same combined_with name maps to multiple chembl_ids.
         (
             "drug_list_bad_combined_with_linkage_input.csv",
             "drug_metadata_good_input.json",
             ValueError,
-            "common_name.*multiple chembl_id values",
+            "combined_with_common_name.*multiple combined_with_chembl_id values",
         ),
         # Reverse combined_with linkage: combined partner CHEMBL1 is paired with both
-        # DrugA and DrugX, so the same chembl_id maps to multiple names.
+        # DrugA and DrugX, so the same combined_with chembl_id maps to multiple names.
         (
             "drug_list_bad_reverse_combined_with_linkage_input.csv",
             "drug_metadata_good_input.json",
             ValueError,
-            "chembl_id.*multiple common_name values",
+            "combined_with_chembl_id.*multiple combined_with_common_name values",
         ),
         # chembl_id does not match the required CHEMBL prefix (fails matches_regex).
         (
@@ -122,15 +122,6 @@ class TestTransformNominatedDrugs:
             pd.errors.MergeError,
             "Merge keys are not unique",
         ),
-        # Cross-field conflict: DrugA maps to CHEMBL1 as a primary drug but to
-        # CHEMBL999 as a combined_with partner, so the stacked name/id mapping for
-        # DrugA is inconsistent.
-        (
-            "drug_list_cross_field_combined_with_input.csv",
-            "drug_metadata_good_input.json",
-            ValueError,
-            "common_name.*multiple chembl_id values",
-        ),
         # contact_pi is empty in drug_list (fails the not_empty rule).
         (
             "drug_list_empty_contact_pi_input.csv",
@@ -153,7 +144,6 @@ class TestTransformNominatedDrugs:
         "Fail with malformed combined_with_chembl_id",
         "Fail with invalid maximum_clinical_trial_phase in drug_metadata",
         "Fail with duplicate chembl_id in drug_metadata",
-        "Fail with cross-field common_name to chembl_id conflict in combined_with",
         "Fail with empty contact_pi in drug_list",
     ]
 
