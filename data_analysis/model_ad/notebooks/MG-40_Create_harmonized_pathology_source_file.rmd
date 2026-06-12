@@ -17,6 +17,9 @@ As data becomes available for additional models, the data for those models will 
 
 To incorporate each new model into this notebook:
 
+Prerequisites:
+* Genotype display name mappings for the new model have been added to rnaseq_genotype_label_map.csv (syn69014401)
+
 1. 'Download data and metadata files from Synapse' section:
 - Add a section to download the new model's metadata and data files
 
@@ -32,7 +35,6 @@ To incorporate each new model into this notebook:
 
 5. 'Merge files, write csv file, and upload to synapse' section
 - Add the new model's intermediate file to the bind_rows call on the first line
-- Add genotype display name mappings for the new model
 
 
 ADDING NEW MEASURES
