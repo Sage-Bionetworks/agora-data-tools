@@ -6,7 +6,7 @@ Models that are currently handled by this notebook:
 * 3xTG-AD
 * 5xFAD
 * Trem2-R47H_NSS
-* Abca7*V1599M -> MG-848: Abca7 pathology results are currently excluded due to source metadata issues; search/address all instance of "MG-848" here to reenable
+* Abca7*V1599M
 
 NOTE: synapser's dependency chain loads plyr, which masks dplyr's summarise(),
 mutate(), and rename(). All calls to those functions use dplyr:: explicitly
@@ -24,15 +24,15 @@ To incorporate each new model into this notebook:
 - Add a code block that generates an intermediate results file for the new model
 - You may need to modify the transform_results function to include new unit and type display value mappings
 
-3. 'Join source files to metadata to populate age, tissue, and genotype values' section
-- Update to join metadata to the new model's intermediate file
-
-4. 'Sanity check nrow in generated files' section
+3. 'Sanity check nrow in generated files' section
 - Add validation for the new model's intermediate file
+
+4. 'Join source files to metadata to populate age, tissue, and genotype values' section
+- Update to join metadata to the new model's intermediate file
 
 5. 'Merge files, write csv file, and upload to synapse' section
 - Add the new model's intermediate file to the bind_rows call on the first line
-- Add genotype-genotype display name mappings for the new model
+- Add genotype display name mappings for the new model
 
 
 ADDING NEW MEASURES
@@ -316,7 +316,7 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
 Note that each file's synId and version is added to the data_sources vector via the download_csv function.
 The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
 ```{r}
-# Genotype -> Display label map
+# Genotype -> Display label map (rnaseq_genotype_label_map.csv)
 genotype_label_map <- download_csv('syn69014401.17') %>%
   # Model name fix, plus change "5xFAD (UCI)" -> "5xFAD"
   dplyr::mutate(model = model_group,
@@ -351,24 +351,16 @@ nss_individual <- download_csv('syn27147690.3') %>%
   dplyr::mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 nss_pathology_source <- download_csv('syn42131930.1')
-```
 
-*********
-# MG-848 - don't download abca7 source files we aren't using
-# Add this code back to the chunk above once MG-848 is resolved.
-# ************
-# Abca7*V1599M
-# ************
 #Abca7
 # metadata
-abca7_biospecimen <- download_csv('syn30859390.2')
+abca7_biospecimen <- download_csv('syn30859390.3')
 abca7_individual <- download_csv('syn30859394.2') %>%
   # genotype fix
   dplyr::mutate(genotype = str_replace(genotype, ",", ";"))
 # data
 abca7_pathology_source <- download_csv('syn53127289.1')
-# END MG-848 abca7 source files
-*********
+```
 
 
 ## Generate model-specific files & join to metadata
@@ -459,10 +451,7 @@ nss_final <- nss_pathology_source %>%
         ) %>% join_to_metadata(nss_individual, nss_biospecimen)
 ```
 
-*************
 ### Abca7*V1599M
-# MG-848 - omit abca7 pathology data from release due to invalid metadata
-# This chunk will fail until MG-848 is resolved; don't bother running it.
 ```{r}
 abca7_final <- abca7_pathology_source %>%
 
@@ -608,11 +597,8 @@ stopifnot(nrow(nss_final[nss_final$type == ThioS_density_display_name,]) == nrow
 
 # Check all fields were populated properly -- there should be no NAs
 stopifnot(!any(is.na(nss_final)))
-```
 
-*********
-# MG-848 - disable validation of removed results
-# Add this code back to the chunk above once MG-848 is resolved.
+
 # ************
 # Abca7*V1599M
 # ************
@@ -645,9 +631,7 @@ stopifnot(nrow(abca7_final[abca7_final$type == ThioS_density_display_name,]) == 
 
 # Check all fields were populated properly -- there should be no NAs
 stopifnot(!any(is.na(abca7_final)))
-
-END MG-848 disabled validation
-*********
+```
 
 
 ## Merge model-specific results files & write csv file to synapse
@@ -655,9 +639,8 @@ END MG-848 disabled validation
 pathology_final <- bind_rows(
   threex_final,
   fivex_final,
-  nss_final)
-  # MG-848 - remove abca7 pathology data from release due to invalid metadata
-  #abca7_final)
+  nss_final,
+  abca7_final)
 
 # MODEL-AD 2.0 harmonized source file directory
 # ADP Backend > Files > 2.ConsortiumStudies > MODEL-AD Data Explorer > Model AD Explorer 2.0 Source Files
