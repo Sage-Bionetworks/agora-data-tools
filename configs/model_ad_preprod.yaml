@@ -16,7 +16,7 @@ datasets:
           id: syn64618791.6
           format: csv
         - name: pathology
-          id: syn61357279.17
+          id: syn61357279.18
           format: csv
         - name: biomarkers
           id: syn61250724.12
