@@ -38,6 +38,9 @@ COLUMN_RULES = {
     "drug_list": {
         "common_name": [NotEmptyRule()],
         "chembl_id": [NotEmptyRule(), MatchesRegexRule(CHEMBL_ID_REGEX)],
+        # combined_with_chembl_id is optional, so no NotEmptyRule; the regex only
+        # validates rows where a value is present (nulls are skipped).
+        "combined_with_chembl_id": [MatchesRegexRule(CHEMBL_ID_REGEX)],
         "initial_nomination": [NotEmptyRule()],
         "contact_pi": [NotEmptyRule()],
     },
@@ -76,13 +79,6 @@ def transform_nominated_drugs(
     nomination details. The transform collapses multiple nomination records from
     the source list into a single summary row per unique grouping key.
 
-    Inputs:
-        drug_list: One row per nomination event. Used to compute nomination counts,
-            earliest nomination year, nominating PIs, programs, and combination
-            partners (combined_with_common_name / combined_with_chembl_id).
-        drug_metadata: OpenTargets-derived metadata keyed by chembl_id (modality,
-            clinical trial phase, year of first approval).
-
     Processing steps:
         1. Validate required datasets and columns.
         2. Validate drug_list integrity: require the combined_with name/ID
@@ -98,7 +94,12 @@ def transform_nominated_drugs(
         7. Sort rows for deterministic output.
 
     Args:
-        datasets: Dictionary containing "drug_list" and "drug_metadata" DataFrames.
+        datasets: Dictionary containing two DataFrames:
+            "drug_list" (one row per nomination event, used to compute nomination
+            counts, earliest nomination year, nominating PIs, programs, and
+            combination partners) and "drug_metadata" (OpenTargets-derived metadata
+            keyed by chembl_id: modality, clinical trial phase, year of first
+            approval).
         required_input: Required datasets and columns. Defaults to REQUIRED_INPUT.
 
     Returns:
@@ -131,7 +132,7 @@ def transform_nominated_drugs(
         .agg(
             total_nominations=("common_name", "size"),
             initial_nomination=("initial_nomination", "min"),
-            principal_investigators=("contact_pi", lambda x: sorted(set(x.dropna()))),
+            principal_investigators=("contact_pi", lambda x: sorted(set(x))),
             programs=("source", lambda x: sorted(set(x.dropna()))),
         )
         .reset_index()

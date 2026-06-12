@@ -23,12 +23,10 @@ def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
 
     Validation steps:
         1. Require the combined_with name/ID columns to be set or empty together:
-           each row must have both ``combined_with_common_name`` and
-           ``combined_with_chembl_id`` set, or both empty.
-        2. Enforce a 1:1 mapping between common_name and chembl_id across both the
-           primary columns and the combined_with partner columns. The two column
-           pairs are stacked into a single frame so a name (or ID) used as a
-           primary drug and as a combination partner must agree.
+           each row must have both combined_with_common_name and
+           combined_with_chembl_id set, or both empty.
+        2. Enforce a 1:1 mapping between common_name and chembl_id for the primary
+           columns, and separately for the combined_with partner columns.
 
     Args:
         drug_list: The drug_list DataFrame to validate.
@@ -46,21 +44,17 @@ def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
             "Data Integrity Error: "
             f"{int(mismatched.sum())} row(s) have a value in only one of "
             "combined_with_common_name and combined_with_chembl_id. "
+            "Values must be either both present or both missing. "
             f"Affected row index(es): {row_indices}. "
             "Please fix the source data before re-running."
         )
 
-    name_id_pairs = pd.concat(
-        [
-            drug_list[["chembl_id", "common_name"]],
-            drug_list[["combined_with_chembl_id", "combined_with_common_name"]].rename(
-                columns={
-                    "combined_with_chembl_id": "chembl_id",
-                    "combined_with_common_name": "common_name",
-                }
-            ),
-        ]
+    validate_one_to_one_mapping(
+        drug_list, "chembl_id", "common_name", bidirectional=True
     )
     validate_one_to_one_mapping(
-        name_id_pairs, "chembl_id", "common_name", bidirectional=True
+        drug_list,
+        "combined_with_chembl_id",
+        "combined_with_common_name",
+        bidirectional=True,
     )

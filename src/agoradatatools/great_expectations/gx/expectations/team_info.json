@@ -31,22 +31,23 @@
       "kwargs": {
         "column": "team",
         "value_set": [
-          "ASU",
-          "Harvard-MIT",
-          "Chang Lab",
-          "MSSM - Roussos Lab",
-          "Sage Bionetworks",
-          "IUSM-Purdue",
-          "Longo Lab",
-          "Emory-Sage-SGC",
-          "Emory",
-          "JAX-VUMC-UW Resilience",
-          "Duke",
-          "Duke BARU",
           "Mayo-UFL-ISB",
-          "Columbia-Rush",
+          "JAX-VUMC-UW Resilience",
           "Mayo",
-          "MSSM - Zhang Lab"
+          "Harvard-MIT",
+          "ASU",
+          "Emory-Sage-SGC",
+          "Columbia-Rush",
+          "MSSM - Zhang Lab",
+          "Emory",
+          "Longo Lab",
+          "Duke",
+          "IUSM-Purdue",
+          "Duke BARU",
+          "Chang Lab",
+          "Columbia",
+          "MSSM - Roussos Lab",
+          "Sage Bionetworks"
         ]
       },
       "meta": {}
@@ -110,11 +111,11 @@
       "kwargs": {
         "column": "program",
         "value_set": [
-          "AMP-AD",
-          null,
-          "TREAT-AD",
           "Community Contributed",
-          "Resilience-AD"
+          "TREAT-AD",
+          "Resilience-AD",
+          "AMP-AD",
+          "FunGen-AD"
         ]
       },
       "meta": {}
