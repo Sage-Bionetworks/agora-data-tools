@@ -148,7 +148,7 @@ target_columns <- data.frame(
   link_text = rep(NA, times = 9),
   is_exported = c(rep(TRUE, times = 9)),
   is_hidden = c(FALSE, TRUE, rep(FALSE, times = 7)),
-  column_width = c(NA, NA, NA, NA, 300, NA, NA, NA, NA),
+  column_width = c(NA, NA, NA, NA, 300, 300, 300, 300, NA),
   stringsAsFactors = FALSE
 )
 
@@ -343,7 +343,7 @@ TESTS
 
 ## Test build_column
 ```{r}
-col_def <- build_column("name_value", "type_value", "data_key_value", "tooltip_value", "sort_tooltip_value", "link_url_value", "link_text_value", TRUE, FALSE)
+col_def <- build_column("name_value", "type_value", "data_key_value", "tooltip_value", "sort_tooltip_value", "link_url_value", "link_text_value", TRUE, FALSE, 300)
 
 print(col_def)
 
@@ -364,6 +364,7 @@ test_input <- data.frame(
   link_text = c(NA, NA, "Results", "View Strain"),
   is_exported = c(TRUE, TRUE, TRUE, FALSE),
   is_hidden = c(TRUE, FALSE, TRUE, FALSE),
+  column_width = c(NA, NA, NA, 300),
   stringsAsFactors = FALSE
 )
 
