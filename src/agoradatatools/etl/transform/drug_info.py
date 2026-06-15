@@ -190,7 +190,9 @@ def _resolve_linked_targets(
     return drug_metadata
 
 
-def _build_combined_with(common_name: Any, chembl_id: Any) -> List[Dict[str, str]]:
+def _build_combined_with(
+    common_name: str | float, chembl_id: str | float
+) -> List[Dict[str, str]]:
     """Wrap a single combined-with partner as a one-element list of partner dicts.
 
     Production drug_list rows carry at most one combined-with partner per row, and
