@@ -285,7 +285,7 @@ datasets:
   - drug_info:
       files:
         - name: ot_drug_metadata
-          id: syn73724873.11
+          id: syn73724873.12
           format: json
         - name: drug_list
           id: syn73677240.14

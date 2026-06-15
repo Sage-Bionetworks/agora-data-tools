@@ -8,13 +8,13 @@ from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
     DISPLAY_CLINICAL_PHASES,
     MODALITY_VALUES,
+    capitalize_first_character,
     validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,
-    capitalize_first_character,
     check_column_rules,
     check_required_datasets_and_columns,
     nest_fields,
@@ -52,6 +52,9 @@ REQUIRED_INPUT = {
         "contributors",
         "initial_nomination",
         "program",
+        "priority_score",
+        "priority_score_criteria",
+        "published",
     ],
     "gene_metadata": ["ensembl_gene_id", "symbol"],
 }
@@ -72,6 +75,11 @@ COLUMN_RULES = {
             NotEmptyRule(),
             MatchesRegexRule(CHEMBL_ID_REGEX),
         ],
+        # Nomination-critical fields used in drug_nominations output and PI sorting;
+        # aligned with transform_nominated_drugs.
+        "initial_nomination": [NotEmptyRule()],
+        "contact_pi": [NotEmptyRule()],
+        "program": [NotEmptyRule()],
     },
 }
 
@@ -98,20 +106,21 @@ OUTPUT_COLUMN_ORDER = [
     "drug_nominations",
 ]
 
+# Flat nomination text columns capitalized before nesting into drug_nominations.
+# common_name and description are already properly capitalized in the source.
 CAPITALIZE_FIRST_CHARACTER_FIELDS = [
-    "common_name",
-    "description",
-    "drug_nominations.evidence",
-    "drug_nominations.data_used",
-    "drug_nominations.ad_moa",
-    "drug_nominations.additional_evidence",
-    "drug_nominations.computational_validation_status",
-    "drug_nominations.computational_validation_results",
-    "drug_nominations.experimental_validation_status",
-    "drug_nominations.experimental_validation_results",
+    "evidence",
+    "data_used",
+    "ad_moa",
+    "additional_evidence",
+    "computational_validation_status",
+    "computational_validation_results",
+    "experimental_validation_status",
+    "experimental_validation_results",
 ]
 
-_NOMINATION_STRIP_KEYS = frozenset({"chembl_id", "common_name", "iupac_id"})
+# Grouping keys that should not be duplicated inside each nested nomination dict.
+_NOMINATION_STRIP_KEYS = ["chembl_id", "common_name", "iupac_id"]
 
 
 def _pi_lastname_sort_key(nomination: dict[str, Any]) -> str:
@@ -131,18 +140,6 @@ def _sort_by_pi_lastname(
     if not isinstance(nominations, list):
         return nominations
     return sorted(nominations, key=_pi_lastname_sort_key)
-
-
-def _strip_redundant_nomination_keys(
-    nominations: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """Return nominations without chembl_id, common_name, and iupac_id keys."""
-    return [
-        {k: v for k, v in d.items() if k not in _NOMINATION_STRIP_KEYS}
-        if isinstance(d, dict)
-        else d
-        for d in nominations
-    ]
 
 
 def _resolve_target_list(
@@ -165,12 +162,14 @@ def _resolve_target_list(
 
 
 def _get_best_iupac_id(group: pd.Series) -> str:
-    """Pick the first non-null, non-Unknown iupac_id for a chembl_id group."""
-    valid_ids = group.dropna()
-    valid_ids = valid_ids[valid_ids != "Unknown"]
-    if not valid_ids.empty:
-        return valid_ids.iloc[0]
-    return "Unknown"
+    """Pick the first non-null, non-Unknown iupac_id for a chembl_id group.
+
+    Falls back to the "Unknown" sentinel when the group has none. The sentinel
+    survives the iupac_id grouping key in nest_fields (groupby drops null keys)
+    and is converted back to None after nesting.
+    """
+    valid_ids = group.replace({"Unknown": None}).dropna()
+    return next(iter(valid_ids), "Unknown")
 
 
 def _resolve_linked_targets(
@@ -212,7 +211,6 @@ def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
     drug_list["iupac_id"] = drug_list.groupby("chembl_id")["iupac_id"].transform(
         _get_best_iupac_id
     )
-    drug_list["iupac_id"] = drug_list["iupac_id"].fillna("Unknown")
 
     drug_list["combined_with"] = drug_list.apply(
         lambda row: _build_combined_with(
@@ -221,25 +219,25 @@ def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
         axis=1,
     )
 
+    # Capitalize the flat nomination text columns before nesting so the values
+    # land capitalized inside drug_nominations (no nested-dict handling needed).
+    drug_list = capitalize_first_character(drug_list, CAPITALIZE_FIRST_CHARACTER_FIELDS)
+
     # common_name is 1:1 with chembl_id (validate_drug_list_integrity) and iupac_id
     # is uniform per chembl_id (_get_best_iupac_id), so this grouping already yields
-    # one row per chembl_id.
+    # one row per chembl_id. The grouping keys are dropped from the nested dicts to
+    # avoid duplicating them inside each nomination.
     drug_list = nest_fields(
         df=drug_list,
         grouping=["chembl_id", "common_name", "iupac_id"],
         new_column="drug_nominations",
-        drop_columns=DRUG_LIST_NEST_DROP_COLUMNS,
+        drop_columns=DRUG_LIST_NEST_DROP_COLUMNS + _NOMINATION_STRIP_KEYS,
     )
 
     drug_list["drug_nominations"] = drug_list["drug_nominations"].apply(
         _sort_by_pi_lastname
     )
 
-    drug_list["drug_nominations"] = drug_list["drug_nominations"].apply(
-        lambda noms: _strip_redundant_nomination_keys(noms)
-        if isinstance(noms, list)
-        else noms
-    )
     drug_list["iupac_id"] = drug_list["iupac_id"].replace("Unknown", None)
 
     return drug_list
@@ -303,6 +301,5 @@ def transform_drug_info(
         ].astype("Int64")
 
     drug_info = drug_info.reindex(columns=OUTPUT_COLUMN_ORDER)
-    drug_info = capitalize_first_character(drug_info, CAPITALIZE_FIRST_CHARACTER_FIELDS)
 
     return drug_info

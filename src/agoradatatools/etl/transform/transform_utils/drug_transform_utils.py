@@ -18,6 +18,30 @@ MODALITY_VALUES = {"Small molecule", "Protein"}
 CHEMBL_ID_REGEX = r"^CHEMBL\d+$"
 
 
+def _capitalize_first_character(text: str) -> str:
+    """Capitalize the first character of a string, leaving the rest unchanged."""
+    return text[:1].upper() + text[1:] if isinstance(text, str) and text else text
+
+
+def capitalize_first_character(df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
+    """Capitalize the first character of string columns without changing the rest.
+
+    Preserves acronyms and mixed-case values (e.g. APOE, DRIAD-SP). Operates on
+    flat string columns only; non-string values are returned unchanged.
+
+    Args:
+        df: DataFrame to modify in place (also returned).
+        fields: Column names to capitalize. Missing columns are skipped.
+
+    Returns:
+        The same DataFrame with first-character capitalization applied.
+    """
+    for field in fields:
+        if field in df.columns:
+            df[field] = df[field].apply(_capitalize_first_character)
+    return df
+
+
 def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
     """Validate a drug_list before aggregation.
 

@@ -70,28 +70,6 @@ class TestSortByPiLastname:
         assert drug_info._sort_by_pi_lastname("not a list") == "not a list"
 
 
-class TestStripRedundantNominationKeys:
-    """Tests for _strip_redundant_nomination_keys."""
-
-    def test_removes_chembl_common_name_and_iupac_id(self) -> None:
-        nominations = [
-            {
-                "chembl_id": "CHEMBL1",
-                "common_name": "DrugA",
-                "iupac_id": "IUPAC-1",
-                "grant_number": "G1",
-            }
-        ]
-        result = drug_info._strip_redundant_nomination_keys(nominations)
-        assert result == [{"grant_number": "G1"}]
-
-    def test_preserves_non_dict_entries(self) -> None:
-        nominations: list = ["keep", {"chembl_id": "CHEMBL1", "program": "P"}]
-        result = drug_info._strip_redundant_nomination_keys(nominations)
-        assert result[0] == "keep"
-        assert result[1] == {"program": "P"}
-
-
 class TestResolveTargetList:
     """Tests for _resolve_target_list."""
 
@@ -347,6 +325,15 @@ class TestTransformDrugInfo:
                 "Merge keys are not unique",
                 pd.errors.MergeError,
             ),
+            (
+                {
+                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_list": "drug_list_empty_contact_pi.csv",
+                    "gene_metadata": "gene_metadata_good.feather",
+                },
+                "contact_pi.*not_empty",
+                ValueError,
+            ),
         ],
         ids=[
             "missing gene_metadata dataset",
@@ -358,6 +345,7 @@ class TestTransformDrugInfo:
             "bad common_name to chembl_id linkage",
             "invalid chembl_id regex",
             "duplicate chembl_id in ot metadata",
+            "empty contact_pi violates not_empty",
         ],
     )
     def test_transform_drug_info_should_fail(
