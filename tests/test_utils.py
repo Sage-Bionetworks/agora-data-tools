@@ -817,13 +817,14 @@ class TestMatchesRegexRule:
         rule = MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(self._series(["ENSG001", "ENSG002"])) == 2
 
-    def test_counts_none_as_violation(self) -> None:
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the format of present values.
         rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", None])) == 1
+        assert rule.count_violations(self._series(["ENSMUSG001", None])) == 0
 
-    def test_counts_nan_as_violation(self) -> None:
+    def test_skips_nan(self) -> None:
         rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", np.nan])) == 1
+        assert rule.count_violations(self._series(["ENSMUSG001", np.nan])) == 0
 
     def test_counts_empty_string_as_violation(self) -> None:
         rule = MatchesRegexRule(value="^ENSMUSG")
@@ -1056,7 +1057,6 @@ class TestCheckColumnRules:
     @pytest.mark.parametrize(
         "good_value, rule",
         [
-            ("ENSMUSG001", MatchesRegexRule(value="^ENSMUSG")),
             ("hello world", ContainsSubstringRule(value="world")),
         ],
     )
@@ -1066,6 +1066,13 @@ class TestCheckColumnRules:
         datasets = self._make_datasets({"col": [good_value, None]})
         with pytest.raises(ValueError, match=rule.rule):
             utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
+
+    def test_matches_regex_rule_ignores_null(self) -> None:
+        # MatchesRegexRule only validates present values; nulls are not violations.
+        datasets = self._make_datasets({"col": ["ENSMUSG001", None]})
+        utils.check_column_rules(
+            datasets, {"ds": {"col": [MatchesRegexRule(value="^ENSMUSG")]}}
+        )
 
     def test_all_violations_collected_in_single_error(self) -> None:
         datasets = {
@@ -1106,6 +1113,75 @@ class TestCheckColumnRules:
     ) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             rule_class(value=None)
+
+
+class TestValidateOneToOneMapping:
+    """Tests for validate_one_to_one_mapping()."""
+
+    def test_passes_one_to_one_mapping(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1", "CHEMBL2"],
+            }
+        )
+        utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+    def test_raises_when_left_maps_to_multiple_right(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugA"],
+                "chembl_id": ["CHEMBL1", "CHEMBL2"],
+            }
+        )
+        with pytest.raises(ValueError, match="common_name"):
+            utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+    def test_default_does_not_check_reverse_direction(self) -> None:
+        # Two names share an ID; without bidirectional this passes because each
+        # name still maps to a single ID.
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1"],
+            }
+        )
+        utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+    def test_bidirectional_catches_reverse_violation(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1"],
+            }
+        )
+        with pytest.raises(ValueError, match="chembl_id"):
+            utils.validate_one_to_one_mapping(
+                df, "common_name", "chembl_id", bidirectional=True
+            )
+
+    def test_ignores_missing_keys(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": [None, "DrugA"],
+                "chembl_id": [None, "CHEMBL1"],
+            }
+        )
+        utils.validate_one_to_one_mapping(
+            df, "common_name", "chembl_id", bidirectional=True
+        )
+
+    def test_raises_when_value_is_null_for_one_of_duplicate_keys(self) -> None:
+        # NA keys are ignored, but a null value counts as a distinct value: DrugA
+        # maps to both None and CHEMBL1, which is not a one-to-one mapping.
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugA"],
+                "chembl_id": [None, "CHEMBL1"],
+            }
+        )
+        with pytest.raises(ValueError, match="common_name.*multiple chembl_id values"):
+            utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
 
 class TestFlattenList:
