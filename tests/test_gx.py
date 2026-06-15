@@ -437,12 +437,26 @@ class TestCustomJSONSchemaRulesRunner:
         """
         self.bad_runner.set_warnings_and_failures(self.failed_checkpoint_result)
         assert self.bad_runner.failures is True
-        assert self.bad_runner.failure_message == (
-            "Great Expectations data validation has the following failures:\n"
-            "  - test_nested_columns / 'columns.tooltip': expect_column_nested_object_string_length failed (required: 0.9, observed: 0.8)\n"
-            "  - test_nested_columns / 'columns.tooltip': expect_column_nested_object_not_null failed (required: 0.9, observed: 0.8)\n"
-            "  - test_nested_columns / 'columns.data_key': expect_column_nested_object_regex_rule failed (required: 0.9, observed: 0.0)"
+        string_length_line = (
+            "  - test_nested_columns / 'columns.tooltip': "
+            "expect_column_nested_object_string_length failed "
+            "(required: 0.9, observed: 0.8)"
         )
+        not_null_line = (
+            "  - test_nested_columns / 'columns.tooltip': "
+            "expect_column_nested_object_not_null failed "
+            "(required: 0.9, observed: 0.8)"
+        )
+        regex_rule_line = (
+            "  - test_nested_columns / 'columns.data_key': "
+            "expect_column_nested_object_regex_rule failed "
+            "(required: 0.9, observed: 0.0)"
+        )
+        expected_message = (
+            "Great Expectations data validation has the following failures:\n"
+            + "\n".join([string_length_line, not_null_line, regex_rule_line])
+        )
+        assert self.bad_runner.failure_message == expected_message
 
     def test_no_failures_or_warnings_when_all_custom_nested_expectations_pass(
         self,
