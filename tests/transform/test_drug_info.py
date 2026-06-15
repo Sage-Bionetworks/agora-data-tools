@@ -55,21 +55,6 @@ class TestPiLastnameSortKey:
         assert drug_info._pi_lastname_sort_key({"contact_pi": 42}) == ""
 
 
-class TestSortByPiLastname:
-    """Tests for _sort_by_pi_lastname."""
-
-    def test_sorts_nominations_by_pi_last_name(self) -> None:
-        nominations = [
-            {"contact_pi": "Zara Alpha"},
-            {"contact_pi": "Bob Beta, PhD"},
-        ]
-        result = drug_info._sort_by_pi_lastname(nominations)
-        assert [n["contact_pi"] for n in result] == ["Zara Alpha", "Bob Beta, PhD"]
-
-    def test_returns_non_list_unchanged(self) -> None:
-        assert drug_info._sort_by_pi_lastname("not a list") == "not a list"
-
-
 class TestResolveTargetList:
     """Tests for _resolve_target_list."""
 
@@ -193,25 +178,39 @@ class TestTransformDrugInfo:
 
     data_files_path = "tests/test_assets/drug_info"
 
+    def _build_datasets(self, file_map: dict[str, str]) -> dict[str, pd.DataFrame]:
+        """Load each dataset named in *file_map* by file extension.
+
+        Only the datasets present in *file_map* are loaded, so callers can omit a
+        dataset to exercise the missing-dataset path.
+        """
+        datasets: dict[str, pd.DataFrame] = {}
+        for name, filename in file_map.items():
+            path = os.path.join(self.data_files_path, "input", filename)
+            if filename.endswith(".csv"):
+                df = pd.read_csv(path)
+                if "source" in df.columns and "program" not in df.columns:
+                    df = df.rename(columns={"source": "program"})
+                datasets[name] = df
+            elif filename.endswith(".json"):
+                datasets[name] = pd.read_json(path, orient="records")
+            elif filename.endswith(".feather"):
+                datasets[name] = pd.read_feather(path)
+        return datasets
+
     def _load_datasets(
         self,
         ot_file: str,
         dl_file: str,
         gm_file: str = "gene_metadata_good.feather",
     ) -> dict[str, pd.DataFrame]:
-        drug_list = pd.read_csv(os.path.join(self.data_files_path, "input", dl_file))
-        if "source" in drug_list.columns and "program" not in drug_list.columns:
-            drug_list = drug_list.rename(columns={"source": "program"})
-        return {
-            "ot_drug_metadata": pd.read_json(
-                os.path.join(self.data_files_path, "input", ot_file),
-                orient="records",
-            ),
-            "drug_list": drug_list,
-            "gene_metadata": pd.read_feather(
-                os.path.join(self.data_files_path, "input", gm_file)
-            ),
-        }
+        return self._build_datasets(
+            {
+                "ot_drug_metadata": ot_file,
+                "drug_list": dl_file,
+                "gene_metadata": gm_file,
+            }
+        )
 
     def test_transform_drug_info_should_pass(self) -> None:
         datasets = self._load_datasets(
@@ -354,34 +353,8 @@ class TestTransformDrugInfo:
         error_match: str,
         error_type: type[BaseException],
     ) -> None:
+        datasets = self._build_datasets(input_datasets)
         with pytest.raises(error_type, match=error_match):
-            if "drug_list" in input_datasets and input_datasets["drug_list"].endswith(
-                ".csv"
-            ):
-                datasets = self._load_datasets(
-                    input_datasets.get(
-                        "ot_drug_metadata", "ot_drug_metadata_good.json"
-                    ),
-                    input_datasets["drug_list"],
-                    input_datasets.get("gene_metadata", "gene_metadata_good.feather"),
-                )
-            elif "ot_drug_metadata" in input_datasets:
-                drug_list = pd.read_csv(
-                    os.path.join(self.data_files_path, "input", "drug_list_good.csv")
-                )
-                if "source" in drug_list.columns and "program" not in drug_list.columns:
-                    drug_list = drug_list.rename(columns={"source": "program"})
-                datasets = {
-                    "ot_drug_metadata": pd.read_json(
-                        os.path.join(
-                            self.data_files_path,
-                            "input",
-                            input_datasets["ot_drug_metadata"],
-                        ),
-                        orient="records",
-                    ),
-                    "drug_list": drug_list,
-                }
             drug_info.transform_drug_info(datasets=datasets)
 
 

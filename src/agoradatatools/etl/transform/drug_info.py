@@ -119,8 +119,9 @@ CAPITALIZE_FIRST_CHARACTER_FIELDS = [
     "experimental_validation_results",
 ]
 
-# Grouping keys that should not be duplicated inside each nested nomination dict.
-_NOMINATION_STRIP_KEYS = ["chembl_id", "common_name", "iupac_id"]
+# Keys that uniquely identify a drug (one row per group). These stay top-level and
+# are dropped from each nested nomination dict to avoid duplicating them.
+_NOMINATION_GROUPING = ["chembl_id", "common_name", "iupac_id"]
 
 
 def _pi_lastname_sort_key(nomination: dict[str, Any]) -> str:
@@ -131,15 +132,6 @@ def _pi_lastname_sort_key(nomination: dict[str, Any]) -> str:
     name_part = name.split(",")[0].strip()
     parts = name_part.split()
     return parts[-1].lower() if parts else ""
-
-
-def _sort_by_pi_lastname(
-    nominations: list[dict[str, Any]] | object,
-) -> list[dict[str, Any]] | object:
-    """Sort nomination dicts alphabetically by PI last name."""
-    if not isinstance(nominations, list):
-        return nominations
-    return sorted(nominations, key=_pi_lastname_sort_key)
 
 
 def _resolve_target_list(
@@ -231,13 +223,13 @@ def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
     # avoid duplicating them inside each nomination.
     drug_list = nest_fields(
         df=drug_list,
-        grouping=["chembl_id", "common_name", "iupac_id"],
+        grouping=_NOMINATION_GROUPING,
         new_column="drug_nominations",
-        drop_columns=DRUG_LIST_NEST_DROP_COLUMNS + _NOMINATION_STRIP_KEYS,
+        drop_columns=DRUG_LIST_NEST_DROP_COLUMNS + _NOMINATION_GROUPING,
     )
 
     drug_list["drug_nominations"] = drug_list["drug_nominations"].apply(
-        _sort_by_pi_lastname
+        lambda nominations: sorted(nominations, key=_pi_lastname_sort_key)
     )
 
     drug_list["iupac_id"] = drug_list["iupac_id"].replace("Unknown", None)
@@ -297,10 +289,9 @@ def transform_drug_info(
         validate="m:1",
     )
 
-    if "year_of_first_approval" in drug_info.columns:
-        drug_info["year_of_first_approval"] = drug_info[
-            "year_of_first_approval"
-        ].astype("Int64")
+    drug_info["year_of_first_approval"] = drug_info["year_of_first_approval"].astype(
+        "Int64"
+    )
 
     drug_info = drug_info.reindex(columns=OUTPUT_COLUMN_ORDER)
 
