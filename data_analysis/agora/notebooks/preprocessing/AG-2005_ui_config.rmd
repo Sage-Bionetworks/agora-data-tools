@@ -168,18 +168,20 @@ target_filters <- data.frame(
 
 # Nominated Target Filter Values
 # ------------------------------
+# AG-2117 removed the following values from targets_data_cohort_filter_values to keep it sane:
+# "GSE197305", "GSE33000", "GSE44772", "GSE48350", "GSE5281",
+# "https://doi.org/10.1002/ajmg.b.30607", "https://doi.org/10.1016/j.celrep.2020.107908",
+# "https://doi.org/10.1016/j.nbd.2019.104540", "https://doi.org/10.1016/j.neulet.2013.06.061",
+# "https://doi.org/10.1038/s41588-018-0311-9", "https://doi.org/10.1038/s41588-019-0358-2",
+# "https://doi.org/10.1038/tp.2015.55", "https://doi.org/10.3233/jad-2008-15105"
+# "syn20933797", "syn52525880",
 targets_data_cohort_filter_values <- c(
   "ABA", "ACT", "AD Mouse Models", "AD-BXD mice", "ADNI", "AIBL", "APP Mice",
   "Banner", "BLSA", "Cardiovascular Health Study", "Diversity outbred mice",
-  "Emory", "Framingham Heart Study", "FreshMicro", "GSE197305", "GSE33000",
-  "GSE44772", "GSE48350", "GSE5281", "HBI_scRNAseq", "HBTRC",
-  "Health and Retirement Study", "https://doi.org/10.1002/ajmg.b.30607",
-  "https://doi.org/10.1016/j.celrep.2020.107908", "https://doi.org/10.1016/j.nbd.2019.104540",
-  "https://doi.org/10.1016/j.neulet.2013.06.061", "https://doi.org/10.1038/s41588-018-0311-9",
-  "https://doi.org/10.1038/s41588-019-0358-2", "https://doi.org/10.1038/tp.2015.55",
-  "https://doi.org/10.3233/jad-2008-15105", "Kronos",
+  "Emory", "Framingham Heart Study", "FreshMicro", "HBI_scRNAseq", "HBTRC",
+  "Health and Retirement Study", "Kronos",
   "Late Onset Alzheimer's Disease Family Study", "Mayo", "MC-BrAD", "MC-CAA",
-  "MC_snRNA", "MSBB", "ROSMAP", "Rush", "syn20933797", "syn52525880",
+  "MC_snRNA", "MSBB", "ROSMAP", "Rush",
   "TAUAPPms", "VirusResilience"
 )
 targets_data_filter_values <- c("Behavior", "Clinical", "Genetics", "Metabolomics", "Pathway Modeling", "Phenomics", "Protein", "Risk Scores", "RNA")
