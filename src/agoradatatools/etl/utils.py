@@ -78,8 +78,13 @@ class MatchesRegexRule(ColumnRule):
         self.value = value
 
     def count_violations(self, series: pd.Series) -> int:
-        """Return the number of values in *series* that do not match the regex at the start."""
-        return int((~series.astype(str).str.match(self.value, na=False)).sum())
+        """Return the number of non-null values in *series* that do not match the regex at the start.
+
+        Null values are skipped so this rule only validates the format of present
+        values; use NotEmptyRule to require presence.
+        """
+        present = series.notna()
+        return int((~series[present].astype(str).str.match(self.value, na=False)).sum())
 
     @property
     def value_detail(self) -> str:
@@ -455,6 +460,63 @@ def check_required_datasets_and_columns(
                 f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
                 f"Please ensure the {dataset_name} dataset contains all required columns. Columns found: {', '.join(dataset_columns)}."
             )
+
+
+def validate_one_to_one_mapping(
+    df: pd.DataFrame,
+    left_col: str,
+    right_col: str,
+    bidirectional: bool = False,
+) -> None:
+    """Validate that two columns form a consistent mapping.
+
+    By default this checks that each non-null value in left_col maps to at most
+    one distinct value in right_col. When bidirectional is True it also checks
+    the reverse direction, enforcing a true 1:1 mapping in a single call. Rows
+    where the key column is null are ignored for that direction.
+
+    Args:
+        df: The DataFrame to validate.
+        left_col: The first column in the pair.
+        right_col: The second column in the pair.
+        bidirectional: If True, validate the mapping in both directions.
+
+    Raises:
+        ValueError: If a value in the key column maps to more than one distinct
+            value in the paired column.
+    """
+    _validate_mapping_direction(df, left_col, right_col)
+    if bidirectional:
+        _validate_mapping_direction(df, right_col, left_col)
+
+
+def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) -> None:
+    """Validate that each key in key_col maps to at most one value_col value.
+
+    Groups the DataFrame by key_col (ignoring rows where the key is null) and
+    checks that every key is associated with a single distinct value in
+    value_col. Null values in value_col are counted as a distinct value.
+
+    Args:
+        df: The DataFrame containing the mapping to validate.
+        key_col: Name of the column whose values act as mapping keys.
+        value_col: Name of the column whose values should be uniquely determined
+            by each key.
+
+    Raises:
+        ValueError: If any non-null key in key_col maps to more than one
+            distinct value in value_col.
+    """
+    present_keys = df[key_col].notna()
+    counts = df.loc[present_keys].groupby(key_col)[value_col].nunique(dropna=False)
+    offending_keys = counts[counts > 1].index.tolist()
+    if offending_keys:
+        raise ValueError(
+            f"Data Integrity Error: The following {key_col}(s) are associated with "
+            f"multiple {value_col} values: {offending_keys}. "
+            f"There must be a one-to-one mapping between {key_col} and {value_col}. "
+            "Please fix the source data before re-running."
+        )
 
 
 def _check_single_rule(
