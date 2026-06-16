@@ -68,7 +68,7 @@
       "kwargs": {
         "column": "tissue",
         "value_set": [
-          "Cerebral cortex",
+          "Cerebral Cortex",
           "Hemibrain",
           "Hippocampus"
         ]
