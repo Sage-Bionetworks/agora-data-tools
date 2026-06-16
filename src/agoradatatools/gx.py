@@ -182,23 +182,41 @@ class GreatExpectationsRunner:
         warning_dict = {self.expectation_suite_name: {}}
         fail_dict = {self.expectation_suite_name: {}}
         expectation_results = checkpoint_result.list_validation_results()[0]["results"]
-
         for result in expectation_results:
-            column = result["expectation_config"]["kwargs"].get(
+            kwargs = result["expectation_config"]["kwargs"]
+            column = kwargs.get(
                 "column",
-                "/".join(result["expectation_config"]["kwargs"].get("column_list", [])),
+                "/".join(kwargs.get("column_list", [])),
             )
+            target_field = kwargs.get("target_field", None)
+            if target_field:
+                column = f"{column}.{target_field}"
             expectation = result["expectation_config"]["expectation_type"]
+            result_data = result["result"]
+            observed_ratio = (
+                result_data.get("observed_valid_ratio")
+                if "observed_valid_ratio" in result_data
+                else result_data.get("observed_not_null_ratio")
+            )
+            threshold = (
+                kwargs.get("valid_threshold")
+                if "valid_threshold" in kwargs
+                else kwargs.get("non_null_threshold")
+            )
+            entry = {
+                "expectation": expectation,
+                "observed_ratio": observed_ratio,
+                "threshold": threshold,
+            }
             if result["success"]:
-                if result["result"].get("partial_unexpected_list", None):
+                if result_data.get("partial_unexpected_list", None):
                     warning_dict[self.expectation_suite_name].setdefault(
                         column, []
-                    ).append(expectation)
+                    ).append(entry)
             else:
                 fail_dict[self.expectation_suite_name].setdefault(column, []).append(
-                    expectation
+                    entry
                 )
-
         self.warning_message, self.warnings = self._generate_message(
             warning_dict, "warnings"
         )
@@ -208,17 +226,26 @@ class GreatExpectationsRunner:
 
     def _generate_message(
         self, result_dict: dict, message_type: str
-    ) -> typing.Tuple[str, bool]:
+    ) -> typing.Tuple[Optional[str], bool]:
         """Generate message and status for warnings or failures."""
         messages = []
         for suite_name, fields_dict in result_dict.items():
-            for field, expectations in fields_dict.items():
-                messages.append(
-                    f"In the {suite_name} dataset, '{field}' has failed values for expectations {', '.join(expectations)}"
-                )
+            for field, expectation_list in fields_dict.items():
+                for exp in expectation_list:
+                    expectation_name = exp["expectation"]
+                    observed = exp["observed_ratio"]
+                    threshold = exp["threshold"]
+                    detail = (
+                        f" (required: {threshold}, observed: {observed})"
+                        if observed is not None and threshold is not None
+                        else ""
+                    )
+                    messages.append(
+                        f"  - {suite_name} / '{field}': {expectation_name} failed{detail}"
+                    )
         message = (
-            (f"Great Expectations data validation has the following {message_type}: ")
-            + "; ".join(messages)
+            f"Great Expectations data validation has the following {message_type}:\n"
+            + "\n".join(messages)
             if messages
             else None
         )
@@ -256,7 +283,6 @@ class GreatExpectationsRunner:
             f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
         )
         latest_reults_path = self.get_results_path(checkpoint_result)
-
         self.set_warnings_and_failures(checkpoint_result)
 
         if self.upload_folder:
