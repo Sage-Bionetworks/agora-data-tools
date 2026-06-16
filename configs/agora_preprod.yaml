@@ -282,6 +282,24 @@ datasets:
       destination: *dest
       gx_enabled: true
 
+  - drug_info:
+      files:
+        - name: ot_drug_metadata
+          id: syn73724873.12
+          format: json
+        - name: drug_list
+          id: syn73677240.14
+          format: csv
+        - name: gene_metadata
+          id: syn25953363.16
+          format: feather
+      final_format: json
+      custom_transformations: transform_drug_info
+      column_rename:
+        source: program
+      destination: *dest
+      gx_enabled: false
+
   - nominated_drugs:
       files:
         - name: drug_list
@@ -292,6 +310,24 @@ datasets:
           format: json
       final_format: json
       custom_transformations: transform_nominated_drugs
+      destination: *dest
+      gx_enabled: false
+
+  - nominated_targets:
+      files:
+        - name: target_list
+          id: syn12540368.74
+          format: csv
+        - name: gene_metadata
+          id: syn25953363.16
+          format: feather
+        - name: pharos_classes
+          id: syn64123611.2
+          format: csv
+      final_format: json
+      custom_transformations: transform_nominated_targets
+      agora_rename:
+        symbol: hgnc_symbol
       destination: *dest
       gx_enabled: false
 
