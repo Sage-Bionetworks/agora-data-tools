@@ -518,6 +518,8 @@ build_mo_object <- function() {
   filters <- build_filters(mo_filters, mo_filter_values)
 
   # Assemble the ui_config object
+  # note that the page value does not actually control the CT's display title
+  # so this is not updated to 'Mouse Model Overview' even though the display title will be updated
   list(
     page = "Model Overview",
     dropdowns = list(),
@@ -563,9 +565,7 @@ marmo_mo_filters <- data.frame(
 # ----------------------------
 # Include modified_gene filter values for genes modified in any included model
 # Note: like human gene symbols, marmoset gene symbols use all caps
-marmo_mo_modified_gene_filter_vals <- c(
-                               'PSEN1'
-                               )
+marmo_mo_modified_gene_filter_vals <- c('PSEN1')
 
 marmo_mo_filter_values <- list(
   c('Plasma Biomarkers'),
