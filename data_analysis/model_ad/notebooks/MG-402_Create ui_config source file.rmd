@@ -519,7 +519,7 @@ build_mo_object <- function() {
 
   # Assemble the ui_config object
   list(
-    page = "Mouse Model Overview",
+    page = "Model Overview",
     dropdowns = list(),
     row_count = model_overview_row_count,
     columns = columns,
