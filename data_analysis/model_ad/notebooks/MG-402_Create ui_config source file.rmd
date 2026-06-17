@@ -444,6 +444,10 @@ build_dc_objects <- function() {
 # **************
 # Model Overview
 # **************
+
+# ********************
+# Mouse Model Overview
+# ********************
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
 mo_columns <- data.frame(
@@ -483,6 +487,8 @@ mo_filters <- data.frame(
 # Model Overview Filter Values
 # ----------------------------
 # Include modified_gene filter values for genes modified in any included model
+# - Mouse gene symbols use initial caps, e.g. Psen1
+# - For human transgenes introduced into mouse models use all caps, e.g. PSEN1
 mo_modified_gene_filter_vals <- c('Abca7',
                                'APOE',
                                'APP',
@@ -513,7 +519,68 @@ build_mo_object <- function() {
 
   # Assemble the ui_config object
   list(
-    page = "Model Overview",
+    page = "Mouse Model Overview",
+    dropdowns = list(),
+    row_count = model_overview_row_count,
+    columns = columns,
+    filters = filters
+  )
+}
+
+
+# ********************
+# Marmo Model Overview
+# ********************
+
+marmo_ad_adkp_study_url <- "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn61849889"
+
+# name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
+#
+marmo_mo_columns <- data.frame(
+  name = c("Model", "Model Type", "Plasma Biomarkers", "Study Data", NA, NA),
+  type = c("primary", "text", "link_internal", "link_external", "text", "text"),
+  data_key = c("name", "model_type", "biomarkers", "study_data", "modified_genes", "available_data"),
+  tooltip = c("Marmoset Model",  rep(NA, times = 5)),
+  sort_tooltip = rep(NA, times = 6),
+  link_url = c(NA, NA, NA, marmo_ad_adkp_study_url, NA, NA),
+  link_text = c(NA, NA, "Results", "View Data", NA, NA),
+  is_exported = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+  is_hidden = c(FALSE, FALSE, FALSE, FALSE, TRUE, TRUE),
+  stringsAsFactors = FALSE
+)
+
+# Marmo Model Overview Filters
+# ----------------------
+marmo_mo_filters <- data.frame(
+  name = c('Available Data', 'Model Type', 'Modified Gene'),
+  data_key = c('available_data', 'model_type', 'modified_genes'),
+  short_name = c('Data', 'Type', 'Gene'),
+  query_param_key = c('availableData', 'modelTypes', 'modifiedGenes'),
+  stringsAsFactors = FALSE
+)
+
+# Marmo Model Overview Filter Values
+# ----------------------------
+# Include modified_gene filter values for genes modified in any included model
+# Note: like human gene symbols, marmoset gene symbols use all caps
+marmo_mo_modified_gene_filter_vals <- c(
+                               'PSEN1'
+                               )
+
+marmo_mo_filter_values <- list(
+  c('Plasma Biomarkers'),
+  model_type_filter_vals,
+  marmo_mo_modified_gene_filter_vals
+)
+
+# Generates Model Overview ui_config objects
+build_marmo_mo_object <- function() {
+  columns <- build_object(marmo_mo_columns)
+  filters <- build_filters(marmo_mo_filters, marmo_mo_filter_values)
+
+  # Assemble the ui_config object
+  list(
+    page = "Marmoset Model Overview",
     dropdowns = list(),
     row_count = model_overview_row_count,
     columns = columns,
@@ -532,7 +599,8 @@ build_mo_object <- function() {
 json_list <- c(
   build_ge_objects(),
   build_dc_objects(),
-  list(build_mo_object())
+  list(build_mo_object()),
+  list(build_marmo_mo_object())
 )
 
 json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
