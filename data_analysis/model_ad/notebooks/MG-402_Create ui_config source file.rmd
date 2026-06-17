@@ -167,7 +167,6 @@ build_filters <- function(filter_defs, filter_values) {
 # ------------------------------
 ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
 ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
-ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 
 # Differential Expression Columns
 # -------------------------
@@ -176,11 +175,11 @@ ge_menu3 <- c("Sex - Females & Males", "Sex - Females", "Sex - Males")
 # Static columns are the same across all views
 ge_primary_column <- list("Gene", "primary", "gene_symbol", "Mouse Gene", NA, NA, NA, TRUE, FALSE)
 ge_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE)
+ge_sex_column <- list("Sex", "text", "sex_cohort", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
 ge_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA, TRUE, FALSE)
 
 # Hidden static columns
 ge_tissue_column <- list(NA, "text", "tissue", NA, NA, NA, NA, TRUE, TRUE)
-ge_sex_cohort_column <- list(NA, "text", "sex_cohort", NA, NA, NA, NA, TRUE, TRUE)
 ge_biodomains_column <- list(NA, "text", "biodomains", NA, NA, NA, NA, TRUE, TRUE)
 ge_model_group_column <- list(NA, "text", "model_group", NA, NA, NA, NA, FALSE, TRUE)
 ge_model_type_column <- list(NA, "text", "model_type", NA, NA, NA, NA, TRUE, TRUE)
@@ -200,10 +199,10 @@ ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 # Differential Expression Filters
 # -----------------------
 ge_filters <- data.frame(
-  name = c('Biological Domain', 'Model Type', 'Mouse Model'),
-  data_key = c('biodomains', 'model_type', 'name'),
-  short_name = c('Biodomain', 'Type', 'Model'),
-  query_param_key = c('biodomains', 'modelTypes', 'models'),
+  name = c('Biological Domain', 'Model Type', 'Mouse Model', 'Sex'),
+  data_key = c('biodomains', 'model_type', 'name', 'sex_cohort'),
+  short_name = c('Biodomain', 'Type', 'Model', 'Sex'),
+  query_param_key = c('biodomains', 'modelTypes', 'models', 'sex'),
   stringsAsFactors = FALSE
 )
 
@@ -237,8 +236,8 @@ build_ge_objects <- function() {
   primary <- do.call(build_column, ge_primary_column)
   ensembl_gene_id  <- do.call(build_column, ge_ensembl_gene_id_column)
   tissue <- do.call(build_column, ge_tissue_column)
-  sex_cohort <- do.call(build_column, ge_sex_cohort_column)
   model <- do.call(build_column, ge_model_column)
+  sex <- do.call(build_column, ge_sex_column)
   matched_control <- do.call(build_column, ge_matched_control_column)
   biodomains <- do.call(build_column, ge_biodomains_column)
   model_group <- do.call(build_column, ge_model_group_column)
@@ -246,7 +245,7 @@ build_ge_objects <- function() {
 
 
   # Build a ui_config for each possible combination of dropdown menu options
-  dropdown_combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, menu3 = ge_menu3, stringsAsFactors = FALSE)
+  dropdown_combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, stringsAsFactors = FALSE)
   lapply(seq_len(nrow(dropdown_combos)), function(i) {
     combo <- dropdown_combos[i, ]
 
@@ -272,11 +271,12 @@ build_ge_objects <- function() {
     ge_filter_values <- list(
       biodomain_filter_vals,
       model_type_filter_vals,
-      dynamic_model_filters
+      dynamic_model_filters,
+      sex_filter_vals
     )
 
     # The column ordering is mirrored when a CSV is generated
-    columns <- c(list(primary, ensembl_gene_id, tissue, sex_cohort, model, matched_control), dynamic_columns, c(list(biodomains, model_type, model_group)))
+    columns <- c(list(primary, ensembl_gene_id, tissue, model, sex, matched_control), dynamic_columns, c(list(biodomains, model_type, model_group)))
     filters <- build_filters(ge_filters, ge_filter_values)
 
     list(
