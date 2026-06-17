@@ -112,7 +112,7 @@ datasets:
           id: syn69014401.17
           format: csv
         - name: mouse_gene_metadata
-          id: syn51615422.4
+          id: syn51615422.6
           format: json
         - name: biodom_genes_mm
           id: syn66351272.1
@@ -145,7 +145,7 @@ datasets:
           id: syn69014401.17
           format: csv
         - name: mouse_gene_metadata
-          id: syn51615422.4
+          id: syn51615422.6
           format: json
         - name: Jax.IU.Pitt_APOE4.Trem2.R47H_normalized_expression
           id: syn72388432.1
