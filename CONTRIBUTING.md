@@ -237,31 +237,32 @@ Rather than using GitHub actions to build and push Docker images to DockerHub, t
 
 ### Testing a Branch on Nextflow Tower
 
-The [nf-agora](https://github.com/Sage-Bionetworks-Workflows/nf-agora) pipeline runs `adt` inside a Docker container pulled from GHCR. By default it uses `ghcr.io/sage-bionetworks/agora-data-tools:latest`, which is only updated when changes are merged to `dev`. To test branch-specific changes (e.g. a new GX expectation suite) in a Tower run before merging, you need to build a custom image from your branch and override the container in the Tower run configuration.
+The [nf-agora](https://github.com/Sage-Bionetworks-Workflows/nf-agora) pipeline runs `adt` inside a Docker container pulled from GHCR. CI automatically builds and pushes a Docker image for every commit, tagged with the short commit SHA: `ghcr.io/sage-bionetworks/agora-data-tools:sha-<short-sha>`.
 
-#### Step 1: Authenticate with GHCR
+To test specific changes in a Tower run, use the commit's SHA tag to pin the exact image.
 
-You need a GitHub token with `write:packages` scope. The easiest way is via the GitHub CLI:
+#### Step 1: Find the commit SHA tag
 
-```shell
-gh auth login --scopes write:packages
-gh auth token | docker login ghcr.io -u <your-github-username> --password-stdin
-```
-
-#### Step 2: Build and push the Docker image
-
-From the root of this repository, on your feature branch:
+Make sure all your code and config changes are pushed to GitHub:
 
 ```shell
-BRANCH_TAG=ghcr.io/sage-bionetworks/agora-data-tools:<your-branch-name>
-
-docker build -t $BRANCH_TAG .
-docker push $BRANCH_TAG
+git push
 ```
 
-Replace `<your-branch-name>` with a short, descriptive tag (e.g. `jbritton-MG-761`). Avoid slashes in the tag — use hyphens instead.
+Get the short SHA of the commit you want to test:
 
-#### Step 3: Create a feature branch in nf-agora
+```shell
+git log --oneline -1
+# e.g. b55b7a8 Your commit message
+```
+
+Once the `ghcr-publish` CI job completes for that commit, the image will be available at:
+
+```
+ghcr.io/sage-bionetworks/agora-data-tools:sha-<short-sha>
+```
+
+#### Step 2: Create a feature branch in nf-agora
 
 Clone [nf-agora](https://github.com/Sage-Bionetworks-Workflows/nf-agora) and create a feature branch:
 
@@ -271,17 +272,17 @@ cd nf-agora
 git checkout -b <your-branch-name>
 ```
 
-Edit the `container` directive in `main.nf` to point to your custom image:
+Edit the `container` directive in `main.nf` to pin to your commit's image:
 
 ```groovy
 // Before
 container "ghcr.io/sage-bionetworks/agora-data-tools:latest"
 
 // After
-container "ghcr.io/sage-bionetworks/agora-data-tools:<your-branch-tag>"
+container "ghcr.io/sage-bionetworks/agora-data-tools:sha-<short-sha>"
 ```
 
-Also update the relevant profile in `nextflow.config` to point the `config` param at your `agora-data-tools` branch:
+Also update the relevant profile in `nextflow.config` to point the `config` param at your config file:
 
 ```groovy
 model_ad_preprod {
@@ -291,18 +292,16 @@ model_ad_preprod {
 }
 ```
 
-> **Note:** The Docker tag uses hyphens (e.g. `MG-123`) because Docker tags cannot contain slashes, while the config URL uses the full branch name with slashes (e.g. `linglp/MG-123`).
-
-#### Step 4: Push the nf-agora branch and launch in Tower
+#### Step 3: Push the nf-agora branch and launch in Tower
 
 Push your `nf-agora` feature branch:
 
 ```shell
 git add main.nf nextflow.config
-git commit -m "Test with custom agora-data-tools image for <your-branch-name>"
+git commit -m "Test agora-data-tools sha-<short-sha>"
 git push --set-upstream origin <your-branch-name>
 ```
 
-Then follow the [nf-agora pipeline launch instructions](https://github.com/Sage-Bionetworks-Workflows/nf-agora/blob/main/README.md#launching-the-pipeline). When selecting the **Revision**, make sure to choose your `nf-agora` feature branch (not Main)
+Then follow the [nf-agora pipeline launch instructions](https://github.com/Sage-Bionetworks-Workflows/nf-agora/blob/main/README.md#launching-the-pipeline). When selecting the **Revision**, make sure to choose your `nf-agora` feature branch (not Main).
 
-Once your `agora-data-tools` branch is merged to `dev`, delete your temporary `nf-agora` branch and the custom GHCR image to avoid clutter.
+Once testing is complete, delete your temporary `nf-agora` branch to avoid clutter.
