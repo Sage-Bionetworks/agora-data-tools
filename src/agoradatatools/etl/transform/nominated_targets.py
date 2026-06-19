@@ -12,8 +12,9 @@ from agoradatatools.etl.utils import (
 
 ENSEMBL_GENE_ID_REGEX = r"^ENSG\d+$"
 
-# Pharos development levels in priority order. A gene can have several pharos
-# rows; the most "interesting" single level (Tclin) wins over the least (Tdark).
+# Genes can have multiple pharos_class values;
+# we only want the 'most interesting' single value.
+# Prioritized list of values, Tclin >>> Tdark
 PHAROS_PRIORITY = ["Tclin", "Tchem", "Tbio", "Tdark"]
 
 REQUIRED_INPUT = {
