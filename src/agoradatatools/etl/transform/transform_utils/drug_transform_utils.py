@@ -18,11 +18,6 @@ MODALITY_VALUES = {"Small molecule", "Protein"}
 CHEMBL_ID_REGEX = r"^CHEMBL\d+$"
 
 
-def _capitalize_first_character(text: str) -> str:
-    """Capitalize the first character of a string, leaving the rest unchanged."""
-    return text[:1].upper() + text[1:] if isinstance(text, str) and text else text
-
-
 def capitalize_first_character(df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
     """Capitalize the first character of string columns without changing the rest.
 
@@ -36,9 +31,13 @@ def capitalize_first_character(df: pd.DataFrame, fields: list[str]) -> pd.DataFr
     Returns:
         The same DataFrame with first-character capitalization applied.
     """
+
+    def capitalize(text):
+        return text[:1].upper() + text[1:] if isinstance(text, str) and text else text
+
     for field in fields:
         if field in df.columns:
-            df[field] = df[field].apply(_capitalize_first_character)
+            df[field] = df[field].apply(capitalize)
     return df
 
 
