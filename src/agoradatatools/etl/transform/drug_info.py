@@ -126,20 +126,18 @@ _NOMINATION_GROUPING = ["chembl_id", "common_name", "iupac_id"]
 
 def _pi_lastname_sort_key(nomination: dict[str, Any]) -> str:
     """Return lowercase PI last name for sorting nomination rows."""
-    name = nomination.get("contact_pi")
-    if not name or not isinstance(name, str):
-        return ""
-    name_part = name.split(",")[0].strip()
+    name_part = nomination["contact_pi"].split(",")[0].strip()
     parts = name_part.split()
     return parts[-1].lower() if parts else ""
 
 
-def _resolve_target_list(
+def _map_ensembl_id_list_to_dicts(
     target_list: list[str] | None, gene_map: dict[str, str]
 ) -> List[Dict[str, str]]:
-    """Map Ensembl IDs in *target_list* to {ensembl_gene_id, hgnc_symbol} dicts.
+    """Map Ensembl IDs in target_list to {ensembl_gene_id, hgnc_symbol} dicts.
 
-    When *g_id* is missing from *gene_map*, ``hgnc_symbol`` falls back to the Ensembl ID.
+    When an Ensembl ID is missing from gene_map, hgnc_symbol falls back to the
+    Ensembl ID.
     """
     if not isinstance(target_list, list):
         return []
@@ -164,32 +162,30 @@ def _get_best_iupac_id(group: pd.Series) -> str:
     return next(iter(valid_ids), "Unknown")
 
 
-def _resolve_linked_targets(
+def _resolve_linked_target_symbols(
     drug_metadata: pd.DataFrame, gene_metadata: pd.DataFrame
 ) -> pd.DataFrame:
     """Replace Ensembl ID lists with {ensembl_gene_id, hgnc_symbol} dicts."""
-    ensembl_ids = drug_metadata["linked_targets"].explode().dropna().unique()
-    gene_map = (
-        gene_metadata[gene_metadata["ensembl_gene_id"].isin(ensembl_ids)]
-        .set_index("ensembl_gene_id")["symbol"]
-        .to_dict()
-    )
+    gene_map = gene_metadata.set_index("ensembl_gene_id")["symbol"].to_dict()
 
     drug_metadata = drug_metadata.copy()
     drug_metadata["linked_targets"] = drug_metadata["linked_targets"].apply(
-        lambda target_list: _resolve_target_list(target_list, gene_map)
+        lambda target_list: _map_ensembl_id_list_to_dicts(target_list, gene_map)
     )
     return drug_metadata
 
 
-def _build_combined_with(
-    common_name: str | float, chembl_id: str | float
+def _build_single_combined_with_entry(
+    common_name: str | None, chembl_id: str | None
 ) -> List[Dict[str, str]]:
-    """Wrap a single combined-with partner as a one-element list of partner dicts.
+    """Combine a name/ChEMBL ID pair into a dict wrapped as a single-item list.
 
-    Production drug_list rows carry at most one combined-with partner per row, and
-    ``validate_drug_list_integrity`` guarantees the name and ID columns are populated
-    together. Returns an empty list when no partner is present.
+    validate_drug_list_integrity guarantees the name and ID columns are either both
+    populated or both missing; returns an empty list when both are missing.
+
+    The result is returned as a single-item list (rather than a dict or None)
+    because the drug_info output contract consumed by the Agora UI expects
+    combined_with to be a list of partner dicts.
     """
     if pd.isnull(common_name) or pd.isnull(chembl_id):
         return []
@@ -199,7 +195,12 @@ def _build_combined_with(
 def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
     """Nest nomination rows into drug_nominations and collapse to one row per chembl_id.
 
-    Expects *drug_list* already passed through ``validate_drug_list_integrity``.
+    Expects drug_list already passed through validate_drug_list_integrity. For each
+    chembl_id this picks a single best iupac_id, builds a per-row combined_with list,
+    capitalizes the flat nomination text columns, nests the remaining nomination
+    columns into a drug_nominations list, and sorts those nominations by PI last name.
+
+    Returns one row per chembl_id with a nested drug_nominations column.
     """
     drug_list = drug_list.copy()
     drug_list["iupac_id"] = drug_list.groupby("chembl_id")["iupac_id"].transform(
@@ -207,14 +208,14 @@ def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
     )
 
     drug_list["combined_with"] = drug_list.apply(
-        lambda row: _build_combined_with(
+        lambda row: _build_single_combined_with_entry(
             row["combined_with_common_name"], row["combined_with_chembl_id"]
         ),
         axis=1,
     )
 
     # Capitalize the flat nomination text columns before nesting so the values
-    # land capitalized inside drug_nominations (no nested-dict handling needed).
+    # land capitalized inside drug_nominations.
     drug_list = capitalize_first_character(drug_list, CAPITALIZE_FIRST_CHARACTER_FIELDS)
 
     # common_name is 1:1 with chembl_id (validate_drug_list_integrity) and iupac_id
@@ -232,6 +233,8 @@ def _collapse_drug_nominations(drug_list: pd.DataFrame) -> pd.DataFrame:
         lambda nominations: sorted(nominations, key=_pi_lastname_sort_key)
     )
 
+    # Missing iupac_ids were set to the "Unknown" sentinel so nest_fields' groupby
+    # would not drop those rows on a null grouping key; restore them to None for output.
     drug_list["iupac_id"] = drug_list["iupac_id"].replace("Unknown", None)
 
     return drug_list
@@ -243,43 +246,33 @@ def transform_drug_info(
 ) -> pd.DataFrame:
     """Build drug_info for nominated drugs only, enriched with OpenTargets metadata.
 
-    Output is driven by ``drug_list``: only nominated ``chembl_id`` values appear.
+    Output is driven by drug_list: only nominated chembl_id values appear.
     OpenTargets-only drugs are excluded. Nominated drugs without a metadata row keep
-    null OT fields. Unmapped ``linked_targets`` Ensembl IDs use the Ensembl ID as
-    ``hgnc_symbol``.
+    null OT fields. Unmapped linked_targets Ensembl IDs use the Ensembl ID as
+    hgnc_symbol.
 
     Args:
-        datasets: ``ot_drug_metadata``, ``drug_list`` (with ``program`` column), and
-            ``gene_metadata`` DataFrames.
+        datasets: ot_drug_metadata, drug_list (with program column), and
+            gene_metadata DataFrames.
         required_input: Required datasets and columns (overridable in tests).
 
     Returns:
-        One row per nominated drug with nested ``drug_nominations`` and resolved
-        ``linked_targets``.
+        One row per nominated drug with nested drug_nominations and resolved
+        linked_targets.
 
     Raises:
         ValueError: If required datasets or columns are missing, column content rules
             are violated, or drug_list integrity checks fail.
     """
     check_required_datasets_and_columns(datasets, required_input)
-
+    check_column_rules(datasets, COLUMN_RULES)
     validate_drug_list_integrity(datasets["drug_list"])
-    drug_list = datasets["drug_list"]
 
-    drug_metadata = datasets["ot_drug_metadata"].copy()
-    gene_metadata = datasets["gene_metadata"]
+    drug_metadata = _resolve_linked_target_symbols(
+        datasets["ot_drug_metadata"], datasets["gene_metadata"]
+    )
 
-    drug_metadata = _resolve_linked_targets(drug_metadata, gene_metadata)
-
-    datasets_for_rules = {
-        **datasets,
-        "ot_drug_metadata": drug_metadata,
-        "drug_list": drug_list,
-    }
-    # COLUMN_RULES apply to metadata before linked_targets is resolved to dicts.
-    check_column_rules(datasets_for_rules, COLUMN_RULES)
-
-    collapsed_drug_list = _collapse_drug_nominations(drug_list)
+    collapsed_drug_list = _collapse_drug_nominations(datasets["drug_list"])
 
     drug_info = pd.merge(
         left=collapsed_drug_list,

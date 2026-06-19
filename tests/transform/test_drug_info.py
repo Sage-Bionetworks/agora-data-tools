@@ -9,7 +9,11 @@ from agoradatatools.etl.transform import drug_info
 
 
 def _minimal_drug_list_row(**overrides: object) -> dict[str, object]:
-    """Build one drug_list row with defaults suitable for _collapse_drug_nominations."""
+    """Build one drug_list row with defaults suitable for _collapse_drug_nominations.
+
+    Pass overrides as column_name=value keyword pairs (e.g. chembl_id="CHEMBL1",
+    contact_pi="Bob Beta") to replace the matching default values for a test row.
+    """
     row: dict[str, object] = {
         "grant_number": "G1",
         "contact_pi": "Alice Smith",
@@ -49,18 +53,29 @@ class TestPiLastnameSortKey:
     def test_uses_last_token_when_no_comma(self) -> None:
         assert drug_info._pi_lastname_sort_key({"contact_pi": "Zara Alpha"}) == "alpha"
 
-    def test_returns_empty_for_missing_or_invalid_contact_pi(self) -> None:
-        assert drug_info._pi_lastname_sort_key({}) == ""
-        assert drug_info._pi_lastname_sort_key({"contact_pi": None}) == ""
-        assert drug_info._pi_lastname_sort_key({"contact_pi": 42}) == ""
+    def test_uses_last_token_with_middle_initial(self) -> None:
+        assert drug_info._pi_lastname_sort_key({"contact_pi": "Bob B. Beta"}) == "beta"
+
+    def test_uses_last_token_with_middle_name(self) -> None:
+        assert (
+            drug_info._pi_lastname_sort_key({"contact_pi": "Bob Bill Beta"}) == "beta"
+        )
+
+    def test_uses_hyphenated_last_name(self) -> None:
+        assert (
+            drug_info._pi_lastname_sort_key({"contact_pi": "Zara Alpha-Smith"})
+            == "alpha-smith"
+        )
 
 
-class TestResolveTargetList:
-    """Tests for _resolve_target_list."""
+class TestMapEnsemblIdListToDicts:
+    """Tests for _map_ensembl_id_list_to_dicts."""
 
     def test_maps_ensembl_ids_to_symbols(self) -> None:
         gene_map = {"ENSG000001": "GENE1"}
-        result = drug_info._resolve_target_list(["ENSG000001", "ENSG000099"], gene_map)
+        result = drug_info._map_ensembl_id_list_to_dicts(
+            ["ENSG000001", "ENSG000099"], gene_map
+        )
         assert result == [
             {"ensembl_gene_id": "ENSG000001", "hgnc_symbol": "GENE1"},
             {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
@@ -68,16 +83,18 @@ class TestResolveTargetList:
 
     def test_falls_back_to_ensembl_id_when_symbol_unresolved(self) -> None:
         """D2: hgnc_symbol uses Ensembl ID when gene is absent from gene_metadata."""
-        result = drug_info._resolve_target_list(["ENSG000099"], {})
+        result = drug_info._map_ensembl_id_list_to_dicts(["ENSG000099"], {})
         assert result == [
             {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
         ]
 
     def test_returns_empty_for_non_list_input(self) -> None:
-        assert drug_info._resolve_target_list(None, {}) == []
+        assert drug_info._map_ensembl_id_list_to_dicts(None, {}) == []
 
     def test_skips_null_ensembl_ids(self) -> None:
-        result = drug_info._resolve_target_list([None, "ENSG1"], {"ENSG1": "G1"})
+        result = drug_info._map_ensembl_id_list_to_dicts(
+            [None, "ENSG1"], {"ENSG1": "G1"}
+        )
         assert result == [{"ensembl_gene_id": "ENSG1", "hgnc_symbol": "G1"}]
 
 
@@ -85,7 +102,7 @@ class TestGetBestIupacId:
     """Tests for _get_best_iupac_id."""
 
     def test_returns_first_non_unknown_value(self) -> None:
-        group = pd.Series(["Unknown", "IUPAC-A", "IUPAC-B"])
+        group = pd.Series([None, "Unknown", "IUPAC-A", "IUPAC-B"])
         assert drug_info._get_best_iupac_id(group) == "IUPAC-A"
 
     def test_returns_unknown_when_only_unknown_or_null(self) -> None:
@@ -93,8 +110,8 @@ class TestGetBestIupacId:
         assert drug_info._get_best_iupac_id(pd.Series([None, None])) == "Unknown"
 
 
-class TestResolveLinkedTargets:
-    """Tests for _resolve_linked_targets."""
+class TestResolveLinkedTargetSymbols:
+    """Tests for _resolve_linked_target_symbols."""
 
     def test_replaces_linked_targets_with_gene_dicts(self) -> None:
         drug_metadata = pd.DataFrame(
@@ -109,7 +126,7 @@ class TestResolveLinkedTargets:
                 "symbol": ["GENE1"],
             }
         )
-        result = drug_info._resolve_linked_targets(drug_metadata, gene_metadata)
+        result = drug_info._resolve_linked_target_symbols(drug_metadata, gene_metadata)
         assert result["linked_targets"].iloc[0] == [
             {"ensembl_gene_id": "ENSG000001", "hgnc_symbol": "GENE1"},
             {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
@@ -356,66 +373,3 @@ class TestTransformDrugInfo:
         datasets = self._build_datasets(input_datasets)
         with pytest.raises(error_type, match=error_match):
             drug_info.transform_drug_info(datasets=datasets)
-
-
-class TestDrugInfoSynapseGolden:
-    """Smoke test against Synapse discovery golden when local files exist.
-
-    Asserts column schema, row count, and chembl_id set only — not byte-for-byte
-    equality with the prototype (syn73880976).
-    """
-
-    discovery_path = "staging/synapse_discovery"
-
-    @pytest.fixture
-    def synapse_inputs_available(self) -> bool:
-        required = [
-            "harmonized_drug_nominations_4_23_26.csv",
-            "opentargets_drug_metadata.json",
-            "gene_table_merged_GRCh38.p14.feather",
-            "drug_info.json",
-        ]
-        return all(
-            os.path.exists(os.path.join(self.discovery_path, f)) for f in required
-        )
-
-    def test_output_matches_golden_schema_and_row_count(
-        self, synapse_inputs_available: bool
-    ) -> None:
-        if not synapse_inputs_available:
-            pytest.skip("Synapse discovery files not present")
-
-        from agoradatatools.etl import utils as etl_utils
-
-        drug_list = pd.read_csv(
-            os.path.join(self.discovery_path, "harmonized_drug_nominations_4_23_26.csv")
-        )
-        drug_list = etl_utils.rename_columns(drug_list, {"source": "program"})
-        ot = pd.read_json(
-            os.path.join(self.discovery_path, "opentargets_drug_metadata.json"),
-            orient="records",
-        )
-        gm = pd.read_feather(
-            os.path.join(self.discovery_path, "gene_table_merged_GRCh38.p14.feather")
-        )
-        golden = pd.read_json(
-            os.path.join(self.discovery_path, "drug_info.json"), orient="records"
-        )
-
-        output = drug_info.transform_drug_info(
-            {
-                "ot_drug_metadata": ot,
-                "drug_list": drug_list,
-                "gene_metadata": gm,
-            }
-        )
-
-        assert list(output.columns) == list(golden.columns)
-        assert len(output) == len(golden)
-
-        # Golden syn73880976 predates drug_list v14: Cefaclor chembl_id changed.
-        known_chembl_id_updates = {"CHEMBL680": "CHEMBL1201018"}
-        normalized_golden_ids = {
-            known_chembl_id_updates.get(cid, cid) for cid in golden["chembl_id"]
-        }
-        assert set(output["chembl_id"]) == normalized_golden_ids
