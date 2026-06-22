@@ -9,7 +9,11 @@ from agoradatatools.etl.transform import drug_info
 
 
 def _minimal_drug_list_row(**overrides: object) -> dict[str, object]:
-    """Build one drug_list row with defaults suitable for _collapse_drug_nominations."""
+    """Build one drug_list row with defaults suitable for _collapse_drug_nominations.
+
+    Pass overrides as column_name=value keyword pairs (e.g. chembl_id="CHEMBL1",
+    contact_pi="Bob Beta") to replace the matching default values for a test row.
+    """
     row: dict[str, object] = {
         "grant_number": "G1",
         "contact_pi": "Alice Smith",
@@ -49,55 +53,27 @@ class TestPiLastnameSortKey:
     def test_uses_last_token_when_no_comma(self) -> None:
         assert drug_info._pi_lastname_sort_key({"contact_pi": "Zara Alpha"}) == "alpha"
 
-    def test_returns_empty_for_missing_or_invalid_contact_pi(self) -> None:
-        assert drug_info._pi_lastname_sort_key({}) == ""
-        assert drug_info._pi_lastname_sort_key({"contact_pi": None}) == ""
-        assert drug_info._pi_lastname_sort_key({"contact_pi": 42}) == ""
+    def test_uses_last_token_with_middle_initial(self) -> None:
+        assert drug_info._pi_lastname_sort_key({"contact_pi": "Bob B. Beta"}) == "beta"
+
+    def test_uses_last_token_with_middle_name(self) -> None:
+        assert (
+            drug_info._pi_lastname_sort_key({"contact_pi": "Bob Bill Beta"}) == "beta"
+        )
+
+    def test_uses_hyphenated_last_name(self) -> None:
+        assert (
+            drug_info._pi_lastname_sort_key({"contact_pi": "Zara Alpha-Smith"})
+            == "alpha-smith"
+        )
 
 
-class TestSortByPiLastname:
-    """Tests for _sort_by_pi_lastname."""
-
-    def test_sorts_nominations_by_pi_last_name(self) -> None:
-        nominations = [
-            {"contact_pi": "Zara Alpha"},
-            {"contact_pi": "Bob Beta, PhD"},
-        ]
-        result = drug_info._sort_by_pi_lastname(nominations)
-        assert [n["contact_pi"] for n in result] == ["Zara Alpha", "Bob Beta, PhD"]
-
-    def test_returns_non_list_unchanged(self) -> None:
-        assert drug_info._sort_by_pi_lastname("not a list") == "not a list"
-
-
-class TestStripRedundantNominationKeys:
-    """Tests for _strip_redundant_nomination_keys."""
-
-    def test_removes_chembl_common_name_and_iupac_id(self) -> None:
-        nominations = [
-            {
-                "chembl_id": "CHEMBL1",
-                "common_name": "DrugA",
-                "iupac_id": "IUPAC-1",
-                "grant_number": "G1",
-            }
-        ]
-        result = drug_info._strip_redundant_nomination_keys(nominations)
-        assert result == [{"grant_number": "G1"}]
-
-    def test_preserves_non_dict_entries(self) -> None:
-        nominations: list = ["keep", {"chembl_id": "CHEMBL1", "program": "P"}]
-        result = drug_info._strip_redundant_nomination_keys(nominations)
-        assert result[0] == "keep"
-        assert result[1] == {"program": "P"}
-
-
-class TestResolveTargetList:
-    """Tests for _resolve_target_list."""
+class TestMapEnsemblIdListToDicts:
+    """Tests for _map_ensembl_id_list_to_dicts."""
 
     def test_maps_ensembl_ids_to_symbols(self) -> None:
         gene_map = {"ENSG000001": "GENE1"}
-        result = drug_info._resolve_target_list(
+        result = drug_info._map_ensembl_id_list_to_dicts(
             ["ENSG000001", "ENSG000099"], gene_map, {"ENSG000001"}
         )
         assert result == [
@@ -115,7 +91,7 @@ class TestResolveTargetList:
 
     def test_falls_back_to_ensembl_id_when_symbol_unresolved(self) -> None:
         """D2: hgnc_symbol uses Ensembl ID when gene is absent from gene_metadata."""
-        result = drug_info._resolve_target_list(["ENSG000099"], {}, set())
+        result = drug_info._map_ensembl_id_list_to_dicts(["ENSG000099"], {}, set())
         assert result == [
             {
                 "ensembl_gene_id": "ENSG000099",
@@ -125,10 +101,10 @@ class TestResolveTargetList:
         ]
 
     def test_returns_empty_for_non_list_input(self) -> None:
-        assert drug_info._resolve_target_list(None, {}, set()) == []
+        assert drug_info._map_ensembl_id_list_to_dicts(None, {}, set()) == []
 
     def test_skips_null_ensembl_ids(self) -> None:
-        result = drug_info._resolve_target_list(
+        result = drug_info._map_ensembl_id_list_to_dicts(
             [None, "ENSG1"], {"ENSG1": "G1"}, {"ENSG1"}
         )
         assert result == [
@@ -144,7 +120,7 @@ class TestGetBestIupacId:
     """Tests for _get_best_iupac_id."""
 
     def test_returns_first_non_unknown_value(self) -> None:
-        group = pd.Series(["Unknown", "IUPAC-A", "IUPAC-B"])
+        group = pd.Series([None, "Unknown", "IUPAC-A", "IUPAC-B"])
         assert drug_info._get_best_iupac_id(group) == "IUPAC-A"
 
     def test_returns_unknown_when_only_unknown_or_null(self) -> None:
@@ -152,8 +128,8 @@ class TestGetBestIupacId:
         assert drug_info._get_best_iupac_id(pd.Series([None, None])) == "Unknown"
 
 
-class TestResolveLinkedTargets:
-    """Tests for _resolve_linked_targets."""
+class TestResolveLinkedTargetSymbols:
+    """Tests for _resolve_linked_target_symbols."""
 
     def test_replaces_linked_targets_with_gene_dicts(self) -> None:
         drug_metadata = pd.DataFrame(
@@ -168,7 +144,7 @@ class TestResolveLinkedTargets:
                 "symbol": ["GENE1"],
             }
         )
-        result = drug_info._resolve_linked_targets(
+        result = drug_info._resolve_linked_target_symbols(
             drug_metadata, gene_metadata, {"ENSG000001"}
         )
         assert result["linked_targets"].iloc[0] == [
@@ -247,6 +223,26 @@ class TestTransformDrugInfo:
 
     data_files_path = "tests/test_assets/drug_info"
 
+    def _build_datasets(self, file_map: dict[str, str]) -> dict[str, pd.DataFrame]:
+        """Load each dataset named in *file_map* by file extension.
+
+        Only the datasets present in *file_map* are loaded, so callers can omit a
+        dataset to exercise the missing-dataset path.
+        """
+        datasets: dict[str, pd.DataFrame] = {}
+        for name, filename in file_map.items():
+            path = os.path.join(self.data_files_path, "input", filename)
+            if filename.endswith(".csv"):
+                df = pd.read_csv(path)
+                if "source" in df.columns and "program" not in df.columns:
+                    df = df.rename(columns={"source": "program"})
+                datasets[name] = df
+            elif filename.endswith(".json"):
+                datasets[name] = pd.read_json(path, orient="records")
+            elif filename.endswith(".feather"):
+                datasets[name] = pd.read_feather(path)
+        return datasets
+
     def _load_datasets(
         self,
         ot_file: str,
@@ -254,22 +250,14 @@ class TestTransformDrugInfo:
         gm_file: str = "gene_metadata_good.feather",
         ht_file: str = "harmonized_targets_good.csv",
     ) -> dict[str, pd.DataFrame]:
-        drug_list = pd.read_csv(os.path.join(self.data_files_path, "input", dl_file))
-        if "source" in drug_list.columns and "program" not in drug_list.columns:
-            drug_list = drug_list.rename(columns={"source": "program"})
-        return {
-            "ot_drug_metadata": pd.read_json(
-                os.path.join(self.data_files_path, "input", ot_file),
-                orient="records",
-            ),
-            "drug_list": drug_list,
-            "gene_metadata": pd.read_feather(
-                os.path.join(self.data_files_path, "input", gm_file)
-            ),
-            "harmonized_targets": pd.read_csv(
-                os.path.join(self.data_files_path, "input", ht_file)
-            ),
-        }
+        return self._build_datasets(
+            {
+                "ot_drug_metadata": ot_file,
+                "drug_list": dl_file,
+                "gene_metadata": gm_file,
+                "harmonized_targets": ht_file,
+            }
+        )
 
     def test_transform_drug_info_should_pass(self) -> None:
         datasets = self._load_datasets(
@@ -349,6 +337,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_missing_program.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Missing required columns",
                 ValueError,
@@ -358,17 +347,9 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_missing_drug_bank_id.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Missing required columns",
-                ValueError,
-            ),
-            (
-                {
-                    "ot_drug_metadata": "ot_drug_metadata_minimal.json",
-                    "drug_list": "drug_list_mismatched_combined.csv",
-                    "gene_metadata": "gene_metadata_minimal.feather",
-                },
-                "Mismatched combined_with",
                 ValueError,
             ),
             (
@@ -376,8 +357,9 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_unpaired_combined_with.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
-                "combined_with_common_name but not in combined_with_chembl_id",
+                "combined_with_common_name",
                 ValueError,
             ),
             (
@@ -385,6 +367,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_integrity_conflict.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Data Integrity Error",
                 ValueError,
@@ -394,6 +377,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_invalid_phase.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "maximum_clinical_trial_phase",
                 ValueError,
@@ -403,6 +387,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_bad_linkage.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Data Integrity Error",
                 ValueError,
@@ -412,6 +397,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_invalid_chembl_id.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "matches_regex",
                 ValueError,
@@ -421,22 +407,33 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_duplicate_chembl_id.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Merge keys are not unique",
                 pd.errors.MergeError,
+            ),
+            (
+                {
+                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_list": "drug_list_empty_contact_pi.csv",
+                    "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
+                },
+                "contact_pi.*not_empty",
+                ValueError,
             ),
         ],
         ids=[
             "missing gene_metadata dataset",
             "missing program column",
             "missing drug_bank_id column",
-            "mismatched combined_with",
             "unpaired combined_with columns",
             "chembl_id common_name conflict",
             "invalid maximum_clinical_trial_phase",
             "bad common_name to chembl_id linkage",
             "invalid chembl_id regex",
             "duplicate chembl_id in ot metadata",
+            "empty contact_pi violates not_empty",
         ],
     )
     def test_transform_drug_info_should_fail(
@@ -445,34 +442,8 @@ class TestTransformDrugInfo:
         error_match: str,
         error_type: type[BaseException],
     ) -> None:
+        datasets = self._build_datasets(input_datasets)
         with pytest.raises(error_type, match=error_match):
-            if "drug_list" in input_datasets and input_datasets["drug_list"].endswith(
-                ".csv"
-            ):
-                datasets = self._load_datasets(
-                    input_datasets.get(
-                        "ot_drug_metadata", "ot_drug_metadata_good.json"
-                    ),
-                    input_datasets["drug_list"],
-                    input_datasets.get("gene_metadata", "gene_metadata_good.feather"),
-                )
-            elif "ot_drug_metadata" in input_datasets:
-                drug_list = pd.read_csv(
-                    os.path.join(self.data_files_path, "input", "drug_list_good.csv")
-                )
-                if "source" in drug_list.columns and "program" not in drug_list.columns:
-                    drug_list = drug_list.rename(columns={"source": "program"})
-                datasets = {
-                    "ot_drug_metadata": pd.read_json(
-                        os.path.join(
-                            self.data_files_path,
-                            "input",
-                            input_datasets["ot_drug_metadata"],
-                        ),
-                        orient="records",
-                    ),
-                    "drug_list": drug_list,
-                }
             drug_info.transform_drug_info(datasets=datasets)
 
 

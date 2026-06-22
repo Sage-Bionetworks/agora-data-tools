@@ -78,8 +78,13 @@ class MatchesRegexRule(ColumnRule):
         self.value = value
 
     def count_violations(self, series: pd.Series) -> int:
-        """Return the number of values in *series* that do not match the regex at the start."""
-        return int((~series.astype(str).str.match(self.value, na=False)).sum())
+        """Return the number of non-null values in *series* that do not match the regex at the start.
+
+        Null values are skipped so this rule only validates the format of present
+        values; use NotEmptyRule to require presence.
+        """
+        present = series.notna()
+        return int((~series[present].astype(str).str.match(self.value, na=False)).sum())
 
     @property
     def value_detail(self) -> str:
@@ -258,6 +263,29 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     except TypeError:  # I could not get this to trigger without mocking replace
         print("Error comparing types.")
 
+    return df
+
+
+def capitalize_first_character(df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
+    """Capitalize the first character of string columns without changing the rest.
+
+    Preserves acronyms and mixed-case values (e.g. APOE, DRIAD-SP). Operates on
+    flat string columns only; non-string values are returned unchanged.
+
+    Args:
+        df: DataFrame to modify in place (also returned).
+        fields: Column names to capitalize. Missing columns are skipped.
+
+    Returns:
+        The same DataFrame with first-character capitalization applied.
+    """
+
+    def capitalize(text):
+        return text[:1].upper() + text[1:] if isinstance(text, str) and text else text
+
+    for field in fields:
+        if field in df.columns:
+            df[field] = df[field].apply(capitalize)
     return df
 
 
@@ -457,36 +485,59 @@ def check_required_datasets_and_columns(
             )
 
 
-def _column_value_present(series: pd.Series) -> pd.Series:
-    """Return True for non-null, non-empty (after strip) values."""
-    return series.notna() & (series.astype(str).str.strip() != "")
+def validate_one_to_one_mapping(
+    df: pd.DataFrame,
+    left_col: str,
+    right_col: str,
+    bidirectional: bool = False,
+) -> None:
+    """Validate that two columns form a consistent mapping.
+
+    By default this checks that each non-null value in left_col maps to at most
+    one distinct value in right_col. When bidirectional is True it also checks
+    the reverse direction, enforcing a true 1:1 mapping in a single call. Rows
+    where the key column is null are ignored for that direction.
+
+    Args:
+        df: The DataFrame to validate.
+        left_col: The first column in the pair.
+        right_col: The second column in the pair.
+        bidirectional: If True, validate the mapping in both directions.
+
+    Raises:
+        ValueError: If a value in the key column maps to more than one distinct
+            value in the paired column.
+    """
+    _validate_mapping_direction(df, left_col, right_col)
+    if bidirectional:
+        _validate_mapping_direction(df, right_col, left_col)
 
 
-def validate_paired_columns(df: pd.DataFrame, col_a: str, col_b: str) -> None:
-    """Fail if any row has a value in only one of two paired columns."""
-    present_a = _column_value_present(df[col_a])
-    present_b = _column_value_present(df[col_b])
-    mismatched = present_a != present_b
-    if mismatched.any():
-        row_indices = df.index[mismatched].tolist()
+def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) -> None:
+    """Validate that each key in key_col maps to at most one value_col value.
+
+    Groups the DataFrame by key_col (ignoring rows where the key is null) and
+    checks that every key is associated with a single distinct value in
+    value_col. Null values in value_col are counted as a distinct value.
+
+    Args:
+        df: The DataFrame containing the mapping to validate.
+        key_col: Name of the column whose values act as mapping keys.
+        value_col: Name of the column whose values should be uniquely determined
+            by each key.
+
+    Raises:
+        ValueError: If any non-null key in key_col maps to more than one
+            distinct value in value_col.
+    """
+    present_keys = df[key_col].notna()
+    counts = df.loc[present_keys].groupby(key_col)[value_col].nunique(dropna=False)
+    offending_keys = counts[counts > 1].index.tolist()
+    if offending_keys:
         raise ValueError(
-            f"Data Integrity Error: {int(mismatched.sum())} row(s) have a value in "
-            f"{col_a} but not in {col_b}, or vice versa. "
-            f"Affected row index(es): {row_indices}. "
-            "Please fix the source data before re-running."
-        )
-
-
-def validate_linkages(df: pd.DataFrame, name_col: str, id_col: str) -> None:
-    """Fail if any value in name_col maps to more than one distinct id_col value."""
-    present = _column_value_present(df[name_col]) & _column_value_present(df[id_col])
-    valid_rows = df.loc[present]
-    counts = valid_rows.groupby(name_col)[id_col].nunique()
-    offending_names = counts[counts > 1].index.tolist()
-    if offending_names:
-        raise ValueError(
-            f"Data Integrity Error: The following {name_col}(s) are associated with "
-            f"multiple {id_col} values: {offending_names}. "
+            f"Data Integrity Error: The following {key_col}(s) are associated with "
+            f"multiple {value_col} values: {offending_keys}. "
+            f"There must be a one-to-one mapping between {key_col} and {value_col}. "
             "Please fix the source data before re-running."
         )
 
@@ -800,88 +851,3 @@ def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
 
     # Return empty list for None or empty string input
     return []
-
-
-def _capitalize_text(text: str) -> str:
-    """Capitalize the first character of a string without changing the rest."""
-    return text[:1].upper() + text[1:] if text else text
-
-
-def _capitalize_value(val: Union[str, list[str], Any]) -> Union[str, list[str], Any]:
-    """Capitalize a string or each string element in a list."""
-    if isinstance(val, list):
-        return [_capitalize_text(i) if isinstance(i, str) else i for i in val]
-    if isinstance(val, str) and val:
-        return _capitalize_text(val)
-    return val
-
-
-def _capitalize_nested_dicts(
-    noms: list[dict[str, Any]], target_key: str
-) -> list[dict[str, Any]]:
-    """Return nomination dicts with *target_key* values capitalized."""
-    result: list[dict[str, Any]] = []
-    for d in noms:
-        if not isinstance(d, dict):
-            result.append(d)
-            continue
-        new_d = dict(d)
-        if target_key in new_d:
-            new_d[target_key] = _capitalize_value(new_d[target_key])
-        result.append(new_d)
-    return result
-
-
-def _capitalize_nested_field(noms: object, target_key: str) -> object:
-    """Capitalize *target_key* inside each dict in a list column cell."""
-    if not isinstance(noms, list):
-        return noms
-    return _capitalize_nested_dicts(noms, target_key)
-
-
-def _capitalize_top_level_column(df: pd.DataFrame, field: str) -> None:
-    """Capitalize string values in a top-level DataFrame column in place."""
-    if field not in df.columns:
-        return
-
-    sample = df[field].dropna().iloc[0] if not df[field].dropna().empty else None
-    if isinstance(sample, list):
-        df[field] = df[field].apply(
-            lambda x: _capitalize_value(x) if isinstance(x, list) else x
-        )
-    else:
-        df[field] = df[field].apply(
-            lambda x: _capitalize_text(x) if isinstance(x, str) and x else x
-        )
-
-
-def _capitalize_nested_column(df: pd.DataFrame, parent: str, child: str) -> None:
-    """Capitalize a nested dict field inside a list column in place."""
-    if parent not in df.columns:
-        return
-    df[parent] = df[parent].apply(
-        lambda x, nested_key=child: _capitalize_nested_field(x, nested_key)
-    )
-
-
-def capitalize_first_character(df: pd.DataFrame, fields: List[str]) -> pd.DataFrame:
-    """Capitalize the first character of string fields without changing the rest.
-
-    Preserves acronyms and mixed-case values (e.g. APOE, DRIAD-SP). Supports
-    top-level columns and nested dict fields via ``parent.child`` notation.
-
-    Args:
-        df: DataFrame to modify in place (also returned).
-        fields: Column names, or ``nested_column.field`` for dicts inside a list column.
-
-    Returns:
-        The same DataFrame with first-character capitalization applied.
-    """
-    for field in fields:
-        if "." in field:
-            parent, child = field.split(".", 1)
-            _capitalize_nested_column(df, parent, child)
-        else:
-            _capitalize_top_level_column(df, field)
-
-    return df

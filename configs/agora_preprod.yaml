@@ -115,8 +115,8 @@ datasets:
 
   - target_exp_validation_harmonized:
       files:
-        - name: target_exp_validation_harmonized
-          id: syn24184512.9
+        - name: target_exp_validation
+          id: syn24184512.11
           format: csv
       final_format: json
       destination: *dest
@@ -147,7 +147,7 @@ datasets:
         - <<: *agora_proteomics_srm_files
         - <<: *rna_diff_expr_data_files
         - name: target_list
-          id: syn12540368.62
+          id: syn12540368.74
           format: csv
         - name: median_expression
           id: syn27211878.2
@@ -195,10 +195,10 @@ datasets:
   - team_info:
       files:
         - name: team_info
-          id: syn12615624.18
+          id: syn12615624.21
           format: csv
         - name: team_member_info
-          id: syn12615633.21
+          id: syn12615633.22
           format: csv
       final_format: json
       custom_transformations: transform_team_info
@@ -285,7 +285,7 @@ datasets:
   - drug_info:
       files:
         - name: ot_drug_metadata
-          id: syn73724873.11
+          id: syn73724873.12
           format: json
         - name: drug_list
           id: syn73677240.14
@@ -309,7 +309,7 @@ datasets:
           id: syn73677240.14
           format: csv
         - name: drug_metadata
-          id: syn73724873.11
+          id: syn73724873.12
           format: json
       final_format: json
       custom_transformations: transform_nominated_drugs

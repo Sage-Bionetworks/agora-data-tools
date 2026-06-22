@@ -5,6 +5,7 @@ import pandas as pd
 from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
     DISPLAY_CLINICAL_PHASES,
+    MODALITY_VALUES,
     validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
@@ -37,6 +38,9 @@ COLUMN_RULES = {
     "drug_list": {
         "common_name": [NotEmptyRule()],
         "chembl_id": [NotEmptyRule(), MatchesRegexRule(CHEMBL_ID_REGEX)],
+        # combined_with_chembl_id is optional, so no NotEmptyRule; the regex only
+        # validates rows where a value is present (nulls are skipped).
+        "combined_with_chembl_id": [MatchesRegexRule(CHEMBL_ID_REGEX)],
         "initial_nomination": [NotEmptyRule()],
         "contact_pi": [NotEmptyRule()],
     },
@@ -45,7 +49,7 @@ COLUMN_RULES = {
     # a nominated chembl_id has no metadata row.
     "drug_metadata": {
         "chembl_id": [NotEmptyRule()],
-        "modality": [OneOfRule({"Small molecule", "Protein"})],
+        "modality": [OneOfRule(MODALITY_VALUES)],
         "maximum_clinical_trial_phase": [OneOfRule(DISPLAY_CLINICAL_PHASES)],
     },
 }
@@ -64,11 +68,6 @@ _OUTPUT_COLUMNS = [
 ]
 
 
-def _unique_sorted_pis(series: pd.Series) -> list[str]:
-    """Return sorted unique non-empty principal investigator names."""
-    return sorted({v.strip() for v in series.dropna().astype(str) if v.strip()})
-
-
 def transform_nominated_drugs(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
@@ -80,17 +79,11 @@ def transform_nominated_drugs(
     nomination details. The transform collapses multiple nomination records from
     the source list into a single summary row per unique grouping key.
 
-    Inputs:
-        drug_list: One row per nomination event. Used to compute nomination counts,
-            earliest nomination year, nominating PIs, programs, and combination
-            partners (combined_with_common_name / combined_with_chembl_id).
-        drug_metadata: OpenTargets-derived metadata keyed by chembl_id (modality,
-            clinical trial phase, year of first approval).
-
     Processing steps:
         1. Validate required datasets and columns.
-        2. Strip whitespace and validate drug_list integrity (paired columns,
-           per-column linkages, and cross-field name/ChEMBL bijection).
+        2. Validate drug_list integrity: require the combined_with name/ID
+           columns to be populated together, and enforce a 1:1 common_name <->
+           chembl_id mapping across the primary and combined_with columns.
         3. Validate per-column content rules on drug_list and metadata.
         4. Group drug_list by (common_name, chembl_id, combined_with_*) and
            aggregate: row count, min(initial_nomination), sorted unique PIs and
@@ -101,7 +94,12 @@ def transform_nominated_drugs(
         7. Sort rows for deterministic output.
 
     Args:
-        datasets: Dictionary containing "drug_list" and "drug_metadata" DataFrames.
+        datasets: Dictionary containing two DataFrames:
+            "drug_list" (one row per nomination event, used to compute nomination
+            counts, earliest nomination year, nominating PIs, programs, and
+            combination partners) and "drug_metadata" (OpenTargets-derived metadata
+            keyed by chembl_id: modality, clinical trial phase, year of first
+            approval).
         required_input: Required datasets and columns. Defaults to REQUIRED_INPUT.
 
     Returns:
@@ -111,21 +109,18 @@ def transform_nominated_drugs(
 
     Raises:
         ValueError: If required datasets or columns are missing, column content
-            rules are violated, paired combined_with columns are mismatched,
-            per-column or cross-field name/ID linkages are not bijective.
+            rules are violated, the combined_with columns are unevenly populated,
+            or the common_name/chembl_id mapping is not 1:1.
     """
     check_required_datasets_and_columns(datasets, required_input)
 
-    drug_list = validate_drug_list_integrity(datasets["drug_list"])
+    validate_drug_list_integrity(datasets["drug_list"])
 
-    datasets_for_rules = {
-        **datasets,
-        "drug_list": drug_list,
-    }
-    check_column_rules(datasets_for_rules, COLUMN_RULES)
+    check_column_rules(datasets, COLUMN_RULES)
 
     nominated_drugs = (
-        drug_list.groupby(
+        datasets["drug_list"]
+        .groupby(
             [
                 "common_name",
                 "chembl_id",
@@ -137,7 +132,7 @@ def transform_nominated_drugs(
         .agg(
             total_nominations=("common_name", "size"),
             initial_nomination=("initial_nomination", "min"),
-            principal_investigators=("contact_pi", _unique_sorted_pis),
+            principal_investigators=("contact_pi", lambda x: sorted(set(x))),
             programs=("source", lambda x: sorted(set(x.dropna()))),
         )
         .reset_index()
@@ -155,6 +150,8 @@ def transform_nominated_drugs(
         validate="m:1",
     )
 
+    # Nullable Int64 (not int): a plain int cast cannot represent missing values.
+    # float cast would add decimal places to the year.
     nominated_drugs["year_of_first_approval"] = nominated_drugs[
         "year_of_first_approval"
     ].astype("Int64")
