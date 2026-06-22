@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a69e834e42bfa29c614bb54d2d93000aca5ea921d5230c53a0d3e5f3f8f46f13"
+            "sha256": "87a2b9cb123a48982574eb98064e3a81a36b8dae1d6482373db904508dd89438"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -748,11 +748,12 @@
         },
         "jupyter-server": {
             "hashes": [
-                "sha256:1731236bc32b680223e1ceb9d68209a845203475012ef68773a81434b46a31a7",
-                "sha256:cb76591b76d7093584c2ad2ae72ac3d58614a4b597507a1bb04e1f9f683cf9ea"
+                "sha256:b5778ba337d8015a3dc2b80803ecdd5ac18d3797fddf61a50ea5fb472b4ebe14",
+                "sha256:c3b67c93c471e947c18b5026f04f21614218adb706df8f48227d3ee8e0a7cdcc"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==2.19.0"
+            "version": "==2.20.0"
         },
         "jupyter-server-terminals": {
             "hashes": [
@@ -938,11 +939,11 @@
         },
         "mistune": {
             "hashes": [
-                "sha256:78cdb0ba5e938053ccf63651b352508d2efa9411dc8810bfb05f2dc5140c0048",
-                "sha256:7c8e5501d38bac1582e067e46c8343f17d57ea1aaa735823f3aba1fd59c88a28"
+                "sha256:61c4ca5f8c1e0f4622e85bdec00ebf93942a742123bb26440a737bac0edce5c6",
+                "sha256:7d2108b532850ab81d3e92a5566abe1168f4f27c0c9dbe914e02d1d06e2a0288"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==3.2.1"
+            "version": "==3.3.1"
         },
         "nbclient": {
             "hashes": [
@@ -3081,11 +3082,11 @@
         },
         "jupyter-server": {
             "hashes": [
-                "sha256:1731236bc32b680223e1ceb9d68209a845203475012ef68773a81434b46a31a7",
-                "sha256:cb76591b76d7093584c2ad2ae72ac3d58614a4b597507a1bb04e1f9f683cf9ea"
+                "sha256:b5778ba337d8015a3dc2b80803ecdd5ac18d3797fddf61a50ea5fb472b4ebe14",
+                "sha256:c3b67c93c471e947c18b5026f04f21614218adb706df8f48227d3ee8e0a7cdcc"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==2.19.0"
+            "version": "==2.20.0"
         },
         "jupyter-server-terminals": {
             "hashes": [
@@ -3271,11 +3272,11 @@
         },
         "mistune": {
             "hashes": [
-                "sha256:78cdb0ba5e938053ccf63651b352508d2efa9411dc8810bfb05f2dc5140c0048",
-                "sha256:7c8e5501d38bac1582e067e46c8343f17d57ea1aaa735823f3aba1fd59c88a28"
+                "sha256:61c4ca5f8c1e0f4622e85bdec00ebf93942a742123bb26440a737bac0edce5c6",
+                "sha256:7d2108b532850ab81d3e92a5566abe1168f4f27c0c9dbe914e02d1d06e2a0288"
             ],
             "markers": "python_version >= '3.8'",
-            "version": "==3.2.1"
+            "version": "==3.3.1"
         },
         "mypy-extensions": {
             "hashes": [
