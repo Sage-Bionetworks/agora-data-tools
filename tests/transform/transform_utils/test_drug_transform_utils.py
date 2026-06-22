@@ -82,29 +82,3 @@ class TestValidateDrugListIntegrity:
         )
         with pytest.raises(ValueError, match="chembl_id.*multiple common_name values"):
             dtu.validate_drug_list_integrity(df)
-
-
-class TestCapitalizeFirstCharacter:
-    """Tests for capitalize_first_character on flat string columns."""
-
-    def test_capitalizes_string_column(self) -> None:
-        df = pd.DataFrame({"name": ["lowercase text"]})
-        result = dtu.capitalize_first_character(df, ["name"])
-        assert result["name"].iloc[0] == "Lowercase text"
-
-    def test_preserves_mixed_case_after_first_character(self) -> None:
-        df = pd.DataFrame({"name": ["aPOE variant"]})
-        result = dtu.capitalize_first_character(df, ["name"])
-        assert result["name"].iloc[0] == "APOE variant"
-
-    def test_leaves_non_string_and_empty_values_unchanged(self) -> None:
-        df = pd.DataFrame({"name": [None, "", "text"]})
-        result = dtu.capitalize_first_character(df, ["name"])
-        assert result["name"].iloc[0] is None
-        assert result["name"].iloc[1] == ""
-        assert result["name"].iloc[2] == "Text"
-
-    def test_skips_missing_columns(self) -> None:
-        df = pd.DataFrame({"name": ["text"]})
-        result = dtu.capitalize_first_character(df, ["absent"])
-        assert result["name"].iloc[0] == "text"

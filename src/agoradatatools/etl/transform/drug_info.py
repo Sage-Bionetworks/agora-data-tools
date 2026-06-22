@@ -8,13 +8,13 @@ from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     CHEMBL_ID_REGEX,
     DISPLAY_CLINICAL_PHASES,
     MODALITY_VALUES,
-    capitalize_first_character,
     validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,
+    capitalize_first_character,
     check_column_rules,
     check_required_datasets_and_columns,
     nest_fields,
