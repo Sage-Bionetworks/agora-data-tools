@@ -76,6 +76,8 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "combined_with",
+        "condition_parser": "pandas",
+        "row_condition": "combined_with.notnull()",
         "type_": "str"
       },
       "meta": {}
@@ -187,6 +189,8 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "modality",
+        "condition_parser": "pandas",
+        "row_condition": "modality.notnull()",
         "type_": "str"
       },
       "meta": {}
@@ -227,6 +231,8 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "maximum_clinical_trial_phase",
+        "condition_parser": "pandas",
+        "row_condition": "maximum_clinical_trial_phase.notnull()",
         "type_": "str"
       },
       "meta": {}
