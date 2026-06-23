@@ -301,10 +301,10 @@ datasets:
           id: syn12540368.74
           format: csv
         - name: gene_metadata
-          id: syn25953363.16
+          id: syn25953363.17
           format: feather
         - name: pharos_classes
-          id: syn64123611.2
+          id: syn64123611.3
           format: csv
       final_format: json
       custom_transformations: transform_nominated_targets

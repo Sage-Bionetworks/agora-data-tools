@@ -132,3 +132,67 @@ class TestTransformNominatedTargets:
         )
         with pytest.raises(error_type, match=error_match):
             nominated_targets.transform_nominated_targets(datasets=datasets)
+
+    def test_transform_nominated_targets_should_fail_on_duplicate_gene_metadata(
+        self,
+    ) -> None:
+        """Duplicate ensembl_gene_id in gene_metadata violates the m:1 merge."""
+        datasets = self._load_datasets(
+            "target_list_good_input.csv",
+            "gene_metadata_duplicate_ensembl_gene_id_input.json",
+            "pharos_classes_good_input.csv",
+        )
+        with pytest.raises(pd.errors.MergeError):
+            nominated_targets.transform_nominated_targets(datasets=datasets)
+
+
+class TestSortedUniqueSplit:
+    """Tests for the _sorted_unique_split helper."""
+
+    test_data = [
+        (["Rush"], ["Rush"]),
+        ([None], []),
+        (["   "], []),
+        (["Rush, MSBB"], ["MSBB", "Rush"]),
+        (["Rush,"], ["Rush"]),
+        (["Rush", "MSBB, Mayo"], ["MSBB", "Mayo", "Rush"]),
+        (["Rush", None], ["Rush"]),
+    ]
+    test_ids = [
+        "Single row, single token",
+        "Single row, NA value",
+        "Single row, all-whitespace value (dropped)",
+        "Single row, comma-separated string",
+        "Single row, trailing comma with missing second value",
+        "Multiple rows, mix of single and comma-separated",
+        "Multiple rows, one missing value",
+    ]
+
+    @pytest.mark.parametrize("values, expected", test_data, ids=test_ids)
+    def test_sorted_unique_split(self, values: list, expected: list[str]) -> None:
+        result = nominated_targets._sorted_unique_split(pd.Series(values, dtype=object))
+        assert result == expected
+
+
+class TestResolvePharosClass:
+    """Tests for the _resolve_pharos_class helper."""
+
+    test_data = [
+        (["Tbio"], "Tbio"),
+        ([None], None),
+        (["Tdark", "Tclin", "Tbio"], "Tclin"),
+        (["Tdark", None], "Tdark"),
+    ]
+    test_ids = [
+        "Single row, valid value",
+        "Single row, missing value",
+        "Multiple rows, highest priority not first",
+        "Multiple rows, one missing value",
+    ]
+
+    @pytest.mark.parametrize("values, expected", test_data, ids=test_ids)
+    def test_resolve_pharos_class(self, values: list, expected: str | None) -> None:
+        result = nominated_targets._resolve_pharos_class(
+            pd.Series(values, dtype=object)
+        )
+        assert result == expected

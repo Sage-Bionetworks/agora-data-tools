@@ -65,16 +65,18 @@ _OUTPUT_COLUMNS = [
 def _sorted_unique_split(series: pd.Series) -> List[str]:
     """Return sorted unique comma-split tokens from a series of strings.
 
-    Source values like ``"Rush, MSBB"`` are split on commas and each token is
-    stripped of surrounding whitespace, so the example yields ``["MSBB", "Rush"]``.
-    Null values are ignored.
+    Each row in the series is a single string that either contains a single
+    value or multiple comma-separated values (e.g. ``"Rush, MSBB"``). This
+    function separates the comma-separated values, flattens the series into a
+    single set of unique values stripped of surrounding whitespace, and sorts
+    them alphabetically, so the example yields ``["MSBB", "Rush"]``. Null values
+    are ignored.
     """
     tokens = set()
-    for value in series.dropna():
-        for token in str(value).split(","):
-            token = token.strip()
-            if token:
-                tokens.add(token)
+    flattened = series.str.split(",").explode().dropna()
+    for value in flattened.str.strip():
+        if value:
+            tokens.add(value)
     return sorted(tokens)
 
 
@@ -82,7 +84,7 @@ def _resolve_pharos_class(pharos_classes: pd.Series) -> Optional[str]:
     """Collapse a gene's pharos_class values to the single highest-priority one.
 
     Returns the first member of ``PHAROS_PRIORITY`` (Tclin > Tchem > Tbio >
-    Tdark) present in *pharos_classes*, or ``None`` if none are present.
+    Tdark) present in ``pharos_classes``, or ``None`` if none are present.
     """
     found = set(pharos_classes.dropna())
     for level in PHAROS_PRIORITY:
@@ -161,8 +163,8 @@ def transform_nominated_targets(
 
     resolved_pharos = (
         datasets["pharos_classes"]
-        .groupby("ensembl_gene_id")["pharos_class"]
-        .apply(_resolve_pharos_class)
+        .groupby("ensembl_gene_id")
+        .agg(pharos_class=("pharos_class", _resolve_pharos_class))
         .reset_index()
     )
 
