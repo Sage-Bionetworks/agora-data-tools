@@ -31,19 +31,17 @@ from bioservices import Ensembl, BioMart, UniProt
 
 class QueryObject(ABC):
     """
-    Abstract base class for querying external data sources via a library, GET or POST. This class supports sending a
-    single query or batching large queries into smaller requests to comply with server limits.
+    Abstract base class for querying external data sources via a library, GET or POST. Queries are sent by instantiating
+    a subclass and calling <object>.query() with any arguments necessary for the subclass-specific query. This class
+    automatically retries failed queries up to `n_retries` times, with each attempt triggered by calling `_send_query`.
 
-    This class was written assuming queries are lists of genes for requests to Ensembl, BioMart, and UniProt.
-
-    Subclasses must implement the `query` and `_send_query` methods:
-        * `query` should be a pass-through that calls `_single_query_with_retries` or `_batched_query` with the
-          appropriate parameters.
+    Subclasses must implement the `_send_query` method:
         * `_send_query` should handle building and sending the actual request.
             - If the overall request is a single query, `_send_query` will be called with the same arguments that were
-              passed to `_single_query_with_retries`.
+              passed to query().
             - If the request is a batched query, this function will be called with argument `batch_items`, which
               contains items from a single batch.
+            - `_send_query` should return a pandas DataFrame containing the query results, or None if the query failed.
     """
 
     DEFAULT_N_RETRIES = 5
@@ -63,9 +61,9 @@ class QueryObject(ABC):
         Queries the external data source, automatically handling retries. Classes that need to implement custom query
         logic should override this method.
         """
-        return self._single_query_with_retries(*args, **kwargs)
+        return self._query_with_retries(*args, **kwargs)
 
-    def _single_query_with_retries(self, *args, **kwargs) -> pd.DataFrame:
+    def _query_with_retries(self, *args, **kwargs) -> pd.DataFrame:
         """
         Sends a single query, retrying up to self.n_retries times. Each attempt is made by calling _send_query, which
         should be implemented by the subclass. All arguments are passed through as-is to _send_query.
@@ -95,6 +93,9 @@ class QueryObject(ABC):
 class BatchedQuery(QueryObject, ABC):
     """
     Abstract class for query objects that require breaking queries into batches.
+
+    This class was written assuming that query() will be called with a list of strings (e.g. a list of Ensembl IDs)
+    that can be split into smaller lists for querying.
     """
 
     DEFAULT_BATCH_SIZE = 1000
@@ -129,7 +130,7 @@ class BatchedQuery(QueryObject, ABC):
             print(f"Querying genes {batch_start + 1} - {end}")
 
             # If this function returns without raising an error, the query was successful
-            data = self._single_query_with_retries(
+            data = self._query_with_retries(
                 batch_items=items[batch_start:end], *args, **kwargs
             )
             results.append(data)
@@ -157,7 +158,7 @@ class BioMartQuery(QueryObject):
         self, dataset: str, attributes: list[str], filters: dict[str, list[str]]
     ) -> pd.DataFrame:
         """
-        Queries the Biomart web service using bioservices, with retries handled by _single_query_with_retries.
+        Queries the Biomart web service using bioservices, with retries handled by _query_with_retries.
 
         Args:
             dataset (str): the dataset to query. Must be one of the species in VALID_DATASETS.
@@ -178,7 +179,7 @@ class BioMartQuery(QueryObject):
                 f"Invalid dataset: {dataset}. Valid options are: {self.VALID_DATASETS}"
             )
 
-        result = self._single_query_with_retries(
+        result = self._query_with_retries(
             dataset=dataset, attributes=attributes, filters=filters
         )
         return result
