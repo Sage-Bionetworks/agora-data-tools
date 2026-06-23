@@ -15,60 +15,14 @@ Current public-facing functions:
 
 import pandas as pd
 import numpy as np
-import requests
 import re
 import synapseclient
-from io import StringIO
-from typing import Union, Dict, List, Set
 import agoradatatools.etl.utils as utils
 import agoradatatools.etl.extract as extract
 
+from external_query import EnsemblVersionQuery
 
-def manual_query_biomart(
-    attributes: List[str], filters: Dict[str, Union[List[str], Set[str]]]
-) -> pd.DataFrame:
-    """Performs a GET request to the Biomart web service and returns the response. There is no
-    canonical Python library to query Biomart and no Python library at all to query on
-    'external_gene_name', so this function is necessary for those cases where importing and using
-    R in the notebook is cumbersome.
-
-    Args:
-        attributes (list[str]): a list of attributes that Biomart should return as columns. Common
-                                options are ['ensembl_gene_id', 'external_gene_name', 'chromosome_name']
-        filters (dict[list,set]): a dict where the keys are the attribute to filter on, and the values are a
-                                list or set of valid items. Example: {'external_gene_name': set(list_of_symbols)}
-
-    Returns:
-        result (pd.DataFrame): Biomart's response in DataFrame format, where columns should match
-                               the attributes list and rows contain results that match the filter
-                               values.
-    """
-    query = (
-        '<Query  virtualSchemaName = "default" formatter = "TSV" header = "1" uniqueRows = "0"'
-        + ' count = "" datasetConfigVersion = "0.6" >'
-    )
-    query = query + '<Dataset name = "hsapiens_gene_ensembl" interface = "default" >'
-
-    for name, value in filters.items():
-        query = (
-            query + '<Filter name = "' + name + '" value = "' + ",".join(value) + '"/>'
-        )
-
-    for attr in attributes:
-        query = query + '<Attribute name = "' + attr + '" />'
-
-    query = query + "</Dataset>"
-    query = query + "</Query>"
-
-    response = requests.get(
-        url="https://www.ensembl.org/biomart/martservice", params={"query": query}
-    )
-
-    result = pd.read_csv(StringIO(response.text), sep="\t")
-    return result
-
-
-def query_ensembl_version_api(ensembl_ids: List[str]) -> pd.DataFrame:
+def query_ensembl_version_api(ensembl_ids: list[str]) -> pd.DataFrame:
     """
     Queries the Ensembl API via POST to get version information for each Ensembl ID. The API can only
     process 1000 IDs at a time so the query is broken into batches of 1000. If a request fails, this
@@ -80,49 +34,8 @@ def query_ensembl_version_api(ensembl_ids: List[str]) -> pd.DataFrame:
     Returns:
         a pandas data frame with Ensembl IDs, version, and release information
     """
-    url = "https://rest.ensembl.org/archive/id"
-    headers = {"Content-Type": "application/json", "Accept": "application/json"}
-
-    # We can only query 1000 genes at a time
-    batch_ind = range(0, len(ensembl_ids), 1000)
-    results = []
-
-    for B in batch_ind:
-        end = min(len(ensembl_ids), B + 1000)
-        print("Querying genes " + str(B + 1) + " - " + str(end))
-
-        request_data = '{ "id" : ' + str(ensembl_ids[B:end]) + " }"
-        request_data = request_data.replace("'", '"')
-
-        ok = False
-        tries = 0
-
-        while tries < 5 and not ok:
-            try:
-                res = requests.post(url, headers=headers, data=request_data)
-                ok = res.ok
-            except requests.RequestException as ex:
-                print(ex)
-                ok = False
-
-            tries = tries + 1
-
-            if not ok and tries == 5:
-                res.raise_for_status()
-            elif not ok:
-                print(
-                    "Error retrieving Ensembl versions for genes "
-                    + str(B + 1)
-                    + " - "
-                    + str(end)
-                    + ". Trying again..."
-                )
-            else:
-                results = results + res.json()
-                break
-
-    versions = pd.json_normalize(results)
-    return versions
+    query = EnsemblVersionQuery()
+    return query.query(ensembl_ids)
 
 
 def filter_hasgs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
@@ -204,9 +117,7 @@ def r_query_biomart() -> pd.DataFrame:
         return ensembl_ids_df
 
 
-def get_all_adt_ensembl_ids(
-    config_filename: str, exclude_files: List[str] = [], token: str = None
-) -> List[str]:
+def get_all_adt_ensembl_ids(config_filename: str, exclude_files: list[str] = []) -> list[str]:
     """
     Loops through an ADT config file, finds all data files that are ingested by ADT, and returns a
     list containing all Ensembl IDs present in those files. Specific files can be excluded from the
@@ -217,12 +128,13 @@ def get_all_adt_ensembl_ids(
         exclude_files: list of file names to exclude when searching files for IDs. These names must
                        match what is in "name" field of the file specification in the configs/agora_prod.yaml
                        file. Typical values are "gene_metadata" and "druggability".
-        token: a Synapse auth token, or None if the user has Synapse credentials saved.
 
     Returns:
         a list of unique Ensembl IDs that exist in at least one data set ingested by ADT
     """
-    syn = utils._login_to_synapse(token=token)
+    syn = synapseclient.Synapse(silent=True)
+    syn.login()
+
     config = utils._get_config(config_path=config_filename)
     datasets = config["datasets"]
 
@@ -233,7 +145,7 @@ def get_all_adt_ensembl_ids(
     column_renames = {}
 
     for dataset in datasets:
-        dataset_name = list(dataset.keys())[0]
+        dataset_name = next(iter(dataset.keys()))
 
         for file in dataset[dataset_name]["files"]:
             # Make the Synapse ID the key so that "update" will only add a new item if the ID doesn't
@@ -267,8 +179,8 @@ def get_all_adt_ensembl_ids(
 
 
 def _extract_ensembl_ids(
-    syn: synapseclient.Synapse, entity: Dict[str, str], column_renames: Dict[str, str]
-) -> List[str]:
+    syn: synapseclient.Synapse, entity: dict[str, str], column_renames: dict[str, str]
+) -> list[str]:
     """
     Internal function used by get_all_adt_ensembl_ids to exctract a list of Ensembl IDs from a file.
     The file is downloaded from Synapse and read in as a pandas data frame, column names are renamed
@@ -336,9 +248,7 @@ def _extract_ensembl_ids(
     return list(set(file_ensembl_ids))
 
 
-def load_file_with_name(
-    file_name: str, config_filename: str, token: str = None
-) -> Union[pd.DataFrame, None]:
+def load_file_with_name(file_name: str, config_filename: str) -> pd.DataFrame | None:
     """
     Loops through a config file, finds the input file config that matches file_name, and downloads
     and reads the file in as a pandas data frame.
@@ -347,13 +257,13 @@ def load_file_with_name(
         file_name: the name of the data to load, which should match what is in the "name" field in
                    the config file
         config_filename: path to the config YAML file
-        token: optional, a Synapse auth token
 
     Returns:
         a pandas.DataFrame, if a file matching file_name exists in the config, or
         None, if no file spec with that name exists
     """
-    syn = utils._login_to_synapse(token=token)
+    syn = synapseclient.Synapse(silent=True)
+    syn.login()
 
     file_config = get_config_for_file(file_name, config_filename=config_filename)
     if not file_config:
@@ -393,7 +303,7 @@ def get_config_for_file(file_name: str, config_filename: str) -> dict | None:
     return None
 
 
-def standardize_list_item(item: Union[str, List[str]]) -> List[str]:
+def standardize_list_item(item: str | list[str]) -> list[str]:
     """
     For the gene_metadata data frame, some queries return columns that are a mixture of None/NaN,
     a single string, and a list of strings. This function standardizes the column values so that
