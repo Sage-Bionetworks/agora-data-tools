@@ -189,6 +189,32 @@ class TestStandardizeValues:
         assert result_df.loc[9, "aliases"] == "Normal text"  # Should be preserved
 
 
+class TestCapitalizeFirstCharacter:
+    """Tests for capitalize_first_character on flat string columns."""
+
+    def test_capitalizes_string_column(self) -> None:
+        df = pd.DataFrame({"name": ["lowercase text"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] == "Lowercase text"
+
+    def test_preserves_mixed_case_after_first_character(self) -> None:
+        df = pd.DataFrame({"name": ["aPOE variant"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] == "APOE variant"
+
+    def test_leaves_non_string_and_empty_values_unchanged(self) -> None:
+        df = pd.DataFrame({"name": [None, "", "text"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] is None
+        assert result["name"].iloc[1] == ""
+        assert result["name"].iloc[2] == "Text"
+
+    def test_skips_missing_columns(self) -> None:
+        df = pd.DataFrame({"name": ["text"]})
+        result = utils.capitalize_first_character(df, ["absent"])
+        assert result["name"].iloc[0] == "text"
+
+
 class TestRenameColumnsDataFrame:
     df = pd.DataFrame(
         {

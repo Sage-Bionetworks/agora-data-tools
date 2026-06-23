@@ -266,6 +266,29 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def capitalize_first_character(df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
+    """Capitalize the first character of string columns without changing the rest.
+
+    Preserves acronyms and mixed-case values (e.g. APOE, DRIAD-SP). Operates on
+    flat string columns only; non-string values are returned unchanged.
+
+    Args:
+        df: DataFrame to modify in place (also returned).
+        fields: Column names to capitalize. Missing columns are skipped.
+
+    Returns:
+        The same DataFrame with first-character capitalization applied.
+    """
+
+    def capitalize(text):
+        return text[:1].upper() + text[1:] if isinstance(text, str) and text else text
+
+    for field in fields:
+        if field in df.columns:
+            df[field] = df[field].apply(capitalize)
+    return df
+
+
 def rename_columns(
     data: Union[pd.DataFrame, list[dict], dict], column_map: dict[str, str]
 ) -> Union[pd.DataFrame, list[dict], dict]:
