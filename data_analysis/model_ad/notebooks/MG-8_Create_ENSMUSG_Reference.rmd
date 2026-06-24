@@ -1,6 +1,6 @@
 # Create ENSMUSG Reference
 
-This notebook downloads several key files in the `modeL_ad_prod.yaml` config file, gets a list of all the Ensembl gene IDs used in those files, and maps them to gene symbols and aliases. The file is then uploaded to Synapse here: [syn51615422](https://www.synapse.org/#!Synapse:syn51615422).
+This notebook downloads several key files in the `model_ad_prod.yaml` config file, gets a list of all the Ensembl gene IDs used in those files, and maps them to gene symbols and aliases. The file is then uploaded to Synapse here: [syn51615422](https://www.synapse.org/#!Synapse:syn51615422).
 
 Required packages (will automatically be installed if necessary):
 
