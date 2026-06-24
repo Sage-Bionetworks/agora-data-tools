@@ -332,7 +332,7 @@ datasets:
       agora_rename:
         symbol: hgnc_symbol
       destination: *dest
-      gx_enabled: false
+      gx_enabled: true
 
   - ui_config:
       files:
