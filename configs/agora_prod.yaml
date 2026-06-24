@@ -316,6 +316,24 @@ datasets:
       destination: *dest
       gx_enabled: false
 
+  - nominated_targets:
+      files:
+        - name: target_list
+          id: syn12540368.74
+          format: csv
+        - name: gene_metadata
+          id: syn25953363.17
+          format: feather
+        - name: pharos_classes
+          id: syn64123611.3
+          format: csv
+      final_format: json
+      custom_transformations: transform_nominated_targets
+      agora_rename:
+        symbol: hgnc_symbol
+      destination: *dest
+      gx_enabled: false
+
   - ui_config:
       files:
         - name: ui_config
