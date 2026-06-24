@@ -66,10 +66,10 @@ def _sorted_unique_split(series: pd.Series) -> List[str]:
     """Return sorted unique comma-split tokens from a series of strings.
 
     Each row in the series is a single string that either contains a single
-    value or multiple comma-separated values (e.g. ``"Rush, MSBB"``). This
+    value or multiple comma-separated values (e.g. "Rush, MSBB"). This
     function separates the comma-separated values, flattens the series into a
     single set of unique values stripped of surrounding whitespace, and sorts
-    them alphabetically, so the example yields ``["MSBB", "Rush"]``. Null values
+    them alphabetically, so the example yields ["MSBB", "Rush"]. Null values
     are ignored.
     """
     tokens = set()
@@ -83,8 +83,8 @@ def _sorted_unique_split(series: pd.Series) -> List[str]:
 def _resolve_pharos_class(pharos_classes: pd.Series) -> Optional[str]:
     """Collapse a gene's pharos_class values to the single highest-priority one.
 
-    Returns the first member of ``PHAROS_PRIORITY`` (Tclin > Tchem > Tbio >
-    Tdark) present in ``pharos_classes``, or ``None`` if none are present.
+    Returns the first member of PHAROS_PRIORITY (Tclin > Tchem > Tbio >
+    Tdark) present in pharos_classes, or None if none are present.
     """
     found = set(pharos_classes.dropna())
     for level in PHAROS_PRIORITY:
@@ -99,43 +99,42 @@ def transform_nominated_targets(
 ) -> pd.DataFrame:
     """Build the nominated_targets dataset for the Agora Nominated Targets CT interface.
 
-    Each row in the output represents one nominated gene, keyed by its Ensembl
-    gene ID, with aggregated nomination details and a single resolved Pharos
-    development level. The transform collapses the per-nomination rows in
-    ``target_list`` into one summary row per gene, then attaches the gene symbol
-    and Pharos class.
+        Each row in the output represents one nominated gene, keyed by its Ensembl
+        gene ID, with aggregated nomination details and a single resolved Pharos
+        development level. The transform collapses the per-nomination rows in
+    target_list into one summary row per gene, then attaches the gene symbol
+        and Pharos class.
 
-    All nominated genes are retained: ``gene_metadata`` and ``pharos_classes``
-    are left-merged onto the nominations, so genes without a Pharos class keep a
-    null ``pharos_class`` instead of being dropped (fixes AG-2064).
+        All nominated genes are retained: gene_metadata and pharos_classes    are left-merged onto the nominations, so genes without a Pharos class keep a
+        null pharos_class instead of being dropped (fixes AG-2064).
 
-    Processing steps:
-        1. Validate required datasets and columns.
-        2. Validate per-column content rules (Ensembl ID format, allowed Pharos
-           levels).
-        3. Group ``target_list`` by ``ensembl_gene_id`` and aggregate: nomination
-           count, earliest nomination year, sorted unique nominating teams,
-           cohort studies, input data types, and programs.
-        4. Resolve a single ``pharos_class`` per gene by priority.
-        5. Left-merge gene symbols and resolved Pharos classes.
-        6. Sort rows for deterministic output.
+        Processing steps:
+            1. Validate required datasets and columns.
+            2. Validate per-column content rules (Ensembl ID format, allowed Pharos
+               levels).
+            3. Group target_list by ensembl_gene_id and aggregate: nomination
+               count, earliest nomination year, sorted unique nominating teams,
+               cohort studies, input data types, and programs.
+            4. Resolve a single pharos_class per gene by priority.
+            5. Left-merge gene symbols and resolved Pharos classes.
+            6. Sort rows for deterministic output.
 
-    Args:
-        datasets: Dictionary containing three DataFrames:
-            "target_list" (one row per nomination event), "gene_metadata"
-            (gene symbols keyed by ensembl_gene_id), and "pharos_classes"
-            (Pharos development levels keyed by ensembl_gene_id, possibly
-            multiple rows per gene).
-        required_input: Required datasets and columns. Defaults to REQUIRED_INPUT.
+        Args:
+            datasets: Dictionary containing three DataFrames:
+                "target_list" (one row per nomination event), "gene_metadata"
+                (gene symbols keyed by ensembl_gene_id), and "pharos_classes"
+                (Pharos development levels keyed by ensembl_gene_id, possibly
+                multiple rows per gene).
+            required_input: Required datasets and columns. Defaults to REQUIRED_INPUT.
 
-    Returns:
-        DataFrame with columns: ensembl_gene_id, symbol, total_nominations,
-        initial_nomination, nominating_teams, cohort_studies, input_data,
-        programs, pharos_class.
+        Returns:
+            DataFrame with columns: ensembl_gene_id, symbol, total_nominations,
+            initial_nomination, nominating_teams, cohort_studies, input_data,
+            programs, pharos_class.
 
-    Raises:
-        ValueError: If required datasets or columns are missing, or column
-            content rules are violated.
+        Raises:
+            ValueError: If required datasets or columns are missing, or column
+                content rules are violated.
     """
     check_required_datasets_and_columns(datasets, required_input)
 
