@@ -818,9 +818,7 @@ def normalize_null_values(
 
     # .fillna() doesn't work for empty lists, so we manually set NA values to empty lists
     for col in empty_list_columns:
-        df[col] = df[col].apply(
-            lambda x: [] if not isinstance(x, list | np.ndarray) and pd.isna(x) else x
-        )
+        df[col] = df[col].apply(lambda x: x if isinstance(x, list | np.ndarray) else [])
 
     # Replace any remaining NaN values with None
     return df.replace({np.nan: None, pd.NA: None})

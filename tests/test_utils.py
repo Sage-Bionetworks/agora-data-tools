@@ -1402,7 +1402,7 @@ class TestNormalizeNullValues:
         for col in expected_output.columns:
             assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_only_boolean_columns(
+    def test_normalize_null_values_with_boolean_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
@@ -1432,7 +1432,7 @@ class TestNormalizeNullValues:
         for col in expected_output.columns:
             assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_only_string_columns(
+    def test_normalize_null_values_with_string_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
@@ -1460,7 +1460,7 @@ class TestNormalizeNullValues:
         for col in expected_output.columns:
             assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_only_list_columns(
+    def test_normalize_null_values_with_list_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
@@ -1488,37 +1488,38 @@ class TestNormalizeNullValues:
         for col in expected_output.columns:
             assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_all_column_types_defined(
-        self, test_data_frame: pd.DataFrame
-    ) -> None:
+    def test_normalize_null_values_with_ndarray(self) -> None:
         """
-        Test that normalize_null_values correctly normalizes null values when both *_columns arguments are defined.
+        Test that normalize_null_values correctly normalizes null values to empty lists when columns contain ndarrays.
+        Arrays are initialized with np.array() but are of type np.ndarray.
         """
+        test_data_frame = pd.DataFrame(
+            {
+                "list1": [np.array([1, 2, 3]), np.array(["a", "b", "c"]), None],
+                "list2": [np.array([], dtype=object), pd.NA, np.nan],
+            },
+            dtype="O",
+        )
+
         output = utils.normalize_null_values(
             test_data_frame,
-            boolean_columns=["bool1", "bool2"],
-            empty_string_columns=["string1", "string2"],
             empty_list_columns=["list1", "list2"],
         )
 
         expected_output = pd.DataFrame(
             {
-                "bool1": [True, False, False, False, False],
-                "bool2": [False] * 5,
-                "string1": ["abc", "", "", "", ""],
-                "string2": [""] * 5,
-                "numeric1": [123, None, None, None, None],
-                "numeric2": [None] * 5,
-                "list1": [["abc", "def"], [1, 2, 3], [], [], []],
-                "list2": [[], [], [], [], []],
+                "list1": [np.array([1, 2, 3]), np.array(["a", "b", "c"]), []],
+                "list2": [np.array([], dtype=object), [], []],
             },
             dtype="O",
         )
-        expected_output["bool1"] = expected_output["bool1"].astype(bool)
-        expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
         for col in expected_output.columns:
-            assert np.array_equal(output[col].values, expected_output[col].values)
+            # Need to check row-by-row because np.array_equal can not compare an array of ndarrays.
+            for output_row, expected_row in zip(
+                output[col].values, expected_output[col].values
+            ):
+                assert np.array_equal(output_row, expected_row)
 
     def test_normalize_null_values_with_empty_data_frame(self) -> None:
         """
