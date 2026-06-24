@@ -74,28 +74,46 @@ class TestMapEnsemblIdListToDicts:
     def test_maps_ensembl_ids_to_symbols(self) -> None:
         gene_map = {"ENSG000001": "GENE1"}
         result = drug_info._map_ensembl_id_list_to_dicts(
-            ["ENSG000001", "ENSG000099"], gene_map
+            ["ENSG000001", "ENSG000099"], gene_map, {"ENSG000001"}
         )
         assert result == [
-            {"ensembl_gene_id": "ENSG000001", "hgnc_symbol": "GENE1"},
-            {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
+            {
+                "ensembl_gene_id": "ENSG000001",
+                "hgnc_symbol": "GENE1",
+                "is_nominated_target": True,
+            },
+            {
+                "ensembl_gene_id": "ENSG000099",
+                "hgnc_symbol": "ENSG000099",
+                "is_nominated_target": False,
+            },
         ]
 
     def test_falls_back_to_ensembl_id_when_symbol_unresolved(self) -> None:
         """D2: hgnc_symbol uses Ensembl ID when gene is absent from gene_metadata."""
-        result = drug_info._map_ensembl_id_list_to_dicts(["ENSG000099"], {})
+        result = drug_info._map_ensembl_id_list_to_dicts(["ENSG000099"], {}, set())
         assert result == [
-            {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
+            {
+                "ensembl_gene_id": "ENSG000099",
+                "hgnc_symbol": "ENSG000099",
+                "is_nominated_target": False,
+            },
         ]
 
     def test_returns_empty_for_non_list_input(self) -> None:
-        assert drug_info._map_ensembl_id_list_to_dicts(None, {}) == []
+        assert drug_info._map_ensembl_id_list_to_dicts(None, {}, set()) == []
 
     def test_skips_null_ensembl_ids(self) -> None:
         result = drug_info._map_ensembl_id_list_to_dicts(
-            [None, "ENSG1"], {"ENSG1": "G1"}
+            [None, "ENSG1"], {"ENSG1": "G1"}, {"ENSG1"}
         )
-        assert result == [{"ensembl_gene_id": "ENSG1", "hgnc_symbol": "G1"}]
+        assert result == [
+            {
+                "ensembl_gene_id": "ENSG1",
+                "hgnc_symbol": "G1",
+                "is_nominated_target": True,
+            }
+        ]
 
 
 class TestGetBestIupacId:
@@ -126,10 +144,20 @@ class TestResolveLinkedTargetSymbols:
                 "symbol": ["GENE1"],
             }
         )
-        result = drug_info._resolve_linked_target_symbols(drug_metadata, gene_metadata)
+        result = drug_info._resolve_linked_target_symbols(
+            drug_metadata, gene_metadata, {"ENSG000001"}
+        )
         assert result["linked_targets"].iloc[0] == [
-            {"ensembl_gene_id": "ENSG000001", "hgnc_symbol": "GENE1"},
-            {"ensembl_gene_id": "ENSG000099", "hgnc_symbol": "ENSG000099"},
+            {
+                "ensembl_gene_id": "ENSG000001",
+                "hgnc_symbol": "GENE1",
+                "is_nominated_target": True,
+            },
+            {
+                "ensembl_gene_id": "ENSG000099",
+                "hgnc_symbol": "ENSG000099",
+                "is_nominated_target": False,
+            },
         ]
 
 
@@ -220,12 +248,14 @@ class TestTransformDrugInfo:
         ot_file: str,
         dl_file: str,
         gm_file: str = "gene_metadata_good.feather",
+        ht_file: str = "harmonized_targets_good.csv",
     ) -> dict[str, pd.DataFrame]:
         return self._build_datasets(
             {
                 "ot_drug_metadata": ot_file,
                 "drug_list": dl_file,
                 "gene_metadata": gm_file,
+                "harmonized_targets": ht_file,
             }
         )
 
@@ -261,6 +291,39 @@ class TestTransformDrugInfo:
         drug_b = output_df.loc[output_df["chembl_id"] == "CHEMBL222"].iloc[0]
         assert drug_b["description"] == "Protein drug."
 
+    def test_sets_is_nominated_target_from_harmonized_targets(self) -> None:
+        """is_nominated_target is true only for ENSGs in harmonized_targets."""
+        datasets = self._load_datasets(
+            "ot_drug_metadata_good.json", "drug_list_good.csv"
+        )
+        output_df = drug_info.transform_drug_info(datasets=datasets)
+
+        drug_a = output_df.loc[output_df["chembl_id"] == "CHEMBL111"].iloc[0]
+        assert drug_a["linked_targets"] == [
+            {
+                "ensembl_gene_id": "ENSG000001",
+                "hgnc_symbol": "GENE1",
+                "is_nominated_target": True,
+            }
+        ]
+
+        drug_b = output_df.loc[output_df["chembl_id"] == "CHEMBL222"].iloc[0]
+        assert drug_b["linked_targets"] == [
+            {
+                "ensembl_gene_id": "ENSG000099",
+                "hgnc_symbol": "GENE9",
+                "is_nominated_target": False,
+            }
+        ]
+
+    def test_missing_harmonized_targets_dataset_raises(self) -> None:
+        datasets = self._load_datasets(
+            "ot_drug_metadata_good.json", "drug_list_good.csv"
+        )
+        del datasets["harmonized_targets"]
+        with pytest.raises(ValueError, match="Missing required datasets"):
+            drug_info.transform_drug_info(datasets=datasets)
+
     @pytest.mark.parametrize(
         "input_datasets,error_match,error_type",
         [
@@ -274,6 +337,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_missing_program.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Missing required columns",
                 ValueError,
@@ -283,6 +347,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_missing_drug_bank_id.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Missing required columns",
                 ValueError,
@@ -292,6 +357,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_unpaired_combined_with.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "combined_with_common_name",
                 ValueError,
@@ -301,6 +367,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_integrity_conflict.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Data Integrity Error",
                 ValueError,
@@ -310,6 +377,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_invalid_phase.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "maximum_clinical_trial_phase",
                 ValueError,
@@ -319,6 +387,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_bad_linkage.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Data Integrity Error",
                 ValueError,
@@ -328,6 +397,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_invalid_chembl_id.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "matches_regex",
                 ValueError,
@@ -337,6 +407,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_duplicate_chembl_id.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "Merge keys are not unique",
                 pd.errors.MergeError,
@@ -346,6 +417,7 @@ class TestTransformDrugInfo:
                     "ot_drug_metadata": "ot_drug_metadata_good.json",
                     "drug_list": "drug_list_empty_contact_pi.csv",
                     "gene_metadata": "gene_metadata_good.feather",
+                    "harmonized_targets": "harmonized_targets_good.csv",
                 },
                 "contact_pi.*not_empty",
                 ValueError,
