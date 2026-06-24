@@ -282,6 +282,27 @@ datasets:
       destination: *dest
       gx_enabled: true
 
+  - drug_info:
+      files:
+        - name: ot_drug_metadata
+          id: syn73724873.12
+          format: json
+        - name: drug_list
+          id: syn73677240.14
+          format: csv
+        - name: gene_metadata
+          id: syn25953363.16
+          format: feather
+        - name: harmonized_targets
+          id: syn12540368.74
+          format: csv
+      final_format: json
+      custom_transformations: transform_drug_info
+      column_rename:
+        source: program
+      destination: *dest
+      gx_enabled: false
+
   - nominated_drugs:
       files:
         - name: drug_list

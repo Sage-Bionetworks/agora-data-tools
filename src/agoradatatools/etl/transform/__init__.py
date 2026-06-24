@@ -21,6 +21,7 @@ from agoradatatools.etl.transform.model_details import transform_model_details
 from agoradatatools.etl.transform.disease_correlation import (
     transform_disease_correlation,
 )
+from agoradatatools.etl.transform.drug_info import transform_drug_info
 from agoradatatools.etl.transform.nominated_drugs import transform_nominated_drugs
 from agoradatatools.etl.transform.nominated_targets import transform_nominated_targets
 from agoradatatools.etl.transform.model_overview import transform_model_overview
@@ -42,6 +43,7 @@ __all__ = [
     "immunohisto_transform",
     "transform_model_details",
     "transform_disease_correlation",
+    "transform_drug_info",
     "transform_nominated_drugs",
     "transform_nominated_targets",
     "transform_model_overview",
