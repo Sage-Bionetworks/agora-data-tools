@@ -57,6 +57,7 @@ REQUIRED_INPUT = {
         "published",
     ],
     "gene_metadata": ["ensembl_gene_id", "symbol"],
+    "harmonized_targets": ["ensembl_gene_id"],
 }
 
 COLUMN_RULES = {
@@ -132,12 +133,15 @@ def _pi_lastname_sort_key(nomination: dict[str, Any]) -> str:
 
 
 def _map_ensembl_id_list_to_dicts(
-    target_list: list[str] | None, gene_map: dict[str, str]
-) -> List[Dict[str, str]]:
-    """Map Ensembl IDs in target_list to {ensembl_gene_id, hgnc_symbol} dicts.
+    target_list: list[str] | None,
+    gene_map: dict[str, str],
+    nominated_ensgs: set[str],
+) -> List[Dict[str, Any]]:
+    """Map Ensembl IDs in target_list to gene dicts.
 
-    When an Ensembl ID is missing from gene_map, hgnc_symbol falls back to the
-    Ensembl ID.
+    Each dict has ensembl_gene_id, hgnc_symbol, and is_nominated_target. When an
+    Ensembl ID is missing from gene_map, hgnc_symbol falls back to the Ensembl ID.
+    is_nominated_target is true when the Ensembl ID is in nominated_ensgs.
     """
     if not isinstance(target_list, list):
         return []
@@ -145,6 +149,7 @@ def _map_ensembl_id_list_to_dicts(
         {
             "ensembl_gene_id": g_id,
             "hgnc_symbol": gene_map.get(g_id, g_id),
+            "is_nominated_target": g_id in nominated_ensgs,
         }
         for g_id in target_list
         if pd.notnull(g_id)
@@ -163,14 +168,18 @@ def _get_best_iupac_id(group: pd.Series) -> str:
 
 
 def _resolve_linked_target_symbols(
-    drug_metadata: pd.DataFrame, gene_metadata: pd.DataFrame
+    drug_metadata: pd.DataFrame,
+    gene_metadata: pd.DataFrame,
+    nominated_ensgs: set[str],
 ) -> pd.DataFrame:
-    """Replace Ensembl ID lists with {ensembl_gene_id, hgnc_symbol} dicts."""
+    """Replace Ensembl ID lists with {ensembl_gene_id, hgnc_symbol, is_nominated_target} dicts."""
     gene_map = gene_metadata.set_index("ensembl_gene_id")["symbol"].to_dict()
 
     drug_metadata = drug_metadata.copy()
     drug_metadata["linked_targets"] = drug_metadata["linked_targets"].apply(
-        lambda target_list: _map_ensembl_id_list_to_dicts(target_list, gene_map)
+        lambda target_list: _map_ensembl_id_list_to_dicts(
+            target_list, gene_map, nominated_ensgs
+        )
     )
     return drug_metadata
 
@@ -252,8 +261,9 @@ def transform_drug_info(
     hgnc_symbol.
 
     Args:
-        datasets: ot_drug_metadata, drug_list (with program column), and
-            gene_metadata DataFrames.
+        datasets: ot_drug_metadata, drug_list (with program column), gene_metadata,
+            and harmonized_targets DataFrames. The harmonized_targets ensembl_gene_id
+            values flag which linked_targets are nominated targets.
         required_input: Required datasets and columns (overridable in tests).
 
     Returns:
@@ -268,8 +278,10 @@ def transform_drug_info(
     check_column_rules(datasets, COLUMN_RULES)
     validate_drug_list_integrity(datasets["drug_list"])
 
+    nominated_ensgs = set(datasets["harmonized_targets"]["ensembl_gene_id"].dropna())
+
     drug_metadata = _resolve_linked_target_symbols(
-        datasets["ot_drug_metadata"], datasets["gene_metadata"]
+        datasets["ot_drug_metadata"], datasets["gene_metadata"], nominated_ensgs
     )
 
     collapsed_drug_list = _collapse_drug_nominations(datasets["drug_list"])
