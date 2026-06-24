@@ -1,0 +1,52 @@
+[
+  {
+    "common_name":"DrugA",
+    "chembl_id":"CHEMBL1",
+    "total_nominations":2,
+    "combined_with":null,
+    "initial_nomination":2024,
+    "principal_investigators":[
+      "PI One",
+      "PI Two"
+    ],
+    "programs":[
+      "Program A",
+      "Program B"
+    ],
+    "modality":"Small molecule",
+    "year_of_first_approval":2009,
+    "maximum_clinical_trial_phase":"Phase IV"
+  },
+  {
+    "common_name":"DrugB",
+    "chembl_id":"CHEMBL2",
+    "total_nominations":1,
+    "combined_with":"DrugA",
+    "initial_nomination":2023,
+    "principal_investigators":[
+      "PI Three"
+    ],
+    "programs":[
+      "Program A"
+    ],
+    "modality":"Protein",
+    "year_of_first_approval":null,
+    "maximum_clinical_trial_phase":"Phase II"
+  },
+  {
+    "common_name":"DrugC",
+    "chembl_id":"CHEMBL3",
+    "total_nominations":1,
+    "combined_with":null,
+    "initial_nomination":2022,
+    "principal_investigators":[
+      "PI Four"
+    ],
+    "programs":[
+      "Program C"
+    ],
+    "modality":null,
+    "year_of_first_approval":null,
+    "maximum_clinical_trial_phase":null
+  }
+]

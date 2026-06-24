@@ -20,8 +20,8 @@ values presented to users on the page.
   Example:
         column.name: ""Pharos Class"
         filter.name: "Pharos Class", <--- the filter's display name in the Filter panel
-        filter.short_name: "Pharos", <-- the filter's short display name in the "applied filter" chiclets
-        filter.query_param_key: "pharosClasses", <-- the filter's query parameter key
+        filter.short_name: "Pharos", <-- the filter's short display name in the "applied filter" chiclet
+        filter.query_param_key: "pharosClasses", <-- the filter's query parameter key is (plural, camelCase)
 
 ## Library setup
 Install required packages:
@@ -73,7 +73,9 @@ build_object <- function(page_column_data) {
 #   -- Specify NA for columns with other types
 # - is_exported: Whether this column should be included in CSV data exports
 # - is_hidden: Whether this column should be displayed in the CT table
-build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden) {
+# - column_width: Optional override that specifies the column's width, in pixels
+#   -- Specify NA to use the default behavior of automatically calculating the column width
+build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width) {
 
   # Use the default sort_tooltip if one isn't specified, for non-hidden columns only
   if (is_hidden == TRUE) { sort_tooltip = NA }
@@ -88,7 +90,8 @@ build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, 
     link_url = link_url ,
     link_text = link_text,
     is_exported = is_exported,
-    is_hidden = is_hidden
+    is_hidden = is_hidden,
+    column_width = column_width
   )
 
   # Omit keys with NA values
@@ -145,6 +148,7 @@ target_columns <- data.frame(
   link_text = rep(NA, times = 9),
   is_exported = c(rep(TRUE, times = 9)),
   is_hidden = c(FALSE, TRUE, rep(FALSE, times = 7)),
+  column_width = c(NA, NA, NA, NA, 300, 300, 300, 300, NA),
   stringsAsFactors = FALSE
 )
 
@@ -152,30 +156,32 @@ target_columns <- data.frame(
 # ----------------------
 target_filters <- data.frame(
   name = c('Cohort', 'Data Used', 'First Nominated', 'Nominating Team',
-           'Pharos Class', 'Program', 'Nominations'),
+           'Nominations', 'Pharos Class', 'Program'),
   data_key = c('cohort_studies', 'input_data', 'initial_nomination', 'nominating_teams',
-               'pharos_class', "programs", "total_nominations"),
+               'total_nominations', 'pharos_class', 'programs'),
   short_name = c('Cohort', 'Data', 'First', 'Team',
-                 'Pharos', "Program", "Nominations"),
+                 'Nominations', 'Pharos', 'Program'),
   query_param_key = c('cohorts', 'data', 'firstNominations', 'teams',
-                      'pharosClasses', 'programs', 'nominations'),
+                      'nominations', 'pharosClasses', 'programs'),
   stringsAsFactors = FALSE
 )
 
 # Nominated Target Filter Values
 # ------------------------------
+# AG-2117 removed the following values from targets_data_cohort_filter_values to keep it sane:
+# "GSE197305", "GSE33000", "GSE44772", "GSE48350", "GSE5281",
+# "https://doi.org/10.1002/ajmg.b.30607", "https://doi.org/10.1016/j.celrep.2020.107908",
+# "https://doi.org/10.1016/j.nbd.2019.104540", "https://doi.org/10.1016/j.neulet.2013.06.061",
+# "https://doi.org/10.1038/s41588-018-0311-9", "https://doi.org/10.1038/s41588-019-0358-2",
+# "https://doi.org/10.1038/tp.2015.55", "https://doi.org/10.3233/jad-2008-15105"
+# "syn20933797", "syn52525880",
 targets_data_cohort_filter_values <- c(
   "ABA", "ACT", "AD Mouse Models", "AD-BXD mice", "ADNI", "AIBL", "APP Mice",
   "Banner", "BLSA", "Cardiovascular Health Study", "Diversity outbred mice",
-  "Emory", "Framingham Heart Study", "FreshMicro", "GSE197305", "GSE33000",
-  "GSE44772", "GSE48350", "GSE5281", "HBI_scRNAseq", "HBTRC",
-  "Health and Retirement Study", "https://doi.org/10.1002/ajmg.b.30607",
-  "https://doi.org/10.1016/j.celrep.2020.107908", "https://doi.org/10.1016/j.nbd.2019.104540",
-  "https://doi.org/10.1016/j.neulet.2013.06.061", "https://doi.org/10.1038/s41588-018-0311-9",
-  "https://doi.org/10.1038/s41588-019-0358-2", "https://doi.org/10.1038/tp.2015.55",
-  "https://doi.org/10.3233/jad-2008-15105", "Kronos",
+  "Emory", "Framingham Heart Study", "FreshMicro", "HBI_scRNAseq", "HBTRC",
+  "Health and Retirement Study", "Kronos",
   "Late Onset Alzheimer's Disease Family Study", "Mayo", "MC-BrAD", "MC-CAA",
-  "MC_snRNA", "MSBB", "ROSMAP", "Rush", "syn20933797", "syn52525880",
+  "MC_snRNA", "MSBB", "ROSMAP", "Rush",
   "TAUAPPms", "VirusResilience"
 )
 targets_data_filter_values <- c("Behavior", "Clinical", "Genetics", "Metabolomics", "Pathway Modeling", "Phenomics", "Protein", "Risk Scores", "RNA")
@@ -190,9 +196,9 @@ target_filter_values <- list(
   targets_data_filter_values,
   targets_first_nom_filter_values,
   targets_team_filter_values,
+  targets_total_nom_filter_values,
   targets_pharos_filter_values,
-  targets_program_filter_values,
-  targets_total_nom_filter_values
+  targets_program_filter_values
 )
 
 # Build Nominated Targets ui_config
@@ -236,6 +242,7 @@ drug_columns <- data.frame(
   link_text =  rep(NA, times = 10),
   is_exported = rep(TRUE, times = 10),
   is_hidden = rep(FALSE, times = 10),
+  column_width = rep(NA, times = 10),
   stringsAsFactors = FALSE
 )
 
@@ -246,10 +253,10 @@ drug_columns[drug_columns$name == "Chembl ID", "is_hidden"] <- TRUE
 # Nominated Drug Filters
 # ----------------------
 drug_filters <- data.frame(
-  name = c('Modality', 'Nominating PI', 'Nominations'),
-  data_key = c('modality', 'principal_investigators', 'total_nominations'),
-  short_name = c('Modality', 'PI', 'Nominations'),
-  query_param_key = c('modalities', 'nominatingPis', 'nominations'),
+  name = c('Max Clinical Trial Phase', 'Modality', 'Nominating PI', 'Nominations'),
+  data_key = c('maximum_clinical_trial_phase', 'modality', 'principal_investigators', 'total_nominations'),
+  short_name = c('Phase', 'Modality', 'PI', 'Nominations'),
+  query_param_key = c('phase', 'modalities', 'nominatingPis', 'nominations'),
   stringsAsFactors = FALSE
 )
 
@@ -265,8 +272,10 @@ drug_pi_filter_values <- c(
  "Jan Krumsiek", "Marina Sirota", "Lei Xie"
 )
 drug_total_nom_filter_values <- c(1, 2)
+drug_max_clinical_trial_phase_filter_values <- c("Preclinical", "Phase I", "Phase II", "Phase III", "Phase IV", "Unknown")
 
 drug_filter_values <- list(
+  drug_max_clinical_trial_phase_filter_values,
   drug_modality_filter_values,
   drug_pi_filter_values,
   drug_total_nom_filter_values
@@ -336,7 +345,7 @@ TESTS
 
 ## Test build_column
 ```{r}
-col_def <- build_column("name_value", "type_value", "data_key_value", "tooltip_value", "sort_tooltip_value", "link_url_value", "link_text_value", TRUE, FALSE)
+col_def <- build_column("name_value", "type_value", "data_key_value", "tooltip_value", "sort_tooltip_value", "link_url_value", "link_text_value", TRUE, FALSE, 300)
 
 print(col_def)
 
@@ -357,6 +366,7 @@ test_input <- data.frame(
   link_text = c(NA, NA, "Results", "View Strain"),
   is_exported = c(TRUE, TRUE, TRUE, FALSE),
   is_hidden = c(TRUE, FALSE, TRUE, FALSE),
+  column_width = c(NA, NA, NA, 300),
   stringsAsFactors = FALSE
 )
 
@@ -377,5 +387,3 @@ json_list <-  list(build_targets_object())
 
 toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
 ```
-
-
