@@ -772,51 +772,52 @@ def normalize_null_values(
     if not isinstance(df, pd.DataFrame):
         raise TypeError(f"'df' must be a pandas DataFrame, got {type(df)}")
 
-    for arg_name, arg_value in [
-        ("boolean_columns", boolean_columns),
-        ("empty_string_columns", empty_string_columns),
-        ("empty_list_columns", empty_list_columns),
-    ]:
-        if not isinstance(arg_value, list) and arg_value is not None:
+    validation_data = {
+        "boolean_columns": boolean_columns,
+        "empty_string_columns": empty_string_columns,
+        "empty_list_columns": empty_list_columns,
+    }
+
+    # None values don't need to be type checked, checked for presence in data frame, or checked for overlaps
+    to_check = [key for key, value in validation_data.items() if value is not None]
+
+    for arg_name in to_check:
+        arg_value = validation_data[arg_name]
+
+        # All column arguments must be lists
+        if not isinstance(arg_value, list):
             raise TypeError(f"'{arg_name}' must be a list, got {type(arg_value)}")
 
-    # Make column lists into sets for easier checking of overlaps and membership in the data frame, and
-    # initialize any None arguments to empty lists
-    all_columns = set(df.columns)
-    boolean_columns = set(boolean_columns or [])
-    empty_string_columns = set(empty_string_columns or [])
-    empty_list_columns = set(empty_list_columns or [])
+        # Check that all specified columns exist in the data frame
+        non_existent_columns = set(arg_value) - set(df.columns)
+        if non_existent_columns:
+            raise ValueError(
+                f"Columns {sorted(non_existent_columns)} from '{arg_name}' do not exist in the DataFrame."
+            )
 
-    # Check that all specified columns exist in the data frame
-    non_existent_columns = (
-        boolean_columns | empty_string_columns | empty_list_columns
-    ) - all_columns
-    if non_existent_columns:
-        raise ValueError(
-            f"Columns {sorted(non_existent_columns)} do not exist in the DataFrame."
-        )
+    # Check that there are no overlaps between non-null lists of columns
+    pairs = [
+        (item1, item2) for item1 in to_check for item2 in to_check if item1 != item2
+    ]
 
-    # Check that there are no overlaps between lists of columns
-    for pair in [
-        (boolean_columns, empty_string_columns),
-        (boolean_columns, empty_list_columns),
-        (empty_string_columns, empty_list_columns),
-    ]:
-        overlaps = pair[0] & pair[1]
+    for col_set1, col_set2 in pairs:
+        overlaps = set(validation_data[col_set1]) & set(validation_data[col_set2])
         if overlaps:
             raise ValueError(
-                f"Columns {sorted(overlaps)} appear in both the {pair[0]} and {pair[1]} lists."
+                f"Columns {sorted(overlaps)} appear in both the {col_set1} and {col_set2} lists."
             )
+
+    # Initialize any None arguments to empty lists
+    boolean_columns = boolean_columns or []
+    empty_string_columns = empty_string_columns or []
+    empty_list_columns = empty_list_columns or []
 
     df = df.copy()
 
-    for col in boolean_columns:
-        df[col] = df[col].fillna(False).astype(bool)
+    df[boolean_columns] = df[boolean_columns].fillna(False).astype(bool)
+    df[empty_string_columns] = df[empty_string_columns].fillna("")
 
-    for col in empty_string_columns:
-        df[col] = df[col].fillna("")
-
-    # .fillna() doesn't work for empty lists, so we manually set NA values to empty lists
+    # .fillna() and .replace() don't work for empty lists, so we manually set NA values to empty lists
     for col in empty_list_columns:
         df[col] = df[col].apply(lambda x: x if isinstance(x, list | np.ndarray) else [])
 

@@ -1521,6 +1521,39 @@ class TestNormalizeNullValues:
             ):
                 assert np.array_equal(output_row, expected_row)
 
+    def test_normalize_null_values_passes_with_non_overlapping_column_names(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values correctly verifies that there are no overlaps between the *_column lists when
+        all three lists are passed to the function.
+        """
+        output = utils.normalize_null_values(
+            test_data_frame,
+            boolean_columns=["bool1", "bool2"],
+            empty_string_columns=["string1", "string2"],
+            empty_list_columns=["list1", "list2"],
+        )
+
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, False, False, False],
+                "bool2": [False] * 5,
+                "string1": ["abc", "", "", "", ""],
+                "string2": [""] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], [], []],
+                "list2": [[], [], [], [], []],
+            },
+            dtype="O",
+        )
+        expected_output["bool1"] = expected_output["bool1"].astype(bool)
+        expected_output["bool2"] = expected_output["bool2"].astype(bool)
+
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
+
     def test_normalize_null_values_with_empty_data_frame(self) -> None:
         """
         Test that normalize_null_values correctly handles an empty data frame without errors.
@@ -1545,13 +1578,29 @@ class TestNormalizeNullValues:
         """
         with pytest.raises(
             ValueError,
-            match="Columns \\['bool_x', 'list_x', 'string_x'\\] do not exist in the DataFrame",
+            match="Columns \\['bool_x', 'bool_y'\\] from 'boolean_columns' do not exist in the DataFrame",
         ):
             utils.normalize_null_values(
                 test_data_frame,
-                boolean_columns=["bool1", "bool_x"],
-                empty_string_columns=["string1", "string_x"],
-                empty_list_columns=["list1", "list_x"],
+                boolean_columns=["bool1", "bool_y", "bool_x"],
+            )
+
+        with pytest.raises(
+            ValueError,
+            match="Columns \\['string_x', 'string_y'\\] from 'empty_string_columns' do not exist in the DataFrame",
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_string_columns=["string1", "string_y", "string_x"],
+            )
+
+        with pytest.raises(
+            ValueError,
+            match="Columns \\['list_x', 'list_y'\\] from 'empty_list_columns' do not exist in the DataFrame",
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_list_columns=["list1", "list_y", "list_x"],
             )
 
     def test_normalize_null_values_fails_with_overlapping_columns(
