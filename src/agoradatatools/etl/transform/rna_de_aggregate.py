@@ -39,7 +39,11 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, normalize_zero
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    normalize_null_values,
+    normalize_zero,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -534,7 +538,9 @@ def transform_rna_de_aggregate(
 
     # Pre-compute lookup dictionaries for efficient lookups
     rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"]
-    mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
+    mouse_gene_metadata_df = normalize_null_values(
+        datasets["mouse_gene_metadata"], empty_string_columns=["gene_symbol"]
+    )
     biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(
         axis="index", subset=["ensembl_id"]
     )
