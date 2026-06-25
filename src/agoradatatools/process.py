@@ -274,12 +274,16 @@ def process_dataset(
         )
 
     gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False)
+    gx_suite = dataset_name
+    if "gx_suite" in dataset_obj[dataset_name].keys():
+        gx_suite = dataset_obj[dataset_name]["gx_suite"]
 
     if gx_enabled:
         gx_runner = GreatExpectationsRunner(
             syn=syn,
             dataset_path=json_path,
             dataset_name=dataset_name,
+            expectation_suite_name=gx_suite,
             upload_folder=gx_folder if upload else None,
             nested_columns=(
                 dataset_obj[dataset_name]["gx_nested_columns"]
