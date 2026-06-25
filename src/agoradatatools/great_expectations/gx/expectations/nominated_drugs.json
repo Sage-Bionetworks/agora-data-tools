@@ -76,8 +76,6 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "combined_with",
-        "condition_parser": "pandas",
-        "row_condition": "combined_with.notnull()",
         "type_": "str"
       },
       "meta": {}
@@ -86,10 +84,8 @@
       "expectation_type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "combined_with",
-        "condition_parser": "pandas",
         "max_value": 250,
-        "min_value": 1,
-        "row_condition": "combined_with.notnull()"
+        "min_value": 1
       },
       "meta": {}
     },
@@ -112,8 +108,8 @@
       "expectation_type": "expect_column_values_to_be_between",
       "kwargs": {
         "column": "initial_nomination",
-        "max_value": 2100,
-        "min_value": 1900
+        "max_value": 2050,
+        "min_value": 2025
       },
       "meta": {}
     },
@@ -138,7 +134,7 @@
         "column": "principal_investigators",
         "list_length_range": [
           1,
-          100
+          10
         ]
       },
       "meta": {}
@@ -172,7 +168,7 @@
         "column": "programs",
         "list_length_range": [
           1,
-          100
+          10
         ]
       },
       "meta": {}
@@ -189,8 +185,6 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "modality",
-        "condition_parser": "pandas",
-        "row_condition": "modality.notnull()",
         "type_": "str"
       },
       "meta": {}
@@ -199,8 +193,6 @@
       "expectation_type": "expect_column_values_to_be_in_set",
       "kwargs": {
         "column": "modality",
-        "condition_parser": "pandas",
-        "row_condition": "modality.notnull()",
         "value_set": [
           "Small molecule",
           "Protein"
@@ -220,10 +212,8 @@
       "expectation_type": "expect_column_values_to_be_between",
       "kwargs": {
         "column": "year_of_first_approval",
-        "condition_parser": "pandas",
-        "max_value": 2100,
-        "min_value": 1900,
-        "row_condition": "year_of_first_approval.notnull()"
+        "max_value": 2050,
+        "min_value": 1940
       },
       "meta": {}
     },
@@ -231,8 +221,6 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "maximum_clinical_trial_phase",
-        "condition_parser": "pandas",
-        "row_condition": "maximum_clinical_trial_phase.notnull()",
         "type_": "str"
       },
       "meta": {}
@@ -241,8 +229,6 @@
       "expectation_type": "expect_column_values_to_be_in_set",
       "kwargs": {
         "column": "maximum_clinical_trial_phase",
-        "condition_parser": "pandas",
-        "row_condition": "maximum_clinical_trial_phase.notnull()",
         "value_set": [
           "Phase I",
           "Phase II",
