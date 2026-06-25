@@ -48,15 +48,14 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     This function prepares the biomarker and pathology dataframes for the Model AD project.
     It performs the following transformations:
-    1. Fill missing values with an empty string.
-    2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
-    3. Replace 'beta' with '&beta;' in the 'evidence_type' column.
-    4. Append "months" to age values
+    1. Capitalize 'sex' and 'tissue' columns in the DataFrame.
+    2. Replace 'beta' with '&beta;' in the 'evidence_type' column.
+    3. Append "months" to age values
     """
     # Create a copy to avoid modifying the original
     df = df.copy()
 
-    # Fill missing values and transform text fields
+    # Transform text fields
     df["sex"] = df["sex"].str.title()
     df["tissue"] = df["tissue"].str.title()
 

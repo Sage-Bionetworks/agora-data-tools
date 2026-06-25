@@ -190,7 +190,7 @@ def transform_gene_info(
 
     # Populate values for rows that didn't exist in the individual datasets with normalize_null_values. Fill special
     # values (-1 for adj_p_val and cor_pval, empty lists for alias and ensembl_possible_replacements) manually, since
-    # normalize_null_values doesn't support filling NA values with numbers or lists.
+    # normalize_null_values doesn't support filling NA values with arbitrary numbers.
     gene_info = normalize_null_values(
         gene_info,
         boolean_columns=["is_igap", "is_eqtl", "is_adi", "is_tep"],
