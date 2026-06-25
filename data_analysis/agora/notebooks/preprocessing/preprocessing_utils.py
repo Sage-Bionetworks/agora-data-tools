@@ -2,9 +2,6 @@
 This file includes several helper functions that are called from one or more of the pre-processing
 notebooks. This helps avoid code duplication and/or keeps the notebooks cleaner and more straightforward.
 Current public-facing functions:
-    manual_query_biomart - queries Biomart with a GET request
-    query_ensembl_version_api - queries the Ensembl API for Ensembl ID version info
-    r_query_biomart - queries Biomart using rpy2
     filter_hasgs - removes human alternative sequence genes from a data frame
     get_all_adt_ensembl_ids - gets the Ensembl IDs in all of the files ingested by ADT
     standardize_list_item - turn values of varying types into a list. Used for fixing the "alias" and
@@ -19,23 +16,6 @@ import re
 import synapseclient
 import agoradatatools.etl.utils as utils
 import agoradatatools.etl.extract as extract
-
-from external_query import EnsemblVersionQuery
-
-def query_ensembl_version_api(ensembl_ids: list[str]) -> pd.DataFrame:
-    """
-    Queries the Ensembl API via POST to get version information for each Ensembl ID. The API can only
-    process 1000 IDs at a time so the query is broken into batches of 1000. If a request fails, this
-    function will try again up to 5 times on that batch before quitting and raising an error.
-
-    Args:
-        ensembl_ids: a list of Ensembl IDs to query
-
-    Returns:
-        a pandas data frame with Ensembl IDs, version, and release information
-    """
-    query = EnsemblVersionQuery()
-    return query.query(ensembl_ids)
 
 
 def filter_hasgs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
@@ -65,59 +45,9 @@ def filter_hasgs(df: pd.DataFrame, chromosome_name_column: str) -> pd.DataFrame:
     return df_filt
 
 
-def r_query_biomart() -> pd.DataFrame:
-    """Uses rpy2 to query BioMart for all genes. This function is no longer used but is here in case we need it again.
-
-    Args:
-        none
-
-    Returns:
-        ensembl_ids_df (pd.DataFrame): a data frame including columns "ensembl_gene_id",
-                                      "chromosome_name", and "hgnc_symbol" retrived from BioMart
-    """
-    from rpy2.robjects import r
-    from rpy2.rinterface_lib.embedded import RRuntimeError
-
-    r(
-        'if (!require("BiocManager", character.only = TRUE)) { install.packages("BiocManager") }'
-    )
-    r('if (!require("biomaRt")) { BiocManager::install("biomaRt") }')
-
-    r.library("biomaRt")
-
-    # Sometimes Biomart doesn't respond and the command needs to be sent again. Try up to 5 times.
-    for _ in range(5):
-        try:
-            mart = r.useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl")
-            ensembl_ids = r.getBM(
-                attributes=r.c("ensembl_gene_id", "chromosome_name", "hgnc_symbol"),
-                mart=mart,
-                useCache=False,
-            )
-
-        except RRuntimeError as ex:
-            print(ex)
-            print("Trying again...")
-            ensembl_ids = None
-        else:
-            break
-
-    if ensembl_ids is None or ensembl_ids.nrow == 0:
-        print("Biomart was unresponsive after 5 attempts. Try again later.")
-        return pd.DataFrame()
-    else:
-        # Convert the ensembl_gene_id column from R object to a python list
-        ensembl_ids_df = pd.DataFrame(
-            {
-                "ensembl_gene_id": list(ensembl_ids.rx2("ensembl_gene_id")),
-                "chromosome_name": list(ensembl_ids.rx2("chromosome_name")),
-                "hgnc_symbol": list(ensembl_ids.rx2("hgnc_symbol")),
-            }
-        )
-        return ensembl_ids_df
-
-
-def get_all_adt_ensembl_ids(config_filename: str, exclude_files: list[str] = []) -> list[str]:
+def get_all_adt_ensembl_ids(
+    config_filename: str, exclude_files: list[str] = []
+) -> list[str]:
     """
     Loops through an ADT config file, finds all data files that are ingested by ADT, and returns a
     list containing all Ensembl IDs present in those files. Specific files can be excluded from the
@@ -126,8 +56,8 @@ def get_all_adt_ensembl_ids(config_filename: str, exclude_files: list[str] = [])
     Args:
         config_filename: full or relative file path to the ADT configs/agora_prod.yaml file
         exclude_files: list of file names to exclude when searching files for IDs. These names must
-                       match what is in "name" field of the file specification in the configs/agora_prod.yaml
-                       file. Typical values are "gene_metadata" and "druggability".
+                       match what is in the "name" field of the file specification in the configs/agora_prod.yaml
+                       file.
 
     Returns:
         a list of unique Ensembl IDs that exist in at least one data set ingested by ADT
@@ -229,19 +159,14 @@ def _extract_ensembl_ids(
 
     # Print any warnings and remove any NA values from the list before returning
     if len(file_ensembl_ids) == 0:
-        print("WARNING: no Ensembl ID column found for " + entity["name"] + "!")
+        print(f"WARNING: no Ensembl ID column found for {entity['name']}!")
 
     if "n/A" in file_ensembl_ids:
-        print(entity["name"] + " has an n/A Ensembl ID")
+        print(f"{entity['name']} has an n/A Ensembl ID")
         file_ensembl_ids.remove("n/A")
 
     if np.nan in file_ensembl_ids:
-        print(
-            entity["name"]
-            + " has "
-            + str(file_ensembl_ids.count(np.nan))
-            + " NaN Ensembl IDs"
-        )
+        print(f"{entity['name']} has {file_ensembl_ids.count(np.nan)} NaN Ensembl IDs")
         file_ensembl_ids = [x for x in file_ensembl_ids if x is not np.nan]
 
     # Remove duplicate values
