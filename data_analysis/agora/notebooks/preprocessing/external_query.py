@@ -339,7 +339,7 @@ class UniProtQuery(BatchedQuery):
         result = UniProtQuery().query(
             ['ENSG00000139618', 'ENSG00000141510'],
             source = UniProtQuery.ID_ENSEMBL,
-            dest = UniProtQuery.ID_UNIPROT
+            dest = UniProtQuery.ID_UNIPROT_SWISS
         )
     """
 
@@ -352,7 +352,8 @@ class UniProtQuery(BatchedQuery):
 
     # Constants for the input/output IDs
     ID_ENSEMBL = "Ensembl"
-    ID_UNIPROT = "UniProtKB-Swiss-Prot"
+    ID_UNIPROT_SWISS = "UniProtKB-Swiss-Prot"
+    ID_UNIPROT_AC = "UniProtKB_AC-ID"
 
     def __init__(
         self,
