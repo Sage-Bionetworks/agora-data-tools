@@ -134,7 +134,7 @@ datasets:
   - gene_info:
       files:
         - name: gene_metadata
-          id: syn25953363.16
+          id: syn25953363.17
           format: feather
         - name: igap
           id: syn12514826.5
@@ -157,10 +157,10 @@ datasets:
           id: syn51942280.6
           format: csv
         - name: ensg_to_uniprot_mapping
-          id: syn54113663.6
+          id: syn54113663.7
           format: tsv
         - name: pharos_classes
-          id: syn64123611.2
+          id: syn64123611.3
           format: csv
       final_format: json
       custom_transformations:
@@ -282,6 +282,27 @@ datasets:
       destination: *dest
       gx_enabled: true
 
+  - drug_info:
+      files:
+        - name: ot_drug_metadata
+          id: syn73724873.12
+          format: json
+        - name: drug_list
+          id: syn73677240.14
+          format: csv
+        - name: gene_metadata
+          id: syn25953363.17
+          format: feather
+        - name: harmonized_targets
+          id: syn12540368.74
+          format: csv
+      final_format: json
+      custom_transformations: transform_drug_info
+      column_rename:
+        source: program
+      destination: *dest
+      gx_enabled: false
+
   - nominated_drugs:
       files:
         - name: drug_list
@@ -292,6 +313,24 @@ datasets:
           format: json
       final_format: json
       custom_transformations: transform_nominated_drugs
+      destination: *dest
+      gx_enabled: false
+
+  - nominated_targets:
+      files:
+        - name: target_list
+          id: syn12540368.74
+          format: csv
+        - name: gene_metadata
+          id: syn25953363.17
+          format: feather
+        - name: pharos_classes
+          id: syn64123611.3
+          format: csv
+      final_format: json
+      custom_transformations: transform_nominated_targets
+      agora_rename:
+        symbol: hgnc_symbol
       destination: *dest
       gx_enabled: false
 

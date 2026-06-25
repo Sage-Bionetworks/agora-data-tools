@@ -1,0 +1,6 @@
+[
+  {"ensembl_gene_id": "ENSG00000000001", "symbol": "SYM1", "name": "gene one"},
+  {"ensembl_gene_id": "ENSG00000000002", "symbol": "SYM2", "name": "gene two"},
+  {"ensembl_gene_id": "ENSG00000000003", "symbol": "SYM3", "name": "gene three"},
+  {"ensembl_gene_id": "ENSG00000000009", "symbol": "SYM9", "name": "not nominated"}
+]
