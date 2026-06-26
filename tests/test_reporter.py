@@ -35,9 +35,17 @@ class TestADTGXReporter:
             platform=Platform.GITHUB,
             run_id="test_run_id",
             table_id="syn123",
+            upload=True,
             data_manifest_file="syn456",
             data_manifest_version=1,
             data_manifest_link="test_link",
+        )
+        self.test_reporter_no_upload = ADTGXReporter(
+            syn=syn,
+            platform=Platform.GITHUB,
+            run_id="test_run_id",
+            table_id="syn123",
+            upload=False,
         )
         self.test_reporter_local = ADTGXReporter(
             syn=syn,
@@ -126,6 +134,16 @@ class TestADTGXReporter:
             self.test_reporter, "_update_reports_before_upload"
         ) as mock_update_reports_before_upload:
             self.test_reporter.update_table()
+
+            mock_store.assert_not_called()
+            mock_update_reports_before_upload.assert_not_called()
+
+    def test_update_table_platform_not_local_and_upload_is_false(self, syn):
+        with patch.object(syn, "store") as mock_store, patch.object(
+            self.test_reporter_no_upload, "_update_reports_before_upload"
+        ) as mock_update_reports_before_upload:
+            self.test_reporter_no_upload.reports = [self.test_report]
+            self.test_reporter_no_upload.update_table()
 
             mock_store.assert_not_called()
             mock_update_reports_before_upload.assert_not_called()

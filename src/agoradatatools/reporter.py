@@ -124,13 +124,10 @@ class ADTGXReporter:
             )
 
     def update_table(self) -> None:
-        """Updates the Synapse table adding one new row for each DatasetReport object.
-
-        The table is updated for non-LOCAL platforms, or for LOCAL runs that uploaded
-        their outputs to Synapse (i.e. the `--upload` flag was set), as long as there
-        is at least one report to add.
+        """Updates the Synapse GX report table, adding one new row for each DatasetReport object that is
+        uploaded to Synapse.
         """
-        if (self.platform != Platform.LOCAL or self.upload) and self.reports:
+        if self.upload and self.reports:
             self._update_reports_before_upload()
             self.syn.store(
                 synapseclient.Table(
