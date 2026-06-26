@@ -1,0 +1,424 @@
+destination: &dest syn75917244      # MAD test > Chunked file testing
+aggr_dest: &aggr_dest syn75920688   # > rna_de_aggregate subfolder
+indiv_dest: &indiv_dest syn75917253 # > rna_de_individual subfolder
+gx_folder: syn75922398              # > GX reports subfolder
+gx_table: syn63891939               # test records table
+
+sources:
+  - model_info:
+    model_info_file: &model_info_file
+      - name: model_info
+        id: syn61378590.13
+        format: csv
+datasets:
+  - model_details:
+      files:
+        - <<: *model_info_file
+        - name: allele_info
+          id: syn64618791.6
+          format: csv
+        - name: pathology
+          id: syn61357279.18
+          format: csv
+        - name: biomarkers
+          id: syn61250724.12
+          format: csv
+        - name: human_transgene_allele_map
+          id: syn64846805.2
+          format: csv
+        - name: model_results_info
+          id: syn68377668.7
+          format: csv
+        - name: immunohisto_measure_order
+          id: syn71305327.2
+          format: yaml
+      final_format: json
+      destination: *dest
+      custom_transformations: transform_model_details
+      column_rename:
+        gene: modified_gene
+        ensembl_id: human_ensembl_id
+        agedeath: age
+        age_death: age
+        measurement: value
+        type: evidence_type
+        model: name
+        key: dataset_name
+        items: evidence_type
+      gx_nested_columns:
+        - genetic_info
+        - biomarkers
+        - pathology
+      gx_enabled: true
+
+  - disease_correlation:
+      files:
+        - name: disease_correlation_results
+          id: syn65467849.6
+          format: csv
+        - <<: *model_info_file
+        - name: allele_info
+          id: syn64618791.6
+          format: csv
+        - name: human_transgene_allele_map
+          id: syn64846805.2
+          format: csv
+      final_format: json
+      destination: *dest
+      custom_transformations: transform_disease_correlation
+      column_rename:
+        ensembl_id: human_ensembl_id
+
+  - ui_config:
+      files:
+        - name: ui_config
+          id: syn66527739.30
+          format: json
+      final_format: json
+      destination: *dest
+      gx_enabled: true
+      gx_nested_columns:
+        - columns
+
+  - model_overview:
+      files:
+        - <<: *model_info_file
+        - name: model_results_info
+          id: syn68377668.7
+          format: csv
+        - name: allele_info
+          id: syn64618791.6
+          format: csv
+        - name: human_transgene_allele_map
+          id: syn64846805.2
+          format: csv
+      final_format: json
+      destination: *dest
+      custom_transformations: transform_model_overview
+      column_rename:
+        gene: modified_gene
+        ensembl_id: human_ensembl_id
+        model: name
+      gx_enabled: true
+      gx_nested_columns:
+        - transcriptomics
+        - disease_correlation
+        - pathology
+        - biomarkers
+        - study_data
+        - jax_strain
+
+  - rna_de_aggregate_jax_5xFAD:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: biodom_genes_mm
+          id: syn66351272.1
+          format: csv
+        - name: Jax.IU.Pitt_5XFAD_differential_expression
+          id: syn69058660.2
+          format: csv
+      final_format: json
+      destination: *aggr_dest
+      custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_suite: rna_de_aggregate
+      gx_nested_columns:
+        - name
+        - 4 months
+        - 12 months
+
+  - rna_de_aggregate_jax_LOAD1:
+      files:
+        - name: rnaseq_genotype_label_map
+        - id: syn69014401.17
+        - format: csv
+        - name: mouse_gene_metadata
+        - id: syn51615422.4
+        - format: json
+        - name: biodom_genes_mm
+        - id: syn66351272.1
+        - format: csv
+        - name: Jax.IU.Pitt_APOE4.Trem2.R47H_differential_expression
+          id: syn69693082.3
+          format: csv
+      final_format: json
+      destination: *aggr_dest
+      custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_suite: rna_de_aggregate
+      gx_nested_columns:
+        - name
+        - 4 months
+        - 12 months
+        - 18 months
+
+  - rna_de_aggregate_uci_3xTG:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: biodom_genes_mm
+          id: syn66351272.1
+          format: csv
+        - name: UCI_3xTg-AD_differential_expression
+          id: syn69058661.2
+          format: csv
+      final_format: json
+      destination: *aggr_dest
+      custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_suite: rna_de_aggregate
+      gx_nested_columns:
+        - name
+        - 4 months
+        - 12 months
+        - 18 months
+
+  - rna_de_aggregate_uci_5xFAD:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: biodom_genes_mm
+          id: syn66351272.1
+          format: csv
+        - name: UCI_5XFAD_differential_expression
+          id: syn69058664.1
+          format: csv
+      final_format: json
+      destination: *aggr_dest
+      custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_suite: rna_de_aggregate
+      gx_nested_columns:
+        - name
+        - 4 months
+        - 12 months
+        - 18 months
+
+  - rna_de_aggregate_uci_abca7_group:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: biodom_genes_mm
+          id: syn66351272.1
+          format: csv
+        - name: UCI_ABCA7_differential_expression
+          id: syn69058663.3
+          format: csv
+      final_format: json
+      destination: *aggr_dest
+      custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_suite: rna_de_aggregate
+      gx_nested_columns:
+        - name
+        - 4 months
+        - 12 months
+
+  - rna_de_aggregate_uci_nss_group:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: biodom_genes_mm
+          id: syn66351272.1
+          format: csv
+        - name: UCI_Trem2-R47H_NSS_differential_expression
+          id: syn69058662.3
+          format: csv
+      final_format: json
+      destination: *aggr_dest
+      custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_suite: rna_de_aggregate
+      gx_nested_columns:
+        - name
+        - 4 months
+        - 12 months
+
+  # rna_de_individual per-model datasets
+  - rna_de_individual_jax_load1:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: Jax.IU.Pitt_APOE4.Trem2.R47H_normalized_expression
+          id: syn72388432.1
+          format: csv
+      final_format: json
+      destination: *indiv_dest
+      custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_suite: rna_de_individual
+      gx_nested_columns:
+        - result_order
+        - data
+
+  - rna_de_individual_jax_apoe4:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: Jax.IU.Pitt_APOE4_normalized_expression
+          id: syn72388431.2
+          format: csv
+      final_format: json
+      destination: *indiv_dest
+      custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_suite: rna_de_individual
+      gx_nested_columns:
+        - result_order
+        - data
+
+
+  - rna_de_individual_jax_trem2:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: Jax.IU.Pitt_Trem2.R47H_normalized_expression
+          id: syn72388430.2
+          format: csv
+      final_format: json
+      destination: *indiv_dest
+      custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_suite: rna_de_individual
+      gx_nested_columns:
+        - result_order
+        - data
+
+  - rna_de_individual_uci_abca7_group:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: UCI_ABCA7.5XFAD_normalized_expression
+          id: syn72388476.2
+          format: csv
+        - name: UCI_ABCA7_normalized_expression
+          id: syn72388477.1
+          format: csv
+      final_format: json
+      destination: *indiv_dest
+      custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_suite: rna_de_individual
+      gx_nested_columns:
+        - result_order
+        - data
+
+  - rna_de_individual_uci_nss_group:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: UCI_Trem2-R47H_NSS.5XFAD_normalized_expression
+          id: syn72388499.2
+          format: csv
+        - name: UCI_Trem2-R47H_NSS_normalized_expression
+          id: syn72388498.1
+          format: csv
+      final_format: json
+      destination: *indiv_dest
+      custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_suite: rna_de_individual
+      gx_nested_columns:
+        - result_order
+        - data
+
+  - rna_de_individual_uci_3x:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: UCI_3xTg-AD_normalized_expression
+          id: syn69058676.1
+          format: csv
+      final_format: json
+      destination: *indiv_dest
+      custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_suite: rna_de_individual
+      gx_nested_columns:
+        - result_order
+        - data
+
+  - rna_de_individual_uci_5x:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: UCI_5XFAD_normalized_expression
+          id: syn69058679.1
+          format: csv
+      final_format: json
+      destination: *indiv_dest
+      custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_suite: rna_de_individual
+      gx_nested_columns:
+        - result_order
+        - data
+
+  - rna_de_individual_jax_5x:
+      files:
+        - name: rnaseq_genotype_label_map
+          id: syn69014401.17
+          format: csv
+        - name: mouse_gene_metadata
+          id: syn51615422.4
+          format: json
+        - name: Jax.IU.Pitt_5XFAD_normalized_expression
+          id: syn69058674.1
+          format: csv
+      final_format: json
+      destination: *indiv_dest
+      custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_suite: rna_de_individual
+      gx_nested_columns:
+        - result_order
+        - data
