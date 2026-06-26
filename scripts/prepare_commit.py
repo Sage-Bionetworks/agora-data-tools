@@ -33,10 +33,15 @@ clean, tested state. It executes the following steps in order:
    not found, installs it via `pip install pre-commit`.
 
 6. Run pre-commit hooks
-   Executes `pre-commit run --all-files`. Because auto-fixing hooks (e.g.
-   black, ruff, autoflake) exit with a non-zero code on the first pass to
-   signal that files were modified, the script automatically retries once. If
-   the second run still fails, the script exits with an error.
+   Executes pre-commit against an explicit list of files (tracked plus
+   untracked, non-ignored) via `pre-commit run --files ...`. The --all-files
+   flag is avoided because it relies on git ls-files, which only lists tracked
+   files; new or untracked files would otherwise be skipped here and only get
+   fixed at commit time. Passing files explicitly covers them without staging
+   anything. Because auto-fixing hooks (e.g. black, ruff, autoflake) exit with a
+   non-zero code on the first pass to signal that files were modified, the
+   script automatically retries once. If the second run still fails, the script
+   exits with an error.
 
 If all steps pass, a success message is printed and the codebase is ready to
 commit.
@@ -177,6 +182,30 @@ def ensure_pre_commit_installed() -> None:
     )
 
 
+def collect_repo_files() -> list[str]:
+    """Return tracked plus untracked (non-ignored) files relative to the repo root.
+
+    pre-commit's --all-files flag relies on git ls-files, which only lists
+    tracked files. To also cover new or previously untracked files without
+    staging them, we add the output of git ls-files --others --exclude-standard.
+    """
+    tracked = subprocess.run(
+        ["git", "ls-files"],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        cwd=_REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.splitlines()
+    return [f for f in (*tracked, *untracked) if f]
+
+
 def run_pre_commit() -> None:
     """Run pre-commit, retrying once if it exits non-zero.
 
@@ -184,13 +213,21 @@ def run_pre_commit() -> None:
     exit with a non-zero code to signal that changes were made. A second run
     confirms everything is clean. If pre-commit still fails on the second pass,
     the script exits with an error.
+
+    Files are passed explicitly via --files (tracked plus untracked,
+    non-ignored) instead of using --all-files. --all-files relies on
+    git ls-files, which only lists tracked files, so new or untracked files
+    would otherwise be skipped here and only get fixed when you commit. Passing
+    files explicitly covers them without staging anything.
     """
-    cmd = ["pre-commit", "run", "--all-files"]
-    description = "pre-commit run --all-files"
+    files = collect_repo_files()
+
+    cmd = ["pre-commit", "run", "--files", *files]
+    description = "pre-commit run --files (tracked + untracked)"
 
     print(f"\n{'='*60}")
     print(f"  {description}")
-    print(f"  $ {' '.join(cmd)}")
+    print(f"  $ pre-commit run --files <{len(files)} files>")
     print(f"{'='*60}\n")
 
     first = subprocess.run(cmd, cwd=_REPO_ROOT)
