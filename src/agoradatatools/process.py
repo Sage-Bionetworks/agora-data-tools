@@ -395,8 +395,8 @@ def process_all_files(
     destination = config["destination"]
     gx_table = config["gx_table"]
 
-    staging_path = config.get("staging_path", None)
-    load.create_temp_location(staging_path=staging_path or "./staging")
+    staging_path = config.get("staging_path") or "./staging"
+    load.create_temp_location(staging_path=staging_path)
 
     reporter = ADTGXReporter(
         syn=syn,
