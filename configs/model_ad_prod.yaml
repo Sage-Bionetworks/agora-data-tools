@@ -2,31 +2,28 @@ destination: &dest syn51498088   # prod
 staging_path: ./staging
 gx_folder: syn63141014           # prod
 gx_table: syn71888383            # prod
-sources:
-  - model_info:
-    model_info_file: &model_info_file
-      - name: model_info
-        id: syn61378590.13
-        format: csv
+# Reusable file and column rename reference anchors used by multiple datasets below.
+shared:
+  files:
+    - &model_info {name: model_info, id: syn61378590.13, format: csv}
+    - &allele_info {name: allele_info, id: syn64618791.6, format: csv}
+    - &human_transgene_allele_map {name: human_transgene_allele_map, id: syn64846805.2, format: csv}
+    - &model_results_info {name: model_results_info, id: syn68377668.7, format: csv}
+    - &rnaseq_genotype_label_map {name: rnaseq_genotype_label_map, id: syn69014401.17, format: csv}
+    - &mouse_gene_metadata {name: mouse_gene_metadata, id: syn51615422.4, format: json}
 datasets:
   - model_details:
       files:
-        - <<: *model_info_file
-        - name: allele_info
-          id: syn64618791.6
-          format: csv
+        - <<: *model_info
+        - <<: *allele_info
         - name: pathology
           id: syn61357279.18
           format: csv
         - name: biomarkers
           id: syn61250724.12
           format: csv
-        - name: human_transgene_allele_map
-          id: syn64846805.2
-          format: csv
-        - name: model_results_info
-          id: syn68377668.7
-          format: csv
+        - <<: *human_transgene_allele_map
+        - <<: *model_results_info
         - name: immunohisto_measure_order
           id: syn71305327.2
           format: yaml
@@ -54,13 +51,9 @@ datasets:
         - name: disease_correlation_results
           id: syn65467849.6
           format: csv
-        - <<: *model_info_file
-        - name: allele_info
-          id: syn64618791.6
-          format: csv
-        - name: human_transgene_allele_map
-          id: syn64846805.2
-          format: csv
+        - <<: *model_info
+        - <<: *allele_info
+        - <<: *human_transgene_allele_map
       final_format: json
       destination: *dest
       custom_transformations: transform_disease_correlation
@@ -80,16 +73,10 @@ datasets:
 
   - model_overview:
       files:
-        - <<: *model_info_file
-        - name: model_results_info
-          id: syn68377668.7
-          format: csv
-        - name: allele_info
-          id: syn64618791.6
-          format: csv
-        - name: human_transgene_allele_map
-          id: syn64846805.2
-          format: csv
+        - <<: *model_info
+        - <<: *model_results_info
+        - <<: *allele_info
+        - <<: *human_transgene_allele_map
       final_format: json
       destination: *dest
       custom_transformations: transform_model_overview
@@ -108,12 +95,8 @@ datasets:
 
   - rna_de_aggregate:
       files:
-        - name: rnaseq_genotype_label_map
-          id: syn69014401.17
-          format: csv
-        - name: mouse_gene_metadata
-          id: syn51615422.4
-          format: json
+        - <<: *rnaseq_genotype_label_map
+        - <<: *mouse_gene_metadata
         - name: biodom_genes_mm
           id: syn66351272.1
           format: csv
@@ -141,12 +124,8 @@ datasets:
 
   - rna_de_individual:
       files:
-        - name: rnaseq_genotype_label_map
-          id: syn69014401.17
-          format: csv
-        - name: mouse_gene_metadata
-          id: syn51615422.4
-          format: json
+        - <<: *rnaseq_genotype_label_map
+        - <<: *mouse_gene_metadata
         - name: Jax.IU.Pitt_APOE4.Trem2.R47H_normalized_expression
           id: syn72388432.1
           format: csv

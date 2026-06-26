@@ -3,52 +3,24 @@ staging_path: ./staging
 gx_folder: syn52948668
 gx_table: syn60527066
 team_images_id: syn12861877
-sources:
-  - genes_biodomains:
-    genes_biodomains_files: &genes_biodomains_files
-      - name: genes_biodomains
-        id: syn44151254.5
-        format: csv
-    genes_biodomains_provenance: &genes_biodomains_provenance
-      - syn44151254.5
-  - overall_scores:
-    overall_scores_files: &overall_scores_files
-      - name: overall_scores
-        id: syn25575156.13
-        format: table
-    overall_scores_provenance: &overall_scores_provenance
-      - syn25575156.13
-  - agora_proteomics:
-    agora_proteomics_files: &agora_proteomics_files
-      - name: proteomics
-        id: syn18689335.4
-        format: csv
-    agora_proteomics_provenance: &agora_proteomics_provenance
-      - syn18689335.4
-  - agora_proteomics_tmt:
-    agora_proteomics_tmt_files: &agora_proteomics_tmt_files
-      - name: proteomics_tmt
-        id: syn35221005.2
-        format: csv
-    agora_proteomics_tmt_provenance: &agora_proteomics_tmt_provenance
-      - syn35221005.2
-  - agora_proteomics_srm:
-    agora_proteomics_srm_files: &agora_proteomics_srm_files
-      - name: proteomics_srm
-        id: syn52579640.4
-        format: csv
-    agora_proteomics_srm_provenance: &agora_proteomics_srm_provenance
-      - syn52579640.4
-  - rna_diff_expr_data:
-    rna_diff_expr_data_files: &rna_diff_expr_data_files
-      - name: diff_exp_data
-        id: syn27211942.1
-        format: tsv
-    rna_diff_expr_data_provenance: &rna_diff_expr_data_provenance
-      - syn27211942.1
+# Reusable file and column rename reference anchors used by multiple datasets below.
+shared:
+  files:
+    - &genes_biodomains {name: genes_biodomains, id: syn44151254.5, format: csv}
+    - &overall_scores {name: overall_scores, id: syn25575156.13, format: table}
+    - &proteomics {name: proteomics, id: syn18689335.4, format: csv}
+    - &proteomics_tmt {name: proteomics_tmt, id: syn35221005.2, format: csv}
+    - &proteomics_srm {name: proteomics_srm, id: syn52579640.4, format: csv}
+    - &diff_exp_data {name: diff_exp_data, id: syn27211942.1, format: tsv}
+    - &gene_metadata {name: gene_metadata, id: syn25953363.17, format: feather}
+    - &target_list {name: target_list, id: syn12540368.74, format: csv}
+    - &pharos_classes {name: pharos_classes, id: syn64123611.3, format: csv}
+    - &drug_list {name: drug_list, id: syn73677240.14, format: csv}
+
 datasets:
   - biodomain_info:
-      files: *genes_biodomains_files
+      files:
+        - <<: *genes_biodomains
       final_format: json
       custom_transformations: transform_biodomain_info
       column_rename:
@@ -57,7 +29,8 @@ datasets:
       gx_enabled: true
 
   - genes_biodomains:
-      files: *genes_biodomains_files
+      files:
+        - <<: *genes_biodomains
       final_format: json
       custom_transformations: transform_genes_biodomains
       column_rename:
@@ -84,7 +57,8 @@ datasets:
       gx_enabled: true
 
   - proteomics:
-      files: *agora_proteomics_files
+      files:
+        - <<: *proteomics
       final_format: json
       custom_transformations: transform_proteomics
       column_rename:
@@ -94,7 +68,8 @@ datasets:
       gx_enabled: true
 
   - proteomics_tmt:
-      files: *agora_proteomics_tmt_files
+      files:
+        - <<: *proteomics_tmt
       final_format: json
       custom_transformations: transform_proteomics
       column_rename:
@@ -104,7 +79,8 @@ datasets:
       gx_enabled: true
 
   - proteomics_srm:
-      files: *agora_proteomics_srm_files
+      files:
+        - <<: *proteomics_srm
       final_format: json
       custom_transformations: transform_proteomics
       column_rename:
@@ -133,35 +109,29 @@ datasets:
 
   - gene_info:
       files:
-        - name: gene_metadata
-          id: syn25953363.17
-          format: feather
+        - <<: *gene_metadata
         - name: igap
           id: syn12514826.5
           format: csv
         - name: eqtl
           id: syn12514912.3
           format: csv
-        - <<: *agora_proteomics_files
-        - <<: *agora_proteomics_tmt_files
-        - <<: *agora_proteomics_srm_files
-        - <<: *rna_diff_expr_data_files
-        - name: target_list
-          id: syn12540368.74
-          format: csv
+        - <<: *proteomics
+        - <<: *proteomics_tmt
+        - <<: *proteomics_srm
+        - <<: *diff_exp_data
+        - <<: *target_list
         - name: median_expression
           id: syn27211878.2
           format: csv
-        - <<: *genes_biodomains_files
+        - <<: *genes_biodomains
         - name: tep_adi_info
           id: syn51942280.6
           format: csv
         - name: ensg_to_uniprot_mapping
           id: syn54113663.7
           format: tsv
-        - name: pharos_classes
-          id: syn64123611.3
-          format: csv
+        - <<: *pharos_classes
       final_format: json
       custom_transformations:
         transform_gene_info:
@@ -208,7 +178,8 @@ datasets:
         - members
 
   - overall_scores:
-      files: *overall_scores_files
+      files:
+        - <<: *overall_scores
       final_format: json
       custom_transformations: transform_overall_scores
       column_rename:
@@ -240,14 +211,16 @@ datasets:
       gx_enabled: true
 
   - rnaseq_differential_expression:
-      files: *rna_diff_expr_data_files
+      files:
+        - <<: *diff_exp_data
       final_format: json
       custom_transformations: transform_rnaseq_differential_expression
       destination: *dest
       gx_enabled: true
 
   - distribution_data:
-      files: *overall_scores_files
+      files:
+        - <<: *overall_scores
       final_format: json
       custom_transformations:
         transform_distribution_data:
@@ -266,7 +239,8 @@ datasets:
         - multi_omics_score
 
   - rna_distribution_data:
-      files: *rna_diff_expr_data_files
+      files:
+        - <<: *diff_exp_data
       final_format: json
       custom_transformations: transform_rna_distribution_data
       destination: *dest
@@ -274,9 +248,9 @@ datasets:
 
   - proteomics_distribution_data:
       files:
-        - <<: *agora_proteomics_files
-        - <<: *agora_proteomics_tmt_files
-        - <<: *agora_proteomics_srm_files
+        - <<: *proteomics
+        - <<: *proteomics_tmt
+        - <<: *proteomics_srm
       final_format: json
       custom_transformations: transform_proteomics_distribution_data
       destination: *dest
@@ -287,12 +261,8 @@ datasets:
         - name: ot_drug_metadata
           id: syn73724873.12
           format: json
-        - name: drug_list
-          id: syn73677240.14
-          format: csv
-        - name: gene_metadata
-          id: syn25953363.17
-          format: feather
+        - <<: *drug_list
+        - <<: *gene_metadata
         - name: harmonized_targets
           id: syn12540368.74
           format: csv
@@ -305,9 +275,7 @@ datasets:
 
   - nominated_drugs:
       files:
-        - name: drug_list
-          id: syn73677240.14
-          format: csv
+        - <<: *drug_list
         - name: drug_metadata
           id: syn73724873.12
           format: json
@@ -318,15 +286,9 @@ datasets:
 
   - nominated_targets:
       files:
-        - name: target_list
-          id: syn12540368.74
-          format: csv
-        - name: gene_metadata
-          id: syn25953363.17
-          format: feather
-        - name: pharos_classes
-          id: syn64123611.3
-          format: csv
+        - <<: *target_list
+        - <<: *gene_metadata
+        - <<: *pharos_classes
       final_format: json
       custom_transformations: transform_nominated_targets
       agora_rename:
