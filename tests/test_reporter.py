@@ -3,9 +3,8 @@ import datetime
 
 from unittest.mock import patch, Mock
 
-from typing import Any
-
 import agoradatatools.reporter
+import synapseclient
 
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
 from agoradatatools.constants import Platform
@@ -91,7 +90,7 @@ class TestADTGXReporter:
         assert self.test_reporter.reports[0] == self.upload_report
 
     def test_update_table_platform_not_local_and_reports_not_empty(
-        self, syn: Any
+        self, syn: synapseclient.Synapse
     ) -> None:
         with patch.object(syn, "store") as mock_store, patch.object(
             self.test_reporter, "_update_reports_before_upload"
@@ -103,7 +102,7 @@ class TestADTGXReporter:
             mock_update_reports_before_upload.assert_called_once()
 
     def test_update_table_when_platform_is_local_and_upload_is_false(
-        self, syn: Any
+        self, syn: synapseclient.Synapse
     ) -> None:
         with patch.object(syn, "store") as mock_store, patch.object(
             self.test_reporter_local, "_update_reports_before_upload"
@@ -115,7 +114,7 @@ class TestADTGXReporter:
             mock_update_reports_before_upload.assert_not_called()
 
     def test_update_table_when_platform_is_local_and_upload_is_true(
-        self, syn: Any
+        self, syn: synapseclient.Synapse
     ) -> None:
         with patch.object(syn, "store") as mock_store, patch.object(
             self.test_reporter_local_upload, "_update_reports_before_upload"
@@ -127,7 +126,7 @@ class TestADTGXReporter:
             mock_update_reports_before_upload.assert_called_once()
 
     def test_update_table_when_platform_is_local_and_upload_is_true_but_reports_empty(
-        self, syn: Any
+        self, syn: synapseclient.Synapse
     ) -> None:
         with patch.object(syn, "store") as mock_store, patch.object(
             self.test_reporter_local_upload, "_update_reports_before_upload"
@@ -137,7 +136,9 @@ class TestADTGXReporter:
             mock_store.assert_not_called()
             mock_update_reports_before_upload.assert_not_called()
 
-    def test_update_table_platform_not_local_and_reports_empty(self, syn: Any) -> None:
+    def test_update_table_platform_not_local_and_reports_empty(
+        self, syn: synapseclient.Synapse
+    ) -> None:
         with patch.object(syn, "store") as mock_store, patch.object(
             self.test_reporter, "_update_reports_before_upload"
         ) as mock_update_reports_before_upload:
@@ -147,7 +148,7 @@ class TestADTGXReporter:
             mock_update_reports_before_upload.assert_not_called()
 
     def test_update_table_platform_not_local_and_upload_is_false(
-        self, syn: Any
+        self, syn: synapseclient.Synapse
     ) -> None:
         with patch.object(syn, "store") as mock_store, patch.object(
             self.test_reporter_no_upload, "_update_reports_before_upload"
