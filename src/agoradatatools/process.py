@@ -280,6 +280,7 @@ def process_dataset(
             syn=syn,
             dataset_path=json_path,
             dataset_name=dataset_name,
+            staging_path=staging_path,
             upload_folder=gx_folder if upload else None,
             nested_columns=(
                 dataset_obj[dataset_name]["gx_nested_columns"]
