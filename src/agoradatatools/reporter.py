@@ -85,7 +85,7 @@ class ADTGXReporter:
         platform: The platform where the processing was run.
         run_id: The id of the processing run. This will be passed from the `process` CLI command.
         table_id: Synapse ID of the Synapse table to be updated.
-        upload: Whether or not the processing run uploaded its outputs to Synapse.
+        upload: Whether upload to Synapse is enabled for the processing run.
         data_manifest_file: Synapse ID of the ADT manifest file.
         data_manifest_version: Version number of the ADT manifest file.
         data_manifest_link: URL of the specific version of the ADT manifest file.
