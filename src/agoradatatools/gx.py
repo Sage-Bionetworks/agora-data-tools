@@ -256,7 +256,7 @@ class GreatExpectationsRunner:
             return
 
         logger.info(
-            f"Running the {self.expectation_suite_name} suite on {self.dataset_name}"
+            f"Running the {self.expectation_suite_name} suite on dataset {self.dataset_name}"
         )
 
         # Do not infer dtype from fields like strings that have numbers in them. The .replace is
@@ -280,10 +280,13 @@ class GreatExpectationsRunner:
         )
         checkpoint_result = checkpoint.run()
         logger.info(
-            f"Data validation complete for {self.dataset_name}. Uploading results to Synapse."
+            f"Data validation complete for dataset: {self.dataset_name} with suite: {self.expectation_suite_name}."
         )
         latest_results_path = self.get_results_path(checkpoint_result)
         self.set_warnings_and_failures(checkpoint_result)
 
         if self.upload_folder:
+            logger.info(
+                f"Uploading GX reports for {self.dataset_name} to Synapse."
+            )
             self.upload_results_file_to_synapse(latest_results_path)
