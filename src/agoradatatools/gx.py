@@ -42,7 +42,7 @@ class GreatExpectationsRunner:
         syn: Synapse,
         dataset_path: str,
         dataset_name: str,
-        staging_path: str = None,
+        staging_path: str,
         upload_folder: str = None,
         nested_columns: typing.List[str] = None,
     ):
