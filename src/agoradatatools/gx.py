@@ -97,7 +97,7 @@ class GreatExpectationsRunner:
         )
         if not exists:
             logger.info(
-                f"Expectation suite {self.expectation_suite_name} does not exist. Data validation will not be performed for {self.dataset_name}."
+                f"Expectation suite {self.expectation_suite_name} does not exist. Data validation will not be performed."
             )
         return exists
 
