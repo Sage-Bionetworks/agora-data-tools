@@ -140,7 +140,7 @@ def transform_gene_info(
     # the portal page to the specific gene. This must be done using the hgnc_symbol from the
     # tep_info file and not the symbol in gene_info, because there are some mismatches
     # between the two and the hgnc_symbol from tep_info is the correct one to use here.
-    # resource_url should be NA if both is_adi and is_tep are false.
+    # resource_url should be None if both is_adi and is_tep are false.
     RESOURCE_URL_PREFIX = (
         "https://adknowledgeportal.synapse.org/Explore/Target%20Enabling%20Resources?QueryWrapper0=%7B%22sql%22%3A%22"
         + "select%20*%20from%20syn26146692%20WHERE%20%60isPublic%60%20%3D%20true%22%2C%22limit%22%3A25%2C%22offset%22"

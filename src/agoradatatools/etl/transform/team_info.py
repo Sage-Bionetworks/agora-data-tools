@@ -8,10 +8,9 @@ from agoradatatools.etl.utils import (
     normalize_null_values,
 )
 
-
 REQUIRED_INPUT = {
     "team_info": ["team"],
-    "team_member_info": ["team"],
+    "team_member_info": ["team", "isprimaryinvestigator", "name", "url"],
 }
 
 

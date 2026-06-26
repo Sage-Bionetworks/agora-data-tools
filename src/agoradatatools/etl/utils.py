@@ -746,8 +746,9 @@ def normalize_null_values(
     that option too.
 
     Columns listed in `boolean_columns` will have NaN/None values replaced with False and their type set to "bool", and
-    columns listed in `empty_string_columns` will have NaN/None values replaced with "". After that, all columns left
-    over will have their NaN values replaced with None, regardless of column type.
+    columns listed in `empty_string_columns` will have NaN/None values replaced with "". Columns listed in
+    `empty_list_columns` will have NaN/None values replaced with empty lists. After that, all columns left over will
+    have their NaN values replaced with None, regardless of column type.
 
     All *_columns arguments are optional and default to empty lists. Values in these arguments must not overlap with
     each other and must contain only columns that appear in the data frame.

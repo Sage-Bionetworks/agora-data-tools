@@ -187,7 +187,7 @@ def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
         data_rows, how="outer", validate="one_to_one"
     )
 
-    # Fill NA values for units. Can't use fillna to make an empty list so we add an extra line
+    # Fill NA values for units (empty strings) and data (empty lists)
     fill_df = normalize_null_values(
         fill_df, empty_string_columns=["units"], empty_list_columns=["data"]
     )
