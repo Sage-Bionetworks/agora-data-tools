@@ -106,7 +106,7 @@ datasets:
         - study_data
         - jax_strain
 
-  - rna_de_aggregate:
+  - rna_de_aggregate_jax_5xFAD:
       files:
         - name: rnaseq_genotype_label_map
           id: syn69014401.17

@@ -42,13 +42,15 @@ class GreatExpectationsRunner:
         syn: Synapse,
         dataset_path: str,
         dataset_name: str,
+        expectation_suite_name: Optional[str] = None,
         upload_folder: str = None,
         nested_columns: typing.List[str] = None,
     ):
         """Initialize the class"""
         self.syn = syn
         self.dataset_path = dataset_path
-        self.expectation_suite_name = dataset_name
+        self.dataset_name = dataset_name
+        self.expectation_suite_name = expectation_suite_name or dataset_name
         self.upload_folder = upload_folder
         self.nested_columns = nested_columns
         self.gx_project_dir = self._get_data_context_location()
@@ -116,9 +118,9 @@ class GreatExpectationsRunner:
             *original_results_path_items,
         )
 
-        expectation_suite_name = self.expectation_suite_name + ".html"
+        report_name = self.dataset_name + ".html"
         new_results_path_items = original_results_path_items
-        new_results_path_items[-1] = expectation_suite_name
+        new_results_path_items[-1] = report_name
         new_results_path = os.path.join(
             self.validations_path,
             *new_results_path_items,
@@ -253,7 +255,9 @@ class GreatExpectationsRunner:
         if not self.check_if_expectation_suite_exists():
             return
 
-        logger.info(f"Running data validation on {self.expectation_suite_name}")
+        logger.info(
+            f"Running the {self.expectation_suite_name} suite on dataset {self.dataset_name}"
+        )
 
         # Do not infer dtype from fields like strings that have numbers in them. The .replace is
         # necessary because without dtype inference, all JSON nulls are read in as pd.NA, which
@@ -276,10 +280,11 @@ class GreatExpectationsRunner:
         )
         checkpoint_result = checkpoint.run()
         logger.info(
-            f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
+            f"Data validation complete for dataset: {self.dataset_name} with suite: {self.expectation_suite_name}."
         )
-        latest_reults_path = self.get_results_path(checkpoint_result)
+        latest_results_path = self.get_results_path(checkpoint_result)
         self.set_warnings_and_failures(checkpoint_result)
 
         if self.upload_folder:
-            self.upload_results_file_to_synapse(latest_reults_path)
+            logger.info(f"Uploading GX reports for {self.dataset_name} to Synapse.")
+            self.upload_results_file_to_synapse(latest_results_path)

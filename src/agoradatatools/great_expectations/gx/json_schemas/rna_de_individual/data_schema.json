@@ -1,0 +1,14 @@
+{
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "genotype":      { "type": "string", "minLength": 1 },
+      "sex":           { "type": "string", "minLength": 1 },
+      "individual_id": { "type": "string", "minLength": 1 },
+      "value":         { "type": "number" }
+    },
+    "required": ["genotype", "sex", "individual_id", "value"],
+    "additionalProperties": false
+  }
+}

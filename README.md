@@ -278,6 +278,7 @@ Parameters:
     - `format`: The format of the source file
 - `datasets/<dataset>/final_format`: The format of the generated output file.
 - `datasets/<dataset>/gx_enabled`: Whether or not GX validation should be run on the dataset. `true` will run GX validation, `false` or the absence of this key will skip GX validation.
+- `datasets/<dataset>/gx_suite`: Override the gx suite used to validate the dataset.By default, the suite with the same name as the dataset is used.
 - `datasets/<dataset>/gx_nested_columns`: A list of nested columns that should be validated using GX nested validation. Failure to include this key and a valid list of columns will result in an error because the nested fields will not be converted to a JSON-parseable string prior to validation. This key is not needed if `gx_enabled` is not set to `true` or if the dataset does not have nested fields.
 - `datasets/<dataset>/provenance`: The Synapse id of each entity that the dataset is derived from, used to populate the generated file's Synapse provenance. (The Synapse API calls this "Activity")
 - `datasets/<dataset>/destination`: Override the default destination for a specific dataset by specifying a synID, or use `*dest` to use the default destination
