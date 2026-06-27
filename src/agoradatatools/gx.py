@@ -286,7 +286,5 @@ class GreatExpectationsRunner:
         self.set_warnings_and_failures(checkpoint_result)
 
         if self.upload_folder:
-            logger.info(
-                f"Uploading GX reports for {self.dataset_name} to Synapse."
-            )
+            logger.info(f"Uploading GX reports for {self.dataset_name} to Synapse.")
             self.upload_results_file_to_synapse(latest_results_path)
