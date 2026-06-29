@@ -666,6 +666,52 @@ class TestApplyCustomTransformations:
                 assert df_transformed.equals(transformed_df)
 
 
+class TestUploadManifestAndDataversion:
+    file_id = "syn123"
+    file_version = 1
+    team_images_id = "syn987"
+    destination = "syn1111113"
+    manifest_path = "path/to/manifest"
+    manifest_df = pd.DataFrame({"id": ["a", "b", "c"]})
+
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_method(self):
+        self.patch_upload_dataversion_metadata = patch.object(
+            process, "upload_dataversion_metadata", return_value=None
+        ).start()
+        self.patch_load = patch.object(
+            load, "load", return_value=(self.file_id, self.file_version)
+        ).start()
+        yield
+        self.patch_upload_dataversion_metadata.stop()
+        self.patch_load.stop()
+
+    def test_upload_manifest_and_dataversion(self, syn: Any) -> None:
+        """Test that upload_manifest_and_dataversion calls load.load and upload_dataversion_metadata with correct arguments."""
+        process.upload_manifest_and_dataversion(
+            syn=syn,
+            manifest_path=self.manifest_path,
+            manifest_df=self.manifest_df,
+            destination=self.destination,
+            team_images_id=self.team_images_id,
+            staging_path=STAGING_PATH,
+        )
+        self.patch_load.assert_called_once_with(
+            file_path=self.manifest_path,
+            provenance=self.manifest_df.id.tolist(),
+            destination=self.destination,
+            syn=syn,
+        )
+        self.patch_upload_dataversion_metadata.assert_called_once_with(
+            syn=syn,
+            file_id=self.file_id,
+            file_version=self.file_version,
+            team_images_id=self.team_images_id,
+            staging_path=STAGING_PATH,
+            destination=self.destination,
+        )
+
+
 class TestProcessDataset:
     dataset_object = {
         "neuropath_corr": {
@@ -1184,9 +1230,10 @@ class TestProcessAllFiles:
         self.patch_df_to_csv = patch.object(
             load, "df_to_csv", return_value="path/to/csv"
         ).start()
-        self.patch_load = patch.object(load, "load", return_value=("syn123", 1)).start()
-        self.patch_upload_dataversion_metadata = patch.object(
-            process, "upload_dataversion_metadata", return_value=None
+        self.patch_upload_manifest_and_dataversion = patch.object(
+            process,
+            "upload_manifest_and_dataversion",
+            return_value=("syn123", 1),
         ).start()
         self.patch_update_table = patch.object(
             ADTGXReporter,
@@ -1238,8 +1285,7 @@ class TestProcessAllFiles:
             staging_path=STAGING_PATH,
             filename="data_manifest.csv",
         )
-        self.patch_upload_dataversion_metadata.assert_not_called()
-        self.patch_load.assert_not_called()
+        self.patch_upload_manifest_and_dataversion.assert_not_called()
         self.patch_format_link.assert_not_called()
         self.patch_update_table.assert_called_once()
 
@@ -1289,20 +1335,15 @@ class TestProcessAllFiles:
             filename="data_manifest.csv",
         )
         # AND the manifest and dataversion.json are uploaded to Synapse
-        self.patch_upload_dataversion_metadata.assert_called_once_with(
+        self.patch_upload_manifest_and_dataversion.assert_called_once_with(
             syn=syn,
-            file_id="syn123",
-            file_version=1,
-            team_images_id="syn987",
             staging_path=STAGING_PATH,
+            manifest_path="path/to/csv",
+            manifest_df=self.patch_create_data_manifest.return_value,
+            team_images_id="syn987",
             destination="destination",
         )
-        self.patch_load.assert_called_once_with(
-            file_path="path/to/csv",
-            provenance=["a", "b", "c"],
-            destination="destination",
-            syn=syn,
-        )
+
         self.patch_format_link.assert_called_once_with(syn_id="syn123", version=1)
         self.patch_update_table.assert_called_once()
 
@@ -1326,8 +1367,7 @@ class TestProcessAllFiles:
             filename="data_manifest.csv",
         )
         # BUT the manifest and dataversion.json are not uploaded to Synapse
-        self.patch_load.assert_not_called()
-        self.patch_upload_dataversion_metadata.assert_not_called()
+        self.patch_upload_manifest_and_dataversion.assert_not_called()
         self.patch_format_link.assert_not_called()
         self.patch_update_table.assert_called_once()
 
@@ -1374,8 +1414,7 @@ class TestProcessAllFiles:
             )
             self.patch_create_data_manifest.assert_not_called()
             self.patch_df_to_csv.assert_not_called()
-            self.patch_upload_dataversion_metadata.assert_not_called()
-            self.patch_load.assert_not_called()
+            self.patch_upload_manifest_and_dataversion.assert_not_called()
             self.patch_format_link.assert_not_called()
             self.patch_update_table.assert_called_once()
 
@@ -1419,8 +1458,7 @@ class TestProcessAllFiles:
             )
             self.patch_create_data_manifest.assert_not_called()
             self.patch_df_to_csv.assert_not_called()
-            self.patch_upload_dataversion_metadata.assert_not_called()
-            self.patch_load.assert_not_called()
+            self.patch_upload_manifest_and_dataversion.assert_not_called()
             self.patch_format_link.assert_not_called()
             self.patch_update_table.assert_called_once()
 
@@ -1574,7 +1612,7 @@ class TestProcessCLI:
     def test_process_cli_no_dataset_flag(self) -> None:
         """When --dataset is omitted, filter_datasets should be None (process all)."""
         # WHEN the CLI is invoked without a --dataset flag
-        result = self.runner.invoke(process.app, ["path/to/config"])
+        result = self.runner.invoke(process.app, ["process", "path/to/config"])
 
         # THEN the command succeeds and filter_datasets is None, meaning all datasets are processed
         assert result.exit_code == 0
@@ -1585,7 +1623,7 @@ class TestProcessCLI:
         """A single --dataset flag passes a one-element list to process_all_files."""
         # WHEN the CLI is invoked with a single --dataset flag
         result = self.runner.invoke(
-            process.app, ["path/to/config", "--dataset", "gene_info"]
+            process.app, ["process", "path/to/config", "--dataset", "gene_info"]
         )
 
         # THEN the command succeeds and filter_datasets contains exactly the specified dataset name
@@ -1599,7 +1637,14 @@ class TestProcessCLI:
         # WHEN the CLI is invoked with --dataset specified multiple times
         result = self.runner.invoke(
             process.app,
-            ["path/to/config", "--dataset", "gene_info", "--dataset", "team_info"],
+            [
+                "process",
+                "path/to/config",
+                "--dataset",
+                "gene_info",
+                "--dataset",
+                "team_info",
+            ],
         )
 
         # THEN the command succeeds and filter_datasets contains all specified dataset names
@@ -1613,7 +1658,8 @@ class TestProcessCLI:
         """A comma-separated value in --dataset is split into individual names."""
         # WHEN the CLI is invoked with a comma-separated list of dataset names in a single --dataset flag
         result = self.runner.invoke(
-            process.app, ["path/to/config", "--dataset", "gene_info,team_info"]
+            process.app,
+            ["process", "path/to/config", "--dataset", "gene_info,team_info"],
         )
 
         # THEN the command succeeds and filter_datasets contains each name as a separate entry
@@ -1627,7 +1673,8 @@ class TestProcessCLI:
         """Whitespace around comma-separated names is stripped."""
         # WHEN the CLI is invoked with a comma-separated list that includes surrounding whitespace
         result = self.runner.invoke(
-            process.app, ["path/to/config", "--dataset", "gene_info, team_info"]
+            process.app,
+            ["process", "path/to/config", "--dataset", "gene_info, team_info"],
         )
 
         # THEN the command succeeds and dataset names are trimmed before being passed to process_all_files
