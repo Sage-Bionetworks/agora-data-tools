@@ -370,6 +370,7 @@ def process_all_files(
     platform: Platform = Platform.LOCAL,
     run_id: str = None,
     upload: bool = True,
+    skip_manifest: bool = False,
     filter_datasets: Optional[List[str]] = None,
 ):
     """This function will read through the entire configuration and process each file listed.
@@ -380,6 +381,7 @@ def process_all_files(
         platform (Platform, optional): Platform where the process is being run. One of LOCAL, GITHUB, NEXTFLOW. Defaults to LOCAL.
         run_id (str, optional): Unique identifier for the processing run. Defaults to None.
         upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
+        skip_manifest (bool, optional): If True, skips uploading the data manifest and dataversion.json to Synapse. Defaults to False.
         filter_datasets (List[str], optional): List of dataset names to process. If None, all datasets in the config will be processed. Defaults to None.
     """
     if platform == Platform.LOCAL and upload is True:
@@ -449,7 +451,7 @@ def process_all_files(
         df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
     )
 
-    if upload:
+    if upload and not skip_manifest:
         file_id, file_version = load.load(
             file_path=manifest_path,
             provenance=manifest_df["id"].to_list(),
@@ -520,6 +522,15 @@ datasets_opt = Option(
     "If omitted, all datasets in the config are processed. (Optional, defaults to None)",
     show_default=True,
 )
+manifest_opt = Option(
+    False,
+    "--skip-manifest",
+    "-m",
+    help="Boolean flag that skips uploading the data manifest and dataversion.json to Synapse. "
+    "The absence of this option means `False` - that both the data manifest and dataversion.json will be uploaded to Synapse when `--upload` is set. "
+    "Setting `--skip-manifest` prevents both from being uploaded. (Optional, defaults to False)",
+    show_default=True,
+)
 
 
 @app.command()
@@ -530,6 +541,7 @@ def process(
     upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
     dataset: Optional[List[str]] = datasets_opt,
+    skip_manifest: bool = manifest_opt,
 ) -> None:
     """Process the configuration file and execute the data processing pipeline based on options.
 
@@ -542,6 +554,8 @@ def process(
         dataset (Optional[List[str]]): Name of a dataset to process. Can be specified multiple times or as a
             comma-separated list to process multiple datasets.
             If omitted, all datasets in the config are processed. (Optional, defaults to None)
+        skip_manifest (bool): If True, skips uploading the data manifest and dataversion.json to Synapse.
+            (Optional, defaults to False)
     """
     syn = utils._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
@@ -558,6 +572,7 @@ def process(
         run_id=run_id,
         upload=upload,
         filter_datasets=filter_datasets,
+        skip_manifest=skip_manifest,
     )
 
 

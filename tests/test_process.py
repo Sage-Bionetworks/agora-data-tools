@@ -1244,6 +1244,7 @@ class TestProcessAllFiles:
         self.patch_update_table.assert_called_once()
 
     def test_process_all_files_upload_true(self, syn: Any):
+        # WHEN process_all_files is called with upload=True and skip_manifest=False (default)
         process.process_all_files(
             syn=syn,
             config_path=self.config_path,
@@ -1251,6 +1252,7 @@ class TestProcessAllFiles:
             run_id="123",
             upload=True,
         )
+        # THEN each dataset is processed with upload=True
         self.patch_get_config.assert_called_once_with(config_path=self.config_path)
         self.patch_create_temp_location.assert_called_once_with(
             staging_path=STAGING_PATH
@@ -1277,6 +1279,7 @@ class TestProcessAllFiles:
             upload=True,
         )
         self.patch_add_report.assert_any_call(self.patch_process_dataset.return_value)
+        # AND the manifest CSV is created locally
         self.patch_create_data_manifest.assert_called_once_with(
             parent="destination", syn=syn
         )
@@ -1285,6 +1288,7 @@ class TestProcessAllFiles:
             staging_path=STAGING_PATH,
             filename="data_manifest.csv",
         )
+        # AND the manifest and dataversion.json are uploaded to Synapse
         self.patch_upload_dataversion_metadata.assert_called_once_with(
             syn=syn,
             file_id="syn123",
@@ -1300,6 +1304,31 @@ class TestProcessAllFiles:
             syn=syn,
         )
         self.patch_format_link.assert_called_once_with(syn_id="syn123", version=1)
+        self.patch_update_table.assert_called_once()
+
+    def test_process_all_files_upload_true_skip_manifest(self, syn: Any):
+        # WHEN process_all_files is called with upload=True and skip_manifest=True
+        process.process_all_files(
+            syn=syn,
+            config_path=self.config_path,
+            platform=Platform.LOCAL,
+            run_id="123",
+            upload=True,
+            skip_manifest=True,
+        )
+        # THEN the manifest CSV is still created locally
+        self.patch_create_data_manifest.assert_called_once_with(
+            parent="destination", syn=syn
+        )
+        self.patch_df_to_csv.assert_called_once_with(
+            df=self.patch_create_data_manifest.return_value,
+            staging_path=STAGING_PATH,
+            filename="data_manifest.csv",
+        )
+        # BUT the manifest and dataversion.json are not uploaded to Synapse
+        self.patch_load.assert_not_called()
+        self.patch_upload_dataversion_metadata.assert_not_called()
+        self.patch_format_link.assert_not_called()
         self.patch_update_table.assert_called_once()
 
     def test_process_all_files_upload_false_gx_failure(self, syn: Any):
