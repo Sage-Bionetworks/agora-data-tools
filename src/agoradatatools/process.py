@@ -280,6 +280,7 @@ def process_dataset(
             syn=syn,
             dataset_path=json_path,
             dataset_name=dataset_name,
+            staging_path=staging_path,
             upload_folder=gx_folder if upload else None,
             nested_columns=(
                 dataset_obj[dataset_name]["gx_nested_columns"]
@@ -394,8 +395,8 @@ def process_all_files(
     destination = config["destination"]
     gx_table = config["gx_table"]
 
-    staging_path = config.get("staging_path", None)
-    load.create_temp_location(staging_path=staging_path or "./staging")
+    staging_path = config.get("staging_path") or "./staging"
+    load.create_temp_location(staging_path=staging_path)
 
     reporter = ADTGXReporter(
         syn=syn,
