@@ -6,16 +6,16 @@ team_images_id: syn12861877
 # Reusable file and column rename reference anchors used by multiple datasets below.
 shared:
   files:
-    - &genes_biodomains {name: genes_biodomains, id: syn44151254.5, format: csv}
-    - &overall_scores {name: overall_scores, id: syn25575156.13, format: table}
-    - &proteomics {name: proteomics, id: syn18689335.4, format: csv}
-    - &proteomics_tmt {name: proteomics_tmt, id: syn35221005.2, format: csv}
-    - &proteomics_srm {name: proteomics_srm, id: syn52579640.4, format: csv}
-    - &diff_exp_data {name: diff_exp_data, id: syn27211942.1, format: tsv}
-    - &gene_metadata {name: gene_metadata, id: syn25953363.17, format: feather}
-    - &target_list {name: target_list, id: syn12540368.74, format: csv}
-    - &pharos_classes {name: pharos_classes, id: syn64123611.3, format: csv}
-    - &drug_list {name: drug_list, id: syn73677240.14, format: csv}
+    - &genes_biodomains { name: genes_biodomains, format: csv    , id: syn44151254.5 }
+    - &overall_scores   { name: overall_scores  , format: table  , id: syn25575156.13 }
+    - &proteomics       { name: proteomics      , format: csv    , id: syn18689335.4 }
+    - &proteomics_tmt   { name: proteomics_tmt  , format: csv    , id: syn35221005.2 }
+    - &proteomics_srm   { name: proteomics_srm  , format: csv    , id: syn52579640.4 }
+    - &diff_exp_data    { name: diff_exp_data   , format: tsv    , id: syn27211942.1 }
+    - &gene_metadata    { name: gene_metadata   , format: feather, id: syn25953363.17 }
+    - &target_list      { name: target_list     , format: csv    , id: syn12540368.74 }
+    - &pharos_classes   { name: pharos_classes  , format: csv    , id: syn64123611.3 }
+    - &drug_list        { name: drug_list       , format: csv    , id: syn73677240.14 }
 
 datasets:
   - biodomain_info:
