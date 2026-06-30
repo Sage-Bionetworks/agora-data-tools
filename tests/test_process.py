@@ -117,7 +117,9 @@ class TestUploadDataversionMetadata:
         ).start()
         self.patch_load = patch.object(load, "load", return_value=("syn123", 1)).start()
 
-    def test_upload_dataversion_metadata_with_team_images_id(self, syn: Any):
+    def test_upload_dataversion_metadata_with_team_images_id(
+        self, syn: synapseclient.Synapse
+    ):
         # WHEN I call upload_dataversion_metadata with a team_images_id
         process.upload_dataversion_metadata(
             syn=syn,
@@ -141,7 +143,9 @@ class TestUploadDataversionMetadata:
             syn=syn,
         )
 
-    def test_upload_dataversion_metadata_without_team_images_id(self, syn: Any):
+    def test_upload_dataversion_metadata_without_team_images_id(
+        self, syn: synapseclient.Synapse
+    ):
         # WHEN I call upload_dataversion_metadata without a team_images_id
         process.upload_dataversion_metadata(
             syn=syn,
@@ -335,7 +339,7 @@ class TestProcessProvenance:
         mock.patch.stopall()
 
     def test_upload_data_without_provenance(
-        self, syn: Any, dataset_object_no_provenance: dict[str, Any]
+        self, syn: synapseclient.Synapse, dataset_object_no_provenance: dict[str, Any]
     ) -> None:
         """Test that when no provenance is provided in the config, the file id is used as provenance."""
         # WHEN I call upload_data_without_provenance
@@ -355,7 +359,7 @@ class TestProcessProvenance:
         )
 
     def test_upload_data_with_provenance(
-        self, syn: Any, dataset_object_with_provenance: dict[str, Any]
+        self, syn: synapseclient.Synapse, dataset_object_with_provenance: dict[str, Any]
     ) -> None:
         """Test that when provenance is provided in the config, it is used in the upload."""
         # WHEN I call upload_data_with_provenance
@@ -378,7 +382,9 @@ class TestProcessProvenance:
         )
 
     def test_upload_data_with_duplicated_provenance(
-        self, syn: Any, dataset_object_with_duplicated_provenance: dict[str, Any]
+        self,
+        syn: synapseclient.Synapse,
+        dataset_object_with_duplicated_provenance: dict[str, Any],
     ) -> None:
         """Test that when duplicated provenance is provided in the config, unique values are used in the upload."""
         # WHEN I call upload_data_with_duplicated_provenance
@@ -686,7 +692,7 @@ class TestUploadManifestAndDataversion:
         self.patch_upload_dataversion_metadata.stop()
         self.patch_load.stop()
 
-    def test_upload_manifest_and_dataversion(self, syn: Any) -> None:
+    def test_upload_manifest_and_dataversion(self, syn: synapseclient.Synapse) -> None:
         """Test that upload_manifest_and_dataversion calls load.load and upload_dataversion_metadata with correct arguments."""
         process.upload_manifest_and_dataversion(
             syn=syn,
@@ -824,7 +830,9 @@ class TestProcessDataset:
         self.patch_format_link.stop()
         mock.patch.stopall()
 
-    def test_process_dataset_upload_false_gx_not_specified(self, syn: Any):
+    def test_process_dataset_upload_false_gx_not_specified(
+        self, syn: synapseclient.Synapse
+    ):
         process.process_dataset(
             dataset_obj=self.dataset_object,
             staging_path=STAGING_PATH,
@@ -856,7 +864,7 @@ class TestProcessDataset:
         self.patch_load.assert_not_called()
 
     def test_process_dataset_upload_false_gx_not_specified_column_rename(
-        self, syn: Any
+        self, syn: synapseclient.Synapse
     ):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
@@ -895,7 +903,7 @@ class TestProcessDataset:
         self.patch_load.assert_not_called()
 
     def test_process_dataset_upload_false_gx_not_specified_custom_transformations(
-        self, syn: Any
+        self, syn: synapseclient.Synapse
     ):
         process.process_dataset(
             dataset_obj=self.dataset_object_custom_transform,
@@ -942,7 +950,7 @@ class TestProcessDataset:
     # This test looks like a duplicate of test_process_dataset_upload_false_gx_disabled
     # but it uses the agora_rename configuration with the same util function
     def test_process_dataset_upload_false_gx_not_specified_with_agora_rename(
-        self, syn: Any
+        self, syn: synapseclient.Synapse
     ):
         process.process_dataset(
             dataset_obj=self.dataset_object_col_rename,
@@ -980,7 +988,9 @@ class TestProcessDataset:
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
 
-    def test_process_dataset_upload_false_gx_not_specified_type_dict(self, syn: Any):
+    def test_process_dataset_upload_false_gx_not_specified_type_dict(
+        self, syn: synapseclient.Synapse
+    ):
         self.patch_standardize_values.return_value = dict()
         process.process_dataset(
             dataset_obj=self.dataset_object,
@@ -1010,7 +1020,9 @@ class TestProcessDataset:
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
 
-    def test_process_dataset_upload_false_gx_not_specified_type_list(self, syn: Any):
+    def test_process_dataset_upload_false_gx_not_specified_type_list(
+        self, syn: synapseclient.Synapse
+    ):
         self.patch_standardize_values.return_value = list()
         process.process_dataset(
             dataset_obj=self.dataset_object,
@@ -1040,7 +1052,7 @@ class TestProcessDataset:
         self.patch_format_link.assert_not_called()
         self.patch_load.assert_not_called()
 
-    def test_process_dataset_upload_true_gx_disabled(self, syn: Any):
+    def test_process_dataset_upload_true_gx_disabled(self, syn: synapseclient.Synapse):
         process.process_dataset(
             dataset_obj=self.dataset_object_gx_disabled,
             staging_path=STAGING_PATH,
@@ -1076,7 +1088,7 @@ class TestProcessDataset:
             syn=syn,
         )
 
-    def test_process_dataset_upload_true_gx_enabled(self, syn: Any):
+    def test_process_dataset_upload_true_gx_enabled(self, syn: synapseclient.Synapse):
         process.process_dataset(
             dataset_obj=self.dataset_object_gx_enabled,
             staging_path=STAGING_PATH,
@@ -1112,7 +1124,7 @@ class TestProcessDataset:
             syn=syn,
         )
 
-    def test_process_dataset_upload_false_gx_enabled(self, syn: Any):
+    def test_process_dataset_upload_false_gx_enabled(self, syn: synapseclient.Synapse):
         process.process_dataset(
             dataset_obj=self.dataset_object_gx_enabled,
             staging_path=STAGING_PATH,
@@ -1155,7 +1167,7 @@ class TestCreateDataManifest:
     ]
 
     @pytest.fixture(scope="function", autouse=True)
-    def setup_method(self, syn: Any):
+    def setup_method(self, syn: synapseclient.Synapse):
         self.patch_get_children = patch.object(
             syn, "getChildren", return_value=self.files
         ).start()
@@ -1163,7 +1175,7 @@ class TestCreateDataManifest:
     def teardown_method(self):
         mock.patch.stopall()
 
-    def test_create_data_manifest_parent_none(self, syn: Any):
+    def test_create_data_manifest_parent_none(self, syn: synapseclient.Synapse):
         # WHEN I call create_data_manifest with a parent of None
         result = process.create_data_manifest(syn=syn, parent=None)
         # THEN I expect the result to be None
@@ -1171,7 +1183,7 @@ class TestCreateDataManifest:
         # AND I expect the getChildren method to not be called
         self.patch_get_children.assert_not_called()
 
-    def test_create_data_manifest_with_parent(self, syn: Any):
+    def test_create_data_manifest_with_parent(self, syn: synapseclient.Synapse):
         # WHEN I call create_data_manifest with a parent
         result_df = process.create_data_manifest(syn=syn, parent="syn1111111")
         # THEN I expect the getChildren method to be called with the parent
@@ -1243,7 +1255,7 @@ class TestProcessAllFiles:
     def teardown_method(self):
         mock.patch.stopall()
 
-    def test_process_all_files_upload_false(self, syn: Any):
+    def test_process_all_files_upload_false(self, syn: synapseclient.Synapse):
         process.process_all_files(
             syn=syn,
             config_path=self.config_path,
@@ -1289,7 +1301,7 @@ class TestProcessAllFiles:
         self.patch_format_link.assert_not_called()
         self.patch_update_table.assert_called_once()
 
-    def test_process_all_files_upload_true(self, syn: Any):
+    def test_process_all_files_upload_true(self, syn: synapseclient.Synapse):
         # WHEN process_all_files is called with upload=True and skip_manifest=False (default)
         process.process_all_files(
             syn=syn,
@@ -1347,7 +1359,9 @@ class TestProcessAllFiles:
         self.patch_format_link.assert_called_once_with(syn_id="syn123", version=1)
         self.patch_update_table.assert_called_once()
 
-    def test_process_all_files_upload_true_skip_manifest(self, syn: Any):
+    def test_process_all_files_upload_true_skip_manifest(
+        self, syn: synapseclient.Synapse
+    ):
         # WHEN process_all_files is called with upload=True and skip_manifest=True
         process.process_all_files(
             syn=syn,
@@ -1371,7 +1385,9 @@ class TestProcessAllFiles:
         self.patch_format_link.assert_not_called()
         self.patch_update_table.assert_called_once()
 
-    def test_process_all_files_defaults_staging_path_when_undefined(self, syn: Any):
+    def test_process_all_files_defaults_staging_path_when_undefined(
+        self, syn: synapseclient.Synapse
+    ):
         config_without_staging_path = {
             "destination": "destination",
             "gx_folder": GX_FOLDER,
@@ -1400,7 +1416,9 @@ class TestProcessAllFiles:
             upload=False,
         )
 
-    def test_process_all_files_upload_false_gx_failure(self, syn: Any):
+    def test_process_all_files_upload_false_gx_failure(
+        self, syn: synapseclient.Synapse
+    ):
         with pytest.raises(
             ADTDataProcessingError,
             match="\nData Processing has failed for one or more data sources. Refer to the list of errors below to address issues:",
@@ -1447,7 +1465,9 @@ class TestProcessAllFiles:
             self.patch_format_link.assert_not_called()
             self.patch_update_table.assert_called_once()
 
-    def test_process_all_files_upload_false_process_dataset_fail(self, syn: Any):
+    def test_process_all_files_upload_false_process_dataset_fail(
+        self, syn: synapseclient.Synapse
+    ):
         with pytest.raises(ADTDataProcessingError, match="test"):
             self.patch_process_dataset.side_effect = Exception("test")
             process.process_all_files(

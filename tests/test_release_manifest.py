@@ -1,7 +1,7 @@
 import pytest
 from unittest import mock
 from unittest.mock import patch
-from typing import Any
+import synapseclient
 import pandas as pd
 from agoradatatools.etl import load, utils
 from agoradatatools import process
@@ -19,7 +19,7 @@ class TestReleaseManifest:
     manifest_df = pd.DataFrame({"id": ["a", "b", "c"]})
 
     @pytest.fixture(scope="function", autouse=True)
-    def setup_method(self, syn: Any):
+    def setup_method(self, syn: synapseclient.Synapse):
         self.patch_login = patch.object(
             utils, "_login_to_synapse", return_value=syn
         ).start()
@@ -51,7 +51,7 @@ class TestReleaseManifest:
         yield
         mock.patch.stopall()
 
-    def test_release_manifest(self, syn: Any) -> None:
+    def test_release_manifest(self, syn: synapseclient.Synapse) -> None:
         """Test that release_manifest creates the manifest locally and uploads it to Synapse."""
         # WHEN release_manifest is called
         process.release_manifest(config_path=self.config_path)
@@ -82,7 +82,9 @@ class TestReleaseManifest:
             staging_path=STAGING_PATH,
         )
 
-    def test_release_manifest_without_team_images_id(self, syn: Any) -> None:
+    def test_release_manifest_without_team_images_id(
+        self, syn: synapseclient.Synapse
+    ) -> None:
         """Test that release_manifest works when team_images_id is absent from config."""
         # WHEN the config does not include a team_images_id
         self.patch_get_config.return_value = {
