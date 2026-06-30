@@ -248,21 +248,19 @@ class TestTransformDrugInfo:
         ot_file: str,
         dl_file: str,
         gm_file: str = "gene_metadata_good.feather",
-        ht_file: str = "harmonized_targets_good.csv",
+        ht_file: str = "target_list_good.csv",
     ) -> dict[str, pd.DataFrame]:
         return self._build_datasets(
             {
-                "ot_drug_metadata": ot_file,
+                "drug_metadata": ot_file,
                 "drug_list": dl_file,
                 "gene_metadata": gm_file,
-                "harmonized_targets": ht_file,
+                "target_list": ht_file,
             }
         )
 
     def test_transform_drug_info_should_pass(self) -> None:
-        datasets = self._load_datasets(
-            "ot_drug_metadata_good.json", "drug_list_good.csv"
-        )
+        datasets = self._load_datasets("drug_metadata_good.json", "drug_list_good.csv")
         output_df = drug_info.transform_drug_info(datasets=datasets)
         assert output_df["year_of_first_approval"].dtype == pd.Int64Dtype()
         expected_df = pd.read_json(
@@ -277,7 +275,7 @@ class TestTransformDrugInfo:
     def test_keeps_nominated_drugs_without_ot_metadata(self) -> None:
         """Left merge: nominated chembl_ids without OT rows keep null metadata fields."""
         datasets = self._load_datasets(
-            "ot_drug_metadata_minimal.json", "drug_list_good.csv"
+            "drug_metadata_minimal.json", "drug_list_good.csv"
         )
         output_df = drug_info.transform_drug_info(datasets=datasets)
         assert set(output_df["chembl_id"]) == {"CHEMBL111", "CHEMBL222"}
@@ -291,11 +289,9 @@ class TestTransformDrugInfo:
         drug_b = output_df.loc[output_df["chembl_id"] == "CHEMBL222"].iloc[0]
         assert drug_b["description"] == "Protein drug."
 
-    def test_sets_is_nominated_target_from_harmonized_targets(self) -> None:
-        """is_nominated_target is true only for ENSGs in harmonized_targets."""
-        datasets = self._load_datasets(
-            "ot_drug_metadata_good.json", "drug_list_good.csv"
-        )
+    def test_sets_is_nominated_target_from_target_list(self) -> None:
+        """is_nominated_target is true only for ENSGs in target_list."""
+        datasets = self._load_datasets("drug_metadata_good.json", "drug_list_good.csv")
         output_df = drug_info.transform_drug_info(datasets=datasets)
 
         drug_a = output_df.loc[output_df["chembl_id"] == "CHEMBL111"].iloc[0]
@@ -316,11 +312,9 @@ class TestTransformDrugInfo:
             }
         ]
 
-    def test_missing_harmonized_targets_dataset_raises(self) -> None:
-        datasets = self._load_datasets(
-            "ot_drug_metadata_good.json", "drug_list_good.csv"
-        )
-        del datasets["harmonized_targets"]
+    def test_missing_target_list_dataset_raises(self) -> None:
+        datasets = self._load_datasets("drug_metadata_good.json", "drug_list_good.csv")
+        del datasets["target_list"]
         with pytest.raises(ValueError, match="Missing required datasets"):
             drug_info.transform_drug_info(datasets=datasets)
 
@@ -328,96 +322,96 @@ class TestTransformDrugInfo:
         "input_datasets,error_match,error_type",
         [
             (
-                {"ot_drug_metadata": "ot_drug_metadata_good.json"},
+                {"drug_metadata": "drug_metadata_good.json"},
                 "Missing required datasets",
                 ValueError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_metadata": "drug_metadata_good.json",
                     "drug_list": "drug_list_missing_program.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "Missing required columns",
                 ValueError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_missing_drug_bank_id.json",
+                    "drug_metadata": "drug_metadata_missing_drug_bank_id.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "Missing required columns",
                 ValueError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_metadata": "drug_metadata_good.json",
                     "drug_list": "drug_list_unpaired_combined_with.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "combined_with_common_name",
                 ValueError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_metadata": "drug_metadata_good.json",
                     "drug_list": "drug_list_integrity_conflict.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "Data Integrity Error",
                 ValueError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_invalid_phase.json",
+                    "drug_metadata": "drug_metadata_invalid_phase.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "maximum_clinical_trial_phase",
                 ValueError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_metadata": "drug_metadata_good.json",
                     "drug_list": "drug_list_bad_linkage.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "Data Integrity Error",
                 ValueError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_metadata": "drug_metadata_good.json",
                     "drug_list": "drug_list_invalid_chembl_id.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "matches_regex",
                 ValueError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_duplicate_chembl_id.json",
+                    "drug_metadata": "drug_metadata_duplicate_chembl_id.json",
                     "drug_list": "drug_list_good.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "Merge keys are not unique",
                 pd.errors.MergeError,
             ),
             (
                 {
-                    "ot_drug_metadata": "ot_drug_metadata_good.json",
+                    "drug_metadata": "drug_metadata_good.json",
                     "drug_list": "drug_list_empty_contact_pi.csv",
                     "gene_metadata": "gene_metadata_good.feather",
-                    "harmonized_targets": "harmonized_targets_good.csv",
+                    "target_list": "target_list_good.csv",
                 },
                 "contact_pi.*not_empty",
                 ValueError,
