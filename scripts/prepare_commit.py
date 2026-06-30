@@ -33,12 +33,12 @@ clean, tested state. It executes the following steps in order:
    not found, installs it via `pip install pre-commit`.
 
 6. Run pre-commit hooks
-   Executes pre-commit against an explicit list of files (tracked plus
-   untracked, non-ignored) via `pre-commit run --files ...`. The --all-files
-   flag is avoided because it relies on git ls-files, which only lists tracked
-   files; new or untracked files would otherwise be skipped here and only get
-   fixed at commit time. Passing files explicitly covers them without staging
-   anything. Because auto-fixing hooks (e.g. black, ruff, autoflake) exit with a
+   Executes pre-commit against an explicit list of files (tracked plus staged)
+   via `pre-commit run --files ...`. The list comes from git ls-files, which
+   includes tracked files and any new files you have staged with git add.
+   Untracked, unstaged files are intentionally excluded so local-only scratch
+   files are not targeted; stage a new file with git add to have it covered.
+   Because auto-fixing hooks (e.g. black, ruff, autoflake) exit with a
    non-zero code on the first pass to signal that files were modified, the
    script automatically retries once. If the second run still fails, the script
    exits with an error.
@@ -183,27 +183,34 @@ def ensure_pre_commit_installed() -> None:
 
 
 def collect_repo_files() -> list[str]:
-    """Return tracked plus untracked (non-ignored) files relative to the repo root.
+    """Return tracked plus staged files relative to the repo root.
 
-    pre-commit's --all-files flag relies on git ls-files, which only lists
-    tracked files. To also cover new or previously untracked files without
-    staging them, we add the output of git ls-files --others --exclude-standard.
+    Uses git ls-files, which lists everything in the index: tracked files plus
+    any new files you have staged with git add. Untracked, unstaged files are
+    intentionally excluded so local-only scratch files are not targeted by
+    pre-commit. Stage a new file with git add to have it covered here.
     """
-    tracked = subprocess.run(
-        ["git", "ls-files"],
-        cwd=_REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.splitlines()
-    untracked = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard"],
-        cwd=_REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.splitlines()
-    return [f for f in (*tracked, *untracked) if f]
+    try:
+        result = subprocess.run(
+            ["git", "ls-files"],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except FileNotFoundError:
+        print(
+            "[ERROR] git executable not found. Install git and ensure it is on "
+            "your PATH before running this script."
+        )
+        sys.exit(1)
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"[ERROR] Failed to list files via git (exit code {exc.returncode}). "
+            f"Make sure {_REPO_ROOT} is a valid git checkout."
+        )
+        sys.exit(1)
+    return [f for f in result.stdout.splitlines() if f]
 
 
 def run_pre_commit() -> None:
@@ -214,16 +221,15 @@ def run_pre_commit() -> None:
     confirms everything is clean. If pre-commit still fails on the second pass,
     the script exits with an error.
 
-    Files are passed explicitly via --files (tracked plus untracked,
-    non-ignored) instead of using --all-files. --all-files relies on
-    git ls-files, which only lists tracked files, so new or untracked files
-    would otherwise be skipped here and only get fixed when you commit. Passing
-    files explicitly covers them without staging anything.
+    Files are passed explicitly via --files (tracked plus staged) instead of
+    using --all-files. The list comes from git ls-files, so it includes tracked
+    files and any new files you have staged with git add. Untracked, unstaged
+    files are excluded; stage a new file with git add to have it covered.
     """
     files = collect_repo_files()
 
     cmd = ["pre-commit", "run", "--files", *files]
-    description = "pre-commit run --files (tracked + untracked)"
+    description = "pre-commit run --files (tracked + staged)"
 
     print(f"\n{'='*60}")
     print(f"  {description}")
