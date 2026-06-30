@@ -558,7 +558,7 @@ datasets_opt = Option(
 manifest_opt = Option(
     False,
     "--skip-manifest",
-    "-m",
+    "-s",
     help="Boolean flag that skips uploading the data manifest and dataversion.json to Synapse. "
     "The absence of this option means `False` - that both the data manifest and dataversion.json will be uploaded to Synapse when `--upload` is set. "
     "Setting `--skip-manifest` prevents both from being uploaded. (Optional, defaults to False)",
