@@ -39,7 +39,10 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, normalize_zero
+from agoradatatools.etl.utils import (
+    check_required_datasets_and_columns,
+    normalize_zero,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -270,9 +273,9 @@ def _create_output_entry_from_group(
 
     Note:
         Age entries are validated and sorted numerically before being included in the output.
-        Missing values in gene_metadata_dict, biodomain_dict, and model_type_dict result
-        in empty strings or empty lists, not errors. However, missing entries in label_map_dict
-        for the case or control genotypes will raise a ValueError.
+        Missing values in gene_metadata_dict and biodomain_dict result in empty strings or empty
+        lists, not errors. However, missing entries in label_map_dict for the case or control
+        genotypes will raise a ValueError.
     """
     ensembl_gene_id, model, tissue, sex, case, control = group_key
 
@@ -314,7 +317,7 @@ def _create_output_entry_from_group(
         "biodomains": biodomains,
         "name": {"link_url": f"models/{name}", "link_text": name},
         "matched_control": matched_control,
-        "model_group": model_group if model_group != "" else None,
+        "model_group": model_group,
         "model_type": model_type,
         "tissue": tissue,
         "sex_cohort": sex,
@@ -533,18 +536,19 @@ def transform_rna_de_aggregate(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Pre-compute lookup dictionaries for efficient lookups
-    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].fillna("")
-    mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
-    biodom_genes_mm_df = (
-        datasets["biodom_genes_mm"]
-        .dropna(axis="index", subset=["ensembl_id"])
-        .fillna("")
+    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"]
+    mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
+    biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(
+        axis="index", subset=["ensembl_id"]
     )
 
-    # Create lookup dictionaries
-    gene_metadata_dict = mouse_gene_metadata_df.set_index("ensembl_gene_id")[
-        "gene_symbol"
-    ].to_dict()
+    # Create Ensembl -> Gene symbol lookup. Missing/NA gene symbols are dropped. When looking up an Ensembl ID, the
+    # symbol will default to "" if the ID isn't in the dict.
+    gene_metadata_dict = (
+        mouse_gene_metadata_df.set_index("ensembl_gene_id")["gene_symbol"]
+        .dropna()
+        .to_dict()
+    )
 
     # Create label map dictionaries for efficient lookups
     label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
@@ -569,11 +573,9 @@ def transform_rna_de_aggregate(
 
     # Derive model_type from rnaseq_genotype_label_map so that split variant models
     # (e.g., "Abca7*V1599M.5xFAD") are covered without requiring entries in model_info.
-    model_type_df = (
-        rnaseq_genotype_label_map_df[["model", "model_type"]]
-        .drop_duplicates()
-        .fillna("")
-    )
+    model_type_df = rnaseq_genotype_label_map_df[
+        ["model", "model_type"]
+    ].drop_duplicates()
     if model_type_df["model"].duplicated().any():
         inconsistent_model_type_models = model_type_df["model"][
             model_type_df["model"].duplicated()
