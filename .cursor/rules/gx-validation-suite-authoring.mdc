@@ -19,9 +19,9 @@ alwaysApply: false
 
 ## Core Principle — Tighten Validations to the Actual Data
 
-Always author expectations against the **latest data downloaded from Synapse**, and tighten every validation to what is actually present in that data rather than to loose, generic bounds.
+Always author expectations against the **latest processed output data** (downloaded from Synapse when available, or freshly generated), and tighten every validation to what is actually present in that data rather than to loose, generic bounds.
 
-- **Download the latest data from Synapse first.** Do not rely on a stale local file in `staging/` — fetch the current processed output from Synapse before deriving any bounds or value sets, so the suite reflects the data as it exists now.
+- **Use current output data first.** Prefer downloading the latest processed output from Synapse; if using a local file in `staging/`, confirm it is current (or re-download) before deriving any bounds or value sets, so the suite reflects the data as it exists now.
 - **Numeric ranges:** use the observed `min` and `max` from the data (e.g. `expect_column_values_to_be_between(column, min_value=<observed_min>, max_value=<observed_max>)`). Do not invent padded or "safe" ranges.
 - **Allowed value sets:** for `expect_column_values_to_be_in_set`, enumerate the distinct values actually present in the column. Do not include speculative values that do not appear in the data.
 - **List length / item counts:** derive `minItems`/`maxItems` (or `list_length_range`) from the observed minimum and maximum lengths in the data.
