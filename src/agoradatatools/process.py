@@ -610,11 +610,11 @@ def process(
 
 
 @app.command()
-def release_manifest(
+def release(
     config_path: str = input_path_arg,
     auth_token: str = synapse_auth_opt,
 ) -> None:
-    """Release the data manifest and dataversion.json to Synapse without processing any datasets.
+    """Create a data release without processing any datasets. Generates and uploads a data manifest and dataversion.json for the target Synapse destination folder.
 
     Args:
         config_path (str): Path to the configuration file for the processing run.

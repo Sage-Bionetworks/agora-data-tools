@@ -9,8 +9,8 @@ from agoradatatools import process
 STAGING_PATH = "./staging"
 
 
-class TestReleaseManifest:
-    """Tests for the release_manifest function."""
+class TestRelease:
+    """Tests for the release function."""
 
     config_path = "./path/to/config"
     destination = "destination"
@@ -51,10 +51,10 @@ class TestReleaseManifest:
         yield
         mock.patch.stopall()
 
-    def test_release_manifest(self, syn: synapseclient.Synapse) -> None:
-        """Test that release_manifest creates the manifest locally and uploads it to Synapse."""
-        # WHEN release_manifest is called
-        process.release_manifest(config_path=self.config_path)
+    def test_release(self, syn: synapseclient.Synapse) -> None:
+        """Test that release creates the manifest locally and uploads it to Synapse."""
+        # WHEN release is called
+        process.release(config_path=self.config_path)
 
         # THEN config and staging are set up correctly
         self.patch_get_config.assert_called_once_with(config_path=self.config_path)
@@ -82,16 +82,14 @@ class TestReleaseManifest:
             staging_path=STAGING_PATH,
         )
 
-    def test_release_manifest_without_team_images_id(
-        self, syn: synapseclient.Synapse
-    ) -> None:
-        """Test that release_manifest works when team_images_id is absent from config."""
+    def test_release_without_team_images_id(self, syn: synapseclient.Synapse) -> None:
+        """Test that release works when team_images_id is absent from config."""
         # WHEN the config does not include a team_images_id
         self.patch_get_config.return_value = {
             "destination": self.destination,
             "staging_path": STAGING_PATH,
         }
-        process.release_manifest(config_path=self.config_path)
+        process.release(config_path=self.config_path)
 
         # THEN upload_manifest_and_dataversion is called with team_images_id=None
         self.patch_upload_manifest_and_dataversion.assert_called_once_with(
