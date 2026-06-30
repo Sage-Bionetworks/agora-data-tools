@@ -486,12 +486,11 @@ def process_all_files(
             + "\n".join(error_list)
         )
 
-    manifest_df = create_data_manifest(syn=syn, parent=destination)
-    manifest_path = load.df_to_csv(
-        df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
-    )
-
     if upload and not skip_manifest:
+        manifest_df = create_data_manifest(syn=syn, parent=destination)
+        manifest_path = load.df_to_csv(
+            df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
+        )
         file_id, file_version = upload_manifest_and_dataversion(
             syn=syn,
             manifest_path=manifest_path,
