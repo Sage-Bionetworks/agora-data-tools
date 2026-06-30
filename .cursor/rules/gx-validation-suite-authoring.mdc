@@ -197,7 +197,7 @@ validator.expect_column_values_to_not_be_null("col")
 validator.expect_column_values_to_be_in_set("model_type", ["Familial AD", "Late Onset AD"])
 
 # Numeric range — use the observed min and max from the data, not padded bounds
-validator.expect_column_values_to_be_between("score", min_value=0.0, max_value=1.0)
+validator.expect_column_values_to_be_between("score", min_value=<observed_min>, max_value=<observed_max>)
 
 # Non-empty list (at least 1 element) — only valid on columns NOT in gx_nested_columns
 # (see warning below)
