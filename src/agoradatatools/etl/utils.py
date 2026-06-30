@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
+from itertools import combinations
 
 
 class ColumnRule(ABC):
@@ -797,11 +798,7 @@ def normalize_null_values(
             )
 
     # Check that there are no overlaps between non-null lists of columns
-    pairs = [
-        (item1, item2) for item1 in to_check for item2 in to_check if item1 != item2
-    ]
-
-    for col_set1, col_set2 in pairs:
+    for col_set1, col_set2 in combinations(to_check, 2):
         overlaps = set(validation_data[col_set1]) & set(validation_data[col_set2])
         if overlaps:
             raise ValueError(
