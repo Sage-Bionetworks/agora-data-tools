@@ -1,6 +1,6 @@
-destination: &dest syn76012260
+destination: &dest syn76023928
 staging_path: ./staging
-gx_folder: syn76012297
+gx_folder: syn76023932
 gx_table: syn71057864
 team_images_id: syn12861877
 sources:
