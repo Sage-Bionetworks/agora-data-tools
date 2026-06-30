@@ -3,19 +3,35 @@ staging_path: ./staging
 gx_folder: syn52948668
 gx_table: syn60527066
 team_images_id: syn12861877
-# Reusable file and column rename reference anchors used by multiple datasets below.
+# Reusable file reference anchors used by datasets below.
 shared:
   files:
-    - &genes_biodomains { name: genes_biodomains, format: csv    , id: syn44151254.5 }
-    - &overall_scores   { name: overall_scores  , format: table  , id: syn25575156.13 }
-    - &proteomics       { name: proteomics      , format: csv    , id: syn18689335.4 }
-    - &proteomics_tmt   { name: proteomics_tmt  , format: csv    , id: syn35221005.2 }
-    - &proteomics_srm   { name: proteomics_srm  , format: csv    , id: syn52579640.4 }
-    - &diff_exp_data    { name: diff_exp_data   , format: tsv    , id: syn27211942.1 }
-    - &gene_metadata    { name: gene_metadata   , format: feather, id: syn25953363.17 }
-    - &target_list      { name: target_list     , format: csv    , id: syn12540368.74 }
-    - &pharos_classes   { name: pharos_classes  , format: csv    , id: syn64123611.3 }
-    - &drug_list        { name: drug_list       , format: csv    , id: syn73677240.14 }
+    # Metadata & Configuration
+    - &drug_metadata                { name: drug_metadata               , format: json   , id: syn73724873.12  }
+    - &ensg_to_uniprot_mapping      { name: ensg_to_uniprot_mapping     , format: tsv    , id: syn54113663.7   }
+    - &eqtl                         { name: eqtl                        , format: csv    , id: syn12514912.3   }
+    - &gene_metadata                { name: gene_metadata               , format: feather, id: syn25953363.17  }
+    - &igap                         { name: igap                        , format: csv    , id: syn12514826.5   }
+    - &pharos_classes               { name: pharos_classes              , format: csv    , id: syn64123611.3   }
+    - &ui_config                    { name: ui_config                   , format: json   , id: syn73677126     }
+    # Results
+    - &diff_exp_data                { name: diff_exp_data               , format: tsv    , id: syn27211942.1   }
+    - &genes_biodomains             { name: genes_biodomains            , format: csv    , id: syn44151254.5   }
+    - &median_expression            { name: median_expression           , format: csv    , id: syn27211878.2   }
+    - &metabolomics                 { name: metabolomics                , format: feather, id: syn26064497.1   }
+    - &networks                     { name: networks                    , format: csv    , id: syn11685347.1   }
+    - &neuropath_regression_results { name: neuropath_regression_results, format: csv    , id: syn22017882.5   }
+    - &overall_scores               { name: overall_scores              , format: table  , id: syn25575156.13  }
+    - &proteomics                   { name: proteomics                  , format: csv    , id: syn18689335.4   }
+    - &proteomics_tmt               { name: proteomics_tmt              , format: csv    , id: syn35221005.2   }
+    - &proteomics_srm               { name: proteomics_srm              , format: csv    , id: syn52579640.4   }
+    # Nominations & Supporting Data
+    - &drug_list                    { name: drug_list                   , format: csv    , id: syn73677240.14  }
+    - &target_exp_validation        { name: target_exp_validation       , format: csv    , id: syn24184512.11  }
+    - &target_list                  { name: target_list                 , format: csv    , id: syn12540368.74  }
+    - &team_member_info             { name: team_member_info            , format: csv    , id: syn12615633.22  }
+    - &team_info                    { name: team_info                   , format: csv    , id: syn12615624.21  }
+    - &tep_adi_info                 { name: tep_adi_info                , format: csv    , id: syn51942280.6   }
 
 datasets:
   - biodomain_info:
@@ -43,9 +59,7 @@ datasets:
 
   - neuropath_corr:
       files:
-        - name: neuropath_regression_results
-          id: syn22017882.5
-          format: csv
+        - <<: *neuropath_regression_results
       final_format: json
       column_rename:
         ensg: ensembl_gene_id
@@ -91,18 +105,14 @@ datasets:
 
   - target_exp_validation_harmonized:
       files:
-        - name: target_exp_validation
-          id: syn24184512.11
-          format: csv
+        - <<: *target_exp_validation
       final_format: json
       destination: *dest
       gx_enabled: true
 
   - metabolomics:
       files:
-        - name: metabolomics
-          id: syn26064497.1
-          format: feather
+        - <<: *metabolomics
       final_format: json
       destination: *dest
       gx_enabled: true
@@ -110,27 +120,17 @@ datasets:
   - gene_info:
       files:
         - <<: *gene_metadata
-        - name: igap
-          id: syn12514826.5
-          format: csv
-        - name: eqtl
-          id: syn12514912.3
-          format: csv
+        - <<: *igap
+        - <<: *eqtl
         - <<: *proteomics
         - <<: *proteomics_tmt
         - <<: *proteomics_srm
         - <<: *diff_exp_data
         - <<: *target_list
-        - name: median_expression
-          id: syn27211878.2
-          format: csv
+        - <<: *median_expression
         - <<: *genes_biodomains
-        - name: tep_adi_info
-          id: syn51942280.6
-          format: csv
-        - name: ensg_to_uniprot_mapping
-          id: syn54113663.7
-          format: tsv
+        - <<: *tep_adi_info
+        - <<: *ensg_to_uniprot_mapping
         - <<: *pharos_classes
       final_format: json
       custom_transformations:
@@ -164,12 +164,8 @@ datasets:
 
   - team_info:
       files:
-        - name: team_info
-          id: syn12615624.21
-          format: csv
-        - name: team_member_info
-          id: syn12615633.22
-          format: csv
+        - <<: *team_info
+        - <<: *team_member_info
       final_format: json
       custom_transformations: transform_team_info
       destination: *dest
@@ -195,9 +191,7 @@ datasets:
 
   - network:
       files:
-        - name: networks
-          id: syn11685347.1
-          format: csv
+        - <<: *networks
       final_format: json
       provenance:
         - syn27211942.1
@@ -224,9 +218,9 @@ datasets:
       final_format: json
       custom_transformations:
         transform_distribution_data:
-            overall_max_score: 5
-            genetics_max_score: 3
-            omics_max_score: 2
+          overall_max_score: 5
+          genetics_max_score: 3
+          omics_max_score: 2
       column_rename:
         overall: target_risk_score
         geneticsscore: genetics_score
@@ -258,14 +252,10 @@ datasets:
 
   - drug_info:
       files:
-        - name: ot_drug_metadata
-          id: syn73724873.12
-          format: json
+        - <<: *drug_metadata
         - <<: *drug_list
         - <<: *gene_metadata
-        - name: harmonized_targets
-          id: syn12540368.74
-          format: csv
+        - <<: *target_list
       final_format: json
       custom_transformations: transform_drug_info
       column_rename:
@@ -276,9 +266,7 @@ datasets:
   - nominated_drugs:
       files:
         - <<: *drug_list
-        - name: drug_metadata
-          id: syn73724873.12
-          format: json
+        - <<: *drug_metadata
       final_format: json
       custom_transformations: transform_nominated_drugs
       destination: *dest
@@ -298,9 +286,7 @@ datasets:
 
   - ui_config:
       files:
-        - name: ui_config
-          id: syn73677126 # TODO pin this once source is finalized
-          format: json
+        - <<: *ui_config
       final_format: json
       destination: *dest
       gx_enabled: false
