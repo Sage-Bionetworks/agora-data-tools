@@ -85,6 +85,7 @@ class ADTGXReporter:
         platform: The platform where the processing was run.
         run_id: The id of the processing run. This will be passed from the `process` CLI command.
         table_id: Synapse ID of the Synapse table to be updated.
+        upload: Whether upload to Synapse is enabled for the processing run.
         data_manifest_file: Synapse ID of the ADT manifest file.
         data_manifest_version: Version number of the ADT manifest file.
         data_manifest_link: URL of the specific version of the ADT manifest file.
@@ -95,6 +96,7 @@ class ADTGXReporter:
     platform: Platform
     run_id: str
     table_id: str
+    upload: bool = field(default=False)
     data_manifest_file: Optional[str] = field(default=None)
     data_manifest_version: Optional[int] = field(default=None)
     data_manifest_link: Optional[str] = field(default=None)
@@ -122,8 +124,10 @@ class ADTGXReporter:
             )
 
     def update_table(self) -> None:
-        """Updates the Synapse table adding one new row for each DatasetReport object if the platform is not LOCAL."""
-        if self.platform != Platform.LOCAL and self.reports:
+        """Updates the Synapse GX report table, adding one new row for each DatasetReport object that is
+        uploaded to Synapse.
+        """
+        if self.upload and self.reports:
             self._update_reports_before_upload()
             self.syn.store(
                 synapseclient.Table(

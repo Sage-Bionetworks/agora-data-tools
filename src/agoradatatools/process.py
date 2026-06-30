@@ -403,6 +403,7 @@ def process_all_files(
         platform=platform,
         run_id=run_id,
         table_id=gx_table,
+        upload=upload,
     )
     if filter_datasets:
         # Each entry in datasets is a single-key dict where the key is the dataset name (e.g. {"gene_info": {...}}).
