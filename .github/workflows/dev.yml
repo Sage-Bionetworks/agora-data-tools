@@ -65,8 +65,8 @@ jobs:
           python-version: "3.10"
       - run: pip install -U setuptools
       - run: pip install .
-      - run: adt configs/agora_preprod.yaml --upload --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
-      - run: adt configs/model_ad_preprod.yaml --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
+      - run: adt process configs/agora_preprod.yaml --upload --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
+      - run: adt process configs/model_ad_preprod.yaml --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
 
   ghcr-publish:
     needs: [build, test]
