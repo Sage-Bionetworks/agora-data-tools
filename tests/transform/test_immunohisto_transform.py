@@ -64,11 +64,6 @@ class TestTransformGeneralModelAD:
             "immunohisto_transform_duplicated_output.json",
         ),
         (
-            # Pass with none data
-            "immunohisto_transform_none_input.csv",
-            "immunohisto_transform_none_output.json",
-        ),
-        (
             # Pass with missing data
             "immunohisto_transform_missing_input.csv",
             "immunohisto_transform_missing_output.json",
@@ -87,7 +82,6 @@ class TestTransformGeneralModelAD:
     pass_test_ids = [
         "Pass with good fake data",
         "Pass with duplicated data",
-        "Pass with none data",
         "Pass with missing data",
         "Pass with extra column",
         "Pass with missing ages",
@@ -234,7 +228,7 @@ class TestTransformGeneralModelAD:
         pd.testing.assert_frame_equal(output_df, expected_df)
 
     def test_prepare_immunohisto_data_with_none_values(self) -> None:
-        """Test that prepare_immunohisto_data handles None/NaN values by converting them to empty strings."""
+        """Test that prepare_immunohisto_data handles None/NaN values correctly."""
         # Create test input DataFrame with None values
         input_df = pd.DataFrame(
             {
@@ -249,9 +243,9 @@ class TestTransformGeneralModelAD:
         # Expected output DataFrame
         expected_df = pd.DataFrame(
             {
-                "sex": ["Male", ""],
-                "tissue": ["Cerebral Cortex", ""],
-                "evidence_type": ["&beta; amyloid", ""],
+                "sex": ["Male", None],
+                "tissue": ["Cerebral Cortex", None],
+                "evidence_type": ["&beta; amyloid", None],
                 "value": [1.0, 2.0],
                 "age": ["1 months", "2 months"],
             }
@@ -813,13 +807,14 @@ class TestRoundYAxisMax:
                 "name": ["test_model", "test_model"],
                 "evidence_type": ["test_evidence", "test_evidence"],
                 "tissue": ["test_tissue", "test_tissue"],
-                "age": [None, 123],  # These will cause AttributeError
+                "age": [None, 123],  # None will cause AttributeError
                 "units": ["test_units", "test_units"],
                 "sex": ["Male", "Female"],
                 "genotype": ["WT", "KO"],
                 "individual_id": ["1", "2"],
                 "value": [1.0, 2.0],
-            }
+            },
+            dtype="O",  # Preserves the None value in the age column
         )
 
         with pytest.raises(ValueError, match="Invalid age value"):

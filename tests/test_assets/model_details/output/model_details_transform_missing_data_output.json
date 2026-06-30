@@ -55,15 +55,6 @@
     "biomarkers": [
       {
         "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;40",
-        "tissue": "",
-        "age": "4 months",
-        "units": "",
-        "y_axis_max": 8.5,
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
         "evidence_type": "Soluble &beta;40",
         "tissue": "Hippocampus",
         "age": "4 months",
@@ -71,7 +62,7 @@
         "y_axis_max": 15.0,
         "data": [
           {
-            "genotype": "",
+            "genotype": null,
             "sex": "Female",
             "individual_id": "mouse1",
             "value": 10.5
@@ -79,7 +70,7 @@
           {
             "genotype": "transgenic",
             "sex": "Male",
-            "individual_id": "",
+            "individual_id": null,
             "value": 12.3
           }
         ]
@@ -94,45 +85,11 @@
         "data": [
           {
             "genotype": "transgenic",
-            "sex": "",
+            "sex": null,
             "individual_id": "mouse3",
             "value": 15.7
           }
         ]
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;40",
-        "tissue": "",
-        "age": "8 months",
-        "units": "pg/ml",
-        "y_axis_max": 8.5,
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Male",
-            "individual_id": "mouse4",
-            "value": 8.2
-          }
-        ]
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;40",
-        "tissue": "Hippocampus",
-        "age": "8 months",
-        "units": "",
-        "y_axis_max": 15.0,
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;42",
-        "tissue": "Hippocampus",
-        "age": "8 months",
-        "units": "",
-        "y_axis_max": 20.0,
-        "data": []
       }
     ],
     "pathology": [
