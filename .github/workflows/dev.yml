@@ -4,7 +4,7 @@ name: CI
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["**"]
     # Match tags that resemble a version
     tags: ['[0-9]+\.[0-9]+\.[0-9]+']
   pull_request:
@@ -69,7 +69,7 @@ jobs:
       - run: adt configs/model_ad_preprod.yaml --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
 
   ghcr-publish:
-    needs: [build, test]
+    needs: [test]
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
@@ -85,19 +85,18 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=${{ github.ref == 'refs/heads/dev' }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=ref,event=branch
             type=sha
-            latest
       - name: Publish Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          build-args: |
-            TARBALL_PATH=${{ needs.prepare.outputs.tarball-path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
