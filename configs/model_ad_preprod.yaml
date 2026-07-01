@@ -2,7 +2,7 @@ destination: &dest syn51498091 # preprod
 staging_path: ./staging
 gx_folder: syn59934608         # preprod
 gx_table: syn71888382          # preprod
-# Reusable file reference anchors used by datasets below..
+# Reusable file reference anchors used by datasets below.
 files:
   # Metadata & Configuration
   - &allele_info                  { name: allele_info                  , format: csv  , id: syn64618791.6  }
