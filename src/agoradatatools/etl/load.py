@@ -6,6 +6,8 @@ import pandas as pd
 from synapseclient import Activity, File, Synapse
 from typing import Any, List, Dict
 
+from agoradatatools.etl.utils import normalize_null_values
+
 
 class NumpyEncoder(json.JSONEncoder):
     """Special json encoder for numpy types"""
@@ -116,7 +118,7 @@ def df_to_json(data_as_df: pd.DataFrame, staging_path: str, filename: str) -> st
        str: Returns a string containing the name of the new JSON file
     """
 
-    data_as_df = data_as_df.replace({np.nan: None})
+    data_as_df = normalize_null_values(data_as_df)
     df_as_dict = data_as_df.to_dict(orient="records")
     temp_json = open(os.path.join(staging_path, filename), "w+")
     json.dump(df_as_dict, temp_json, cls=NumpyEncoder, indent=2)

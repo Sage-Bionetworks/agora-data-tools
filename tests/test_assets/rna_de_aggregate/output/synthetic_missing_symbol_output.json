@@ -1,0 +1,46 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gene_A",
+    "biodomains": ["Synaptic"],
+    "name": {
+      "link_url": "models/Model_A (Tg)",
+      "link_text": "Model_A (Tg)"
+    },
+    "matched_control": "Model_A (Wt)",
+    "model_group": "AD",
+    "model_type": "Familial AD",
+    "tissue": "Brain",
+    "sex_cohort": "Female",
+    "3 months": {
+      "log2_fc": 1.0,
+      "adj_p_val": 0.01
+    },
+    "6 months": {
+      "log2_fc": 2.0,
+      "adj_p_val": 0.02
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000002",
+    "gene_symbol": "",
+    "biodomains": ["Synaptic"],
+    "name": {
+      "link_url": "models/Model_A (Tg)",
+      "link_text": "Model_A (Tg)"
+    },
+    "matched_control": "Model_A (Wt)",
+    "model_group": "AD",
+    "model_type": "Familial AD",
+    "tissue": "Brain",
+    "sex_cohort": "Female",
+    "3 months": {
+      "log2_fc": -1.5,
+      "adj_p_val": 0.03
+    },
+    "6 months": {
+      "log2_fc": -2.5,
+      "adj_p_val": 0.04
+    }
+  }
+]
