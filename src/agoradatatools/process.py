@@ -17,6 +17,8 @@ from agoradatatools.constants import Platform
 
 logger = logging.getLogger(__name__)
 
+DATA_MANIFEST_FILENAME = "data_manifest.csv"
+
 
 def check_provenance_id_file_id_consistency(
     provenance_ids: list[str], file_ids: list[str]
@@ -353,7 +355,7 @@ def create_data_manifest(
             "id": file["id"],
             "version": (
                 file["versionNumber"] + 1
-                if file["name"] == "data_manifest.csv"
+                if file["name"] == DATA_MANIFEST_FILENAME
                 or file["name"] == "dataversion.json"
                 else file["versionNumber"]
             ),
@@ -489,7 +491,7 @@ def process_all_files(
     if upload and not skip_manifest:
         manifest_df = create_data_manifest(syn=syn, parent=destination)
         manifest_path = load.df_to_csv(
-            df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
+            df=manifest_df, staging_path=staging_path, filename=DATA_MANIFEST_FILENAME
         )
         file_id, file_version = upload_manifest_and_dataversion(
             syn=syn,
@@ -627,7 +629,7 @@ def release(
 
     manifest_df = create_data_manifest(syn=syn, parent=destination)
     manifest_path = load.df_to_csv(
-        df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
+        df=manifest_df, staging_path=staging_path, filename=DATA_MANIFEST_FILENAME
     )
     file_id, file_version = upload_manifest_and_dataversion(
         syn=syn,
