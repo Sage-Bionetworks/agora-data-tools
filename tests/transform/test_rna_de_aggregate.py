@@ -601,8 +601,8 @@ class TestCreateOutputEntryFromGroup:
             "link_text": "Transgenic_B",
         }  # Falls back to case genotype
         assert result["matched_control"] == "Wildtype_B"  # From label_map_dict
-        assert result["model_group"] is None  # Empty string converted to None
-        assert result["model_type"] == ""  # Default for missing
+        assert result["model_group"] is None  # Default for missing model_group
+        assert result["model_type"] == ""  # Default for missing model_type
         assert result["tissue"] == "Hippocampus"
         assert result["sex_cohort"] == "Female"
 
@@ -644,38 +644,6 @@ class TestCreateOutputEntryFromGroup:
         )
 
         assert result["tissue"] == "Hemibrain"  # Should be mapped
-
-    def test_create_output_entry_empty_model_group(self) -> None:
-        """Test that empty string model_group is converted to None."""
-        group_key = ("ENSMUSG00000000004", "Model_D", "Cortex", "Female", "Tg", "Wt")
-        group = pd.DataFrame(
-            {
-                "age": ["6 months"],
-                "log2foldchange": [1.5],
-                "padj": [0.01],
-            }
-        )
-
-        gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_D", "Tg"): "Transgenic_D",
-            ("Model_D", "Wt"): "Wildtype_D",
-        }
-        model_group_dict = {"Model_D": ""}  # Empty string
-        biodomain_dict = {}
-        model_type_dict = {}
-
-        result = _create_output_entry_from_group(
-            group_key=group_key,
-            group=group,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            biodomain_dict=biodomain_dict,
-            model_type_dict=model_type_dict,
-        )
-
-        assert result["model_group"] is None  # Empty string should become None
 
     def test_create_output_entry_multiple_biodomains(self) -> None:
         """Test output entry with multiple biodomain assignments."""
@@ -1185,6 +1153,7 @@ class TestTransformRnaDeAggregate:
             "synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv": "rnaseq_genotype_label_map",
             "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
             "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
+            "synthetic_mouse_gene_metadata_missing_symbols.csv": "mouse_gene_metadata",
             "synthetic_biodom_genes_mm.csv": "biodom_genes_mm",
             "synthetic_biodom_genes_mm_multiple.csv": "biodom_genes_mm",
         }
@@ -1707,3 +1676,30 @@ class TestTransformRnaDeAggregate:
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
+
+    def test_missing_gene_symbol_normalized(self) -> None:
+        """
+        Test that missing gene_symbol values in mouse_gene_metadata are converted to empty strings in the output.
+        Uses basic synthetic data with two genes (ENSMUSG00000000001 and ENSMUSG00000000002), but the
+        mouse_gene_metadata file has a missing symbol for ENSMUSG00000000002.
+        """
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata_missing_symbols.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        output = transform_rna_de_aggregate(datasets=datasets)
+
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path, "output", "synthetic_missing_symbol_output.json"
+            )
+        ) as f:
+            expected_output = json.load(f)
+
+        assert output == expected_output

@@ -15,7 +15,7 @@ from great_expectations.data_context import FileDataContext
 from great_expectations.data_context.types.resource_identifiers import (
     ValidationResultIdentifier,
 )
-from synapseclient import Activity, File
+from synapseclient import Activity, File, Synapse
 
 from agoradatatools.gx import GreatExpectationsRunner
 
@@ -27,6 +27,7 @@ class TestGreatExpectationsRunner:
             syn=syn,
             dataset_path="./tests/test_assets/gx/metabolomics.json",
             dataset_name="metabolomics",
+            staging_path="./test_staging",
             upload_folder="test_folder",
             nested_columns=None,
         )
@@ -34,6 +35,7 @@ class TestGreatExpectationsRunner:
             syn=syn,
             dataset_path="./tests/test_assets/gx/not_supported_dataset.json",
             dataset_name="not_supported_dataset",
+            staging_path="./test_staging",
             upload_folder="test_folder",
             nested_columns=None,
         )
@@ -58,6 +60,7 @@ class TestGreatExpectationsRunner:
             self.good_runner.dataset_path == "./tests/test_assets/gx/metabolomics.json"
         )
         assert self.good_runner.expectation_suite_name == "metabolomics"
+        assert self.good_runner.staging_path == "./test_staging"
         assert self.good_runner.upload_folder == "test_folder"
         assert self.good_runner.nested_columns is None
         assert (
@@ -120,6 +123,29 @@ class TestGreatExpectationsRunner:
             )
             assert result == expected
 
+    def test_write_report_to_staging(self):
+        results_path = "/path/to/validations/metabolomics.html"
+        expected_dir = os.path.join(self.good_runner.staging_path, "gx_reports")
+        expected_path = os.path.join(expected_dir, "metabolomics.html")
+        with patch.object(os, "makedirs") as patch_makedirs, patch.object(
+            shutil, "copy"
+        ) as patch_copy:
+            result = self.good_runner.write_report_to_staging(results_path)
+            patch_makedirs.assert_called_once_with(expected_dir, exist_ok=True)
+            patch_copy.assert_called_once_with(results_path, expected_path)
+            assert result == expected_path
+
+    def test_write_report_to_staging_is_called_even_without_upload_folder(self):
+        self.good_runner.upload_folder = None
+        results_path = "/path/to/validations/metabolomics.html"
+        expected_path = os.path.join(
+            self.good_runner.staging_path, "gx_reports", "metabolomics.html"
+        )
+        with patch.object(os, "makedirs"), patch.object(shutil, "copy") as patch_copy:
+            result = self.good_runner.write_report_to_staging(results_path)
+            patch_copy.assert_called_once_with(results_path, expected_path)
+            assert result == expected_path
+
     def test_upload_results_file_to_synapse(self):
         with patch.object(
             self.good_runner.syn,
@@ -157,16 +183,23 @@ class TestGreatExpectationsRunner:
 
     def test_generate_message_returns_formatted_strings_as_expected(self):
         result_dict = {
-            "test_suite": {"test_column": ["expect_column_values_to_be_unique"]}
+            "test_suite": {
+                "test_column": [
+                    {
+                        "expectation": "expect_column_values_to_be_unique",
+                        "observed_ratio": None,
+                        "threshold": None,
+                    }
+                ]
+            }
         }
         test_warn_message, test_warn_status = self.good_runner._generate_message(
             result_dict, "warnings"
         )
         assert (
             test_warn_message
-            == "Great Expectations data validation has the following warnings: "
-            "In the test_suite dataset, 'test_column' has failed values for "
-            "expectations expect_column_values_to_be_unique"
+            == "Great Expectations data validation has the following warnings:\n"
+            "  - test_suite / 'test_column': expect_column_values_to_be_unique failed"
         )
         assert test_warn_status is True
 
@@ -175,9 +208,8 @@ class TestGreatExpectationsRunner:
         )
         assert (
             test_fail_message
-            == "Great Expectations data validation has the following failures: "
-            "In the test_suite dataset, 'test_column' has failed values for "
-            "expectations expect_column_values_to_be_unique"
+            == "Great Expectations data validation has the following failures:\n"
+            "  - test_suite / 'test_column': expect_column_values_to_be_unique failed"
         )
         assert test_fail_status is True
 
@@ -207,17 +239,14 @@ class TestGreatExpectationsRunner:
     ):
         self.good_runner.set_warnings_and_failures(self.failed_checkpoint_result)
         assert self.good_runner.warnings is True
-        assert (
-            self.good_runner.warning_message
-            == "Great Expectations data validation has the following warnings: "
-            "In the metabolomics dataset, 'ensembl_gene_id' has failed values for "
-            "expectations expect_column_value_lengths_to_equal"
+        assert self.good_runner.warning_message == (
+            "Great Expectations data validation has the following warnings:\n"
+            "  - metabolomics / 'ensembl_gene_id': expect_column_value_lengths_to_equal failed"
         )
         assert self.good_runner.failures is True
         assert self.good_runner.failure_message == (
-            "Great Expectations data validation has the following failures: "
-            "In the metabolomics dataset, 'ensembl_gene_id' has failed values for "
-            "expectations expect_column_values_to_match_regex"
+            "Great Expectations data validation has the following failures:\n"
+            "  - metabolomics / 'ensembl_gene_id': expect_column_values_to_match_regex failed"
         )
 
     def test_run_when_expectation_suite_exists_and_nested_columns(
@@ -234,6 +263,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -251,6 +282,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_called_once()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
             patch_set_warnings_and_failures.assert_called_once_with(
                 patch_checkpoint_run.return_value
@@ -270,6 +302,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -286,6 +320,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
             patch_set_warnings_and_failures.assert_called_once_with(
                 self.passed_checkpoint_result
@@ -305,6 +340,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -318,6 +355,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_not_called()
             patch_get_results_path.assert_not_called()
+            patch_write_report_to_staging.assert_not_called()
             patch_upload_results_file_to_synapse.assert_not_called()
             patch_set_warnings_and_failures.assert_not_called()
 
@@ -335,6 +373,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -351,6 +391,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
             patch_set_warnings_and_failures.assert_called_once_with(
                 patch_checkpoint_run.return_value
@@ -370,6 +411,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -387,7 +430,86 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
             patch_upload_results_file_to_synapse.assert_not_called()
             patch_set_warnings_and_failures.assert_called_once_with(
                 self.passed_checkpoint_result
             )
+
+
+class TestCustomJSONSchemaRulesRunner:
+    """Tests for GreatExpectationsRunner with custom nested column expectations.
+
+    Verifies that custom expectations (ExpectColumnNestedObjectStringLength,
+    ExpectColumnNestedObjectNotNull, ExpectColumnNestedObjectRegexRule) surface
+    the nested target_field name, observed ratio, and threshold in failure and
+    warning messages generated by set_warnings_and_failures().
+    """
+
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_method(self, syn: Synapse) -> None:
+        self.bad_runner = GreatExpectationsRunner(
+            syn=syn,
+            dataset_path="./tests/test_assets/gx/test_nested_columns.json",
+            dataset_name="test_nested_columns",
+            staging_path="./test_staging",
+            upload_folder="test_folder",
+            nested_columns=["columns"],
+        )
+        self.good_runner = GreatExpectationsRunner(
+            syn=syn,
+            dataset_path="./tests/test_assets/gx/test_nested_columns.json",
+            dataset_name="test_nested_columns",
+            staging_path="./test_staging",
+            upload_folder="test_folder",
+            nested_columns=["columns"],
+        )
+
+        with open("./tests/test_assets/gx/checkpoint_result_nested_fail.json") as f:
+            self.failed_checkpoint_result = CheckpointResult(**json.load(f))
+
+        with open("./tests/test_assets/gx/checkpoint_result_nested_pass.json") as f:
+            self.passed_checkpoint_result = CheckpointResult(**json.load(f))
+
+    def test_failure_message_includes_observed_and_threshold_for_custom_nested_expectations(
+        self,
+    ) -> None:
+        """Verifies that set_warnings_and_failures() produces failure messages that include
+        the nested target_field name, observed ratio, and threshold for all three custom
+        nested expectations (string_length, not_null, regex_rule).
+        """
+        self.bad_runner.set_warnings_and_failures(self.failed_checkpoint_result)
+        assert self.bad_runner.failures is True
+        string_length_line = (
+            "  - test_nested_columns / 'columns.tooltip': "
+            "expect_column_nested_object_string_length failed "
+            "(required: 0.9, observed: 0.8)"
+        )
+        not_null_line = (
+            "  - test_nested_columns / 'columns.tooltip': "
+            "expect_column_nested_object_not_null failed "
+            "(required: 0.9, observed: 0.8)"
+        )
+        regex_rule_line = (
+            "  - test_nested_columns / 'columns.data_key': "
+            "expect_column_nested_object_regex_rule failed "
+            "(required: 0.9, observed: 0.0)"
+        )
+        expected_message = (
+            "Great Expectations data validation has the following failures:\n"
+            + "\n".join([string_length_line, not_null_line, regex_rule_line])
+        )
+        assert self.bad_runner.failure_message == expected_message
+
+    def test_no_failures_or_warnings_when_all_custom_nested_expectations_pass(
+        self,
+    ) -> None:
+        """Verifies that set_warnings_and_failures() sets failures and warnings to False
+        with no messages when all custom nested expectations pass, ensuring the changes
+        to nested field handling introduce no regressions on passing runs.
+        """
+        self.good_runner.set_warnings_and_failures(self.passed_checkpoint_result)
+        assert self.good_runner.failures is False
+        assert self.good_runner.failure_message is None
+        assert self.good_runner.warnings is False
+        assert self.good_runner.warning_message is None

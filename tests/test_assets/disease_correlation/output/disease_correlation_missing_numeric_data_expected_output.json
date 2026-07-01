@@ -1,0 +1,27 @@
+[
+  {
+    "name": "5xFAD",
+    "matched_control": "C57BL6J",
+    "model_type": "Familial AD",
+    "modified_genes": [
+      "APP",
+      "PSEN1"
+    ],
+    "cluster": "Consensus Cluster A (ECM organization)",
+    "age": "4 months",
+    "age_numeric": 4,
+    "sex": "Female",
+    "IFG": {
+      "correlation": 0.0829228557717283,
+      "adj_p_val": 0.4617459764146099
+    },
+    "PHG": {
+      "correlation": null,
+      "adj_p_val": 0.3887199748614661
+    },
+    "CBE": {
+      "correlation": 0.0341639955699389,
+      "adj_p_val": null
+    }
+  }
+]

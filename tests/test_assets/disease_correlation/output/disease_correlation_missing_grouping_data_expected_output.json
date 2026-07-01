@@ -1,0 +1,16 @@
+[
+  {
+    "name": "APOE4",
+    "matched_control": "C57BL6J",
+    "model_type": "Late Onset AD",
+    "modified_genes": ["APOE"],
+    "cluster": "Consensus Cluster A (ECM organization)",
+    "age": "8 months",
+    "age_numeric": 8,
+    "sex": "Female",
+    "IFG": {
+      "correlation": 0.0695648292036998,
+      "adj_p_val": 0.5371683491780308
+    }
+  }
+]

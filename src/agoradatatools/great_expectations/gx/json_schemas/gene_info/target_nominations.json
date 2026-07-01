@@ -24,7 +24,7 @@
         "properties": {
             "source": {
                 "type": "string",
-                "enum": ["Community", "AMP-AD", "Resilience-AD", "TREAT-AD"]
+                "enum": ["Community", "AMP-AD", "Resilience-AD", "TREAT-AD", "FunGen-AD"]
             },
             "team": {
                 "type": "string",

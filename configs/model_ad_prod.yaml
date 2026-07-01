@@ -16,7 +16,7 @@ datasets:
           id: syn64618791.6
           format: csv
         - name: pathology
-          id: syn61357279.17
+          id: syn61357279.18
           format: csv
         - name: biomarkers
           id: syn61250724.12
@@ -25,7 +25,7 @@ datasets:
           id: syn64846805.2
           format: csv
         - name: model_results_info
-          id: syn68377668.6
+          id: syn68377668.7
           format: csv
         - name: immunohisto_measure_order
           id: syn71305327.2
@@ -65,7 +65,6 @@ datasets:
       destination: *dest
       custom_transformations: transform_disease_correlation
       column_rename:
-        model: name
         ensembl_id: human_ensembl_id
 
   - ui_config:
@@ -83,7 +82,7 @@ datasets:
       files:
         - <<: *model_info_file
         - name: model_results_info
-          id: syn68377668.6
+          id: syn68377668.7
           format: csv
         - name: allele_info
           id: syn64618791.6

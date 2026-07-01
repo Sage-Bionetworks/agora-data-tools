@@ -3,7 +3,6 @@ import os
 from unittest import mock
 from unittest.mock import ANY, patch
 
-import numpy as np
 import pandas as pd
 import pytest
 from synapseclient import File
@@ -75,8 +74,11 @@ class TestLoad:
 
 class TestDFToJSON:
     def setup_method(self):
-        self.patch_replace = patch.object(
-            pd.DataFrame, "replace", return_value=pd.DataFrame()
+        self.patch_normalize_null_values = patch.object(
+            # Function belongs to utils but is imported into "load", so we must patch load
+            load,
+            "normalize_null_values",
+            return_value=pd.DataFrame(),
         ).start()
         self.patch_to_dict = patch.object(
             pd.DataFrame, "to_dict", return_value=dict()
@@ -91,7 +93,7 @@ class TestDFToJSON:
         json_name = load.df_to_json(
             data_as_df=pd.DataFrame(), staging_path="./staging", filename="test.json"
         )
-        self.patch_replace.assert_called_once_with({np.nan: None})
+        self.patch_normalize_null_values.assert_called_once()
         self.patch_to_dict.assert_called_once_with(orient="records")
         self.patch_json_dump.assert_called_once_with(
             self.patch_to_dict.return_value,

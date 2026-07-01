@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
+from itertools import combinations
 
 
 class ColumnRule(ABC):
@@ -78,8 +79,13 @@ class MatchesRegexRule(ColumnRule):
         self.value = value
 
     def count_violations(self, series: pd.Series) -> int:
-        """Return the number of values in *series* that do not match the regex at the start."""
-        return int((~series.astype(str).str.match(self.value, na=False)).sum())
+        """Return the number of non-null values in *series* that do not match the regex at the start.
+
+        Null values are skipped so this rule only validates the format of present
+        values; use NotEmptyRule to require presence.
+        """
+        present = series.notna()
+        return int((~series[present].astype(str).str.match(self.value, na=False)).sum())
 
     @property
     def value_detail(self) -> str:
@@ -258,6 +264,29 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     except TypeError:  # I could not get this to trigger without mocking replace
         print("Error comparing types.")
 
+    return df
+
+
+def capitalize_first_character(df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
+    """Capitalize the first character of string columns without changing the rest.
+
+    Preserves acronyms and mixed-case values (e.g. APOE, DRIAD-SP). Operates on
+    flat string columns only; non-string values are returned unchanged.
+
+    Args:
+        df: DataFrame to modify in place (also returned).
+        fields: Column names to capitalize. Missing columns are skipped.
+
+    Returns:
+        The same DataFrame with first-character capitalization applied.
+    """
+
+    def capitalize(text):
+        return text[:1].upper() + text[1:] if isinstance(text, str) and text else text
+
+    for field in fields:
+        if field in df.columns:
+            df[field] = df[field].apply(capitalize)
     return df
 
 
@@ -457,6 +486,63 @@ def check_required_datasets_and_columns(
             )
 
 
+def validate_one_to_one_mapping(
+    df: pd.DataFrame,
+    left_col: str,
+    right_col: str,
+    bidirectional: bool = False,
+) -> None:
+    """Validate that two columns form a consistent mapping.
+
+    By default this checks that each non-null value in left_col maps to at most
+    one distinct value in right_col. When bidirectional is True it also checks
+    the reverse direction, enforcing a true 1:1 mapping in a single call. Rows
+    where the key column is null are ignored for that direction.
+
+    Args:
+        df: The DataFrame to validate.
+        left_col: The first column in the pair.
+        right_col: The second column in the pair.
+        bidirectional: If True, validate the mapping in both directions.
+
+    Raises:
+        ValueError: If a value in the key column maps to more than one distinct
+            value in the paired column.
+    """
+    _validate_mapping_direction(df, left_col, right_col)
+    if bidirectional:
+        _validate_mapping_direction(df, right_col, left_col)
+
+
+def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) -> None:
+    """Validate that each key in key_col maps to at most one value_col value.
+
+    Groups the DataFrame by key_col (ignoring rows where the key is null) and
+    checks that every key is associated with a single distinct value in
+    value_col. Null values in value_col are counted as a distinct value.
+
+    Args:
+        df: The DataFrame containing the mapping to validate.
+        key_col: Name of the column whose values act as mapping keys.
+        value_col: Name of the column whose values should be uniquely determined
+            by each key.
+
+    Raises:
+        ValueError: If any non-null key in key_col maps to more than one
+            distinct value in value_col.
+    """
+    present_keys = df[key_col].notna()
+    counts = df.loc[present_keys].groupby(key_col)[value_col].nunique(dropna=False)
+    offending_keys = counts[counts > 1].index.tolist()
+    if offending_keys:
+        raise ValueError(
+            f"Data Integrity Error: The following {key_col}(s) are associated with "
+            f"multiple {value_col} values: {offending_keys}. "
+            f"There must be a one-to-one mapping between {key_col} and {value_col}. "
+            "Please fix the source data before re-running."
+        )
+
+
 def _check_single_rule(
     df: pd.DataFrame,
     dataset_name: str,
@@ -605,34 +691,6 @@ def convert_numpy_types(obj: Any) -> Any:
     return obj
 
 
-def input_validation_model_info(df: pd.DataFrame) -> None:
-    """
-    Validates that each model has consistent matched_controls and model_type values.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing model information with columns 'name',
-                          'matched_controls', and 'model_type'
-
-    Raises:
-        ValueError: If any model has inconsistent matched_controls or model_type values
-    """
-    # Group by model and check for consistency
-    for model, group in df.groupby("name"):
-        # Check matched_controls consistency
-        unique_matched_controls = group["matched_controls"].unique()
-        if len(unique_matched_controls) > 1:
-            raise ValueError(
-                f"Model {model} has inconsistent matched_controls values: {unique_matched_controls}"
-            )
-
-        # Check model_type consistency
-        unique_model_types = group["model_type"].unique()
-        if len(unique_model_types) > 1:
-            raise ValueError(
-                f"Model {model} has inconsistent model_type values: {unique_model_types}"
-            )
-
-
 def normalize_zero(value: float) -> float:
     """
     Convert -0.0 to 0.0 while preserving other values.
@@ -679,6 +737,7 @@ def normalize_null_values(
     df: pd.DataFrame,
     boolean_columns: list[str] | None = None,
     empty_string_columns: list[str] | None = None,
+    empty_list_columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
@@ -688,8 +747,9 @@ def normalize_null_values(
     that option too.
 
     Columns listed in `boolean_columns` will have NaN/None values replaced with False and their type set to "bool", and
-    columns listed in `empty_string_columns` will have NaN/None values replaced with "". After that, all columns left
-    over will have their NaN values replaced with None, regardless of column type.
+    columns listed in `empty_string_columns` will have NaN/None values replaced with "". Columns listed in
+    `empty_list_columns` will have NaN/None values replaced with empty lists. After that, all columns left over will
+    have their NaN values replaced with None, regardless of column type.
 
     All *_columns arguments are optional and default to empty lists. Values in these arguments must not overlap with
     each other and must contain only columns that appear in the data frame.
@@ -699,6 +759,7 @@ def normalize_null_values(
         boolean_columns (list[str]): A list of column names that should have NaN values replaced with False.
         empty_string_columns (list[str]): A list of column names that should have NaN values replaced with empty
             strings.
+        empty_list_columns (list[str]): A list of column names that should have NaN values replaced with empty lists.
 
     Returns:
         pd.DataFrame: A new DataFrame with normalized null values (NaN replaced with False, empty strings, or None as
@@ -707,48 +768,56 @@ def normalize_null_values(
     Raises:
         TypeError: If the input df is not a pandas DataFrame.
         TypeError: If any of the *_columns arguments are not lists.
-        ValueError: If there are overlaps between the boolean_columns and empty_string_columns lists.
-        ValueError: If any column specified in the boolean_columns or empty_string_columns lists does not exist in the
-        DataFrame.
+        ValueError: If there are overlaps between the *_columns lists.
+        ValueError: If any column specified in the *_columns lists does not exist in the DataFrame.
     """
     if not isinstance(df, pd.DataFrame):
-        raise TypeError(f"Input must be a pandas DataFrame, got {type(df)}")
+        raise TypeError(f"'df' must be a pandas DataFrame, got {type(df)}")
 
-    if not isinstance(boolean_columns, list) and boolean_columns is not None:
-        raise TypeError(f"boolean_columns must be a list, got {type(boolean_columns)}")
+    validation_data = {
+        "boolean_columns": boolean_columns,
+        "empty_string_columns": empty_string_columns,
+        "empty_list_columns": empty_list_columns,
+    }
 
-    if not isinstance(empty_string_columns, list) and empty_string_columns is not None:
-        raise TypeError(
-            f"empty_string_columns must be a list, got {type(empty_string_columns)}"
-        )
+    # None values don't need to be type checked, checked for presence in data frame, or checked for overlaps
+    to_check = [key for key, value in validation_data.items() if value is not None]
 
-    # Make column lists into sets for easier checking of overlaps and membership in the data frame, and
-    # initialize any None arguments to empty lists
-    all_columns = set(df.columns)
-    boolean_columns = set(boolean_columns or [])
-    empty_string_columns = set(empty_string_columns or [])
+    for arg_name in to_check:
+        arg_value = validation_data[arg_name]
 
-    # Check that all specified columns exist in the data frame
-    non_existent_columns = (boolean_columns | empty_string_columns) - all_columns
-    if non_existent_columns:
-        raise ValueError(
-            f"Columns {sorted(non_existent_columns)} do not exist in the DataFrame."
-        )
+        # All column arguments must be lists
+        if not isinstance(arg_value, list):
+            raise TypeError(f"'{arg_name}' must be a list, got {type(arg_value)}")
 
-    # Check that there are no overlaps between lists of columns
-    overlaps = boolean_columns & empty_string_columns
-    if overlaps:
-        raise ValueError(
-            f"Columns {sorted(overlaps)} appear in both the boolean_columns and empty_string_columns lists."
-        )
+        # Check that all specified columns exist in the data frame
+        non_existent_columns = set(arg_value) - set(df.columns)
+        if non_existent_columns:
+            raise ValueError(
+                f"Columns {sorted(non_existent_columns)} from '{arg_name}' do not exist in the DataFrame."
+            )
+
+    # Check that there are no overlaps between non-null lists of columns
+    for col_set1, col_set2 in combinations(to_check, 2):
+        overlaps = set(validation_data[col_set1]) & set(validation_data[col_set2])
+        if overlaps:
+            raise ValueError(
+                f"Columns {sorted(overlaps)} appear in both the {col_set1} and {col_set2} lists."
+            )
+
+    # Initialize any None arguments to empty lists
+    boolean_columns = boolean_columns or []
+    empty_string_columns = empty_string_columns or []
+    empty_list_columns = empty_list_columns or []
 
     df = df.copy()
 
-    for col in boolean_columns:
-        df[col] = df[col].fillna(False).astype(bool)
+    df[boolean_columns] = df[boolean_columns].fillna(False).astype(bool)
+    df[empty_string_columns] = df[empty_string_columns].fillna("")
 
-    for col in empty_string_columns:
-        df[col] = df[col].fillna("")
+    # .fillna() and .replace() don't work for empty lists, so we manually set NA values to empty lists
+    for col in empty_list_columns:
+        df[col] = df[col].apply(lambda x: x if isinstance(x, list | np.ndarray) else [])
 
     # Replace any remaining NaN values with None
     return df.replace({np.nan: None, pd.NA: None})

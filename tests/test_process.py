@@ -1302,6 +1302,35 @@ class TestProcessAllFiles:
         self.patch_format_link.assert_called_once_with(syn_id="syn123", version=1)
         self.patch_update_table.assert_called_once()
 
+    def test_process_all_files_defaults_staging_path_when_undefined(self, syn: Any):
+        config_without_staging_path = {
+            "destination": "destination",
+            "gx_folder": GX_FOLDER,
+            "gx_table": "syn321",
+            "team_images_id": "syn987",
+            "datasets": [{"a": {"b": "c"}}],
+        }
+        with patch.object(
+            utils, "_get_config", return_value=config_without_staging_path
+        ):
+            process.process_all_files(
+                syn=syn,
+                config_path=self.config_path,
+                platform=Platform.LOCAL,
+                run_id="123",
+                upload=False,
+            )
+        self.patch_create_temp_location.assert_called_once_with(
+            staging_path="./staging"
+        )
+        self.patch_process_dataset.assert_any_call(
+            dataset_obj={"a": {"b": "c"}},
+            staging_path="./staging",
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=False,
+        )
+
     def test_process_all_files_upload_false_gx_failure(self, syn: Any):
         with pytest.raises(
             ADTDataProcessingError,

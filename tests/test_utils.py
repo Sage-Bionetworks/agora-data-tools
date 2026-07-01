@@ -189,6 +189,32 @@ class TestStandardizeValues:
         assert result_df.loc[9, "aliases"] == "Normal text"  # Should be preserved
 
 
+class TestCapitalizeFirstCharacter:
+    """Tests for capitalize_first_character on flat string columns."""
+
+    def test_capitalizes_string_column(self) -> None:
+        df = pd.DataFrame({"name": ["lowercase text"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] == "Lowercase text"
+
+    def test_preserves_mixed_case_after_first_character(self) -> None:
+        df = pd.DataFrame({"name": ["aPOE variant"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] == "APOE variant"
+
+    def test_leaves_non_string_and_empty_values_unchanged(self) -> None:
+        df = pd.DataFrame({"name": [None, "", "text"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] is None
+        assert result["name"].iloc[1] == ""
+        assert result["name"].iloc[2] == "Text"
+
+    def test_skips_missing_columns(self) -> None:
+        df = pd.DataFrame({"name": ["text"]})
+        result = utils.capitalize_first_character(df, ["absent"])
+        assert result["name"].iloc[0] == "text"
+
+
 class TestRenameColumnsDataFrame:
     df = pd.DataFrame(
         {
@@ -817,13 +843,14 @@ class TestMatchesRegexRule:
         rule = MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(self._series(["ENSG001", "ENSG002"])) == 2
 
-    def test_counts_none_as_violation(self) -> None:
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the format of present values.
         rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", None])) == 1
+        assert rule.count_violations(self._series(["ENSMUSG001", None])) == 0
 
-    def test_counts_nan_as_violation(self) -> None:
+    def test_skips_nan(self) -> None:
         rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", np.nan])) == 1
+        assert rule.count_violations(self._series(["ENSMUSG001", np.nan])) == 0
 
     def test_counts_empty_string_as_violation(self) -> None:
         rule = MatchesRegexRule(value="^ENSMUSG")
@@ -1056,7 +1083,6 @@ class TestCheckColumnRules:
     @pytest.mark.parametrize(
         "good_value, rule",
         [
-            ("ENSMUSG001", MatchesRegexRule(value="^ENSMUSG")),
             ("hello world", ContainsSubstringRule(value="world")),
         ],
     )
@@ -1066,6 +1092,13 @@ class TestCheckColumnRules:
         datasets = self._make_datasets({"col": [good_value, None]})
         with pytest.raises(ValueError, match=rule.rule):
             utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
+
+    def test_matches_regex_rule_ignores_null(self) -> None:
+        # MatchesRegexRule only validates present values; nulls are not violations.
+        datasets = self._make_datasets({"col": ["ENSMUSG001", None]})
+        utils.check_column_rules(
+            datasets, {"ds": {"col": [MatchesRegexRule(value="^ENSMUSG")]}}
+        )
 
     def test_all_violations_collected_in_single_error(self) -> None:
         datasets = {
@@ -1106,6 +1139,75 @@ class TestCheckColumnRules:
     ) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
             rule_class(value=None)
+
+
+class TestValidateOneToOneMapping:
+    """Tests for validate_one_to_one_mapping()."""
+
+    def test_passes_one_to_one_mapping(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1", "CHEMBL2"],
+            }
+        )
+        utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+    def test_raises_when_left_maps_to_multiple_right(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugA"],
+                "chembl_id": ["CHEMBL1", "CHEMBL2"],
+            }
+        )
+        with pytest.raises(ValueError, match="common_name"):
+            utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+    def test_default_does_not_check_reverse_direction(self) -> None:
+        # Two names share an ID; without bidirectional this passes because each
+        # name still maps to a single ID.
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1"],
+            }
+        )
+        utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+    def test_bidirectional_catches_reverse_violation(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugB"],
+                "chembl_id": ["CHEMBL1", "CHEMBL1"],
+            }
+        )
+        with pytest.raises(ValueError, match="chembl_id"):
+            utils.validate_one_to_one_mapping(
+                df, "common_name", "chembl_id", bidirectional=True
+            )
+
+    def test_ignores_missing_keys(self) -> None:
+        df = pd.DataFrame(
+            {
+                "common_name": [None, "DrugA"],
+                "chembl_id": [None, "CHEMBL1"],
+            }
+        )
+        utils.validate_one_to_one_mapping(
+            df, "common_name", "chembl_id", bidirectional=True
+        )
+
+    def test_raises_when_value_is_null_for_one_of_duplicate_keys(self) -> None:
+        # NA keys are ignored, but a null value counts as a distinct value: DrugA
+        # maps to both None and CHEMBL1, which is not a one-to-one mapping.
+        df = pd.DataFrame(
+            {
+                "common_name": ["DrugA", "DrugA"],
+                "chembl_id": [None, "CHEMBL1"],
+            }
+        )
+        with pytest.raises(ValueError, match="common_name.*multiple chembl_id values"):
+            utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
 
 class TestFlattenList:
@@ -1161,110 +1263,6 @@ class TestRemoveDuplicatesKeepOrder:
     def test_remove_duplicates_preserves_order(self):
         input_list = ["a", "b", "a", "c", "b", "d"]
         assert utils.remove_duplicates_keep_order(input_list) == ["a", "b", "c", "d"]
-
-
-class TestInputValidationModelInfo:
-    """
-    Test class for validating the input_validation_model_info function.
-    This function validates that model information is consistent across
-    multiple rows for the same model name.
-    """
-
-    def test_valid_model_info(self) -> None:
-        """
-        Test that valid model info with consistent data passes validation.
-        Different models can have different values, but the same model
-        should have consistent values across rows.
-        """
-        df = pd.DataFrame(
-            [
-                {
-                    "name": "LOAD1",
-                    "matched_controls": "C57BL6J",
-                    "model_type": "Late Onset AD",
-                },
-                {
-                    "name": "LOAD2",  # Different model, different values are OK
-                    "matched_controls": "C57BL6J",
-                    "model_type": "Early Onset AD",
-                },
-            ]
-        )
-        # Should not raise any exception
-        utils.input_validation_model_info(df)
-
-    def test_inconsistent_matched_controls(self) -> None:
-        """
-        Test that inconsistent matched_controls values for the same model
-        raise a ValueError with appropriate error message.
-        """
-        df = pd.DataFrame(
-            [
-                {
-                    "name": "LOAD1",
-                    "matched_controls": "C57BL6J",
-                    "model_type": "Late Onset AD",
-                },
-                {
-                    "name": "LOAD1",  # Same model name but different matched_controls
-                    "matched_controls": "CTRL2",
-                    "model_type": "Late Onset AD",
-                },
-            ]
-        )
-        with pytest.raises(
-            ValueError, match="Model LOAD1 has inconsistent matched_controls values:"
-        ):
-            utils.input_validation_model_info(df)
-
-    def test_inconsistent_model_type(self) -> None:
-        """
-        Test that inconsistent model_type values for the same model
-        raise a ValueError with appropriate error message.
-        """
-        df = pd.DataFrame(
-            [
-                {
-                    "name": "LOAD1",
-                    "matched_controls": "C57BL6J",
-                    "model_type": "Late Onset AD",
-                },
-                {
-                    "name": "LOAD1",  # Same model name but different model_type
-                    "matched_controls": "C57BL6J",
-                    "model_type": "Early Onset AD",
-                },
-            ]
-        )
-        with pytest.raises(
-            ValueError, match="Model LOAD1 has inconsistent model_type values:"
-        ):
-            utils.input_validation_model_info(df)
-
-    def test_empty_dataframe(self) -> None:
-        """
-        Test that an empty dataframe passes validation without errors.
-        """
-        df = pd.DataFrame(columns=["name", "matched_controls", "model_type"])
-        # Should not raise any exception
-        utils.input_validation_model_info(df)
-
-    def test_single_row(self) -> None:
-        """
-        Test that a dataframe with a single row passes validation.
-        Single rows cannot have inconsistencies by definition.
-        """
-        df = pd.DataFrame(
-            [
-                {
-                    "name": "LOAD1",
-                    "matched_controls": "C57BL6J",
-                    "model_type": "Late Onset AD",
-                }
-            ]
-        )
-        # Should not raise any exception
-        utils.input_validation_model_info(df)
 
 
 class TestNormalizeZero:
@@ -1372,8 +1370,8 @@ class TestNormalizeNullValues:
                 "string2": [np.nan] * 5,
                 "numeric1": [123, np.nan, np.nan, np.nan, np.nan],
                 "numeric2": [np.nan] * 5,
-                "extra1": ["abc", "def", None, np.nan, pd.NA],
-                "extra2": [pd.NA] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], None, np.nan],
+                "list2": [pd.NA] * 5,
             }
         )
 
@@ -1393,15 +1391,18 @@ class TestNormalizeNullValues:
                 "string2": [None] * 5,
                 "numeric1": [123, None, None, None, None],
                 "numeric2": [None] * 5,
-                "extra1": ["abc", "def", None, None, None],
-                "extra2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], None, None],
+                "list2": [None] * 5,
             },
             dtype="O",
         )
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        # pd.testing.assert_frame_equal treats None, np.nan, and pd.NA as equivalent, so we use np.array_equal to verify
+        # that the missing values are correctly set to None in the output data frame.
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_only_boolean_columns(
+    def test_normalize_null_values_with_boolean_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
@@ -1420,21 +1421,22 @@ class TestNormalizeNullValues:
                 "string2": [None] * 5,
                 "numeric1": [123, None, None, None, None],
                 "numeric2": [None] * 5,
-                "extra1": ["abc", "def", None, None, None],
-                "extra2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], None, None],
+                "list2": [None] * 5,
             },
             dtype="O",
         )
         expected_output["bool1"] = expected_output["bool1"].astype(bool)
         expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_only_string_columns(
+    def test_normalize_null_values_with_string_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values correctly normalizes null values when only string_columns is defined.
+        Test that normalize_null_values correctly normalizes null values when only empty_string_columns is defined.
         """
         output = utils.normalize_null_values(
             test_data_frame,
@@ -1449,24 +1451,88 @@ class TestNormalizeNullValues:
                 "string2": [""] * 5,
                 "numeric1": [123, None, None, None, None],
                 "numeric2": [None] * 5,
-                "extra1": ["abc", "def", None, None, None],
-                "extra2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], None, None],
+                "list2": [None] * 5,
             },
             dtype="O",
         )
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_all_column_types_defined(
+    def test_normalize_null_values_with_list_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values correctly normalizes null values when both *_columns arguments are defined.
+        Test that normalize_null_values correctly normalizes null values when only empty_list_columns is defined.
+        """
+        output = utils.normalize_null_values(
+            test_data_frame,
+            empty_list_columns=["list1", "list2"],
+        )
+
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, None, None, None],
+                "bool2": [None] * 5,
+                "string1": ["abc", None, "", None, None],
+                "string2": [None] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], [], []],
+                "list2": [[], [], [], [], []],
+            },
+            dtype="O",
+        )
+
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
+
+    def test_normalize_null_values_with_ndarray(self) -> None:
+        """
+        Test that normalize_null_values correctly normalizes null values to empty lists when columns contain ndarrays.
+        Arrays are initialized with np.array() but are of type np.ndarray.
+        """
+        test_data_frame = pd.DataFrame(
+            {
+                "list1": [np.array([1, 2, 3]), np.array(["a", "b", "c"]), None],
+                "list2": [np.array([], dtype=object), pd.NA, np.nan],
+            },
+            dtype="O",
+        )
+
+        output = utils.normalize_null_values(
+            test_data_frame,
+            empty_list_columns=["list1", "list2"],
+        )
+
+        expected_output = pd.DataFrame(
+            {
+                "list1": [np.array([1, 2, 3]), np.array(["a", "b", "c"]), []],
+                "list2": [np.array([], dtype=object), [], []],
+            },
+            dtype="O",
+        )
+
+        for col in expected_output.columns:
+            # Need to check row-by-row because np.array_equal can not compare an array of ndarrays.
+            for output_row, expected_row in zip(
+                output[col].values, expected_output[col].values
+            ):
+                assert np.array_equal(output_row, expected_row)
+
+    def test_normalize_null_values_passes_with_non_overlapping_column_names(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values correctly verifies that there are no overlaps between the *_column lists when
+        all three lists are passed to the function.
         """
         output = utils.normalize_null_values(
             test_data_frame,
             boolean_columns=["bool1", "bool2"],
             empty_string_columns=["string1", "string2"],
+            empty_list_columns=["list1", "list2"],
         )
 
         expected_output = pd.DataFrame(
@@ -1477,15 +1543,16 @@ class TestNormalizeNullValues:
                 "string2": [""] * 5,
                 "numeric1": [123, None, None, None, None],
                 "numeric2": [None] * 5,
-                "extra1": ["abc", "def", None, None, None],
-                "extra2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], [], []],
+                "list2": [[], [], [], [], []],
             },
             dtype="O",
         )
         expected_output["bool1"] = expected_output["bool1"].astype(bool)
         expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
     def test_normalize_null_values_with_empty_data_frame(self) -> None:
         """
@@ -1506,17 +1573,34 @@ class TestNormalizeNullValues:
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values raises a ValueError when boolean_column or empty_string_column values don't
-        exist in the data frame.
+        Test that normalize_null_values raises a ValueError when boolean_column, empty_string_column, or
+        empty_list_column values don't exist in the data frame.
         """
         with pytest.raises(
             ValueError,
-            match="Columns \\['bool_x', 'string_x'\\] do not exist in the DataFrame",
+            match="Columns \\['bool_x', 'bool_y'\\] from 'boolean_columns' do not exist in the DataFrame",
         ):
             utils.normalize_null_values(
                 test_data_frame,
-                boolean_columns=["bool1", "bool_x"],
-                empty_string_columns=["string1", "string_x"],
+                boolean_columns=["bool1", "bool_y", "bool_x"],
+            )
+
+        with pytest.raises(
+            ValueError,
+            match="Columns \\['string_x', 'string_y'\\] from 'empty_string_columns' do not exist in the DataFrame",
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_string_columns=["string1", "string_y", "string_x"],
+            )
+
+        with pytest.raises(
+            ValueError,
+            match="Columns \\['list_x', 'list_y'\\] from 'empty_list_columns' do not exist in the DataFrame",
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_list_columns=["list1", "list_y", "list_x"],
             )
 
     def test_normalize_null_values_fails_with_overlapping_columns(
@@ -1532,6 +1616,24 @@ class TestNormalizeNullValues:
                 test_data_frame,
                 boolean_columns=["bool1", "bool2", "string2"],
                 empty_string_columns=["string1", "string2", "bool1"],
+            )
+
+        with pytest.raises(
+            ValueError, match="Columns \\['bool1', 'list2'\\] appear in both"
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                boolean_columns=["bool1", "bool2", "list2"],
+                empty_list_columns=["list1", "list2", "bool1"],
+            )
+
+        with pytest.raises(
+            ValueError, match="Columns \\['list1', 'string2'\\] appear in both"
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_string_columns=["string1", "string2", "list1"],
+                empty_list_columns=["list1", "list2", "string2"],
             )
 
     @pytest.mark.parametrize(
@@ -1551,7 +1653,7 @@ class TestNormalizeNullValues:
         """
         Test that normalize_null_values raises a TypeError when the df argument is not a DataFrame.
         """
-        with pytest.raises(TypeError, match="Input must be a pandas DataFrame"):
+        with pytest.raises(TypeError, match="'df' must be a pandas DataFrame"):
             utils.normalize_null_values(df_value)
 
     @pytest.mark.parametrize(
@@ -1571,16 +1673,22 @@ class TestNormalizeNullValues:
         """
         Test that normalize_null_values raises a TypeError when *_columns arguments are not lists.
         """
-        with pytest.raises(TypeError, match="boolean_columns must be a list"):
+        with pytest.raises(TypeError, match="'boolean_columns' must be a list"):
             utils.normalize_null_values(
                 test_data_frame,
                 boolean_columns=column_value,
             )
 
-        with pytest.raises(TypeError, match="empty_string_columns must be a list"):
+        with pytest.raises(TypeError, match="'empty_string_columns' must be a list"):
             utils.normalize_null_values(
                 test_data_frame,
                 empty_string_columns=column_value,
+            )
+
+        with pytest.raises(TypeError, match="'empty_list_columns' must be a list"):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_list_columns=column_value,
             )
 
 
