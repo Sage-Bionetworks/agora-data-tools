@@ -17,6 +17,32 @@ alwaysApply: false
 
 ---
 
+## Core Principle — Tighten Validations to the Actual Data
+
+Always author expectations against the **latest processed output data** (downloaded from Synapse when available, or freshly generated), and tighten every validation to what is actually present in that data rather than to loose, generic bounds.
+
+- **Use current output data first.** Prefer downloading the latest processed output from Synapse; if using a local file in `staging/`, confirm it is current (or re-download) before deriving any bounds or value sets, so the suite reflects the data as it exists now.
+- **Numeric ranges:** use the observed `min` and `max` from the data (e.g. `expect_column_values_to_be_between(column, min_value=<observed_min>, max_value=<observed_max>)`). Do not invent padded or "safe" ranges.
+- **Allowed value sets:** for `expect_column_values_to_be_in_set`, enumerate the distinct values actually present in the column. Do not include speculative values that do not appear in the data.
+- **List length / item counts:** derive `minItems`/`maxItems` (or `list_length_range`) from the observed minimum and maximum lengths in the data.
+- **String patterns:** derive regex and length bounds from the actual values present (see "Inspect the staging file before writing regex expectations").
+
+The goal is a suite that fails loudly if future data drifts outside the range or value set observed today. Compute these bounds programmatically from the downloaded data — do not guess.
+
+```python
+# Derive numeric bounds from the data
+print(df["my_numeric_col"].min(), df["my_numeric_col"].max())
+
+# Derive the allowed value set from the data
+print(sorted(df["my_category_col"].dropna().unique()))
+
+# Derive list-length bounds from the data
+lengths = df["my_list_col"].dropna().map(len)
+print(lengths.min(), lengths.max())
+```
+
+---
+
 ## Step 0 — Research the Transform Before Planning
 
 **Do all of the following before writing any plan or authoring any expectations.** These steps give you the complete picture of the transform's inputs, logic, output schema, and edge cases.
@@ -167,8 +193,11 @@ Never add `mostly=` to any expectation. All validations should be strict (100%).
 # Never null
 validator.expect_column_values_to_not_be_null("col")
 
-# Specific allowed values
+# Specific allowed values — enumerate the distinct values actually present in the data
 validator.expect_column_values_to_be_in_set("model_type", ["Familial AD", "Late Onset AD"])
+
+# Numeric range — use the observed min and max from the data, not padded bounds
+validator.expect_column_values_to_be_between("score", min_value=<observed_min>, max_value=<observed_max>)
 
 # Non-empty list (at least 1 element) — only valid on columns NOT in gx_nested_columns
 # (see warning below)
