@@ -4,34 +4,33 @@ gx_folder: syn52948670
 gx_table: syn60527065
 team_images_id: syn12861877
 # Reusable file reference anchors used by datasets below.
-shared:
-  files:
-    # Metadata & Configuration
-    - &drug_metadata                { name: drug_metadata               , format: json   , id: syn73724873.12  }
-    - &ensg_to_uniprot_mapping      { name: ensg_to_uniprot_mapping     , format: tsv    , id: syn54113663.7   }
-    - &eqtl                         { name: eqtl                        , format: csv    , id: syn12514912.3   }
-    - &gene_metadata                { name: gene_metadata               , format: feather, id: syn25953363.17  }
-    - &igap                         { name: igap                        , format: csv    , id: syn12514826.5   }
-    - &pharos_classes               { name: pharos_classes              , format: csv    , id: syn64123611.3   }
-    - &ui_config                    { name: ui_config                   , format: json   , id: syn73677126     }
-    # Results
-    - &diff_exp_data                { name: diff_exp_data               , format: tsv    , id: syn27211942.1   }
-    - &genes_biodomains             { name: genes_biodomains            , format: csv    , id: syn44151254.5   }
-    - &median_expression            { name: median_expression           , format: csv    , id: syn27211878.2   }
-    - &metabolomics                 { name: metabolomics                , format: feather, id: syn26064497.1   }
-    - &networks                     { name: networks                    , format: csv    , id: syn11685347.1   }
-    - &neuropath_regression_results { name: neuropath_regression_results, format: csv    , id: syn22017882.5   }
-    - &overall_scores               { name: overall_scores              , format: table  , id: syn25575156.13  }
-    - &proteomics                   { name: proteomics                  , format: csv    , id: syn18689335.4   }
-    - &proteomics_tmt               { name: proteomics_tmt              , format: csv    , id: syn35221005.2   }
-    - &proteomics_srm               { name: proteomics_srm              , format: csv    , id: syn52579640.4   }
-    # Nominations & Supporting Data
-    - &drug_list                    { name: drug_list                   , format: csv    , id: syn73677240.14  }
-    - &target_exp_validation        { name: target_exp_validation       , format: csv    , id: syn24184512.11  }
-    - &target_list                  { name: target_list                 , format: csv    , id: syn12540368.74  }
-    - &team_member_info             { name: team_member_info            , format: csv    , id: syn12615633.22  }
-    - &team_info                    { name: team_info                   , format: csv    , id: syn12615624.21  }
-    - &tep_adi_info                 { name: tep_adi_info                , format: csv    , id: syn51942280.6   }
+files:
+  # Metadata & Configuration
+  - &drug_metadata                { name: drug_metadata               , format: json   , id: syn73724873.12  }
+  - &ensg_to_uniprot_mapping      { name: ensg_to_uniprot_mapping     , format: tsv    , id: syn54113663.7   }
+  - &eqtl                         { name: eqtl                        , format: csv    , id: syn12514912.3   }
+  - &gene_metadata                { name: gene_metadata               , format: feather, id: syn25953363.17  }
+  - &igap                         { name: igap                        , format: csv    , id: syn12514826.5   }
+  - &pharos_classes               { name: pharos_classes              , format: csv    , id: syn64123611.3   }
+  - &ui_config                    { name: ui_config                   , format: json   , id: syn73677126     }
+  # Results
+  - &diff_exp_data                { name: diff_exp_data               , format: tsv    , id: syn27211942.1   }
+  - &genes_biodomains             { name: genes_biodomains            , format: csv    , id: syn44151254.5   }
+  - &median_expression            { name: median_expression           , format: csv    , id: syn27211878.2   }
+  - &metabolomics                 { name: metabolomics                , format: feather, id: syn26064497.1   }
+  - &networks                     { name: networks                    , format: csv    , id: syn11685347.1   }
+  - &neuropath_regression_results { name: neuropath_regression_results, format: csv    , id: syn22017882.5   }
+  - &overall_scores               { name: overall_scores              , format: table  , id: syn25575156.13  }
+  - &proteomics                   { name: proteomics                  , format: csv    , id: syn18689335.4   }
+  - &proteomics_tmt               { name: proteomics_tmt              , format: csv    , id: syn35221005.2   }
+  - &proteomics_srm               { name: proteomics_srm              , format: csv    , id: syn52579640.4   }
+  # Nominations & Supporting Data
+  - &drug_list                    { name: drug_list                   , format: csv    , id: syn73677240.14  }
+  - &target_exp_validation        { name: target_exp_validation       , format: csv    , id: syn24184512.11  }
+  - &target_list                  { name: target_list                 , format: csv    , id: syn12540368.74  }
+  - &team_member_info             { name: team_member_info            , format: csv    , id: syn12615633.22  }
+  - &team_info                    { name: team_info                   , format: csv    , id: syn12615624.21  }
+  - &tep_adi_info                 { name: tep_adi_info                , format: csv    , id: syn51942280.6   }
 
 datasets:
   - biodomain_info:
