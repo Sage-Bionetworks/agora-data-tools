@@ -129,15 +129,9 @@ def transform_model_overview(
 
     check_required_datasets_and_columns(datasets, required_input)
 
-    model_info = datasets["model_info"]
-    model_results_info = datasets["model_results_info"]
+    model_metadata = datasets["model_metadata"]
     allele_info = datasets["allele_info"]
     human_transgene_allele_map = datasets["human_transgene_allele_map"]
-
-    # Merge the two datasets on the "name" column
-    merged_df = pd.merge(
-        model_info, model_results_info, on="name", how="left", validate="1:1"
-    )
 
     boolean_columns = [
         "transcriptomics",
@@ -145,13 +139,13 @@ def transform_model_overview(
         "pathology",
         "biomarkers",
     ]
-    merged_df = normalize_null_values(merged_df, boolean_columns=boolean_columns)
-    merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
+    model_metadata = normalize_null_values(model_metadata, boolean_columns=boolean_columns)
+    model_metadata["jax_id"] = zero_pad_jax_ids(model_metadata["jax_id"])
 
     # Transform the merged dataframe into the target structure
     transformed_records = []
 
-    for _, row in merged_df.iterrows():
+    for _, row in model_metadata.iterrows():
         # Get genetic info for this model
         genetic_info = process_genetic_info(
             human_transgene_allele_map,

@@ -115,26 +115,18 @@ def transform_model_details(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
+    model_metadata_df = datasets["model_metadata"]
     allele_info_df = datasets["allele_info"]
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
 
-    # Merge model_results_df into model_info to get which types of data are available for each model
-    model_info_df = pd.merge(
-        datasets["model_info"],
-        datasets["model_results_info"],
-        how="left",
-        on="name",
-        validate="one_to_one",
-    )
-
-    model_info_df = normalize_null_values(
-        model_info_df,
+    model_metadata_df = normalize_null_values(
+        model_metadata_df,
         boolean_columns=["transcriptomics", "disease_correlation"],
         empty_string_columns=["rrid", "alzforum_id"],
     )
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
-    model_info_df["jax_id"] = zero_pad_jax_ids(model_info_df["jax_id"])
+    model_metadata_df["jax_id"] = zero_pad_jax_ids(model_metadata_df["jax_id"])
 
     # Prepare biomarker and pathology dataframes
     grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")
@@ -142,13 +134,13 @@ def transform_model_details(
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
-        model_info_df[col_name] = model_info_df[col_name].apply(
+        model_metadata_df[col_name] = model_metadata_df[col_name].apply(
             delim_string_to_list, delim=","
         )
 
     # Process each model
     result = []
-    for _, model_row in model_info_df.iterrows():
+    for _, model_row in model_metadata_df.iterrows():
         model_name = model_row["name"]
 
         # Get genetic info for this model
