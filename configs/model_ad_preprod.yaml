@@ -11,7 +11,7 @@ sources:
 datasets:
   - model_details:
       files:
-        - <<: *model_info_file
+        - <<: *model_metadata_file
         - name: allele_info
           id: syn64618791.6
           format: csv
@@ -23,9 +23,6 @@ datasets:
           format: csv
         - name: human_transgene_allele_map
           id: syn64846805.2
-          format: csv
-        - name: model_results_info
-          id: syn68377668.7
           format: csv
         - name: immunohisto_measure_order
           id: syn71305327.2
@@ -54,7 +51,7 @@ datasets:
         - name: disease_correlation_results
           id: syn65467849.6
           format: csv
-        - <<: *model_info_file
+        - <<: *model_metadata_file
         - name: allele_info
           id: syn64618791.6
           format: csv
@@ -80,10 +77,7 @@ datasets:
 
   - model_overview:
       files:
-        - <<: *model_info_file
-        - name: model_results_info
-          id: syn68377668.7
-          format: csv
+        - <<: *model_metadata_file
         - name: allele_info
           id: syn64618791.6
           format: csv
