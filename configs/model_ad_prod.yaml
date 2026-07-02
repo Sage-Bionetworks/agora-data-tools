@@ -3,15 +3,15 @@ staging_path: ./staging
 gx_folder: syn63141014           # prod
 gx_table: syn71888383            # prod
 sources:
-  - model_info:
-    model_info_file: &model_info_file
-      - name: model_info
-        id: syn61378590.13
+  - model_metadata:
+    model_metadata_file: &model_metadata_file
+      - name: model_metadata
+        id: syn76069176.2
         format: csv
 datasets:
   - model_details:
       files:
-        - <<: *model_info_file
+        - <<: *model_metadata_file
         - name: allele_info
           id: syn64618791.6
           format: csv
@@ -23,9 +23,6 @@ datasets:
           format: csv
         - name: human_transgene_allele_map
           id: syn64846805.2
-          format: csv
-        - name: model_results_info
-          id: syn68377668.7
           format: csv
         - name: immunohisto_measure_order
           id: syn71305327.2
@@ -43,6 +40,7 @@ datasets:
         model: name
         key: dataset_name
         items: evidence_type
+        study_synId: study_synid  # TODO: double-check if needed
       gx_nested_columns:
         - genetic_info
         - biomarkers
@@ -54,7 +52,7 @@ datasets:
         - name: disease_correlation_results
           id: syn65467849.6
           format: csv
-        - <<: *model_info_file
+        - <<: *model_metadata_file
         - name: allele_info
           id: syn64618791.6
           format: csv
@@ -80,10 +78,7 @@ datasets:
 
   - model_overview:
       files:
-        - <<: *model_info_file
-        - name: model_results_info
-          id: syn68377668.7
-          format: csv
+        - <<: *model_metadata_file
         - name: allele_info
           id: syn64618791.6
           format: csv
@@ -97,6 +92,7 @@ datasets:
         gene: modified_gene
         ensembl_id: human_ensembl_id
         model: name
+        study_synId: study_synid  # TODO: double-check if needed
       gx_enabled: true
       gx_nested_columns:
         - transcriptomics
