@@ -3,10 +3,10 @@ staging_path: ./staging
 gx_folder: syn59934608         # preprod
 gx_table: syn71888382          # preprod
 sources:
-  - model_info:
-    model_info_file: &model_info_file
-      - name: model_info
-        id: syn61378590.13
+  - model_metadata:
+    model_metadata_file: &model_metadata_file
+      - name: model_metadata
+        id: syn76069176.2
         format: csv
 datasets:
   - model_details:
