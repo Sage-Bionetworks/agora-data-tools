@@ -137,7 +137,9 @@ def transform_model_overview(
         "pathology",
         "biomarkers",
     ]
-    model_metadata = normalize_null_values(model_metadata, boolean_columns=boolean_columns)
+    model_metadata = normalize_null_values(
+        model_metadata, boolean_columns=boolean_columns
+    )
     model_metadata["jax_id"] = zero_pad_jax_ids(model_metadata["jax_id"])
 
     # Transform the merged dataframe into the target structure

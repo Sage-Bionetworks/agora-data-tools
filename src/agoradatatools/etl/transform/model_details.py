@@ -19,7 +19,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     zero_pad_jax_ids,
 )
 
-
 REQUIRED_INPUT = {
     "allele_info": [
         "name",

@@ -16,7 +16,6 @@ from agoradatatools.etl.utils import (
     normalize_null_values,
 )
 
-
 REQUIRED_INPUT = {
     "disease_correlation_results": [
         "cluster",
