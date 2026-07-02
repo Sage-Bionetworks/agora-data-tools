@@ -17,8 +17,7 @@ class TestTransformModelOverview:
         (
             # Pass with good test data
             {
-                "model_info": "model_overview_model_info_good_test_input.csv",
-                "model_results_info": "model_overview_model_results_info_good_test_input.csv",
+                "model_metadata": "model_overview_model_metadata_good_test_input.csv",
                 "allele_info": "model_overview_allele_info_good_test_input.csv",
                 "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
@@ -27,8 +26,7 @@ class TestTransformModelOverview:
         (
             # Pass with good test data requiring special URLs for gene expression
             {
-                "model_info": "model_overview_model_info_url_test_good_input.csv",
-                "model_results_info": "model_overview_model_results_info_url_test_input.csv",
+                "model_metadata": "model_overview_model_metadata_url_test_good_input.csv",
                 "allele_info": "model_overview_allele_info_good_test_input.csv",
                 "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
@@ -37,8 +35,7 @@ class TestTransformModelOverview:
         (
             # Pass with missing data in some fields
             {
-                "model_info": "model_overview_model_info_missing_data_input.csv",
-                "model_results_info": "model_overview_model_results_info_missing_data_input.csv",
+                "model_metadata": "model_overview_model_metadata_missing_data_input.csv",
                 "allele_info": "model_overview_allele_info_missing_data_input.csv",
                 "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
@@ -47,8 +44,7 @@ class TestTransformModelOverview:
         (
             # Pass with no results data for some models
             {
-                "model_info": "model_overview_model_info_good_test_input.csv",
-                "model_results_info": "model_overview_model_results_info_no_results_input.csv",
+                "model_metadata": "model_overview_model_metadata_no_results_input.csv",
                 "allele_info": "model_overview_allele_info_good_test_input.csv",
                 "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
@@ -57,8 +53,7 @@ class TestTransformModelOverview:
         (
             # Pass with extra columns
             {
-                "model_info": "model_overview_model_info_extra_column_input.csv",
-                "model_results_info": "model_overview_model_results_info_extra_column_input.csv",
+                "model_metadata": "model_overview_model_metadata_extra_column_input.csv",
                 "allele_info": "model_overview_allele_info_good_test_input.csv",
                 "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
@@ -67,8 +62,7 @@ class TestTransformModelOverview:
         (
             # Pass with missing models in different source files
             {
-                "model_info": "model_overview_model_info_missing_models_test.csv",
-                "model_results_info": "model_overview_model_results_info_missing_models_test.csv",
+                "model_metadata": "model_overview_model_metadata_missing_models_test.csv",
                 "allele_info": "model_overview_allele_info_missing_models_test.csv",
                 "human_transgene_allele_map": "model_overview_human_transgene_allele_map_missing_models_test.csv",
             },
@@ -85,38 +79,17 @@ class TestTransformModelOverview:
     ]
     fail_test_data = [
         (
-            # Fail with missing model_info dataset
+            # Fail with missing model_metadata dataset
             {
-                "model_results_info": "model_overview_model_results_info_good_test_input.csv",
                 "allele_info": "model_overview_allele_info_good_test_input.csv",
                 "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
             ValueError,
         ),
         (
-            # Fail with missing model_results_info dataset
+            # Fail with missing required columns in model_metadata
             {
-                "model_info": "model_overview_model_info_good_test_input.csv",
-                "allele_info": "model_overview_allele_info_good_test_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
-            },
-            ValueError,
-        ),
-        (
-            # Fail with missing required columns in model_info
-            {
-                "model_info": "model_overview_model_info_missing_column_input.csv",
-                "model_results_info": "model_overview_model_results_info_good_test_input.csv",
-                "allele_info": "model_overview_allele_info_good_test_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
-            },
-            ValueError,
-        ),
-        (
-            # Fail with missing required columns in model_results_info
-            {
-                "model_info": "model_overview_model_info_good_test_input.csv",
-                "model_results_info": "model_overview_model_results_info_missing_column_input.csv",
+                "model_metadata": "model_overview_model_metadata_missing_column_input.csv",
                 "allele_info": "model_overview_allele_info_good_test_input.csv",
                 "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
             },
@@ -124,10 +97,8 @@ class TestTransformModelOverview:
         ),
     ]
     fail_test_ids = [
-        "Fail with missing model_info dataset",
-        "Fail with missing model_results_info dataset",
-        "Fail with missing required columns in model_info",
-        "Fail with missing required columns in model_results_info",
+        "Fail with missing model_metadata dataset",
+        "Fail with missing required columns in model_metadata",
     ]
 
     @pytest.mark.parametrize(
@@ -176,7 +147,7 @@ class TestTransformModelOverview:
 
     def test_model_overview_transform_with_empty_datasets(self):
         # Create empty test datasets
-        empty_model_info = pd.DataFrame(
+        empty_model_metadata = pd.DataFrame(
             columns=[
                 "name",
                 "matched_controls",
@@ -190,11 +161,6 @@ class TestTransformModelOverview:
                 "aliases",
                 "url_categories_value",
                 "url_models_value",
-            ]
-        )
-        empty_model_results_info = pd.DataFrame(
-            columns=[
-                "name",
                 "transcriptomics",
                 "disease_correlation",
                 "pathology",
@@ -221,8 +187,7 @@ class TestTransformModelOverview:
         )
 
         datasets = {
-            "model_info": empty_model_info,
-            "model_results_info": empty_model_results_info,
+            "model_metadata": empty_model_metadata,
             "allele_info": empty_allele_info,
             "human_transgene_allele_map": empty_human_transgene_allele_map,
         }
@@ -238,7 +203,7 @@ class TestTransformModelOverview:
 
     def test_model_overview_transform_link_generation(self):
         # Create test datasets with specific boolean values
-        model_info = pd.DataFrame(
+        model_metadata = pd.DataFrame(
             {
                 "name": ["test_model"],
                 "matched_controls": ["C57BL6J"],
@@ -252,11 +217,6 @@ class TestTransformModelOverview:
                 "aliases": ["Test Alias"],
                 "url_categories_value": [None],
                 "url_models_value": [None],
-            }
-        )
-        model_results_info = pd.DataFrame(
-            {
-                "name": ["test_model"],
                 "transcriptomics": [True],
                 "disease_correlation": [False],
                 "pathology": [True],
@@ -283,8 +243,7 @@ class TestTransformModelOverview:
         )
 
         datasets = {
-            "model_info": model_info,
-            "model_results_info": model_results_info,
+            "model_metadata": model_metadata,
             "allele_info": allele_info,
             "human_transgene_allele_map": human_transgene_allele_map,
         }
@@ -319,7 +278,7 @@ class TestTransformModelOverview:
 
     def test_model_overview_transform_with_none_values(self):
         # Create test datasets with None values
-        model_info = pd.DataFrame(
+        model_metadata = pd.DataFrame(
             {
                 "name": ["test_model"],
                 "matched_controls": [None],
@@ -333,11 +292,6 @@ class TestTransformModelOverview:
                 "aliases": [None],
                 "url_categories_value": [None],
                 "url_models_value": [None],
-            }
-        )
-        model_results_info = pd.DataFrame(
-            {
-                "name": ["test_model"],
                 "transcriptomics": [None],
                 "disease_correlation": [None],
                 "pathology": [None],
@@ -364,8 +318,7 @@ class TestTransformModelOverview:
         )
 
         datasets = {
-            "model_info": model_info,
-            "model_results_info": model_results_info,
+            "model_metadata": model_metadata,
             "allele_info": allele_info,
             "human_transgene_allele_map": human_transgene_allele_map,
         }
@@ -400,7 +353,7 @@ class TestTransformModelOverview:
         # Create test datasets with multiple models
         # A column where one row has a single control and one has two.
         # Testing that the "B6129,B6130" entry is properly split into a list in the JSON output.
-        model_info = pd.DataFrame(
+        model_metadata = pd.DataFrame(
             {
                 "name": ["model1", "model2"],
                 "matched_controls": ["C57BL6J", "B6129,B6130"],
@@ -414,11 +367,6 @@ class TestTransformModelOverview:
                 "aliases": ["Alias1", "Alias2"],
                 "url_categories_value": [None, None],
                 "url_models_value": [None, None],
-            }
-        )
-        model_results_info = pd.DataFrame(
-            {
-                "name": ["model1", "model2"],
                 "transcriptomics": [True, False],
                 "disease_correlation": [False, True],
                 "pathology": [True, True],
@@ -453,8 +401,7 @@ class TestTransformModelOverview:
         )
 
         datasets = {
-            "model_info": model_info,
-            "model_results_info": model_results_info,
+            "model_metadata": model_metadata,
             "allele_info": allele_info,
             "human_transgene_allele_map": human_transgene_allele_map,
         }
