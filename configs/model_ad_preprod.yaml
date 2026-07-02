@@ -40,6 +40,7 @@ datasets:
         model: name
         key: dataset_name
         items: evidence_type
+        study_synId: study_synid  # TODO: double-check if needed
       gx_nested_columns:
         - genetic_info
         - biomarkers
@@ -91,6 +92,7 @@ datasets:
         gene: modified_gene
         ensembl_id: human_ensembl_id
         model: name
+        study_synId: study_synid  # TODO: double-check if needed
       gx_enabled: true
       gx_nested_columns:
         - transcriptomics
