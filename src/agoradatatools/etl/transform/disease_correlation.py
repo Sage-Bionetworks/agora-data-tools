@@ -27,7 +27,7 @@ REQUIRED_INPUT = {
         "correlation",
         "adjusted_p_value",
     ],
-    "model_info": [
+    "model_metadata": [
         "model",
         "matched_controls",
         "model_type",
@@ -208,7 +208,7 @@ def transform_disease_correlation(
     """
     Transforms the disease correlation source files into a structured format for Model AD.
 
-    Source Files: disease_correlation_results (syn65467849), model_info (syn61378590),
+    Source Files: disease_correlation_results (syn65467849), model_metadata (syn76069176),
     allele_info (syn64618791), human_transgene_allele_map (syn64846805)
 
     Expected Transformations:
@@ -248,7 +248,7 @@ def transform_disease_correlation(
     disease_correlation_df = normalize_null_values(
         datasets["disease_correlation_results"]
     )
-    model_info_df = datasets["model_info"]
+    model_metadata_df = datasets["model_metadata"]
     allele_info_df = datasets["allele_info"]
     human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
 
@@ -258,10 +258,10 @@ def transform_disease_correlation(
     )
 
     # Need to convert 'matched_controls' from comma-separated strings to lists
-    model_info_df["matched_controls"] = model_info_df["matched_controls"].apply(
+    model_metadata_df["matched_controls"] = model_metadata_df["matched_controls"].apply(
         lambda x: delim_string_to_list(x, delim=",")
     )
-    model_info_lookup = create_lookup(model_info_df, group_by_col="model")
+    model_info_lookup = create_lookup(model_metadata_df, group_by_col="model")
 
     model_allele_lookup = create_lookup(df=allele_info_mapped, group_by_col="model")
 
