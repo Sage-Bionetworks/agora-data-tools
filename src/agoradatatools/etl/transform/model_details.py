@@ -29,7 +29,7 @@ REQUIRED_INPUT = {
         "allele_type",
         "mgi_allele_id",
     ],
-    "model_info": [
+    "model_metadata": [
         "name",
         "matched_controls",
         "model_type",
@@ -42,9 +42,6 @@ REQUIRED_INPUT = {
         "aliases",
         "url_categories_value",
         "url_models_value",
-    ],
-    "model_results_info": [
-        "name",
         "transcriptomics",
         "disease_correlation",
         "pathology",

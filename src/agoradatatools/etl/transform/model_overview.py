@@ -19,7 +19,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 )
 
 REQUIRED_INPUT = {
-    "model_info": [
+    "model_metadata": [
         "name",
         "matched_controls",
         "model_type",
@@ -32,9 +32,6 @@ REQUIRED_INPUT = {
         "aliases",
         "url_categories_value",
         "url_models_value",
-    ],
-    "model_results_info": [
-        "name",
         "transcriptomics",
         "disease_correlation",
         "pathology",
