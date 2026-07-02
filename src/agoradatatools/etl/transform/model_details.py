@@ -88,7 +88,7 @@ def transform_model_details(
     """
     Transforms the model_details souce files into a structured format for Model AD.
 
-    Source Files: model_info (syn61378590), allele_info (syn64618791),
+    Source Files: model_metadata (syn76069176), allele_info (syn64618791),
     pathology (syn61357279), biomarkers (syn61250724), human_transgene_allele_map (syn64846805)
 
     Expected Transformations:
