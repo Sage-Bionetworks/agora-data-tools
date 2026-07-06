@@ -12,7 +12,7 @@ files:
   - &gene_metadata                { name: gene_metadata               , format: feather, id: syn25953363.17  }
   - &igap                         { name: igap                        , format: csv    , id: syn12514826.5   }
   - &pharos_classes               { name: pharos_classes              , format: csv    , id: syn64123611.3   }
-  - &ui_config                    { name: ui_config                   , format: json   , id: syn73677126     }
+  - &ui_config                    { name: ui_config                   , format: json   , id: syn73677126.15  }
   # Results
   - &diff_exp_data                { name: diff_exp_data               , format: tsv    , id: syn27211942.1   }
   - &genes_biodomains             { name: genes_biodomains            , format: csv    , id: syn44151254.5   }
