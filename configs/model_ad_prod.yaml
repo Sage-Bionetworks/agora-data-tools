@@ -91,7 +91,6 @@ datasets:
         gene: modified_gene
         ensembl_id: human_ensembl_id
         model: name
-        study_synId: study_synid  # TODO: double-check if needed
       gx_enabled: true
       gx_nested_columns:
         - transcriptomics
