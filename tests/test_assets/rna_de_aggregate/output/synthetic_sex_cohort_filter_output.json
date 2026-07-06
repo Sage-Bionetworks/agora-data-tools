@@ -1,0 +1,38 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000005",
+    "gene_symbol": "Gene_E",
+    "biodomains": [],
+    "name": {
+      "link_url": "models/Model_D (Tg)",
+      "link_text": "Model_D (Tg)"
+    },
+    "matched_control": "Model_D (Wt)",
+    "model_group": "AD",
+    "model_type": "Late Onset AD",
+    "tissue": "Brain",
+    "sex": "Females",
+    "3 months": {
+      "log2_fc": 1.5,
+      "adj_p_val": 0.15
+    }
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000006",
+    "gene_symbol": "Gene_F",
+    "biodomains": [],
+    "name": {
+      "link_url": "models/Model_D (Tg)",
+      "link_text": "Model_D (Tg)"
+    },
+    "matched_control": "Model_D (Wt)",
+    "model_group": "AD",
+    "model_type": "Late Onset AD",
+    "tissue": "Brain",
+    "sex": "Males",
+    "6 months": {
+      "log2_fc": -1.0,
+      "adj_p_val": 0.1
+    }
+  }
+]

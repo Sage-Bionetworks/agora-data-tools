@@ -11,6 +11,7 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_multi_model_data.csv`**: Multiple models (B, C) with different tissues and ages
 - **`synthetic_jax_tissue_data.csv`**: Tests JAX tissue mapping (Right Cerebral Hemisphere → Hemibrain)
 - **`synthetic_mixed_genes_data.csv`**: Contains both mouse (ENSMUSG*) and human (ENSG*) genes
+- **`synthetic_sex_cohort_filter_data.csv`**: Contains single-sex (Females, Males) and combined-cohort (Females & Males) rows
 - **`synthetic_age_sorting_data.csv`**: Tests age sorting with ages in non-numerical order
 - **`synthetic_single_row_data.csv`**: Single row test case (also tests missing gene metadata handling)
 - **`synthetic_rounding_precision_data.csv`**: Tests numeric rounding to 5 decimal places
@@ -64,6 +65,13 @@ Expected: Tissue mapped to "Hemibrain"
 ```
 Genes: Mouse (ENSMUSG00000000005, ENSMUSG00000000006), Human (ENSG00000000001)
 Expected: Only mouse genes in output
+```
+
+### Scenario 4b: Sex Cohort Filtering (`synthetic_sex_cohort_filter_data.csv`)
+```
+Genes: ENSMUSG00000000005 (Females), ENSMUSG00000000006 (Males), ENSMUSG00000000007 (Females & Males)
+Model: Model_D
+Expected: Only single-sex rows (Females, Males) in output; "Females & Males" rows dropped
 ```
 
 ### Scenario 5: Age Sorting (`synthetic_age_sorting_data.csv`)
@@ -222,6 +230,7 @@ Each output entry in the transform result has the following structure:
 
 When testing, verify:
 1. **Gene filtering**: Only ENSMUSG* genes in output
+1a. **Sex cohort filtering**: Rows with sex "Females & Males" are excluded from output
 2. **Tissue mapping**: "Right Cerebral Hemisphere" → "Hemibrain"
 3. **Age sorting**: Ages sorted numerically (3, 6, 12 months)
 4. **Biodomain assignment**: Correct biodomains from metadata
@@ -248,6 +257,7 @@ tests/test_assets/rna_de_aggregate/
 │   │   ├── synthetic_multi_model_data.csv
 │   │   ├── synthetic_jax_tissue_data.csv
 │   │   ├── synthetic_mixed_genes_data.csv
+│   │   ├── synthetic_sex_cohort_filter_data.csv
 │   │   ├── synthetic_age_sorting_data.csv
 │   │   ├── synthetic_single_row_data.csv
 │   │   ├── synthetic_rounding_precision_data.csv
@@ -270,6 +280,7 @@ tests/test_assets/rna_de_aggregate/
 │   ├── synthetic_multi_model_output.json
 │   ├── synthetic_jax_tissue_output.json
 │   ├── synthetic_mixed_genes_output.json
+│   ├── synthetic_sex_cohort_filter_output.json
 │   ├── synthetic_age_sorting_output.json
 │   ├── synthetic_single_row_output.json
 │   ├── synthetic_rounding_precision_output.json
