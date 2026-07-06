@@ -284,7 +284,7 @@ datasets:
 
   - drug_info:
       files:
-        - name: drug_metadata
+        - name: ot_drug_metadata
           id: syn73724873.12
           format: json
         - name: drug_list
@@ -293,7 +293,7 @@ datasets:
         - name: gene_metadata
           id: syn25953363.17
           format: feather
-        - name: target_list
+        - name: harmonized_targets
           id: syn12540368.74
           format: csv
       final_format: json
