@@ -353,7 +353,7 @@ def transform_rna_de_individual(
     rnaseq_genotype_label_map_df["result_order"] = rnaseq_genotype_label_map_df[
         "result_order"
     ].astype(int)
-    mouse_gene_metadata_df = datasets["mouse_gene_metadata"].fillna("")
+    mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
 
     # Step 3: Validate data consistency
     validate_model_group_consistency(rnaseq_genotype_label_map_df)

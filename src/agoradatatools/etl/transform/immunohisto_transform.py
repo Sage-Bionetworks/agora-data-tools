@@ -4,13 +4,13 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-import numpy as np
 import math
 from typing import Dict, List, Any, Union, Tuple
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
+    normalize_null_values,
 )
 
 
@@ -48,16 +48,14 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     This function prepares the biomarker and pathology dataframes for the Model AD project.
     It performs the following transformations:
-    1. Fill missing values with an empty string.
-    2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
-    3. Replace 'beta' with '&beta;' in the 'evidence_type' column.
-    4. Append "months" to age values
+    1. Capitalize 'sex' and 'tissue' columns in the DataFrame.
+    2. Replace 'beta' with '&beta;' in the 'evidence_type' column.
+    3. Append "months" to age values
     """
     # Create a copy to avoid modifying the original
     df = df.copy()
 
-    # Fill missing values and transform text fields
-    df = df.fillna("")
+    # Transform text fields
     df["sex"] = df["sex"].str.title()
     df["tissue"] = df["tissue"].str.title()
 
@@ -189,9 +187,10 @@ def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
         data_rows, how="outer", validate="one_to_one"
     )
 
-    # Fill NA values for units. Can't use fillna to make an empty list so we add an extra line
-    fill_df = fill_df.fillna({"units": ""})
-    fill_df["data"] = fill_df["data"].apply(lambda x: [] if x is np.nan else x)
+    # Fill NA values for units (empty strings) and data (empty lists)
+    fill_df = normalize_null_values(
+        fill_df, empty_string_columns=["units"], empty_list_columns=["data"]
+    )
 
     return fill_df
 
