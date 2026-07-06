@@ -320,7 +320,7 @@ def _create_output_entry_from_group(
         "model_group": model_group,
         "model_type": model_type,
         "tissue": tissue,
-        "sex_cohort": sex,
+        "sex": sex,
         **sorted_ages,
     }
 

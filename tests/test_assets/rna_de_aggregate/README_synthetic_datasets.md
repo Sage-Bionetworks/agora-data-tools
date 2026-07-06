@@ -188,7 +188,7 @@ Each output entry in the transform result has the following structure:
   "model_group": "AD",
   "model_type": "Familial AD",
   "tissue": "Brain",
-  "sex_cohort": "Female",
+  "sex": "Female",
   "3 months": {
     "log2_fc": 1.0,
     "adj_p_val": 0.01
@@ -212,7 +212,7 @@ Each output entry in the transform result has the following structure:
 - **model_group** (string or null): Model group name (null if empty)
 - **model_type** (string): Model type classification (e.g., "Familial AD", "Late Onset AD")
 - **tissue** (string): Tissue name (JAX models have "Right Cerebral Hemisphere" mapped to "Hemibrain")
-- **sex_cohort** (string): Sex category ("Male" or "Female")
+- **sex** (string): Sex category ("Male" or "Female")
 - **<age>** (object): Age-based entries (keys are age strings like "3 months", "6 months", etc.)
   - **log2_fc** (number): Log2 fold change value (rounded to 5 decimal places)
   - **adj_p_val** (number): Adjusted p-value (rounded to 5 decimal places, NaN values coerced to 0.0)

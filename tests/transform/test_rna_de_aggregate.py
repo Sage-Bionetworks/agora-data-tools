@@ -545,7 +545,7 @@ class TestCreateOutputEntryFromGroup:
         assert result["model_group"] == "Group1"
         assert result["model_type"] == "knockout"
         assert result["tissue"] == "Cortex"
-        assert result["sex_cohort"] == "Male"
+        assert result["sex"] == "Male"
         assert "6 months" in result
         assert result["6 months"]["log2_fc"] == pytest.approx(1.5)
         assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
@@ -604,7 +604,7 @@ class TestCreateOutputEntryFromGroup:
         assert result["model_group"] is None  # Default for missing model_group
         assert result["model_type"] == ""  # Default for missing model_type
         assert result["tissue"] == "Hippocampus"
-        assert result["sex_cohort"] == "Female"
+        assert result["sex"] == "Female"
 
     def test_create_output_entry_jax_tissue_mapping(self) -> None:
         """Test that JAX tissue name 'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
