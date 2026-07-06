@@ -40,7 +40,6 @@ datasets:
         model: name
         key: dataset_name
         items: evidence_type
-        study_synId: study_synid  # TODO: double-check if needed
       gx_nested_columns:
         - genetic_info
         - biomarkers
