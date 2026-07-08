@@ -1,0 +1,3 @@
+ensembl_gene_id,pharos_class
+ENSG00000000001,Tclin
+ENSG00000000002,NotAPharosClass

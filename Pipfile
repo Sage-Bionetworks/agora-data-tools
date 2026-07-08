@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 agoradatatools = {editable = true, path = "."}
+jupyter-server = ">=2.20.0, <3.0.0"
 
 [dev-packages]
 agoradatatools = {editable = true, extras = ["dev"], path = "."}

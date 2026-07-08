@@ -17,6 +17,8 @@ from agoradatatools.constants import Platform
 
 logger = logging.getLogger(__name__)
 
+DATA_MANIFEST_FILENAME = "data_manifest.csv"
+
 
 def check_provenance_id_file_id_consistency(
     provenance_ids: list[str], file_ids: list[str]
@@ -280,6 +282,7 @@ def process_dataset(
             syn=syn,
             dataset_path=json_path,
             dataset_name=dataset_name,
+            staging_path=staging_path,
             upload_folder=gx_folder if upload else None,
             nested_columns=(
                 dataset_obj[dataset_name]["gx_nested_columns"]
@@ -352,7 +355,7 @@ def create_data_manifest(
             "id": file["id"],
             "version": (
                 file["versionNumber"] + 1
-                if file["name"] == "data_manifest.csv"
+                if file["name"] == DATA_MANIFEST_FILENAME
                 or file["name"] == "dataversion.json"
                 else file["versionNumber"]
             ),
@@ -363,6 +366,44 @@ def create_data_manifest(
     return DataFrame(manifest_rows)
 
 
+def upload_manifest_and_dataversion(
+    syn: synapseclient.Synapse,
+    manifest_path: str,
+    manifest_df: DataFrame,
+    destination: str,
+    team_images_id: Optional[str],
+    staging_path: str,
+) -> tuple[str, int]:
+    """Uploads the data manifest CSV and dataversion.json to Synapse.
+
+    Args:
+        syn (synapseclient.Synapse): Synapse client session.
+        manifest_path (str): Local path to the manifest CSV file.
+        manifest_df (DataFrame): DataFrame containing IDs and version numbers of files within the destination directory.
+        destination (str): Synapse ID of the destination folder.
+        team_images_id (str, optional): Synapse ID of the team_images folder. Passed to dataversion.json if provided.
+        staging_path (str): Path to the local staging directory.
+
+    Returns:
+        tuple[str, int]: Synapse file ID and version number of the uploaded manifest.
+    """
+    file_id, file_version = load.load(
+        file_path=manifest_path,
+        provenance=manifest_df["id"].to_list(),
+        destination=destination,
+        syn=syn,
+    )
+    upload_dataversion_metadata(
+        syn=syn,
+        file_id=file_id,
+        file_version=file_version,
+        team_images_id=team_images_id,
+        staging_path=staging_path,
+        destination=destination,
+    )
+    return file_id, file_version
+
+
 @log_time(func_name="process_all_files", logger=logger)
 def process_all_files(
     syn: synapseclient.Synapse,
@@ -370,6 +411,7 @@ def process_all_files(
     platform: Platform = Platform.LOCAL,
     run_id: str = None,
     upload: bool = True,
+    skip_manifest: bool = False,
     filter_datasets: Optional[List[str]] = None,
 ):
     """This function will read through the entire configuration and process each file listed.
@@ -380,6 +422,7 @@ def process_all_files(
         platform (Platform, optional): Platform where the process is being run. One of LOCAL, GITHUB, NEXTFLOW. Defaults to LOCAL.
         run_id (str, optional): Unique identifier for the processing run. Defaults to None.
         upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
+        skip_manifest (bool, optional): If True, skips uploading the data manifest and dataversion.json to Synapse. Defaults to False.
         filter_datasets (List[str], optional): List of dataset names to process. If None, all datasets in the config will be processed. Defaults to None.
     """
     if platform == Platform.LOCAL and upload is True:
@@ -394,14 +437,15 @@ def process_all_files(
     destination = config["destination"]
     gx_table = config["gx_table"]
 
-    staging_path = config.get("staging_path", None)
-    load.create_temp_location(staging_path=staging_path or "./staging")
+    staging_path = config.get("staging_path") or "./staging"
+    load.create_temp_location(staging_path=staging_path)
 
     reporter = ADTGXReporter(
         syn=syn,
         platform=platform,
         run_id=run_id,
         table_id=gx_table,
+        upload=upload,
     )
     if filter_datasets:
         # Each entry in datasets is a single-key dict where the key is the dataset name (e.g. {"gene_info": {...}}).
@@ -444,26 +488,18 @@ def process_all_files(
             + "\n".join(error_list)
         )
 
-    manifest_df = create_data_manifest(syn=syn, parent=destination)
-    manifest_path = load.df_to_csv(
-        df=manifest_df, staging_path=staging_path, filename="data_manifest.csv"
-    )
-
-    if upload:
-        file_id, file_version = load.load(
-            file_path=manifest_path,
-            provenance=manifest_df["id"].to_list(),
-            destination=destination,
-            syn=syn,
+    if upload and not skip_manifest:
+        manifest_df = create_data_manifest(syn=syn, parent=destination)
+        manifest_path = load.df_to_csv(
+            df=manifest_df, staging_path=staging_path, filename=DATA_MANIFEST_FILENAME
         )
-
-        upload_dataversion_metadata(
+        file_id, file_version = upload_manifest_and_dataversion(
             syn=syn,
-            file_id=file_id,
-            file_version=file_version,
+            manifest_path=manifest_path,
+            manifest_df=manifest_df,
+            destination=destination,
             team_images_id=config.get("team_images_id", None),
             staging_path=staging_path,
-            destination=destination,
         )
 
         reporter.data_manifest_file = file_id
@@ -520,6 +556,15 @@ datasets_opt = Option(
     "If omitted, all datasets in the config are processed. (Optional, defaults to None)",
     show_default=True,
 )
+manifest_opt = Option(
+    False,
+    "--skip-manifest",
+    "-s",
+    help="Boolean flag that skips uploading the data manifest and dataversion.json to Synapse. "
+    "The absence of this option means `False` - that both the data manifest and dataversion.json will be uploaded to Synapse when `--upload` is set. "
+    "Setting `--skip-manifest` prevents both from being uploaded. (Optional, defaults to False)",
+    show_default=True,
+)
 
 
 @app.command()
@@ -530,6 +575,7 @@ def process(
     upload: bool = upload_opt,
     auth_token: str = synapse_auth_opt,
     dataset: Optional[List[str]] = datasets_opt,
+    skip_manifest: bool = manifest_opt,
 ) -> None:
     """Process the configuration file and execute the data processing pipeline based on options.
 
@@ -542,6 +588,8 @@ def process(
         dataset (Optional[List[str]]): Name of a dataset to process. Can be specified multiple times or as a
             comma-separated list to process multiple datasets.
             If omitted, all datasets in the config are processed. (Optional, defaults to None)
+        skip_manifest (bool): If True, skips uploading the data manifest and dataversion.json to Synapse.
+            (Optional, defaults to False)
     """
     syn = utils._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
@@ -558,6 +606,43 @@ def process(
         run_id=run_id,
         upload=upload,
         filter_datasets=filter_datasets,
+        skip_manifest=skip_manifest,
+    )
+
+
+@app.command()
+def release(
+    config_path: str = input_path_arg,
+    auth_token: str = synapse_auth_opt,
+) -> None:
+    """Create a data release without processing any datasets. Generates and uploads a data manifest and dataversion.json for the target Synapse destination folder.
+
+    Args:
+        config_path (str): Path to the configuration file for the processing run.
+        auth_token (str): Synapse authentication token. Defaults to environment variable SYNAPSE_AUTH_TOKEN.
+    """
+    syn = utils._login_to_synapse(token=auth_token)
+    config = utils._get_config(config_path=config_path)
+    destination = config["destination"]
+    staging_path = config.get("staging_path") or "./staging"
+    load.create_temp_location(staging_path=staging_path)
+
+    manifest_df = create_data_manifest(syn=syn, parent=destination)
+    manifest_path = load.df_to_csv(
+        df=manifest_df, staging_path=staging_path, filename=DATA_MANIFEST_FILENAME
+    )
+    file_id, file_version = upload_manifest_and_dataversion(
+        syn=syn,
+        manifest_path=manifest_path,
+        manifest_df=manifest_df,
+        destination=destination,
+        team_images_id=config.get("team_images_id", None),
+        staging_path=staging_path,
+    )
+    logger.info(
+        "Data manifest uploaded to Synapse: file_id=%s, file_version=%s",
+        file_id,
+        file_version,
     )
 
 
