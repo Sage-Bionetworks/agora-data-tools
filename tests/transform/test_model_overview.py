@@ -18,8 +18,7 @@ class TestTransformModelOverview:
             # Pass with good test data
             {
                 "model_metadata": "model_overview_model_metadata_good_test_input.csv",
-                "allele_info": "model_overview_allele_info_good_test_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             "model_overview_transform_good_test_output.json",
         ),
@@ -27,8 +26,7 @@ class TestTransformModelOverview:
             # Pass with good test data requiring special URLs for gene expression
             {
                 "model_metadata": "model_overview_model_metadata_url_test_good_input.csv",
-                "allele_info": "model_overview_allele_info_good_test_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             "model_overview_transform_url_test_good_output.json",
         ),
@@ -36,8 +34,7 @@ class TestTransformModelOverview:
             # Pass with missing data in some fields
             {
                 "model_metadata": "model_overview_model_metadata_missing_data_input.csv",
-                "allele_info": "model_overview_allele_info_missing_data_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_missing_data_input.csv",
             },
             "model_overview_transform_missing_data_output.json",
         ),
@@ -45,8 +42,7 @@ class TestTransformModelOverview:
             # Pass with no results data for some models
             {
                 "model_metadata": "model_overview_model_metadata_no_results_input.csv",
-                "allele_info": "model_overview_allele_info_good_test_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             "model_overview_transform_no_results_output.json",
         ),
@@ -54,8 +50,7 @@ class TestTransformModelOverview:
             # Pass with extra columns
             {
                 "model_metadata": "model_overview_model_metadata_extra_column_input.csv",
-                "allele_info": "model_overview_allele_info_good_test_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             "model_overview_transform_extra_column_output.json",
         ),
@@ -63,8 +58,7 @@ class TestTransformModelOverview:
             # Pass with missing models in different source files
             {
                 "model_metadata": "model_overview_model_metadata_missing_models_test.csv",
-                "allele_info": "model_overview_allele_info_missing_models_test.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_missing_models_test.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_missing_models_test.csv",
             },
             "model_overview_transform_missing_models_output.json",
         ),
@@ -81,8 +75,7 @@ class TestTransformModelOverview:
         (
             # Fail with missing model_metadata dataset
             {
-                "allele_info": "model_overview_allele_info_good_test_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             ValueError,
         ),
@@ -90,8 +83,7 @@ class TestTransformModelOverview:
             # Fail with missing required columns in model_metadata
             {
                 "model_metadata": "model_overview_model_metadata_missing_column_input.csv",
-                "allele_info": "model_overview_allele_info_good_test_input.csv",
-                "human_transgene_allele_map": "model_overview_human_transgene_allele_map_good_test_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             ValueError,
         ),
@@ -167,19 +159,13 @@ class TestTransformModelOverview:
                 "biomarkers",
             ]
         )
-        empty_allele_info = pd.DataFrame(
+        empty_model_genetic_modifications = pd.DataFrame(
             columns=[
                 "name",
                 "modified_gene",
-                "mgi_gene_id",
                 "gene_ensembl_id",
                 "allele",
                 "allele_type",
-                "mgi_allele_id",
-            ]
-        )
-        empty_human_transgene_allele_map = pd.DataFrame(
-            columns=[
                 "mgi_allele_id",
                 "gene_symbol",
                 "human_ensembl_id",
@@ -188,8 +174,7 @@ class TestTransformModelOverview:
 
         datasets = {
             "model_metadata": empty_model_metadata,
-            "allele_info": empty_allele_info,
-            "human_transgene_allele_map": empty_human_transgene_allele_map,
+            "model_genetic_modifications": empty_model_genetic_modifications,
         }
 
         # Transform data
@@ -223,7 +208,7 @@ class TestTransformModelOverview:
                 "biomarkers": [False],
             }
         )
-        allele_info = pd.DataFrame(
+        model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["test_model"],
                 "modified_gene": ["TestGene"],
@@ -232,11 +217,6 @@ class TestTransformModelOverview:
                 "allele": ["TestAllele"],
                 "allele_type": ["Transgenic"],
                 "mgi_allele_id": [67890],
-            }
-        )
-        human_transgene_allele_map = pd.DataFrame(
-            {
-                "mgi_allele_id": [67890],
                 "gene_symbol": ["TestGene"],
                 "human_ensembl_id": ["ENSG00000012345"],
             }
@@ -244,8 +224,7 @@ class TestTransformModelOverview:
 
         datasets = {
             "model_metadata": model_metadata,
-            "allele_info": allele_info,
-            "human_transgene_allele_map": human_transgene_allele_map,
+            "model_genetic_modifications": model_genetic_modifications,
         }
 
         # Transform data
@@ -298,7 +277,7 @@ class TestTransformModelOverview:
                 "biomarkers": [None],
             }
         )
-        allele_info = pd.DataFrame(
+        model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["test_model"],
                 "modified_gene": [None],
@@ -307,11 +286,6 @@ class TestTransformModelOverview:
                 "allele": [None],
                 "allele_type": [None],
                 "mgi_allele_id": [None],
-            }
-        )
-        human_transgene_allele_map = pd.DataFrame(
-            {
-                "mgi_allele_id": [None],
                 "gene_symbol": [None],
                 "human_ensembl_id": [None],
             }
@@ -319,8 +293,7 @@ class TestTransformModelOverview:
 
         datasets = {
             "model_metadata": model_metadata,
-            "allele_info": allele_info,
-            "human_transgene_allele_map": human_transgene_allele_map,
+            "model_genetic_modifications": model_genetic_modifications,
         }
 
         # Transform data
@@ -373,7 +346,7 @@ class TestTransformModelOverview:
                 "biomarkers": [False, True],
             }
         )
-        allele_info = pd.DataFrame(
+        model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["model1", "model1", "model2"],
                 "modified_gene": ["Gene1", "Gene2", "Gene3"],
@@ -386,11 +359,6 @@ class TestTransformModelOverview:
                 "allele": ["Allele1", "Allele2", "Allele3"],
                 "allele_type": ["Transgenic", "Targeted", "Transgenic"],
                 "mgi_allele_id": [111111, 222222, 333333],
-            }
-        )
-        human_transgene_allele_map = pd.DataFrame(
-            {
-                "mgi_allele_id": [111111, 222222, 333333],
                 "gene_symbol": ["Gene1", "Gene2", "Gene3"],
                 "human_ensembl_id": [
                     "ENSG00000011111",
@@ -402,8 +370,7 @@ class TestTransformModelOverview:
 
         datasets = {
             "model_metadata": model_metadata,
-            "allele_info": allele_info,
-            "human_transgene_allele_map": human_transgene_allele_map,
+            "model_genetic_modifications": model_genetic_modifications,
         }
 
         # Transform data

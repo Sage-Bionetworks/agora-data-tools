@@ -31,12 +31,9 @@ REQUIRED_INPUT = {
         "matched_controls",
         "model_type",
     ],
-    "allele_info": [
+    "model_genetic_modifications": [
         "model",
         "gene",
-        "mgi_allele_id",
-    ],
-    "human_transgene_allele_map": [
         "mgi_allele_id",
         "gene_symbol",
         "human_ensembl_id",
@@ -91,49 +88,31 @@ def extract_module_name(module: str) -> str:
 
 
 def map_genes_to_human_symbols(
-    allele_info_df: pd.DataFrame,
-    human_transgene_allele_map_df: pd.DataFrame,
+    model_genetic_modifications: pd.DataFrame,
 ) -> pd.DataFrame:
     """
     Maps mouse gene names to human gene symbols using the human transgene allele map.
-
-    This function normalizes gene names to uppercase for matching, then merges with the
-    human transgene map to replace mouse gene names with their human equivalents where
-    a mapping exists. For genes without a mapping, the original name is preserved.
+    For genes without a mapping, the original mouse gene name is preserved.
 
     Args:
-        allele_info_df (pd.DataFrame): DataFrame containing allele information with columns:
-            model, gene, and mgi_allele_id
-        human_transgene_allele_map_df (pd.DataFrame): DataFrame containing the mapping with columns:
-            mgi_allele_id, gene_symbol (human), human_ensembl_id
+        model_genetic_modifications (pd.DataFrame): DataFrame containing allele
+            information with columns: model, gene, mgi_allele_id, gene_symbol (human),
+            human_ensembl_id
 
     Returns:
-        pd.DataFrame: A copy of allele_info_df with gene names mapped to human symbols where applicable
+        pd.DataFrame: A copy of model_genetic_modifications with gene names mapped to
+            human symbols where applicable
     """
-    # Copy dataframes to avoid modifying originals
-    allele_info_df = allele_info_df.copy()
-    human_transgene_allele_map_df = human_transgene_allele_map_df.copy()
-
-    # Normalize gene columns to uppercase for consistent merging
-    allele_info_df["gene_upper"] = allele_info_df["gene"].str.upper()
-    human_transgene_allele_map_df["gene_upper"] = human_transgene_allele_map_df[
-        "gene_symbol"
-    ].str.upper()
-
-    # Merge on both mgi_allele_id and gene_upper for precise matching
-    merged_df = allele_info_df.merge(
-        human_transgene_allele_map_df[["mgi_allele_id", "gene_upper", "gene_symbol"]],
-        on=["mgi_allele_id", "gene_upper"],
-        how="left",
-    )
-
     # Replace gene name with human symbol where mapping exists
-    merged_df["gene"] = merged_df["gene_symbol"].fillna(merged_df["gene"])
+    model_genetic_modifications["gene"] = model_genetic_modifications[
+        "gene_symbol"
+    ].fillna(model_genetic_modifications["gene"])
 
     # Drop the temporary columns and gene_symbol (already merged into gene)
-    merged_df = merged_df.drop(columns=["gene_upper", "gene_symbol"])
-
-    return merged_df
+    model_genetic_modifications = model_genetic_modifications.drop(
+        columns=["gene_upper", "gene_symbol"], errors="ignore"
+    )
+    return model_genetic_modifications
 
 
 def process_group(
@@ -208,13 +187,13 @@ def transform_disease_correlation(
     Transforms the disease correlation source files into a structured format for Model AD.
 
     Source Files: disease_correlation_results (syn65467849), model_metadata (syn76069176),
-    allele_info (syn64618791), human_transgene_allele_map (syn64846805)
+    model_genetic_modifications (syn76147521)
 
     Expected Transformations:
         1. Groups data by mouse_model, Cluster, Age and Sex
         2. For each group:
             - Gets model info from model_info lookup (matched controls, model type)
-            - Maps mouse gene names to human gene symbols using human_transgene_allele_map
+            - Maps mouse gene names to human gene symbols using model_genetic_modifications
             - Strips color suffixes from Module names (e.g. IFGyellow -> IFG)
             - Nests correlation results by module
         3. Converts correlation and p-value strings to floats where possible
@@ -248,13 +227,7 @@ def transform_disease_correlation(
         datasets["disease_correlation_results"]
     )
     model_metadata_df = datasets["model_metadata"]
-    allele_info_df = datasets["allele_info"]
-    human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
-
-    # Map mouse gene names to human gene symbols
-    allele_info_mapped = map_genes_to_human_symbols(
-        allele_info_df, human_transgene_allele_map_df
-    )
+    model_genetic_modifications_df = datasets["model_genetic_modifications"]
 
     # Need to convert 'matched_controls' from comma-separated strings to lists
     model_metadata_df["matched_controls"] = model_metadata_df["matched_controls"].apply(
@@ -262,7 +235,12 @@ def transform_disease_correlation(
     )
     model_info_lookup = create_lookup(model_metadata_df, group_by_col="model")
 
-    model_allele_lookup = create_lookup(df=allele_info_mapped, group_by_col="model")
+    model_genetic_modifications_df = map_genes_to_human_symbols(
+        model_genetic_modifications_df
+    )
+    model_allele_lookup = create_lookup(
+        df=model_genetic_modifications_df, group_by_col="model"
+    )
 
     # Group by all static fields
     output = []

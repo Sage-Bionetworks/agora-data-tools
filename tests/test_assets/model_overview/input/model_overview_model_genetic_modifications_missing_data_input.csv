@@ -1,0 +1,6 @@
+name,modified_gene,mgi_gene_id,gene_ensembl_id,allele,allele_type,mgi_allele_id,gene_symbol,human_ensembl_id
+,App,11820.0,ENSMUSG00000022892,APP K670_M671delinsNL (Swedish),Transgenic,2672831,App,ENSG00000142192
+3xTg-AD,,17762.0,ENSMUSG00000018411,MAPT P301L,Transgenic,2672831,,
+3xTg-AD,Psen1,,ENSMUSG00000019969,Psen1<sup>tm1Mpm</sup>,Targeted,1930937,Psen1,ENSG00000080815
+hTau,Mapt,17762.0,,Mapttm1(EGFP)Klt,Targeted,1926153,,
+hTau,MAPT,4137.0,ENSMUSG00000018411,,Transgenic,3057560,MAPT,ENSG00000186868

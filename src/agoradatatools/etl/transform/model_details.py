@@ -20,13 +20,15 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 )
 
 REQUIRED_INPUT = {
-    "allele_info": [
+    "model_genetic_modifications": [
         "name",
         "modified_gene",
         "gene_ensembl_id",
         "allele",
         "allele_type",
         "mgi_allele_id",
+        "gene_symbol",
+        "human_ensembl_id",
     ],
     "model_metadata": [
         "name",
@@ -45,11 +47,6 @@ REQUIRED_INPUT = {
         "disease_correlation",
         "pathology",
         "biomarkers",
-    ],
-    "human_transgene_allele_map": [
-        "mgi_allele_id",
-        "gene_symbol",
-        "human_ensembl_id",
     ],
     "immunohisto_measure_order": [
         "dataset_name",
@@ -87,8 +84,8 @@ def transform_model_details(
     """
     Transforms the model_details souce files into a structured format for Model AD.
 
-    Source Files: model_metadata (syn76069176), allele_info (syn64618791),
-    pathology (syn61357279), biomarkers (syn61250724), human_transgene_allele_map (syn64846805)
+    Source Files: model_metadata (syn76069176), model_genetic_modifications (syn76147521),
+    pathology (syn61357279), biomarkers (syn61250724)
 
     Expected Transformations:
         1. Column renames are applied to Pathology and Biomarkers:
@@ -98,8 +95,8 @@ def transform_model_details(
         2. Sex and tissue values are converted to use Initial Caps (e.g. Female, Cerebral Cortex)
         3. Biomarker measure (pre-transform in source file) aka evidence_type (post-transform
         in output file)values use &beta; entity codes, instead of beta string literals
-        4. For the human_transgene_allele_map source file use the human_ensembl_id and
-        gene values for rows with a matching mgi_allele_id
+        4. Human ensembl IDs and gene values are used wherever possible for each model (determined by
+            matching mgi_allele_id)
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
@@ -115,8 +112,7 @@ def transform_model_details(
 
     # Load and prepare datasets
     model_metadata_df = datasets["model_metadata"]
-    allele_info_df = datasets["allele_info"]
-    human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
+    model_genetic_modifications_df = datasets["model_genetic_modifications"]
 
     model_metadata_df = normalize_null_values(
         model_metadata_df,
@@ -144,8 +140,9 @@ def transform_model_details(
 
         # Get genetic info for this model
         genetic_info = process_genetic_info(
-            human_transgene_allele_map_df,
-            model_alleles=allele_info_df[allele_info_df["name"] == model_name],
+            model_genetic_modifications_df[
+                model_genetic_modifications_df["name"] == model_name
+            ],
         )
 
         # Process the biomarkers and pathology datasets for this model
