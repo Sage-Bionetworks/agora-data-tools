@@ -437,7 +437,7 @@ def process_all_files(
     destination = config["destination"]
     gx_table = config["gx_table"]
 
-    staging_path = config.get("staging_path", "./staging")
+    staging_path = config.get("staging_path") or "./staging"
     load.create_temp_location(staging_path=staging_path)
 
     reporter = ADTGXReporter(
@@ -624,7 +624,7 @@ def release(
     syn = utils._login_to_synapse(token=auth_token)
     config = utils._get_config(config_path=config_path)
     destination = config["destination"]
-    staging_path = config.get("staging_path", "./staging")
+    staging_path = config.get("staging_path") or "./staging"
     load.create_temp_location(staging_path=staging_path)
 
     manifest_df = create_data_manifest(syn=syn, parent=destination)
