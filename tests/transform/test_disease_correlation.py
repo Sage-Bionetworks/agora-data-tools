@@ -43,7 +43,7 @@ class TestDiseaseCorrelation:
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
                 "allele_info": "model_allele_info.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
                 "human_transgene_allele_map": "human_transgene_allele_map.csv",
             },
             "disease_correlation_expected_output.json",
@@ -56,7 +56,7 @@ class TestDiseaseCorrelation:
             {
                 "disease_correlation_results": "disease_correlation_results_missing_grouping_data.csv",
                 "allele_info": "model_allele_info.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
                 "human_transgene_allele_map": "human_transgene_allele_map.csv",
             },
             "disease_correlation_missing_grouping_data_expected_output.json",
@@ -69,7 +69,7 @@ class TestDiseaseCorrelation:
             {
                 "disease_correlation_results": "disease_correlation_results_missing_numeric_data.csv",
                 "allele_info": "model_allele_info.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
                 "human_transgene_allele_map": "human_transgene_allele_map.csv",
             },
             "disease_correlation_missing_numeric_data_expected_output.json",
@@ -125,7 +125,7 @@ class TestDiseaseCorrelation:
                 # p-value data.
                 "disease_correlation_results": "disease_correlation_results_duplicated_module.csv",
                 "allele_info": "model_allele_info.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
                 "human_transgene_allele_map": "human_transgene_allele_map.csv",
             }
         )
@@ -157,7 +157,7 @@ class TestDiseaseCorrelation:
         datasets = self.read_input_files(
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
                 "allele_info": "model_allele_info.csv",
                 "human_transgene_allele_map": "human_transgene_allele_map.csv",
             }
@@ -195,7 +195,7 @@ class TestDiseaseCorrelation:
         datasets = self.read_input_files(
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
                 "allele_info": "model_allele_info.csv",
                 "human_transgene_allele_map": "human_transgene_allele_map.csv",
             }
