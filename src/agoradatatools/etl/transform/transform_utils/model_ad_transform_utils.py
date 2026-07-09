@@ -40,7 +40,7 @@ def process_genetic_info(
         lambda row: (
             row["human_ensembl_id"]
             if pd.notna(row["human_ensembl_id"])
-            else row["gene_ensembl_id"]
+            else row["mouse_ensembl_id"]
         ),
         axis=1,
     )
@@ -48,7 +48,7 @@ def process_genetic_info(
     # Only override gene_symbol if we have a valid human_ensembl_id
     model_genetic_modifications["modified_gene"] = model_genetic_modifications.apply(
         lambda row: (
-            row["gene_symbol"]
+            row["human_gene_symbol"]
             if pd.notna(row["human_ensembl_id"])
             else row["modified_gene"]
         ),

@@ -96,21 +96,21 @@ def map_genes_to_human_symbols(
 
     Args:
         model_genetic_modifications (pd.DataFrame): DataFrame containing allele
-            information with columns: model, gene, mgi_allele_id, gene_symbol (human),
-            human_ensembl_id
+            information with columns: model, mouse_gene_symbol, mgi_allele_id,
+            human_gene_symbol, human_ensembl_id
 
     Returns:
         pd.DataFrame: A copy of model_genetic_modifications with gene names mapped to
             human symbols where applicable
     """
-    # Replace gene name with human symbol where mapping exists
-    model_genetic_modifications["gene"] = model_genetic_modifications[
-        "gene_symbol"
-    ].fillna(model_genetic_modifications["gene"])
+    # Replace mouse gene symbol with human symbol where mapping exists
+    model_genetic_modifications["mouse_gene_symbol"] = model_genetic_modifications[
+        "human_gene_symbol"
+    ].fillna(model_genetic_modifications["mouse_gene_symbol"])
 
-    # Drop the temporary columns and gene_symbol (already merged into gene)
+    # Drop the temporary columns and human_gene_symbol (already merged into mouse_gene_symbol)
     model_genetic_modifications = model_genetic_modifications.drop(
-        columns=["gene_upper", "gene_symbol"], errors="ignore"
+        columns=["gene_upper", "human_gene_symbol"], errors="ignore"
     )
     return model_genetic_modifications
 
@@ -144,7 +144,7 @@ def process_group(
     matched_control = next(iter(mc), "")
 
     # Ensure modified_genes is always a list
-    raw_modified_genes = allele_info.get("gene", [])
+    raw_modified_genes = allele_info.get("mouse_gene_symbol", [])
     if not isinstance(raw_modified_genes, list):
         modified_genes = [raw_modified_genes]
     else:

@@ -1,4 +1,4 @@
-name,modified_gene,gene_ensembl_id,allele,allele_type,mgi_allele_id,gene_symbol,human_ensembl_id
+name,modified_gene,mouse_ensembl_id,allele,allele_type,mgi_allele_id,human_gene_symbol,human_ensembl_id
 3xTg-AD,App,ENSMUSG00000022892,APP K670_M671delinsNL (Swedish),Transgenic,2672831,APP,ENSG00000142192
 3xTg-AD,App,ENSMUSG00000022892,APP K670_M671delinsNL (Swedish),Transgenic,2672831,APP,ENSG00000142192
 3xTg-AD,Mapt,ENSMUSG00000018411,MAPT P301L,Transgenic,2672831,,

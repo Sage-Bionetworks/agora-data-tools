@@ -18,11 +18,11 @@ class TestProcessGeneticInfo:
     """Test class for the process_genetic_info function."""
 
     def test_process_genetic_info_should_pass(self) -> None:
-        # Pre-merged input: gene_symbol and human_ensembl_id joined in for transgenic alleles
+        # Pre-merged input: human_gene_symbol and human_ensembl_id joined in for transgenic alleles
         model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": [
+                "mouse_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000018411",
                     "ENSMUSG00000019969",
@@ -34,7 +34,7 @@ class TestProcessGeneticInfo:
                 ],
                 "allele_type": ["Transgenic", "Transgenic", "Targeted"],
                 "mgi_allele_id": [2672831, 2672831, 1930937],
-                "gene_symbol": ["App", None, "Psen1"],
+                "human_gene_symbol": ["App", None, "Psen1"],
                 "human_ensembl_id": ["ENSG00000142192", None, "ENSG00000080815"],
             }
         )
@@ -69,11 +69,11 @@ class TestProcessGeneticInfo:
         assert output == expected_output
 
     def test_process_genetic_info_with_no_human_matches(self) -> None:
-        # No gene_symbol or human_ensembl_id matches — all None
+        # No human_gene_symbol or human_ensembl_id matches — all None
         model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": [
+                "mouse_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000018411",
                     "ENSMUSG00000019969",
@@ -85,7 +85,7 @@ class TestProcessGeneticInfo:
                 ],
                 "allele_type": ["Transgenic", "Transgenic", "Targeted"],
                 "mgi_allele_id": [2672831, 2672831, 1930937],
-                "gene_symbol": [None, None, None],
+                "human_gene_symbol": [None, None, None],
                 "human_ensembl_id": [None, None, None],
             }
         )
@@ -124,11 +124,11 @@ class TestProcessGeneticInfo:
         model_genetic_modifications = pd.DataFrame(
             columns=[
                 "modified_gene",
-                "gene_ensembl_id",
+                "mouse_ensembl_id",
                 "allele",
                 "allele_type",
                 "mgi_allele_id",
-                "gene_symbol",
+                "human_gene_symbol",
                 "human_ensembl_id",
             ]
         )
@@ -140,11 +140,11 @@ class TestProcessGeneticInfo:
         assert output == expected_output
 
     def test_process_genetic_info_case_insensitive_mapping(self) -> None:
-        # gene_symbol already has human casing — override should use gene_symbol value
+        # human_gene_symbol already has human casing — override should use human_gene_symbol value
         model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt"],
-                "gene_ensembl_id": [
+                "mouse_ensembl_id": [
                     "ENSMUSG00000011111",
                     "ENSMUSG00000022222",
                 ],
@@ -154,12 +154,12 @@ class TestProcessGeneticInfo:
                 ],
                 "allele_type": ["Transgenic", "Transgenic"],
                 "mgi_allele_id": [1234567, 1234567],
-                "gene_symbol": ["APP", "mapt"],
+                "human_gene_symbol": ["APP", "mapt"],
                 "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
             }
         )
 
-        # Expected output: ENSG IDs should be mapped, gene names replaced by gene_symbol value
+        # Expected output: ENSG IDs should be mapped, gene names replaced by human_gene_symbol value
         expected_output = [
             {
                 "modified_gene": "APP",
@@ -182,15 +182,15 @@ class TestProcessGeneticInfo:
         assert output == expected_output
 
     def test_process_genetic_info_normalizes_missing_values(self) -> None:
-        # The third gene has no human match so gene_ensembl_id is NaN — should normalize to None
+        # The third gene has no human match so mouse_ensembl_id is NaN — should normalize to None
         model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.nan],
+                "mouse_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.nan],
                 "allele": [np.nan, np.nan, np.nan],  # Missing allele names
                 "allele_type": [np.nan, np.nan, np.nan],  # Missing allele type
                 "mgi_allele_id": [1234567, 2345678, 3456789],
-                "gene_symbol": ["APP", "MAPT", None],
+                "human_gene_symbol": ["APP", "MAPT", None],
                 "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654", None],
             },
             dtype="object",

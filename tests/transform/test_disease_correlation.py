@@ -43,7 +43,7 @@ class TestDiseaseCorrelation:
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
                 "model_genetic_modifications": "model_genetic_modifications.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
             },
             "disease_correlation_expected_output.json",
         ),
@@ -55,7 +55,7 @@ class TestDiseaseCorrelation:
             {
                 "disease_correlation_results": "disease_correlation_results_missing_grouping_data.csv",
                 "model_genetic_modifications": "model_genetic_modifications.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
             },
             "disease_correlation_missing_grouping_data_expected_output.json",
         ),
@@ -67,7 +67,7 @@ class TestDiseaseCorrelation:
             {
                 "disease_correlation_results": "disease_correlation_results_missing_numeric_data.csv",
                 "model_genetic_modifications": "model_genetic_modifications.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
             },
             "disease_correlation_missing_numeric_data_expected_output.json",
         ),
@@ -122,7 +122,7 @@ class TestDiseaseCorrelation:
                 # p-value data.
                 "disease_correlation_results": "disease_correlation_results_duplicated_module.csv",
                 "model_genetic_modifications": "model_genetic_modifications.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
             }
         )
 
@@ -151,7 +151,7 @@ class TestDiseaseCorrelation:
         datasets = self.read_input_files(
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
                 "model_genetic_modifications": "model_genetic_modifications.csv",
             }
         )
@@ -188,7 +188,7 @@ class TestDiseaseCorrelation:
         datasets = self.read_input_files(
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
-                "model_metadata": "model_info.csv",
+                "model_metadata": "model_metadata.csv",
                 "model_genetic_modifications": "model_genetic_modifications.csv",
             }
         )
@@ -298,7 +298,7 @@ class TestProcessGroup:
         model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
-        allele_info = {"gene": ["APOE4", "TREM2"]}
+        allele_info = {"mouse_gene_symbol": ["APOE4", "TREM2"]}
 
         result = process_group(
             group=group,
@@ -427,7 +427,7 @@ class TestProcessGroup:
         model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
-        allele_info = {"gene": ["APOE4", "TREM2"]}
+        allele_info = {"mouse_gene_symbol": ["APOE4", "TREM2"]}
 
         result = process_group(
             group=group,
@@ -462,34 +462,34 @@ class TestMapGenesToHumanSymbols:
     """
     Test class for validating the map_genes_to_human_symbols function.
     This function maps mouse gene names to human gene symbols using the pre-merged
-    model_genetic_modifications dataset (gene_symbol column already joined in).
+    model_genetic_modifications dataset (human_gene_symbol column already joined in).
     """
 
     def test_map_genes_with_mgi_allele_id(self):
         """
-        Test that map_genes_to_human_symbols correctly maps genes when gene_symbol is present.
+        Test that map_genes_to_human_symbols correctly maps genes when human_gene_symbol is present.
         """
         model_genetic_modifications_df = pd.DataFrame(
             [
                 {
                     "model": "APOE4",
-                    "gene": "Apoe",
+                    "mouse_gene_symbol": "Apoe",
                     "mgi_allele_id": 5810209,
-                    "gene_symbol": "APOE",
+                    "human_gene_symbol": "APOE",
                     "human_ensembl_id": "ENSG00000130203",
                 },
                 {
                     "model": "5xFAD",
-                    "gene": "App",
+                    "mouse_gene_symbol": "App",
                     "mgi_allele_id": 3693208,
-                    "gene_symbol": "APP",
+                    "human_gene_symbol": "APP",
                     "human_ensembl_id": "ENSG00000142192",
                 },
                 {
                     "model": "5xFAD",
-                    "gene": "Psen1",
+                    "mouse_gene_symbol": "Psen1",
                     "mgi_allele_id": 3693208,
-                    "gene_symbol": "PSEN1",
+                    "human_gene_symbol": "PSEN1",
                     "human_ensembl_id": "ENSG00000080815",
                 },
             ]
@@ -501,19 +501,19 @@ class TestMapGenesToHumanSymbols:
             [
                 {
                     "model": "APOE4",
-                    "gene": "APOE",
+                    "mouse_gene_symbol": "APOE",
                     "mgi_allele_id": 5810209,
                     "human_ensembl_id": "ENSG00000130203",
                 },
                 {
                     "model": "5xFAD",
-                    "gene": "APP",
+                    "mouse_gene_symbol": "APP",
                     "mgi_allele_id": 3693208,
                     "human_ensembl_id": "ENSG00000142192",
                 },
                 {
                     "model": "5xFAD",
-                    "gene": "PSEN1",
+                    "mouse_gene_symbol": "PSEN1",
                     "mgi_allele_id": 3693208,
                     "human_ensembl_id": "ENSG00000080815",
                 },
@@ -524,15 +524,15 @@ class TestMapGenesToHumanSymbols:
 
     def test_map_genes_no_matching_transgene(self):
         """
-        Test that map_genes_to_human_symbols preserves original gene names when gene_symbol is null.
+        Test that map_genes_to_human_symbols preserves original gene names when human_gene_symbol is null.
         """
         model_genetic_modifications_df = pd.DataFrame(
             [
                 {
                     "model": "Model1",
-                    "gene": "Mapt",
+                    "mouse_gene_symbol": "Mapt",
                     "mgi_allele_id": 99999,
-                    "gene_symbol": None,
+                    "human_gene_symbol": None,
                     "human_ensembl_id": None,
                 },
             ]
@@ -544,7 +544,7 @@ class TestMapGenesToHumanSymbols:
             [
                 {
                     "model": "Model1",
-                    "gene": "Mapt",
+                    "mouse_gene_symbol": "Mapt",
                     "mgi_allele_id": 99999,
                     "human_ensembl_id": None,
                 },
@@ -560,9 +560,9 @@ class TestMapGenesToHumanSymbols:
         model_genetic_modifications_df = pd.DataFrame(
             {
                 "model": pd.Series(dtype="object"),
-                "gene": pd.Series(dtype="object"),
+                "mouse_gene_symbol": pd.Series(dtype="object"),
                 "mgi_allele_id": pd.Series(dtype="object"),
-                "gene_symbol": pd.Series(dtype="object"),
+                "human_gene_symbol": pd.Series(dtype="object"),
                 "human_ensembl_id": pd.Series(dtype="object"),
             }
         )
@@ -572,7 +572,7 @@ class TestMapGenesToHumanSymbols:
         expected_df = pd.DataFrame(
             {
                 "model": pd.Series(dtype="object"),
-                "gene": pd.Series(dtype="object"),
+                "mouse_gene_symbol": pd.Series(dtype="object"),
                 "mgi_allele_id": pd.Series(dtype="object"),
                 "human_ensembl_id": pd.Series(dtype="object"),
             }
