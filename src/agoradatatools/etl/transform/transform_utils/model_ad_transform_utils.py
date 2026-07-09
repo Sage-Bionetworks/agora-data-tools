@@ -32,9 +32,6 @@ def process_genetic_info(
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
-    # Normalize missing values to None.
-    model_genetic_modifications = normalize_null_values(model_genetic_modifications)
-
     # Only override ensembl_id if we have a valid human_ensembl_id
     model_genetic_modifications["ensembl_gene_id"] = model_genetic_modifications.apply(
         lambda row: (
@@ -59,6 +56,9 @@ def process_genetic_info(
     model_genetic_modifications = model_genetic_modifications.drop_duplicates(
         subset=["modified_gene", "allele", "mgi_allele_id"]
     )
+
+    # Normalize missing values to None.
+    model_genetic_modifications = normalize_null_values(model_genetic_modifications)
 
     return model_genetic_modifications[
         ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
