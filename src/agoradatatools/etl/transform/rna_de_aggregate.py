@@ -7,6 +7,7 @@ and biodomain annotations to create a structured output format.
 
 The transformation:
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
+- Filters out combined-cohort rows where sex is "Females & Males", keeping single-sex rows only
 - Groups differential expression data by gene, model, tissue, sex, case, and control
 - Creates age-based entries containing log2 fold change and adjusted p-values
 - Validates and sorts age entries by numeric value
@@ -320,7 +321,7 @@ def _create_output_entry_from_group(
         "model_group": model_group,
         "model_type": model_type,
         "tissue": tissue,
-        "sex_cohort": sex,
+        "sex": sex,
         **sorted_ages,
     }
 
@@ -350,10 +351,11 @@ def _process_single_data_file(
     2. Validating that the data file is not empty
     3. Validating that all required columns are present
     4. Filtering to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*)
-    5. Rounding numeric columns to 5 decimal places for consistency
-    6. Grouping data by gene, model, tissue, sex, case, and control
-    7. Creating enriched output entries for each group using metadata dictionaries
-    8. Cleaning up memory by deleting the processed DataFrame and running garbage collection
+    5. Filtering out combined-cohort rows where sex is "Females & Males"
+    6. Rounding numeric columns to 5 decimal places for consistency
+    7. Grouping data by gene, model, tissue, sex, case, and control
+    8. Creating enriched output entries for each group using metadata dictionaries
+    9. Cleaning up memory by deleting the processed DataFrame and running garbage collection
 
     Each output entry represents a unique combination of gene, model, tissue, and sex,
     with age-based differential expression measurements and enriched metadata.
@@ -419,6 +421,9 @@ def _process_single_data_file(
     # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
     data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
 
+    # Filter out combined-cohort rows; keep single-sex rows only
+    data_file = data_file[data_file["sex"] != "Females & Males"]
+
     # Round numeric columns to 5 decimal places for consistency
     data_file = data_file.round(decimals=5)
 
@@ -469,6 +474,7 @@ def transform_rna_de_aggregate(
     3. Validates data consistency (e.g., ensures each model has a consistent model_group)
     4. Processes one or more differential expression data files sequentially:
        - Filters to mouse genes only (ENSMUSG*)
+       - Filters out combined-cohort rows where sex is "Females & Males"
        - Groups data by gene, model, tissue, sex, case, and control
        - Enriches each group with metadata
        - Creates age-based entries with log2 fold change and adjusted p-values
