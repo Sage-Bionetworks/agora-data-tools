@@ -186,7 +186,11 @@ class TestProcessGeneticInfo:
         model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "mouse_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.nan],
+                "mouse_ensembl_id": [
+                    "ENSMUSG00000011111",
+                    "ENSMUSG00000022222",
+                    np.nan,
+                ],
                 "allele": [np.nan, np.nan, np.nan],  # Missing allele names
                 "allele_type": [np.nan, np.nan, np.nan],  # Missing allele type
                 "mgi_allele_id": [1234567, 2345678, 3456789],
