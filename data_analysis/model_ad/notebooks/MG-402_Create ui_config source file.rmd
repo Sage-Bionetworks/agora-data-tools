@@ -159,48 +159,48 @@ build_filters <- function(filter_defs, filter_values) {
 }
 
 
-# ***************
+# ***********************
 # Differential Expression
-# ***************
+# ***********************
 
 # Differential Expression Dropdown Menus
 # ------------------------------
-ge_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
-ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
+rna_de_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
+rna_de_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
 
 # Differential Expression Columns
 # -------------------------
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
 # Static columns are the same across all views
-ge_primary_column <- list("Gene", "primary", "gene_symbol", "Mouse Gene", NA, NA, NA, TRUE, FALSE)
-ge_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE)
-ge_sex_column <- list("Sex", "text", "sex_cohort", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
-ge_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA, TRUE, FALSE)
+rna_de_primary_column <- list("Gene", "primary", "gene_symbol", "Mouse Gene", NA, NA, NA, TRUE, FALSE)
+de_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE)
+de_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
+de_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA, TRUE, FALSE)
 
 # Hidden static columns
-ge_tissue_column <- list(NA, "text", "tissue", NA, NA, NA, NA, TRUE, TRUE)
-ge_biodomains_column <- list(NA, "text", "biodomains", NA, NA, NA, NA, TRUE, TRUE)
-ge_model_group_column <- list(NA, "text", "model_group", NA, NA, NA, NA, FALSE, TRUE)
-ge_model_type_column <- list(NA, "text", "model_type", NA, NA, NA, NA, TRUE, TRUE)
-ge_ensembl_gene_id_column <- list(NA, "text", "ensembl_gene_id", NA, NA, NA, NA, TRUE, TRUE)
+de_tissue_column <- list(NA, "text", "tissue", NA, NA, NA, NA, TRUE, TRUE)
+de_biodomains_column <- list(NA, "text", "biodomains", NA, NA, NA, NA, TRUE, TRUE)
+de_model_group_column <- list(NA, "text", "model_group", NA, NA, NA, NA, FALSE, TRUE)
+de_model_type_column <- list(NA, "text", "model_type", NA, NA, NA, NA, TRUE, TRUE)
+de_ensembl_gene_id_column <- list(NA, "text", "ensembl_gene_id", NA, NA, NA, NA, TRUE, TRUE)
 
 
 # Variable heatmap columns have the same values across all views for these fields
-ge_dynamic_column_type <- "heat_map"
-ge_dynamic_column_sort_tooltip <- "Sort by log2 fold change value"
-ge_dynamic_column_is_exported <- TRUE
-ge_dynamic_column_is_hidden <- FALSE
+de_dynamic_column_type <- "heat_map"
+de_dynamic_column_sort_tooltip <- "Sort by log2 fold change value"
+de_dynamic_column_is_exported <- TRUE
+de_dynamic_column_is_hidden <- FALSE
 
 # Variable heatmap column names vary by contributing center and by tissue, since each center sequences different tissues
-ge_dynamic_names_jax <- c("4 months", "12 months")
-ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
+rna_de_dynamic_names_jax <- c("4 months", "12 months")
+rna_de_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 
 # Differential Expression Filters
 # -----------------------
-ge_filters <- data.frame(
+de_filters <- data.frame(
   name = c('Biological Domain', 'Model Type', 'Mouse Model', 'Sex'),
-  data_key = c('biodomains', 'model_type', 'name', 'sex_cohort'),
+  data_key = c('biodomains', 'model_type', 'name', 'sex'),
   short_name = c('Biodomain', 'Type', 'Model', 'Sex'),
   query_param_key = c('biodomains', 'modelTypes', 'models', 'sex'),
   stringsAsFactors = FALSE
@@ -211,17 +211,17 @@ ge_filters <- data.frame(
 # MG-750: Only include model filter values for models with results for the selected tissue
 
 # Hemibrain: All JAX models
-ge_model_name_filter_vals_hemibrain <- c(
+rna_de_model_name_filter_vals_hemibrain <- c(
                             '5xFAD (IU/Jax/Pitt)',
                             'APOE4',
                             'LOAD1',
                             'Trem2R47H')
 
 # Cortex: 5xFAD (UCI); need to wrap single value in a list for JSON serialization
-ge_model_name_filter_vals_cerebral_cortex <- list('5xFAD (UCI)')
+rna_de_model_name_filter_vals_cerebral_cortex <- list('5xFAD (UCI)')
 
 # Hippocampus: All UCI models
-ge_model_name_filter_vals_hippocampus <- c(
+rna_de_model_name_filter_vals_hippocampus <- c(
                             '3xTg-AD',
                             '5xFAD (UCI)',
                             'Abca7*V1599M',
@@ -230,45 +230,45 @@ ge_model_name_filter_vals_hippocampus <- c(
                             'Trem2-R47H_NSS.5xFAD')
 
 # Generates Differential Expression ui_config objects
-build_ge_objects <- function() {
+build_rna_de_objects <- function() {
 
   # Static columns are always the same
-  primary <- do.call(build_column, ge_primary_column)
-  ensembl_gene_id  <- do.call(build_column, ge_ensembl_gene_id_column)
-  tissue <- do.call(build_column, ge_tissue_column)
-  model <- do.call(build_column, ge_model_column)
-  sex <- do.call(build_column, ge_sex_column)
-  matched_control <- do.call(build_column, ge_matched_control_column)
-  biodomains <- do.call(build_column, ge_biodomains_column)
-  model_group <- do.call(build_column, ge_model_group_column)
-  model_type <- do.call(build_column, ge_model_type_column)
+  primary <- do.call(build_column, rna_de_primary_column)
+  ensembl_gene_id  <- do.call(build_column, de_ensembl_gene_id_column)
+  tissue <- do.call(build_column, de_tissue_column)
+  model <- do.call(build_column, de_model_column)
+  sex <- do.call(build_column, de_sex_column)
+  matched_control <- do.call(build_column, de_matched_control_column)
+  biodomains <- do.call(build_column, de_biodomains_column)
+  model_group <- do.call(build_column, de_model_group_column)
+  model_type <- do.call(build_column, de_model_type_column)
 
 
   # Build a ui_config for each possible combination of dropdown menu options
-  dropdown_combos <- expand.grid(menu1 = ge_menu1, menu2 = ge_menu2, stringsAsFactors = FALSE)
+  dropdown_combos <- expand.grid(menu1 = rna_de_menu1, menu2 = rna_de_menu2, stringsAsFactors = FALSE)
   lapply(seq_len(nrow(dropdown_combos)), function(i) {
     combo <- dropdown_combos[i, ]
 
     # Dynamic columns vary by tissue dropdown
-    dynamic_names <- if (grepl("Hemibrain", combo$menu2, ignore.case = TRUE)) ge_dynamic_names_jax else ge_dynamic_names_uci
+    dynamic_names <- if (grepl("Hemibrain", combo$menu2, ignore.case = TRUE)) rna_de_dynamic_names_jax else rna_de_dynamic_names_uci
     dynamic_columns <- lapply(dynamic_names,function(name) {
-                           build_column(name, ge_dynamic_column_type, name, NA, ge_dynamic_column_sort_tooltip,
-                                        NA, NA, ge_dynamic_column_is_exported, ge_dynamic_column_is_hidden)
+                           build_column(name, de_dynamic_column_type, name, NA, de_dynamic_column_sort_tooltip,
+                                        NA, NA, de_dynamic_column_is_exported, de_dynamic_column_is_hidden)
     })
 
     # Dynamic model filter values vary by tissue dropdown
     dynamic_model_filters <- if (grepl("Hemibrain", combo$menu2, ignore.case = TRUE)) {
-      ge_model_name_filter_vals_hemibrain
+      rna_de_model_name_filter_vals_hemibrain
     } else if (grepl("Cerebral Cortex", combo$menu2, ignore.case = TRUE)) {
-      ge_model_name_filter_vals_cerebral_cortex
+      rna_de_model_name_filter_vals_cerebral_cortex
     } else if (grepl("Hippocampus", combo$menu2, ignore.case = TRUE)) {
-      ge_model_name_filter_vals_hippocampus
+      rna_de_model_name_filter_vals_hippocampus
     } else {
       stop() # fail if we are missing required filter values
     }
 
     # Construct the filter values list for this specific combo
-    ge_filter_values <- list(
+    de_filter_values <- list(
       biodomain_filter_vals,
       model_type_filter_vals,
       dynamic_model_filters,
@@ -277,7 +277,7 @@ build_ge_objects <- function() {
 
     # The column ordering is mirrored when a CSV is generated
     columns <- c(list(primary, ensembl_gene_id, tissue, model, sex, matched_control), dynamic_columns, c(list(biodomains, model_type, model_group)))
-    filters <- build_filters(ge_filters, ge_filter_values)
+    filters <- build_filters(de_filters, de_filter_values)
 
     list(
       page = "Differential Expression",
@@ -597,7 +597,7 @@ build_marmo_mo_object <- function() {
 # Generate ui_config.json and upload to Synapse
 # *********************************************
 json_list <- c(
-  build_ge_objects(),
+  build_rna_de_objects(),
   build_dc_objects(),
   list(build_mo_object()),
   list(build_marmo_mo_object())
@@ -691,9 +691,9 @@ toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
 ```
 
 
-# test build_ge_objects
+# test build_rna_de_objects
 ```{r}
-json_list <-  build_ge_objects()
+json_list <-  build_rna_de_objects()
 
 toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
 ```
