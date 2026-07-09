@@ -285,7 +285,9 @@ datasets:
 
   - ui_config:
       files:
-        - <<: *ui_config
+        - name: ui_config
+          id: syn73677126.15
+          format: json
       final_format: json
       destination: *dest
       gx_enabled: false
