@@ -11,7 +11,7 @@
     "model_group": "AD",
     "model_type": "Familial AD",
     "tissue": "Brain",
-    "sex_cohort": "Female",
+    "sex": "Female",
     "3 months": {
       "log2_fc": 1.5,
       "adj_p_val": 0.01

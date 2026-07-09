@@ -11,7 +11,7 @@
     "model_group": "AD",
     "model_type": "Familial AD",
     "tissue": "Hemibrain",
-    "sex_cohort": "Male",
+    "sex": "Male",
     "3 months": {
       "log2_fc": 3.0,
       "adj_p_val": 0.3
