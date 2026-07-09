@@ -49,8 +49,7 @@ datasets:
       destination: *dest
       custom_transformations: transform_model_details
       column_rename:
-        gene: modified_gene
-        ensembl_id: human_ensembl_id
+        mouse_gene_symbol: modified_gene
         agedeath: age
         age_death: age
         measurement: value
@@ -72,8 +71,6 @@ datasets:
       final_format: json
       destination: *dest
       custom_transformations: transform_disease_correlation
-      column_rename:
-        ensembl_id: human_ensembl_id
 
   - ui_config:
       files:
@@ -92,8 +89,7 @@ datasets:
       destination: *dest
       custom_transformations: transform_model_overview
       column_rename:
-        gene: modified_gene
-        ensembl_id: human_ensembl_id
+        mouse_gene_symbol: modified_gene
         model: name
       gx_enabled: true
       gx_nested_columns:
