@@ -33,9 +33,9 @@ REQUIRED_INPUT = {
     ],
     "model_genetic_modifications": [
         "model",
-        "gene",
+        "mouse_gene_symbol",
         "mgi_allele_id",
-        "gene_symbol",
+        "human_gene_symbol",
         "human_ensembl_id",
     ],
 }

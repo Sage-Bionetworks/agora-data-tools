@@ -23,11 +23,11 @@ REQUIRED_INPUT = {
     "model_genetic_modifications": [
         "name",
         "modified_gene",
-        "gene_ensembl_id",
+        "mouse_ensembl_id",
         "allele",
         "allele_type",
         "mgi_allele_id",
-        "gene_symbol",
+        "human_gene_symbol",
         "human_ensembl_id",
     ],
     "model_metadata": [
