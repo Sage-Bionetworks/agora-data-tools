@@ -108,7 +108,10 @@ build_object <- function(page_column_data) {
 #   -- Specify NA for columns with other types
 # - is_exported: Whether this column should be included in CSV data exports
 # - is_hidden: Whether this column should be displayed in the CT table
-build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden) {
+# - column_width: Optional override that specifies the column's width, in pixels
+#   -- By default, the column width is automatically calculated
+#   -- Specify a numeric value to specify a fixed width for columns with variable content length / auto widths
+build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width = NA) {
 
   # Use the default sort_tooltip if one isn't specified, for non-hidden columns only
   if (is_hidden == TRUE) { sort_tooltip = NA }
@@ -123,7 +126,8 @@ build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, 
     link_url = link_url ,
     link_text = link_text,
     is_exported = is_exported,
-    is_hidden = is_hidden
+    is_hidden = is_hidden,
+    column_width = column_width
   )
 
   # Omit keys with NA values
@@ -167,7 +171,7 @@ build_filters <- function(filter_defs, filter_values) {
 # Shared - Columns
 # ----------------
 # Static columns are the same across all DE views
-de_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE)
+de_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE, 220)
 de_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
 de_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA, TRUE, FALSE)
 
@@ -219,6 +223,7 @@ rna_de_model_name_filter_vals_hemibrain <- c(
                             '5xFAD (IU/Jax/Pitt)',
                             'APOE4',
                             'LOAD1',
+                            "LOAD2",
                             'Trem2R47H')
 
 # Cortex: 5xFAD (UCI); need to wrap single value in a list for JSON serialization
@@ -380,7 +385,7 @@ dc_menu2 <- c(
 #
 # All views have the same static column values
 dc_primary_column <- list("Model", "primary", "name", "Mouse Model", NA, NA, NA, TRUE, FALSE)
-dc_age_column <- list("Age", "text", "age", NA, "Sort by Age value", NA, NA, TRUE, FALSE)
+dc_age_column <- list("Age", "text", "age", NA, "Sort by Age value", NA, NA, TRUE, FALSE, 120)
 dc_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
 
 # Hidden static columns
@@ -521,25 +526,28 @@ build_dc_objects <- function() {
 #
 mo_columns <- data.frame(
   name = c("Model", "Model Type", "Matched Controls",
-           "Transcriptomics", "Disease Correlation", "Biomarkers",
-           "Pathology", "Study Data", "JAX Strain",
-           "Center", NA, NA
+           "Transcriptomics", "Proteomics", "Disease Correlation",
+           "Biomarkers", "Pathology", "Study Data",
+           "JAX Strain", "Center", NA,
+           NA
   ),
   type = c("primary", "text", "text",
-    "link_internal", "link_internal", "link_internal",
-    "link_internal","link_external", "link_external",
-    "text", "text", "text"
+           "link_internal", "link_internal", "link_internal",
+           "link_internal", "link_internal", "link_external",
+           "link_external", "text", "text",
+           "text"
   ),
   data_key = c("name", "model_type", "matched_controls",
-               "transcriptomics", "disease_correlation", "biomarkers",
-               "pathology", "study_data", "jax_strain",
-               "center", "modified_genes", "available_data"),
-  tooltip = c("Mouse Model",  rep(NA, times = 11)),
-  sort_tooltip = rep(NA, times = 12),
-  link_url = rep(NA, times = 12),
-  link_text = c(NA, NA, NA, "Results", "Results", "Results", "Results", "View Data", "View Strain", NA, NA, NA),
-  is_exported = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
-  is_hidden = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, TRUE),
+               "transcriptomics", "proteomics", "disease_correlation",
+               "biomarkers", "pathology", "study_data",
+               "jax_strain", "center", "modified_genes",
+               "available_data"),
+  tooltip = c("Mouse Model",  rep(NA, times = 12)),
+  sort_tooltip = rep(NA, times = 13),
+  link_url = rep(NA, times = 13),
+  link_text = c(NA, NA, NA, "Results", "Results", "Results", "Results", "Results", "View Data", "View Strain", NA, NA, NA),
+  is_exported = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+  is_hidden = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, TRUE),
   stringsAsFactors = FALSE
 )
 
@@ -560,7 +568,9 @@ mo_filters <- data.frame(
 # - For human transgenes introduced into mouse models use all caps, e.g. PSEN1
 mo_modified_gene_filter_vals <- c('Abca7',
                                'APOE',
-                               'APP',
+                               'Apoe',
+                               "APP",
+                               "App",
                                'Ceacam1',
                                'Clasp2',
                                'CR1',
@@ -712,7 +722,7 @@ TESTS
 
 ## Test build_column
 ```{r}
-col_def <- build_column("name_value", "type_value", "data_key_value", "tooltip_value", "sort_tooltip_value", "link_url_value", "link_text_value", TRUE, FALSE)
+col_def <- build_column("name_value", "type_value", "data_key_value", "tooltip_value", "sort_tooltip_value", "link_url_value", "link_text_value", TRUE, FALSE, 300)
 
 print(col_def)
 
