@@ -1,6 +1,8 @@
 ---
 title: "MG-402: Create ui_config source file"
 ---
+Related Jira issues: MG-402
+
 This notebook generates the ui_config.json source file (syn66527739) containing the data required to construct Comparison Tool interfaces for the Model-AD Explorer MVP.
 
 Interfaces that are currently handled by this notebook:

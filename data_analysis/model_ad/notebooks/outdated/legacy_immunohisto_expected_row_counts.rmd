@@ -1,9 +1,15 @@
 ---
 title: "Immunohisto expected row counts"
 ---
+Related Jira issues: MG-389
+
 This notebook determines the expected number of rows of pathology and biomarker data per model, based on data exported from the legacy explorer.
 
 Legacy data export files are stored in: syn68930581
+
+*****************************************************************************
+This notebook only accounts for the results migrated from the legacy Explorer
+*****************************************************************************
 
 # Library setup
 Install required packages:

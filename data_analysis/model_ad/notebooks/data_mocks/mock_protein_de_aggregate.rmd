@@ -1,0 +1,534 @@
+---
+title: "MG-970: Create proteomics mock data"
+---
+Related Jira issues: MG-970
+
+This notebook generates mock data to support developing proteomics interfaces:
+* Protein - Differential Expression CT
+* ***Not yet implemented: Individual Protein Expression (details box plot pages)***
+
+Mock data for the Protein - Differential Expression CT supports the use cases outlined in this document:
+https://docs.google.com/document/d/1IWsp41hKJN8xcWsAvtsIBmrTfdwi8Z55V48_j92z-As/edit?tab=t.0#heading=h.lmosv24ok9i6
+
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- jsonlite
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "https://cloud.r-project.org"))
+}
+if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
+if (!require("purrr")) { install.packages("purrr") }
+
+library(synapser)
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(purrr)
+library(jsonlite)
+```
+
+
+## Variables and functions
+Sources the required variables and functions.
+```{r}
+# *******************************
+# STATIC VARIABLES
+# *******************************
+# mouse values
+MODEL_NAME      <- 'LOAD2'
+MODEL_GROUP     <- 'LOAD2'
+MATCHED_CONTROL <- 'LOAD1'
+MODEL_TYPE      <- 'Late Onset AD'
+TISSUE          <- 'Hemibrain'
+SEXES           <- c('Females', 'Males')
+AGES            <- c(4, 12, 18, 24)
+
+
+# gene/protein values
+ENSEMBL_PREFIX <- 'ENSMUSG'
+BIODOMAINS <- c('Apoptosis',
+                   'APP Metabolism',
+                   'Autophagy',
+                   'Cell Cycle',
+                   'DNA Repair',
+                   'Endolysosome',
+                   'Epigenetic',
+                   'Immune Response',
+                   'Lipid Metabolism',
+                   'Metal Binding and Homeostasis',
+                   'Mitochondrial Metabolism',
+                   'Myelination',
+                   'Oxidative Stress',
+                   'Proteostasis',
+                   'RNA Spliceosome',
+                   'Structural Stabilization',
+                   'Synapse',
+                   'Tau Homeostasis',
+                   'Vasculature')
+
+
+# *********
+# FUNCTIONS
+# *********
+
+# Builds a Proteomics DE CT object
+# ensembl_gene_id, gene_symbol, uniprotid, unique_id, display_symbol, biodomains[], name{}, matched_control, model_group, model_type, tissue, sex, age_cols...
+build_row <- function(ensembl_gene_id, gene_symbol, uniprotid, unique_id, display_symbol, biodomains, name, matched_control, model_group, model_type, tissue, sex, age_rows = list()) {
+
+
+  base_row <- list(
+    ensembl_gene_id = ensembl_gene_id,
+    gene_symbol = gene_symbol,
+    uniprotid = uniprotid,
+    unique_id = unique_id,
+    display_symbol = display_symbol,
+    biodomains = biodomains,
+    name = name,
+    matched_control = matched_control,
+    model_group = model_group,
+    model_type = model_type,
+    tissue = tissue,
+    sex = sex
+  )
+
+  row <- c(base_row, age_rows) %>% purrr::discard(~ is.null(.x) || all(is.na(.x)))
+
+  row
+}
+
+# Extract the specified number of values from a vector
+# if sample_size > length(vec), duplicate values will be included
+sample_vector <- function(sample_size, vec) {
+
+  padding_needed <- sample_size - length(vec)
+
+  if (padding_needed <= 0) {
+    sampled_indices <- sample(seq_along(vec), size = sample_size, replace = FALSE)
+    return(vec[sampled_indices])
+  }
+
+  else {
+    base_indices <- sample(seq_along(vec), size = length(vec), replace = FALSE)
+    base_pool <- vec[base_indices]
+
+    padding_indices <- sample(seq_along(vec), size = padding_needed, replace = TRUE)
+    padding_pool <- vec[padding_indices]
+
+    return(c(base_pool, padding_pool))
+  }
+}
+
+# Generate a heatmap data object
+generate_heatmap_object <- function(key_name, min = -2, max = 2) {
+  log2_fc <- runif(1, min = min, max = max)
+  adj_p_val <- runif(1, min = 0, max = 1)
+
+  value_list <- list(
+    log2_fc = round(log2_fc, 5),
+    adj_p_val = round(adj_p_val, 5)
+  )
+
+  heatmap_obj <- list()
+  heatmap_obj[[key_name]] <- value_list
+
+  return(heatmap_obj)
+}
+
+generate_link_object <- function(key_name, link_url = NULL, link_text = NULL) {
+
+  value_list <- list(
+    link_url = link_url,
+    link_text = link_text
+  )
+
+  link_obj <- list()
+  link_obj[[key_name]] <- value_list
+
+  return(link_obj)
+}
+```
+
+
+# *********
+# Mock Data
+# *********
+Requirement summary
+* >50 unique genes, 1:1, all match the same typeahead value (can be one letter)
+* 1:3+ x2+ genes, must exist in RNA DE
+* TBD gene with RNA but no protein result
+* TBD (fake?) gene with protein but no RNA
+* uniprotid contains a hyphen
+
+
+# 1. basic_results
+* 60 pairs of objects (m/f with matching metadata and unique measurements)
+* 1 gene : 1 uniprotid
+* All gene_symbol values include "GeneP" for typeahead
+* Some objects don't have '18 months' results
+```{r}
+# Populate gene/protein fields: ensembl_gene_id, gene_symbol, uniprotid, unique_id, display_symbol
+ids <- 0:59
+pad_number <- "1"
+object_dict <- tibble(
+
+  ensembl_gene_id = paste0(ENSEMBL_PREFIX, gsub(" ", pad_number, sprintf("%11d", ids))),
+  gene_symbol = paste0("GeneX_", ids),
+  uniprotid = paste0(
+    "P", gsub(" ", pad_number, sprintf("%5d", ids)),
+    sample(c("", "-1", "-2", "-3"), size = length(ids), replace = TRUE, prob = c(0.7, 0.2, 0.07, 0.03))
+  ),
+  unique_id = paste0(ensembl_gene_id, uniprotid),
+  display_symbol = paste0(gene_symbol, " (", uniprotid, ")")
+)
+
+# biodomains[], name{}, matched_control, model_group, model_type, tissue, sex, age_cols...
+
+# generate link object for name field
+name_link_object <- generate_link_object("name", link_url = paste0("/models/", MODEL_NAME), link_text = MODEL_NAME)[["name"]]
+
+# Populate fields that match across sexes
+# biodomains, name, matched_control, model_group, model_type, tissue
+object_dict <- object_dict %>%
+
+  # 15% chance this object won't have 24 months data
+  mutate(has_24_months = runif(nrow(object_dict)) >= 0.15) %>%
+
+  rowwise() %>%
+  mutate(
+    biodomains = list(sample_vector(sample(1:10, 1), BIODOMAINS)),
+    name            = list(name_link_object),
+    matched_control = MATCHED_CONTROL,
+    model_group     = MODEL_GROUP,
+    model_type      = MODEL_TYPE,
+    tissue          = TISSUE,
+  ) %>%
+  ungroup()
+
+# Expand to include an object per sex for each gene:protein
+object_dict_expanded <- object_dict %>%
+  crossing(sex = SEXES)
+
+# Generate row-specific heatmap data
+basic_results <- object_dict_expanded %>%
+  mutate(
+    # 1. Map over an existing column to execute exactly once per row
+    `4 months`  = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("4 months")[["4 months"]]),
+    `12 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("12 months")[["12 months"]]),
+    `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
+
+    # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
+    `24 months` = purrr::map(has_24_months, ~ if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL)
+  ) %>%
+  select(-has_24_months)
+
+
+basic_results
+```
+
+
+2. rna_exists_multiple_proteins_results
+* 15 pairs of objects (m/f with matching metadata and unique measurments)
+* 1 gene : 3 uniprotid
+* Some objects don't have '18 months' results
+```{r}
+ids <- 100:114
+ensembl_id_in_rna_results <- c("ENSMUSG00000000001", "ENSMUSG00000000001", "ENSMUSG00000000001",
+                               "ENSMUSG00000000056", "ENSMUSG00000000056", "ENSMUSG00000000056",
+                               "ENSMUSG00000000214", "ENSMUSG00000000214", "ENSMUSG00000000214",
+                               "ENSMUSG00000000296", "ENSMUSG00000000296", "ENSMUSG00000000296",
+                               "ENSMUSG00000000340", "ENSMUSG00000000340", "ENSMUSG00000000340"
+                               )
+gene_symbol_in_rna_results <- c("Gnai3", "Gnai3", "Gnai3",
+                                "Narf", "Narf", "Narf",
+                                "Th", "Th", "Th",
+                                "Tpd52l1", "Tpd52l1", "Tpd52l1",
+                                "Dbt", "Dbt", "Dbt"
+                                )
+
+object_dict <- tibble(
+
+  ensembl_gene_id = ensembl_id_in_rna_results,
+  gene_symbol = gene_symbol_in_rna_results,
+  uniprotid = paste0(
+    sprintf("P%05d", ids),
+    sample(c("", "-1", "-2", "-3"), size = length(ids), replace = TRUE, prob = c(0.7, 0.2, 0.07, 0.03))
+  ),
+  unique_id = paste0(ensembl_gene_id, uniprotid),
+  display_symbol = paste0(gene_symbol, " (", uniprotid, ")")
+)
+
+# biodomains[], name{}, matched_control, model_group, model_type, tissue, sex, age_cols...
+
+# generate link object for name field
+name_link_object <- generate_link_object("name", link_url = paste0("/models/", MODEL_NAME), link_text = MODEL_NAME)[["name"]]
+
+# Populate fields that match across sexes
+# biodomains, name, matched_control, model_group, model_type, tissue
+object_dict <- object_dict %>%
+
+  # 15% chance this object won't have 18 months data
+  mutate(has_24_months = runif(nrow(object_dict)) >= 0.15) %>%
+
+  rowwise() %>%
+  mutate(
+    biodomains = list(sample_vector(sample(1:10, 1), BIODOMAINS)),
+    name            = list(name_link_object),
+    matched_control = MATCHED_CONTROL,
+    model_group     = MODEL_GROUP,
+    model_type      = MODEL_TYPE,
+    tissue          = TISSUE,
+  ) %>%
+  ungroup()
+
+# Expand to include an object per sex for each gene:protein
+object_dict_expanded <- object_dict %>%
+  crossing(sex = SEXES)
+
+# Generate row-specific heatmap data
+rna_exists_multiple_proteins_results <- object_dict_expanded %>%
+  mutate(
+    # 1. Map over an existing column to execute exactly once per row
+    `4 months`  = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("4 months")[["4 months"]]),
+    `12 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("12 months")[["12 months"]]),
+    `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
+
+    # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
+    `24 months` = purrr::map(has_24_months, ~ if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL)
+  ) %>%
+  select(-has_24_months)
+
+
+rna_exists_multiple_proteins_results
+
+```
+
+
+3. no_rna_protein_exists_results
+* 15 pairs of objects (m/f with matching metadata and unique measurements)
+* 1 gene : 3 uniprotid
+* Some objects don't have '18 months' results
+```{r}
+# Populate gene/protein fields: ensembl_gene_id, gene_symbol, uniprotid, unique_id, display_symbol
+ids <- 0:14
+pad_number <- "3"
+
+object_dict <- tibble(
+
+  ensembl_gene_id = paste0(ENSEMBL_PREFIX, gsub(" ", pad_number, sprintf("%11d", ids))),
+  gene_symbol = paste0("GeneP_", ids),
+  uniprotid = paste0(
+    "P", gsub(" ", pad_number, sprintf("%5d", ids)),
+    sample(c("", "-1", "-2", "-3"), size = length(ids), replace = TRUE, prob = c(0.7, 0.2, 0.07, 0.03))
+  ),
+  unique_id = paste0(ensembl_gene_id, uniprotid),
+  display_symbol = paste0(gene_symbol, " (", uniprotid, ")")
+)
+
+# biodomains[], name{}, matched_control, model_group, model_type, tissue, sex, age_cols...
+
+# generate link object for name field
+name_link_object <- generate_link_object("name", link_url = paste0("/models/", MODEL_NAME), link_text = MODEL_NAME)[["name"]]
+
+# Populate fields that match across sexes
+# biodomains, name, matched_control, model_group, model_type, tissue
+object_dict <- object_dict %>%
+
+  # 15% chance this object won't have 24 months data
+  mutate(has_24_months = runif(nrow(object_dict)) >= 0.15) %>%
+
+  rowwise() %>%
+  mutate(
+    biodomains = list(sample_vector(sample(1:10, 1), BIODOMAINS)),
+    name            = list(name_link_object),
+    matched_control = MATCHED_CONTROL,
+    model_group     = MODEL_GROUP,
+    model_type      = MODEL_TYPE,
+    tissue          = TISSUE,
+  ) %>%
+  ungroup()
+
+# Expand to include an object per sex for each gene:protein
+object_dict_expanded <- object_dict %>%
+  crossing(sex = SEXES)
+
+# Generate row-specific heatmap data
+no_rna_protein_exists_results <- object_dict_expanded %>%
+  mutate(
+    # 1. Map over an existing column to execute exactly once per row
+    `4 months`  = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("4 months")[["4 months"]]),
+    `12 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("12 months")[["12 months"]]),
+    `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
+
+    # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
+    `24 months` = purrr::map(has_24_months, ~ if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL)
+  ) %>%
+  select(-has_24_months)
+
+no_rna_protein_exists_results
+```
+
+
+# Assemble and upload collection
+
+```{r}
+# *********************************************
+# Generate ui_config.json and upload to Synapse
+# *********************************************
+
+raw_tibble_list <- list(
+  basic_results,
+  rna_exists_multiple_proteins_results,
+  no_rna_protein_exists_results
+)
+
+# Since we are using a tibble, we need to do some extra stuff to omit the null 18 months keys entirely
+json_list <- purrr::map(raw_tibble_list, function(df) {
+  df %>%
+    purrr::transpose() %>%
+    purrr::map(~ purrr::discard(.x, is.null))
+})
+
+json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+# cat(json_output)
+
+# write json file
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+
+write(json_output, file.path(output_dir, "proteomics_mocks.json"))
+```
+
+
+# Upload to synapse
+*****************************************************
+Validate ./output/proteomics_mocks.json before upload
+*****************************************************
+```{r}
+synLogin()
+syn_file <- File(
+              file.path(output_dir, "ui_config.json"),
+              description = "ui_config.json for Model-AD Explorer 2.0.",
+              parent = "syn51498054"
+            )
+
+res <- synStore(
+          syn_file,
+          forceVersion = FALSE,
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd"
+        )
+# print synapse_id and new version number
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
+```
+
+
+-----
+TESTS
+-----
+
+
+## Test build_row
+```{r}
+object <- build_row(
+  ensembl_gene_id = "ENSMUSG00000022565",
+  gene_symbol = "PLEC",
+  uniprotid = "Q9QXS1",
+  unique_id = "ENSMUSG00000022565Q9QXS1",
+  display_symbol = "PLEC (Q9QXS1)",
+  biodomains = c("Apoptosis","Autophagy","Cell Cycle"),
+  name = "LOAD2",
+  matched_control = "LOAD1",
+  model_group = "LOAD2",
+  model_type = "Late Onset AD",
+  tissue = "Hemibrain",
+  sex = "Female"
+)
+
+json_list <- c(
+  object
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, na = NULL, null = NULL, auto_unbox = TRUE)
+cat(json_output)
+
+```
+
+
+# test sample_data
+```{r}
+sample_vector(1, sex)
+sample_vector(2, sex)
+sample_vector(3, sex)
+sample_vector(10, sex)
+
+sample_vector(1, biodomains)
+sample_vector(2, biodomains)
+sample_vector(3, biodomains)
+sample_vector(19, biodomains)
+```
+
+# test generate heatmap object
+```{r}
+object <- generate_heatmap_object("12 months")
+
+json_list <- c(
+  object
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, na = NULL, null = NULL, auto_unbox = TRUE)
+cat(json_output)
+
+```
+
+
+# test generate link object
+```{r}
+object <- generate_link_object("name", "/models/LOAD2", "LOAD2")
+
+json_list <- c(
+  object
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, na = NULL, null = NULL, auto_unbox = TRUE)
+cat(json_output)
+```
+
+sanity check results
+```{r}
+all_mocks <- rbind(
+  basic_results,
+  rna_exists_multiple_proteins_results,
+  no_rna_protein_exists_results
+)
+
+nrow(all_mocks)
+
+```
+
+check for duplicate uniprotids
+```{r}
+
+all_mocks <- rbind(
+  basic_results,
+  rna_exists_multiple_proteins_results,
+  no_rna_protein_exists_results
+)
+
+all_mocks %>%
+  # 1. Select only rows with sex == Female
+  filter(sex == "Females") %>%
+
+  # 2. Look for duplicate uniprotid values among those rows
+  group_by(uniprotid) %>%
+  filter(n() > 1) %>%
+  ungroup() %>%
+
+  # Arrange them side-by-side for easy inspection
+  arrange(uniprotid)
+
+```

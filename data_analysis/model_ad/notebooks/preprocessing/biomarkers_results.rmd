@@ -1,5 +1,7 @@
 
-# Create Biomarker source file (MG-88)
+# Create Biomarker source file 
+
+Related Jira issues: MG-88
 
 This notebook generates a single harmonized source file (syn61250724) containing the data required to surface Biomarker evidence in the Model-AD Explorer.
 

@@ -1,4 +1,6 @@
-# Create Pathology source file (MG-40)
+# Create Pathology source file 
+
+Related Jira issues: MG-40
 
 This notebook generates a single harmonized source file (syn61357279) containing the results data and display values required to surface Pathology evidence in the Model-AD Explorer.
 

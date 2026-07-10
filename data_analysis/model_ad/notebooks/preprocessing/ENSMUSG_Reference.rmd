@@ -1,5 +1,7 @@
 # Create ENSMUSG Reference
 
+Related Jira issues: MG-8
+
 This notebook downloads all data files listed in [data_sources.csv](https://github.com/Sage-Bionetworks/magora/blob/main/data-raw/gene_expressions/data_sources.csv), gets a list of all the Ensembl gene IDs used across all the files, and maps them to gene symbols and aliases. The file is then uploaded to Synapse here: [syn51615422](https://www.synapse.org/#!Synapse:syn51615422).
 
 Required packages (will automatically be installed if necessary):
