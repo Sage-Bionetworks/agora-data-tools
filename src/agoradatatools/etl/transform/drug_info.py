@@ -21,7 +21,7 @@ from agoradatatools.etl.utils import (
 )
 
 REQUIRED_INPUT = {
-    "ot_drug_metadata": [
+    "drug_metadata": [
         "chembl_id",
         "description",
         "modality",
@@ -57,12 +57,12 @@ REQUIRED_INPUT = {
         "published",
     ],
     "gene_metadata": ["ensembl_gene_id", "symbol"],
-    "harmonized_targets": ["ensembl_gene_id"],
+    "target_list": ["ensembl_gene_id"],
 }
 
 COLUMN_RULES = {
     # Allowed values match syn73724873 OpenTargets export (see nominated_drugs).
-    "ot_drug_metadata": {
+    "drug_metadata": {
         "chembl_id": [
             NotEmptyRule(),
             MatchesRegexRule(CHEMBL_ID_REGEX),
@@ -261,8 +261,8 @@ def transform_drug_info(
     hgnc_symbol.
 
     Args:
-        datasets: ot_drug_metadata, drug_list (with program column), gene_metadata,
-            and harmonized_targets DataFrames. The harmonized_targets ensembl_gene_id
+        datasets: drug_metadata, drug_list (with program column), gene_metadata,
+            and target_list DataFrames. The target_list ensembl_gene_id
             values flag which linked_targets are nominated targets.
         required_input: Required datasets and columns (overridable in tests).
 
@@ -278,10 +278,10 @@ def transform_drug_info(
     check_column_rules(datasets, COLUMN_RULES)
     validate_drug_list_integrity(datasets["drug_list"])
 
-    nominated_ensgs = set(datasets["harmonized_targets"]["ensembl_gene_id"].dropna())
+    nominated_ensgs = set(datasets["target_list"]["ensembl_gene_id"].dropna())
 
     drug_metadata = _resolve_linked_target_symbols(
-        datasets["ot_drug_metadata"], datasets["gene_metadata"], nominated_ensgs
+        datasets["drug_metadata"], datasets["gene_metadata"], nominated_ensgs
     )
 
     collapsed_drug_list = _collapse_drug_nominations(datasets["drug_list"])
