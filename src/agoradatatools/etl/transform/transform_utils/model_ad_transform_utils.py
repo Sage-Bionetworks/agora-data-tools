@@ -32,10 +32,8 @@ def process_genetic_info(
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
-    # Copy dataframes to avoid modifying originals
-    # Using copy() to avoid warning: A value is trying to be set on a copy of a slice from a DataFrame.
-    # Warning appears even if using .loc to set the value.
-    model_genetic_modifications = model_genetic_modifications.copy()
+    # Normalize missing values to None.
+    model_genetic_modifications = normalize_null_values(model_genetic_modifications)
 
     # Only override ensembl_id if we have a valid human_ensembl_id
     model_genetic_modifications["ensembl_gene_id"] = model_genetic_modifications.apply(
@@ -61,9 +59,6 @@ def process_genetic_info(
     model_genetic_modifications = model_genetic_modifications.drop_duplicates(
         subset=["modified_gene", "allele", "mgi_allele_id"]
     )
-
-    # Normalize missing values to None.
-    model_genetic_modifications = normalize_null_values(model_genetic_modifications)
 
     return model_genetic_modifications[
         ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
