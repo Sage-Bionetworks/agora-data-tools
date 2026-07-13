@@ -11,7 +11,7 @@
     "model_group": "AD",
     "model_type": "Late Onset AD",
     "tissue": "Brain",
-    "sex": "Female",
+    "sex": "Females",
     "3 months": {
       "log2_fc": 1.5,
       "adj_p_val": 0.15
@@ -29,7 +29,7 @@
     "model_group": "AD",
     "model_type": "Late Onset AD",
     "tissue": "Brain",
-    "sex": "Male",
+    "sex": "Males",
     "6 months": {
       "log2_fc": -1.0,
       "adj_p_val": 0.1

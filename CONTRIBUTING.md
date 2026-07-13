@@ -94,13 +94,13 @@ The agora-data-tools project follows the standard [trunk based development](http
 1. Test your changes by running `agora-data-tools` locally.
 
 ```
-adt configs/agora_preprod.yaml
+adt process configs/agora_preprod.yaml
 ```
 
 If your changes have to do with the way that files are uploaded to Synapse and/or uploading new records to the ADT GX Synapse table, create a new configuration file by copying `configs/agora_preprod.yaml` and changing the `destination`, `gx_folder`, and `gx_table` fields to testing locations that you own. The command will change to be:
 
 ```
-adt configs/my_dev_config.yaml --upload
+adt process configs/my_dev_config.yaml --upload
 ```
 
 1. Once you have completed all the steps above, create a pull request from the feature branch to the `dev` branch of the Sage-Bionetworks/agora-data-tools repo.
@@ -196,7 +196,7 @@ This package uses [Great Expectations](https://greatexpectations.io/) to validat
 2. Run the notebook to generate the new expectation suite. It should populate as a JSON file in the `/great_expectations/expectations` folder.
 3. Add support for running Great Expectations on a dataset by adding `gx_enabled: true` to the configuration for the datatset in both `configs/agora_preprod.yaml` and `configs/agora_prod.yaml`. Ensure that the `gx_folder` and `gx_table` keys are present in the configuration file and contain valid Synapse IDs for the GX reports and GX table, respectively.
    - You can prevent Great Expectations from running for a dataset by setting `gx_enabled: false` in the configuration for the dataset.
-4. Test data processing by running `adt configs/agora_preprod.yaml --upload` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
+4. Test data processing by running `adt process configs/agora_preprod.yaml --upload` and ensure that HTML reports with all expectations are generated and uploaded to the proper folder in Synapse.
 
 **Note:** If you are adding a new expectation and you want to allow for "fuzzy validation" (e.g. you expect X% of the values in a column to match the expectation, but the remaining Y% are allowed to not match), you will need to make use of the `mostly` [parameter](https://docs.greatexpectations.io/docs/0.18/reference/learn/expectations/standard_arguments/#mostly). This package is set up to surface "warnings" for instances where the `mostly` parameter is used to show users which expectations have some failed values although the overall validation still passes.
 

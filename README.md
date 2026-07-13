@@ -87,7 +87,7 @@ Note: the `pipenv install` command should create a virtual environment, and `pip
 6. You can check if the package was installed correctly by running `adt --help` in the terminal. If it returns instructions about how to use the CLI, installation was successful and you can run the pipeline by providing the desired [config file](#config) as an argument. Be sure to review these instructions prior to executing a processing run. The following example command will execute the pipeline using ```configs/agora_preprod.yaml``` and the default options:
 
     ```bash
-    adt configs/agora_preprod.yaml
+    adt process configs/agora_preprod.yaml
     ```
 ### Troubleshooting
 
@@ -173,7 +173,7 @@ Once you have completed the one-time setup step outlined above, execute the pipe
 ```
 # This creates a local Docker image
 docker build -t agora-data-tools .
-docker run -e SYNAPSE_AUTH_TOKEN=<your PAT> agora-data-tools adt configs/agora_preprod.yaml
+docker run -e SYNAPSE_AUTH_TOKEN=<your PAT> agora-data-tools adt process configs/agora_preprod.yaml
 ```
 
 ## Testing Github Workflow
