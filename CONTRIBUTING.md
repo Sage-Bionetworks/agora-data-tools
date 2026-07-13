@@ -16,6 +16,7 @@ We welcome all contributions! That said, this is a Sage Bionetworks owned projec
   - [Custom Expectations](#custom-expectations)
   - [Nested Columns](#nested-columns)
 - [DockerHub](#dockerhub)
+- [Testing a Branch on Nextflow Tower](#testing-a-branch-on-nextflow-tower)
 
 ## Coding Style
 
@@ -293,7 +294,7 @@ Follow the [nf-agora pipeline launch instructions](https://github.com/Sage-Bione
 In the **Run parameters** step, update `container` to point at the image you built in Step 1:
 
 ```json
-"container": "ghcr.io/sage-bionetworks/agora-data-tools:pr-<PR number>,
+"container": "ghcr.io/sage-bionetworks/agora-data-tools:pr-<PR number>"
 ```
 
 
