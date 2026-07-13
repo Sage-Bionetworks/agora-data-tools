@@ -21,13 +21,13 @@ def process_genetic_info(
     replace the ensembl_id with the human one. Each model's alleles are processed independently.
     Multiple entries are preserved for different alleles of the same gene.
 
-    This function assumes the input data has been pre-merged combining allele info with human
-    transgene allele data. Rows for non-transgene alleles will have None/"" in the `gene_symbol`
-    and `human_ensembl_id` columns, while rows for human transgene alleles will have values.
+    This function assumes the input data has been pre-validated so that model_genetic_modifications
+    does not have any missing/NaN/none values in the "modified_gene" or "mouse_ensembl_id" columns.
+    Missing values in other columns of the DataFrame are allowed, and will be normalized to None.
 
     Args:
-        model_genetic_modifications (pd.DataFrame): The DataFrame containing the model genetic
-            modifications information.
+        model_genetic_modifications (pd.DataFrame): The DataFrame containing the allele and
+            transgene information
 
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
