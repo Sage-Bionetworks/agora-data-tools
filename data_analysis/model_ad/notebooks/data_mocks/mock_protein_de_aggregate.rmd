@@ -50,24 +50,24 @@ AGES            <- c(4, 12, 18, 24)
 # gene/protein values
 ENSEMBL_PREFIX <- 'ENSMUSG'
 BIODOMAINS <- c('Apoptosis',
-                   'APP Metabolism',
-                   'Autophagy',
-                   'Cell Cycle',
-                   'DNA Repair',
-                   'Endolysosome',
-                   'Epigenetic',
-                   'Immune Response',
-                   'Lipid Metabolism',
-                   'Metal Binding and Homeostasis',
-                   'Mitochondrial Metabolism',
-                   'Myelination',
-                   'Oxidative Stress',
-                   'Proteostasis',
-                   'RNA Spliceosome',
-                   'Structural Stabilization',
-                   'Synapse',
-                   'Tau Homeostasis',
-                   'Vasculature')
+                'APP Metabolism',
+                'Autophagy',
+                'Cell Cycle',
+                'DNA Repair',
+                'Endolysosome',
+                'Epigenetic',
+                'Immune Response',
+                'Lipid Metabolism',
+                'Metal Binding and Homeostasis',
+                'Mitochondrial Metabolism',
+                'Myelination',
+                'Oxidative Stress',
+                'Proteostasis',
+                'RNA Spliceosome',
+                'Structural Stabilization',
+                'Synapse',
+                'Tau Homeostasis',
+                'Vasculature')
 
 
 # *********
@@ -378,18 +378,15 @@ no_rna_protein_exists_results
 # Generate ui_config.json and upload to Synapse
 # *********************************************
 
-raw_tibble_list <- list(
+json_list <- list(
   basic_results,
   rna_exists_multiple_proteins_results,
   no_rna_protein_exists_results
-)
-
-# Since we are using a tibble, we need to do some extra stuff to omit the null 18 months keys entirely
-json_list <- purrr::map(raw_tibble_list, function(df) {
-  df %>%
-    purrr::transpose() %>%
-    purrr::map(~ purrr::discard(.x, is.null))
-})
+) %>%
+  list_rbind() %>%
+  purrr::transpose() %>%
+  # Since we are using a tibble, we need to do some extra stuff to omit the null 18 months keys   entirely
+  purrr::map(~ purrr::discard(.x, is.null))
 
 json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
 # cat(json_output)
