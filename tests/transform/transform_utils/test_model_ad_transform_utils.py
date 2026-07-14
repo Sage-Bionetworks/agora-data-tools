@@ -71,7 +71,6 @@ class TestProcessGeneticInfo:
 
         assert output == expected_output
 
-
     def test_process_genetic_info_with_empty_input(self) -> None:
         # Create empty test input DataFrames
         model_genetic_modifications = pd.DataFrame(
@@ -94,7 +93,6 @@ class TestProcessGeneticInfo:
 
         # Compare output with expected
         assert output == expected_output
-
 
     def test_process_genetic_info_normalizes_missing_values(self) -> None:
         # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele", "allele_type",
