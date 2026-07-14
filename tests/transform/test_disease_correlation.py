@@ -465,73 +465,34 @@ class TestMapGenesToHumanSymbols:
     model_genetic_modifications dataset (human_gene_symbol column already joined in).
     """
 
-    def test_map_genes_with_mgi_allele_id(self):
+    def test_map_genes_should_pass(self):
         """
-        Test that map_genes_to_human_symbols correctly maps genes when human_gene_symbol is present.
+        Test that map_genes_to_human_symbols correctly maps genes when human_gene_symbol is present,
+        and preserves the original mouse gene name when human_gene_symbol is null.
         """
         model_genetic_modifications_df = pd.DataFrame(
             [
                 {
                     "model": "APOE4",
                     "mouse_gene_symbol": "Apoe",
-                    "mgi_allele_id": 5810209,
                     "human_gene_symbol": "APOE",
                     "human_ensembl_id": "ENSG00000130203",
                 },
                 {
                     "model": "5xFAD",
                     "mouse_gene_symbol": "App",
-                    "mgi_allele_id": 3693208,
                     "human_gene_symbol": "APP",
                     "human_ensembl_id": "ENSG00000142192",
                 },
                 {
                     "model": "5xFAD",
                     "mouse_gene_symbol": "Psen1",
-                    "mgi_allele_id": 3693208,
                     "human_gene_symbol": "PSEN1",
                     "human_ensembl_id": "ENSG00000080815",
                 },
-            ]
-        )
-
-        result = map_genes_to_human_symbols(model_genetic_modifications_df)
-
-        expected_df = pd.DataFrame(
-            [
-                {
-                    "model": "APOE4",
-                    "mouse_gene_symbol": "APOE",
-                    "mgi_allele_id": 5810209,
-                    "human_ensembl_id": "ENSG00000130203",
-                },
-                {
-                    "model": "5xFAD",
-                    "mouse_gene_symbol": "APP",
-                    "mgi_allele_id": 3693208,
-                    "human_ensembl_id": "ENSG00000142192",
-                },
-                {
-                    "model": "5xFAD",
-                    "mouse_gene_symbol": "PSEN1",
-                    "mgi_allele_id": 3693208,
-                    "human_ensembl_id": "ENSG00000080815",
-                },
-            ]
-        )
-
-        pd.testing.assert_frame_equal(result, expected_df)
-
-    def test_map_genes_no_matching_transgene(self):
-        """
-        Test that map_genes_to_human_symbols preserves original gene names when human_gene_symbol is null.
-        """
-        model_genetic_modifications_df = pd.DataFrame(
-            [
                 {
                     "model": "Model1",
                     "mouse_gene_symbol": "Mapt",
-                    "mgi_allele_id": 99999,
                     "human_gene_symbol": None,
                     "human_ensembl_id": None,
                 },
@@ -543,9 +504,23 @@ class TestMapGenesToHumanSymbols:
         expected_df = pd.DataFrame(
             [
                 {
+                    "model": "APOE4",
+                    "mouse_gene_symbol": "APOE",
+                    "human_ensembl_id": "ENSG00000130203",
+                },
+                {
+                    "model": "5xFAD",
+                    "mouse_gene_symbol": "APP",
+                    "human_ensembl_id": "ENSG00000142192",
+                },
+                {
+                    "model": "5xFAD",
+                    "mouse_gene_symbol": "PSEN1",
+                    "human_ensembl_id": "ENSG00000080815",
+                },
+                {
                     "model": "Model1",
-                    "mouse_gene_symbol": "Mapt",
-                    "mgi_allele_id": 99999,
+                    "mouse_gene_symbol": "Mapt",  # preserved — no human mapping
                     "human_ensembl_id": None,
                 },
             ]
