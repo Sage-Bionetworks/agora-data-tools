@@ -499,8 +499,10 @@ class TestMapGenesToHumanSymbols:
             ]
         )
 
+        # Map genes
         result = map_genes_to_human_symbols(model_genetic_modifications_df)
 
+        # Construct expected dataframe with human gene symbols
         expected_df = pd.DataFrame(
             [
                 {
@@ -526,6 +528,7 @@ class TestMapGenesToHumanSymbols:
             ]
         )
 
+        # Verify the entire dataframe matches expected output
         pd.testing.assert_frame_equal(result, expected_df)
 
     def test_map_genes_empty_transgene_map(self):
@@ -541,8 +544,10 @@ class TestMapGenesToHumanSymbols:
             }
         )
 
+        # Map genes
         result = map_genes_to_human_symbols(model_genetic_modifications_df)
 
+        # Construct expected dataframe - original gene name should be preserved
         expected_df = pd.DataFrame(
             {
                 "model": pd.Series(dtype="object"),
@@ -551,4 +556,5 @@ class TestMapGenesToHumanSymbols:
             }
         )
 
+        # Verify the entire dataframe matches expected output
         pd.testing.assert_frame_equal(result, expected_df)

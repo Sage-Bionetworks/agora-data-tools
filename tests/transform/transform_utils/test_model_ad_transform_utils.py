@@ -22,6 +22,7 @@ class TestProcessGeneticInfo:
         Test that process_genetic_info correctly uses human Ensembl IDs and gene symbols
         when available, and preserves mouse Ensembl IDs when no human mapping exists.
         """
+        # Create test input DataFrames
         model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
@@ -67,8 +68,10 @@ class TestProcessGeneticInfo:
             },
         ]
 
+        # Transform data
         output = process_genetic_info(model_genetic_modifications)
 
+        # Compare output with expected
         assert output == expected_output
 
     def test_process_genetic_info_with_empty_input(self) -> None:
