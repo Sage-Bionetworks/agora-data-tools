@@ -18,7 +18,10 @@ class TestProcessGeneticInfo:
     """Test class for the process_genetic_info function."""
 
     def test_process_genetic_info_should_pass(self) -> None:
-        # Pre-merged input: human_gene_symbol and human_ensembl_id joined in for transgenic alleles
+        """
+        Test that process_genetic_info correctly uses human Ensembl IDs and gene symbols
+        when available, and preserves mouse Ensembl IDs when no human mapping exists.
+        """
         model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
@@ -70,7 +73,7 @@ class TestProcessGeneticInfo:
 
 
     def test_process_genetic_info_with_empty_input(self) -> None:
-        # Empty pre-merged dataframe
+        # Create empty test input DataFrames
         model_genetic_modifications = pd.DataFrame(
             columns=[
                 "modified_gene",
@@ -83,15 +86,19 @@ class TestProcessGeneticInfo:
             ]
         )
 
+        # Expected output - empty list since no alleles to process
         expected_output = []
 
+        # Transform data
         output = process_genetic_info(model_genetic_modifications)
 
+        # Compare output with expected
         assert output == expected_output
 
 
     def test_process_genetic_info_normalizes_missing_values(self) -> None:
-        # The third gene has no human match so mouse_ensembl_id is NaN — should normalize to None
+        # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele", "allele_type",
+        # and "human_ensembl_id" can have missing values and still appear in the output.
         model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
@@ -136,8 +143,10 @@ class TestProcessGeneticInfo:
             },
         ]
 
+        # Transform data
         output = process_genetic_info(model_genetic_modifications)
 
+        # Compare output with expected
         assert output == expected_output
 
 
