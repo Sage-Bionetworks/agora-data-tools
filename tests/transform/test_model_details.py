@@ -126,11 +126,22 @@ class TestTransformModelDetails:
             },
             ValueError,
         ),
+        (
+            # Fail with missing required columns in model_genetic_modifications
+            {
+                "biomarkers": "model_details_biomarkers_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_missing_column_input.csv",
+                "model_metadata": "model_details_model_metadata_good_test_input.csv",
+                "pathology": "model_details_pathology_good_test_input.csv",
+            },
+            ValueError,
+        ),
     ]
     fail_test_ids = [
         "Fail with missing biomarkers dataset",
         "Fail with missing required columns in biomarkers",
         "Fail with missing required columns in model_metadata",
+        "Fail with missing required columns in model_genetic_modifications",
     ]
 
     @pytest.mark.parametrize(
