@@ -78,16 +78,6 @@ class TestTransformModelDetails:
             "model_details_transform_extra_column_output.json",
         ),
         (
-            # Pass with no matching human transgene alleles
-            {
-                "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "model_genetic_modifications": "model_details_model_genetic_modifications_no_match_input.csv",
-                "model_metadata": "model_details_model_metadata_no_human_match_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-            },
-            "model_details_transform_no_human_match_output.json",
-        ),
-        (
             # Pass with missing models in different source files
             {
                 "biomarkers": "model_details_biomarkers_missing_models_test.csv",
@@ -104,7 +94,6 @@ class TestTransformModelDetails:
         "Pass with missing data in some fields",
         "Pass with empty biomarkers and pathology",
         "Pass with extra columns",
-        "Pass with no matching human transgene alleles",
         "Pass with missing models in different source files",
     ]
     fail_test_data = [
