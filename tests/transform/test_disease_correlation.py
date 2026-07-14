@@ -168,13 +168,13 @@ class TestDiseaseCorrelation:
             ("disease_correlation_results", "cluster"),
             ("model_metadata", "model"),
             ("model_genetic_modifications", "model"),
-            ("model_genetic_modifications", "mgi_allele_id"),
+            ("model_genetic_modifications", "mouse_gene_symbol"),
         ],
         ids=[
             "Missing 'cluster' from disease_correlation_results",
             "Missing 'model' from model_metadata",
             "Missing 'model' from model_genetic_modifications",
-            "Missing 'mgi_allele_id' from model_genetic_modifications",
+            "Missing 'mouse_gene_symbol' from model_genetic_modifications",
         ],
     )
     def test_transform_disease_correlation_fails_with_missing_columns(
@@ -461,8 +461,8 @@ class TestProcessGroup:
 class TestMapGenesToHumanSymbols:
     """
     Test class for validating the map_genes_to_human_symbols function.
-    This function maps mouse gene names to human gene symbols using the pre-merged
-    model_genetic_modifications dataset (human_gene_symbol column already joined in).
+    This function maps mouse gene names to human gene symbols using the
+    model_genetic_modifications dataset.
     """
 
     def test_map_genes_should_pass(self):
@@ -536,7 +536,6 @@ class TestMapGenesToHumanSymbols:
             {
                 "model": pd.Series(dtype="object"),
                 "mouse_gene_symbol": pd.Series(dtype="object"),
-                "mgi_allele_id": pd.Series(dtype="object"),
                 "human_gene_symbol": pd.Series(dtype="object"),
                 "human_ensembl_id": pd.Series(dtype="object"),
             }
@@ -548,7 +547,6 @@ class TestMapGenesToHumanSymbols:
             {
                 "model": pd.Series(dtype="object"),
                 "mouse_gene_symbol": pd.Series(dtype="object"),
-                "mgi_allele_id": pd.Series(dtype="object"),
                 "human_ensembl_id": pd.Series(dtype="object"),
             }
         )
