@@ -108,11 +108,7 @@ def map_genes_to_human_symbols(
         "human_gene_symbol"
     ].fillna(model_genetic_modifications["mouse_gene_symbol"])
 
-    # Drop the temporary columns and human_gene_symbol (already merged into mouse_gene_symbol)
-    model_genetic_modifications = model_genetic_modifications.drop(
-        columns=["gene_upper", "human_gene_symbol"], errors="ignore"
-    )
-    return model_genetic_modifications
+    return model_genetic_modifications.drop(columns=["human_gene_symbol"])
 
 
 def process_group(
