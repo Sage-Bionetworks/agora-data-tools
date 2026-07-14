@@ -34,7 +34,6 @@ REQUIRED_INPUT = {
     "model_genetic_modifications": [
         "model",
         "mouse_gene_symbol",
-        "mgi_allele_id",
         "human_gene_symbol",
         "human_ensembl_id",
     ],
@@ -91,13 +90,14 @@ def map_genes_to_human_symbols(
     model_genetic_modifications: pd.DataFrame,
 ) -> pd.DataFrame:
     """
-    Maps mouse gene names to human gene symbols using the human transgene allele map.
-    For genes without a mapping, the original mouse gene name is preserved.
+    Maps mouse gene symbols for modified genes as follows: symbols for transgenic
+    genes are replaced with human gene symbols, while the original mouse gene
+    symbol is preserved for non-transgenic genes.
 
     Args:
         model_genetic_modifications (pd.DataFrame): DataFrame containing allele
-            information with columns: model, mouse_gene_symbol, mgi_allele_id,
-            human_gene_symbol, human_ensembl_id
+            information with columns: model, mouse_gene_symbol, human_gene_symbol,
+            human_ensembl_id
 
     Returns:
         pd.DataFrame: A copy of model_genetic_modifications with gene names mapped to
