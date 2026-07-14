@@ -95,8 +95,7 @@ def transform_model_details(
         2. Sex and tissue values are converted to use Initial Caps (e.g. Female, Cerebral Cortex)
         3. Biomarker measure (pre-transform in source file) aka evidence_type (post-transform
         in output file)values use &beta; entity codes, instead of beta string literals
-        4. Human ensembl IDs and gene values are used wherever possible for each model (determined by
-            matching mgi_allele_id)
+        4. Human Ensembl IDs and gene symbols are used in place of mouse values for human transgenes
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
