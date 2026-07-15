@@ -32,7 +32,7 @@ Key Functions:
     _determine_result_order: Determines the ordering of display labels for genotypes in a model_group
 
 Required Inputs:
-    - rnaseq_genotype_label_map: Maps models and genotypes to display labels and model_groups
+    - genotype_label_map: Maps models and genotypes to display labels and model_groups
     - mouse_gene_metadata: Gene symbols for Ensembl IDs
     - Data files: One or more CSV files containing individual expression results; required
       columns are defined by the DATA_FILE_REQUIRED_COLUMNS module constant, and column
@@ -64,7 +64,7 @@ from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
-    "rnaseq_genotype_label_map": [
+    "genotype_label_map": [
         "model",
         "model_group",
         "display_label",
@@ -86,7 +86,7 @@ DATA_FILE_REQUIRED_COLUMNS = [
 ]
 
 COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
-    "rnaseq_genotype_label_map": {
+    "genotype_label_map": {
         "model": [NotEmptyRule()],
         "genotype": [NotEmptyRule()],
         "display_label": [NotEmptyRule()],
@@ -304,7 +304,7 @@ def transform_rna_de_individual(
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
-            - 'rnaseq_genotype_label_map': Maps genotypes to display labels and model_groups.
+            - 'genotype_label_map': Maps genotypes to display labels and model_groups.
               Required columns: model, genotype, display_label, model_group, result_order
             - 'mouse_gene_metadata': Gene symbols for Ensembl IDs.
               Required columns: ensembl_gene_id, gene_symbol
@@ -315,7 +315,7 @@ def transform_rna_de_individual(
             Defaults to REQUIRED_INPUT module constant.
         data_file_required_columns: List of required column names for data files.
             Defaults to DATA_FILE_REQUIRED_COLUMNS module constant.
-        column_rules: Per-column content rules for static datasets (rnaseq_genotype_label_map).
+        column_rules: Per-column content rules for static datasets (genotype_label_map).
             Defaults to COLUMN_RULES module constant.
         data_file_column_rules: Per-column content rules applied to each data file.
             Defaults to DATA_FILE_COLUMN_RULES module constant.
@@ -349,14 +349,14 @@ def transform_rna_de_individual(
     check_column_rules(datasets, column_rules)
 
     # Step 2: Prepare metadata DataFrames
-    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"].copy()
-    rnaseq_genotype_label_map_df["result_order"] = rnaseq_genotype_label_map_df[
+    genotype_label_map_df = datasets["genotype_label_map"].copy()
+    genotype_label_map_df["result_order"] = genotype_label_map_df[
         "result_order"
     ].astype(int)
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
 
     # Step 3: Validate data consistency
-    validate_model_group_consistency(rnaseq_genotype_label_map_df)
+    validate_model_group_consistency(genotype_label_map_df)
 
     # Step 4: Create gene metadata lookup dictionary (Ensembl ID → gene symbol)
     gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
@@ -378,7 +378,7 @@ def transform_rna_de_individual(
 
     # Build a model → model_group lookup from the label map df
     model_to_mg: Dict[str, str] = (
-        rnaseq_genotype_label_map_df.drop_duplicates("model")
+        genotype_label_map_df.drop_duplicates("model")
         .set_index("model")["model_group"]
         .to_dict()
     )
@@ -443,7 +443,7 @@ def transform_rna_de_individual(
         )
 
         group_output = _process_individual_data_file_core(
-            combined_data, gene_metadata_dict, rnaseq_genotype_label_map_df
+            combined_data, gene_metadata_dict, genotype_label_map_df
         )
         output.extend(group_output)
 

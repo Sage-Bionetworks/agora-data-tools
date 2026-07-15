@@ -26,7 +26,7 @@ Key Functions:
     _process_single_data_file: Processes a single differential expression data file and transforms it into output entries
 
 Required Inputs:
-    - rnaseq_genotype_label_map: Maps (model, genotype) tuples to display labels, and provides
+    - genotype_label_map: Maps (model, genotype) tuples to display labels, and provides
       model_type for each model. All genotypes used in data files must have corresponding entries
       or a ValueError will be raised.
     - mouse_gene_metadata: Gene symbols and aliases for Ensembl IDs
@@ -48,7 +48,7 @@ from agoradatatools.etl.utils import (
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
-    "rnaseq_genotype_label_map": [
+    "genotype_label_map": [
         "model",
         "model_group",
         "display_label",
@@ -234,7 +234,7 @@ def _create_output_entry_from_group(
         biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
             Used to annotate genes with their associated biological domains.
         model_type_dict: Dictionary mapping model names to model types, derived from the
-            rnaseq_genotype_label_map dataset. Used to classify models (e.g., "Familial AD",
+            genotype_label_map dataset. Used to classify models (e.g., "Familial AD",
             "Late Onset AD"). Unlike model_info, this dict includes entries for split variant
             models such as "Abca7*V1599M.5xFAD".
 
@@ -291,7 +291,7 @@ def _create_output_entry_from_group(
                 f"Label mapping not found for genotype. "
                 f"Model: '{model}', Genotype: '{k[1]}', "
                 f"Gene: {ensembl_gene_id}, Tissue: {tissue}, Sex: {sex}. "
-                f"Please ensure the rnaseq_genotype_label_map dataset contains "
+                f"Please ensure the genotype_label_map dataset contains "
                 f"an entry for model '{model}' and genotype '{k[1]}'."
             )
     name = label_map_dict[case_key]
@@ -379,7 +379,7 @@ def _process_single_data_file(
         biodomain_dict: Dictionary mapping Ensembl gene IDs to lists of biodomain names.
             Used to annotate genes with their associated biological domains.
         model_type_dict: Dictionary mapping model names to model types, derived from the
-            rnaseq_genotype_label_map dataset. Used to classify models (e.g., "Familial AD",
+            genotype_label_map dataset. Used to classify models (e.g., "Familial AD",
             "Late Onset AD").
         file_index: Current file index (0-based) for progress tracking. Used in logging
             to indicate which file is being processed (e.g., "Processing file 3/10").
@@ -486,7 +486,7 @@ def transform_rna_de_aggregate(
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
-            - 'rnaseq_genotype_label_map': Maps (model, genotype) combinations to display labels
+            - 'genotype_label_map': Maps (model, genotype) combinations to display labels
               and organizes models into model_groups. Also provides model_type for each model,
               including split variant models (e.g., "Abca7*V1599M.5xFAD") that are not present
               in model_info.
@@ -528,7 +528,7 @@ def transform_rna_de_aggregate(
         ValueError: If required datasets or columns are missing, if any model has
             inconsistent model_group values, if any data file is empty or invalid,
             or if any case or control genotype used in the data files is not found
-            in the rnaseq_genotype_label_map dataset.
+            in the genotype_label_map dataset.
             Error messages include specific details about what validation failed.
 
     Note:
@@ -542,7 +542,7 @@ def transform_rna_de_aggregate(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Pre-compute lookup dictionaries for efficient lookups
-    rnaseq_genotype_label_map_df = datasets["rnaseq_genotype_label_map"]
+    genotype_label_map_df = datasets["genotype_label_map"]
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
     biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(
         axis="index", subset=["ensembl_id"]
@@ -557,38 +557,36 @@ def transform_rna_de_aggregate(
     )
 
     # Create label map dictionaries for efficient lookups
-    label_map_dict = rnaseq_genotype_label_map_df.set_index(["model", "genotype"])[
+    label_map_dict = genotype_label_map_df.set_index(["model", "genotype"])[
         "display_label"
     ].to_dict()
 
     # Validate that each model has consistent model_group values
     inconsistent_models = (
-        rnaseq_genotype_label_map_df.groupby("model")["model_group"]
+        genotype_label_map_df.groupby("model")["model_group"]
         .nunique()
         .pipe(lambda x: x[x > 1].index.tolist())
     )
     if inconsistent_models:
         raise ValueError(
-            f"Each model must have a consistent model_group value in rnaseq_genotype_label_map. "
+            f"Each model must have a consistent model_group value in genotype_label_map. "
             f"Models with inconsistent model_group values: {inconsistent_models}"
         )
 
     model_group_dict = (
-        rnaseq_genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
+        genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
     )
 
-    # Derive model_type from rnaseq_genotype_label_map so that split variant models
+    # Derive model_type from genotype_label_map so that split variant models
     # (e.g., "Abca7*V1599M.5xFAD") are covered without requiring entries in model_info.
-    model_type_df = rnaseq_genotype_label_map_df[
-        ["model", "model_type"]
-    ].drop_duplicates()
+    model_type_df = genotype_label_map_df[["model", "model_type"]].drop_duplicates()
     if model_type_df["model"].duplicated().any():
         inconsistent_model_type_models = model_type_df["model"][
             model_type_df["model"].duplicated()
         ].tolist()
         raise ValueError(
             f"Each model must have a consistent model_type value in "
-            f"rnaseq_genotype_label_map. Models with inconsistent model_type values: "
+            f"genotype_label_map. Models with inconsistent model_type values: "
             f"{inconsistent_model_type_models}"
         )
     model_type_dict = model_type_df.set_index("model")["model_type"].to_dict()
