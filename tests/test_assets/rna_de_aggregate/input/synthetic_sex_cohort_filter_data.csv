@@ -1,0 +1,4 @@
+ensembl_gene_id,log2foldchange,padj,model,case,control,age,sex,tissue
+ENSMUSG00000000005,1.50000,0.15000,Model_D,Tg,Wt,3 months,Females,Brain
+ENSMUSG00000000006,-1.00000,0.10000,Model_D,Tg,Wt,6 months,Males,Brain
+ENSMUSG00000000007,2.00000,0.20000,Model_D,Tg,Wt,3 months,Females & Males,Brain

@@ -16,6 +16,7 @@ We welcome all contributions! That said, this is a Sage Bionetworks owned projec
   - [Custom Expectations](#custom-expectations)
   - [Nested Columns](#nested-columns)
 - [DockerHub](#dockerhub)
+- [Testing a Branch on Nextflow Tower](#testing-a-branch-on-nextflow-tower)
 
 ## Coding Style
 
@@ -234,3 +235,67 @@ validator.expect_column_values_to_be_of_type("<nested_column_name>", "str")
 ### DockerHub
 
 Rather than using GitHub actions to build and push Docker images to DockerHub, the Docker images are automatically built in DockerHub. This requires the `sagebiodockerhub` GitHub user to be an Admin of this repo. You can view the docker build [here](https://hub.docker.com/r/sagebionetworks/agora-data-tools).
+
+
+### Testing a Branch on Nextflow Tower
+The [nf-agora](https://github.com/Sage-Bionetworks-Workflows/nf-agora) pipeline runs `adt` inside a Docker container pulled from GHCR. The `ghcr-publish` CI job builds and pushes a Docker image tagged with both the short commit SHA and the PR number.
+
+Note that `ghcr-publish` only runs for pull requests opened from a branch in this repository (`sage-bionetworks/agora-data-tools`), not from a fork, since it requires `packages: write` permissions. It also runs on every push to `dev` and on version tags.
+
+To test specific changes in a Tower run, use the PR number to find the exact image.
+
+#### Step 1: Open a Pull Request and Find the PR Number
+
+Make sure all your code and config changes are pushed to GitHub, then open a pull request. Once it's open, find its number:
+
+```shell
+gh pr list --head <your-branch-name> --json number
+```
+
+Once the `ghcr-publish` CI job completes for that commit, the image will be available at:
+
+```
+ghcr.io/sage-bionetworks/agora-data-tools:pr-<PR number>
+```
+
+#### Step 2 (Optional): Create a feature branch in nf-agora
+
+This step is only necessary if you need a custom profile in `nextflow.config`, for example, to point `config` at a config file from your branch rather than one already on `dev`. If the existing profiles already cover your test case, you can skip this step and run Tower directly against your PR image.
+
+Clone [nf-agora](https://github.com/Sage-Bionetworks-Workflows/nf-agora) and create a feature branch:
+
+```shell
+git clone https://github.com/Sage-Bionetworks-Workflows/nf-agora.git
+cd nf-agora
+git checkout -b <your-branch-name>
+```
+Also update the relevant profile in `nextflow.config` to point the `config` param at your config file:
+
+```groovy
+<your custom profile name> {
+    params {
+        config = "https://raw.githubusercontent.com/Sage-Bionetworks/agora-data-tools/refs/heads/<your-branch-name>/configs/<your-config>.yaml"
+    }
+}
+```
+
+Commit and push your changes to the upstream `nf-agora` repo so Tower can pull your feature branch:
+
+```shell
+git add nextflow.config
+git commit -m "Add custom profile for testing <your-branch-name>"
+git push --set-upstream origin <your-branch-name>
+```
+
+#### Step 3: Launch Seqera run
+
+Follow the [nf-agora pipeline launch instructions](https://github.com/Sage-Bionetworks-Workflows/nf-agora/blob/main/README.md#launching-the-pipeline). When selecting the **Revision**, choose your `nf-agora` feature branch if you created one in Step 2; otherwise, choose `main`.
+
+In the **Run parameters** step, update `container` to point at the image you built in Step 1:
+
+```json
+"container": "ghcr.io/sage-bionetworks/agora-data-tools:pr-<PR number>"
+```
+
+
+Once testing is complete, delete your temporary `nf-agora` branch to avoid clutter.
