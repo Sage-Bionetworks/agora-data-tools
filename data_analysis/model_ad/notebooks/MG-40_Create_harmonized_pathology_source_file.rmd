@@ -18,7 +18,7 @@ As data becomes available for additional models, the data for those models will 
 To incorporate each new model into this notebook:
 
 Prerequisites:
-* Genotype display name mappings for the new model have been added to rnaseq_genotype_label_map.csv (syn69014401)
+* Genotype display name mappings for the new model have been added to genotype_label_map.csv (syn69014401)
 
 1. 'Download data and metadata files from Synapse' section:
 - Add a section to download the new model's metadata and data files
@@ -103,7 +103,7 @@ keeps <- c('individual_id', 'model', 'type', 'measurement', 'units', 'age_death'
 # DISPLAY LABELS
 # **************
 
-# Model display names (copied from rnaseq_genotype_label_map.csv) -- there isn't
+# Model display names (copied from genotype_label_map.csv) -- there isn't
 # a good way to get these values dynamically.
 threex_display_name <- '3xTg-AD'
 fivex_display_name <- '5xFAD (UCI)'
@@ -318,7 +318,7 @@ join_to_metadata <- function(results, individual_metadata, biospecimen_metadata)
 Note that each file's synId and version is added to the data_sources vector via the download_csv function.
 The populated data_sources vector is used to populate Synapse provenance when the harmonized csv is uploaded.
 ```{r}
-# Genotype -> Display label map (rnaseq_genotype_label_map.csv)
+# Genotype -> Display label map (genotype_label_map.csv)
 genotype_label_map <- download_csv('syn69014401.17') %>%
   # Model name fix, plus change "5xFAD (UCI)" -> "5xFAD"
   dplyr::mutate(model = model_group,

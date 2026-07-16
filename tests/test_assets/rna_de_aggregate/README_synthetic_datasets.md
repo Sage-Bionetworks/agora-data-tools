@@ -22,14 +22,14 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_missing_columns_data.csv`**: Missing required columns for error testing
 
 #### Metadata Files
-- **`synthetic_rnaseq_genotype_label_map.csv`**: Model to display label mapping
+- **`synthetic_genotype_label_map.csv`**: Model to display label mapping
 - **`synthetic_mouse_gene_metadata.csv`**: Gene ID to symbol mapping
 - **`synthetic_biodom_genes_mm.csv`**: Biodomain assignments for genes
 - **`synthetic_biodom_genes_mm_multiple.csv`**: Biodomain assignments with genes having multiple biodomains
 - **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
-- **`synthetic_rnaseq_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
-- **`synthetic_rnaseq_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
-- **`synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv`**: Label mapping with inconsistent model_type values for the same model (for error testing)
+- **`synthetic_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
+- **`synthetic_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
+- **`synthetic_genotype_label_map_inconsistent_model_type.csv`**: Label mapping with inconsistent model_type values for the same model (for error testing)
 
 ### Output Files
 - **`synthetic_*_output.json`**: Expected output for each test case
@@ -132,7 +132,7 @@ Expected: ValueError raised with informative message identifying the negative pa
 Tests: Validation that negative adjusted p-values are rejected with clear error message
 ```
 
-### Scenario 12: Inconsistent Model Group (`synthetic_rnaseq_genotype_label_map_inconsistent.csv`)
+### Scenario 12: Inconsistent Model Group (`synthetic_genotype_label_map_inconsistent.csv`)
 ```
 Model: Model_A with inconsistent model_group values
   - Tg genotype → GroupX
@@ -162,7 +162,7 @@ The `case` and `control` columns in the input data represent the comparison bein
 - **Case**: The experimental condition (e.g., transgenic "Tg")
 - **Control**: The control condition (e.g., wild-type "Wt")
 
-The `rnaseq_genotype_label_map.csv` file maps these genotypes to human-readable display labels:
+The `genotype_label_map.csv` file maps these genotypes to human-readable display labels:
 - `case` → `name` (object with `link_url` and `link_text` fields, e.g., `{"link_url": "models/Model_A (Tg)", "link_text": "Model_A (Tg)"}`)
 - `control` → `matched_control` (string, e.g., "Model_A (Wt)")
 
@@ -267,14 +267,14 @@ tests/test_assets/rna_de_aggregate/
 │   │   ├── synthetic_empty_data.csv
 │   │   └── synthetic_missing_columns_data.csv
 │   └── Metadata Files:
-│       ├── synthetic_rnaseq_genotype_label_map.csv
+│       ├── synthetic_genotype_label_map.csv
 │       ├── synthetic_mouse_gene_metadata.csv
 │       ├── synthetic_biodom_genes_mm.csv
 │       ├── synthetic_biodom_genes_mm_multiple.csv
 │       ├── synthetic_mouse_gene_metadata_multi.csv
-│       ├── synthetic_rnaseq_genotype_label_map_no_group.csv
-│       ├── synthetic_rnaseq_genotype_label_map_inconsistent.csv
-│       └── synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv
+│       ├── synthetic_genotype_label_map_no_group.csv
+│       ├── synthetic_genotype_label_map_inconsistent.csv
+│       └── synthetic_genotype_label_map_inconsistent_model_type.csv
 ├── output/
 │   ├── synthetic_basic_output.json
 │   ├── synthetic_multi_model_output.json

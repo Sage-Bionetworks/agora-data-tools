@@ -11,7 +11,7 @@ files:
   - &model_info                   { name: model_info                   , format: csv  , id: syn61378590.13 }
   - &model_results_info           { name: model_results_info           , format: csv  , id: syn68377668.7  }
   - &mouse_gene_metadata          { name: mouse_gene_metadata          , format: json , id: syn51615422.6  }
-  - &rnaseq_genotype_label_map    { name: rnaseq_genotype_label_map    , format: csv  , id: syn69014401.17 }
+  - &genotype_label_map           { name: genotype_label_map           , format: csv  , id: syn69014401.17 }
   - &ui_config                    { name: ui_config                    , format: json , id: syn66527739.30 }
   # Results
   - &biodom_genes_mm              { name: biodom_genes_mm              , format: csv  , id: syn66351272.1  }
@@ -111,7 +111,7 @@ datasets:
 
   - rna_de_aggregate:
       files:
-        - <<: *rnaseq_genotype_label_map
+        - <<: *genotype_label_map
         - <<: *mouse_gene_metadata
         - <<: *biodom_genes_mm
         - <<: *jax_5xFAD_de
@@ -126,7 +126,7 @@ datasets:
 
   - rna_de_individual:
       files:
-        - <<: *rnaseq_genotype_label_map
+        - <<: *genotype_label_map
         - <<: *mouse_gene_metadata
         - <<: *jax_APOE4_Trem2_R47H_ne
         - <<: *jax_APOE4_ne
