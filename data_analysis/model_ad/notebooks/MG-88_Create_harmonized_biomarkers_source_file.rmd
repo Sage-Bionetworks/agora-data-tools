@@ -90,7 +90,7 @@ age_keeps <- c(4, 12, 18)
 # DISPLAY LABELS
 # **************
 
-# Model display names (copied from rnaseq_genotype_label_map.csv) -- there isn't
+# Model display names (copied from genotype_label_map.csv) -- there isn't
 # a good way to get these values dynamically.
 threex_display_name <- '3xTg-AD'
 fivex_display_name <- '5xFAD (UCI)'
