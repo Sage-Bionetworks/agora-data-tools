@@ -86,31 +86,6 @@ def extract_module_name(module: str) -> str:
     return match.group(0) if match else module
 
 
-def map_genes_to_human_symbols(
-    model_genetic_modifications: pd.DataFrame,
-) -> pd.DataFrame:
-    """
-    Maps mouse gene symbols for modified genes as follows: symbols for transgenic
-    genes are replaced with human gene symbols, while the original mouse gene
-    symbol is preserved for non-transgenic genes.
-
-    Args:
-        model_genetic_modifications (pd.DataFrame): DataFrame containing allele
-            information with columns: model, mouse_gene_symbol, human_gene_symbol,
-            human_ensembl_id
-
-    Returns:
-        pd.DataFrame: A copy of model_genetic_modifications with gene names mapped to
-            human symbols where applicable
-    """
-    # Replace mouse gene symbol with human symbol where mapping exists
-    model_genetic_modifications["mouse_gene_symbol"] = model_genetic_modifications[
-        "human_gene_symbol"
-    ].fillna(model_genetic_modifications["mouse_gene_symbol"])
-
-    return model_genetic_modifications.drop(columns=["human_gene_symbol"])
-
-
 def process_group(
     group: pd.DataFrame,
     model_info: Dict[str, Any],
@@ -231,9 +206,12 @@ def transform_disease_correlation(
     )
     model_info_lookup = create_lookup(model_metadata_df, group_by_col="model")
 
-    model_genetic_modifications_df = map_genes_to_human_symbols(
-        model_genetic_modifications_df
+    # Replace mouse gene symbol with human one if mapping exists. Else, preserve mouse symbol,
+    model_genetic_modifications_df["mouse_gene_symbol"] = (
+        model_genetic_modifications_df["human_gene_symbol"]
+        .fillna(model_genetic_modifications_df["mouse_gene_symbol"])
     )
+    model_genetic_modifications_df = model_genetic_modifications_df.drop(columns=["human_gene_symbol"])
     model_allele_lookup = create_lookup(
         df=model_genetic_modifications_df, group_by_col="model"
     )
