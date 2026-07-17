@@ -200,7 +200,7 @@ class TestDiseaseCorrelation:
         ):
             transform_disease_correlation(datasets)
 
-    def test_gene_symbol_mapping(self):
+    def test_gene_symbol_mapping(self) -> None:
         """
         Test that transform_disease_correlation correctly maps mouse gene symbols to human
         gene symbols when a mapping exists, and preserves the original mouse gene symbol
