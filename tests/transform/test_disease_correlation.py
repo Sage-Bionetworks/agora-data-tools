@@ -200,6 +200,75 @@ class TestDiseaseCorrelation:
         ):
             transform_disease_correlation(datasets)
 
+    def test_gene_symbol_mapping(self):
+        """
+        Test that transform_disease_correlation correctly maps mouse gene symbols to human
+        gene symbols when a mapping exists, and preserves the original mouse gene symbol
+        when no human mapping is available.
+        """
+        datasets = {
+            "disease_correlation_results": pd.DataFrame(
+                [{
+                    "cluster": "Cluster A",
+                    "module": "IFGyellow",
+                    "mouse_model": "APOE4",
+                    "age": "4 months",
+                    "sex": "Male",
+                    "correlation": 0.5,
+                    "adjusted_p_value": 0.01,
+                },
+                {
+                    "cluster": "Cluster B",
+                    "module": "PHGbrown",
+                    "mouse_model": "Model1",
+                    "age": "6 months",
+                    "sex": "Female",
+                    "correlation": 0.6,
+                    "adjusted_p_value": 0.02,
+                }]
+            ),
+            "model_metadata": pd.DataFrame(
+                [{
+                    "model": "APOE4",
+                    "matched_controls": "Ctrl",
+                    "model_type": "TypeX",
+                }]
+            ),
+            "model_genetic_modifications": pd.DataFrame(
+                [
+                    {
+                        "model": "APOE4",
+                        "mouse_gene_symbol": "Apoe",
+                        "human_gene_symbol": "APOE",
+                        "human_ensembl_id": "ENSG00000130203",
+                    },
+                    {
+                        "model": "5xFAD",
+                        "mouse_gene_symbol": "App",
+                        "human_gene_symbol": "APP",
+                        "human_ensembl_id": "ENSG00000142192",
+                    },
+                    {
+                        "model": "5xFAD",
+                        "mouse_gene_symbol": "Psen1",
+                        "human_gene_symbol": "PSEN1",
+                        "human_ensembl_id": "ENSG00000080815",
+                    },
+                    {
+                        "model": "Model1",
+                        "mouse_gene_symbol": "Mapt",
+                        "human_gene_symbol": None,
+                        "human_ensembl_id": None,
+                    },
+                ]
+            ),
+        }
+        result = transform_disease_correlation(datasets)
+
+        assert len(result) == 2
+        assert result[0]["modified_genes"] == ["APOE"]   # human symbol used
+        assert result[1]["modified_genes"] == ["Mapt"]   # no human mapping, mouse symbol preserved
+
 
 class TestCreateLookup:
     """
