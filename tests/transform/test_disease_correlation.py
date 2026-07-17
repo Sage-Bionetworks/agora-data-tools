@@ -208,31 +208,35 @@ class TestDiseaseCorrelation:
         """
         datasets = {
             "disease_correlation_results": pd.DataFrame(
-                [{
-                    "cluster": "Cluster A",
-                    "module": "IFGyellow",
-                    "mouse_model": "APOE4",
-                    "age": "4 months",
-                    "sex": "Male",
-                    "correlation": 0.5,
-                    "adjusted_p_value": 0.01,
-                },
-                {
-                    "cluster": "Cluster B",
-                    "module": "PHGbrown",
-                    "mouse_model": "Model1",
-                    "age": "6 months",
-                    "sex": "Female",
-                    "correlation": 0.6,
-                    "adjusted_p_value": 0.02,
-                }]
+                [
+                    {
+                        "cluster": "Cluster A",
+                        "module": "IFGyellow",
+                        "mouse_model": "APOE4",
+                        "age": "4 months",
+                        "sex": "Male",
+                        "correlation": 0.5,
+                        "adjusted_p_value": 0.01,
+                    },
+                    {
+                        "cluster": "Cluster B",
+                        "module": "PHGbrown",
+                        "mouse_model": "Model1",
+                        "age": "6 months",
+                        "sex": "Female",
+                        "correlation": 0.6,
+                        "adjusted_p_value": 0.02,
+                    },
+                ]
             ),
             "model_metadata": pd.DataFrame(
-                [{
-                    "model": "APOE4",
-                    "matched_controls": "Ctrl",
-                    "model_type": "TypeX",
-                }]
+                [
+                    {
+                        "model": "APOE4",
+                        "matched_controls": "Ctrl",
+                        "model_type": "TypeX",
+                    }
+                ]
             ),
             "model_genetic_modifications": pd.DataFrame(
                 [
@@ -266,8 +270,10 @@ class TestDiseaseCorrelation:
         result = transform_disease_correlation(datasets)
 
         assert len(result) == 2
-        assert result[0]["modified_genes"] == ["APOE"]   # human symbol used
-        assert result[1]["modified_genes"] == ["Mapt"]   # no human mapping, mouse symbol preserved
+        assert result[0]["modified_genes"] == ["APOE"]  # human symbol used
+        assert result[1]["modified_genes"] == [
+            "Mapt"
+        ]  # no human mapping, mouse symbol preserved
 
 
 class TestCreateLookup:
@@ -524,4 +530,3 @@ class TestProcessGroup:
         }
 
         assert result == expected_result
-

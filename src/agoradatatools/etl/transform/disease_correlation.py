@@ -208,10 +208,13 @@ def transform_disease_correlation(
 
     # Replace mouse gene symbol with human one if mapping exists. Else, preserve mouse symbol,
     model_genetic_modifications_df["mouse_gene_symbol"] = (
-        model_genetic_modifications_df["human_gene_symbol"]
-        .fillna(model_genetic_modifications_df["mouse_gene_symbol"])
+        model_genetic_modifications_df["human_gene_symbol"].fillna(
+            model_genetic_modifications_df["mouse_gene_symbol"]
+        )
     )
-    model_genetic_modifications_df = model_genetic_modifications_df.drop(columns=["human_gene_symbol"])
+    model_genetic_modifications_df = model_genetic_modifications_df.drop(
+        columns=["human_gene_symbol"]
+    )
     model_allele_lookup = create_lookup(
         df=model_genetic_modifications_df, group_by_col="model"
     )
