@@ -19,17 +19,18 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     zero_pad_jax_ids,
 )
 
-
 REQUIRED_INPUT = {
-    "allele_info": [
+    "model_genetic_modifications": [
         "name",
         "modified_gene",
-        "gene_ensembl_id",
+        "mouse_ensembl_id",
         "allele",
         "allele_type",
         "mgi_allele_id",
+        "human_gene_symbol",
+        "human_ensembl_id",
     ],
-    "model_info": [
+    "model_metadata": [
         "name",
         "matched_controls",
         "model_type",
@@ -42,18 +43,10 @@ REQUIRED_INPUT = {
         "aliases",
         "url_categories_value",
         "url_models_value",
-    ],
-    "model_results_info": [
-        "name",
         "transcriptomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
-    ],
-    "human_transgene_allele_map": [
-        "mgi_allele_id",
-        "gene_symbol",
-        "human_ensembl_id",
     ],
     "immunohisto_measure_order": [
         "dataset_name",
@@ -91,8 +84,8 @@ def transform_model_details(
     """
     Transforms the model_details souce files into a structured format for Model AD.
 
-    Source Files: model_info (syn61378590), allele_info (syn64618791),
-    pathology (syn61357279), biomarkers (syn61250724), human_transgene_allele_map (syn64846805)
+    Source Files: model_metadata (syn76069176), model_genetic_modifications (syn76147521),
+    pathology (syn61357279), biomarkers (syn61250724)
 
     Expected Transformations:
         1. Column renames are applied to Pathology and Biomarkers:
@@ -102,8 +95,7 @@ def transform_model_details(
         2. Sex and tissue values are converted to use Initial Caps (e.g. Female, Cerebral Cortex)
         3. Biomarker measure (pre-transform in source file) aka evidence_type (post-transform
         in output file)values use &beta; entity codes, instead of beta string literals
-        4. For the human_transgene_allele_map source file use the human_ensembl_id and
-        gene values for rows with a matching mgi_allele_id
+        4. Human Ensembl IDs and gene symbols are used in place of mouse values for human transgenes
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
@@ -118,26 +110,17 @@ def transform_model_details(
     check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
-    allele_info_df = datasets["allele_info"]
-    human_transgene_allele_map_df = datasets["human_transgene_allele_map"]
+    model_metadata_df = datasets["model_metadata"]
+    model_genetic_modifications_df = datasets["model_genetic_modifications"]
 
-    # Merge model_results_df into model_info to get which types of data are available for each model
-    model_info_df = pd.merge(
-        datasets["model_info"],
-        datasets["model_results_info"],
-        how="left",
-        on="name",
-        validate="one_to_one",
-    )
-
-    model_info_df = normalize_null_values(
-        model_info_df,
+    model_metadata_df = normalize_null_values(
+        model_metadata_df,
         boolean_columns=["transcriptomics", "disease_correlation"],
         empty_string_columns=["rrid", "alzforum_id"],
     )
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
-    model_info_df["jax_id"] = zero_pad_jax_ids(model_info_df["jax_id"])
+    model_metadata_df["jax_id"] = zero_pad_jax_ids(model_metadata_df["jax_id"])
 
     # Prepare biomarker and pathology dataframes
     grouped_biomarkers = immunohisto_transform(datasets, dataset_name="biomarkers")
@@ -145,19 +128,20 @@ def transform_model_details(
 
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
-        model_info_df[col_name] = model_info_df[col_name].apply(
+        model_metadata_df[col_name] = model_metadata_df[col_name].apply(
             delim_string_to_list, delim=","
         )
 
     # Process each model
     result = []
-    for _, model_row in model_info_df.iterrows():
+    for _, model_row in model_metadata_df.iterrows():
         model_name = model_row["name"]
 
         # Get genetic info for this model
         genetic_info = process_genetic_info(
-            human_transgene_allele_map_df,
-            model_alleles=allele_info_df[allele_info_df["name"] == model_name],
+            model_genetic_modifications_df[
+                model_genetic_modifications_df["name"] == model_name
+            ],
         )
 
         # Process the biomarkers and pathology datasets for this model

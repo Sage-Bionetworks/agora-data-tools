@@ -18,19 +18,15 @@ class TestProcessGeneticInfo:
     """Test class for the process_genetic_info function."""
 
     def test_process_genetic_info_should_pass(self) -> None:
+        """
+        Test that process_genetic_info correctly uses human Ensembl IDs and gene symbols
+        when available, and preserves mouse Ensembl IDs when no human mapping exists.
+        """
         # Create test input DataFrames
-        human_transgene_allele_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": [2672831, 1930937],
-                "gene_symbol": ["App", "Psen1"],
-                "human_ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
-            }
-        )
-
-        model_alleles = pd.DataFrame(
+        model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": [
+                "mouse_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000018411",
                     "ENSMUSG00000019969",
@@ -42,6 +38,8 @@ class TestProcessGeneticInfo:
                 ],
                 "allele_type": ["Transgenic", "Transgenic", "Targeted"],
                 "mgi_allele_id": [2672831, 2672831, 1930937],
+                "human_gene_symbol": ["App", None, "Psen1"],
+                "human_ensembl_id": ["ENSG00000142192", None, "ENSG00000080815"],
             }
         )
 
@@ -71,82 +69,22 @@ class TestProcessGeneticInfo:
         ]
 
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
-
-        # Compare output with expected
-        assert output == expected_output
-
-    def test_process_genetic_info_with_no_human_matches(self) -> None:
-        # Create test input DataFrames with no matching human transgenes
-        human_transgene_allele_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": [9999999],  # Different MGI ID
-                "gene_symbol": ["DifferentGene"],
-                "human_ensembl_id": ["ENSG00000000000"],
-            }
-        )
-
-        model_alleles = pd.DataFrame(
-            {
-                "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": [
-                    "ENSMUSG00000022892",
-                    "ENSMUSG00000018411",
-                    "ENSMUSG00000019969",
-                ],
-                "allele": [
-                    "APP K670_M671delinsNL (Swedish)",
-                    "MAPT P301L",
-                    "Psen1<sup>tm1Mpm</sup>",
-                ],
-                "allele_type": ["Transgenic", "Transgenic", "Targeted"],
-                "mgi_allele_id": [2672831, 2672831, 1930937],
-            }
-        )
-
-        # Expected output - all should keep mouse Ensembl IDs
-        expected_output = [
-            {
-                "modified_gene": "App",
-                "ensembl_gene_id": "ENSMUSG00000022892",
-                "allele": "APP K670_M671delinsNL (Swedish)",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Mapt",
-                "ensembl_gene_id": "ENSMUSG00000018411",
-                "allele": "MAPT P301L",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Psen1",
-                "ensembl_gene_id": "ENSMUSG00000019969",
-                "allele": "Psen1<sup>tm1Mpm</sup>",
-                "allele_type": "Targeted",
-                "mgi_allele_id": 1930937,
-            },
-        ]
-
-        # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(model_genetic_modifications)
 
         # Compare output with expected
         assert output == expected_output
 
     def test_process_genetic_info_with_empty_input(self) -> None:
         # Create empty test input DataFrames
-        human_transgene_allele_map_df = pd.DataFrame(
-            columns=["mgi_allele_id", "gene_symbol", "human_ensembl_id"]
-        )
-        model_alleles = pd.DataFrame(
+        model_genetic_modifications = pd.DataFrame(
             columns=[
                 "modified_gene",
-                "gene_ensembl_id",
+                "mouse_ensembl_id",
                 "allele",
                 "allele_type",
                 "mgi_allele_id",
+                "human_gene_symbol",
+                "human_ensembl_id",
             ]
         )
 
@@ -154,81 +92,27 @@ class TestProcessGeneticInfo:
         expected_output = []
 
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
-
-        # Compare output with expected
-        assert output == expected_output
-
-    def test_process_genetic_info_case_insensitive_mapping(self) -> None:
-        # Create test input DataFrames with different gene casing
-        human_transgene_allele_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": [1234567, 1234567],
-                "gene_symbol": ["APP", "mapt"],  # Upper and lower case in mapping
-                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
-            }
-        )
-
-        model_alleles = pd.DataFrame(
-            {
-                "modified_gene": ["App", "Mapt"],  # Title case in alleles
-                "gene_ensembl_id": [
-                    "ENSMUSG00000011111",
-                    "ENSMUSG00000022222",
-                ],
-                "allele": [
-                    "APP Example Allele",
-                    "MAPT Example Allele",
-                ],
-                "allele_type": ["Transgenic", "Transgenic"],
-                "mgi_allele_id": [1234567, 1234567],
-            }
-        )
-
-        # Expected output: ENSG IDs should be mapped, gene names should keep original case
-        expected_output = [
-            {
-                "modified_gene": "APP",
-                "ensembl_gene_id": "ENSG00000123456",
-                "allele": "APP Example Allele",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 1234567,
-            },
-            {
-                "modified_gene": "mapt",
-                "ensembl_gene_id": "ENSG00000987654",
-                "allele": "MAPT Example Allele",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 1234567,
-            },
-        ]
-
-        # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(model_genetic_modifications)
 
         # Compare output with expected
         assert output == expected_output
 
     def test_process_genetic_info_normalizes_missing_values(self) -> None:
-        # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele" and "allele_type"
-        # can have missing values and still appear in the output.
-        human_transgene_allele_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": [1234567, 2345678],
-                "gene_symbol": ["APP", "MAPT"],
-                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
-            }
-        )
-
-        # The third gene does not exist in the human transgene mapping, so its Ensembl ID will not get overwritten in
-        # the output and the missing value will show up.
-        model_alleles = pd.DataFrame(
+        # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele", "allele_type",
+        # and "human_ensembl_id" can have missing values and still appear in the output.
+        model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.nan],
+                "mouse_ensembl_id": [
+                    "ENSMUSG00000011111",
+                    "ENSMUSG00000022222",
+                    np.nan,
+                ],
                 "allele": [np.nan, np.nan, np.nan],  # Missing allele names
                 "allele_type": [np.nan, np.nan, np.nan],  # Missing allele type
                 "mgi_allele_id": [1234567, 2345678, 3456789],
+                "human_gene_symbol": ["APP", "MAPT", None],
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654", None],
             },
             dtype="object",
         )
@@ -261,7 +145,7 @@ class TestProcessGeneticInfo:
         ]
 
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(model_genetic_modifications)
 
         # Compare output with expected
         assert output == expected_output

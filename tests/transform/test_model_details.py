@@ -31,11 +31,9 @@ class TestTransformModelDetails:
             # Pass with good test data
             {
                 "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_details_model_metadata_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_1.csv",
             },
             "model_details_transform_good_test_output.json",
         ),
@@ -43,11 +41,9 @@ class TestTransformModelDetails:
             # Pass with good test data requiring special URLs for gene expression
             {
                 "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_url_test_good_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_details_model_metadata_url_test_good_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
-                "model_results_info": "model_details_model_results_info_url_test_input.csv",
             },
             "model_details_transform_url_test_good_output.json",
         ),
@@ -55,11 +51,9 @@ class TestTransformModelDetails:
             # Pass with missing data in some fields
             {
                 "biomarkers": "model_details_biomarkers_missing_data_input.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_missing_data_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_details_model_metadata_missing_data_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_2.csv",
             },
             "model_details_transform_missing_data_output.json",
         ),
@@ -67,11 +61,9 @@ class TestTransformModelDetails:
             # Pass with empty biomarkers and pathology
             {
                 "biomarkers": "model_details_biomarkers_empty_input.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_details_model_metadata_empty_measurements_input.csv",
                 "pathology": "model_details_pathology_empty_input.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_1.csv",
             },
             "model_details_transform_empty_measurements_output.json",
         ),
@@ -79,35 +71,19 @@ class TestTransformModelDetails:
             # Pass with extra columns
             {
                 "biomarkers": "model_details_biomarkers_extra_column_input.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_details_model_metadata_extra_column_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_3.csv",
             },
             "model_details_transform_extra_column_output.json",
-        ),
-        (
-            # Pass with no matching human transgene alleles
-            {
-                "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_no_match_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_good_test_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_1.csv",
-            },
-            "model_details_transform_no_human_match_output.json",
         ),
         (
             # Pass with missing models in different source files
             {
                 "biomarkers": "model_details_biomarkers_missing_models_test.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_missing_models_test.csv",
-                "allele_info": "model_details_allele_info_missing_models_test.csv",
-                "model_info": "model_details_model_info_missing_models_test.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_missing_models_test.csv",
+                "model_metadata": "model_details_model_metadata_missing_models_test.csv",
                 "pathology": "model_details_pathology_missing_models_test.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_1.csv",
             },
             "model_details_transform_missing_models_output.json",
         ),
@@ -118,18 +94,15 @@ class TestTransformModelDetails:
         "Pass with missing data in some fields",
         "Pass with empty biomarkers and pathology",
         "Pass with extra columns",
-        "Pass with no matching human transgene alleles",
         "Pass with missing models in different source files",
     ]
     fail_test_data = [
         (
             # Fail with missing biomarkers dataset
             {
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_details_model_metadata_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_1.csv",
             },
             ValueError,
         ),
@@ -137,23 +110,29 @@ class TestTransformModelDetails:
             # Fail with missing required columns in biomarkers
             {
                 "biomarkers": "model_details_biomarkers_missing_column_input.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_details_model_metadata_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_1.csv",
             },
             ValueError,
         ),
         (
-            # Fail with missing required columns in model_info
+            # Fail with missing required columns in model_metadata
             {
                 "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "human_transgene_allele_map": "model_details_human_transgene_allele_map_good_test_input.csv",
-                "allele_info": "model_details_allele_info_good_test_input.csv",
-                "model_info": "model_details_model_info_missing_column_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_details_model_metadata_missing_column_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
-                "model_results_info": "model_details_model_results_info_good_test_input_1.csv",
+            },
+            ValueError,
+        ),
+        (
+            # Fail with missing required columns in model_genetic_modifications
+            {
+                "biomarkers": "model_details_biomarkers_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_missing_column_input.csv",
+                "model_metadata": "model_details_model_metadata_good_test_input.csv",
+                "pathology": "model_details_pathology_good_test_input.csv",
             },
             ValueError,
         ),
@@ -161,7 +140,8 @@ class TestTransformModelDetails:
     fail_test_ids = [
         "Fail with missing biomarkers dataset",
         "Fail with missing required columns in biomarkers",
-        "Fail with missing required columns in model_info",
+        "Fail with missing required columns in model_metadata",
+        "Fail with missing required columns in model_genetic_modifications",
     ]
 
     @pytest.mark.parametrize(
