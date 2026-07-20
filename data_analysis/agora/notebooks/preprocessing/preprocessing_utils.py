@@ -354,18 +354,41 @@ def load_file_with_name(
         None, if no file spec with that name exists
     """
     syn = utils._login_to_synapse(token=token)
+
+    file_config = get_config_for_file(file_name, config_filename=config_filename)
+    if not file_config:
+        return None
+
+    df = extract.get_entity_as_df(
+        syn_id=file_config["id"], source=file_config["format"], syn=syn
+    )
+    return df
+
+
+def get_config_for_file(file_name: str, config_filename: str) -> dict | None:
+    """
+    Loops through a config file's "datasets" list, finds the input file config that matches file_name, and returns
+    the config dictionary for that file.
+
+    Args:
+        file_name: the name of the data to load, which should match what is in the "name" field in
+                   the config file
+        config_filename: path to the config YAML file
+
+    Returns:
+        A dictionary containing the config for the file, if a file matching file_name exists in the config, or
+        None, if no file spec with that name exists
+    """
     config = utils._get_config(config_path=config_filename)
     datasets = config["datasets"]
 
     for dataset in datasets:
-        dataset_name = list(dataset.keys())[0]
+        # "dataset" is a dict with a single key (name of the data set) and a single object (the dataset config)
+        _, dataset_config = next(iter(dataset.items()))
 
-        for file in dataset[dataset_name]["files"]:
+        for file in dataset_config["files"]:
             if file["name"] == file_name:
-                df = extract.get_entity_as_df(
-                    syn_id=file["id"], source=file["format"], syn=syn
-                )
-                return df
+                return file
 
     return None
 

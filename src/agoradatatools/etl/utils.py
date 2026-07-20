@@ -594,7 +594,7 @@ def check_column_rules(
             "mouse_gene_metadata": pd.DataFrame({
                 "ensembl_gene_id": ["ENSMUSG000000000000000000", "ENSMUSG000000000000000001"],
             }),
-            "rnaseq_genotype_label_map": pd.DataFrame({
+            "genotype_label_map": pd.DataFrame({
                 "model": ["model1", "model2"],
                 "model_group": ["model_group1", "model_group2"],
             }),
@@ -604,7 +604,7 @@ def check_column_rules(
             "mouse_gene_metadata": {
                 "ensembl_gene_id": [MatchesRegexRule(value="^ENSMUSG")],
             },
-            "rnaseq_genotype_label_map": {
+            "genotype_label_map": {
                 "model": [NotEmptyRule()],
                 "model_group": [NotEmptyRule()],
             },

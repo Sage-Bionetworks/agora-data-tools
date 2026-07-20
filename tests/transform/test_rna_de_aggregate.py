@@ -31,7 +31,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 Test Data Structure:
     Input files include:
     - RNA-seq differential expression data (*.csv)
-    - rnaseq_genotype_label_map.csv (maps genotypes to model labels, includes model_type)
+    - genotype_label_map.csv (maps genotypes to model labels, includes model_type)
     - mouse_gene_metadata.csv (gene symbols and metadata)
     - biodom_genes_mm.csv (biodomain assignments for mouse genes)
 
@@ -545,7 +545,7 @@ class TestCreateOutputEntryFromGroup:
         assert result["model_group"] == "Group1"
         assert result["model_type"] == "knockout"
         assert result["tissue"] == "Cortex"
-        assert result["sex_cohort"] == "Male"
+        assert result["sex"] == "Male"
         assert "6 months" in result
         assert result["6 months"]["log2_fc"] == pytest.approx(1.5)
         assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
@@ -604,7 +604,7 @@ class TestCreateOutputEntryFromGroup:
         assert result["model_group"] is None  # Default for missing model_group
         assert result["model_type"] == ""  # Default for missing model_type
         assert result["tissue"] == "Hippocampus"
-        assert result["sex_cohort"] == "Female"
+        assert result["sex"] == "Female"
 
     def test_create_output_entry_jax_tissue_mapping(self) -> None:
         """Test that JAX tissue name 'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
@@ -812,6 +812,7 @@ class TestProcessSingleDataFile:
         - test_process_single_data_file_basic: Tests basic file processing.
         - test_process_single_data_file_empty_raises_error: Tests error handling for empty files.
         - test_process_single_data_file_filters_human_genes: Tests filtering of human genes.
+        - test_process_single_data_file_filters_combined_sex_cohort: Tests filtering of combined-cohort (Females & Males) rows.
         - test_process_single_data_file_rounding: Tests numeric rounding to 5 decimal places.
         - test_process_single_data_file_multiple_groups: Tests processing multiple groups.
     """
@@ -974,6 +975,65 @@ class TestProcessSingleDataFile:
         assert all(entry["ensembl_gene_id"].startswith("ENSMUSG") for entry in result)
         assert not any(entry["ensembl_gene_id"].startswith("ENSG") for entry in result)
 
+    def test_process_single_data_file_filters_combined_sex_cohort(self) -> None:
+        """Test that combined-cohort rows (sex == "Females & Males") are filtered out."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": [
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000002",
+                    "ENSMUSG00000000003",
+                ],
+                "log2foldchange": [1.5, 2.0, 0.5],
+                "padj": [0.01, 0.02, 0.03],
+                "model": ["Model_A", "Model_A", "Model_A"],
+                "case": ["Tg", "Tg", "Tg"],
+                "control": ["Wt", "Wt", "Wt"],
+                "age": ["6 months", "6 months", "6 months"],
+                "sex": ["Males", "Females", "Females & Males"],
+                "tissue": ["Cortex", "Cortex", "Cortex"],
+            }
+        )
+
+        gene_metadata_dict = {}
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
+        model_group_dict = {}
+        biodomain_dict = {}
+        model_type_dict = {}
+
+        data_file_required_columns = [
+            "ensembl_gene_id",
+            "log2foldchange",
+            "padj",
+            "model",
+            "case",
+            "control",
+            "age",
+            "sex",
+            "tissue",
+        ]
+
+        result = _process_single_data_file(
+            file_name="sex_cohort.csv",
+            data_file=data_file,
+            data_file_required_columns=data_file_required_columns,
+            gene_metadata_dict=gene_metadata_dict,
+            label_map_dict=label_map_dict,
+            model_group_dict=model_group_dict,
+            biodomain_dict=biodomain_dict,
+            model_type_dict=model_type_dict,
+            file_index=0,
+            total_files=1,
+        )
+
+        # Should only have 2 entries (single-sex rows only)
+        assert len(result) == 2
+        assert {entry["sex"] for entry in result} == {"Males", "Females"}
+        assert not any(entry["sex"] == "Females & Males" for entry in result)
+
     def test_process_single_data_file_rounding(self) -> None:
         """Test that numeric values are rounded to 5 decimal places."""
         data_file = pd.DataFrame(
@@ -1105,6 +1165,7 @@ class TestTransformRnaDeAggregate:
         - test_synthetic_multi_model_data: Tests handling of multiple models and tissues.
         - test_synthetic_jax_tissue_mapping: Tests JAX-specific tissue name mapping.
         - test_synthetic_mixed_genes_filtering: Tests filtering of human genes.
+        - test_synthetic_sex_cohort_filtering: Tests filtering of combined-cohort (Females & Males) rows.
         - test_synthetic_age_sorting: Tests numeric sorting of age entries (integration test).
         - test_synthetic_single_row_data: Tests minimal edge case (single row).
         - test_synthetic_empty_data_file: Tests error handling for empty data files.
@@ -1128,8 +1189,8 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
-                "synthetic_biodom_genes_mm.csv"
+                "synthetic_genotype_label_map.csv",
+                "synthetic_biodom_genes_mm.csv",
                 # Missing synthetic_mouse_gene_metadata.csv
             ]
         )
@@ -1147,10 +1208,10 @@ class TestTransformRnaDeAggregate:
 
         # Mapping from file names to expected dataset keys
         file_to_key_mapping = {
-            "synthetic_rnaseq_genotype_label_map.csv": "rnaseq_genotype_label_map",
-            "synthetic_rnaseq_genotype_label_map_no_group.csv": "rnaseq_genotype_label_map",
-            "synthetic_rnaseq_genotype_label_map_inconsistent.csv": "rnaseq_genotype_label_map",
-            "synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv": "rnaseq_genotype_label_map",
+            "synthetic_genotype_label_map.csv": "genotype_label_map",
+            "synthetic_genotype_label_map_no_group.csv": "genotype_label_map",
+            "synthetic_genotype_label_map_inconsistent.csv": "genotype_label_map",
+            "synthetic_genotype_label_map_inconsistent_model_type.csv": "genotype_label_map",
             "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
             "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
             "synthetic_mouse_gene_metadata_missing_symbols.csv": "mouse_gene_metadata",
@@ -1185,7 +1246,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1218,7 +1279,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_multi_model_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1256,7 +1317,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_jax_tissue_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1291,7 +1352,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_mixed_genes_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1319,13 +1380,55 @@ class TestTransformRnaDeAggregate:
         for entry in output_data:
             assert entry["ensembl_gene_id"].startswith("ENSMUSG")
 
+    def test_synthetic_sex_cohort_filtering(self) -> None:
+        """Test combined-cohort filtering with synthetic sex cohort data.
+
+        Tests that the transform correctly filters out rows where sex is
+        "Females & Males", keeping only single-sex rows (Females, Males). The input
+        contains a mix of all three cohort values, but only single-sex rows should
+        appear in the output.
+        """
+        # Load synthetic test data
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_sex_cohort_filter_data.csv",
+                "synthetic_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+
+        # Load expected output
+        with open(
+            os.path.join(
+                self.data_files_path,
+                "output",
+                "synthetic_sex_cohort_filter_output.json",
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        # Transform data
+        output_data = transform_rna_de_aggregate(datasets=datasets)
+
+        # Sort output data by ensembl_gene_id for deterministic comparison
+        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
+        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
+
+        # Compare output with expected
+        assert output_data_sorted == expected_data_sorted
+
+        # Verify no combined-cohort rows are present
+        for entry in output_data:
+            assert entry["sex"] != "Females & Males"
+
     def test_nan_adj_p_values_are_coerced_to_one(self) -> None:
         """NaN adjusted p-values in source data should be exported as 1.0."""
 
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_nan_negative_zero_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1344,7 +1447,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_nan_negative_zero_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1364,7 +1467,7 @@ class TestTransformRnaDeAggregate:
         # Load required metadata datasets
         datasets = self._load_synthetic_test_data(
             [
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1408,7 +1511,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_age_sorting_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1444,7 +1547,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_single_row_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1474,7 +1577,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_empty_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1490,7 +1593,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_missing_columns_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1510,7 +1613,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_rounding_precision_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1552,7 +1655,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_multiple_biodomains_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata_multi.csv",
                 "synthetic_biodom_genes_mm_multiple.csv",
             ]
@@ -1592,7 +1695,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_null_model_group_data.csv",
-                "synthetic_rnaseq_genotype_label_map_no_group.csv",
+                "synthetic_genotype_label_map_no_group.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1624,14 +1727,14 @@ class TestTransformRnaDeAggregate:
 
         Tests that when a model has different model_group values across multiple rows
         (e.g., different genotypes), a clear ValueError is raised identifying which
-        models have inconsistent values. Uses synthetic_rnaseq_genotype_label_map_inconsistent.csv
+        models have inconsistent values. Uses synthetic_genotype_label_map_inconsistent.csv
         where Model_A has GroupX for Tg genotype and GroupY for Wt genotype.
         """
         # Load synthetic test data with inconsistent model_group values
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map_inconsistent.csv",
+                "synthetic_genotype_label_map_inconsistent.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1644,7 +1747,7 @@ class TestTransformRnaDeAggregate:
         # Verify the error message contains expected information
         error_message = str(exc_info.value)
         assert "Each model must have a consistent model_group value" in error_message
-        assert "rnaseq_genotype_label_map" in error_message
+        assert "genotype_label_map" in error_message
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
@@ -1655,13 +1758,13 @@ class TestTransformRnaDeAggregate:
         Tests that when a model has different non-empty model_type values across multiple
         rows (e.g., different genotypes), a clear ValueError is raised identifying which
         models have inconsistent values. Uses
-        synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv where Model_A has
+        synthetic_genotype_label_map_inconsistent_model_type.csv where Model_A has
         'Familial AD' for Tg genotype and 'Late Onset AD' for Wt genotype.
         """
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv",
+                "synthetic_genotype_label_map_inconsistent_model_type.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
@@ -1672,7 +1775,7 @@ class TestTransformRnaDeAggregate:
 
         error_message = str(exc_info.value)
         assert "Each model must have a consistent model_type value" in error_message
-        assert "rnaseq_genotype_label_map" in error_message
+        assert "genotype_label_map" in error_message
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
@@ -1686,7 +1789,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata_missing_symbols.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]

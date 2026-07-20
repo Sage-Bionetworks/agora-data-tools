@@ -66,7 +66,7 @@ def validate_model_group_consistency(
     )
     if inconsistent_models:
         raise ValueError(
-            f"Each model must have a consistent model_group value in rnaseq_genotype_label_map. "
+            f"Each model must have a consistent model_group value in genotype_label_map. "
             f"Models with inconsistent model_group values: {inconsistent_models}"
         )
 

@@ -66,11 +66,13 @@ jobs:
       - run: pip install -U setuptools
       - run: pip install .
       - run: adt process configs/agora_preprod.yaml --upload --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
-      - run: adt process configs/model_ad_preprod.yaml --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
 
   ghcr-publish:
     needs: [build, test]
-    if: ${{ github.event_name == 'push' }}
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
+    permissions:
+      packages: write
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -85,19 +87,18 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=${{ github.ref == 'refs/heads/dev' }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=ref,event=branch
+            type=ref,event=pr
             type=sha
-            latest
       - name: Publish Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          build-args: |
-            TARBALL_PATH=${{ needs.prepare.outputs.tarball-path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
