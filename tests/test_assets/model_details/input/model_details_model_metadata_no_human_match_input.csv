@@ -1,3 +1,0 @@
-name,matched_controls,model_type,contributing_group,study_synid,rrid,jax_id,alzforum_id,genotype,aliases,url_categories_value,url_models_value,transcriptomics,disease_correlation,pathology,biomarkers
-3xTg-AD,B6129,Familial AD,UCI,syn22964685,MMRRC_034830-JAX,4807,3xtg,"B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",3xTg,,,True,,True,True
-hTau,C57BL/6J,Tauopathy,Mayo,syn25539881,IMSR_JAX:005491,5491,htau,B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J,"hTau, Mapt-/-",,,,,,

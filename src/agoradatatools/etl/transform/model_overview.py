@@ -37,17 +37,14 @@ REQUIRED_INPUT = {
         "pathology",
         "biomarkers",
     ],
-    "allele_info": [
+    "model_genetic_modifications": [
         "name",
         "modified_gene",
-        "gene_ensembl_id",
+        "mouse_ensembl_id",
         "allele",
         "allele_type",
         "mgi_allele_id",
-    ],
-    "human_transgene_allele_map": [
-        "mgi_allele_id",
-        "gene_symbol",
+        "human_gene_symbol",
         "human_ensembl_id",
     ],
 }
@@ -103,8 +100,8 @@ def transform_model_overview(
     This function merges and processes the following input datasets:
         - model_metadata: Contains metadata about each model, and the available results (e.g., gene
           expression, pathology).
-        - allele_info: Contains allele and genetic modification details for each model.
-        - human_transgene_allele_map: Maps mouse alleles to human Ensembl gene IDs.
+        - model_genetic_modifications: Contains allele and genetic modification details for each model,
+            including human Ensembl gene IDs for human transgene alleles
 
     The transformation includes:
         1. For each model, extracting genetic information using process_genetic_info, which maps alleles to human
@@ -128,8 +125,7 @@ def transform_model_overview(
     check_required_datasets_and_columns(datasets, required_input)
 
     model_metadata = datasets["model_metadata"]
-    allele_info = datasets["allele_info"]
-    human_transgene_allele_map = datasets["human_transgene_allele_map"]
+    model_genetic_modifications_df = datasets["model_genetic_modifications"]
 
     boolean_columns = [
         "transcriptomics",
@@ -148,8 +144,9 @@ def transform_model_overview(
     for _, row in model_metadata.iterrows():
         # Get genetic info for this model
         genetic_info = process_genetic_info(
-            human_transgene_allele_map,
-            model_alleles=allele_info[allele_info["name"] == row["name"]],
+            model_genetic_modifications_df[
+                model_genetic_modifications_df["name"] == row["name"]
+            ],
         )
 
         modified_genes = (
