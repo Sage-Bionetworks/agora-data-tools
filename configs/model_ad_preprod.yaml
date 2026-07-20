@@ -12,7 +12,7 @@ files:
   - &model_results_info           { name: model_results_info           , format: csv  , id: syn68377668.7  }
   - &mouse_gene_metadata          { name: mouse_gene_metadata          , format: json , id: syn51615422.6  }
   - &genotype_label_map           { name: genotype_label_map           , format: csv  , id: syn69014401.17 }
-  - &ui_config                    { name: ui_config                    , format: json , id: syn66527739.30 }
+  - &ui_config                    { name: ui_config                    , format: json , id: syn66527739 }
   # Results
   - &biodom_genes_mm              { name: biodom_genes_mm              , format: csv  , id: syn66351272.1  }
   - &biomarkers                   { name: biomarkers                   , format: csv  , id: syn61250724.12 }
