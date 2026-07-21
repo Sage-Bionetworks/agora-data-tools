@@ -27,7 +27,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_individual/
 Test Data Structure:
     Input files include:
     - RNA-seq individual expression data (*.csv)
-    - synthetic_rnaseq_genotype_label_map.csv (maps genotypes to display labels, result_order, and model_groups)
+    - synthetic_genotype_label_map.csv (maps genotypes to display labels, result_order, and model_groups)
     - synthetic_mouse_gene_metadata.csv (gene symbols and metadata)
 
     Output files are JSON-formatted expected results for comparison.
@@ -411,9 +411,9 @@ class TestTransformRnaDeIndividual:
           file containing two models that share a model_group still raises ValueError
           (each file must have exactly one model regardless of model_group).
         - test_check_column_rules_rejects_empty_display_label: Tests that an empty
-          display_label in rnaseq_genotype_label_map raises ValueError via check_column_rules.
+          display_label in genotype_label_map raises ValueError via check_column_rules.
         - test_check_column_rules_rejects_empty_model_group: Tests that an empty
-          model_group in rnaseq_genotype_label_map raises ValueError via check_column_rules.
+          model_group in genotype_label_map raises ValueError via check_column_rules.
         - test_check_column_rules_rejects_bad_age_format: Tests that an age value not
           matching the '[N] months' format in a data file raises ValueError via check_column_rules.
         - test_column_rules_parameter_honored: Tests that a custom column_rules parameter
@@ -435,7 +435,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 # Missing synthetic_mouse_gene_metadata.csv
             ]
         )
@@ -453,8 +453,8 @@ class TestTransformRnaDeIndividual:
 
         # Mapping from file names to expected dataset keys
         file_to_key_mapping = {
-            "synthetic_rnaseq_genotype_label_map.csv": "rnaseq_genotype_label_map",
-            "rnaseq_genotype_label_map_inconsistent.csv": "rnaseq_genotype_label_map",
+            "synthetic_genotype_label_map.csv": "genotype_label_map",
+            "genotype_label_map_inconsistent.csv": "genotype_label_map",
             "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
         }
 
@@ -482,7 +482,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -517,7 +517,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_jax_tissue_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -558,7 +558,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_mixed_genes_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -600,7 +600,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_age_sorting_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -644,7 +644,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_single_row_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -680,7 +680,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_empty_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -695,7 +695,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_missing_columns_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -715,7 +715,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -748,7 +748,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_rounding_precision_data.csv",
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -793,7 +793,7 @@ class TestTransformRnaDeIndividual:
         """
         datasets = self._load_synthetic_test_data(
             [
-                "synthetic_rnaseq_genotype_label_map.csv",
+                "synthetic_genotype_label_map.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_multi_model_file1.csv",
                 "synthetic_multi_model_file2.csv",
@@ -860,7 +860,7 @@ class TestTransformRnaDeIndividual:
             }
         )
         return {
-            "rnaseq_genotype_label_map": label_map,
+            "genotype_label_map": label_map,
             "mouse_gene_metadata": gene_metadata,
             data_file_key: mixed_file,
         }
@@ -934,7 +934,7 @@ class TestTransformRnaDeIndividual:
             }
         )
         datasets = {
-            "rnaseq_genotype_label_map": label_map,
+            "genotype_label_map": label_map,
             "mouse_gene_metadata": gene_metadata,
             "combined_file": combined_file,
         }
@@ -958,7 +958,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_basic_data.csv",
-                "rnaseq_genotype_label_map_inconsistent.csv",
+                "genotype_label_map_inconsistent.csv",
                 "synthetic_mouse_gene_metadata.csv",
             ]
         )
@@ -970,7 +970,7 @@ class TestTransformRnaDeIndividual:
         # Verify the error message contains expected information
         error_message = str(exc_info.value)
         assert "Each model must have a consistent model_group value" in error_message
-        assert "rnaseq_genotype_label_map" in error_message
+        assert "genotype_label_map" in error_message
         assert "APOE4" in error_message
 
     def _build_minimal_datasets(
@@ -1002,7 +1002,7 @@ class TestTransformRnaDeIndividual:
         if data_file_overrides:
             data_file.update(data_file_overrides)
         return {
-            "rnaseq_genotype_label_map": pd.DataFrame(label_map),
+            "genotype_label_map": pd.DataFrame(label_map),
             "mouse_gene_metadata": pd.DataFrame(
                 {"ensembl_gene_id": ["ENSMUSG00000000001"], "gene_symbol": ["Gene1"]}
             ),
@@ -1010,7 +1010,7 @@ class TestTransformRnaDeIndividual:
         }
 
     def test_check_column_rules_rejects_empty_display_label(self) -> None:
-        """Test that an empty display_label in rnaseq_genotype_label_map raises ValueError.
+        """Test that an empty display_label in genotype_label_map raises ValueError.
 
         check_column_rules is called on static datasets before any processing begins.
         An empty display_label violates the not_empty rule and must be caught there.
@@ -1023,7 +1023,7 @@ class TestTransformRnaDeIndividual:
             transform_rna_de_individual(datasets=datasets)
 
     def test_check_column_rules_rejects_empty_model_group(self) -> None:
-        """Test that an empty model_group in rnaseq_genotype_label_map raises ValueError.
+        """Test that an empty model_group in genotype_label_map raises ValueError.
 
         model_group is a required field; an empty value violates the not_empty rule
         enforced by check_column_rules.
@@ -1082,7 +1082,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._build_minimal_datasets()
 
         custom_column_rules = {
-            "rnaseq_genotype_label_map": {
+            "genotype_label_map": {
                 "model": [ContainsSubstringRule(value="IMPOSSIBLE")],
             }
         }

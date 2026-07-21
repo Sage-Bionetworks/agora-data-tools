@@ -11,6 +11,7 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_multi_model_data.csv`**: Multiple models (B, C) with different tissues and ages
 - **`synthetic_jax_tissue_data.csv`**: Tests JAX tissue mapping (Right Cerebral Hemisphere → Hemibrain)
 - **`synthetic_mixed_genes_data.csv`**: Contains both mouse (ENSMUSG*) and human (ENSG*) genes
+- **`synthetic_sex_cohort_filter_data.csv`**: Contains single-sex (Females, Males) and combined-cohort (Females & Males) rows
 - **`synthetic_age_sorting_data.csv`**: Tests age sorting with ages in non-numerical order
 - **`synthetic_single_row_data.csv`**: Single row test case (also tests missing gene metadata handling)
 - **`synthetic_rounding_precision_data.csv`**: Tests numeric rounding to 5 decimal places
@@ -21,14 +22,14 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_missing_columns_data.csv`**: Missing required columns for error testing
 
 #### Metadata Files
-- **`synthetic_rnaseq_genotype_label_map.csv`**: Model to display label mapping
+- **`synthetic_genotype_label_map.csv`**: Model to display label mapping
 - **`synthetic_mouse_gene_metadata.csv`**: Gene ID to symbol mapping
 - **`synthetic_biodom_genes_mm.csv`**: Biodomain assignments for genes
 - **`synthetic_biodom_genes_mm_multiple.csv`**: Biodomain assignments with genes having multiple biodomains
 - **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
-- **`synthetic_rnaseq_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
-- **`synthetic_rnaseq_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
-- **`synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv`**: Label mapping with inconsistent model_type values for the same model (for error testing)
+- **`synthetic_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
+- **`synthetic_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
+- **`synthetic_genotype_label_map_inconsistent_model_type.csv`**: Label mapping with inconsistent model_type values for the same model (for error testing)
 
 ### Output Files
 - **`synthetic_*_output.json`**: Expected output for each test case
@@ -64,6 +65,13 @@ Expected: Tissue mapped to "Hemibrain"
 ```
 Genes: Mouse (ENSMUSG00000000005, ENSMUSG00000000006), Human (ENSG00000000001)
 Expected: Only mouse genes in output
+```
+
+### Scenario 4b: Sex Cohort Filtering (`synthetic_sex_cohort_filter_data.csv`)
+```
+Genes: ENSMUSG00000000005 (Females), ENSMUSG00000000006 (Males), ENSMUSG00000000007 (Females & Males)
+Model: Model_D
+Expected: Only single-sex rows (Females, Males) in output; "Females & Males" rows dropped
 ```
 
 ### Scenario 5: Age Sorting (`synthetic_age_sorting_data.csv`)
@@ -124,7 +132,7 @@ Expected: ValueError raised with informative message identifying the negative pa
 Tests: Validation that negative adjusted p-values are rejected with clear error message
 ```
 
-### Scenario 12: Inconsistent Model Group (`synthetic_rnaseq_genotype_label_map_inconsistent.csv`)
+### Scenario 12: Inconsistent Model Group (`synthetic_genotype_label_map_inconsistent.csv`)
 ```
 Model: Model_A with inconsistent model_group values
   - Tg genotype → GroupX
@@ -154,7 +162,7 @@ The `case` and `control` columns in the input data represent the comparison bein
 - **Case**: The experimental condition (e.g., transgenic "Tg")
 - **Control**: The control condition (e.g., wild-type "Wt")
 
-The `rnaseq_genotype_label_map.csv` file maps these genotypes to human-readable display labels:
+The `genotype_label_map.csv` file maps these genotypes to human-readable display labels:
 - `case` → `name` (object with `link_url` and `link_text` fields, e.g., `{"link_url": "models/Model_A (Tg)", "link_text": "Model_A (Tg)"}`)
 - `control` → `matched_control` (string, e.g., "Model_A (Wt)")
 
@@ -188,7 +196,7 @@ Each output entry in the transform result has the following structure:
   "model_group": "AD",
   "model_type": "Familial AD",
   "tissue": "Brain",
-  "sex_cohort": "Female",
+  "sex": "Female",
   "3 months": {
     "log2_fc": 1.0,
     "adj_p_val": 0.01
@@ -212,7 +220,7 @@ Each output entry in the transform result has the following structure:
 - **model_group** (string or null): Model group name (null if empty)
 - **model_type** (string): Model type classification (e.g., "Familial AD", "Late Onset AD")
 - **tissue** (string): Tissue name (JAX models have "Right Cerebral Hemisphere" mapped to "Hemibrain")
-- **sex_cohort** (string): Sex category ("Male" or "Female")
+- **sex** (string): Sex category ("Male" or "Female")
 - **<age>** (object): Age-based entries (keys are age strings like "3 months", "6 months", etc.)
   - **log2_fc** (number): Log2 fold change value (rounded to 5 decimal places)
   - **adj_p_val** (number): Adjusted p-value (rounded to 5 decimal places, NaN values coerced to 0.0)
@@ -222,6 +230,7 @@ Each output entry in the transform result has the following structure:
 
 When testing, verify:
 1. **Gene filtering**: Only ENSMUSG* genes in output
+1a. **Sex cohort filtering**: Rows with sex "Females & Males" are excluded from output
 2. **Tissue mapping**: "Right Cerebral Hemisphere" → "Hemibrain"
 3. **Age sorting**: Ages sorted numerically (3, 6, 12 months)
 4. **Biodomain assignment**: Correct biodomains from metadata
@@ -248,6 +257,7 @@ tests/test_assets/rna_de_aggregate/
 │   │   ├── synthetic_multi_model_data.csv
 │   │   ├── synthetic_jax_tissue_data.csv
 │   │   ├── synthetic_mixed_genes_data.csv
+│   │   ├── synthetic_sex_cohort_filter_data.csv
 │   │   ├── synthetic_age_sorting_data.csv
 │   │   ├── synthetic_single_row_data.csv
 │   │   ├── synthetic_rounding_precision_data.csv
@@ -257,19 +267,20 @@ tests/test_assets/rna_de_aggregate/
 │   │   ├── synthetic_empty_data.csv
 │   │   └── synthetic_missing_columns_data.csv
 │   └── Metadata Files:
-│       ├── synthetic_rnaseq_genotype_label_map.csv
+│       ├── synthetic_genotype_label_map.csv
 │       ├── synthetic_mouse_gene_metadata.csv
 │       ├── synthetic_biodom_genes_mm.csv
 │       ├── synthetic_biodom_genes_mm_multiple.csv
 │       ├── synthetic_mouse_gene_metadata_multi.csv
-│       ├── synthetic_rnaseq_genotype_label_map_no_group.csv
-│       ├── synthetic_rnaseq_genotype_label_map_inconsistent.csv
-│       └── synthetic_rnaseq_genotype_label_map_inconsistent_model_type.csv
+│       ├── synthetic_genotype_label_map_no_group.csv
+│       ├── synthetic_genotype_label_map_inconsistent.csv
+│       └── synthetic_genotype_label_map_inconsistent_model_type.csv
 ├── output/
 │   ├── synthetic_basic_output.json
 │   ├── synthetic_multi_model_output.json
 │   ├── synthetic_jax_tissue_output.json
 │   ├── synthetic_mixed_genes_output.json
+│   ├── synthetic_sex_cohort_filter_output.json
 │   ├── synthetic_age_sorting_output.json
 │   ├── synthetic_single_row_output.json
 │   ├── synthetic_rounding_precision_output.json

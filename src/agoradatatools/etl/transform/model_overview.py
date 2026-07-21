@@ -19,7 +19,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 )
 
 REQUIRED_INPUT = {
-    "model_info": [
+    "model_metadata": [
         "name",
         "matched_controls",
         "model_type",
@@ -32,25 +32,19 @@ REQUIRED_INPUT = {
         "aliases",
         "url_categories_value",
         "url_models_value",
-    ],
-    "model_results_info": [
-        "name",
         "transcriptomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
     ],
-    "allele_info": [
+    "model_genetic_modifications": [
         "name",
         "modified_gene",
-        "gene_ensembl_id",
+        "mouse_ensembl_id",
         "allele",
         "allele_type",
         "mgi_allele_id",
-    ],
-    "human_transgene_allele_map": [
-        "mgi_allele_id",
-        "gene_symbol",
+        "human_gene_symbol",
         "human_ensembl_id",
     ],
 }
@@ -104,17 +98,15 @@ def transform_model_overview(
     Transforms the model_overview source files into a structured format for Model AD.
 
     This function merges and processes the following input datasets:
-        - model_info: Contains metadata about each model.
-        - model_results_info: Contains information about available results for each model (e.g., gene expression,
-          pathology).
-        - allele_info: Contains allele and genetic modification details for each model.
-        - human_transgene_allele_map: Maps mouse alleles to human Ensembl gene IDs.
+        - model_metadata: Contains metadata about each model, and the available results (e.g., gene
+          expression, pathology).
+        - model_genetic_modifications: Contains allele and genetic modification details for each model,
+            including human Ensembl gene IDs for human transgene alleles
 
     The transformation includes:
-        1. Merging model_info and model_results_info on the "name" column.
-        2. For each model, extracting genetic information using process_genetic_info, which maps alleles to human
+        1. For each model, extracting genetic information using process_genetic_info, which maps alleles to human
            Ensembl IDs where possible.
-        3. Building a structured dictionary for each model, including:
+        2. Building a structured dictionary for each model, including:
             - model metadata (name, model_type, matched_controls, etc.)
             - links to available results (gene_expression, disease_correlation, pathology, biomarkers)
 
@@ -132,15 +124,8 @@ def transform_model_overview(
 
     check_required_datasets_and_columns(datasets, required_input)
 
-    model_info = datasets["model_info"]
-    model_results_info = datasets["model_results_info"]
-    allele_info = datasets["allele_info"]
-    human_transgene_allele_map = datasets["human_transgene_allele_map"]
-
-    # Merge the two datasets on the "name" column
-    merged_df = pd.merge(
-        model_info, model_results_info, on="name", how="left", validate="1:1"
-    )
+    model_metadata = datasets["model_metadata"]
+    model_genetic_modifications_df = datasets["model_genetic_modifications"]
 
     boolean_columns = [
         "transcriptomics",
@@ -148,17 +133,20 @@ def transform_model_overview(
         "pathology",
         "biomarkers",
     ]
-    merged_df = normalize_null_values(merged_df, boolean_columns=boolean_columns)
-    merged_df["jax_id"] = zero_pad_jax_ids(merged_df["jax_id"])
+    model_metadata = normalize_null_values(
+        model_metadata, boolean_columns=boolean_columns
+    )
+    model_metadata["jax_id"] = zero_pad_jax_ids(model_metadata["jax_id"])
 
     # Transform the merged dataframe into the target structure
     transformed_records = []
 
-    for _, row in merged_df.iterrows():
+    for _, row in model_metadata.iterrows():
         # Get genetic info for this model
         genetic_info = process_genetic_info(
-            human_transgene_allele_map,
-            model_alleles=allele_info[allele_info["name"] == row["name"]],
+            model_genetic_modifications_df[
+                model_genetic_modifications_df["name"] == row["name"]
+            ],
         )
 
         modified_genes = (
