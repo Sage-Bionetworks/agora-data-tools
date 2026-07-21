@@ -175,7 +175,7 @@ ge_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippoc
 # Static columns are the same across all views
 ge_primary_column <- list("Gene", "primary", "gene_symbol", "Mouse Gene", NA, NA, NA, TRUE, FALSE)
 ge_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE)
-ge_sex_column <- list("Sex", "text", "sex_cohort", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
+ge_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
 ge_matched_control_column <- list("Control", "text", "matched_control", NA, "Sort by Control value", NA, NA, TRUE, FALSE)
 
 # Hidden static columns
@@ -200,7 +200,7 @@ ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 # -----------------------
 ge_filters <- data.frame(
   name = c('Biological Domain', 'Model Type', 'Mouse Model', 'Sex'),
-  data_key = c('biodomains', 'model_type', 'name', 'sex_cohort'),
+  data_key = c('biodomains', 'model_type', 'name', 'sex'),
   short_name = c('Biodomain', 'Type', 'Model', 'Sex'),
   query_param_key = c('biodomains', 'modelTypes', 'models', 'sex'),
   stringsAsFactors = FALSE

@@ -33,10 +33,15 @@ clean, tested state. It executes the following steps in order:
    not found, installs it via `pip install pre-commit`.
 
 6. Run pre-commit hooks
-   Executes `pre-commit run --all-files`. Because auto-fixing hooks (e.g.
-   black, ruff, autoflake) exit with a non-zero code on the first pass to
-   signal that files were modified, the script automatically retries once. If
-   the second run still fails, the script exits with an error.
+   Executes pre-commit against an explicit list of files (tracked plus staged)
+   via `pre-commit run --files ...`. The list comes from git ls-files, which
+   includes tracked files and any new files you have staged with git add.
+   Untracked, unstaged files are intentionally excluded so local-only scratch
+   files are not targeted; stage a new file with git add to have it covered.
+   Because auto-fixing hooks (e.g. black, ruff, autoflake) exit with a
+   non-zero code on the first pass to signal that files were modified, the
+   script automatically retries once. If the second run still fails, the script
+   exits with an error.
 
 If all steps pass, a success message is printed and the codebase is ready to
 commit.
@@ -177,6 +182,37 @@ def ensure_pre_commit_installed() -> None:
     )
 
 
+def collect_repo_files() -> list[str]:
+    """Return tracked plus staged files relative to the repo root.
+
+    Uses git ls-files, which lists everything in the index: tracked files plus
+    any new files you have staged with git add. Untracked, unstaged files are
+    intentionally excluded so local-only scratch files are not targeted by
+    pre-commit. Stage a new file with git add to have it covered here.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files"],
+            cwd=_REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except FileNotFoundError:
+        print(
+            "[ERROR] git executable not found. Install git and ensure it is on "
+            "your PATH before running this script."
+        )
+        sys.exit(1)
+    except subprocess.CalledProcessError as exc:
+        print(
+            f"[ERROR] Failed to list files via git (exit code {exc.returncode}). "
+            f"Make sure {_REPO_ROOT} is a valid git checkout."
+        )
+        sys.exit(1)
+    return [f for f in result.stdout.splitlines() if f]
+
+
 def run_pre_commit() -> None:
     """Run pre-commit, retrying once if it exits non-zero.
 
@@ -184,13 +220,20 @@ def run_pre_commit() -> None:
     exit with a non-zero code to signal that changes were made. A second run
     confirms everything is clean. If pre-commit still fails on the second pass,
     the script exits with an error.
+
+    Files are passed explicitly via --files (tracked plus staged) instead of
+    using --all-files. The list comes from git ls-files, so it includes tracked
+    files and any new files you have staged with git add. Untracked, unstaged
+    files are excluded; stage a new file with git add to have it covered.
     """
-    cmd = ["pre-commit", "run", "--all-files"]
-    description = "pre-commit run --all-files"
+    files = collect_repo_files()
+
+    cmd = ["pre-commit", "run", "--files", *files]
+    description = "pre-commit run --files (tracked + staged)"
 
     print(f"\n{'='*60}")
     print(f"  {description}")
-    print(f"  $ {' '.join(cmd)}")
+    print(f"  $ pre-commit run --files <{len(files)} files>")
     print(f"{'='*60}\n")
 
     first = subprocess.run(cmd, cwd=_REPO_ROOT)

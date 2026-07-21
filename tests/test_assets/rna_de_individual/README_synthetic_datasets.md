@@ -29,17 +29,17 @@ rna_de_individual/
 
 These files are required for all transformations. Both are minimal synthetic subsets containing only the entries needed by the test suite:
 
-1. **synthetic_rnaseq_genotype_label_map.csv**
+1. **synthetic_genotype_label_map.csv**
    - Maps genotypes to display labels and model groups
    - Columns: model, model_group, display_label, genotype, result_order
-   - Synthetic subset of production `rnaseq_genotype_label_map` data; contains only the 4 models used by the test suite (APOE4, LOAD1, Trem2-R47H_NSS, Trem2-R47H_NSS.5xFAD)
+   - Synthetic subset of production `genotype_label_map` data; contains only the 4 models used by the test suite (APOE4, LOAD1, Trem2-R47H_NSS, Trem2-R47H_NSS.5xFAD)
 
 2. **synthetic_mouse_gene_metadata.csv**
    - Gene symbols for Ensembl IDs
    - Columns: ensembl_gene_id, gene_symbol
    - Synthetic subset of production `mouse_gene_metadata` data; contains only the entries needed by the test suite (ENSMUSG00000000001 → Gnai3, plus a few additional rows for realism)
 
-3. **rnaseq_genotype_label_map_inconsistent.csv**
+3. **genotype_label_map_inconsistent.csv**
    - Contains inconsistent model_group values to test error handling
    - Synthetic file for testing validation logic
 
