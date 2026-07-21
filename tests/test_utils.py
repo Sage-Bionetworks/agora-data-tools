@@ -78,6 +78,15 @@ def test_get_config_with_config_path():
     assert config["destination"] == "syn17015333"
 
 
+def test_standardize_column_name():
+    assert utils.standardize_column_name("Ab40_pg.ml") == "ab40_pg_ml"
+    assert utils.standardize_column_name("Ab_ratio") == "ab_ratio"
+    assert utils.standardize_column_name("tTAU_fg.ml") == "ttau_fg_ml"
+    assert utils.standardize_column_name("GFAP_pg.ml") == "gfap_pg_ml"
+    assert utils.standardize_column_name("a#b@(c)") == "abc"
+    assert utils.standardize_column_name("Some Column-Name.x") == "some_column_name_x"
+
+
 def test_standardize_column_names():
     df = pd.DataFrame(
         {

@@ -225,6 +225,25 @@ def _get_config(
     return config
 
 
+def standardize_column_name(name: str) -> str:
+    """Standardizes a single column name by replacing problematic characters and lowercasing.
+
+    Removes a set of special characters, replaces spaces / hyphens / periods with underscores,
+    and lowercases the result. This is the per-name logic shared by standardize_column_names.
+
+    Args:
+        name (str): The raw column name to standardize.
+
+    Returns:
+        str: The standardized column name.
+    """
+    name = re.sub(
+        "[#@&*^?()%$#!/]", "", name
+    )  # the commas were unnessesary and were breaking the prelacement of '-' characters
+    name = re.sub("[ -.]", "_", name)
+    return name.lower()
+
+
 def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """Takes in a dataframe replaces problematic characters in column names
     and makes column names all lowercase characters
@@ -236,11 +255,7 @@ def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: New dataframe with cleaned column names
     """
 
-    df.columns = df.columns.str.replace(
-        "[#@&*^?()%$#!/]", "", regex=True
-    )  # the commas were unnessesary and were breaking the prelacement of '-' characters
-    df.columns = df.columns.str.replace("[ -.]", "_", regex=True)
-    df.columns = map(str.lower, df.columns)
+    df.columns = [standardize_column_name(col) for col in df.columns]
 
     return df
 
