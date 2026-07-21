@@ -43,6 +43,48 @@ print(lengths.min(), lengths.max())
 
 ---
 
+## Keep Value Sets in Sync with the ui_config Notebooks
+
+Several GX value-set expectations enforce the **same controlled vocabulary** that the Agora
+Comparison Tool filter dropdowns display. Those dropdown values are hand-authored as
+filter-value vectors in the ui_config **R notebook**, so the vocabulary lives in two places that
+must be kept aligned.
+
+**Rule:** Whenever you add, remove, or edit a value in one of the GX lists in the table below
+(`expect_column_values_to_be_in_set` or `expect_column_values_to_have_list_members`), you MUST
+prompt the user to make the parallel update to the corresponding filter-value vector in the
+ui_config notebook, naming the exact variable to change. Do not change the GX side silently. The
+two lists *can* legitimately diverge — e.g. GX may allow a data-only value such as `Unknown` that
+is intentionally hidden from the UI filter — so surface the difference and let the user decide
+rather than assuming they must match.
+
+### Parallel lists — Agora
+Notebook: `data_analysis/agora/notebooks/preprocessing/AG-2005_ui_config.rmd`
+
+| GX suite → column | GX expectation | ui_config filter-value vector |
+|---|---|---|
+| `nominated_targets` → `programs` | `expect_column_values_to_have_list_members` | `targets_program_filter_values` |
+| `nominated_targets` → `input_data` | `expect_column_values_to_have_list_members` | `targets_data_filter_values` |
+| `nominated_targets` → `nominating_teams` | `expect_column_values_to_have_list_members` | `targets_team_filter_values` |
+| `nominated_targets` → `pharos_class` | `expect_column_values_to_be_in_set` | `targets_pharos_filter_values` |
+| `nominated_drugs` → `modality` | `expect_column_values_to_be_in_set` | `drug_modality_filter_values` |
+| `nominated_drugs` → `maximum_clinical_trial_phase` | `expect_column_values_to_be_in_set` | `drug_max_clinical_trial_phase_filter_values` |
+
+Other Agora datasets (e.g. `gene_info`, `network`, `team_info`) have GX value-set expectations but
+are **not** produced by this ui_config notebook, so they have no parallel filter list here.
+
+> The model_ad pipeline has an analogous ui_config notebook
+> (`data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd`) with its own
+> filter-value vectors (e.g. `biodomain_filter_vals`, `model_type_filter_vals`); apply the same
+> sync check when changing model_ad GX value sets.
+
+Before finalizing a change to any GX list in the table above, prompt the user, e.g.:
+> "This changes the `<column>` value set in the `<suite>` GX suite. The parallel filter list
+> `<variable>` in `AG-2005_ui_config.rmd` should be updated to match — do you want to update it
+> too, or should the two intentionally differ?"
+
+---
+
 ## Step 0 — Research the Transform Before Planning
 
 **Do all of the following before writing any plan or authoring any expectations.** These steps give you the complete picture of the transform's inputs, logic, output schema, and edge cases.
@@ -444,3 +486,4 @@ Check the output for GX validation results.
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
 | `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
+| GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists mirror filter-value vectors in `AG-2005_ui_config.rmd` (see "Keep Value Sets in Sync with the ui_config Notebooks"). When you change one, prompt the user to update the parallel list in the R notebook |
