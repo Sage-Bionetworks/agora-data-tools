@@ -7,7 +7,6 @@ from agoradatatools.etl.transform.disease_correlation import (
     create_lookup,
     extract_module_name,
     process_group,
-    map_genes_to_human_symbols,
 )
 
 
@@ -42,9 +41,8 @@ class TestDiseaseCorrelation:
             # Test case 1: Ideal data with complete, non-missing information in all rows/data sets.
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
-                "allele_info": "model_allele_info.csv",
-                "model_info": "model_info.csv",
-                "human_transgene_allele_map": "human_transgene_allele_map.csv",
+                "model_genetic_modifications": "model_genetic_modifications.csv",
+                "model_metadata": "model_metadata.csv",
             },
             "disease_correlation_expected_output.json",
         ),
@@ -55,9 +53,8 @@ class TestDiseaseCorrelation:
             # this is the only row that should show up in the output. Rows with missing data should be removed.
             {
                 "disease_correlation_results": "disease_correlation_results_missing_grouping_data.csv",
-                "allele_info": "model_allele_info.csv",
-                "model_info": "model_info.csv",
-                "human_transgene_allele_map": "human_transgene_allele_map.csv",
+                "model_genetic_modifications": "model_genetic_modifications.csv",
+                "model_metadata": "model_metadata.csv",
             },
             "disease_correlation_missing_grouping_data_expected_output.json",
         ),
@@ -68,9 +65,8 @@ class TestDiseaseCorrelation:
             # should have entries in the output, while the tissue missing both values will not show up in the output.
             {
                 "disease_correlation_results": "disease_correlation_results_missing_numeric_data.csv",
-                "allele_info": "model_allele_info.csv",
-                "model_info": "model_info.csv",
-                "human_transgene_allele_map": "human_transgene_allele_map.csv",
+                "model_genetic_modifications": "model_genetic_modifications.csv",
+                "model_metadata": "model_metadata.csv",
             },
             "disease_correlation_missing_numeric_data_expected_output.json",
         ),
@@ -124,9 +120,8 @@ class TestDiseaseCorrelation:
                 # This file has a row with a duplicate module (IFG) for one group, but different correlation and
                 # p-value data.
                 "disease_correlation_results": "disease_correlation_results_duplicated_module.csv",
-                "allele_info": "model_allele_info.csv",
-                "model_info": "model_info.csv",
-                "human_transgene_allele_map": "human_transgene_allele_map.csv",
+                "model_genetic_modifications": "model_genetic_modifications.csv",
+                "model_metadata": "model_metadata.csv",
             }
         )
 
@@ -137,15 +132,13 @@ class TestDiseaseCorrelation:
         "missing_dataset",
         [
             "disease_correlation_results",
-            "model_info",
-            "allele_info",
-            "human_transgene_allele_map",
+            "model_metadata",
+            "model_genetic_modifications",
         ],
         ids=[
             "Missing disease_correlation_results",
-            "Missing model_info",
-            "Missing allele_info",
-            "Missing human_transgene_allele_map",
+            "Missing model_metadata",
+            "Missing model_genetic_modifications",
         ],
     )
     def test_transform_disease_correlation_fails_with_missing_dataset(
@@ -157,9 +150,8 @@ class TestDiseaseCorrelation:
         datasets = self.read_input_files(
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
-                "model_info": "model_info.csv",
-                "allele_info": "model_allele_info.csv",
-                "human_transgene_allele_map": "human_transgene_allele_map.csv",
+                "model_metadata": "model_metadata.csv",
+                "model_genetic_modifications": "model_genetic_modifications.csv",
             }
         )
 
@@ -173,15 +165,15 @@ class TestDiseaseCorrelation:
         "dataset, missing_column",
         [
             ("disease_correlation_results", "cluster"),
-            ("model_info", "model"),
-            ("allele_info", "model"),
-            ("human_transgene_allele_map", "mgi_allele_id"),
+            ("model_metadata", "model"),
+            ("model_genetic_modifications", "model"),
+            ("model_genetic_modifications", "mouse_gene_symbol"),
         ],
         ids=[
             "Missing 'cluster' from disease_correlation_results",
-            "Missing 'model' from model_info",
-            "Missing 'model' from allele_info",
-            "Missing 'mgi_allele_id' from human_transgene_allele_map",
+            "Missing 'model' from model_metadata",
+            "Missing 'model' from model_genetic_modifications",
+            "Missing 'mouse_gene_symbol' from model_genetic_modifications",
         ],
     )
     def test_transform_disease_correlation_fails_with_missing_columns(
@@ -195,9 +187,8 @@ class TestDiseaseCorrelation:
         datasets = self.read_input_files(
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
-                "model_info": "model_info.csv",
-                "allele_info": "model_allele_info.csv",
-                "human_transgene_allele_map": "human_transgene_allele_map.csv",
+                "model_metadata": "model_metadata.csv",
+                "model_genetic_modifications": "model_genetic_modifications.csv",
             }
         )
 
@@ -208,6 +199,81 @@ class TestDiseaseCorrelation:
             match=f"Missing required columns in {dataset} dataset: {missing_column}",
         ):
             transform_disease_correlation(datasets)
+
+    def test_gene_symbol_mapping(self) -> None:
+        """
+        Test that transform_disease_correlation correctly maps mouse gene symbols to human
+        gene symbols when a mapping exists, and preserves the original mouse gene symbol
+        when no human mapping is available.
+        """
+        datasets = {
+            "disease_correlation_results": pd.DataFrame(
+                [
+                    {
+                        "cluster": "Cluster A",
+                        "module": "IFGyellow",
+                        "mouse_model": "APOE4",
+                        "age": "4 months",
+                        "sex": "Male",
+                        "correlation": 0.5,
+                        "adjusted_p_value": 0.01,
+                    },
+                    {
+                        "cluster": "Cluster B",
+                        "module": "PHGbrown",
+                        "mouse_model": "Model1",
+                        "age": "6 months",
+                        "sex": "Female",
+                        "correlation": 0.6,
+                        "adjusted_p_value": 0.02,
+                    },
+                ]
+            ),
+            "model_metadata": pd.DataFrame(
+                [
+                    {
+                        "model": "APOE4",
+                        "matched_controls": "Ctrl",
+                        "model_type": "TypeX",
+                    }
+                ]
+            ),
+            "model_genetic_modifications": pd.DataFrame(
+                [
+                    {
+                        "model": "APOE4",
+                        "mouse_gene_symbol": "Apoe",
+                        "human_gene_symbol": "APOE",
+                        "human_ensembl_id": "ENSG00000130203",
+                    },
+                    {
+                        "model": "5xFAD",
+                        "mouse_gene_symbol": "App",
+                        "human_gene_symbol": "APP",
+                        "human_ensembl_id": "ENSG00000142192",
+                    },
+                    {
+                        "model": "5xFAD",
+                        "mouse_gene_symbol": "Psen1",
+                        "human_gene_symbol": "PSEN1",
+                        "human_ensembl_id": "ENSG00000080815",
+                    },
+                    {
+                        "model": "Model1",
+                        "mouse_gene_symbol": "Mapt",
+                        "human_gene_symbol": None,
+                        "human_ensembl_id": None,
+                    },
+                ]
+            ),
+        }
+        result = transform_disease_correlation(datasets)
+
+        assert len(result) == 2
+        assert result[0]["modified_genes"] == ["APOE"]  # human symbol used
+        assert result[1]["modified_genes"] == [
+            "Mapt"
+        ]  # no human mapping, mouse symbol preserved
 
 
 class TestCreateLookup:
@@ -306,7 +372,7 @@ class TestProcessGroup:
         model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
-        allele_info = {"gene": ["APOE4", "TREM2"]}
+        allele_info = {"mouse_gene_symbol": ["APOE4", "TREM2"]}
 
         result = process_group(
             group=group,
@@ -435,7 +501,7 @@ class TestProcessGroup:
         model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
-        allele_info = {"gene": ["APOE4", "TREM2"]}
+        allele_info = {"mouse_gene_symbol": ["APOE4", "TREM2"]}
 
         result = process_group(
             group=group,
@@ -464,133 +530,3 @@ class TestProcessGroup:
         }
 
         assert result == expected_result
-
-
-class TestMapGenesToHumanSymbols:
-    """
-    Test class for validating the map_genes_to_human_symbols function.
-    This function maps mouse gene names to human gene symbols using the human transgene allele map.
-    """
-
-    def test_map_genes_with_mgi_allele_id(self):
-        """
-        Test that map_genes_to_human_symbols correctly maps genes when mgi_allele_id is present.
-        """
-        # Create test allele_info with mouse gene names
-        # Note: Multiple genes can share the same mgi_allele_id (e.g., 5xFAD model has both
-        # App and Psen1 with ID 3693208) because a single transgenic allele can be a
-        # multi-gene construct. The function merges on BOTH mgi_allele_id AND gene_upper
-        # to correctly map each gene to its corresponding human symbol.
-        allele_info_df = pd.DataFrame(
-            [
-                {"model": "APOE4", "gene": "Apoe", "mgi_allele_id": 5810209},
-                {"model": "5xFAD", "gene": "App", "mgi_allele_id": 3693208},
-                {"model": "5xFAD", "gene": "Psen1", "mgi_allele_id": 3693208},
-            ]
-        )
-
-        # Create human transgene map
-        # The same mgi_allele_id appears multiple times with different gene_symbols
-        # because the 5xFAD transgenic construct contains multiple human genes
-        human_transgene_map_df = pd.DataFrame(
-            [
-                {
-                    "mgi_allele_id": 5810209,
-                    "gene_symbol": "APOE",
-                    "human_ensembl_id": "ENSG00000130203",
-                },
-                {
-                    "mgi_allele_id": 3693208,
-                    "gene_symbol": "APP",
-                    "human_ensembl_id": "ENSG00000142192",
-                },
-                {
-                    "mgi_allele_id": 3693208,
-                    "gene_symbol": "PSEN1",
-                    "human_ensembl_id": "ENSG00000080815",
-                },
-            ]
-        )
-
-        # Map genes
-        result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
-
-        # Construct expected dataframe with human gene symbols
-        expected_df = pd.DataFrame(
-            [
-                {"model": "APOE4", "gene": "APOE", "mgi_allele_id": 5810209},
-                {"model": "5xFAD", "gene": "APP", "mgi_allele_id": 3693208},
-                {"model": "5xFAD", "gene": "PSEN1", "mgi_allele_id": 3693208},
-            ]
-        )
-
-        # Verify the entire dataframe matches expected output
-        pd.testing.assert_frame_equal(result, expected_df)
-
-    def test_map_genes_no_matching_transgene(self):
-        """
-        Test that map_genes_to_human_symbols preserves original gene names when no mapping exists.
-        """
-        # Create test allele_info
-        allele_info_df = pd.DataFrame(
-            [
-                {"model": "Model1", "gene": "Mapt", "mgi_allele_id": 99999},
-            ]
-        )
-
-        # Create human transgene map without Mapt
-        human_transgene_map_df = pd.DataFrame(
-            [
-                {
-                    "mgi_allele_id": 12345,
-                    "gene_symbol": "APOE",
-                    "human_ensembl_id": "ENSG00000130203",
-                },
-            ]
-        )
-
-        # Map genes
-        result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
-
-        # Construct expected dataframe - original gene name should be preserved
-        expected_df = pd.DataFrame(
-            [
-                {"model": "Model1", "gene": "Mapt", "mgi_allele_id": 99999},
-            ]
-        )
-
-        # Verify the entire dataframe matches expected output
-        pd.testing.assert_frame_equal(result, expected_df)
-
-    def test_map_genes_empty_transgene_map(self):
-        """
-        Test that map_genes_to_human_symbols handles empty transgene map gracefully.
-        """
-        # Create test allele_info
-        allele_info_df = pd.DataFrame(
-            [
-                {"model": "Model1", "gene": "Apoe", "mgi_allele_id": 88057},
-            ]
-        )
-
-        # Create empty human transgene map
-        human_transgene_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": pd.Series(dtype="object"),
-                "gene_symbol": pd.Series(dtype="object"),
-                "human_ensembl_id": pd.Series(dtype="object"),
-            }
-        )
-
-        # Map genes
-        result = map_genes_to_human_symbols(allele_info_df, human_transgene_map_df)
-
-        # Construct expected dataframe - original gene name should be preserved
-        expected_df = pd.DataFrame(
-            [
-                {"model": "Model1", "gene": "Apoe", "mgi_allele_id": 88057},
-            ]
-        )
-
-        # Verify the entire dataframe matches expected output
-        pd.testing.assert_frame_equal(result, expected_df)
