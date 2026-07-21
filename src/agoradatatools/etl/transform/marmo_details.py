@@ -3,15 +3,17 @@ This module contains the transformation logic for the marmo_details dataset.
 This is for the Model AD project (marmoset details pages).
 """
 
-import re
 from typing import Any, Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.transform.immunohisto_transform import round_y_axis_max
 from agoradatatools.etl.utils import (
+    OneOfRule,
+    check_column_rules,
     check_required_datasets_and_columns,
     nest_fields,
+    round_y_axis_max,
+    standardize_column_name,
 )
 
 
@@ -42,6 +44,7 @@ REQUIRED_INPUT = {
     "marmo_biospecimen_metadata": [
         "specimenid",
         "samplingage",
+        "samplingageunits",
     ],
     "marmo_results": [
         "biomaterialid",
@@ -49,27 +52,16 @@ REQUIRED_INPUT = {
     ],
 }
 
+# Sampling ages are bucketed assuming values are expressed in months; validate the units
+# column up front so an unexpected unit fails loudly instead of silently miscomputing buckets.
+COLUMN_RULES = {
+    "marmo_biospecimen_metadata": {
+        "samplingageunits": [OneOfRule({"months"})],
+    },
+}
+
 # Number of months used to bucket sampling ages into whole-year ranges.
 MONTHS_PER_YEAR = 12
-
-
-def _standardize_result_column(name: str) -> str:
-    """Normalize a measure result column name the same way the ETL harness standardizes
-    dataframe column headers, so measure-info result_column values match the standardized
-    columns of the marmo_results dataset.
-
-    Mirrors agoradatatools.etl.utils.standardize_column_names: strip a set of special
-    characters, replace spaces / hyphens / periods with underscores, and lowercase.
-
-    Args:
-        name (str): A raw result column name, e.g. "Ab40_pg.ml".
-
-    Returns:
-        str: The standardized column name, e.g. "ab40_pg_ml".
-    """
-    name = re.sub(r"[#@&*^?()%$!/]", "", name)
-    name = re.sub(r"[ \-.]", "_", name)
-    return name.lower()
 
 
 def _age_to_year_bucket(sampling_age_months: float) -> str:
@@ -283,6 +275,7 @@ def transform_marmo_details(
             present in marmo_metadata (multi-model output is not yet supported).
     """
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, COLUMN_RULES)
 
     metadata = datasets["marmo_metadata"]
 
@@ -296,7 +289,7 @@ def transform_marmo_details(
 
     measure_info = datasets["marmo_biomarker_measure_info"].copy()
     measure_info["result_column_std"] = measure_info["result_column"].apply(
-        _standardize_result_column
+        standardize_column_name
     )
     measure_info["display_order"] = pd.to_numeric(
         measure_info["display_order"], errors="coerce"

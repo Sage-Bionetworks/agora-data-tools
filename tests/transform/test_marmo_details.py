@@ -104,3 +104,14 @@ class TestTransformMarmoDetails:
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_bad_sampling_age_units_should_fail(self):
+        """A samplingAgeUnits value other than months fails validation and raises ValueError."""
+        input_files = dict(self.good_input_files)
+        input_files[
+            "marmo_biospecimen_metadata"
+        ] = "marmo_biospecimen_metadata_bad_units_input.csv"
+        datasets = self._load_datasets(input_files)
+
+        with pytest.raises(ValueError):
+            transform_marmo_details(datasets=datasets)
