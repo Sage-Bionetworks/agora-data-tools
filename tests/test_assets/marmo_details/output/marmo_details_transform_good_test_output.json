@@ -16,7 +16,7 @@
         "evidence_type": "A&beta;40",
         "age": "0-1 years",
         "units": "pg/mL",
-        "y_axis_max": 1000.0,
+        "y_axis_max": 250.0,
         "data": [
           {
             "individual_id": "1",
@@ -31,7 +31,7 @@
         "evidence_type": "A&beta;40",
         "age": "1-2 years",
         "units": "pg/mL",
-        "y_axis_max": 1000.0,
+        "y_axis_max": 250.0,
         "data": [
           {
             "individual_id": "2",
@@ -46,7 +46,7 @@
         "evidence_type": "A&beta;42/A&beta;40",
         "age": "0-1 years",
         "units": "",
-        "y_axis_max": 3.0,
+        "y_axis_max": 0.25,
         "data": [
           {
             "individual_id": "1",
@@ -61,7 +61,7 @@
         "evidence_type": "A&beta;42/A&beta;40",
         "age": "1-2 years",
         "units": "",
-        "y_axis_max": 3.0,
+        "y_axis_max": 0.25,
         "data": [
           {
             "individual_id": "2",
@@ -76,7 +76,7 @@
         "evidence_type": "GFAP",
         "age": "0-1 years",
         "units": "pg/mL",
-        "y_axis_max": 700.0,
+        "y_axis_max": 55.0,
         "data": [
           {
             "individual_id": "1",

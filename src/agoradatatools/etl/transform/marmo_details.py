@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
+from agoradatatools.etl.transform.immunohisto_transform import round_y_axis_max
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
@@ -31,7 +32,6 @@ REQUIRED_INPUT = {
         "result_column",
         "evidence_type",
         "units",
-        "y_axis_max",
         "display_order",
     ],
     "marmo_individual_metadata": [
@@ -97,7 +97,7 @@ def _build_measurements(
     Melts the wide marmo_results measure columns into long form, joins individual metadata
     (genotype, sex), maps genotypes to their display labels (dropping any genotype not present
     in the label map), joins biospecimen sampling ages (dropping rows without a biospecimen
-    record), and attaches the measure metadata (evidence_type, units, y_axis_max, display_order).
+    record), and attaches the measure metadata (evidence_type, units, display_order).
 
     Args:
         datasets (Dict[str, pd.DataFrame]): The input datasets.
@@ -160,7 +160,6 @@ def _build_measurements(
                 "result_column_std",
                 "evidence_type",
                 "units",
-                "y_axis_max",
                 "display_order",
             ]
         ],
@@ -179,6 +178,11 @@ def _build_biomarkers(
     Produces one object per (evidence_type, age) combination, each containing the data points
     for that plot. Objects are sorted by the measure display order, then by age ascending.
 
+    The y_axis_max for each measure is computed from the data: the maximum surfaced value for
+    an evidence_type (across all ages) is rounded up to a "nice" number via round_y_axis_max,
+    mirroring how the mouse immunohisto pipeline derives its plot axis maxima. The same
+    y_axis_max is applied to every age bucket of a given evidence_type.
+
     Args:
         measurements (pd.DataFrame): The per-measurement DataFrame from _build_measurements.
         model_name (str): The model name to stamp on each biomarker object.
@@ -188,6 +192,11 @@ def _build_biomarkers(
     """
     if measurements.empty:
         return []
+
+    y_axis_max_map = {
+        evidence_type: round_y_axis_max(group["value"].max())
+        for evidence_type, group in measurements.groupby("evidence_type")
+    }
 
     data_points = measurements.copy()
     data_points["individual_id"] = data_points["individualid"].astype(str)
@@ -199,7 +208,6 @@ def _build_biomarkers(
             "evidence_type",
             "age",
             "units",
-            "y_axis_max",
             "display_order",
             "age_start",
         ],
@@ -230,7 +238,7 @@ def _build_biomarkers(
                 "evidence_type": row["evidence_type"],
                 "age": row["age"],
                 "units": row["units"],
-                "y_axis_max": float(row["y_axis_max"]),
+                "y_axis_max": float(y_axis_max_map[row["evidence_type"]]),
                 "data": data,
             }
         )
@@ -258,9 +266,10 @@ def transform_marmo_details(
         3. Each measurement's sampling age is joined from the biospecimen record on
            biomaterialid == specimenid. Measurements with no biospecimen record are dropped.
         4. Sampling ages (months) are bucketed into whole-year ranges (e.g. "0-1 years").
-        5. Measure metadata (evidence_type, units, y_axis_max, display_order) is attached from
-           marmo_biomarker_measure_info. The biomarkers collection contains one object per
-           (evidence_type, age), sorted by display order then age ascending.
+        5. Measure metadata (evidence_type, units, display_order) is attached from
+           marmo_biomarker_measure_info. y_axis_max is computed from the data (per-measure
+           maximum rounded up via round_y_axis_max). The biomarkers collection contains one
+           object per (evidence_type, age), sorted by display order then age ascending.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
@@ -291,9 +300,6 @@ def transform_marmo_details(
     )
     measure_info["display_order"] = pd.to_numeric(
         measure_info["display_order"], errors="coerce"
-    )
-    measure_info["y_axis_max"] = pd.to_numeric(
-        measure_info["y_axis_max"], errors="coerce"
     )
     # The A-beta ratio has no units; represent missing units as an empty string, not null
     measure_info["units"] = measure_info["units"].fillna("")

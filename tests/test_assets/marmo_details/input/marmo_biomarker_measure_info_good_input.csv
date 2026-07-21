@@ -1,4 +1,4 @@
-result_column,evidence_type,units,y_axis_max,display_order
-Ab40_pg.ml,A&beta;40,pg/mL,1000,1
-Ab_ratio,A&beta;42/A&beta;40,,3,2
-GFAP_pg.ml,GFAP,pg/mL,700,3
+result_column,evidence_type,units,display_order
+Ab40_pg.ml,A&beta;40,pg/mL,1
+Ab_ratio,A&beta;42/A&beta;40,,2
+GFAP_pg.ml,GFAP,pg/mL,3
