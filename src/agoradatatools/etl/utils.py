@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Collection, Dict, List, Union
+import math
 import re
 
 import numpy as np
@@ -676,21 +677,6 @@ def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
     return result
 
 
-def convert_numpy_types(obj: Any) -> Any:
-    """Convert numpy types to Python native types for JSON serialization."""
-    if isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, np.floating):
-        return float(obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, dict):
-        return {key: convert_numpy_types(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_numpy_types(item) for item in obj]
-    return obj
-
-
 def normalize_zero(value: float) -> float:
     """
     Convert -0.0 to 0.0 while preserving other values.
@@ -863,3 +849,53 @@ def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
 
     # Return empty list for None or empty string input
     return []
+
+
+def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
+    """
+    This function rounds the y_axis_max value to the nearest sensible nice round number.
+
+    Logic:
+    - If max == 0, then y_axis_max == 10
+    - Else, round UP to the next "nice" number where the second digit is 0 or 5
+
+    Examples:
+    - 0.0021 rounds up to 0.0025
+    - 0.0004 rounds up to 0.00045
+    - 0.329486078 rounds up to 0.35
+    - 0.089 rounds up to 0.090
+    - 1094 rounds up to 1500
+    - 1322498 rounds up to 1500000
+    - 728591 rounds up to 750000
+    - 3973 rounds up to 4000
+    - 1.616 rounds up to 2.0
+    """
+    # Convert to float if it's a string or other type
+    try:
+        y_axis_max = float(y_axis_max)
+    except (ValueError, TypeError):
+        # If conversion fails, return 10 (default case)
+        return 10.0
+
+    # Handle special cases: zero or negative values
+    if y_axis_max <= 0:
+        return 10.0 if y_axis_max == 0 else 0.0
+
+    # Find the order of magnitude of the number
+    magnitude = int(math.floor(math.log10(y_axis_max)))
+
+    # Scale the number so the first digit is in the ones place
+    scaled = y_axis_max / (
+        10 ** (magnitude - 1)
+    )  # After scaling, the first significant digit is in the tens place and the second in the ones place
+    # Round UP to the next 5 or 0 (add small epsilon to ensure we always round up)
+    rounded_scaled = 5 * math.ceil((scaled + 1e-10) / 5)
+
+    # Put back to the right magnitude
+    result = rounded_scaled * (10 ** (magnitude - 1))
+
+    # Remove float precision issues
+    result = round(result, 15)
+
+    # Ensure we always return a float, even for whole numbers
+    return float(result)
