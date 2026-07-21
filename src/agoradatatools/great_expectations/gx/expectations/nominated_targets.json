@@ -114,6 +114,31 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_have_list_members",
+      "kwargs": {
+        "column": "nominating_teams",
+        "list_members": [
+          "ASU",
+          "Chang Lab",
+          "Columbia",
+          "Columbia-Rush",
+          "Duke",
+          "Duke BARU",
+          "Emory",
+          "Emory-Sage-SGC",
+          "Harvard-MIT",
+          "IUSM-Purdue",
+          "JAX-VUMC-UW Resilience",
+          "Longo Lab",
+          "Mayo",
+          "Mayo-UFL-ISB",
+          "MSSM - Roussos Lab",
+          "MSSM - Zhang Lab"
+        ]
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "cohort_studies",
@@ -182,6 +207,25 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_have_list_members",
+      "kwargs": {
+        "column": "input_data",
+        "list_members": [
+          "Behavior",
+          "Clinical",
+          "Genetics",
+          "Metabolomics",
+          "Pathway Modeling",
+          "Phenomics",
+          "Protein",
+          "Risk Scores",
+          "RNA",
+          "Unknown"
+        ]
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "programs",
@@ -212,6 +256,20 @@
       "kwargs": {
         "column": "programs",
         "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members",
+      "kwargs": {
+        "column": "programs",
+        "list_members": [
+          "AMP-AD",
+          "Community",
+          "FunGen-AD",
+          "Resilience-AD",
+          "TREAT-AD"
+        ]
       },
       "meta": {}
     },
