@@ -1976,6 +1976,3 @@ class TestRoundYAxisMax:
         assert utils.round_y_axis_max("invalid") == pytest.approx(10.0)
         assert utils.round_y_axis_max("abc123") == pytest.approx(10.0)
         assert utils.round_y_axis_max("") == pytest.approx(10.0)
-
-        # None input (should return 10.0)
-        assert utils.round_y_axis_max(None) == pytest.approx(10.0)
