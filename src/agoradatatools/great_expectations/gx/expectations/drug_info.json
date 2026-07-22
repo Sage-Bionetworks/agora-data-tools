@@ -133,7 +133,7 @@
       "kwargs": {
         "column": "year_of_first_approval",
         "max_value": 2050,
-        "min_value": 1940
+        "min_value": 1938
       },
       "meta": {}
     },
