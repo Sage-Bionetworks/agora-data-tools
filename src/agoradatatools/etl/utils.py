@@ -237,10 +237,8 @@ def standardize_column_name(name: str) -> str:
     Returns:
         str: The standardized column name.
     """
-    name = re.sub(
-        "[#@&*^?()%$#!/]", "", name
-    )  # the commas were unnessesary and were breaking the prelacement of '-' characters
-    name = re.sub("[ -.]", "_", name)
+    name = re.sub("[#@&*^?()%$!/]", "", name)
+    name = re.sub("[ .-]", "_", name)
     return name.lower()
 
 
@@ -888,8 +886,8 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     # Convert to float if it's a string or other type
     try:
         y_axis_max = float(y_axis_max)
-    except (ValueError, TypeError):
-        # If conversion fails, return 10 (default case)
+    except ValueError:
+        # Non-numeric strings fall back to the default
         return 10.0
 
     # Handle special cases: zero or negative values
