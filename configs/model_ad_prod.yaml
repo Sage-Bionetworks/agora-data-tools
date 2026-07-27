@@ -5,11 +5,11 @@ gx_table: syn71888383            # prod
 # Reusable file reference anchors used by datasets below.
 files:
   # Metadata & Configuration
-  - &model_genetic_modifications  { name: model_genetic_modifications  , format: csv  , id: syn76147521.3  }
+  - &model_genetic_modifications  { name: model_genetic_modifications  , format: csv  , id: syn76147521.5  }
   - &immunohisto_measure_order    { name: immunohisto_measure_order    , format: yaml , id: syn71305327.2  }
-  - &model_metadata               { name: model_metadata               , format: csv  , id: syn76069176.2  }
+  - &model_metadata               { name: model_metadata               , format: csv  , id: syn76069176.4  }
   - &mouse_gene_metadata          { name: mouse_gene_metadata          , format: json , id: syn51615422.6  }
-  - &genotype_label_map           { name: genotype_label_map           , format: csv  , id: syn69014401.17 }
+  - &genotype_label_map           { name: genotype_label_map           , format: csv  , id: syn69014401.18 }
   - &ui_config                    { name: ui_config                    , format: json , id: syn66527739.30 }
   # Results
   - &biodom_genes_mm              { name: biodom_genes_mm              , format: csv  , id: syn66351272.1  }
@@ -19,19 +19,27 @@ files:
   # Differential Expression Results
   - &jax_5xFAD_de                 { name: jax_5xFAD_de                 , format: csv  , id: syn69058660.2  }
   - &jax_APOE4_Trem2_R47H_de      { name: jax_APOE4_Trem2_R47H_de      , format: csv  , id: syn69693082.3  }
+  - &jax_LOAD2_de                 { name: jax_LOAD2_de                 , format: csv  , id: syn76459572.1  }
   - &uci_3xTG_AD_de               { name: uci_3xTG_AD_de               , format: csv  , id: syn69058661.2  }
   - &uci_5xFAD_de                 { name: uci_5xFAD_de                 , format: csv  , id: syn69058664.1  }
   - &uci_ABCA7_de                 { name: uci_ABCA7_de                 , format: csv  , id: syn69058663.3  }
+  - &uci_Bin1_de                  { name: uci_Bin1_de                  , format: csv  , id: syn76457207.1  }
+  - &uci_Clu_de                   { name: uci_Clu_de                   , format: csv  , id: syn76457215.1  }
   - &uci_Trem2_R47H_NSS_de        { name: uci_Trem2_R47H_NSS_de        , format: csv  , id: syn69058662.3  }
   # Normalized Expression Results
   - &jax_5xFAD_ne                 { name: jax_5xFAD_ne                 , format: csv  , id: syn69058674.1  }
   - &jax_APOE4_ne                 { name: jax_APOE4_ne                 , format: csv  , id: syn72388431.2  }
   - &jax_APOE4_Trem2_R47H_ne      { name: jax_APOE4_Trem2_R47H_ne      , format: csv  , id: syn72388432.1  }
   - &jax_Trem2_R47H_ne            { name: jax_Trem2_R47H_ne            , format: csv  , id: syn72388430.2  }
+  - &jax_LOAD2_ne                 { name: jax_LOAD2_ne                 , format: csv  , id: syn76459553.1  }
   - &uci_3xTG_AD_ne               { name: uci_3xTG_AD_ne               , format: csv  , id: syn69058676.1  }
   - &uci_5xFAD_ne                 { name: uci_5xFAD_ne                 , format: csv  , id: syn69058679.1  }
   - &uci_ABCA7_ne                 { name: uci_ABCA7_ne                 , format: csv  , id: syn72388477.1  }
   - &uci_ABCA7_5xFAD_ne           { name: uci_ABCA7_5xFAD_ne           , format: csv  , id: syn72388476.2  }
+  - &uci_Bin1_ne                  { name: uci_Bin1_ne                  , format: csv  , id: syn76459725.1  }
+  - &uci_Bin1_5xFAD_ne            { name: uci_Bin1_5xFAD_ne            , format: csv  , id: syn76459724.1  }
+  - &uci_Clu_ne                   { name: uci_Clu_ne                   , format: csv  , id: syn76459751.1  }
+  - &uci_Clu_5xFAD_ne             { name: uci_Clu_5xFAD_ne             , format: csv  , id: syn76459744.1  }
   - &uci_Trem2_R47H_NSS_ne        { name: uci_Trem2_R47H_NSS_ne        , format: csv  , id: syn72388498.1  }
   - &uci_Trem2_R47H_NSS_5xFAD_ne  { name: uci_Trem2_R47H_NSS_5xFAD_ne  , format: csv  , id: syn72388499.2  }
 
@@ -107,9 +115,12 @@ datasets:
         - <<: *biodom_genes_mm
         - <<: *jax_5xFAD_de
         - <<: *jax_APOE4_Trem2_R47H_de
+        - <<: *jax_LOAD2_de
         - <<: *uci_3xTG_AD_de
         - <<: *uci_5xFAD_de
         - <<: *uci_ABCA7_de
+        - <<: *uci_Bin1_de
+        - <<: *uci_Clu_de
         - <<: *uci_Trem2_R47H_NSS_de
       final_format: json
       destination: *dest
@@ -122,8 +133,13 @@ datasets:
         - <<: *jax_APOE4_Trem2_R47H_ne
         - <<: *jax_APOE4_ne
         - <<: *jax_Trem2_R47H_ne
+        - <<: *jax_LOAD2_ne
         - <<: *uci_ABCA7_5xFAD_ne
         - <<: *uci_ABCA7_ne
+        - <<: *uci_Bin1_ne
+        - <<: *uci_Bin1_5xFAD_ne
+        - <<: *uci_Clu_ne
+        - <<: *uci_Clu_5xFAD_ne
         - <<: *uci_Trem2_R47H_NSS_5xFAD_ne
         - <<: *uci_Trem2_R47H_NSS_ne
         - <<: *uci_3xTG_AD_ne
