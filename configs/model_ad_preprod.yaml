@@ -24,7 +24,7 @@ files:
   - &uci_5xFAD_de                 { name: uci_5xFAD_de                 , format: csv  , id: syn69058664.1  }
   - &uci_ABCA7_de                 { name: uci_ABCA7_de                 , format: csv  , id: syn69058663.3  }
   - &uci_Bin1_de                  { name: uci_Bin1_de                  , format: csv  , id: syn76457207.1  }
-  - &uci_Clu_de                   { name: uci_Clu_de                   , format: csv  , id: syn76457215.1  }
+  - &uci_Clu_de                   { name: uci_Clu_de                   , format: csv  , id: syn76457215.2  }
   - &uci_Trem2_R47H_NSS_de        { name: uci_Trem2_R47H_NSS_de        , format: csv  , id: syn69058662.3  }
   # Normalized Expression Results
   - &jax_5xFAD_ne                 { name: jax_5xFAD_ne                 , format: csv  , id: syn69058674.1  }
