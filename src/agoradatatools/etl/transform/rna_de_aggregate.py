@@ -8,6 +8,7 @@ and biodomain annotations to create a structured output format.
 The transformation:
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
 - Filters out combined-cohort rows where sex is "Females & Males", keeping single-sex rows only
+- Maps plural sex labels to singular display values ("Females" -> "Female", "Males" -> "Male")
 - Groups differential expression data by gene, model, tissue, sex, case, and control
 - Creates age-based entries containing log2 fold change and adjusted p-values
 - Validates and sorts age entries by numeric value
@@ -68,6 +69,9 @@ REQUIRED_INPUT = {
         "ensembl_id",
     ],
 }
+
+# Source data uses plural sex cohort labels; the Comparison Tool displays singular values.
+SEX_DISPLAY_MAP = {"Females": "Female", "Males": "Male"}
 
 
 def _validate_and_sort_age_entries(
@@ -262,7 +266,7 @@ def _create_output_entry_from_group(
                 'model_group': '5XFAD',
                 'model_type': 'Familial AD',
                 'tissue': 'Hemibrain',
-                'sex': 'M',
+                'sex': 'Male',
                 '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
                 '6 months': {'log2_fc': 2.456, 'adj_p_val': 0.0001}
             }
@@ -352,10 +356,11 @@ def _process_single_data_file(
     3. Validating that all required columns are present
     4. Filtering to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*)
     5. Filtering out combined-cohort rows where sex is "Females & Males"
-    6. Rounding numeric columns to 5 decimal places for consistency
-    7. Grouping data by gene, model, tissue, sex, case, and control
-    8. Creating enriched output entries for each group using metadata dictionaries
-    9. Cleaning up memory by deleting the processed DataFrame and running garbage collection
+    6. Mapping plural sex labels to singular display values ("Females" -> "Female", "Males" -> "Male")
+    7. Rounding numeric columns to 5 decimal places for consistency
+    8. Grouping data by gene, model, tissue, sex, case, and control
+    9. Creating enriched output entries for each group using metadata dictionaries
+    10. Cleaning up memory by deleting the processed DataFrame and running garbage collection
 
     Each output entry represents a unique combination of gene, model, tissue, and sex,
     with age-based differential expression measurements and enriched metadata.
@@ -424,6 +429,9 @@ def _process_single_data_file(
     # Filter out combined-cohort rows; keep single-sex rows only
     data_file = data_file[data_file["sex"] != "Females & Males"]
 
+    # Map plural source sex labels to their singular display form
+    data_file = data_file.assign(sex=data_file["sex"].replace(SEX_DISPLAY_MAP))
+
     # Round numeric columns to 5 decimal places for consistency
     data_file = data_file.round(decimals=5)
 
@@ -475,6 +483,7 @@ def transform_rna_de_aggregate(
     4. Processes one or more differential expression data files sequentially:
        - Filters to mouse genes only (ENSMUSG*)
        - Filters out combined-cohort rows where sex is "Females & Males"
+       - Maps plural sex labels to singular display values ("Females" -> "Female", "Males" -> "Male")
        - Groups data by gene, model, tissue, sex, case, and control
        - Enriches each group with metadata
        - Creates age-based entries with log2 fold change and adjusted p-values
@@ -519,7 +528,7 @@ def transform_rna_de_aggregate(
                 'model_group': '5XFAD',
                 'model_type': 'Familial AD',
                 'tissue': 'Hemibrain',
-                'sex': 'M',
+                'sex': 'Male',
                 '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
                 '6 months': {'log2_fc': 2.456, 'adj_p_val': 0.0001}
             }

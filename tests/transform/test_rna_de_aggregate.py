@@ -976,7 +976,8 @@ class TestProcessSingleDataFile:
         assert not any(entry["ensembl_gene_id"].startswith("ENSG") for entry in result)
 
     def test_process_single_data_file_filters_combined_sex_cohort(self) -> None:
-        """Test that combined-cohort rows (sex == "Females & Males") are filtered out."""
+        """Test that combined-cohort rows (sex == "Females & Males") are filtered out and
+        the surviving plural sex labels are mapped to singular display values."""
         data_file = pd.DataFrame(
             {
                 "ensembl_gene_id": [
@@ -1029,10 +1030,59 @@ class TestProcessSingleDataFile:
             total_files=1,
         )
 
-        # Should only have 2 entries (single-sex rows only)
+        # Should only have 2 entries (single-sex rows only), with singular sex labels
         assert len(result) == 2
-        assert {entry["sex"] for entry in result} == {"Males", "Females"}
+        assert {entry["sex"] for entry in result} == {"Male", "Female"}
         assert not any(entry["sex"] == "Females & Males" for entry in result)
+
+    def test_process_single_data_file_maps_sex_to_singular(self) -> None:
+        """Plural source sex labels are mapped to singular display values
+        ("Females" -> "Female", "Males" -> "Male")."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
+                "log2foldchange": [1.5, 2.0],
+                "padj": [0.01, 0.02],
+                "model": ["Model_A", "Model_A"],
+                "case": ["Tg", "Tg"],
+                "control": ["Wt", "Wt"],
+                "age": ["6 months", "6 months"],
+                "sex": ["Females", "Males"],
+                "tissue": ["Cortex", "Cortex"],
+            }
+        )
+
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
+        data_file_required_columns = [
+            "ensembl_gene_id",
+            "log2foldchange",
+            "padj",
+            "model",
+            "case",
+            "control",
+            "age",
+            "sex",
+            "tissue",
+        ]
+
+        result = _process_single_data_file(
+            file_name="sex_mapping.csv",
+            data_file=data_file,
+            data_file_required_columns=data_file_required_columns,
+            gene_metadata_dict={},
+            label_map_dict=label_map_dict,
+            model_group_dict={},
+            biodomain_dict={},
+            model_type_dict={},
+            file_index=0,
+            total_files=1,
+        )
+
+        assert {entry["sex"] for entry in result} == {"Male", "Female"}
+        assert not any(entry["sex"] in {"Females", "Males"} for entry in result)
 
     def test_process_single_data_file_rounding(self) -> None:
         """Test that numeric values are rounded to 5 decimal places."""
