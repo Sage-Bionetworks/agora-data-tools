@@ -83,8 +83,7 @@ class TestPreprocessDataFile:
         assert set(result["sex"]) == {"Female", "Male"}
         assert not result["sex"].isin(["Females", "Males"]).any()
 
-
-    def test_preprocess_data_file_passes_singular_sex_values(self) -> None:
+    def test_preprocess_data_file_singular_sex_values_pass_through(self) -> None:
         """Singular source sex labels are passed through unaltered."""
         data_file = pd.DataFrame(
             {
@@ -109,6 +108,7 @@ class TestPreprocessDataFile:
         )
 
         assert set(result["sex"]) == {"Female", "Male"}
+
 
 class TestDetermineResultOrder:
     """

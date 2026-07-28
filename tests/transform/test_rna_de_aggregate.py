@@ -1084,8 +1084,8 @@ class TestProcessSingleDataFile:
         assert {entry["sex"] for entry in result} == {"Male", "Female"}
         assert not any(entry["sex"] in {"Females", "Males"} for entry in result)
 
-    def test_process_single_data_file__passes_singular_sex_values(self) -> None:
-        """Singular source sex labels are passed thorugh unaltered")."""
+    def test_process_single_data_file_singular_sex_values_pass_through(self) -> None:
+        """Singular source sex labels are passed through without alteration")."""
         data_file = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
@@ -1130,7 +1130,6 @@ class TestProcessSingleDataFile:
         )
 
         assert {entry["sex"] for entry in result} == {"Male", "Female"}
-
 
     def test_process_single_data_file_rounding(self) -> None:
         """Test that numeric values are rounded to 5 decimal places."""
