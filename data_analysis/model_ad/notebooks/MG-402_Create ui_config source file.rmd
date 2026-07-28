@@ -193,7 +193,7 @@ ge_dynamic_column_is_exported <- TRUE
 ge_dynamic_column_is_hidden <- FALSE
 
 # Variable heatmap column names vary by contributing center and by tissue, since each center sequences different tissues
-ge_dynamic_names_jax <- c("4 months", "12 months")
+ge_dynamic_names_jax <- c("4 months", "12 months", "18 months", "24 months")
 ge_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 
 # Differential Expression Filters
@@ -215,10 +215,13 @@ ge_model_name_filter_vals_hemibrain <- c(
                             '5xFAD (IU/Jax/Pitt)',
                             'APOE4',
                             'LOAD1',
-                            'Trem2R47H')
+                            'Trem2R47H',
+                            'LOAD2')
 
-# Cortex: 5xFAD (UCI); need to wrap single value in a list for JSON serialization
-ge_model_name_filter_vals_cerebral_cortex <- list('5xFAD (UCI)')
+# Cortex: 5xFAD (UCI) and Clu-h2kbKI
+ge_model_name_filter_vals_cerebral_cortex <- list('5xFAD (UCI)',
+                                                  'Clu-h2kbKI',
+                                                  'Clu-h2kbKI.5xFAD')
 
 # Hippocampus: All UCI models
 ge_model_name_filter_vals_hippocampus <- c(
@@ -226,6 +229,10 @@ ge_model_name_filter_vals_hippocampus <- c(
                             '5xFAD (UCI)',
                             'Abca7*V1599M',
                             'Abca7*V1599M.5xFAD',
+                            'Bin1-K358R',
+                            'Bin1-K358R.5xFAD',
+                            'Clu-h2kbKI',
+                            'Clu-h2kbKI.5xFAD',
                             'Trem2-R47H_NSS',
                             'Trem2-R47H_NSS.5xFAD')
 
@@ -492,8 +499,11 @@ mo_filters <- data.frame(
 mo_modified_gene_filter_vals <- c('Abca7',
                                'APOE',
                                'APP',
+                               'App',
+                               'Bin1',
                                'Ceacam1',
                                'Clasp2',
+                               'CLU',
                                'CR1',
                                'CR2',
                                'Il1rap',
