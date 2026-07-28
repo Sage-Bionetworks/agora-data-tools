@@ -219,9 +219,9 @@ ge_model_name_filter_vals_hemibrain <- c(
                             'LOAD2')
 
 # Cortex: 5xFAD (UCI) and Clu-h2kbKI
-ge_model_name_filter_vals_cerebral_cortex <- list('5xFAD (UCI)',
-                                                  'Clu-h2kbKI',
-                                                  'Clu-h2kbKI.5xFAD')
+ge_model_name_filter_vals_cerebral_cortex <- c('5xFAD (UCI)',
+                                               'Clu-h2kbKI',
+                                               'Clu-h2kbKI.5xFAD')
 
 # Hippocampus: All UCI models
 ge_model_name_filter_vals_hippocampus <- c(
