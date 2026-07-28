@@ -1084,6 +1084,54 @@ class TestProcessSingleDataFile:
         assert {entry["sex"] for entry in result} == {"Male", "Female"}
         assert not any(entry["sex"] in {"Females", "Males"} for entry in result)
 
+    def test_process_single_data_file__passes_singular_sex_values(self) -> None:
+        """Singular source sex labels are passed thorugh unaltered")."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
+                "log2foldchange": [1.5, 2.0],
+                "padj": [0.01, 0.02],
+                "model": ["Model_A", "Model_A"],
+                "case": ["Tg", "Tg"],
+                "control": ["Wt", "Wt"],
+                "age": ["6 months", "6 months"],
+                "sex": ["Female", "Male"],
+                "tissue": ["Cortex", "Cortex"],
+            }
+        )
+
+        label_map_dict = {
+            ("Model_A", "Tg"): "Transgenic",
+            ("Model_A", "Wt"): "Wildtype",
+        }
+        data_file_required_columns = [
+            "ensembl_gene_id",
+            "log2foldchange",
+            "padj",
+            "model",
+            "case",
+            "control",
+            "age",
+            "sex",
+            "tissue",
+        ]
+
+        result = _process_single_data_file(
+            file_name="sex_mapping.csv",
+            data_file=data_file,
+            data_file_required_columns=data_file_required_columns,
+            gene_metadata_dict={},
+            label_map_dict=label_map_dict,
+            model_group_dict={},
+            biodomain_dict={},
+            model_type_dict={},
+            file_index=0,
+            total_files=1,
+        )
+
+        assert {entry["sex"] for entry in result} == {"Male", "Female"}
+
+
     def test_process_single_data_file_rounding(self) -> None:
         """Test that numeric values are rounded to 5 decimal places."""
         data_file = pd.DataFrame(
