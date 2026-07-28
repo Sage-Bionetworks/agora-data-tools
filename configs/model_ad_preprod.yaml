@@ -18,7 +18,7 @@ files:
   - &pathology                    { name: pathology                    , format: csv  , id: syn61357279.18 }
   # Differential Expression Results
   - &jax_5xFAD_de                 { name: jax_5xFAD_de                 , format: csv  , id: syn69058660.2  }
-  - &jax_APOE4_Trem2_R47H_de      { name: jax_APOE4_Trem2_R47H_de      , format: csv  , id: syn69693082.3  }
+  - &jax_APOE4_Trem2_R47H_de      { name: jax_APOE4_Trem2_R47H_de      , format: csv  , id: syn76459470.1  } #syn69693082.4 when released to portal
   - &jax_LOAD2_de                 { name: jax_LOAD2_de                 , format: csv  , id: syn76459572.1  }
   - &uci_3xTG_AD_de               { name: uci_3xTG_AD_de               , format: csv  , id: syn69058661.2  }
   - &uci_5xFAD_de                 { name: uci_5xFAD_de                 , format: csv  , id: syn69058664.1  }
@@ -28,9 +28,9 @@ files:
   - &uci_Trem2_R47H_NSS_de        { name: uci_Trem2_R47H_NSS_de        , format: csv  , id: syn69058662.3  }
   # Normalized Expression Results
   - &jax_5xFAD_ne                 { name: jax_5xFAD_ne                 , format: csv  , id: syn69058674.1  }
-  - &jax_APOE4_ne                 { name: jax_APOE4_ne                 , format: csv  , id: syn72388431.2  }
-  - &jax_APOE4_Trem2_R47H_ne      { name: jax_APOE4_Trem2_R47H_ne      , format: csv  , id: syn72388432.1  }
-  - &jax_Trem2_R47H_ne            { name: jax_Trem2_R47H_ne            , format: csv  , id: syn72388430.2  }
+  - &jax_APOE4_ne                 { name: jax_APOE4_ne                 , format: csv  , id: syn72388431.3  }
+  - &jax_APOE4_Trem2_R47H_ne      { name: jax_APOE4_Trem2_R47H_ne      , format: csv  , id: syn72388432.2  }
+  - &jax_Trem2_R47H_ne            { name: jax_Trem2_R47H_ne            , format: csv  , id: syn72388430.3  }
   - &jax_LOAD2_ne                 { name: jax_LOAD2_ne                 , format: csv  , id: syn76459553.1  }
   - &uci_3xTG_AD_ne               { name: uci_3xTG_AD_ne               , format: csv  , id: syn69058676.1  }
   - &uci_5xFAD_ne                 { name: uci_5xFAD_ne                 , format: csv  , id: syn69058679.1  }
