@@ -150,7 +150,8 @@ def preprocess_data_file(
 
     Returns:
         Preprocessed DataFrame with mouse genes only, tissue names mapped and
-        sentence-cased, and numeric values rounded to 5 decimal places.
+        sentence-cased, plural sex labels mapped to singular display values, and
+        numeric values rounded to 5 decimal places.
 
     Raises:
         ValueError: If the file is empty, missing required columns, or any column
@@ -168,6 +169,9 @@ def preprocess_data_file(
     data_file["tissue"] = data_file["tissue"].str.replace(
         "Right Cerebral Hemisphere", "Hemibrain", regex=False
     )
+    # Map plural source sex labels to their singular display form
+    SEX_DISPLAY_MAP = {"Females": "Female", "Males": "Male"}
+    data_file["sex"] = data_file["sex"].replace(SEX_DISPLAY_MAP)
     data_file["expression"] = data_file["expression"].astype(float)
     data_file = data_file.round(decimals=5)
     data_file["individualid"] = data_file["individualid"].astype(str)
