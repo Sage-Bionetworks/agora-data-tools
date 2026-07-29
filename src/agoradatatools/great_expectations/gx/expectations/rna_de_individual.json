@@ -203,6 +203,14 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "result_order",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "result_order"
@@ -210,45 +218,34 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_match_json_schema",
-      "kwargs": {
-        "column": "result_order",
-        "json_schema": {
-          "type": "array",
-          "minItems": 2,
-          "maxItems": 4,
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "data"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_have_list_length_in_range",
       "kwargs": {
-        "column": "data",
+        "column": "result_order",
         "list_length_range": [
-          19,
-          44
+          2,
+          4
         ]
       },
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "result_order",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "data",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/rna_de_individual/data_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "type": "array",
+          "minItems": 19,
+          "maxItems": 44,
           "items": {
             "type": "object",
             "properties": {

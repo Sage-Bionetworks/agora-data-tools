@@ -64,6 +64,17 @@ The governing question is: *what is this field's value shape, and does it have i
 that only a schema can validate?* If yes → make it a nested column (`gx_nested_columns`) and use
 JSON Schema; if no → native/custom expectations on the un-nested column.
 
+**When auditing an existing suite, re-derive each field's mechanism from its value shape — do not
+trust the current `gx_nested_columns` list.** The existing configuration can itself be the
+deviation. Treat a field's presence in `gx_nested_columns` as a *hypothesis to verify against the
+shape judgment*, never as the answer. A classic miss: a **list of scalars** (e.g. `result_order`, a
+list of display-label strings) that was wrongly nested and validated with `match_json_schema` — its
+items have no internal structure, so it should be **un-nested** and checked with the native list
+expectations (the `biodomains` pattern). Because it sits next to a legitimately-nested list-of-objects
+column (e.g. `data`), it's tempting to treat "the nested list columns" as a unit — but "is it a
+list?" is the wrong question; "do its *items* have structure only a schema can validate?" is the
+right one. Run every field through that test independently, including the ones already nested.
+
 ### Why nesting shifts interior checks into the schema
 
 Adding a field to `gx_nested_columns` runs `convert_nested_columns_to_json`, which serializes that
@@ -177,6 +188,13 @@ the library — the templates below already include them):
 - `"$id"`: the file's GitHub repo path = `https://github.com/Sage-Bionetworks/agora-data-tools/`
   + the file's repo-relative path, e.g.
   `https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json`
+
+**These two keys travel with the schema even when it is embedded inline.** Whether the schema
+lives in a standalone file or is inlined into a suite's `expect_column_values_to_match_json_schema`
+kwargs, it must carry `$schema` and `$id`. Notebook-generated suites embed the full schema file
+(header included) automatically; when hand-writing a suite via Option B (Step 4), copy the same
+`$schema`/`$id` header into each inline `json_schema` so both authoring paths produce identical
+suites.
 
 The templates below cover common link-object columns; array/list columns use the same
 `$schema`/`$id` header with an `array` schema (see the array example in Step 3).
@@ -447,12 +465,30 @@ The format mirrors existing suites (e.g. `rnaseq_differential_expression.json`):
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": { "column": "my_col", "type_": "str" },
       "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "my_nested_col",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "object",
+          "properties": { "link_url": { "type": "string", "minLength": 1 } },
+          "required": ["link_url"],
+          "additionalProperties": false
+        }
+      },
+      "meta": {}
     }
   ],
   "ge_cloud_id": null,
   "meta": { "great_expectations_version": "0.18.1" }
 }
 ```
+
+When hand-writing an inline `json_schema` here, include the `$schema`/`$id` header (as shown
+above) so the suite matches what a notebook would generate — see Step 2.
 
 After writing the file directly, **always verify the suite passes** by running GX on a small sample in a standalone script. This catches any expectation mismatches without loading the full file.
 
@@ -524,4 +560,4 @@ Check the output for GX validation results.
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
 | `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
-| New JSON schema missing `$schema` / `$id` | Every GX JSON schema file must begin with `$schema` (draft 2019-09) and a GitHub repo-path `$id` — see Step 2 |
+| New JSON schema missing `$schema` / `$id` (in a file **or** inlined in a suite) | Every GX JSON schema must carry `$schema` (draft 2019-09) and a GitHub repo-path `$id`, whether it lives in a standalone file or is embedded inline in an `expect_column_values_to_match_json_schema` kwarg — see Step 2 |
