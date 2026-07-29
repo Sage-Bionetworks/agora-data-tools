@@ -156,7 +156,6 @@
         "column": "sex",
         "value_set": [
           "Females",
-          "Females & Males",
           "Males"
         ]
       },
