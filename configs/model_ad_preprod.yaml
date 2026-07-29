@@ -116,8 +116,10 @@ datasets:
       custom_transformations: transform_rna_de_aggregate
       gx_enabled: true
       gx_nested_columns:
-        - result_order
-        - data
+        - name
+        - "4 months"
+        - "12 months"
+        - "18 months"
 
   - rna_de_individual:
       files:
@@ -138,7 +140,6 @@ datasets:
       custom_transformations: transform_rna_de_individual
       gx_enabled: true
       gx_nested_columns:
-        - name
-        - "4 months"
-        - "12 months"
-        - "18 months"
+        - result_order
+        - data
+
