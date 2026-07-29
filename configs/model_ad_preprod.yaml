@@ -39,8 +39,6 @@ datasets:
   - model_details:
       files:
         - <<: *model_metadata
-        - <<: *pathology
-        - <<: *biomarkers
         - <<: *model_genetic_modifications
         - <<: *pathology
         - <<: *biomarkers
