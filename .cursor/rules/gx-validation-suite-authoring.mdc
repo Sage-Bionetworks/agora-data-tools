@@ -43,6 +43,69 @@ print(lengths.min(), lengths.max())
 
 ---
 
+## Choosing the Validation Mechanism (native expectations vs JSON Schema)
+
+Decide the mechanism from the **shape of each field's values in the processed output** (inspect it
+per Step 0) — *not* from whether the column already appears in `gx_nested_columns`. Identifying the
+nested fields and adding them to `gx_nested_columns` is itself part of authoring the suite: it's the
+lever **you pull once you've decided** a field needs structural validation, an output of the
+decision below, not a precondition for it.
+
+Judge each field by its value shape:
+
+| Field's value shape | Mechanism | Nested? |
+|---|---|---|
+| **Scalar** (str / number / bool / null) | Native/custom: `not_null`, `be_of_type`, `be_between` (ranges), `be_in_set` (enums), `match_regex` | No |
+| **List of scalars** (e.g. `biodomains`, `programs`) | Custom list expectations: `expect_column_values_to_have_list_length_in_range`, `..._members`, `..._members_of_type` | No — keep it a real Python list |
+| **Object, list of objects, or any value whose internal structure must be validated** (keys, nested types, nullability) | `expect_column_values_to_match_json_schema` for the interior — required keys, nested types, nullability (`oneOf` null), plus interior list lengths (`minItems`/`maxItems`), value ranges (`minimum`/`maximum`), and enums | **Yes — add it to `gx_nested_columns`** |
+| **Volume / statistical / cross-row** (row counts, uniqueness, distributions, means, multi-column relationships) | Native GX **only, always** — JSON Schema validates one document at a time and cannot express anything across rows | N/A |
+
+The governing question is: *what is this field's value shape, and does it have internal structure
+that only a schema can validate?* If yes → make it a nested column (`gx_nested_columns`) and use
+JSON Schema; if no → native/custom expectations on the un-nested column.
+
+### Why nesting shifts interior checks into the schema
+
+Adding a field to `gx_nested_columns` runs `convert_nested_columns_to_json`, which serializes that
+column to a **JSON string** before GX runs. That is what makes `expect_column_values_to_match_json_schema`
+work — and it's also why, for a nested field, the interior list lengths / value ranges / enums must
+live in the schema: native/custom expectations can no longer see the parsed structure.
+
+Native expectations still *run* against the JSON string, but because `json.dumps` yields a non-null
+string for every cell, most become **tautological or fragile** — the schema does the real work:
+- **Effectively no-ops (do not rely on them):** `expect_column_values_to_not_be_null` and
+  `expect_column_values_to_be_of_type("<col>", "str")` always pass — `json.dumps` never yields null
+  and always yields a string (even a missing `None` becomes the string `"null"`).
+- **Runs but fragile:** `match_regex` / value-length / `be_in_set` against the raw serialized text.
+- **Do NOT work:** the custom list expectations — they check `isinstance(cell, list)`, which is now
+  `False` for every row, so they silently fail (see the Step 3 warning) — and any numeric/statistical
+  check that needs a value *inside* the object. Encode those in the JSON Schema instead.
+
+**Required / non-null for a nested field is a schema concern, not a `not_be_null` concern.** Since a
+missing value serializes to the string `"null"`, `expect_column_values_to_not_be_null` can never
+fail on a nested column (it's a no-op that gives false assurance). Enforce presence through the
+schema instead — specifically, whether the **root of the schema** (its outermost `type`) permits null:
+- **Required (never null):** the schema's root is `{"type": "object", ..., "required": [...]}` (or
+  `"array"`, etc.) with no null permitted. `match_json_schema` parses `"null"` back to `null` and
+  fails it against the schema, so the missing value is caught. (Verified: a serialized `"null"` cell
+  is reported unexpected and the expectation fails.)
+- **Nullable:** permit null at the root with the `oneOf` `[ {"type": "null"}, {...} ]` pattern —
+  only when the field is legitimately nullable.
+
+A single `expect_column_values_to_match_json_schema(<col>, json_schema=<schema>)` therefore covers
+both the field's shape and its presence; no companion `not_be_null` or `be_of_type("str")` is needed
+(on a nested column those always pass and validate nothing).
+
+### Prefer the lightest mechanism the shape allows (observability)
+
+Only nest a field when its values genuinely have internal structure a schema must check. If a
+field's values are simple enough that native/custom expectations fully cover them (a scalar, or a
+list of scalars), keep it un-nested and use those — each native expectation renders as its own
+pass/fail row in GX Data Docs, whereas a JSON Schema is a single monolithic pass/fail. Reserve JSON
+Schema for what only it can reach: the interior of genuinely nested fields.
+
+---
+
 ## Step 0 — Research the Transform Before Planning
 
 **Do all of the following before writing any plan or authoring any expectations.** These steps give you the complete picture of the transform's inputs, logic, output schema, and edge cases.
@@ -105,11 +168,24 @@ gx_nested_columns:
 
 ## Step 2 — Create JSON Schemas (if needed)
 
-For columns that are link objects, create schemas in `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/`.
+For nested columns — dict or list objects declared in `gx_nested_columns` — that need deep
+validation, create schemas in `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/`.
+
+**Every GX JSON schema file MUST begin with these two keys** (keeps identifiers consistent across
+the library — the templates below already include them):
+- `"$schema": "https://json-schema.org/draft/2019-09/schema"`
+- `"$id"`: the file's GitHub repo path = `https://github.com/Sage-Bionetworks/agora-data-tools/`
+  + the file's repo-relative path, e.g.
+  `https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json`
+
+The templates below cover common link-object columns; array/list columns use the same
+`$schema`/`$id` header with an `array` schema (see the array example in Step 3).
 
 **Nullable link column** (value can be `null` OR a `{link_url}` object):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "oneOf": [
     { "type": "null" },
     {
@@ -125,6 +201,8 @@ For columns that are link objects, create schemas in `src/agoradatatools/great_e
 **Required link column** (never null, must have `link_url`):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "type": "object",
   "properties": { "link_url": { "type": "string", "minLength": 1 } },
   "required": ["link_url"],
@@ -135,6 +213,8 @@ For columns that are link objects, create schemas in `src/agoradatatools/great_e
 **Center-style column** (never null, must have both `link_url` and `link_text`):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "type": "object",
   "properties": {
     "link_url": { "type": "string", "minLength": 1 },
@@ -444,3 +524,4 @@ Check the output for GX validation results.
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
 | `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
+| New JSON schema missing `$schema` / `$id` | Every GX JSON schema file must begin with `$schema` (draft 2019-09) and a GitHub repo-path `$id` — see Step 2 |
