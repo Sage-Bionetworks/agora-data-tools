@@ -138,7 +138,7 @@
     {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
-        "column": "sex_cohort",
+        "column": "sex",
         "type_": "str"
       },
       "meta": {}
@@ -146,14 +146,14 @@
     {
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
-        "column": "sex_cohort"
+        "column": "sex"
       },
       "meta": {}
     },
     {
       "expectation_type": "expect_column_values_to_be_in_set",
       "kwargs": {
-        "column": "sex_cohort",
+        "column": "sex",
         "value_set": [
           "Females",
           "Females & Males",
@@ -290,7 +290,7 @@
           "ensembl_gene_id",
           "name",
           "tissue",
-          "sex_cohort"
+          "sex"
         ]
       },
       "meta": {}
