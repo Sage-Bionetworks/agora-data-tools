@@ -28,7 +28,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
-        "regex": "^^ENSG\\d{11}$"
+        "regex": "^ENSG\\d{11}$"
       },
       "meta": {}
     },
