@@ -8,7 +8,7 @@ and biodomain annotations to create a structured output format.
 The transformation:
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
 - Filters out combined-cohort rows where sex is "Females & Males", keeping single-sex rows only
-- Maps plural sex labels to singular display values
+- Maps plural sex values to singular display labels
 - Groups differential expression data by gene, model, tissue, sex, case, and control
 - Creates age-based entries containing log2 fold change and adjusted p-values
 - Validates and sorts age entries by numeric value
@@ -357,7 +357,7 @@ def _process_single_data_file(
     3. Validating that all required columns are present
     4. Filtering to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*)
     5. Filtering out combined-cohort rows where sex is "Females & Males"
-    6. Mapping plural sex labels to singular display values
+    6. Mapping plural sex values to singular display labels
     7. Rounding numeric columns to 5 decimal places for consistency
     8. Grouping data by gene, model, tissue, sex, case, and control
     9. Creating enriched output entries for each group using metadata dictionaries
@@ -484,7 +484,7 @@ def transform_rna_de_aggregate(
     4. Processes one or more differential expression data files sequentially:
        - Filters to mouse genes only (ENSMUSG*)
        - Filters out combined-cohort rows where sex is "Females & Males"
-       - Maps plural sex labels to singular display values
+       - Maps plural sex values to singular display labels
        - Groups data by gene, model, tissue, sex, case, and control
        - Enriches each group with metadata
        - Creates age-based entries with log2 fold change and adjusted p-values

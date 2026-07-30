@@ -154,7 +154,7 @@ def preprocess_data_file(
 
     Returns:
         Preprocessed DataFrame with mouse genes only, tissue names mapped and
-        sentence-cased, plural sex labels mapped to singular display values, and
+        sentence-cased, plural sex values mapped to singular display labels, and
         numeric values rounded to 5 decimal places.
 
     Raises:
@@ -173,7 +173,7 @@ def preprocess_data_file(
     data_file["tissue"] = data_file["tissue"].str.replace(
         "Right Cerebral Hemisphere", "Hemibrain", regex=False
     )
-    # Map plural source sex labels to their singular display form
+    # Map plural source sex values to the singular display form
     data_file["sex"] = remap_sex_labels(data_file["sex"])
     data_file["expression"] = data_file["expression"].astype(float)
     data_file = data_file.round(decimals=5)
