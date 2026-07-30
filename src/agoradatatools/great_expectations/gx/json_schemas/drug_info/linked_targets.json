@@ -9,7 +9,7 @@
         "properties": {
             "ensembl_gene_id": {
                 "type": "string",
-                "pattern": "^ENSG\\d+$"
+                "pattern": "^ENSG\\d{11}$"
             },
             "hgnc_symbol": {
                 "type": "string",
