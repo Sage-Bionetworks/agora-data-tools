@@ -8,7 +8,7 @@ and biodomain annotations to create a structured output format.
 The transformation:
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
 - Filters out combined-cohort rows where sex is "Females & Males", keeping single-sex rows only
-- Maps plural sex labels to singular display values ("Females" -> "Female", "Males" -> "Male")
+- Maps plural sex labels to singular display values
 - Groups differential expression data by gene, model, tissue, sex, case, and control
 - Creates age-based entries containing log2 fold change and adjusted p-values
 - Validates and sorts age entries by numeric value
@@ -46,6 +46,10 @@ from agoradatatools.etl.utils import (
     normalize_zero,
 )
 
+from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
+    remap_sex_labels,
+)
+
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
@@ -69,9 +73,6 @@ REQUIRED_INPUT = {
         "ensembl_id",
     ],
 }
-
-# Source data uses plural sex cohort labels; the Comparison Tool displays singular values.
-SEX_DISPLAY_MAP = {"Females": "Female", "Males": "Male"}
 
 
 def _validate_and_sort_age_entries(
@@ -356,7 +357,7 @@ def _process_single_data_file(
     3. Validating that all required columns are present
     4. Filtering to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*)
     5. Filtering out combined-cohort rows where sex is "Females & Males"
-    6. Mapping plural sex labels to singular display values ("Females" -> "Female", "Males" -> "Male")
+    6. Mapping plural sex labels to singular display values
     7. Rounding numeric columns to 5 decimal places for consistency
     8. Grouping data by gene, model, tissue, sex, case, and control
     9. Creating enriched output entries for each group using metadata dictionaries
@@ -430,7 +431,7 @@ def _process_single_data_file(
     data_file = data_file[data_file["sex"] != "Females & Males"]
 
     # Map plural source sex labels to their singular display form
-    data_file = data_file.assign(sex=data_file["sex"].replace(SEX_DISPLAY_MAP))
+    data_file["sex"] = remap_sex_labels(data_file["sex"])
 
     # Round numeric columns to 5 decimal places for consistency
     data_file = data_file.round(decimals=5)
@@ -483,7 +484,7 @@ def transform_rna_de_aggregate(
     4. Processes one or more differential expression data files sequentially:
        - Filters to mouse genes only (ENSMUSG*)
        - Filters out combined-cohort rows where sex is "Females & Males"
-       - Maps plural sex labels to singular display values ("Females" -> "Female", "Males" -> "Male")
+       - Maps plural sex labels to singular display values
        - Groups data by gene, model, tissue, sex, case, and control
        - Enriches each group with metadata
        - Creates age-based entries with log2 fold change and adjusted p-values

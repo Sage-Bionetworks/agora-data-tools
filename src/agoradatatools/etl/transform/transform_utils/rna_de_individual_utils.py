@@ -26,6 +26,10 @@ from agoradatatools.etl.utils import (
     ColumnRule,
 )
 
+from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
+    remap_sex_labels,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -170,8 +174,7 @@ def preprocess_data_file(
         "Right Cerebral Hemisphere", "Hemibrain", regex=False
     )
     # Map plural source sex labels to their singular display form
-    SEX_DISPLAY_MAP = {"Females": "Female", "Males": "Male"}
-    data_file["sex"] = data_file["sex"].replace(SEX_DISPLAY_MAP)
+    data_file["sex"] = remap_sex_labels(data_file["sex"])
     data_file["expression"] = data_file["expression"].astype(float)
     data_file = data_file.round(decimals=5)
     data_file["individualid"] = data_file["individualid"].astype(str)

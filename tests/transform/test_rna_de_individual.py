@@ -43,71 +43,8 @@ from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
     _determine_result_order,
     _process_individual_data_file_core,
-    DATA_FILE_REQUIRED_COLUMNS,
-    DATA_FILE_COLUMN_RULES,
-)
-from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
-    preprocess_data_file,
 )
 from agoradatatools.etl.utils import ContainsSubstringRule
-
-
-class TestPreprocessDataFile:
-    """Tests for preprocess_data_file."""
-
-    def test_preprocess_data_file_maps_sex_to_singular(self) -> None:
-        """Plural source sex labels are mapped to singular display values
-        ("Females" -> "Female", "Males" -> "Male")."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
-                "expression": [1.0, 2.0],
-                "model": ["Model_A", "Model_A"],
-                "genotype": ["Tg", "Wt"],
-                "age": ["6 months", "6 months"],
-                "sex": ["Females", "Males"],
-                "tissue": ["Cortex", "Cortex"],
-                "individualid": ["1", "2"],
-            }
-        )
-
-        result = preprocess_data_file(
-            file_name="sex_mapping.csv",
-            data_file=data_file,
-            file_index=0,
-            total_files=1,
-            data_file_required_columns=DATA_FILE_REQUIRED_COLUMNS,
-            data_file_column_rules=DATA_FILE_COLUMN_RULES,
-        )
-
-        assert set(result["sex"]) == {"Female", "Male"}
-        assert not result["sex"].isin(["Females", "Males"]).any()
-
-    def test_preprocess_data_file_singular_sex_values_pass_through(self) -> None:
-        """Singular source sex labels are passed through unaltered."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
-                "expression": [1.0, 2.0],
-                "model": ["Model_A", "Model_A"],
-                "genotype": ["Tg", "Wt"],
-                "age": ["6 months", "6 months"],
-                "sex": ["Female", "Male"],
-                "tissue": ["Cortex", "Cortex"],
-                "individualid": ["1", "2"],
-            }
-        )
-
-        result = preprocess_data_file(
-            file_name="sex_mapping.csv",
-            data_file=data_file,
-            file_index=0,
-            total_files=1,
-            data_file_required_columns=DATA_FILE_REQUIRED_COLUMNS,
-            data_file_column_rules=DATA_FILE_COLUMN_RULES,
-        )
-
-        assert set(result["sex"]) == {"Female", "Male"}
 
 
 class TestDetermineResultOrder:

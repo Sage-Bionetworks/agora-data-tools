@@ -5,6 +5,7 @@ Functions:
     process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
     build_transcriptomics_url - build a URL linking to the gene comparison table for a given study
     zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
+    map_sex_labels - convert any plural sex labels to singular form
 """
 
 from typing import Any, Dict, List, Union
@@ -182,3 +183,17 @@ def validate_jax_ids(jax_id: pd.Series) -> None:
             "Jax IDs must be strings that contain only digits and are at least 6 characters long, or must be empty strings"
         )
     return None
+
+
+def remap_sex_labels(sex: pd.Series) -> pd.Series:
+    """
+    Converts plural sex labels ("Females" or "Males") to singular form ("Female" or "Male"). Values that are
+    already singular are not modified.
+
+    Args:
+        sex (pd.Series): A pandas Series containing sex labels that may need to be converted.
+
+    Returns:
+        pd.Series: A pandas Series containing sex labels in only the singular form.
+    """
+    return sex.replace({"Females": "Female", "Males": "Male"})
