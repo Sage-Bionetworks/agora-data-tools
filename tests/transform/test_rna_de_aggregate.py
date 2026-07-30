@@ -1032,7 +1032,6 @@ class TestProcessSingleDataFile:
         # Should only have 2 entries (single-sex rows only), with singular sex labels
         assert len(result) == 2
         assert {entry["sex"] for entry in result} == {"Male", "Female"}
-        assert not any(entry["sex"] == "Females & Males" for entry in result)
 
     def test_process_single_data_file_rounding(self) -> None:
         """Test that numeric values are rounded to 5 decimal places."""

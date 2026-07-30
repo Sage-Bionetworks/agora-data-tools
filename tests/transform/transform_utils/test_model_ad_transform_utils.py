@@ -436,7 +436,7 @@ class TestRemapSexLabels:
         self, input_ids: pd.Series, expected_output: pd.Series
     ) -> None:
         """
-        Tests that the function TODO.
+        Tests that the remap_sex_labels function remaps the expected plural values without altering other values.
         """
         output = remap_sex_labels(input_ids)
 

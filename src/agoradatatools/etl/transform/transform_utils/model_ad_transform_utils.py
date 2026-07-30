@@ -5,7 +5,7 @@ Functions:
     process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
     build_transcriptomics_url - build a URL linking to the gene comparison table for a given study
     zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
-    map_sex_labels - convert any plural sex values to singular form for consistent display
+    remap_sex_labels - convert any plural sex values to singular form for consistent display
 """
 
 from typing import Any, Dict, List, Union
