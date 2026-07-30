@@ -28,7 +28,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
-        "regex": "^ENSG\\d+$"
+        "regex": "^^ENSG\\d{11}$"
       },
       "meta": {}
     },
@@ -44,6 +44,23 @@
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "hgnc_symbol"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "hgnc_symbol",
+        "max_value": 25,
+        "min_value": 1
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "hgnc_symbol",
+        "regex": "^[a-zA-Z0-9_.-]*$"
       },
       "meta": {}
     },
@@ -100,7 +117,7 @@
         "column": "nominating_teams",
         "list_length_range": [
           1,
-          100
+          16
         ]
       },
       "meta": {}
@@ -193,7 +210,7 @@
         "column": "input_data",
         "list_length_range": [
           1,
-          100
+          10
         ]
       },
       "meta": {}
@@ -246,7 +263,7 @@
         "column": "programs",
         "list_length_range": [
           1,
-          100
+          5
         ]
       },
       "meta": {}
@@ -274,14 +291,22 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "pharos_class",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_in_set",
       "kwargs": {
         "column": "pharos_class",
         "value_set": [
+          "Tclin",
           "Tchem",
-          "Tdark",
           "Tbio",
-          "Tclin"
+          "Tdark"
         ]
       },
       "meta": {}
