@@ -190,6 +190,7 @@ class TestPreprocessDataFileTypeCasting:
         result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
         assert result["expression"].dtype == float
 
+
 class TestPreprocessDataRemapsSexLabels:
     """Tests for the sex label mapping applied inside preprocess_data_file."""
 
@@ -230,7 +231,6 @@ class TestPreprocessDataRemapsSexLabels:
     def test_maps_sex_values(self) -> None:
         """'Plurals sex values are mapped to singular display labels"""
         assert self._preprocess(["Males", "Females"]).tolist() == ["Male", "Female"]
-
 
 
 class TestValidateModelGroupConsistency:
