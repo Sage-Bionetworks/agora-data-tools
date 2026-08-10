@@ -260,7 +260,10 @@ datasets:
       column_rename:
         source: program
       destination: *dest
-      gx_enabled: false
+      gx_enabled: true
+      gx_nested_columns:
+        - linked_targets
+        - drug_nominations
 
   - nominated_drugs:
       files:
