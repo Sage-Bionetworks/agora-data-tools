@@ -415,7 +415,7 @@ class TestRemapSexLabels:
     """
 
     @pytest.mark.parametrize(
-        "input_ids, expected_output",
+        "input_sex_values, expected_output",
         [
             (pd.Series(["Females", "Males"]), pd.Series(["Female", "Male"])),
             (pd.Series(["Female", "Male"]), pd.Series(["Female", "Male"])),
@@ -433,11 +433,11 @@ class TestRemapSexLabels:
         ],
     )
     def test_remap_sex_labels_should_pass(
-        self, input_ids: pd.Series, expected_output: pd.Series
+        self, input_sex_values, expected_output: pd.Series
     ) -> None:
         """
         Tests that the remap_sex_labels function remaps the expected plural values without altering other values.
         """
-        output = remap_sex_labels(input_ids)
+        output = remap_sex_labels(input_sex_values)
 
         pd.testing.assert_series_equal(output, expected_output)

@@ -192,24 +192,13 @@ class TestPreprocessDataFileTypeCasting:
 
 
 class TestPreprocessDataRemapsSexLabels:
-    """Tests for the sex label mapping applied inside preprocess_data_file."""
+    """Test for the sex label mapping applied inside preprocess_data_file."""
 
-    _REQUIRED_COLUMNS = [
-        "ensembl_gene_id",
-        "expression",
-        "model",
-        "genotype",
-        "age",
-        "sex",
-        "tissue",
-        "individualid",
-    ]
-
-    @staticmethod
-    def _make_df(sex_values: list[str]) -> pd.DataFrame:
-        """Build a minimal valid DataFrame with the given sex values."""
+    def test_maps_sex_values(self) -> None:
+        """Plural sex values are mapped to singular display labels"""
+        sex_values = ["Males", "Females"]
         n = len(sex_values)
-        return pd.DataFrame(
+        df = pd.DataFrame(
             {
                 "ensembl_gene_id": [f"ENSMUSG{i:011d}" for i in range(n)],
                 "expression": [1.0] * n,
@@ -221,16 +210,8 @@ class TestPreprocessDataRemapsSexLabels:
                 "individualid": [f"ID{i}" for i in range(n)],
             }
         )
-
-    @classmethod
-    def _preprocess(cls, sex_values: list[str]) -> pd.Series:
-        df = cls._make_df(sex_values)
-        result = preprocess_data_file("test.csv", df, 0, 1, cls._REQUIRED_COLUMNS, {})
-        return result["sex"].reset_index(drop=True)
-
-    def test_maps_sex_values(self) -> None:
-        """'Plurals sex values are mapped to singular display labels"""
-        assert self._preprocess(["Males", "Females"]).tolist() == ["Male", "Female"]
+        result = preprocess_data_file("test.csv", df, 0, 1, [], {})
+        assert result["sex"].reset_index(drop=True).tolist() == ["Male", "Female"]
 
 
 class TestValidateModelGroupConsistency:

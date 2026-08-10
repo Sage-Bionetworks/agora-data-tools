@@ -196,4 +196,4 @@ def remap_sex_labels(sex: pd.Series) -> pd.Series:
     Returns:
         pd.Series: A pandas Series containing sex labels in only the singular form.
     """
-    return sex.replace({"Females": "Female", "Males": "Male"})
+    return sex.copy().replace({"Females": "Female", "Males": "Male"})
