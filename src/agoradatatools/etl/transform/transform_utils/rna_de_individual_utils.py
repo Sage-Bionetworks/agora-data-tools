@@ -26,6 +26,10 @@ from agoradatatools.etl.utils import (
     ColumnRule,
 )
 
+from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
+    remap_sex_labels,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -150,7 +154,8 @@ def preprocess_data_file(
 
     Returns:
         Preprocessed DataFrame with mouse genes only, tissue names mapped and
-        sentence-cased, and numeric values rounded to 5 decimal places.
+        sentence-cased, plural sex values mapped to singular display labels, and
+        numeric values rounded to 5 decimal places.
 
     Raises:
         ValueError: If the file is empty, missing required columns, or any column
@@ -168,6 +173,8 @@ def preprocess_data_file(
     data_file["tissue"] = data_file["tissue"].str.replace(
         "Right Cerebral Hemisphere", "Hemibrain", regex=False
     )
+    # Map plural source sex values to the singular display form
+    data_file["sex"] = remap_sex_labels(data_file["sex"])
     data_file["expression"] = data_file["expression"].astype(float)
     data_file = data_file.round(decimals=5)
     data_file["individualid"] = data_file["individualid"].astype(str)
