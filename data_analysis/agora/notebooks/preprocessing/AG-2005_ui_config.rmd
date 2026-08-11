@@ -186,7 +186,7 @@ targets_data_cohort_filter_values <- c(
 )
 targets_data_filter_values <- c("Behavior", "Clinical", "Genetics", "Metabolomics", "Pathway Modeling", "Phenomics", "Protein", "Risk Scores", "RNA")
 targets_first_nom_filter_values <- c(2018:2025)
-targets_team_filter_values <- c("ASU", "Chang Lab", "Columbia-Rush", "Duke", "Duke BARU", "Emory", "Emory-Sage-SGC", "Harvard-MIT", "IUSM-Purdue", "JAX-VUMC-UW Resilience", "Longo Lab", "Mayo", "Mayo-UFL-ISB", "MSSM - Roussos Lab", "MSSM - Zhang Lab")
+targets_team_filter_values <- c("ASU", "Chang Lab", "Columbia", "Columbia-Rush", "Duke", "Duke BARU", "Emory", "Emory-Sage-SGC", "Harvard-MIT", "IUSM-Purdue", "JAX-VUMC-UW Resilience", "Longo Lab", "Mayo", "Mayo-UFL-ISB", "MSSM - Roussos Lab", "MSSM - Zhang Lab")
 targets_pharos_filter_values <- c('Tbio', 'Tchem', 'Tclin', 'Tdark')
 targets_program_filter_values <- c("AMP-AD", "Community", "FunGen-AD", "Resilience-AD", "TREAT-AD")
 targets_total_nom_filter_values <- c(1:5)
