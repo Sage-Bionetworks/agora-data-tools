@@ -11,6 +11,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     process_genetic_info,
     zero_pad_jax_ids,
     validate_jax_ids,
+    remap_sex_labels,
 )
 
 
@@ -405,3 +406,38 @@ class TestValidateJaxIds:
             ValueError, match="Jax IDs must be strings that contain only digits"
         ):
             validate_jax_ids(input_ids)
+
+
+class TestRemapSexLabels:
+    """
+    This class tests the remap_sex_labels function to ensure that it converts plural labels to singular, and does
+    not modify labels that are already singular.
+    """
+
+    @pytest.mark.parametrize(
+        "input_sex_values, expected_output",
+        [
+            (pd.Series(["Females", "Males"]), pd.Series(["Female", "Male"])),
+            (pd.Series(["Female", "Male"]), pd.Series(["Female", "Male"])),
+            (pd.Series(["Male", "Females"]), pd.Series(["Male", "Female"])),
+            (
+                pd.Series(["Male", "Females", "Aardvarks", "", None]),
+                pd.Series(["Male", "Female", "Aardvarks", "", None]),
+            ),
+        ],
+        ids=[
+            "Pass with all plural input",
+            "Pass with all singular input",
+            "Pass with mixed input",
+            "Pass with missing & other input",
+        ],
+    )
+    def test_remap_sex_labels_should_pass(
+        self, input_sex_values, expected_output: pd.Series
+    ) -> None:
+        """
+        Tests that the remap_sex_labels function remaps the expected plural values without altering other values.
+        """
+        output = remap_sex_labels(input_sex_values)
+
+        pd.testing.assert_series_equal(output, expected_output)
