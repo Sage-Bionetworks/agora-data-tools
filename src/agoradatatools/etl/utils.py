@@ -228,8 +228,13 @@ def _get_config(
 def standardize_column_name(name: str) -> str:
     """Standardizes a single column name by replacing problematic characters and lowercasing.
 
-    Removes a set of special characters, replaces spaces / hyphens / periods with underscores,
-    and lowercases the result. This is the per-name logic shared by standardize_column_names.
+    Applies two independent character transformations, then lowercases the result:
+
+    - Removed entirely: # @ & * ^ ? ( ) % $ ! /
+    - Replaced with an underscore: space, period, and hyphen
+    - Any other character (e.g. +, comma, apostrophe, colon) is left unchanged
+
+    This is the per-name logic shared by standardize_column_names.
 
     Args:
         name (str): The raw column name to standardize.
@@ -886,8 +891,8 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     # Convert to float if it's a string or other type
     try:
         y_axis_max = float(y_axis_max)
-    except ValueError:
-        # Non-numeric strings fall back to the default
+    except (ValueError, TypeError):
+        # Non-numeric or None inputs fall back to the default
         return 10.0
 
     # Handle special cases: zero or negative values
