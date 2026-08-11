@@ -191,6 +191,29 @@ class TestPreprocessDataFileTypeCasting:
         assert result["expression"].dtype == float
 
 
+class TestPreprocessDataRemapsSexLabels:
+    """Test for the sex label mapping applied inside preprocess_data_file."""
+
+    def test_maps_sex_values(self) -> None:
+        """Plural sex values are mapped to singular display labels"""
+        sex_values = ["Males", "Females"]
+        n = len(sex_values)
+        df = pd.DataFrame(
+            {
+                "ensembl_gene_id": [f"ENSMUSG{i:011d}" for i in range(n)],
+                "expression": [1.0] * n,
+                "model": ["Model_A"] * n,
+                "genotype": ["Tg"] * n,
+                "age": ["4 months"] * n,
+                "sex": sex_values,
+                "tissue": ["Hemibrain"] * n,
+                "individualid": [f"ID{i}" for i in range(n)],
+            }
+        )
+        result = preprocess_data_file("test.csv", df, 0, 1, [], {})
+        assert result["sex"].reset_index(drop=True).tolist() == ["Male", "Female"]
+
+
 class TestValidateModelGroupConsistency:
     """Tests for validate_model_group_consistency function."""
 
