@@ -43,22 +43,103 @@ print(lengths.min(), lengths.max())
 
 ---
 
-## Keep Value Sets in Sync with the ui_config Notebooks
+## Choosing the Validation Mechanism (native expectations vs JSON Schema)
+
+Decide the mechanism from the **shape of each field's values in the processed output** (inspect it
+per Step 0) — *not* from whether the column already appears in `gx_nested_columns`. Identifying the
+nested fields and adding them to `gx_nested_columns` is itself part of authoring the suite: it's the
+lever **you pull once you've decided** a field needs structural validation, an output of the
+decision below, not a precondition for it.
+
+Judge each field by its value shape:
+
+| Field's value shape | Mechanism | Nested? |
+|---|---|---|
+| **Scalar** (str / number / bool / null) | Native/custom: `not_null`, `be_of_type`, `be_between` (ranges), `be_in_set` (enums), `match_regex` | No |
+| **List of scalars** (e.g. `biodomains`, `programs`) | Custom list expectations: `expect_column_values_to_have_list_length_in_range`, `..._members`, `..._members_of_type` | No — keep it a real Python list |
+| **Object, list of objects, or any value whose internal structure must be validated** (keys, nested types, nullability) | `expect_column_values_to_match_json_schema` for the interior — required keys, nested types, nullability (`oneOf` null), plus interior list lengths (`minItems`/`maxItems`), value ranges (`minimum`/`maximum`), and enums | **Yes — add it to `gx_nested_columns`** |
+| **Volume / statistical / cross-row** (row counts, uniqueness, distributions, means, multi-column relationships) | Native GX **only, always** — JSON Schema validates one document at a time and cannot express anything across rows | N/A |
+
+The governing question is: *what is this field's value shape, and does it have internal structure
+that only a schema can validate?* If yes → make it a nested column (`gx_nested_columns`) and use
+JSON Schema; if no → native/custom expectations on the un-nested column.
+
+**When auditing an existing suite, re-derive each field's mechanism from its value shape — do not
+trust the current `gx_nested_columns` list.** The existing configuration can itself be the
+deviation. Treat a field's presence in `gx_nested_columns` as a *hypothesis to verify against the
+shape judgment*, never as the answer. A classic miss: a **list of scalars** (e.g. `result_order`, a
+list of display-label strings) that was wrongly nested and validated with `match_json_schema` — its
+items have no internal structure, so it should be **un-nested** and checked with the native list
+expectations (the `biodomains` pattern). Because it sits next to a legitimately-nested list-of-objects
+column (e.g. `data`), it's tempting to treat "the nested list columns" as a unit — but "is it a
+list?" is the wrong question; "do its *items* have structure only a schema can validate?" is the
+right one. Run every field through that test independently, including the ones already nested.
+
+### Why nesting shifts interior checks into the schema
+
+Adding a field to `gx_nested_columns` runs `convert_nested_columns_to_json`, which serializes that
+column to a **JSON string** before GX runs. That is what makes `expect_column_values_to_match_json_schema`
+work — and it's also why, for a nested field, the interior list lengths / value ranges / enums must
+live in the schema: native/custom expectations can no longer see the parsed structure.
+
+Native expectations still *run* against the JSON string, but because `json.dumps` yields a non-null
+string for every cell, most become **tautological or fragile** — the schema does the real work:
+- **Effectively no-ops (do not rely on them):** `expect_column_values_to_not_be_null` and
+  `expect_column_values_to_be_of_type("<col>", "str")` always pass — `json.dumps` never yields null
+  and always yields a string (even a missing `None` becomes the string `"null"`).
+- **Runs but fragile:** `match_regex` / value-length / `be_in_set` against the raw serialized text.
+- **Do NOT work:** the custom list expectations — they check `isinstance(cell, list)`, which is now
+  `False` for every row, so they silently fail (see the Step 3 warning) — and any numeric/statistical
+  check that needs a value *inside* the object. Encode those in the JSON Schema instead.
+
+**Required / non-null for a nested field is a schema concern, not a `not_be_null` concern.** Since a
+missing value serializes to the string `"null"`, `expect_column_values_to_not_be_null` can never
+fail on a nested column (it's a no-op that gives false assurance). Enforce presence through the
+schema instead — specifically, whether the **root of the schema** (its outermost `type`) permits null:
+- **Required (never null):** the schema's root is `{"type": "object", ..., "required": [...]}` (or
+  `"array"`, etc.) with no null permitted. `match_json_schema` parses `"null"` back to `null` and
+  fails it against the schema, so the missing value is caught. (Verified: a serialized `"null"` cell
+  is reported unexpected and the expectation fails.)
+- **Nullable:** permit null at the root with the `oneOf` `[ {"type": "null"}, {...} ]` pattern —
+  only when the field is legitimately nullable.
+
+A single `expect_column_values_to_match_json_schema(<col>, json_schema=<schema>)` therefore covers
+both the field's shape and its presence; no companion `not_be_null` or `be_of_type("str")` is needed
+(on a nested column those always pass and validate nothing).
+
+### Prefer the lightest mechanism the shape allows (observability)
+
+Only nest a field when its values genuinely have internal structure a schema must check. If a
+field's values are simple enough that native/custom expectations fully cover them (a scalar, or a
+list of scalars), keep it un-nested and use those — each native expectation renders as its own
+pass/fail row in GX Data Docs, whereas a JSON Schema is a single monolithic pass/fail. Reserve JSON
+Schema for what only it can reach: the interior of genuinely nested fields.
+
+---
+
+## Keeping Related Constraints in Sync
+
+Two categories of GX constraints must stay aligned with something outside their own expectation —
+one with an external R notebook, one with another expectation on the same column. Both are sync
+problems, so both live here.
+
+### External sync — GX value/member lists vs. ui_config filter vectors
 
 Several GX value-set expectations enforce the **same controlled vocabulary** that the Agora
 Comparison Tool filter menus display. Those lists are hand-authored as
 filter-value vectors in the ui_config **R notebook**, so the vocabulary lives in two places that
 must be kept aligned.
 
-**Rule:** Whenever you add, remove, or edit a value in one of the GX lists in the table below
-(`expect_column_values_to_be_in_set` or `expect_column_values_to_have_list_members`), you MUST
+**Rule:** Whenever you add, remove, or edit a value in one of the GX lists in the tables below
+(`expect_column_values_to_be_in_set`, `expect_column_values_to_have_list_members`, or an `enum`
+inside a nested column's JSON Schema — see the note after the model_ad table), you MUST
 prompt the user to make the parallel update to the corresponding filter-value vector in the
 ui_config notebook, naming the exact variable to change. Do not change the GX side silently. The
 two lists *can* legitimately diverge — e.g. GX may allow a data-only value such as `Unknown` that
 is intentionally hidden from the UI filter — so surface the difference and let the user decide
 rather than assuming they must match.
 
-### Parallel lists — Agora
+#### Parallel lists — Agora
 Notebook: `data_analysis/agora/notebooks/preprocessing/AG-2005_ui_config.rmd`
 
 | GX suite → column | GX expectation | ui_config filter-value vector |
@@ -73,7 +154,7 @@ Notebook: `data_analysis/agora/notebooks/preprocessing/AG-2005_ui_config.rmd`
 Other Agora datasets (e.g. `gene_info`, `network`, `team_info`) have GX value-set expectations but
 are **not** produced by this ui_config notebook, so they have no parallel filter list here.
 
-### Parallel lists — model_ad
+#### Parallel lists — model_ad
 Notebook: `data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd`
 
 | GX suite → column | GX expectation | MG-402 filter-value list |
@@ -83,10 +164,16 @@ Notebook: `data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.
 | `model_overview` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
 | `model_overview` → `available_data` | `expect_column_values_to_have_list_members` | Available Data values (the `available_data` entry in `mo_filter_values`) |
 | `model_overview` → `center` | `expect_column_values_to_be_in_set` | Contributing Center values (the `center` entry in `mo_filter_values`) |
+| `rna_de_aggregate` → `biodomains` | `expect_column_values_to_have_list_members` | `biodomain_filter_vals` |
+| `rna_de_aggregate` → `sex` | `expect_column_values_to_be_in_set` | `sex_filter_vals` |
+| `rna_de_aggregate` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `rna_de_individual` → `data[].sex` (nested `enum`) | `expect_column_values_to_match_json_schema` | `sex_filter_vals` |
 
-The MG-402 notebook also defines `biodomain_filter_vals` and `sex_filter_vals` (Differential
-Expression filters), but the `rna_de_aggregate` / `rna_de_individual` datasets have no GX suite
-yet, so those have no GX parallel to keep in sync today.
+The last row's mechanism differs from the rest of the table: `rna_de_individual.data` is a nested
+column (see "Choosing the Validation Mechanism" above), so its `sex` field is constrained by an
+`enum` on that property inside the column's JSON Schema, not a top-level `be_in_set`/`list_members`
+expectation. It still enforces the same `sex_filter_vals` vocabulary and must stay in sync the same
+way — the enforcement mechanism doesn't change what needs to be kept aligned.
 
 Before finalizing a change to any GX list in the tables above, prompt the user, e.g.:
 > "This changes the `<column>` value set in the `<suite>` GX suite. The parallel filter list
@@ -94,14 +181,14 @@ Before finalizing a change to any GX list in the tables above, prompt the user, 
 > `MG-402_Create ui_config source file.rmd` for model_ad) should be updated to match — do you want
 > to update it too, or should the two intentionally differ?"
 
-### Adding a NEW value-set expectation — check for a parallel first
+#### Adding a NEW value-set expectation — check for a parallel first
 
 Whenever you are about to add a **new** `expect_column_values_to_be_in_set` or
-`expect_column_values_to_have_list_members` expectation that is not already listed in the tables
-above, first check the ui_config notebooks for an existing parallel filter-value list covering the
-same vocabulary (`AG-2005_ui_config.rmd` for Agora datasets,
-`MG-402_Create ui_config source file.rmd` for model_ad datasets). Match on the column/filter
-meaning, then compare the actual value sets.
+`expect_column_values_to_have_list_members` expectation — **or a new `enum` on a property inside a
+nested column's JSON Schema** — that is not already listed in the tables above, first check the
+ui_config notebooks for an existing parallel filter-value list covering the same vocabulary
+(`AG-2005_ui_config.rmd` for Agora datasets, `MG-402_Create ui_config source file.rmd` for model_ad
+datasets). Match on the column/filter meaning, then compare the actual value sets.
 
 If you find a parallel list, prompt the user to confirm, e.g.:
 > "The new `<column>` value set in the `<suite>` GX suite looks parallel to the `<variable>`
@@ -111,6 +198,31 @@ If you find a parallel list, prompt the user to confirm, e.g.:
 On confirmation: align the GX value set with the notebook list (or surface any difference for the
 user to resolve), **and add a new row to the appropriate "Parallel lists" table above** so the
 mapping stays documented. If no parallel list exists, no table update is needed.
+
+### Internal sync — `list_length_in_range` max vs. `list_members` count
+
+When a column has both an `expect_column_values_to_have_list_length_in_range` expectation and an
+`expect_column_values_to_have_list_members` expectation (i.e. the list's allowed contents are a
+fixed, enumerable set of members), the **maximum** of the length range should equal the number of
+allowed members in the `list_members` set — a list can't validly contain more distinct allowed
+values than the set defines. Only deviate from this if the user explicitly provides different
+requirements (e.g. duplicates are allowed, so the max should be higher, or some other constraint).
+
+```python
+# members set has 4 allowed values
+validator.expect_column_values_to_have_list_members(column="programs", list_members=["A", "B", "C", "D"])
+
+# ✅ CORRECT — max length equals len(list_members)
+validator.expect_column_values_to_have_list_length_in_range(column="programs", list_length_range=[1, 4])
+
+# ❌ WRONG — max of 10 has no basis when only 4 members are allowed
+validator.expect_column_values_to_have_list_length_in_range(column="programs", list_length_range=[1, 10])
+```
+
+The same reasoning applies when both constraints are expressed inside a JSON schema for a nested
+column: `maxItems` should equal the number of allowed values in the corresponding `enum`/member
+list (see the "Custom list expectations do NOT work on nested columns" warning in Step 3 for why
+nested columns use JSON schema instead of the custom expectations directly).
 
 ---
 
@@ -176,11 +288,31 @@ gx_nested_columns:
 
 ## Step 2 — Create JSON Schemas (if needed)
 
-For columns that are link objects, create schemas in `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/`.
+For nested columns — dict or list objects declared in `gx_nested_columns` — that need deep
+validation, create schemas in `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/`.
+
+**Every GX JSON schema file MUST begin with these two keys** (keeps identifiers consistent across
+the library — the templates below already include them):
+- `"$schema": "https://json-schema.org/draft/2019-09/schema"`
+- `"$id"`: the file's GitHub repo path = `https://github.com/Sage-Bionetworks/agora-data-tools/`
+  + the file's repo-relative path, e.g.
+  `https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json`
+
+**These two keys travel with the schema even when it is embedded inline.** Whether the schema
+lives in a standalone file or is inlined into a suite's `expect_column_values_to_match_json_schema`
+kwargs, it must carry `$schema` and `$id`. Notebook-generated suites embed the full schema file
+(header included) automatically; when hand-writing a suite via Option B (Step 4), copy the same
+`$schema`/`$id` header into each inline `json_schema` so both authoring paths produce identical
+suites.
+
+The templates below cover common link-object columns; array/list columns use the same
+`$schema`/`$id` header with an `array` schema (see the array example in Step 3).
 
 **Nullable link column** (value can be `null` OR a `{link_url}` object):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "oneOf": [
     { "type": "null" },
     {
@@ -196,6 +328,8 @@ For columns that are link objects, create schemas in `src/agoradatatools/great_e
 **Required link column** (never null, must have `link_url`):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "type": "object",
   "properties": { "link_url": { "type": "string", "minLength": 1 } },
   "required": ["link_url"],
@@ -206,6 +340,8 @@ For columns that are link objects, create schemas in `src/agoradatatools/great_e
 **Center-style column** (never null, must have both `link_url` and `link_text`):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "type": "object",
   "properties": {
     "link_url": { "type": "string", "minLength": 1 },
@@ -290,31 +426,6 @@ validator.expect_column_values_to_match_regex(
     condition_parser="pandas",
 )
 ```
-
-### Pairing `list_length_in_range` with `list_members`
-
-When a column has both an `expect_column_values_to_have_list_length_in_range` expectation and an
-`expect_column_values_to_have_list_members` expectation (i.e. the list's allowed contents are a
-fixed, enumerable set of members), the **maximum** of the length range should equal the number of
-allowed members in the `list_members` set — a list can't validly contain more distinct allowed
-values than the set defines. Only deviate from this if the user explicitly provides different
-requirements (e.g. duplicates are allowed, so the max should be higher, or some other constraint).
-
-```python
-# members set has 4 allowed values
-validator.expect_column_values_to_have_list_members(column="programs", list_members=["A", "B", "C", "D"])
-
-# ✅ CORRECT — max length equals len(list_members)
-validator.expect_column_values_to_have_list_length_in_range(column="programs", list_length_range=[1, 4])
-
-# ❌ WRONG — max of 10 has no basis when only 4 members are allowed
-validator.expect_column_values_to_have_list_length_in_range(column="programs", list_length_range=[1, 10])
-```
-
-The same reasoning applies when both constraints are expressed inside a JSON schema for a nested
-column: `maxItems` should equal the number of allowed values in the corresponding `enum`/member
-list (see the warning below for why nested columns use JSON schema instead of the custom
-expectations directly).
 
 ---
 
@@ -465,12 +576,30 @@ The format mirrors existing suites (e.g. `rnaseq_differential_expression.json`):
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": { "column": "my_col", "type_": "str" },
       "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "my_nested_col",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "object",
+          "properties": { "link_url": { "type": "string", "minLength": 1 } },
+          "required": ["link_url"],
+          "additionalProperties": false
+        }
+      },
+      "meta": {}
     }
   ],
   "ge_cloud_id": null,
   "meta": { "great_expectations_version": "0.18.1" }
 }
 ```
+
+When hand-writing an inline `json_schema` here, include the `$schema`/`$id` header (as shown
+above) so the suite matches what a notebook would generate — see Step 2.
 
 After writing the file directly, **always verify the suite passes** by running GX on a small sample in a standalone script. This catches any expectation mismatches without loading the full file.
 
@@ -542,5 +671,6 @@ Check the output for GX validation results.
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
 | `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
-| GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keep Value Sets in Sync with the ui_config Notebooks"). When you change one, prompt the user to update the parallel list in the R notebook |
-| `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Pairing `list_length_in_range` with `list_members`" |
+| New JSON schema missing `$schema` / `$id` (in a file **or** inlined in a suite) | Every GX JSON schema must carry `$schema` (draft 2019-09) and a GitHub repo-path `$id`, whether it lives in a standalone file or is embedded inline in an `expect_column_values_to_match_json_schema` kwarg — see Step 2 |
+| GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists (and nested-column `enum`s) mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keeping Related Constraints in Sync" → "External sync"). When you change one, prompt the user to update the parallel list in the R notebook |
+| `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Keeping Related Constraints in Sync" → "Internal sync" |
