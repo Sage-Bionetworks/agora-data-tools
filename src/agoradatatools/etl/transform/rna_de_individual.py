@@ -21,7 +21,7 @@ The transformation:
 - Organizes data by model_group to support both single and multiple control display paradigms
 - Enriches data with gene symbols from gene metadata
 - Maps genotypes to display labels for better readability
-- Passes sex values through as-is from the source data
+- Maps plural sex values to singular display labels
 - Applies tissue name transformations: "Right Cerebral Hemisphere" → "Hemibrain" and
   converts all tissues to sentence case
 - Rounds numeric columns to 5 decimal places for consistency

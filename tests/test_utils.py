@@ -78,13 +78,21 @@ def test_get_config_with_config_path():
     assert config["destination"] == "syn17015333"
 
 
-def test_standardize_column_name():
-    assert utils.standardize_column_name("Ab40_pg.ml") == "ab40_pg_ml"
-    assert utils.standardize_column_name("Ab_ratio") == "ab_ratio"
-    assert utils.standardize_column_name("tTAU_fg.ml") == "ttau_fg_ml"
-    assert utils.standardize_column_name("GFAP_pg.ml") == "gfap_pg_ml"
-    assert utils.standardize_column_name("a#b@(c)") == "abc"
-    assert utils.standardize_column_name("Some Column-Name.x") == "some_column_name_x"
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        pytest.param("Ab40_pg.ml", "ab40_pg_ml", id="period_becomes_underscore"),
+        pytest.param("Ab_ratio", "ab_ratio", id="already_standardized_lowercased"),
+        pytest.param("tTAU_fg.ml", "ttau_fg_ml", id="mixed_case_lowercased"),
+        pytest.param("GFAP_pg.ml", "gfap_pg_ml", id="uppercase_prefix_lowercased"),
+        pytest.param("a#b@(c)", "abc", id="special_chars_stripped"),
+        pytest.param(
+            "Some Column-Name.x", "some_column_name_x", id="spaces_and_hyphens"
+        ),
+    ],
+)
+def test_standardize_column_name(name: str, expected: str) -> None:
+    assert utils.standardize_column_name(name) == expected
 
 
 def test_standardize_column_names():

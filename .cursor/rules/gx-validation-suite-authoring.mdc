@@ -43,6 +43,77 @@ print(lengths.min(), lengths.max())
 
 ---
 
+## Keep Value Sets in Sync with the ui_config Notebooks
+
+Several GX value-set expectations enforce the **same controlled vocabulary** that the Agora
+Comparison Tool filter menus display. Those lists are hand-authored as
+filter-value vectors in the ui_config **R notebook**, so the vocabulary lives in two places that
+must be kept aligned.
+
+**Rule:** Whenever you add, remove, or edit a value in one of the GX lists in the table below
+(`expect_column_values_to_be_in_set` or `expect_column_values_to_have_list_members`), you MUST
+prompt the user to make the parallel update to the corresponding filter-value vector in the
+ui_config notebook, naming the exact variable to change. Do not change the GX side silently. The
+two lists *can* legitimately diverge — e.g. GX may allow a data-only value such as `Unknown` that
+is intentionally hidden from the UI filter — so surface the difference and let the user decide
+rather than assuming they must match.
+
+### Parallel lists — Agora
+Notebook: `data_analysis/agora/notebooks/preprocessing/AG-2005_ui_config.rmd`
+
+| GX suite → column | GX expectation | ui_config filter-value vector |
+|---|---|---|
+| `nominated_targets` → `programs` | `expect_column_values_to_have_list_members` | `targets_program_filter_values` |
+| `nominated_targets` → `input_data` | `expect_column_values_to_have_list_members` | `targets_data_filter_values` |
+| `nominated_targets` → `nominating_teams` | `expect_column_values_to_have_list_members` | `targets_team_filter_values` |
+| `nominated_targets` → `pharos_class` | `expect_column_values_to_be_in_set` | `targets_pharos_filter_values` |
+| `nominated_drugs` → `modality` | `expect_column_values_to_be_in_set` | `drug_modality_filter_values` |
+| `nominated_drugs` → `maximum_clinical_trial_phase` | `expect_column_values_to_be_in_set` | `drug_max_clinical_trial_phase_filter_values` |
+
+Other Agora datasets (e.g. `gene_info`, `network`, `team_info`) have GX value-set expectations but
+are **not** produced by this ui_config notebook, so they have no parallel filter list here.
+
+### Parallel lists — model_ad
+Notebook: `data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd`
+
+| GX suite → column | GX expectation | MG-402 filter-value list |
+|---|---|---|
+| `model_details` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `model_details` → `contributing_group` | `expect_column_values_to_be_in_set` | Contributing Center values (the `center` entry in `mo_filter_values`) |
+| `model_overview` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `model_overview` → `available_data` | `expect_column_values_to_have_list_members` | Available Data values (the `available_data` entry in `mo_filter_values`) |
+| `model_overview` → `center` | `expect_column_values_to_be_in_set` | Contributing Center values (the `center` entry in `mo_filter_values`) |
+
+The MG-402 notebook also defines `biodomain_filter_vals` and `sex_filter_vals` (Differential
+Expression filters), but the `rna_de_aggregate` / `rna_de_individual` datasets have no GX suite
+yet, so those have no GX parallel to keep in sync today.
+
+Before finalizing a change to any GX list in the tables above, prompt the user, e.g.:
+> "This changes the `<column>` value set in the `<suite>` GX suite. The parallel filter list
+> `<variable>` in the ui_config notebook (`AG-2005_ui_config.rmd` for Agora,
+> `MG-402_Create ui_config source file.rmd` for model_ad) should be updated to match — do you want
+> to update it too, or should the two intentionally differ?"
+
+### Adding a NEW value-set expectation — check for a parallel first
+
+Whenever you are about to add a **new** `expect_column_values_to_be_in_set` or
+`expect_column_values_to_have_list_members` expectation that is not already listed in the tables
+above, first check the ui_config notebooks for an existing parallel filter-value list covering the
+same vocabulary (`AG-2005_ui_config.rmd` for Agora datasets,
+`MG-402_Create ui_config source file.rmd` for model_ad datasets). Match on the column/filter
+meaning, then compare the actual value sets.
+
+If you find a parallel list, prompt the user to confirm, e.g.:
+> "The new `<column>` value set in the `<suite>` GX suite looks parallel to the `<variable>`
+> filter list in `<notebook>`. Should I add this pair to the '<Agora|model_ad> — Parallel lists'
+> table in this rule and align the GX value set with the notebook list?"
+
+On confirmation: align the GX value set with the notebook list (or surface any difference for the
+user to resolve), **and add a new row to the appropriate "Parallel lists" table above** so the
+mapping stays documented. If no parallel list exists, no table update is needed.
+
+---
+
 ## Step 0 — Research the Transform Before Planning
 
 **Do all of the following before writing any plan or authoring any expectations.** These steps give you the complete picture of the transform's inputs, logic, output schema, and edge cases.
@@ -219,6 +290,33 @@ validator.expect_column_values_to_match_regex(
     condition_parser="pandas",
 )
 ```
+
+### Pairing `list_length_in_range` with `list_members`
+
+When a column has both an `expect_column_values_to_have_list_length_in_range` expectation and an
+`expect_column_values_to_have_list_members` expectation (i.e. the list's allowed contents are a
+fixed, enumerable set of members), the **maximum** of the length range should equal the number of
+allowed members in the `list_members` set — a list can't validly contain more distinct allowed
+values than the set defines. Only deviate from this if the user explicitly provides different
+requirements (e.g. duplicates are allowed, so the max should be higher, or some other constraint).
+
+```python
+# members set has 4 allowed values
+validator.expect_column_values_to_have_list_members(column="programs", list_members=["A", "B", "C", "D"])
+
+# ✅ CORRECT — max length equals len(list_members)
+validator.expect_column_values_to_have_list_length_in_range(column="programs", list_length_range=[1, 4])
+
+# ❌ WRONG — max of 10 has no basis when only 4 members are allowed
+validator.expect_column_values_to_have_list_length_in_range(column="programs", list_length_range=[1, 10])
+```
+
+The same reasoning applies when both constraints are expressed inside a JSON schema for a nested
+column: `maxItems` should equal the number of allowed values in the corresponding `enum`/member
+list (see the warning below for why nested columns use JSON schema instead of the custom
+expectations directly).
+
+---
 
 ### ⚠️ Custom list expectations do NOT work on nested columns
 
@@ -444,3 +542,5 @@ Check the output for GX validation results.
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
 | `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
+| GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keep Value Sets in Sync with the ui_config Notebooks"). When you change one, prompt the user to update the parallel list in the R notebook |
+| `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Pairing `list_length_in_range` with `list_members`" |
