@@ -244,8 +244,8 @@
           "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/rna_de_individual/data_schema.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "type": "array",
-          "minItems": 19,
-          "maxItems": 44,
+          "minItems": 5,
+          "maxItems": 100,
           "items": {
             "type": "object",
             "properties": {
@@ -255,7 +255,7 @@
               },
               "sex": {
                 "type": "string",
-                "minLength": 1
+                "enum": ["Female", "Male"]
               },
               "individual_id": {
                 "type": "string",
