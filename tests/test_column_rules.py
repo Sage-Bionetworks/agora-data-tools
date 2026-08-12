@@ -22,6 +22,8 @@ class TestColumnRuleContract:
             cr.MatchesRegexRule(value="^ENSMUSG"),
             cr.ContainsSubstringRule(value="world"),
             cr.OneOfRule(value={"a"}),
+            cr.NumericRule(),
+            cr.ValuesAreUniqueRule(),
         ],
     )
     def test_count_violations_returns_int(self, rule: cr.ColumnRule) -> None:
@@ -34,6 +36,8 @@ class TestColumnRuleContract:
             cr.MatchesRegexRule(value="^ENSMUSG"),
             cr.ContainsSubstringRule(value="world"),
             cr.OneOfRule(value={"a"}),
+            cr.NumericRule(),
+            cr.ValuesAreUniqueRule(),
         ],
     )
     def test_count_violations_is_non_negative(self, rule: cr.ColumnRule) -> None:
@@ -269,6 +273,80 @@ class TestOneOfRule:
         assert rule.count_violations(s) == 0
 
 
+class TestNumericRule:
+    """Unit tests for NumericRule.count_violations()."""
+
+    def _series(self, data: Sequence[object]) -> pd.Series:
+        return pd.Series(data)
+
+    def test_no_violations_for_all_numeric(self) -> None:
+        rule = cr.NumericRule()
+        assert rule.count_violations(self._series([1, 2.5, 3])) == 0
+
+    def test_no_violations_for_numeric_strings(self) -> None:
+        rule = cr.NumericRule()
+        assert rule.count_violations(self._series(["6", "9.9"])) == 0
+
+    def test_counts_non_numeric_string(self) -> None:
+        rule = cr.NumericRule()
+        assert rule.count_violations(self._series([1, "abc", 3])) == 1
+
+    def test_counts_all_non_numeric(self) -> None:
+        rule = cr.NumericRule()
+        assert rule.count_violations(self._series(["a", "b"])) == 2
+
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the type of present values.
+        rule = cr.NumericRule()
+        assert rule.count_violations(self._series([1, None, 3])) == 0
+
+    def test_skips_nan(self) -> None:
+        rule = cr.NumericRule()
+        assert rule.count_violations(self._series([1, np.nan, 3])) == 0
+
+    def test_empty_series(self) -> None:
+        rule = cr.NumericRule()
+        assert rule.count_violations(self._series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert cr.NumericRule().value_detail == ""
+
+
+class TestValuesAreUniqueRule:
+    """Unit tests for ValuesAreUniqueRule.count_violations()."""
+
+    def _series(self, data: Sequence[object]) -> pd.Series:
+        return pd.Series(data)
+
+    def test_no_violations_for_all_unique(self) -> None:
+        rule = cr.ValuesAreUniqueRule()
+        assert rule.count_violations(self._series(["a", "b", "c"])) == 0
+
+    def test_counts_duplicated_pair(self) -> None:
+        rule = cr.ValuesAreUniqueRule()
+        assert rule.count_violations(self._series(["a", "a", "b"])) == 2
+
+    def test_counts_all_same(self) -> None:
+        rule = cr.ValuesAreUniqueRule()
+        assert rule.count_violations(self._series(["a", "a", "a"])) == 3
+
+    def test_single_null_is_not_violation(self) -> None:
+        rule = cr.ValuesAreUniqueRule()
+        assert rule.count_violations(self._series(["a", None, "b"])) == 0
+
+    def test_multiple_nulls_are_counted(self) -> None:
+        # pandas treats nulls as equal, so repeated nulls are duplicates.
+        rule = cr.ValuesAreUniqueRule()
+        assert rule.count_violations(self._series(["a", None, None])) == 2
+
+    def test_empty_series(self) -> None:
+        rule = cr.ValuesAreUniqueRule()
+        assert rule.count_violations(self._series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert cr.ValuesAreUniqueRule().value_detail == ""
+
+
 class TestCheckColumnRules:
     """Tests for check_column_rules() and its supporting _check_single_rule() helper."""
 
@@ -291,6 +369,8 @@ class TestCheckColumnRules:
                 ["male", "female", "male"],
                 cr.OneOfRule(value={"male", "female"}),
             ),
+            (["1", "2.5", "3"], cr.NumericRule()),
+            (["a", "b", "c"], cr.ValuesAreUniqueRule()),
         ],
     )
     def test_rule_passes_for_all_valid_values(
@@ -339,6 +419,16 @@ class TestCheckColumnRules:
                 ["valid", None, "", "   ", "also valid"],
                 cr.NotEmptyRule(),
                 r"3 row\(s\).*not_empty",
+            ),
+            (
+                ["1", "x", "3"],
+                cr.NumericRule(),
+                r"1 row\(s\).*numeric",
+            ),
+            (
+                ["a", "a", "b"],
+                cr.ValuesAreUniqueRule(),
+                r"2 row\(s\).*values_are_unique",
             ),
         ],
     )
