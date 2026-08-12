@@ -39,8 +39,6 @@ datasets:
   - model_details:
       files:
         - <<: *model_metadata
-        - <<: *pathology
-        - <<: *biomarkers
         - <<: *model_genetic_modifications
         - <<: *pathology
         - <<: *biomarkers
@@ -114,6 +112,12 @@ datasets:
       final_format: json
       destination: *dest
       custom_transformations: transform_rna_de_aggregate
+      gx_enabled: true
+      gx_nested_columns:
+        - name
+        - "4 months"
+        - "12 months"
+        - "18 months"
 
   - rna_de_individual:
       files:
@@ -132,3 +136,6 @@ datasets:
       final_format: json
       destination: *dest
       custom_transformations: transform_rna_de_individual
+      gx_enabled: true
+      gx_nested_columns:
+        - data
