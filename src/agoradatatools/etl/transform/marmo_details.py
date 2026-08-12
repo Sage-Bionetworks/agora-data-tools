@@ -8,6 +8,9 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from agoradatatools.etl.utils import (
+    MatchesRegexRule,
+    NotEmptyRule,
+    NumericRule,
     OneOfRule,
     check_column_rules,
     check_required_datasets_and_columns,
@@ -52,16 +55,56 @@ REQUIRED_INPUT = {
     ],
 }
 
-# Sampling ages are bucketed assuming values are expressed in months; validate the units
-# column up front so an unexpected unit fails loudly instead of silently miscomputing buckets.
+# Per-column content rules validated up front so bad source data fails loudly rather than
+# silently dropping or miscomputing rows downstream.
+#   - samplingageunits: ages are bucketed assuming months, so any other unit must fail.
+#   - samplingage: must be numeric so age bucketing is well-defined.
+#   - ensembl_gene_id: marmoset (Callithrix jacchus) Ensembl gene ids are ENSCJAG-prefixed.
+#   - NotEmpty rules guard the id/label/order columns whose absence would corrupt joins or output.
 COLUMN_RULES = {
+    "marmo_metadata": {
+        "model": [NotEmptyRule()],
+        "ensembl_gene_id": [NotEmptyRule(), MatchesRegexRule(r"^ENSCJAG\d+$")],
+    },
+    "marmo_genotype_label_map": {
+        "genotype": [NotEmptyRule()],
+        "display_label": [NotEmptyRule()],
+    },
+    "marmo_biomarker_measure_info": {
+        "display_order": [NotEmptyRule()],
+    },
+    "marmo_individual_metadata": {
+        "individualid": [NotEmptyRule()],
+        "genotype": [NotEmptyRule()],
+        "sex": [NotEmptyRule()],
+    },
     "marmo_biospecimen_metadata": {
+        "specimenid": [NotEmptyRule()],
+        "samplingage": [NumericRule()],
         "samplingageunits": [OneOfRule({"months"})],
+    },
+    "marmo_results": {
+        "biomaterialid": [NotEmptyRule()],
+        "individualid": [NotEmptyRule()],
     },
 }
 
 # Number of months used to bucket sampling ages into whole-year ranges.
 MONTHS_PER_YEAR = 12
+
+
+def _convert_to_year(sampling_age_months: float) -> int:
+    """Floor a sampling age in months to the whole year in which the sample was taken.
+
+    Shared by the bucket label and the numeric sort key so the flooring logic lives in one place.
+
+    Args:
+        sampling_age_months (float): The animal's age in months at the time of sampling.
+
+    Returns:
+        int: The floored whole-year value, e.g. 9.9 -> 0, 13.0 -> 1.
+    """
+    return int(sampling_age_months // MONTHS_PER_YEAR)
 
 
 def _age_to_year_bucket(sampling_age_months: float) -> str:
@@ -76,7 +119,7 @@ def _age_to_year_bucket(sampling_age_months: float) -> str:
     Returns:
         str: The bucket label, e.g. "2-3 years".
     """
-    bucket_start = int(sampling_age_months // MONTHS_PER_YEAR)
+    bucket_start = _convert_to_year(sampling_age_months)
     return f"{bucket_start}-{bucket_start + 1} years"
 
 
@@ -105,9 +148,18 @@ def _build_measurements(
     biospecimen = datasets["marmo_biospecimen_metadata"]
     genotype_map = datasets["marmo_genotype_label_map"]
 
-    measure_columns = [
-        col for col in measure_info["result_column_std"] if col in results.columns
+    # Every result_column listed in the measure-info mapping must exist in marmo_results.
+    # Fail loudly on a missing/typo'd column instead of silently dropping that measure.
+    missing_columns = [
+        col for col in measure_info["result_column_std"] if col not in results.columns
     ]
+    if missing_columns:
+        raise ValueError(
+            "marmo_biomarker_measure_info references result columns that are not present in "
+            f"marmo_results: {missing_columns}"
+        )
+
+    measure_columns = list(measure_info["result_column_std"])
 
     long = results.melt(
         id_vars=["biomaterialid", "individualid"],
@@ -118,34 +170,44 @@ def _build_measurements(
     long["value"] = pd.to_numeric(long["value"], errors="coerce")
     long = long.dropna(subset=["value"])
 
-    # Attach genotype + sex, then resolve genotype display label (unmapped genotypes are dropped)
+    # Attach genotype + sex, then resolve genotype display label (unmapped genotypes are dropped).
+    # validate="m:1" fails loudly if an individual appears more than once, which would otherwise
+    # silently duplicate every measurement for that individual.
     long = long.merge(
         individual[["individualid", "genotype", "sex"]],
         how="left",
         on="individualid",
+        validate="m:1",
     )
+    # validate="m:1": the label map must have one display label per genotype; duplicate genotype
+    # keys would multiply rows.
     long = long.merge(
         genotype_map[["genotype", "display_label"]],
         how="inner",
         on="genotype",
+        validate="m:1",
     )
 
-    # Attach sampling age from the biospecimen record; drop measurements with no biospecimen match
+    # Attach sampling age from the biospecimen record; drop measurements with no biospecimen match.
+    # validate="m:1": one sampling age per specimen; duplicate specimen rows would duplicate
+    # measurements.
     long = long.merge(
         biospecimen[["specimenid", "samplingage"]].rename(
             columns={"specimenid": "biomaterialid"}
         ),
         how="left",
         on="biomaterialid",
+        validate="m:1",
     )
     long["samplingage"] = pd.to_numeric(long["samplingage"], errors="coerce")
     long = long.dropna(subset=["samplingage"])
 
     long["age"] = long["samplingage"].apply(_age_to_year_bucket)
-    long["age_start"] = (long["samplingage"] // MONTHS_PER_YEAR).astype(int)
+    long["age_start"] = long["samplingage"].apply(_convert_to_year)
     long["sex"] = long["sex"].str.title()
 
-    # Attach measure metadata
+    # Attach measure metadata. validate="m:1": one metadata row per result column, so duplicate
+    # result_column entries can't multiply rows or make the y_axis_max grouping ambiguous.
     long = long.merge(
         measure_info[
             [
@@ -157,6 +219,7 @@ def _build_measurements(
         ],
         how="left",
         on="result_column_std",
+        validate="m:1",
     )
 
     return long
@@ -190,10 +253,20 @@ def _build_biomarkers(
         for evidence_type, group in measurements.groupby("evidence_type")
     }
 
+    # Shape the data-point columns into their final form before nesting so nest_fields emits the
+    # output dicts directly (individual_id, value, sex, genotype) with no per-row rebuild needed.
     data_points = measurements.copy()
     data_points["individual_id"] = data_points["individualid"].astype(str)
+    data_points["value"] = data_points["value"].astype(float)
+    # The output "genotype" is the display label; drop the raw genotype (from the individual join)
+    # first so the rename does not collide with it. errors="ignore" keeps this a no-op when the
+    # caller already supplies a display_label-only frame.
+    data_points = data_points.drop(columns=["genotype"], errors="ignore").rename(
+        columns={"display_label": "genotype"}
+    )
     data_points = data_points.sort_values(["individual_id", "value"])
 
+    keep_columns = {"individual_id", "value", "sex", "genotype"}
     grouped = nest_fields(
         df=data_points,
         grouping=[
@@ -204,26 +277,13 @@ def _build_biomarkers(
             "age_start",
         ],
         new_column="data",
-        drop_columns=[
-            col
-            for col in data_points.columns
-            if col not in ["individual_id", "value", "sex", "display_label"]
-        ],
+        drop_columns=set(data_points.columns) - keep_columns,
     )
 
     grouped = grouped.sort_values(["display_order", "age_start"])
 
     biomarkers = []
     for _, row in grouped.iterrows():
-        data = [
-            {
-                "individual_id": point["individual_id"],
-                "value": float(point["value"]),
-                "sex": point["sex"],
-                "genotype": point["display_label"],
-            }
-            for point in row["data"]
-        ]
         biomarkers.append(
             {
                 "name": model_name,
@@ -231,7 +291,7 @@ def _build_biomarkers(
                 "age": row["age"],
                 "units": row["units"],
                 "y_axis_max": float(y_axis_max_map[row["evidence_type"]]),
-                "data": data,
+                "data": row["data"],
             }
         )
 
@@ -245,9 +305,9 @@ def transform_marmo_details(
     """
     Transforms the marmoset source files into the marmo_details structured output for Model AD.
 
-    Source files: marmo_metadata, marmo_genotype_label_map, marmo_biomarker_measure_info,
-    marmo_individual_metadata (syn63926850), marmo_biospecimen_metadata (syn63927118),
-    marmo_results (syn64133726).
+    Source files: marmo_metadata (syn76417166), marmo_genotype_label_map (syn76417167),
+    marmo_biomarker_measure_info (syn76417168), marmo_individual_metadata (syn63926850),
+    marmo_biospecimen_metadata (syn63927118), marmo_results (syn64133726).
 
     Expected transformations:
         1. The wide marmo_results measure columns are melted into long form; null measurements
@@ -279,6 +339,12 @@ def transform_marmo_details(
 
     metadata = datasets["marmo_metadata"]
 
+    # TODO: generalize to multiple models. The blocker is data linkage: outside marmo_metadata
+    # there is no model column on the label map, individual, biospecimen, or results files, so a
+    # measurement is tied to a model only implicitly via the genotype label map. Generalizing
+    # requires the data team to decide how each genotype/individual/measurement maps to a model
+    # (e.g. a model column on marmo_genotype_label_map). Until then, fail loudly on multi-model
+    # input rather than silently attributing all measurements to one model.
     model_names = metadata["model"].unique().tolist()
     if len(model_names) != 1:
         raise ValueError(

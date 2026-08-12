@@ -4,7 +4,14 @@ import os
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform.marmo_details import transform_marmo_details
+from agoradatatools.etl.transform.marmo_details import (
+    _age_to_year_bucket,
+    _build_biomarkers,
+    _build_measurements,
+    _convert_to_year,
+    transform_marmo_details,
+)
+from agoradatatools.etl.utils import round_y_axis_max
 
 
 class TestTransformMarmoDetails:
@@ -47,42 +54,21 @@ class TestTransformMarmoDetails:
 
         assert output_data == expected_data
 
-    def test_marmo_details_excludes_unmapped_and_missing_biospecimen(self):
-        """Only mapped genotypes with a biospecimen record are surfaced."""
+    @pytest.mark.parametrize(
+        "missing_dataset",
+        [
+            "marmo_metadata",
+            "marmo_genotype_label_map",
+            "marmo_biomarker_measure_info",
+            "marmo_individual_metadata",
+            "marmo_biospecimen_metadata",
+            "marmo_results",
+        ],
+    )
+    def test_marmo_details_missing_dataset_should_fail(self, missing_dataset):
+        """A missing required dataset raises ValueError, whichever one is absent."""
         datasets = self._load_datasets(self.good_input_files)
-
-        output_data = transform_marmo_details(datasets=datasets)
-
-        data_points = [
-            point
-            for biomarker in output_data[0]["biomarkers"]
-            for point in biomarker["data"]
-        ]
-        individual_ids = {point["individual_id"] for point in data_points}
-        genotypes = {point["genotype"] for point in data_points}
-
-        # individual 3 has an unmapped genotype; individual 4 has no biospecimen record
-        assert individual_ids == {"1", "2"}
-        assert genotypes == {"Matched Control", "Presenilin-1"}
-
-    def test_marmo_details_ratio_units_are_empty_string(self):
-        """The A-beta ratio measure has no units and must serialize as "" (not null)."""
-        datasets = self._load_datasets(self.good_input_files)
-
-        output_data = transform_marmo_details(datasets=datasets)
-
-        ratio_objects = [
-            biomarker
-            for biomarker in output_data[0]["biomarkers"]
-            if biomarker["evidence_type"] == "A&beta;42/A&beta;40"
-        ]
-        assert ratio_objects
-        assert all(biomarker["units"] == "" for biomarker in ratio_objects)
-
-    def test_marmo_details_missing_dataset_should_fail(self):
-        """A missing required dataset raises ValueError."""
-        datasets = self._load_datasets(self.good_input_files)
-        del datasets["marmo_results"]
+        del datasets[missing_dataset]
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
@@ -115,3 +101,170 @@ class TestTransformMarmoDetails:
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_non_numeric_sampling_age_should_fail(self):
+        """A non-numeric samplingage fails the NumericRule and raises ValueError."""
+        input_files = dict(self.good_input_files)
+        input_files[
+            "marmo_biospecimen_metadata"
+        ] = "marmo_biospecimen_metadata_bad_age_input.csv"
+        datasets = self._load_datasets(input_files)
+
+        with pytest.raises(ValueError):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_unknown_result_column_should_fail(self):
+        """A result_column in the measure-info mapping that is absent from marmo_results
+        (e.g. a typo) raises ValueError rather than silently dropping the measure."""
+        input_files = dict(self.good_input_files)
+        input_files[
+            "marmo_biomarker_measure_info"
+        ] = "marmo_biomarker_measure_info_typo_input.csv"
+        datasets = self._load_datasets(input_files)
+
+        with pytest.raises(ValueError):
+            transform_marmo_details(datasets=datasets)
+
+
+class TestConvertToYear:
+    """Unit tests for the month-to-year helpers."""
+
+    @pytest.mark.parametrize(
+        "months, expected_year",
+        [(0, 0), (9.9, 0), (12, 1), (13.0, 1), (24, 2)],
+    )
+    def test_convert_to_year(self, months, expected_year):
+        assert _convert_to_year(months) == expected_year
+
+    @pytest.mark.parametrize(
+        "months, expected_bucket",
+        [
+            (0, "0-1 years"),
+            (9.9, "0-1 years"),
+            (12, "1-2 years"),
+            (13.0, "1-2 years"),
+            (24, "2-3 years"),
+        ],
+    )
+    def test_age_to_year_bucket(self, months, expected_bucket):
+        assert _age_to_year_bucket(months) == expected_bucket
+
+
+class TestBuildMeasurements:
+    """Unit tests for _build_measurements covering the silent-drop behaviors."""
+
+    def _measure_info(self):
+        return pd.DataFrame(
+            {
+                "result_column_std": ["ab40_pg_ml"],
+                "evidence_type": ["A&beta;40"],
+                "units": ["pg/mL"],
+                "display_order": [1],
+            }
+        )
+
+    def _datasets(self):
+        return {
+            # individual 9 has no row in marmo_individual_metadata
+            "marmo_results": pd.DataFrame(
+                {
+                    "biomaterialid": ["msdpl-1_A", "msdpl-9_A"],
+                    "individualid": [1, 9],
+                    "ab40_pg_ml": [100.0, 900.0],
+                }
+            ),
+            "marmo_individual_metadata": pd.DataFrame(
+                {
+                    "individualid": [1],
+                    "genotype": ["WT"],
+                    "sex": ["male"],
+                }
+            ),
+            "marmo_biospecimen_metadata": pd.DataFrame(
+                {
+                    "specimenid": ["msdpl-1_A", "msdpl-9_A"],
+                    "samplingage": [6, 9],
+                    "samplingageunits": ["months", "months"],
+                }
+            ),
+            "marmo_genotype_label_map": pd.DataFrame(
+                {
+                    "genotype": ["WT"],
+                    "display_label": ["Matched Control"],
+                }
+            ),
+        }
+
+    def test_measurement_missing_individual_metadata_is_dropped(self):
+        """A measurement whose individualid is absent from marmo_individual_metadata is dropped
+        silently: the left join yields a null genotype, which the inner genotype-map merge
+        excludes."""
+        measurements = _build_measurements(self._datasets(), self._measure_info())
+
+        assert set(measurements["individualid"]) == {1}
+
+    def test_measurement_columns_and_values(self):
+        """A surfaced measurement carries the joined genotype label, title-cased sex, and age
+        bucket."""
+        measurements = _build_measurements(self._datasets(), self._measure_info())
+
+        row = measurements.iloc[0]
+        assert row["display_label"] == "Matched Control"
+        assert row["sex"] == "Male"
+        assert row["age"] == "0-1 years"
+        assert row["value"] == 100.0
+
+
+class TestBuildBiomarkers:
+    """Unit tests for _build_biomarkers covering sort order, y_axis_max, and empty units."""
+
+    def _measurements(self):
+        return pd.DataFrame(
+            {
+                "individualid": [1, 2, 1],
+                "value": [100.0, 200.0, 0.1],
+                "sex": ["Male", "Female", "Male"],
+                "display_label": ["Matched Control", "Presenilin-1", "Matched Control"],
+                "evidence_type": ["A&beta;40", "A&beta;40", "A&beta;42/A&beta;40"],
+                "age": ["0-1 years", "1-2 years", "0-1 years"],
+                "units": ["pg/mL", "pg/mL", ""],
+                "display_order": [1, 1, 2],
+                "age_start": [0, 1, 0],
+            }
+        )
+
+    def test_empty_measurements_returns_empty_list(self):
+        assert _build_biomarkers(pd.DataFrame(), "Presenilin1") == []
+
+    def test_sort_order_by_display_order_then_age(self):
+        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
+
+        order = [(b["evidence_type"], b["age"]) for b in biomarkers]
+        assert order == [
+            ("A&beta;40", "0-1 years"),
+            ("A&beta;40", "1-2 years"),
+            ("A&beta;42/A&beta;40", "0-1 years"),
+        ]
+
+    def test_ratio_units_are_empty_string(self):
+        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
+
+        ratio = [b for b in biomarkers if b["evidence_type"] == "A&beta;42/A&beta;40"]
+        assert ratio
+        assert all(b["units"] == "" for b in ratio)
+
+    def test_y_axis_max_is_per_evidence_type_rounded_max(self):
+        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
+
+        expected = {
+            "A&beta;40": float(round_y_axis_max(200.0)),
+            "A&beta;42/A&beta;40": float(round_y_axis_max(0.1)),
+        }
+        for b in biomarkers:
+            assert b["y_axis_max"] == expected[b["evidence_type"]]
+
+    def test_data_points_have_expected_keys(self):
+        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
+
+        point = biomarkers[0]["data"][0]
+        assert set(point.keys()) == {"individual_id", "value", "sex", "genotype"}

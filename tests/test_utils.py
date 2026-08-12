@@ -1022,6 +1022,38 @@ class TestOneOfRule:
         assert rule.count_violations(s) == 0
 
 
+class TestNumericRule:
+    """Unit tests for NumericRule.count_violations()."""
+
+    def _series(self, data: Sequence[object]) -> pd.Series:
+        return pd.Series(data)
+
+    def test_no_violations_for_all_numeric(self) -> None:
+        assert utils.NumericRule().count_violations(self._series([1, 2.5, 3])) == 0
+
+    def test_no_violations_for_numeric_strings(self) -> None:
+        assert utils.NumericRule().count_violations(self._series(["6", "9.9"])) == 0
+
+    def test_counts_non_numeric_string(self) -> None:
+        assert utils.NumericRule().count_violations(self._series([1, "abc", 3])) == 1
+
+    def test_counts_all_non_numeric(self) -> None:
+        assert utils.NumericRule().count_violations(self._series(["a", "b"])) == 2
+
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the type of present values.
+        assert utils.NumericRule().count_violations(self._series([1, None, 3])) == 0
+
+    def test_skips_nan(self) -> None:
+        assert utils.NumericRule().count_violations(self._series([1, np.nan, 3])) == 0
+
+    def test_empty_series(self) -> None:
+        assert utils.NumericRule().count_violations(self._series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.NumericRule().value_detail == ""
+
+
 class TestCheckColumnRules:
     """Tests for check_column_rules() and its supporting _check_single_rule() helper."""
 

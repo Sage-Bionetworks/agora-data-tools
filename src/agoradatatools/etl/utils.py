@@ -168,6 +168,26 @@ class OneOfRule(ColumnRule):
         return f" (value={self.value!r})"
 
 
+class NumericRule(ColumnRule):
+    """Rule that every present value must be numeric (parseable as a number).
+
+    Null values are skipped so this rule only validates the type of present values;
+    use NotEmptyRule to require presence. Values are checked with pandas to_numeric,
+    so numeric strings such as "6" or "9.9" pass.
+    """
+
+    rule = "numeric"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null values in *series* that are not numeric.
+
+        A length-0 series yields 0 (no values to fail the rule).
+        """
+        present = series[series.notna()]
+        coerced = pd.to_numeric(present, errors="coerce")
+        return int(coerced.isna().sum())
+
+
 # TODO remove "_" - these utils functions are not only used internally
 def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     """Logs into Synapse python client, returns authenticated Synapse session.
