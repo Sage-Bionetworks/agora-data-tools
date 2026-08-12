@@ -46,14 +46,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
-    nest_fields,
-    ColumnRule,
-    MatchesRegexRule,
-    NotEmptyRule,
-)
+from agoradatatools.etl.utils import column_rules as cr, general_utils as gu
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
     validate_model_group_consistency,
     create_gene_metadata_dict,
@@ -85,19 +78,19 @@ DATA_FILE_REQUIRED_COLUMNS = [
     "individualid",
 ]
 
-COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+COLUMN_RULES: Dict[str, Dict[str, List[cr.ColumnRule]]] = {
     "genotype_label_map": {
-        "model": [NotEmptyRule()],
-        "genotype": [NotEmptyRule()],
-        "display_label": [NotEmptyRule()],
-        "model_group": [NotEmptyRule()],
-        "result_order": [NotEmptyRule()],
+        "model": [cr.NotEmptyRule()],
+        "genotype": [cr.NotEmptyRule()],
+        "display_label": [cr.NotEmptyRule()],
+        "model_group": [cr.NotEmptyRule()],
+        "result_order": [cr.NotEmptyRule()],
     },
 }
 
-DATA_FILE_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
-    "model": [NotEmptyRule()],
-    "age": [MatchesRegexRule(value=r"\d+ months$")],
+DATA_FILE_COLUMN_RULES: Dict[str, List[cr.ColumnRule]] = {
+    "model": [cr.NotEmptyRule()],
+    "age": [cr.MatchesRegexRule(value=r"\d+ months$")],
 }
 
 
@@ -220,7 +213,7 @@ def _process_individual_data_file_core(
     )
     group_cols = ["ensembl_gene_id", "tissue", "model_group", "age"]
     cols_keep = group_cols + ["genotype", "sex", "individual_id", "value"]
-    age_groups = nest_fields(
+    age_groups = gu.nest_fields(
         data_file[cols_keep],
         grouping=group_cols,
         new_column="data",
@@ -268,8 +261,8 @@ def transform_rna_de_individual(
     datasets: Dict[str, pd.DataFrame],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
     data_file_required_columns: List[str] = DATA_FILE_REQUIRED_COLUMNS,
-    column_rules: Dict[str, Dict[str, List[ColumnRule]]] = COLUMN_RULES,
-    data_file_column_rules: Dict[str, List[ColumnRule]] = DATA_FILE_COLUMN_RULES,
+    column_rules: Dict[str, Dict[str, List[cr.ColumnRule]]] = COLUMN_RULES,
+    data_file_column_rules: Dict[str, List[cr.ColumnRule]] = DATA_FILE_COLUMN_RULES,
 ) -> List[Dict[str, Any]]:
     """
     Main transformation function for RNA individual expression data.
@@ -345,8 +338,8 @@ def transform_rna_de_individual(
             data file are dropped because none of its genotypes matched the label map.
     """
     # Step 1: Validate inputs
-    check_required_datasets_and_columns(datasets, required_input)
-    check_column_rules(datasets, column_rules)
+    gu.check_required_datasets_and_columns(datasets, required_input)
+    cr.check_column_rules(datasets, column_rules)
 
     # Step 2: Prepare metadata DataFrames
     genotype_label_map_df = datasets["genotype_label_map"].copy()

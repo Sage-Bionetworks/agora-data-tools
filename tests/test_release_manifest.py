@@ -3,7 +3,8 @@ from unittest import mock
 from unittest.mock import patch
 import synapseclient
 import pandas as pd
-from agoradatatools.etl import load, utils
+from agoradatatools.etl import load
+from agoradatatools.etl.utils import general_utils as gu
 from agoradatatools import process
 
 STAGING_PATH = "./staging"
@@ -21,10 +22,10 @@ class TestRelease:
     @pytest.fixture(scope="function", autouse=True)
     def setup_method(self, syn: synapseclient.Synapse):
         self.patch_login = patch.object(
-            utils, "_login_to_synapse", return_value=syn
+            gu, "_login_to_synapse", return_value=syn
         ).start()
         self.patch_get_config = patch.object(
-            utils,
+            gu,
             "_get_config",
             return_value={
                 "destination": self.destination,

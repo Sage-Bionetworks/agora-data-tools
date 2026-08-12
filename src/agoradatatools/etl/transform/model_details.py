@@ -8,11 +8,7 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    normalize_null_values,
-    delim_string_to_list,
-)
+from agoradatatools.etl.utils import general_utils as gu
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
@@ -107,13 +103,13 @@ def transform_model_details(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     # Load and prepare datasets
     model_metadata_df = datasets["model_metadata"]
     model_genetic_modifications_df = datasets["model_genetic_modifications"]
 
-    model_metadata_df = normalize_null_values(
+    model_metadata_df = gu.normalize_null_values(
         model_metadata_df,
         boolean_columns=["transcriptomics", "disease_correlation"],
         empty_string_columns=["rrid", "alzforum_id"],
@@ -129,7 +125,7 @@ def transform_model_details(
     # Convert matching controls and aliases from comma-delimited strings to lists
     for col_name in ["matched_controls", "aliases"]:
         model_metadata_df[col_name] = model_metadata_df[col_name].apply(
-            delim_string_to_list, delim=","
+            gu.delim_string_to_list, delim=","
         )
 
     # Process each model

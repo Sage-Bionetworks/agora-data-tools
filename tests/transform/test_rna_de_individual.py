@@ -44,7 +44,7 @@ from agoradatatools.etl.transform.rna_de_individual import (
     _determine_result_order,
     _process_individual_data_file_core,
 )
-from agoradatatools.etl.utils import ContainsSubstringRule
+from agoradatatools.etl.utils import column_rules as cr
 
 
 class TestDetermineResultOrder:
@@ -1083,7 +1083,7 @@ class TestTransformRnaDeIndividual:
 
         custom_column_rules = {
             "genotype_label_map": {
-                "model": [ContainsSubstringRule(value="IMPOSSIBLE")],
+                "model": [cr.ContainsSubstringRule(value="IMPOSSIBLE")],
             }
         }
 
@@ -1102,7 +1102,7 @@ class TestTransformRnaDeIndividual:
         datasets = self._build_minimal_datasets()
 
         custom_data_file_column_rules = {
-            "ensembl_gene_id": [ContainsSubstringRule(value="IMPOSSIBLE")],
+            "ensembl_gene_id": [cr.ContainsSubstringRule(value="IMPOSSIBLE")],
         }
 
         with pytest.raises(ValueError, match="contains"):

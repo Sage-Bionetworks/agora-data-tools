@@ -7,14 +7,7 @@ import pandas as pd
 from typing import Dict, List, Any
 import re
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    delim_string_to_list,
-    flatten_list,
-    remove_duplicates_keep_order,
-    extract_age_numeric,
-    normalize_null_values,
-)
+from agoradatatools.etl.utils import general_utils as gu
 
 REQUIRED_INPUT = {
     "disease_correlation_results": [
@@ -66,8 +59,8 @@ def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, An
         else:
             for k, v in lookup[index].items():
                 if row[k] != v:
-                    lookup[index][k] = remove_duplicates_keep_order(
-                        flatten_list([lookup[index][k], row[k]])
+                    lookup[index][k] = gu.remove_duplicates_keep_order(
+                        gu.flatten_list([lookup[index][k], row[k]])
                     )
     return lookup
 
@@ -128,7 +121,7 @@ def process_group(
         "modified_genes": modified_genes,
         "cluster": cluster,
         "age": age,
-        "age_numeric": extract_age_numeric(age),
+        "age_numeric": gu.extract_age_numeric(age),
         "sex": sex,
     }
 
@@ -191,10 +184,10 @@ def transform_disease_correlation(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     # Load datasets and prepare lookups if necessary
-    disease_correlation_df = normalize_null_values(
+    disease_correlation_df = gu.normalize_null_values(
         datasets["disease_correlation_results"]
     )
     model_metadata_df = datasets["model_metadata"]
@@ -202,7 +195,7 @@ def transform_disease_correlation(
 
     # Need to convert 'matched_controls' from comma-separated strings to lists
     model_metadata_df["matched_controls"] = model_metadata_df["matched_controls"].apply(
-        lambda x: delim_string_to_list(x, delim=",")
+        lambda x: gu.delim_string_to_list(x, delim=",")
     )
     model_info_lookup = create_lookup(model_metadata_df, group_by_col="model")
 

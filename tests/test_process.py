@@ -11,7 +11,8 @@ from typer.testing import CliRunner
 
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError
-from agoradatatools.etl import load, utils, extract
+from agoradatatools.etl import load, extract
+from agoradatatools.etl.utils import general_utils as gu
 from agoradatatools.reporter import DatasetReport, ADTGXReporter
 from agoradatatools.constants import Platform
 from agoradatatools.gx import GreatExpectationsRunner
@@ -316,10 +317,10 @@ class TestProcessProvenance:
             extract, "get_entity_as_df", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_column_names = patch.object(
-            utils, "standardize_column_names", return_value=pd.DataFrame
+            gu, "standardize_column_names", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_values = patch.object(
-            utils, "standardize_values", return_value=pd.DataFrame
+            gu, "standardize_values", return_value=pd.DataFrame
         ).start()
         self.patch_df_to_json = patch.object(
             load, "df_to_json", return_value="path/to/json"
@@ -783,13 +784,13 @@ class TestProcessDataset:
             extract, "get_entity_as_df", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_column_names = patch.object(
-            utils, "standardize_column_names", return_value=pd.DataFrame
+            gu, "standardize_column_names", return_value=pd.DataFrame
         ).start()
         self.patch_standardize_values = patch.object(
-            utils, "standardize_values", return_value=pd.DataFrame
+            gu, "standardize_values", return_value=pd.DataFrame
         ).start()
         self.patch_rename_columns = patch.object(
-            utils, "rename_columns", return_value=pd.DataFrame
+            gu, "rename_columns", return_value=pd.DataFrame
         ).start()
         self.patch_df_to_json = patch.object(
             load, "df_to_json", return_value="path/to/json"
@@ -1210,7 +1211,7 @@ class TestProcessAllFiles:
             adt_output_link="test_link",
         )
         self.patch_get_config = patch.object(
-            utils,
+            gu,
             "_get_config",
             return_value={
                 "destination": "destination",
@@ -1385,9 +1386,7 @@ class TestProcessAllFiles:
             "team_images_id": "syn987",
             "datasets": [{"a": {"b": "c"}}],
         }
-        with patch.object(
-            utils, "_get_config", return_value=config_without_staging_path
-        ):
+        with patch.object(gu, "_get_config", return_value=config_without_staging_path):
             process.process_all_files(
                 syn=syn,
                 config_path=self.config_path,
@@ -1642,7 +1641,7 @@ class TestProcessCLI:
     @pytest.fixture(autouse=True)
     def patch_dependencies(self):
         with (
-            patch.object(utils, "_login_to_synapse", return_value=None),
+            patch.object(gu, "_login_to_synapse", return_value=None),
             patch.object(process, "process_all_files") as mock_process_all_files,
         ):
             self.mock_process_all_files = mock_process_all_files

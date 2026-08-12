@@ -7,7 +7,8 @@ import pandas as pd
 import pytest
 from synapseclient import File
 
-from agoradatatools.etl import load, utils
+from agoradatatools.etl import load
+from agoradatatools.etl.utils import general_utils as gu
 
 
 def test_create_temp_location_success():
@@ -45,7 +46,7 @@ class TestLoad:
     @pytest.fixture(scope="function", autouse=True)
     def setup_method(self, syn):
         self.patch_syn_login = patch.object(
-            utils, "_login_to_synapse", return_value=syn
+            gu, "_login_to_synapse", return_value=syn
         ).start()
         self.patch_syn_store = patch.object(
             syn,
@@ -75,8 +76,9 @@ class TestLoad:
 class TestDFToJSON:
     def setup_method(self):
         self.patch_normalize_null_values = patch.object(
-            # Function belongs to utils but is imported into "load", so we must patch load
-            load,
+            # normalize_null_values lives in general_utils and load calls it via the gu
+            # alias, so patch it on general_utils where the lookup resolves
+            gu,
             "normalize_null_values",
             return_value=pd.DataFrame(),
         ).start()

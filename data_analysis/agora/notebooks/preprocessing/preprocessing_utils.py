@@ -20,7 +20,7 @@ import re
 import synapseclient
 from io import StringIO
 from typing import Union, Dict, List, Set
-import agoradatatools.etl.utils as utils
+from agoradatatools.etl.utils import general_utils as gu
 import agoradatatools.etl.extract as extract
 
 
@@ -222,8 +222,8 @@ def get_all_adt_ensembl_ids(
     Returns:
         a list of unique Ensembl IDs that exist in at least one data set ingested by ADT
     """
-    syn = utils._login_to_synapse(token=token)
-    config = utils._get_config(config_path=config_filename)
+    syn = gu._login_to_synapse(token=token)
+    config = gu._get_config(config_path=config_filename)
     datasets = config["datasets"]
 
     # Get all unique files in the config since some files are listed multiple times by being
@@ -297,8 +297,8 @@ def _extract_ensembl_ids(
     df = extract.get_entity_as_df(syn_id=entity["id"], source=entity["format"], syn=syn)
 
     # Use column_renames from the config to convert most Ensembl ID column names to "ensembl_gene_id".
-    df = utils.standardize_column_names(df=df)
-    df = utils.rename_columns(data=df, column_map=column_renames)
+    df = gu.standardize_column_names(df=df)
+    df = gu.rename_columns(data=df, column_map=column_renames)
 
     # Exception to the above comment: the 'networks' file has two ID columns (genea_ and geneb_ ensembl_gene_id)
     # which do not get renamed
@@ -353,7 +353,7 @@ def load_file_with_name(
         a pandas.DataFrame, if a file matching file_name exists in the config, or
         None, if no file spec with that name exists
     """
-    syn = utils._login_to_synapse(token=token)
+    syn = gu._login_to_synapse(token=token)
 
     file_config = get_config_for_file(file_name, config_filename=config_filename)
     if not file_config:
@@ -379,7 +379,7 @@ def get_config_for_file(file_name: str, config_filename: str) -> dict | None:
         A dictionary containing the config for the file, if a file matching file_name exists in the config, or
         None, if no file spec with that name exists
     """
-    config = utils._get_config(config_path=config_filename)
+    config = gu._get_config(config_path=config_filename)
     datasets = config["datasets"]
 
     for dataset in datasets:

@@ -11,7 +11,7 @@ Functions:
 from typing import Any, Dict, List, Union
 import pandas as pd
 
-from agoradatatools.etl.utils import normalize_null_values
+from agoradatatools.etl.utils import general_utils as gu
 
 
 def process_genetic_info(
@@ -34,7 +34,7 @@ def process_genetic_info(
         List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
     """
     # Normalize missing values to None.
-    model_genetic_modifications = normalize_null_values(model_genetic_modifications)
+    model_genetic_modifications = gu.normalize_null_values(model_genetic_modifications)
 
     # Only override ensembl_id if we have a valid human_ensembl_id
     model_genetic_modifications["ensembl_gene_id"] = model_genetic_modifications.apply(

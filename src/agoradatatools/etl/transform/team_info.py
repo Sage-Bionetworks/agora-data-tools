@@ -2,11 +2,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    nest_fields,
-    normalize_null_values,
-)
+from agoradatatools.etl.utils import general_utils as gu
 
 REQUIRED_INPUT = {
     "team_info": ["team"],
@@ -33,16 +29,16 @@ def transform_team_info(
     Raises:
         ValueError: If required datasets or columns are missing.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     team_info = datasets["team_info"]
-    team_member_info = normalize_null_values(
+    team_member_info = gu.normalize_null_values(
         datasets["team_member_info"],
         boolean_columns=["isprimaryinvestigator"],
         empty_string_columns=["name", "url"],
     )
 
-    team_member_info = nest_fields(
+    team_member_info = gu.nest_fields(
         team_member_info, grouping="team", new_column="members", drop_columns=["team"]
     )
 

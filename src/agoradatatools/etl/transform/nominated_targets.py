@@ -2,13 +2,7 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    MatchesRegexRule,
-    NotEmptyRule,
-    OneOfRule,
-    check_column_rules,
-    check_required_datasets_and_columns,
-)
+from agoradatatools.etl.utils import column_rules as cr, general_utils as gu
 
 ENSEMBL_GENE_ID_REGEX = r"^ENSG\d{11}$"
 
@@ -38,14 +32,23 @@ REQUIRED_INPUT = {
 
 COLUMN_RULES = {
     "target_list": {
-        "ensembl_gene_id": [NotEmptyRule(), MatchesRegexRule(ENSEMBL_GENE_ID_REGEX)],
+        "ensembl_gene_id": [
+            cr.NotEmptyRule(),
+            cr.MatchesRegexRule(ENSEMBL_GENE_ID_REGEX),
+        ],
     },
     "gene_metadata": {
-        "ensembl_gene_id": [NotEmptyRule(), MatchesRegexRule(ENSEMBL_GENE_ID_REGEX)],
+        "ensembl_gene_id": [
+            cr.NotEmptyRule(),
+            cr.MatchesRegexRule(ENSEMBL_GENE_ID_REGEX),
+        ],
     },
     "pharos_classes": {
-        "ensembl_gene_id": [NotEmptyRule(), MatchesRegexRule(ENSEMBL_GENE_ID_REGEX)],
-        "pharos_class": [OneOfRule(set(PHAROS_PRIORITY))],
+        "ensembl_gene_id": [
+            cr.NotEmptyRule(),
+            cr.MatchesRegexRule(ENSEMBL_GENE_ID_REGEX),
+        ],
+        "pharos_class": [cr.OneOfRule(set(PHAROS_PRIORITY))],
     },
 }
 
@@ -136,9 +139,9 @@ def transform_nominated_targets(
             ValueError: If required datasets or columns are missing, or column
                 content rules are violated.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
-    check_column_rules(datasets, COLUMN_RULES)
+    cr.check_column_rules(datasets, COLUMN_RULES)
 
     nominated_targets = (
         datasets["target_list"]

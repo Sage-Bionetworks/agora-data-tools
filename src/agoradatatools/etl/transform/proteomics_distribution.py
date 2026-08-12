@@ -1,7 +1,7 @@
 import pandas as pd
 
-from agoradatatools.etl import utils, transform
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl import transform
+from agoradatatools.etl.utils import general_utils as gu
 
 
 # Unlike most transforms that use a REQUIRED_INPUT dict keyed by a fixed set of dataset
@@ -26,13 +26,13 @@ def transform_proteomics_distribution_data(datasets: dict) -> pd.DataFrame:
     """
     transformed = []
     for name, dataset in datasets.items():
-        check_required_datasets_and_columns(
+        gu.check_required_datasets_and_columns(
             {name: dataset}, {name: DATASET_REQUIRED_COLUMNS}
         )
         # Remove contaminant ("CON__") entries and rows with NA uniqids before calculating distribution
         dataset = transform.transform_proteomics(df=dataset)
 
-        df = utils.calculate_distribution(
+        df = gu.calculate_distribution(
             df=dataset, grouping="tissue", distribution_column="log2_fc"
         )
 

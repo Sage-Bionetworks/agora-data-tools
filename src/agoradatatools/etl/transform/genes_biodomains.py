@@ -2,7 +2,7 @@ from typing import Dict, List, Union
 
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
+from agoradatatools.etl.utils import general_utils as gu
 
 
 REQUIRED_INPUT = {
@@ -62,7 +62,7 @@ def transform_genes_biodomains(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     genes_biodomains = datasets["genes_biodomains"]
     interesting_columns = ["ensembl_gene_id", "biodomain", "go_terms"]
@@ -112,7 +112,7 @@ def transform_genes_biodomains(
     # Remove n_gene_total_terms column
     genes_biodomains = genes_biodomains.drop(columns="n_gene_total_terms")
 
-    genes_biodomains = nest_fields(
+    genes_biodomains = gu.nest_fields(
         df=genes_biodomains,
         grouping="ensembl_gene_id",
         new_column="gene_biodomains",

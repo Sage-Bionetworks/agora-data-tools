@@ -20,11 +20,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
-    ColumnRule,
-)
+from agoradatatools.etl.utils import column_rules as cr, general_utils as gu
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
@@ -134,7 +130,7 @@ def preprocess_data_file(
     file_index: int,
     total_files: int,
     data_file_required_columns: List[str],
-    data_file_column_rules: Dict[str, List[ColumnRule]],
+    data_file_column_rules: Dict[str, List[cr.ColumnRule]],
 ) -> pd.DataFrame:
     """
     Preprocess a single data file with common validation and transformation steps.
@@ -163,10 +159,10 @@ def preprocess_data_file(
     """
     log_file_processing_info(file_name, file_index, total_files, data_file)
     validate_data_file_not_empty(file_name, data_file)
-    check_required_datasets_and_columns(
+    gu.check_required_datasets_and_columns(
         {file_name: data_file}, {file_name: data_file_required_columns}
     )
-    check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
+    cr.check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
     data_file = filter_to_mouse_genes(data_file)
     # Map JAX-specific names from Right Cerebral Hemisphere -> Hemibrain
     # To add a new multi-word mapping, insert another .str.replace() call in the chain.

@@ -6,12 +6,7 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Any, Dict, List
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    normalize_null_values,
-    delim_string_to_list,
-    remove_duplicates_keep_order,
-)
+from agoradatatools.etl.utils import general_utils as gu
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     build_transcriptomics_url,
     process_genetic_info,
@@ -122,7 +117,7 @@ def transform_model_overview(
         ValueError: If required datasets or columns are missing.
     """
 
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     model_metadata = datasets["model_metadata"]
     model_genetic_modifications_df = datasets["model_genetic_modifications"]
@@ -133,7 +128,7 @@ def transform_model_overview(
         "pathology",
         "biomarkers",
     ]
-    model_metadata = normalize_null_values(
+    model_metadata = gu.normalize_null_values(
         model_metadata, boolean_columns=boolean_columns
     )
     model_metadata["jax_id"] = zero_pad_jax_ids(model_metadata["jax_id"])
@@ -150,7 +145,7 @@ def transform_model_overview(
         )
 
         modified_genes = (
-            remove_duplicates_keep_order(
+            gu.remove_duplicates_keep_order(
                 [gene["modified_gene"] for gene in genetic_info]
             )
             if genetic_info
@@ -197,7 +192,7 @@ def transform_model_overview(
         row["available_data"] = get_list_of_available_data(row)
 
         # Convert matched_controls from comma-delimited strings to lists
-        row["matched_controls"] = delim_string_to_list(
+        row["matched_controls"] = gu.delim_string_to_list(
             row["matched_controls"], delim=","
         )
 

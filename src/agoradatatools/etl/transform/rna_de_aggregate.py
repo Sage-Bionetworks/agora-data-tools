@@ -41,10 +41,7 @@ from typing import Dict, List, Any
 import logging
 import gc
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    normalize_zero,
-)
+from agoradatatools.etl.utils import general_utils as gu
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
@@ -186,7 +183,7 @@ def _create_age_entries_from_group(
                 f"Expected positive adjusted p-value but found: '{row.padj}'"
             )
         age_entries[age] = {
-            "log2_fc": normalize_zero(float(row.log2foldchange)),
+            "log2_fc": gu.normalize_zero(float(row.log2foldchange)),
             "adj_p_val": 1.0 if pd.isna(row.padj) else float(row.padj),
         }
     return age_entries
@@ -420,7 +417,7 @@ def _process_single_data_file(
     if len(data_file) == 0:
         raise ValueError(f"Data file {file_name} is empty")
 
-    check_required_datasets_and_columns(
+    gu.check_required_datasets_and_columns(
         {file_name: data_file}, {file_name: data_file_required_columns}
     )
 
@@ -549,7 +546,7 @@ def transform_rna_de_aggregate(
         memory before processing the next file. The function also filters out human
         genes (ENSG*) to ensure only mouse (Mus musculus) data is included in the output.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     # Pre-compute lookup dictionaries for efficient lookups
     genotype_label_map_df = datasets["genotype_label_map"]

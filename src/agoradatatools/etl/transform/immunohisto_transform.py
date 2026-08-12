@@ -6,12 +6,7 @@ This is for the Model AD project.
 import pandas as pd
 from typing import Dict, List, Any, Tuple
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    nest_fields,
-    normalize_null_values,
-    round_y_axis_max,
-)
+from agoradatatools.etl.utils import general_utils as gu
 
 
 REQUIRED_INPUT = {
@@ -92,9 +87,9 @@ def _calculate_y_axis_max_map(
         numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
         if len(numeric_values) > 0:
             raw_max = numeric_values.max()
-            y_axis_max_map[tuple(key)] = round_y_axis_max(raw_max)
+            y_axis_max_map[tuple(key)] = gu.round_y_axis_max(raw_max)
         else:
-            y_axis_max_map[tuple(key)] = round_y_axis_max(0)
+            y_axis_max_map[tuple(key)] = gu.round_y_axis_max(0)
 
     return y_axis_max_map
 
@@ -138,7 +133,7 @@ def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
     )
 
     # Fill NA values for units (empty strings) and data (empty lists)
-    fill_df = normalize_null_values(
+    fill_df = gu.normalize_null_values(
         fill_df, empty_string_columns=["units"], empty_list_columns=["data"]
     )
 
@@ -241,7 +236,7 @@ def immunohisto_transform(
         for k, v in required_input.items()
         if k in [dataset_name, "immunohisto_measure_order"]
     }
-    check_required_datasets_and_columns(datasets, actual_required_input)
+    gu.check_required_datasets_and_columns(datasets, actual_required_input)
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
 
@@ -257,7 +252,7 @@ def immunohisto_transform(
     columns_to_keep = set(group_columns + extra_columns)
     columns_to_drop = [col for col in dataset.columns if col not in columns_to_keep]
 
-    data_rows = nest_fields(
+    data_rows = gu.nest_fields(
         dataset.copy(),
         grouping=group_columns,
         new_column=extra_column_name,
@@ -267,7 +262,7 @@ def immunohisto_transform(
     data_rows["y_axis_max"] = data_rows.apply(
         lambda entry: y_axis_max_map.get(
             (entry["name"], entry["evidence_type"], entry["tissue"]),
-            round_y_axis_max(0),
+            gu.round_y_axis_max(0),
         ),
         axis=1,
     )

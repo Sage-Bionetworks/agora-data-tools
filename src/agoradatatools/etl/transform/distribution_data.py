@@ -3,7 +3,7 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import general_utils as gu
 
 
 REQUIRED_INPUT = {
@@ -123,7 +123,7 @@ def transform_distribution_data(
     Raises:
         ValueError: If required datasets or columns are missing.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     overall_scores = datasets["overall_scores"]
     interesting_columns = [

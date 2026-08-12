@@ -8,7 +8,8 @@ from pandas import DataFrame
 from typer import Argument, Option, Typer
 
 from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
-from agoradatatools.etl import extract, load, transform, utils
+from agoradatatools.etl import extract, load, transform
+from agoradatatools.etl.utils import general_utils as gu
 from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
@@ -228,11 +229,11 @@ def process_dataset(
         file_ids.append(entity_id)
 
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
-        df = utils.standardize_column_names(df=df)
-        df = utils.standardize_values(df=df)
+        df = gu.standardize_column_names(df=df)
+        df = gu.standardize_values(df=df)
 
         if "column_rename" in dataset_obj[dataset_name].keys():
-            df = utils.rename_columns(
+            df = gu.rename_columns(
                 data=df, column_map=dataset_obj[dataset_name]["column_rename"]
             )
 
@@ -252,7 +253,7 @@ def process_dataset(
         transform_result = entities_as_df[list(entities_as_df)[0]]
 
     if "agora_rename" in dataset_obj[dataset_name].keys():
-        transform_result = utils.rename_columns(
+        transform_result = gu.rename_columns(
             data=transform_result, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
@@ -432,7 +433,7 @@ def process_all_files(
             See the contributing guide for more information."""
         )
 
-    config = utils._get_config(config_path=config_path)
+    config = gu._get_config(config_path=config_path)
     datasets = config["datasets"]
     destination = config["destination"]
     gx_table = config["gx_table"]
@@ -591,7 +592,7 @@ def process(
         skip_manifest (bool): If True, skips uploading the data manifest and dataversion.json to Synapse.
             (Optional, defaults to False)
     """
-    syn = utils._login_to_synapse(token=auth_token)
+    syn = gu._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
 
     filter_datasets = (
@@ -621,8 +622,8 @@ def release(
         config_path (str): Path to the configuration file for the processing run.
         auth_token (str): Synapse authentication token. Defaults to environment variable SYNAPSE_AUTH_TOKEN.
     """
-    syn = utils._login_to_synapse(token=auth_token)
-    config = utils._get_config(config_path=config_path)
+    syn = gu._login_to_synapse(token=auth_token)
+    config = gu._get_config(config_path=config_path)
     destination = config["destination"]
     staging_path = config.get("staging_path") or "./staging"
     load.create_temp_location(staging_path=staging_path)

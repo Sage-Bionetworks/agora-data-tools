@@ -3,11 +3,7 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
-    nest_fields,
-    normalize_null_values,
-)
+from agoradatatools.etl.utils import general_utils as gu
 from agoradatatools.etl import transform
 
 
@@ -59,7 +55,7 @@ def transform_gene_info(
     This function will perform transformations and incrementally create a dataset called gene_info.
     Each dataset will be left_joined onto gene_info, starting with gene_metadata.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     gene_metadata = datasets["gene_metadata"]
     igap = datasets["igap"]
@@ -98,21 +94,21 @@ def transform_gene_info(
         .reset_index()
     )
 
-    target_list = nest_fields(
+    target_list = gu.nest_fields(
         df=target_list,
         grouping="ensembl_gene_id",
         new_column="target_nominations",
         drop_columns=["ensembl_gene_id"],
     )
 
-    median_expression = nest_fields(
+    median_expression = gu.nest_fields(
         df=median_expression,
         grouping="ensembl_gene_id",
         new_column="median_expression",
         drop_columns=["ensembl_gene_id"],
     )
 
-    druggability = nest_fields(
+    druggability = gu.nest_fields(
         df=(
             pharos_classes.groupby("ensembl_gene_id")["pharos_class"]
             .apply(list)
@@ -191,7 +187,7 @@ def transform_gene_info(
     # Populate values for rows that didn't exist in the individual datasets with normalize_null_values. Fill special
     # values (-1 for adj_p_val and cor_pval, empty lists for alias and ensembl_possible_replacements) manually, since
     # normalize_null_values doesn't support filling NA values with arbitrary numbers.
-    gene_info = normalize_null_values(
+    gene_info = gu.normalize_null_values(
         gene_info,
         boolean_columns=["is_igap", "is_eqtl", "is_adi", "is_tep"],
         empty_list_columns=["alias", "ensembl_possible_replacements"],
@@ -207,7 +203,7 @@ def transform_gene_info(
             "ensembl_permalink",
         ]
     ]
-    ensembl_info = nest_fields(
+    ensembl_info = gu.nest_fields(
         df=ensembl_info,
         grouping="ensembl_gene_id",
         new_column="ensembl_info",

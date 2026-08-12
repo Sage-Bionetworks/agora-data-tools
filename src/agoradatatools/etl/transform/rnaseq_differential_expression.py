@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import general_utils as gu
 
 
 REQUIRED_INPUT = {
@@ -40,7 +40,7 @@ def transform_rnaseq_differential_expression(
     Raises:
         ValueError: If required datasets or columns are missing.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     diff_exp_data = datasets["diff_exp_data"]
 

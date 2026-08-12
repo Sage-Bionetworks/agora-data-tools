@@ -1,4 +1,5 @@
-from agoradatatools.etl import transform, utils
+from agoradatatools.etl import transform
+from agoradatatools.etl.utils import general_utils as gu
 
 
 def transform_rna_distribution_data(datasets: dict):
@@ -7,7 +8,7 @@ def transform_rna_distribution_data(datasets: dict):
     rna_df = transform.transform_rnaseq_differential_expression(datasets)
     rna_df = rna_df[["tissue", "model", "logfc"]]
 
-    rna_df = utils.calculate_distribution(
+    rna_df = gu.calculate_distribution(
         df=rna_df, grouping=["tissue", "model"], distribution_column="logfc"
     )
 

@@ -18,7 +18,7 @@ from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import
     validate_data_file_not_empty,
     preprocess_data_file,
 )
-from agoradatatools.etl.utils import MatchesRegexRule, NotEmptyRule
+from agoradatatools.etl.utils import column_rules as cr
 
 
 class TestFilterMouseGenes:
@@ -379,8 +379,8 @@ class TestPreprocessDataFileColumnRules:
     ]
 
     _DEFAULT_COLUMN_RULES = {
-        "model": [NotEmptyRule()],
-        "age": [MatchesRegexRule(value=r"\d+ months$")],
+        "model": [cr.NotEmptyRule()],
+        "age": [cr.MatchesRegexRule(value=r"\d+ months$")],
     }
 
     @staticmethod

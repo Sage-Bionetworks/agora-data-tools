@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from agoradatatools.etl.utils import validate_one_to_one_mapping
+from agoradatatools.etl.utils import general_utils as gu
 
 DISPLAY_CLINICAL_PHASES = {
     "Phase I",
@@ -49,10 +49,10 @@ def validate_drug_list_integrity(drug_list: pd.DataFrame) -> None:
             "Please fix the source data before re-running."
         )
 
-    validate_one_to_one_mapping(
+    gu.validate_one_to_one_mapping(
         drug_list, "chembl_id", "common_name", bidirectional=True
     )
-    validate_one_to_one_mapping(
+    gu.validate_one_to_one_mapping(
         drug_list,
         "combined_with_chembl_id",
         "combined_with_common_name",

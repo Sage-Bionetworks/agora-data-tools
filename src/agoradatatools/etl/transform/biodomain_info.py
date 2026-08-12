@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.utils import general_utils as gu
 
 
 REQUIRED_INPUT = {
@@ -27,7 +27,7 @@ def transform_biodomain_info(
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets_and_columns(datasets, required_input)
+    gu.check_required_datasets_and_columns(datasets, required_input)
 
     genes_biodomains = datasets["genes_biodomains"]
     biodomain_info = (
