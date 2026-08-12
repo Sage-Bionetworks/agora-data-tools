@@ -129,6 +129,7 @@ datasets:
         - "4 months"
         - "12 months"
         - "18 months"
+        - "24 months"
 
   - rna_de_individual:
       files:
