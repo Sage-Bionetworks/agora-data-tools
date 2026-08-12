@@ -197,7 +197,7 @@ de_filters <- data.frame(
   name = c('Biological Domain', 'Model Type', 'Mouse Model', 'Sex'),
   data_key = c('biodomains', 'model_type', 'name', 'sex'),
   short_name = c('Biodomain', 'Type', 'Model', 'Sex'),
-  query_param_key = c('biodomains', 'modelTypes', 'models', 'sex'),
+  query_param_key = c('biodomains', 'modelTypes', 'models', 'sexes'),
   stringsAsFactors = FALSE
 )
 
