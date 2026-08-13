@@ -43,7 +43,16 @@ class ColumnValuesListMembersUnique(ColumnMapMetricProvider):
         """
         if not isinstance(cell, list):
             return False
-        return len(cell) == len(set(cell))
+        try:
+            return len(cell) == len(set(cell))
+        except TypeError:
+            # Unhashable elements (e.g. dict/list) — fall back to equality checks.
+            seen: list[Any] = []
+            for item in cell:
+                if item in seen:
+                    return False
+                seen.append(item)
+            return True
 
 
 # This class defines the Expectation itself
@@ -57,6 +66,10 @@ class ExpectColumnValuesToHaveUniqueListMembers(ColumnMapExpectation):
             "data": {
                 "a": [["a", "b", "c"]],
                 "b": [["a", "b", "a"]],
+                "c": [[{"a": 1}, {"a": 2}]],
+                "d": [[{"a": 1}, {"a": 1}]],
+                "e": [[]],
+                "f": ["not a list"],
             },
             "tests": [
                 {
@@ -71,6 +84,34 @@ class ExpectColumnValuesToHaveUniqueListMembers(ColumnMapExpectation):
                     "exact_match_out": False,
                     "include_in_gallery": True,
                     "in": {"column": "b"},
+                    "out": {"success": False},
+                },
+                {
+                    "title": "positive_test_with_unique_dict_members",
+                    "exact_match_out": False,
+                    "include_in_gallery": True,
+                    "in": {"column": "c"},
+                    "out": {"success": True},
+                },
+                {
+                    "title": "negative_test_with_duplicate_dict_members",
+                    "exact_match_out": False,
+                    "include_in_gallery": True,
+                    "in": {"column": "d"},
+                    "out": {"success": False},
+                },
+                {
+                    "title": "empty_list_is_vacuously_unique",
+                    "exact_match_out": False,
+                    "include_in_gallery": True,
+                    "in": {"column": "e"},
+                    "out": {"success": True},
+                },
+                {
+                    "title": "non_list_input_fails",
+                    "exact_match_out": False,
+                    "include_in_gallery": True,
+                    "in": {"column": "f"},
                     "out": {"success": False},
                 },
             ],
