@@ -13,7 +13,7 @@ from great_expectations.expectations.metrics import (
 # This class defines a Metric to support your Expectation.
 # For most ColumnMapExpectations, the main business logic for calculation will live in this class.
 class ColumnValuesListMembersUnique(ColumnMapMetricProvider):
-    """Class definition for list member uniqueness checking metric."""
+    """Class definition for checking that all items in a list are unique."""
 
     # This is the id string that will be used to reference your metric.
     condition_metric_name = "column_values.list_members.unique"
@@ -21,13 +21,12 @@ class ColumnValuesListMembersUnique(ColumnMapMetricProvider):
     # This method implements the core logic for the PandasExecutionEngine
     @column_condition_partial(engine=PandasExecutionEngine)
     def _pandas(cls, column: pd.core.series.Series, **kwargs) -> bool:
-        """Core logic for list member uniqueness checking metric on a
-        pandas execution engine.
+        """Core logic for checking that list members are unique in a pandas column of lists.
 
         Args:
             column (pd.core.series.Series): Pandas column to be evaluated.
         Returns:
-            bool: Whether or not the column values have unique list members.
+            bool: Whether or not each list in the column contains only unique values.
         """
         return column.apply(cls._check_unique_list_members)
 
@@ -149,7 +148,7 @@ class ExpectColumnValuesToHaveUniqueListMembers(ColumnMapExpectation):
     library_metadata = {
         "tags": [],  # Tags for this Expectation in the Gallery
         "contributors": [  # Github handles for all contributors to this Expectation.
-            "@JessterB",  # Don't forget to add your github handle here!
+            "@JessterB",
         ],
     }
 
