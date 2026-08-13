@@ -62,7 +62,8 @@
         "value_set": [
           "5xFAD",
           "B6129",
-          "C57BL/6J"
+          "C57BL/6J",
+          "LOAD1"
         ]
       },
       "meta": {}
@@ -298,6 +299,29 @@
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "18 months",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/rna_de_aggregate/age_entry_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "log2_fc":   { "type": "number" },
+                "adj_p_val": { "type": "number", "minimum": 0, "maximum": 1 }
+              },
+              "required": ["log2_fc", "adj_p_val"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "24 months",
         "json_schema": {
           "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/rna_de_aggregate/age_entry_schema.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
