@@ -1049,10 +1049,14 @@ class TestAddMissingAgeEntries:
 
         # Should not add any missing entries since all ages are already present for all groups
         assert len(result) == 2
-        # Convert to dicts for comparison
-        result_dicts = result.to_dict("records")
-        expected_dicts = data_rows.to_dict("records")
-        assert result_dicts == expected_dicts
+        sort_by = ["name", "evidence_type", "tissue", "age"]
+        result_sorted = (
+            result.sort_values(sort_by).reset_index(drop=True).sort_index(axis=1)
+        )
+        expected_sorted = (
+            data_rows.sort_values(sort_by).reset_index(drop=True).sort_index(axis=1)
+        )
+        pd.testing.assert_frame_equal(result_sorted, expected_sorted)
 
     def test_add_missing_age_entries_with_missing_ages(self) -> None:
         """

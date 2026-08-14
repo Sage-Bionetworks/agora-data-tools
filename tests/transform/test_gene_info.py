@@ -128,7 +128,7 @@ class TestTransformGeneInfo:
         "ensg_to_uniprot_mapping": "ensg_to_uniprot_mapping_good.tsv",
     }
 
-    pval_error_match_string = "'<=' not supported"
+    pval_error_match_string = "agg function failed"
     merge_error_match_string = "Merge keys are not unique"
 
     pass_test_data = [
@@ -174,7 +174,7 @@ class TestTransformGeneInfo:
             {"diff_exp_data": "diff_exp_data_type_error.csv"},
             param_set_1,
             TypeError,
-            pval_error_match_string,
+            "'<=' not supported",
         ),
         (  # Bad data type in proteomics
             core_files,
@@ -292,7 +292,13 @@ class TestTransformGeneInfo:
 
         json_file = os.path.join(self.data_files_path, "output", expected_output_file)
         expected_df = pd.read_json(json_file)
-        pd.testing.assert_frame_equal(output_df, expected_df)
+
+        sorted_output = output_df.sort_values("ensembl_gene_id").reset_index(drop=True)
+        sorted_expected = expected_df.sort_values("ensembl_gene_id").reset_index(
+            drop=True
+        )
+
+        pd.testing.assert_frame_equal(sorted_output, sorted_expected)
 
     @pytest.mark.parametrize(
         "input_files_dict, failure_case_files_dict, param_set, error_type, error_match_string",

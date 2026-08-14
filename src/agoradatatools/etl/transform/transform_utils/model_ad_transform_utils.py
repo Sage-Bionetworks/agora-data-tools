@@ -150,8 +150,8 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
     """
     jax_id = (
         jax_id.astype("Int64")
+        .astype("object")
         .apply(lambda x: (str(x).zfill(6) if pd.notna(x) else ""))
-        .astype("O")  # Force object type to prevent empty columns remaining as Int64
     )
 
     # Check that non-missing values contain only digits and are at least 6 characters long
