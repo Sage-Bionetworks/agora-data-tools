@@ -824,18 +824,13 @@ class TestAddMissingAgeEntries:
         Validates that when all age combinations are already present,
         no additional entries are added.
         """
-        # Existing data rows with multiple ages for the same group
+        # Existing data rows with multiple ages for the same group. The transform that calls
+        # _add_missing_age_entries explicitly sorts the data frame afterward, so this helper's
+        # internal row order doesn't matter in practice; the rows are listed here in the order
+        # the merge in _add_missing_age_entries produces them, so that no re-sorting is needed
+        # to compare the result against the expected output below.
         data_rows = pd.DataFrame(
             [
-                {
-                    "name": "Model1",
-                    "evidence_type": "Type1",
-                    "tissue": "Tissue1",
-                    "age": "6 months",
-                    "units": "mg",
-                    "y_axis_max": 3.0,
-                    "data": [{"genotype": "WT", "value": 1.0}],
-                },
                 {
                     "name": "Model1",
                     "evidence_type": "Type1",
@@ -845,6 +840,15 @@ class TestAddMissingAgeEntries:
                     "y_axis_max": 3.0,
                     "data": [{"genotype": "WT", "value": 2.0}],
                 },
+                {
+                    "name": "Model1",
+                    "evidence_type": "Type1",
+                    "tissue": "Tissue1",
+                    "age": "6 months",
+                    "units": "mg",
+                    "y_axis_max": 3.0,
+                    "data": [{"genotype": "WT", "value": 1.0}],
+                },
             ]
         )
 
@@ -852,14 +856,9 @@ class TestAddMissingAgeEntries:
 
         # Should not add any missing entries since all ages are already present for all groups
         assert len(result) == 2
-        sort_by = ["name", "evidence_type", "tissue", "age"]
-        result_sorted = (
-            result.sort_values(sort_by).reset_index(drop=True).sort_index(axis=1)
-        )
-        expected_sorted = (
-            data_rows.sort_values(sort_by).reset_index(drop=True).sort_index(axis=1)
-        )
-        pd.testing.assert_frame_equal(result_sorted, expected_sorted)
+        result_dicts = result.to_dict("records")
+        expected_dicts = data_rows.to_dict("records")
+        assert result_dicts == expected_dicts
 
     def test_add_missing_age_entries_with_missing_ages(self) -> None:
         """
