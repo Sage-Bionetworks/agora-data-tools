@@ -46,6 +46,9 @@ library(stringr)
 library(purrr)
 library(jsonlite)
 library(yaml)
+
+# Allows using Python chunks in the notebook
+library(reticulate)
 ```
 
 ## Download the data source files
@@ -201,6 +204,56 @@ genes <- rbind(genes,
                           external_synonym = ""))
 ```
 
+### Get Ensembl version for each ID and possible replacements
+
+Re-use the util function written in Python to get the version for each ID
+
+```{python}
+sys.path.append("../../agora/notebooks/preprocessing")
+import preprocessing_utils
+
+versions = preprocessing_utils.query_ensembl_version_api(
+    ensembl_ids=r.ens
+)
+```
+
+Continue processing in R
+
+```{r}
+versions_df <- py$versions
+
+print(table(versions_df$release))
+
+# Make sure these are all the latest assembly for either mouse or human
+stopifnot(all(versions_df$assembly %in% c("GRCm39", "GRCh38")))
+
+# Make sure all IDs are covered
+stopifnot(all(versions_df$id %in% ens) && all(ens %in% versions_df$id))
+
+# Check for duplicates
+stopifnot(length(unique(versions_df$id)) == nrow(versions_df))
+```
+
+### Create permalinks based on archive version
+
+```{r}
+archive_df <- listEnsemblArchives() |>
+  # Remove old human assembly from list
+  subset(version != "GRCh37") |>
+  mutate(url = paste0(url, "/Mus_musculus/Gene/Summary?db=core;g="))
+
+versions_df <- merge(versions_df, select(archive_df, url, version),
+                     by.x = "release", by.y = "version",
+                     all.x = TRUE) |>
+  mutate(permalink = paste0(url, id)) |>
+  select(id, release, possible_replacement, permalink) |>
+  dplyr::rename(ensembl_gene_id = id, ensembl_release = release)
+
+# Does every gene have an associated permalink?
+url_base_len <- min(nchar(archive_df$url)) + min(nchar(versions_df$ensembl_gene_id))
+stopifnot(all(nchar(versions_df$permalink) >= url_base_len))
+```
+
 ## Re-format results for Model AD Explorer
 
 ```{r}
@@ -212,18 +265,37 @@ clean_aliases <- function(synonyms) {
   return(list(aliases))
 }
 
+# Helper function to reformat the possible_replacement field. Each row is either an empty list
+# or a list of items with fields "stable_id" and "score". This function extracts the
+# "stable_id" value(s) and returns a new list with just those values (or empty)
+clean_possible_replacement <- function(pr_list) {
+  sapply(pr_list, "[[", "stable_id")
+}
+
 # There may be multiple rows for a single Ensembl ID, corresponding to different values for
 # `external_synonym`. This collapses down to a single row per ID, with all synonyms in a list
-genes_df <- genes |> 
+genes_df <- genes |>
   # Collapse to one row per ID/gene name
   group_by(ensembl_gene_id, external_gene_name) |>
   summarize(alias = clean_aliases(external_synonym), .groups = "drop") |>
   
   # Rename the gene symbol column
   dplyr::rename(gene_symbol = external_gene_name) |>
-  
+
+  # Merge with version info
+  merge(versions_df) |>
+
+  # Reformat the possible_replacement field
+  mutate(possible_replacement = sapply(possible_replacement, clean_possible_replacement)) |>
+
   # Sort by Ensembl ID
   arrange(ensembl_gene_id)
+
+# Make sure all IDs are still in the data frame
+stopifnot(all(genes_df$ensembl_gene_id %in% ens) && all(ens %in% genes_df$ensembl_gene_id))
+
+# Make sure all IDs are unique
+stopifnot(length(unique(genes_df$ensembl_gene_id)) == nrow(genes_df))
 
 output_dir <- file.path("..", "output")
 dir.create(output_dir, showWarnings = FALSE)
