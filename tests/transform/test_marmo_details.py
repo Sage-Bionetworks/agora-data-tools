@@ -82,13 +82,48 @@ class TestTransformMarmoDetails:
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
 
-    def test_marmo_details_multiple_models_should_fail(self):
-        """More than one model in marmo_metadata is not yet supported and raises ValueError."""
+    def test_marmo_details_multiple_models_should_pass(self):
+        """Two models share WT controls via the label map; each model gets its own entry
+        and the shared control appears under both."""
         input_files = dict(self.good_input_files)
         input_files["marmo_metadata"] = "marmo_metadata_multi_model_input.csv"
+        input_files[
+            "marmo_genotype_label_map"
+        ] = "marmo_genotype_label_map_multi_model_input.csv"
         datasets = self._load_datasets(input_files)
 
+        output_data = transform_marmo_details(datasets=datasets)
+
+        with open(
+            os.path.join(
+                self.data_files_path,
+                "output",
+                "marmo_details_transform_multi_model_output.json",
+            )
+        ) as f:
+            expected_data = json.load(f)
+
+        assert output_data == expected_data
+
+    def test_marmo_details_missing_model_column_should_fail(self):
+        """A label map without the required model column raises ValueError."""
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_genotype_label_map"] = datasets[
+            "marmo_genotype_label_map"
+        ].drop(columns=["model"])
+
         with pytest.raises(ValueError):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_duplicate_model_genotype_should_fail(self):
+        """A duplicate (model, genotype) pair in the label map raises ValueError."""
+        datasets = self._load_datasets(self.good_input_files)
+        label_map = datasets["marmo_genotype_label_map"]
+        datasets["marmo_genotype_label_map"] = pd.concat(
+            [label_map, label_map.iloc[[0]]], ignore_index=True
+        )
+
+        with pytest.raises(ValueError, match="duplicate \\(model, genotype\\)"):
             transform_marmo_details(datasets=datasets)
 
     def test_marmo_details_bad_sampling_age_units_should_fail(self):
@@ -189,6 +224,7 @@ class TestBuildMeasurements:
             ),
             "marmo_genotype_label_map": pd.DataFrame(
                 {
+                    "model": ["Presenilin1"],
                     "genotype": ["WT"],
                     "display_label": ["Matched Control"],
                 }
@@ -209,6 +245,7 @@ class TestBuildMeasurements:
         measurements = _build_measurements(self._datasets(), self._measure_info())
 
         row = measurements.iloc[0]
+        assert row["model"] == "Presenilin1"
         assert row["display_label"] == "Matched Control"
         assert row["sex"] == "Male"
         assert row["age"] == "0-1 years"

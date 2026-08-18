@@ -1,6 +1,10 @@
 """
 This module contains the transformation logic for the marmo_details dataset.
 This is for the Model AD project (marmoset details pages).
+
+Produces one output object per model in marmo_metadata. Measurements are tied to a model
+by joining genotype to marmo_genotype_label_map, which has a model column like the mouse
+genotype_label_map. Individual and results files have no model column.
 """
 
 from typing import Any, Dict, List
@@ -30,6 +34,7 @@ REQUIRED_INPUT = {
         "allele_type",
     ],
     "marmo_genotype_label_map": [
+        "model",
         "genotype",
         "display_label",
     ],
@@ -67,6 +72,7 @@ COLUMN_RULES = {
         "ensembl_gene_id": [NotEmptyRule(), MatchesRegexRule(r"^ENSCJAG\d+$")],
     },
     "marmo_genotype_label_map": {
+        "model": [NotEmptyRule()],
         "genotype": [NotEmptyRule()],
         "display_label": [NotEmptyRule()],
     },
@@ -130,9 +136,15 @@ def _build_measurements(
     """Build the per-measurement DataFrame used to assemble the biomarkers collection.
 
     Melts the wide marmo_results measure columns into long form, joins individual metadata
-    (genotype, sex), maps genotypes to their display labels (dropping any genotype not present
-    in the label map), joins biospecimen sampling ages (dropping rows without a biospecimen
-    record), and attaches the measure metadata (evidence_type, units, display_order).
+    (genotype, sex), maps genotypes to their display labels and models (dropping any genotype
+    not present in the label map), joins biospecimen sampling ages (dropping rows without a
+    biospecimen record), and attaches the measure metadata (evidence_type, units, display_order).
+
+    Individual and results files have no model column. A measurement is tied to a model by
+    joining its genotype to marmo_genotype_label_map. A genotype listed under more than one
+    model (typical for shared WT controls) is copied onto every matching model. If a later
+    study reuses the same genotype string for a different set of animals, those animals would
+    appear on every model that lists that genotype.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): The input datasets.
@@ -141,7 +153,10 @@ def _build_measurements(
 
     Returns:
         pd.DataFrame: One row per surfaced measurement with the columns needed to build the
-        biomarkers collection.
+        biomarkers collection, including a model column from the label map.
+
+    Raises:
+        ValueError: If marmo_genotype_label_map has duplicate (model, genotype) rows.
     """
     results = datasets["marmo_results"]
     individual = datasets["marmo_individual_metadata"]
@@ -170,7 +185,7 @@ def _build_measurements(
     long["value"] = pd.to_numeric(long["value"], errors="coerce")
     long = long.dropna(subset=["value"])
 
-    # Attach genotype + sex, then resolve genotype display label (unmapped genotypes are dropped).
+    # Attach genotype + sex, then resolve display label and model (unmapped genotypes are dropped).
     # validate="m:1" fails loudly if an individual appears more than once, which would otherwise
     # silently duplicate every measurement for that individual.
     long = long.merge(
@@ -179,13 +194,25 @@ def _build_measurements(
         on="individualid",
         validate="m:1",
     )
-    # validate="m:1": the label map must have one display label per genotype; duplicate genotype
-    # keys would multiply rows.
+    # (model, genotype) must be unique: a duplicate pair would multiply points within a model.
+    duplicate_keys = genotype_map.duplicated(subset=["model", "genotype"], keep=False)
+    if duplicate_keys.any():
+        dupes = (
+            genotype_map.loc[duplicate_keys, ["model", "genotype"]]
+            .drop_duplicates()
+            .to_dict(orient="records")
+        )
+        raise ValueError(
+            "marmo_genotype_label_map has duplicate (model, genotype) rows, which would "
+            f"multiply measurements within a model: {dupes}"
+        )
+    # Join on genotype only. validate="m:m" allows a genotype (e.g. WT) to belong to more
+    # than one model; those measurements are copied onto every model that lists the genotype.
     long = long.merge(
-        genotype_map[["genotype", "display_label"]],
+        genotype_map[["model", "genotype", "display_label"]],
         how="inner",
         on="genotype",
-        validate="m:1",
+        validate="m:m",
     )
 
     # Attach sampling age from the biospecimen record; drop measurements with no biospecimen match.
@@ -309,49 +336,45 @@ def transform_marmo_details(
     marmo_biomarker_measure_info (syn76417168), marmo_individual_metadata (syn63926850),
     marmo_biospecimen_metadata (syn63927118), marmo_results (syn64133726).
 
+    One output object is produced per distinct model in marmo_metadata, matching how
+    transform_model_details loops mouse models. A measurement is associated with a model
+    by joining its genotype to marmo_genotype_label_map (which has a model column, like
+    the mouse genotype_label_map). Shared control genotypes listed under multiple models
+    appear on each of those model pages. A metadata model with no matching label-map rows
+    gets an empty biomarkers list. Label-map models absent from metadata produce no output
+    entry.
+
     Expected transformations:
         1. The wide marmo_results measure columns are melted into long form; null measurements
            are dropped.
         2. Each measurement is joined to its individual's genotype and sex; genotypes are mapped
-           to display labels via marmo_genotype_label_map. Measurements whose genotype is not in
-           the label map are excluded.
+           to display labels and models via marmo_genotype_label_map. Measurements whose
+           genotype is not in the label map are excluded.
         3. Each measurement's sampling age is joined from the biospecimen record on
            biomaterialid == specimenid. Measurements with no biospecimen record are dropped.
         4. Sampling ages (months) are bucketed into whole-year ranges (e.g. "0-1 years").
         5. Measure metadata (evidence_type, units, display_order) is attached from
-           marmo_biomarker_measure_info. y_axis_max is computed from the data (per-measure
-           maximum rounded up via round_y_axis_max). The biomarkers collection contains one
-           object per (evidence_type, age), sorted by display order then age ascending.
+           marmo_biomarker_measure_info. y_axis_max is computed per model from the data
+           (per-measure maximum rounded up via round_y_axis_max). Each model's biomarkers
+           collection contains one object per (evidence_type, age), sorted by display order
+           then age ascending.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
         required_input (Dict[str, List[str]]): Dictionary of required input datasets and columns.
 
     Returns:
-        List[Dict[str, Any]]: A list of model detail dictionaries (one per model).
+        List[Dict[str, Any]]: A list of model detail dictionaries (one per model in
+        marmo_metadata).
 
     Raises:
-        ValueError: If required datasets or columns are missing, or if more than one model is
-            present in marmo_metadata (multi-model output is not yet supported).
+        ValueError: If required datasets or columns are missing, or if marmo_genotype_label_map
+            has duplicate (model, genotype) rows.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)
 
     metadata = datasets["marmo_metadata"]
-
-    # TODO: generalize to multiple models. The blocker is data linkage: outside marmo_metadata
-    # there is no model column on the label map, individual, biospecimen, or results files, so a
-    # measurement is tied to a model only implicitly via the genotype label map. Generalizing
-    # requires the data team to decide how each genotype/individual/measurement maps to a model
-    # (e.g. a model column on marmo_genotype_label_map). Until then, fail loudly on multi-model
-    # input rather than silently attributing all measurements to one model.
-    model_names = metadata["model"].unique().tolist()
-    if len(model_names) != 1:
-        raise ValueError(
-            "marmo_details currently supports exactly one model in marmo_metadata; "
-            f"found {len(model_names)}: {model_names}"
-        )
-    model_name = model_names[0]
 
     measure_info = datasets["marmo_biomarker_measure_info"].copy()
     measure_info["result_column_std"] = measure_info["result_column"].apply(
@@ -364,19 +387,27 @@ def transform_marmo_details(
     measure_info["units"] = measure_info["units"].fillna("")
 
     measurements = _build_measurements(datasets, measure_info)
-    biomarkers = _build_biomarkers(measurements, model_name)
 
-    model_row = metadata[metadata["model"] == model_name].iloc[0]
-    genetic_info = metadata[metadata["model"] == model_name][
-        ["modified_gene", "ensembl_gene_id", "allele_type"]
-    ].to_dict(orient="records")
+    # Loop each model in metadata the same way transform_model_details does for mice.
+    # Measurements are already stamped with model from the label-map join above.
+    result = []
+    for model_name in metadata["model"].unique():
+        model_rows = metadata[metadata["model"] == model_name]
+        model_row = model_rows.iloc[0]
+        model_measurements = measurements[measurements["model"] == model_name]
+        biomarkers = _build_biomarkers(model_measurements, model_name)
+        genetic_info = model_rows[
+            ["modified_gene", "ensembl_gene_id", "allele_type"]
+        ].to_dict(orient="records")
 
-    model_entry = {
-        "name": model_name,
-        "model_type": model_row["model_type"],
-        "study_synid": model_row["study_synid"],
-        "genetic_info": genetic_info,
-        "biomarkers": biomarkers,
-    }
+        result.append(
+            {
+                "name": model_name,
+                "model_type": model_row["model_type"],
+                "study_synid": model_row["study_synid"],
+                "genetic_info": genetic_info,
+                "biomarkers": biomarkers,
+            }
+        )
 
-    return [model_entry]
+    return result
