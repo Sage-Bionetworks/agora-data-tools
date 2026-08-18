@@ -273,4 +273,8 @@ def transform_gene_info(
     # Make sure there are no N/A Ensembl IDs
     gene_info = gene_info.dropna(subset=["ensembl_gene_id"])
 
+    # Sort by Ensembl ID so that new genes are easy to spot-check via diff, and so that
+    # output order doesn't depend on pandas' unspecified row order for outer merges (AG-1104)
+    gene_info = gene_info.sort_values("ensembl_gene_id").reset_index(drop=True)
+
     return gene_info

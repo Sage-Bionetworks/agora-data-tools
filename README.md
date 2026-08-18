@@ -5,6 +5,7 @@
   - [Seqera Platform](#seqera-platform)
   - [Configuring Synapse Credentials](#configuring-synapse-credentials)
   - [Locally](#locally)
+    - [Updating Your Local Python Version](#updating-your-local-python-version)
     - [Troubleshooting](#troubleshooting)
   - [Docker](#docker)
 - [Testing Github Workflow](#testing-github-workflow)
@@ -65,7 +66,7 @@ Your configured Synapse credentials can be used to run this package both locally
 ### Locally
 Perform the following one-time steps to set up your local environment and obtain the required Synapse permissions:
 
-1. This package uses Python, if you have not already, please install [pyenv](https://github.com/pyenv/pyenv#installation) to manage your Python versions. Versions supported by this package are **all versions >=3.10 and <3.12**. If you do not install `pyenv` make sure that Python and `pip` are installed correctly and have been added to your PATH by running `python3 --version` and `pip3 --version`. If your installation was successful, your terminal will return the versions of Python and `pip` that you installed.  **Note**: If you have `pyenv` it will install a specific version of Python for you.
+1. This package uses Python, if you have not already, please install [pyenv](https://github.com/pyenv/pyenv#installation) to manage your Python versions. Versions supported by this package are **all versions >=3.11 and <3.13**. If you do not install `pyenv` make sure that Python and `pip` are installed correctly and have been added to your PATH by running `python3 --version` and `pip3 --version`. If your installation was successful, your terminal will return the versions of Python and `pip` that you installed.  **Note**: If you have `pyenv` it will install a specific version of Python for you.
 
 2. Install `pipenv` by running `pip install pipenv`.
 
@@ -89,6 +90,61 @@ Note: the `pipenv install` command should create a virtual environment, and `pip
     ```bash
     adt process configs/agora_preprod.yaml
     ```
+
+### Updating Your Local Python Version
+
+This package requires **Python >=3.11 and <3.13**. If your local environment is on an older version (e.g. 3.10), follow these steps to switch to a supported version using `pyenv`:
+
+1. Make sure `pyenv` itself is up to date (older versions may not have the release you need available):
+
+    ```bash
+    brew upgrade pyenv
+    ```
+
+2. Check whether the version you want is available:
+
+    ```bash
+    pyenv install --list | grep "3.11"
+    ```
+
+3. Install the desired version, e.g. `3.11.15`:
+
+    ```bash
+    pyenv install 3.11.15
+    ```
+
+4. Set it as the version to use in this project directory (this creates/updates a `.python-version` file):
+
+    ```bash
+    pyenv local 3.11.15
+    ```
+
+5. Remove your existing `pipenv` virtual environment, since it is tied to the old Python interpreter:
+
+    ```bash
+    pipenv --rm
+    ```
+
+6. Create and activate a new virtual environment using the updated Python version:
+
+    ```bash
+    pipenv shell
+    ```
+
+7. Rebuild the environment against the new interpreter:
+
+    ```bash
+    pipenv sync --dev
+    ```
+
+    Note: prefer `pipenv sync` over `pipenv install` here — `sync` installs the exact versions pinned in `Pipfile.lock`, while `install` will leave already-installed packages alone even if the lock file has since moved them forward.
+
+8. Confirm the switch worked:
+
+    ```bash
+    pipenv run python --version
+    ```
+
 ### Troubleshooting
 
 #### zsh: command not found: adt
@@ -108,7 +164,7 @@ To resolve this:
     ```bash
     pipenv --rm
     ```
-  - Verify that you are using a supported Python version (**>=3.7 and <3.11**). Check this by running:
+  - Verify that you are using a supported Python version (**>=3.11 and <3.13**). Check this by running:
     ```bash
     pyenv exec python3 --version
     ```
@@ -144,7 +200,7 @@ source $(pipenv --venv)/bin/activate
 This should activate the virtual environment.
 
 #### My Python version doesn't work
-Supported Python versions for this package are **>=3.7 and <3.11**. To check the Python versions installed via `pyenv`, run:
+Supported Python versions for this package are **>=3.11 and <3.13**. To check the Python versions installed via `pyenv`, run:
 ```bash
 pyenv versions
 ```
@@ -238,7 +294,7 @@ Copy the example config and fill in your package manager and environment name so
 cp dev_config.yaml.example dev_config.yaml
 # then edit dev_config.yaml:
 #   package_manager: conda   # or: venv, virtualenv, poetry, pipenv
-#   env_name: adt_py310      # your environment name
+#   env_name: adt_py311      # your environment name
 ```
 
 Once `dev_config.yaml` is in place, simply run:
@@ -253,7 +309,7 @@ You can also pass your package manager and environment name directly on the comm
 
 | Package manager | Command |
 |---|---|
-| conda | `python scripts/prepare_commit.py -p conda -e adt_py310` |
+| conda | `python scripts/prepare_commit.py -p conda -e adt_py311` |
 | venv / virtualenv | `python scripts/prepare_commit.py -p venv -e .venv` |
 | poetry | `python scripts/prepare_commit.py -p poetry -e my-project` |
 | pipenv | `python scripts/prepare_commit.py -p pipenv -e my-project` |
