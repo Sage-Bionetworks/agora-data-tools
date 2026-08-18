@@ -45,6 +45,8 @@ Please follow the [README.md](README.md) to install the package for development 
 pipenv install --dev
 ```
 
+This package requires **Python >=3.11 and <3.13**. If your local Python version is older, see the README's [Updating Your Local Python Version](README.md#updating-your-local-python-version) section for how to install and switch to a supported version with `pyenv`.
+
 ### Developing at Sage Bio
 
 The agora-data-tools project follows the standard [trunk based development](https://trunkbaseddevelopment.com/) development strategy.
