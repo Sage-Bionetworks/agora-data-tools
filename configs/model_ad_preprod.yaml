@@ -8,7 +8,7 @@ files:
   - &model_genetic_modifications  { name: model_genetic_modifications  , format: csv  , id: syn76147521.5  }
   - &immunohisto_measure_order    { name: immunohisto_measure_order    , format: yaml , id: syn71305327.2  }
   - &model_metadata               { name: model_metadata               , format: csv  , id: syn76069176.4  }
-  - &mouse_gene_metadata          { name: mouse_gene_metadata          , format: json , id: syn51615422.7  }
+  - &mouse_gene_metadata          { name: mouse_gene_metadata          , format: json , id: syn51615422.9  }
   - &genotype_label_map           { name: genotype_label_map           , format: csv  , id: syn69014401.18 }
   - &ui_config                    { name: ui_config                    , format: json , id: syn66527739 }
   # Results
@@ -48,6 +48,7 @@ datasets:
       files:
         - <<: *model_metadata
         - <<: *model_genetic_modifications
+        - <<: *mouse_gene_metadata
         - <<: *pathology
         - <<: *biomarkers
         - <<: *immunohisto_measure_order
@@ -63,6 +64,8 @@ datasets:
         model: name
         key: dataset_name
         items: evidence_type
+        possible_replacement: ensembl_possible_replacements
+        permalink: ensembl_permalink
       gx_nested_columns:
         - genetic_info
         - biomarkers
