@@ -692,11 +692,10 @@ class TestNestFields:
             drop_columns=["a"],
         )
 
-        # Along with checking data frame equivalence, we need to check that the missing entries are None manually
-        # because dictionary equality checks treat None and np.nan as equivalent
+        # Along with checking data frame equivalence, we need to check that the lists of dictionaries in "nested" are
+        # equal because assert_frame_equal treats None and np.nan as equivalent.
         pd.testing.assert_frame_equal(nested_df, expected_df)
-        assert nested_df["nested"].iloc[0][1]["b"] is None
-        assert nested_df["nested"].iloc[1][0]["c"] is None
+        assert all(nested_df["nested"] == expected_df["nested"])
 
     def test_nest_fields_fails_on_empty_dataframe(self) -> None:
         """
