@@ -377,7 +377,7 @@ def nest_fields(
     df: pd.DataFrame,
     grouping: str | list[str],
     new_column: str,
-    drop_columns: str | list[str] = [],
+    drop_columns: str | list[str] = None,
     nested_field_is_list: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame by grouping and nesting fields.
@@ -410,6 +410,9 @@ def nest_fields(
     """
     if df.empty:
         raise ValueError("Input DataFrame is empty")
+
+    # Initialize to empty list if not provided
+    drop_columns = drop_columns or []
 
     nested = (
         normalize_null_values(df)
