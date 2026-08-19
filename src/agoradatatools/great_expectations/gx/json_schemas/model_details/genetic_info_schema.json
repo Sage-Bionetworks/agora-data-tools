@@ -12,9 +12,33 @@
         "type": "string",
         "enum": ["Transgenic", "Targeted", "Endonuclease-mediated"]
       },
-      "mgi_allele_id": { "type": "integer" }
+      "mgi_allele_id": { "type": "integer" },
+      "ensembl_info": {
+        "type": "object",
+        "properties": {
+          "ensembl_release": { "type": "string", "minLength": 1, "maxLength": 3 },
+          "ensembl_possible_replacements": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^ENS(MUS)?G[0-9]{11}$" }
+          },
+          "ensembl_permalink": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https:\/\/\\w+\\.archive\\.ensembl\\.org\/.*\/Gene\/Summary\\?db=core;g=ENS(MUS)?G[0-9]{11}$"
+          }
+        },
+        "required": ["ensembl_release", "ensembl_possible_replacements", "ensembl_permalink"],
+        "additionalProperties": false
+      }
     },
-    "required": ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"],
-    "additionalProperties": false
+    "required": [
+      "modified_gene",
+      "ensembl_gene_id",
+      "allele",
+      "allele_type",
+      "mgi_allele_id",
+      "ensembl_info"
+    ],
+    "additionalProperties": true
   }
 }
