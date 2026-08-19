@@ -1,0 +1,45 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000000005",
+    "name": "tenomodulin...",
+    "symbol": "TNMD",
+    "type_of_gene": "protein-coding",
+    "alias": [
+      "BRICD4",
+      "CHM1L",
+      "TEM"
+    ],
+    "summary": "Summary 1",
+    "ensembl_release": "111",
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000005"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000419",
+    "name": "dolichyl-phosphate m...",
+    "symbol": "DPM1",
+    "type_of_gene": "protein-coding",
+    "alias": [
+      "MPDS",
+      "CDGIE"
+    ],
+    "summary": "Summary 2",
+    "ensembl_release": "111",
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000419"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000005",
+    "name": "SCY1 like pseudokina...",
+    "symbol": "SCYL3",
+    "type_of_gene": "protein-coding",
+    "alias": [
+      "PACE-1",
+      "PACE1"
+    ],
+    "summary": "Summary 3",
+    "ensembl_release": null,
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000457"
+  }
+]
