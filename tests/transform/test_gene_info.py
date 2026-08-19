@@ -113,7 +113,7 @@ class TestTransformGeneInfo:
     }
 
     core_files = {
-        "gene_metadata": "gene_metadata_good_input.json",
+        "gene_metadata": "gene_metadata_good_input.feather",
         "igap": "igap_good_input.csv",
         "eqtl": "eqtl_good_input.csv",
         "proteomics": "proteomics_good_input.csv",
@@ -150,7 +150,7 @@ class TestTransformGeneInfo:
     fail_test_data = [
         (  # Duplicate Ensembl IDs in gene_metadata
             core_files,
-            {"gene_metadata": "gene_metadata_merge_error.json"},
+            {"gene_metadata": "gene_metadata_merge_error.feather"},
             param_set_1,
             pd.errors.MergeError,
             merge_error_match_string,
@@ -237,7 +237,7 @@ class TestTransformGeneInfo:
 
     def read_input_files_dict(self, input_files_dict: dict) -> dict:
         """Utility function to read a dictionary of filenames into a dictionary of data frames. Most files for
-        gene_info are in csv format, but the 'gene_metadata' file is in JSON format and needs special casing.
+        gene_info are in csv format, but the 'gene_metadata' file is in feather format and needs special casing.
 
         Args:
             input_files_dict: a dictionary where keys are the names of the datasets, as expected by
@@ -251,7 +251,7 @@ class TestTransformGeneInfo:
         for key, value in input_files_dict.items():
             filename = os.path.join(self.data_files_path, "input", value)
             if key == "gene_metadata":
-                datasets[key] = pd.read_json(filename, orient="records", dtype=False)
+                datasets[key] = pd.read_feather(filename)
             elif value.endswith("tsv"):
                 datasets[key] = pd.read_csv(filename, sep="\t")
             else:
