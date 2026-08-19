@@ -91,21 +91,41 @@ def nest_genetic_info(
     """
     Merges model genetic modifications with gene metadata and nests the data to create the expected genetic_info
     structure for the model details output.
+
+    Args:
+        model_genetic_modifications_df (pd.DataFrame): DataFrame containing model genetic modifications.
+        gene_metadata_df (pd.DataFrame): DataFrame containing gene metadata.
+
+    Returns:
+        pd.DataFrame: DataFrame with nested genetic_info for each model.
+
+    Raises:
+        ValueError: If gene_metadata is missing any Ensembl IDs present in model_genetic_modifications_df.
     """
     # Reformat genetic modification data
     model_genetic_modifications_df = process_genetic_modifications(
         model_genetic_modifications_df
     )
 
-    # Subset gene metadata to only the genes in the model genetic modifications df prior to nesting, to avoid large
-    # processing time
-    ensembl_info_df = create_ensembl_info_df(
-        gene_metadata_df[
-            gene_metadata_df["ensembl_gene_id"].isin(
-                model_genetic_modifications_df["ensembl_gene_id"]
-            )
-        ]
-    )
+    # Check that all Ensembl gene IDs in model_genetic_modifications_df are present in gene_metadata_df
+    if not all(
+        model_genetic_modifications_df["ensembl_gene_id"].isin(
+            gene_metadata_df["ensembl_gene_id"]
+        )
+    ):
+        raise ValueError(
+            "`gene_metadata_df` is missing some Ensembl IDs present in `model_genetic_modifications_df`."
+        )
+
+    # Subset gene_metadata_df to only include genes present in model_genetic_modifications_df to avoid long processing
+    # time in nest_fields
+    gene_metadata_df = gene_metadata_df[
+        gene_metadata_df["ensembl_gene_id"].isin(
+            model_genetic_modifications_df["ensembl_gene_id"]
+        )
+    ]
+
+    ensembl_info_df = create_ensembl_info_df(gene_metadata_df)
 
     # Create genetic info for output by merging model genetic modifications with Ensembl info and
     # nesting the data

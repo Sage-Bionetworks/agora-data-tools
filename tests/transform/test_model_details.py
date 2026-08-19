@@ -4,7 +4,10 @@ import json
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform.model_details import transform_model_details
+from agoradatatools.etl.transform.model_details import (
+    nest_genetic_info,
+    transform_model_details,
+)
 
 
 def _load_test_measure_order_config():
@@ -170,7 +173,7 @@ class TestTransformModelDetails:
         """
         Helper function to load input datasets from CSV or JSON files.
         """
-        
+
         datasets = {}
         for dataset_name, file_name in input_files.items():
             full_path = os.path.join(self.data_files_path, "input", file_name)
@@ -242,3 +245,151 @@ class TestTransformModelDetails:
         # Expect transformation to raise the specified error
         with pytest.raises(error_type):
             transform_model_details(datasets=datasets)
+
+
+class TestNestGeneticInfo:
+    """
+    Class for unit testing the nest_genetic_info function in model_details.py.
+    
+    This suite does NOT re-test things that have already been tested for process_genetic_modifications and/or 
+    create_ensembl_info_df and assumes that those functions are working correctly (e.g. by removing duplicate rows, 
+    handling null values as expected, and raising error cases).
+    """
+
+    # Basic test data for genetic modifications: one model with two genetic modifications, one human and one mouse
+    basic_genetic_modifications_df = pd.DataFrame(
+        {
+            "name": ["model1", "model1"],
+            "mouse_ensembl_id": ["ENSMUSG0000001", "ENSMUSG0000002"],
+            "modified_gene": ["geneA", "geneB"],
+            "allele": ["allele1", "allele2"],
+            "allele_type": ["type1", "type2"],
+            "mgi_allele_id": ["MGI:1", "MGI:2"],
+            "human_ensembl_id": ["ENSG000001", None],
+            "human_gene_symbol": ["GENEA", None],
+        }
+    )
+
+    # Basic test data for gene metadata: two genes, one human and one mouse
+    basic_gene_metadata_df = pd.DataFrame(
+        {
+            "ensembl_gene_id": ["ENSG000001", "ENSMUSG0000002"],
+            "ensembl_release": [104, 104],
+            "ensembl_possible_replacements": [["ENSG000004"], []],
+            "ensembl_permalink": [
+                "http://example.com/geneA",
+                "http://example.com/geneB",
+            ],
+        }
+    )
+
+    def test_nest_genetic_info_should_pass(self) -> None:
+        """
+        Test the nest_genetic_info function with a one model with two genetic modifications, one human
+        and one mouse.
+        """
+        genetic_mods = self.basic_genetic_modifications_df
+        gene_meta = self.basic_gene_metadata_df
+
+        expected_output_df = pd.DataFrame(
+            [
+                {
+                    "name": "model1",
+                    "genetic_info": [
+                        {
+                            "modified_gene": "GENEA",
+                            "ensembl_gene_id": "ENSG000001",
+                            "allele": "allele1",
+                            "allele_type": "type1",
+                            "mgi_allele_id": "MGI:1",
+                            "ensembl_info": {
+                                "ensembl_release": "104",
+                                "ensembl_possible_replacements": ["ENSG000004"],
+                                "ensembl_permalink": "http://example.com/geneA",
+                            },
+                        },
+                        {
+                            "modified_gene": "geneB",
+                            "ensembl_gene_id": "ENSMUSG0000002",
+                            "allele": "allele2",
+                            "allele_type": "type2",
+                            "mgi_allele_id": "MGI:2",
+                            "ensembl_info": {
+                                "ensembl_release": "104",
+                                "ensembl_possible_replacements": [],
+                                "ensembl_permalink": "http://example.com/geneB",
+                            },
+                        },
+                    ],
+                },
+            ]
+        )
+
+        output_df = nest_genetic_info(genetic_mods, gene_meta)
+
+        # Compare output with expected
+        pd.testing.assert_frame_equal(output_df, expected_output_df)
+
+    def test_nest_genetic_info_subsets_gene_metadata(self) -> None:
+        """
+        Test that the output of nest_genetic_info only includes genes that are present in the model genetic
+        modifications DataFrame.
+        """
+        # Single gene modification
+        genetic_mods = pd.DataFrame(
+            [
+                {
+                    "name": "model1",
+                    "mouse_ensembl_id": "ENSMUSG0000001",
+                    "modified_gene": "geneA",
+                    "allele": "allele1",
+                    "allele_type": "type1",
+                    "mgi_allele_id": "MGI:1",
+                    "human_ensembl_id": "ENSG000001",
+                    "human_gene_symbol": "GENEA",
+                }
+            ]
+        )
+
+        # Contains an extra gene that is not in the genetic modifications data frame
+        gene_meta = self.basic_gene_metadata_df
+
+        expected_genetic_info = [
+            {
+                "modified_gene": "GENEA",
+                "ensembl_gene_id": "ENSG000001",
+                "allele": "allele1",
+                "allele_type": "type1",
+                "mgi_allele_id": "MGI:1",
+                "ensembl_info": {
+                    "ensembl_release": "104",
+                    "ensembl_possible_replacements": ["ENSG000004"],
+                    "ensembl_permalink": "http://example.com/geneA",
+                },
+            },
+        ]
+
+        output_df = nest_genetic_info(genetic_mods, gene_meta)
+
+        assert output_df.loc[0, "genetic_info"] == expected_genetic_info
+
+    def test_nest_genetic_info_fails_with_missing_gene_metadata(self) -> None:
+        """
+        Test that nest_genetic_info raises a ValueError when gene_metadata is missing genes that are present in 
+        model_genetic_modifications.
+        """
+
+        genetic_mods = self.basic_genetic_modifications_df
+
+        # Missing one of the genes present in genetic_mods
+        gene_meta = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSG000001"],
+                "ensembl_release": [104],
+                "ensembl_possible_replacements": [["ENSG000004"]],
+                "ensembl_permalink": ["http://example.com/geneA"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="`gene_metadata_df` is missing some Ensembl IDs"):
+            nest_genetic_info(genetic_mods, gene_meta)

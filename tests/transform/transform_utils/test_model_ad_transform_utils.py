@@ -126,57 +126,59 @@ class TestProcessGeneticModifications:
         # Compare output with expected
         pd.testing.assert_frame_equal(output, expected_output)
 
-    def test_process_genetic_modifications_keeps_alleles_for_different_models(self) -> None:
-            """
-            Test that process_genetic_modifications keeps alleles for different models even if the alleles are the same.
-            """
-            # Create test input DataFrames
-            model_genetic_modifications = pd.DataFrame(
+    def test_process_genetic_modifications_keeps_alleles_for_different_models(
+        self,
+    ) -> None:
+        """
+        Test that process_genetic_modifications keeps alleles for different models even if the alleles are the same.
+        """
+        # Create test input DataFrames
+        model_genetic_modifications = pd.DataFrame(
+            {
+                "name": ["Model1", "Model2"],
+                "modified_gene": ["App", "App"],
+                "mouse_ensembl_id": [
+                    "ENSMUSG00000022892",
+                    "ENSMUSG00000022892",
+                ],
+                "allele": [
+                    "APP K670_M671delinsNL (Swedish)",
+                    "APP K670_M671delinsNL (Swedish)",
+                ],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [2672831, 2672831],
+                "human_gene_symbol": ["APP", "APP"],
+                "human_ensembl_id": ["ENSG00000142192", "ENSG00000142192"],
+            }
+        )
+
+        # Expected output
+        expected_output = pd.DataFrame(
+            [
                 {
-                    "name": ["Model1", "Model2"],
-                    "modified_gene": ["App", "App"],
-                    "mouse_ensembl_id": [
-                        "ENSMUSG00000022892",
-                        "ENSMUSG00000022892",
-                    ],
-                    "allele": [
-                        "APP K670_M671delinsNL (Swedish)",
-                        "APP K670_M671delinsNL (Swedish)",
-                    ],
-                    "allele_type": ["Transgenic", "Transgenic"],
-                    "mgi_allele_id": [2672831, 2672831],
-                    "human_gene_symbol": ["APP", "APP"],
-                    "human_ensembl_id": ["ENSG00000142192", "ENSG00000142192"],
-                }
-            )
-    
-            # Expected output
-            expected_output = pd.DataFrame(
-                [
-                    {
-                        "name": "Model1",
-                        "modified_gene": "APP",
-                        "ensembl_gene_id": "ENSG00000142192",
-                        "allele": "APP K670_M671delinsNL (Swedish)",
-                        "allele_type": "Transgenic",
-                        "mgi_allele_id": 2672831,
-                    },
-                    {
-                        "name": "Model2",
-                        "modified_gene": "APP",
-                        "ensembl_gene_id": "ENSG00000142192",
-                        "allele": "APP K670_M671delinsNL (Swedish)",
-                        "allele_type": "Transgenic",
-                        "mgi_allele_id": 2672831,
-                    },
-                ]
-            )
-    
-            # Transform data
-            output = process_genetic_modifications(model_genetic_modifications)
-    
-            # Compare output with expected
-            pd.testing.assert_frame_equal(output, expected_output)
+                    "name": "Model1",
+                    "modified_gene": "APP",
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "allele": "APP K670_M671delinsNL (Swedish)",
+                    "allele_type": "Transgenic",
+                    "mgi_allele_id": 2672831,
+                },
+                {
+                    "name": "Model2",
+                    "modified_gene": "APP",
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "allele": "APP K670_M671delinsNL (Swedish)",
+                    "allele_type": "Transgenic",
+                    "mgi_allele_id": 2672831,
+                },
+            ]
+        )
+
+        # Transform data
+        output = process_genetic_modifications(model_genetic_modifications)
+
+        # Compare output with expected
+        pd.testing.assert_frame_equal(output, expected_output)
 
     def test_process_genetic_modifications_with_empty_input(self) -> None:
         """

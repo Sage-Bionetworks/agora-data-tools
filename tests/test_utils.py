@@ -2173,10 +2173,9 @@ class TestCreateEnsemblInfoDf:
         output = utils.create_ensembl_info_df(gene_metadata)
         pd.testing.assert_frame_equal(output, expected_output)
 
-    def test_create_ensembl_info_df_passes_with_empty_data(self) -> None:
+    def test_create_ensembl_info_df_fails_with_empty_data(self) -> None:
         """
-        Tests that create_ensembl_info_df correctly handles an empty input DataFrame by returning
-        an empty DataFrame with columns "ensembl_gene_id" and "ensembl_info".
+        Tests that create_ensembl_info_df raises a ValueError when the input DataFrame is empty.
         """
         gene_metadata = pd.DataFrame(
             columns=[
@@ -2187,9 +2186,8 @@ class TestCreateEnsemblInfoDf:
             ]
         )
 
-        output = utils.create_ensembl_info_df(gene_metadata)
-        assert output.empty
-        assert all(output.columns == ["ensembl_gene_id", "ensembl_info"])
+        with pytest.raises(ValueError, match="Input DataFrame is empty"):
+            utils.create_ensembl_info_df(gene_metadata)
 
     @pytest.mark.parametrize(
         "missing_column",
