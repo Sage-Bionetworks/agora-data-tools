@@ -32,6 +32,7 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_good_test_input.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
@@ -42,6 +43,7 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_good_test_input.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_url_test_good_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
@@ -52,6 +54,7 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_missing_data_input.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_missing_data_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
@@ -62,6 +65,7 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_empty_input.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_empty_measurements_input.csv",
                 "pathology": "model_details_pathology_empty_input.csv",
             },
@@ -72,6 +76,7 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_extra_column_input.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_extra_column_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
@@ -82,6 +87,7 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_missing_models_test.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_missing_models_test.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_missing_models_test.csv",
                 "pathology": "model_details_pathology_missing_models_test.csv",
             },
@@ -101,6 +107,7 @@ class TestTransformModelDetails:
             # Fail with missing biomarkers dataset
             {
                 "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
@@ -111,6 +118,7 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_missing_column_input.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
@@ -121,6 +129,7 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_good_test_input.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
                 "model_metadata": "model_details_model_metadata_missing_column_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
@@ -131,6 +140,18 @@ class TestTransformModelDetails:
             {
                 "biomarkers": "model_details_biomarkers_good_test_input.csv",
                 "model_genetic_modifications": "model_details_model_genetic_modifications_missing_column_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_test_input.json",
+                "model_metadata": "model_details_model_metadata_good_test_input.csv",
+                "pathology": "model_details_pathology_good_test_input.csv",
+            },
+            ValueError,
+        ),
+        (
+            # Fail with missing required columns in mouse_gene_metadata
+            {
+                "biomarkers": "model_details_biomarkers_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_missing_column_input.json",
                 "model_metadata": "model_details_model_metadata_good_test_input.csv",
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
@@ -142,7 +163,22 @@ class TestTransformModelDetails:
         "Fail with missing required columns in biomarkers",
         "Fail with missing required columns in model_metadata",
         "Fail with missing required columns in model_genetic_modifications",
+        "Fail with missing required columns in mouse_gene_metadata",
     ]
+
+    def _load_data(self, input_files):
+        """
+        Helper function to load input datasets from CSV or JSON files.
+        """
+        
+        datasets = {}
+        for dataset_name, file_name in input_files.items():
+            full_path = os.path.join(self.data_files_path, "input", file_name)
+            if file_name.endswith(".json"):
+                datasets[dataset_name] = pd.read_json(full_path)
+            else:
+                datasets[dataset_name] = pd.read_csv(full_path)
+        return datasets
 
     @pytest.mark.parametrize(
         "input_files, expected_output_file",
@@ -153,11 +189,7 @@ class TestTransformModelDetails:
         self, input_files, expected_output_file
     ):
         # Create datasets dictionary
-        datasets = {}
-        for dataset_name, file_name in input_files.items():
-            datasets[dataset_name] = pd.read_csv(
-                os.path.join(self.data_files_path, "input", file_name)
-            )
+        datasets = self._load_data(input_files)
 
         # Add measure order config
         datasets["immunohisto_measure_order"] = _load_test_measure_order_config()
@@ -202,11 +234,7 @@ class TestTransformModelDetails:
     )
     def test_model_details_transform_should_fail(self, input_files, error_type):
         # Create datasets dictionary
-        datasets = {}
-        for dataset_name, file_name in input_files.items():
-            datasets[dataset_name] = pd.read_csv(
-                os.path.join(self.data_files_path, "input", file_name)
-            )
+        datasets = self._load_data(input_files)
 
         # Add measure order config
         datasets["immunohisto_measure_order"] = _load_test_measure_order_config()

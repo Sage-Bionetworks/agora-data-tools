@@ -1,0 +1,23 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000142192",
+    "gene_symbol": "APP",
+    "alias": ["AD1", "ALPHA-SAPP"],
+    "ensembl_release": "116",
+    "ensembl_possible_replacements": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000018411",
+    "gene_symbol": "Mapt",
+    "alias": ["Mtapt", "Tau"],
+    "ensembl_release": "116",
+    "ensembl_possible_replacements": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000037982",
+    "gene_symbol": "",
+    "alias": [],
+    "ensembl_release": "112",
+    "ensembl_possible_replacements": ["ENSMUSG00000120076"]
+  }
+]

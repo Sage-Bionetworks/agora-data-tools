@@ -3,19 +3,21 @@ This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
+    create_ensembl_info_df,
+    nest_fields,
     normalize_null_values,
     delim_string_to_list,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     build_transcriptomics_url,
-    process_genetic_info,
+    process_genetic_modifications,
     zero_pad_jax_ids,
 )
 
@@ -48,6 +50,12 @@ REQUIRED_INPUT = {
         "pathology",
         "biomarkers",
     ],
+    "mouse_gene_metadata": [
+        "ensembl_gene_id",
+        "ensembl_release",
+        "ensembl_possible_replacements",
+        "ensembl_permalink",
+    ],
     "immunohisto_measure_order": [
         "dataset_name",
         "evidence_type",
@@ -77,10 +85,48 @@ REQUIRED_INPUT = {
 }
 
 
+def nest_genetic_info(
+    model_genetic_modifications_df: pd.DataFrame, gene_metadata_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Merges model genetic modifications with gene metadata and nests the data to create the expected genetic_info
+    structure for the model details output.
+    """
+    # Reformat genetic modification data
+    model_genetic_modifications_df = process_genetic_modifications(
+        model_genetic_modifications_df
+    )
+
+    # Subset gene metadata to only the genes in the model genetic modifications df prior to nesting, to avoid large
+    # processing time
+    ensembl_info_df = create_ensembl_info_df(
+        gene_metadata_df[
+            gene_metadata_df["ensembl_gene_id"].isin(
+                model_genetic_modifications_df["ensembl_gene_id"]
+            )
+        ]
+    )
+
+    # Create genetic info for output by merging model genetic modifications with Ensembl info and
+    # nesting the data
+    genetic_info = model_genetic_modifications_df.merge(
+        ensembl_info_df, how="left", on="ensembl_gene_id", validate="m:1"
+    )
+
+    genetic_info = nest_fields(
+        genetic_info,
+        grouping="name",
+        new_column="genetic_info",
+        drop_columns="name",
+    )
+
+    return genetic_info
+
+
 def transform_model_details(
-    datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-) -> List[Dict[str, Any]]:
+    datasets: dict[str, pd.DataFrame],
+    required_input: dict[str, list[str]] = REQUIRED_INPUT,
+) -> list[dict[str, Any]]:
     """
     Transforms the model_details souce files into a structured format for Model AD.
 
@@ -98,8 +144,8 @@ def transform_model_details(
         4. Human Ensembl IDs and gene symbols are used in place of mouse values for human transgenes
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
-        required_input (Dict[str, List[str]]): Dictionary of required input datasets and columns.
+        datasets (dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
+        required_input (dict[str, list[str]]): Dictionary of required input datasets and columns.
 
     Returns:
         list[dict[str, Any]]: A list containing dicionaries with the transformed data.
@@ -109,14 +155,22 @@ def transform_model_details(
     """
     check_required_datasets_and_columns(datasets, required_input)
 
-    # Load and prepare datasets
-    model_metadata_df = datasets["model_metadata"]
-    model_genetic_modifications_df = datasets["model_genetic_modifications"]
+    # Format genetic information
+    genetic_info = nest_genetic_info(
+        datasets["model_genetic_modifications"], datasets["mouse_gene_metadata"]
+    )
 
+    # Merge genetic info with the model metadata
+    model_metadata_df = datasets["model_metadata"].merge(
+        genetic_info, how="left", on="name", validate="1:1"
+    )
+
+    # Fix some fields in model_metadata_df
     model_metadata_df = normalize_null_values(
         model_metadata_df,
         boolean_columns=["transcriptomics", "disease_correlation"],
         empty_string_columns=["rrid", "alzforum_id"],
+        empty_list_columns=["genetic_info"],
     )
 
     # Ensure jax_id preserves leading zeros by converting to string with proper formatting
@@ -137,13 +191,6 @@ def transform_model_details(
     for _, model_row in model_metadata_df.iterrows():
         model_name = model_row["name"]
 
-        # Get genetic info for this model
-        genetic_info = process_genetic_info(
-            model_genetic_modifications_df[
-                model_genetic_modifications_df["name"] == model_name
-            ],
-        )
-
         # Process the biomarkers and pathology datasets for this model
         model_biomarkers = [x for x in grouped_biomarkers if x["name"] == model_name]
         model_pathology = [x for x in grouped_pathology if x["name"] == model_name]
@@ -160,21 +207,17 @@ def transform_model_details(
             "alzforum_id": model_row["alzforum_id"],
             "genotype": model_row["genotype"],
             "aliases": model_row["aliases"],
-            "transcriptomics": None,
-            "disease_correlation": None,
+            "transcriptomics": build_transcriptomics_url(model_row),
+            "disease_correlation": (
+                f"comparison/correlation?models={model_name}"
+                if bool(model_row["disease_correlation"])
+                else None
+            ),
             "spatial_transcriptomics": None,
-            "genetic_info": genetic_info,
+            "genetic_info": model_row["genetic_info"],
             "biomarkers": model_biomarkers,
             "pathology": model_pathology,
         }
-
-        # Add transcriptomics and disease correlation links if they exist
-        model_entry["transcriptomics"] = build_transcriptomics_url(model_row)
-        model_entry["disease_correlation"] = (
-            f"comparison/correlation?models={model_name}"
-            if bool(model_row["disease_correlation"])
-            else None
-        )
 
         result.append(model_entry)
 
