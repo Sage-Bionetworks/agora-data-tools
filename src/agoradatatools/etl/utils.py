@@ -925,3 +925,65 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
 
     # Ensure we always return a float, even for whole numbers
     return float(result)
+
+
+def create_ensembl_info_df(gene_metadata_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Create a DataFrame with Ensembl-related information nested under a new "ensembl_info" column. The function first
+    checks that the input DataFrame contains all the necessary columns, does not have any missing Ensembl IDs,
+    and Ensembl IDs are all unique.
+
+    Before nesting, any empty/missing values in the "ensembl_release" and "ensembl_permalink" columns are replaced with
+    empty strings, and empty/missing values in the "ensembl_possible_replacements" column are replaced with empty lists.
+    These three columns are then nested as a dictionary under the "ensembl_info" column, one row per ensembl_gene_id.
+
+    Args:
+        gene_metadata_df (pd.DataFrame): The gene metadata DataFrame. Must have columns for "ensembl_gene_id",
+            "ensembl_release", "ensembl_possible_replacements", and "ensembl_permalink".
+
+    Returns:
+        pd.DataFrame: A DataFrame with two columns: "ensembl_gene_id" and "ensembl_info", where "ensembl_info" contains
+        the nested Ensembl-related information.
+
+    Raises:
+        ValueError: If the input DataFrame does not contain all the required columns.
+        ValueError: If there are any missing or duplicate Ensembl gene IDs in the input DataFrame.
+    """
+    ensembl_fields = [
+        "ensembl_gene_id",
+        "ensembl_release",
+        "ensembl_possible_replacements",
+        "ensembl_permalink",
+    ]
+
+    if not all(field in gene_metadata_df.columns for field in ensembl_fields):
+        raise ValueError(
+            f"`gene_metadata_df` must contain the following columns: {ensembl_fields}"
+        )
+
+    if gene_metadata_df["ensembl_gene_id"].isnull().any():
+        raise ValueError("`gene_metadata_df` contains missing Ensembl IDs.")
+
+    if gene_metadata_df["ensembl_gene_id"].duplicated().any():
+        raise ValueError("`gene_metadata_df` contains duplicate Ensembl IDs.")
+
+    # Fill any missing values with "" or [] as appropriate
+    ensembl_info_df = normalize_null_values(
+        gene_metadata_df[ensembl_fields].copy(),
+        empty_string_columns=["ensembl_release", "ensembl_permalink"],
+        empty_list_columns=["ensembl_possible_replacements"],
+    )
+
+    # Ensembl release should be a string, not a number. Releases up to July 2026 (Ensembl 116) are numbers, but
+    # post-2026 releases may be strings instead.
+    ensembl_info_df["ensembl_release"] = ensembl_info_df["ensembl_release"].astype(str)
+
+    ensembl_info_df = nest_fields(
+        ensembl_info_df,
+        grouping="ensembl_gene_id",
+        new_column="ensembl_info",
+        drop_columns=["ensembl_gene_id"],
+        nested_field_is_list=False,
+    )
+
+    return ensembl_info_df
