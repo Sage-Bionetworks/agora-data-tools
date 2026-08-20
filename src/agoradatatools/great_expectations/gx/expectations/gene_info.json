@@ -130,6 +130,13 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_have_unique_list_members",
+      "kwargs": {
+        "column": "alias"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "is_igap",
@@ -232,7 +239,7 @@
       "kwargs": {
         "column": "target_nominations",
         "json_schema": {
-          "$id": "http://example.com/example.json",
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/gene_info/target_nominations.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "default": [],
           "items": {
@@ -367,7 +374,7 @@
       "kwargs": {
         "column": "median_expression",
         "json_schema": {
-          "$id": "http://example.com/example.json",
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/gene_info/median_expression.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "default": [],
           "items": {
@@ -439,7 +446,7 @@
       "kwargs": {
         "column": "druggability",
         "json_schema": {
-          "$id": "http://example.com/example.json",
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/gene_info/druggability.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "default": null,
           "examples": [
@@ -605,7 +612,7 @@
       "kwargs": {
         "column": "ensembl_info",
         "json_schema": {
-          "$id": "http://example.com/example.json",
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/gene_info/ensembl_info.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "default": {},
           "properties": {

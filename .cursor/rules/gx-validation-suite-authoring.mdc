@@ -377,6 +377,7 @@ context = gx.get_context(project_root_dir='../src/agoradatatools/great_expectati
 from expectations.expect_column_values_to_have_list_members import ExpectColumnValuesToHaveListMembers
 from expectations.expect_column_values_to_have_list_members_of_type import ExpectColumnValuesToHaveListMembersOfType
 from expectations.expect_column_values_to_have_list_length_in_range import ExpectColumnValuesToHaveListLengthInRange
+from expectations.expect_column_values_to_have_unique_list_members import ExpectColumnValuesToHaveUniqueListMembers
 ```
 
 ### Custom expectation calls: always use `column=` keyword argument
@@ -413,6 +414,9 @@ validator.expect_column_values_to_have_list_length_in_range(column="col", list_l
 # List of strings — only valid on columns NOT in gx_nested_columns (see warning below)
 validator.expect_column_values_to_have_list_members_of_type(column="col", member_type="str")
 
+# No duplicate members within a list — only valid on columns NOT in gx_nested_columns (see warning below)
+validator.expect_column_values_to_have_unique_list_members(column="col")
+
 # JSON schema for nested column
 with open("../src/agoradatatools/great_expectations/gx/json_schemas/<transform>/my_schema.json") as f:
     schema = json.load(f)
@@ -431,14 +435,15 @@ validator.expect_column_values_to_match_regex(
 
 ### ⚠️ Custom list expectations do NOT work on nested columns
 
-`expect_column_values_to_have_list_length_in_range` and `expect_column_values_to_have_list_members_of_type` both check `isinstance(cell, list)` internally. By the time GX runs, any column listed in `gx_nested_columns` has already been converted to a JSON **string** by `convert_nested_columns_to_json`, so these expectations will always fail silently (returning `False` for every row).
+`expect_column_values_to_have_list_length_in_range`, `expect_column_values_to_have_list_members_of_type`, and `expect_column_values_to_have_unique_list_members` all check `isinstance(cell, list)` internally. By the time GX runs, any column listed in `gx_nested_columns` has already been converted to a JSON **string** by `convert_nested_columns_to_json`, so these expectations will always fail silently (returning `False` for every row).
 
-**For list/array columns declared in `gx_nested_columns`, use `expect_column_values_to_match_json_schema` exclusively.** Encode length bounds with `minItems`/`maxItems` inside the schema, and type constraints with the `"type"` and `"items"` keywords:
+**For list/array columns declared in `gx_nested_columns`, use `expect_column_values_to_match_json_schema` exclusively.** Encode length bounds with `minItems`/`maxItems` inside the schema, type constraints with the `"type"` and `"items"` keywords, and uniqueness with `"uniqueItems": true` (the schema-native parallel to `expect_column_values_to_have_unique_list_members` — and unlike that custom expectation, `uniqueItems` also works on arrays of objects, not just scalars, since it does deep equality rather than a `set()`-based check):
 
 ```python
 # ❌ WRONG — list expectations fail on JSON-stringified nested columns
 validator.expect_column_values_to_have_list_length_in_range(column="result_order", list_length_range=[2, 4])
 validator.expect_column_values_to_have_list_members_of_type(column="result_order", member_type="str")
+validator.expect_column_values_to_have_unique_list_members(column="result_order")
 
 # ✅ CORRECT — JSON schema works on the string representation
 validator.expect_column_values_to_match_json_schema(
@@ -447,6 +452,7 @@ validator.expect_column_values_to_match_json_schema(
         "type": "array",
         "minItems": 2,
         "maxItems": 4,
+        "uniqueItems": True,
         "items": {"type": "string", "minLength": 1},
     },
 )
@@ -544,7 +550,23 @@ validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
 
 ## Step 4 — Generate the Expectations Suite
 
-### Option A — Run the notebook (standard, for small/medium datasets)
+**Option A is the default for every dataset.** Only `rna_de_aggregate` and `rna_de_individual`
+currently use Option B, because their processed output is too large (2+ GB) for `pd.read_json()` to
+handle interactively. Do not use Option B for any other dataset unless Option A is first
+attempted and found genuinely untenable due to file size — file size is the *only* justification
+for Option B, not convenience.
+
+### Option A — Update & run the notebook (standard, for small/medium datasets)
+
+**The `.ipynb` notebook in `gx_suite_definitions/` is the source of truth for every Option A
+dataset, not just a historical artifact.** When you add, remove, or edit any expectation for an
+Option A dataset, you MUST make the edit in its notebook — both the `import` in Cell 0
+(if it's a custom expectation not already imported) and the actual `validator.expect_...()` call in
+the cell for that column — then regenerate the suite by running the notebook. **Do not hand-edit
+the generated `src/agoradatatools/great_expectations/gx/expectations/<transform>.json` directly for
+an Option A dataset.** Editing it by hand leaves the notebook out of sync with the generated suite,
+so the next person who runs the notebook will silently regenerate a suite that's missing your
+change.
 
 Always activate the conda env and reinstall the package first:
 
@@ -554,7 +576,7 @@ pip install . -q
 jupyter nbconvert --to notebook --inplace --execute gx_suite_definitions/<transform>.ipynb
 ```
 
-### Option B — Write the JSON directly (required for large datasets, 2+ GB)
+### Option B — Write the JSON directly (only for `rna_de_aggregate` / `rna_de_individual` today)
 
 For transforms whose output JSON is very large (2+ GB), `pd.read_json()` in the notebook can take 30–60+ minutes and the `nbconvert` run becomes impractical. In this case, write `src/agoradatatools/great_expectations/gx/expectations/<transform>.json` directly — it has a well-defined format and produces the identical result.
 
@@ -669,8 +691,9 @@ Check the output for GX validation results.
 | Regex fails on a nullable column | Use `row_condition="col.notnull()"` + `condition_parser="pandas"` to skip null rows |
 | Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
-| `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
+| `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` / `expect_column_values_to_have_unique_list_members` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems`, `"items": {"type": ...}`, and `"uniqueItems": true` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
 | New JSON schema missing `$schema` / `$id` (in a file **or** inlined in a suite) | Every GX JSON schema must carry `$schema` (draft 2019-09) and a GitHub repo-path `$id`, whether it lives in a standalone file or is embedded inline in an `expect_column_values_to_match_json_schema` kwarg — see Step 2 |
 | GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists (and nested-column `enum`s) mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keeping Related Constraints in Sync" → "External sync"). When you change one, prompt the user to update the parallel list in the R notebook |
 | `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Keeping Related Constraints in Sync" → "Internal sync" |
+| Suite `.json` edited by hand for an Option A dataset, notebook left unchanged | Only `rna_de_aggregate`/`rna_de_individual` use Option B. For every other dataset, edit the `.ipynb` (Cell 0 import + the column's `validator.expect_...()` call) and regenerate via `nbconvert` — see Step 4 |
