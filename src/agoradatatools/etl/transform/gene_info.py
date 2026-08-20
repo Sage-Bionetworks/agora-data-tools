@@ -5,6 +5,7 @@ import pandas as pd
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
+    create_ensembl_info_df,
     nest_fields,
     normalize_null_values,
 )
@@ -207,13 +208,7 @@ def transform_gene_info(
             "ensembl_permalink",
         ]
     ]
-    ensembl_info = nest_fields(
-        df=ensembl_info,
-        grouping="ensembl_gene_id",
-        new_column="ensembl_info",
-        drop_columns=["ensembl_gene_id"],
-        nested_field_is_list=False,
-    )
+    ensembl_info = create_ensembl_info_df(ensembl_info)
 
     gene_info = pd.merge(
         left=gene_info,

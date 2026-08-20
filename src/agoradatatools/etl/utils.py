@@ -949,9 +949,18 @@ def create_ensembl_info_df(gene_metadata_df: pd.DataFrame) -> pd.DataFrame:
         the nested Ensembl-related information.
 
     Raises:
-        ValueError: If the input DataFrame does not contain all the required columns.
-        ValueError: If there are any missing or duplicate Ensembl gene IDs in the input DataFrame.
+        ValueError: If the input DataFrame is empty after dropping duplicates and NA Ensembl IDs
     """
+    # Drop duplicate rows and rows with NA Ensembl IDs
+    gene_metadata_df = gene_metadata_df.drop_duplicates(
+        subset="ensembl_gene_id"
+    ).dropna(subset=["ensembl_gene_id"])
+
+    if gene_metadata_df.empty:
+        raise ValueError(
+            "`gene_metadata_df` is empty after dropping duplicates and NA Ensembl IDs."
+        )
+
     ensembl_fields = [
         "ensembl_gene_id",
         "ensembl_release",
@@ -959,27 +968,11 @@ def create_ensembl_info_df(gene_metadata_df: pd.DataFrame) -> pd.DataFrame:
         "ensembl_permalink",
     ]
 
-    if not all(field in gene_metadata_df.columns for field in ensembl_fields):
-        raise ValueError(
-            f"`gene_metadata_df` must contain the following columns: {ensembl_fields}"
-        )
-
-    if gene_metadata_df["ensembl_gene_id"].isnull().any():
-        raise ValueError("`gene_metadata_df` contains missing Ensembl IDs.")
-
-    if gene_metadata_df["ensembl_gene_id"].duplicated().any():
-        raise ValueError("`gene_metadata_df` contains duplicate Ensembl IDs.")
-
-    # Fill any missing values with "" or [] as appropriate
+    # Normalize null values in the relevant columns before nesting
     ensembl_info_df = normalize_null_values(
         gene_metadata_df[ensembl_fields].copy(),
-        empty_string_columns=["ensembl_release", "ensembl_permalink"],
         empty_list_columns=["ensembl_possible_replacements"],
     )
-
-    # Ensembl release should be a string, not a number. Releases up to July 2026 (Ensembl 116) are numbers, but
-    # post-2026 releases may be strings instead.
-    ensembl_info_df["ensembl_release"] = ensembl_info_df["ensembl_release"].astype(str)
 
     ensembl_info_df = nest_fields(
         ensembl_info_df,

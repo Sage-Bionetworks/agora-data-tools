@@ -25,7 +25,7 @@
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831,
         "ensembl_info": {
-          "ensembl_release": "116",
+          "ensembl_release": 116,
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
         }
@@ -37,7 +37,7 @@
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831,
         "ensembl_info": {
-          "ensembl_release": "116",
+          "ensembl_release": 116,
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
         }
@@ -49,7 +49,7 @@
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831,
         "ensembl_info": {
-          "ensembl_release": "116",
+          "ensembl_release": 116,
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
         }
@@ -61,7 +61,7 @@
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831,
         "ensembl_info": {
-          "ensembl_release": "116",
+          "ensembl_release": 116,
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
         }
@@ -73,7 +73,7 @@
         "allele_type": "Targeted",
         "mgi_allele_id": 1930937,
         "ensembl_info": {
-          "ensembl_release": "116",
+          "ensembl_release": 116,
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000080815"
         }
@@ -467,7 +467,7 @@
         "allele_type": "Targeted",
         "mgi_allele_id": 1926153,
         "ensembl_info": {
-          "ensembl_release": "116",
+          "ensembl_release": 116,
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
         }
@@ -479,7 +479,7 @@
         "allele_type": "Transgenic",
         "mgi_allele_id": 3057560,
         "ensembl_info": {
-          "ensembl_release": "116",
+          "ensembl_release": 116,
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000186868"
         }

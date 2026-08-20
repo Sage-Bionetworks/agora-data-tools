@@ -250,9 +250,9 @@ class TestTransformModelDetails:
 class TestNestGeneticInfo:
     """
     Class for unit testing the nest_genetic_info function in model_details.py.
-    
-    This suite does NOT re-test things that have already been tested for process_genetic_modifications and/or 
-    create_ensembl_info_df and assumes that those functions are working correctly (e.g. by removing duplicate rows, 
+
+    This suite does NOT re-test things that have already been tested for process_genetic_modifications and/or
+    create_ensembl_info_df and assumes that those functions are working correctly (e.g. by removing duplicate rows,
     handling null values as expected, and raising error cases).
     """
 
@@ -303,7 +303,7 @@ class TestNestGeneticInfo:
                             "allele_type": "type1",
                             "mgi_allele_id": "MGI:1",
                             "ensembl_info": {
-                                "ensembl_release": "104",
+                                "ensembl_release": 104,
                                 "ensembl_possible_replacements": ["ENSG000004"],
                                 "ensembl_permalink": "http://example.com/geneA",
                             },
@@ -315,7 +315,7 @@ class TestNestGeneticInfo:
                             "allele_type": "type2",
                             "mgi_allele_id": "MGI:2",
                             "ensembl_info": {
-                                "ensembl_release": "104",
+                                "ensembl_release": 104,
                                 "ensembl_possible_replacements": [],
                                 "ensembl_permalink": "http://example.com/geneB",
                             },
@@ -362,7 +362,7 @@ class TestNestGeneticInfo:
                 "allele_type": "type1",
                 "mgi_allele_id": "MGI:1",
                 "ensembl_info": {
-                    "ensembl_release": "104",
+                    "ensembl_release": 104,
                     "ensembl_possible_replacements": ["ENSG000004"],
                     "ensembl_permalink": "http://example.com/geneA",
                 },
@@ -375,7 +375,7 @@ class TestNestGeneticInfo:
 
     def test_nest_genetic_info_fails_with_missing_gene_metadata(self) -> None:
         """
-        Test that nest_genetic_info raises a ValueError when gene_metadata is missing genes that are present in 
+        Test that nest_genetic_info raises a ValueError when gene_metadata is missing genes that are present in
         model_genetic_modifications.
         """
 
@@ -391,5 +391,7 @@ class TestNestGeneticInfo:
             }
         )
 
-        with pytest.raises(ValueError, match="`gene_metadata_df` is missing some Ensembl IDs"):
+        with pytest.raises(
+            ValueError, match="`gene_metadata_df` is missing some Ensembl IDs"
+        ):
             nest_genetic_info(genetic_mods, gene_meta)
