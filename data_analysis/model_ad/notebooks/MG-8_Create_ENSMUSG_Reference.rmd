@@ -69,48 +69,39 @@ cfg <- read_yaml("../../../configs/model_ad_prod.yaml", eval.expr = TRUE)
 # Extract the name and ID of all files in the config, narrow down to the subset we
 # want for this notebook.
 #
-# This requires some rearrangement of cfg$datasets: When read from the file, 
+# When read from the file, 'cfg$files' is an unnamed list, one item per file,
+#
+# This requires some rearrangement of cfg$datasets: When read from the file, with internal
+# named lists in a hierarchy. An example of the structure:
 # 'cfg$datasets' is an unnamed list, one item per data set, with internal named lists
 # in a hierarchy. An example of the structure:
-# List of 6
-#  $ :List of 1
-#   ..$ model_details:List of 7
-#   .. ..$ files                 :List of 7
-#   .. .. ..$ :List of 3
-#   .. .. .. ..$ name  : chr "model_info"
-#   .. .. .. ..$ id    : chr "syn61378590.13"
-#   .. .. .. ..$ format: chr "csv"
-#   .. .. ..$ :List of 3
-#   .. .. .. ..$ name  : chr "allele_info"
-#   .. .. .. ..$ id    : chr "syn64618791.6"
-#   .. .. .. ..$ format: chr "csv"
-# ...
-#
-# Remove the wrapping list around each data set object and fetching its "files" entry
-files <- unlist(cfg$datasets, recursive = FALSE) |>
-  lapply("[[", "files") |>
-  
-  # flatten from a list of lists of files to a list of files
-  unlist(recursive = FALSE) |>
-  
-  # remove duplicate entries
-  unique() |>
-  
-  # make each entry a single-row data frame with columns "name", "id", "format"
+#  List of 34
+#   $ :List of 3
+#    ..$ name  : chr "model_genetic_modifications"
+#    ..$ format: chr "csv"
+#    ..$ id    : chr "syn76147521.5"
+#   $ :List of 3
+#    ..$ name  : chr "immunohisto_measure_order"
+#    ..$ format: chr "yaml"
+#    ..$ id    : chr "syn71305327.2"
+#   ...
+
+files <- cfg$files |>
+  # make each list item a single-row data frame with columns "name", "id", "format"
   lapply(as.data.frame) |>
-  
+
   # concat into one data frame
   list_rbind() |>
   
   # subset to the files we want
-  subset(name %in% c("human_transgene_allele_map", "biodom_genes_mm") |
-           grepl("differential_expression", name))
+  subset(name %in% c("model_genetic_modifications", "biodom_genes_mm") |
+           grepl("_de$", name))
 
 print(files)
 
-# Check: There should be at least 8 files and two of them need to have specific names
-stopifnot(nrow(files) >= 8)
-stopifnot(any(files$name == "human_transgene_allele_map"))
+# Check: There should be at least 11 files and two of them need to have specific names
+stopifnot(nrow(files) >= 11)
+stopifnot(any(files$name == "model_genetic_modifications"))
 stopifnot(any(files$name == "biodom_genes_mm"))
 ```
 
@@ -119,7 +110,7 @@ stopifnot(any(files$name == "biodom_genes_mm"))
 Note: if this is your first time logging into Synapse from R, you will need to change `synLogin()` to `synLogin(authToken=<your_token_string>)`.
 
 ```{r}
-synLogin()
+synLogin(silent = TRUE)
 
 files$path <- sapply(files$id, function(id) {
   syn_file <- synGet(entity = id, downloadLocation = input_dir)
@@ -131,23 +122,31 @@ files$path <- sapply(files$id, function(id) {
 
 ```{r}
 # Names of the fields containing Ensembl IDs in the files
-ensembl_fields <- c("ensembl_id", "ensembl_gene_id")
+ensembl_fields <- c("ensembl_id", "ensembl_gene_id", "mouse_ensembl_id", "human_ensembl_id")
 
 ens <- lapply(files$path, function(file) {
   print(str_glue("Reading {basename(file)}..."))
   
   data <- read.csv(file)
   
-  # Figure out which column exists in this data frame, and check we found exactly
-  # one matching column
+  # Figure out which columns exist in this data frame. The genetic modifications file will 
+  # contain 2 columns, one for mouse and one for human, so we have special handling for
+  # that before handling other files.
   column <- intersect(ensembl_fields, colnames(data))
+
+  if (length(column == 2) && all(c("mouse_ensembl_id", "human_ensembl_id") %in% column)) {
+    return(c(data[, column[1]], data[, column[2]]))
+  }
+
+  # All other files should have exactly one Ensembl ID column
   stopifnot(length(column) == 1)
   
   return(data[, column])
 }) |>
   unlist() |>
   unique() |>
-  na.omit()
+  na.omit() |>
+  setdiff("")
 
 print(str_glue("Ensembl IDs found: {length(ens)}"))
 ```
@@ -158,7 +157,7 @@ print(str_glue("Ensembl IDs found: {length(ens)}"))
 
 ```{r}
 ens_mouse <- ens[grepl("ENSMUSG", ens)]
-mart_mouse <- useMart(biomart = "ensembl", dataset = "mmusculus_gene_ensembl")
+mart_mouse <- useEnsembl(biomart = "ensembl", dataset = "mmusculus_gene_ensembl")
 
 genes_mouse <- getBM(attributes = c("ensembl_gene_id", "external_gene_name",
                                     "external_synonym"),
@@ -176,7 +175,7 @@ print(head(genes_mouse))
 
 ```{r}
 ens_human <- ens[grepl("ENSG", ens)]
-mart_human <- useMart(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+mart_human <- useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
 
 genes_human <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", 
                                     "external_synonym"),
