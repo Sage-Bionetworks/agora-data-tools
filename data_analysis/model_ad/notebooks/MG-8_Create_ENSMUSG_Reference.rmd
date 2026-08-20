@@ -209,6 +209,7 @@ genes <- rbind(genes,
 Re-use the util function written in Python to get the version for each ID
 
 ```{python}
+import sys
 sys.path.append("../../agora/notebooks/preprocessing")
 import preprocessing_utils
 
