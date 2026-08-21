@@ -2081,3 +2081,214 @@ class TestRoundYAxisMax:
         assert utils.round_y_axis_max("invalid") == pytest.approx(10.0)
         assert utils.round_y_axis_max("abc123") == pytest.approx(10.0)
         assert utils.round_y_axis_max("") == pytest.approx(10.0)
+
+
+class TestCreateEnsemblInfoDf:
+    """
+    Test that the create_ensembl_info_df function correctly nests Ensembl information and handles missing values
+    """
+
+    def test_create_ensembl_info_df_should_pass(self) -> None:
+        """
+        Tests that create_ensembl_info_df should pass with basic input data for two genes.
+        """
+        gene_metadata = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "gene_symbol": "APP",
+                    "alias": ["AD1", "ALPHA-SAPP"],
+                    "ensembl_release": 116,
+                    "ensembl_possible_replacements": ["test_replacement"],
+                    "ensembl_permalink": "https://link_to_ENSG00000142192",
+                },
+                {
+                    "ensembl_gene_id": "ENSMUSG00000018411",
+                    "gene_symbol": "Mapt",
+                    "alias": ["Mtapt", "Tau"],
+                    "ensembl_release": 116,
+                    "ensembl_possible_replacements": [],
+                    "ensembl_permalink": "https://link_to_ENSMUSG00000018411",
+                },
+            ],
+            dtype="object",
+        )
+
+        expected_output = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_info": {
+                        "ensembl_release": 116,
+                        "ensembl_possible_replacements": ["test_replacement"],
+                        "ensembl_permalink": "https://link_to_ENSG00000142192",
+                    },
+                },
+                {
+                    "ensembl_gene_id": "ENSMUSG00000018411",
+                    "ensembl_info": {
+                        "ensembl_release": 116,
+                        "ensembl_possible_replacements": [],
+                        "ensembl_permalink": "https://link_to_ENSMUSG00000018411",
+                    },
+                },
+            ],
+            dtype="object",
+        )
+
+        output = utils.create_ensembl_info_df(gene_metadata)
+        pd.testing.assert_frame_equal(output, expected_output)
+
+    def test_create_ensembl_info_df_normalizes_missing_values(self) -> None:
+        """
+        Tests that create_ensembl_info_df correctly normalizes missing values in the input DataFrame. "ensembl_release"
+        and "ensembl_permalink" should be normalized to empty strings if missing, and "ensembl_possible_replacements"
+        should be normalized to an empty list if missing.
+        """
+        gene_metadata = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_release": np.nan,
+                    "ensembl_possible_replacements": np.nan,
+                    "ensembl_permalink": np.nan,
+                }
+            ]
+        )
+
+        expected_dict = {
+            "ensembl_release": "",
+            "ensembl_possible_replacements": [],
+            "ensembl_permalink": "",
+        }
+
+        output = utils.create_ensembl_info_df(gene_metadata)
+
+        # Check dictionary directly so None and np.nan are not treated as equivalent by pd.testing.assert_frame_equal
+        assert output["ensembl_info"].iloc[0] == expected_dict
+
+    def test_create_ensembl_info_df_drops_na_ensembl_ids(self) -> None:
+        """
+        Tests that create_ensembl_info_df drops rows with NA Ensembl IDs before nesting
+        """
+        gene_metadata = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": None,
+                    "ensembl_release": 116,
+                    "ensembl_possible_replacements": [],
+                    "ensembl_permalink": "",
+                },
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_release": 116,
+                    "ensembl_possible_replacements": [],
+                    "ensembl_permalink": "",
+                },
+            ]
+        )
+
+        # Should only contain one row
+        expected_output = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_info": {
+                        "ensembl_release": 116,
+                        "ensembl_possible_replacements": [],
+                        "ensembl_permalink": "",
+                    },
+                }
+            ]
+        )
+
+        output_df = utils.create_ensembl_info_df(gene_metadata)
+        pd.testing.assert_frame_equal(output_df, expected_output)
+
+    def test_create_ensembl_info_df_drops_duplicate_ensembl_ids(self) -> None:
+        """
+        Tests that create_ensembl_info_df removes rows with duplicate Ensembl IDs before nesting
+        """
+        gene_metadata = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_release": 116,
+                    "ensembl_possible_replacements": [],
+                    "ensembl_permalink": "",
+                },
+                {
+                    # Duplicate row with the same Ensembl ID
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_release": 110,
+                    "ensembl_possible_replacements": ["test"],
+                    "ensembl_permalink": "link/to/gene",
+                },
+            ]
+        )
+
+        # Should only contain one row, with the first occurrence of the Ensembl ID
+        expected_output = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_info": {
+                        "ensembl_release": 116,
+                        "ensembl_possible_replacements": [],
+                        "ensembl_permalink": "",
+                    },
+                }
+            ]
+        )
+
+        output_df = utils.create_ensembl_info_df(gene_metadata)
+
+        pd.testing.assert_frame_equal(output_df, expected_output)
+
+    def test_create_ensembl_info_df_fails_with_empty_data(self) -> None:
+        """
+        Tests that create_ensembl_info_df raises a ValueError when the input DataFrame is empty.
+        """
+        gene_metadata = pd.DataFrame(
+            columns=[
+                "ensembl_gene_id",
+                "ensembl_release",
+                "ensembl_possible_replacements",
+                "ensembl_permalink",
+            ]
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="`gene_metadata_df` is empty after dropping duplicates and NA Ensembl IDs.",
+        ):
+            utils.create_ensembl_info_df(gene_metadata)
+
+    def test_create_ensembl_info_df_fails_on_all_na_ensembl_ids(self) -> None:
+        """
+        Tests that create_ensembl_info_df raises a ValueError when all Ensembl IDs are NA, resulting in an empty
+        data frame after dropping NA values.
+        """
+        gene_metadata = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": None,
+                    "ensembl_release": 116,
+                    "ensembl_possible_replacements": [],
+                    "ensembl_permalink": "",
+                },
+                {
+                    "ensembl_gene_id": np.nan,
+                    "ensembl_release": 116,
+                    "ensembl_possible_replacements": [],
+                    "ensembl_permalink": "",
+                },
+            ],
+            dtype="object"
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="`gene_metadata_df` is empty after dropping duplicates and NA Ensembl IDs.",
+        ):
+            utils.create_ensembl_info_df(gene_metadata)
