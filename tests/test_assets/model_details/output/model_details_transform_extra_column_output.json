@@ -23,35 +23,60 @@
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele1",
         "allele_type": "Transgenic",
-        "mgi_allele_id": 2672831
+        "mgi_allele_id": 2672831,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
+        }
       },
       {
         "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele2",
         "allele_type": "Transgenic",
-        "mgi_allele_id": 2672831
+        "mgi_allele_id": 2672831,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
+        }
       },
       {
         "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele3",
         "allele_type": "Transgenic",
-        "mgi_allele_id": 2672831
+        "mgi_allele_id": 2672831,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
+        }
       },
       {
         "modified_gene": "Mapt",
         "ensembl_gene_id": "ENSMUSG00000018411",
         "allele": "MAPT P301L",
         "allele_type": "Transgenic",
-        "mgi_allele_id": 2672831
+        "mgi_allele_id": 2672831,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
+        }
       },
       {
         "modified_gene": "PSEN1",
         "ensembl_gene_id": "ENSG00000080815",
         "allele": "Psen1<sup>tm1Mpm</sup>",
         "allele_type": "Targeted",
-        "mgi_allele_id": 1930937
+        "mgi_allele_id": 1930937,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000080815"
+        }
       }
     ],
     "biomarkers": [
@@ -440,14 +465,24 @@
         "ensembl_gene_id": "ENSMUSG00000018411",
         "allele": "Mapttm1(EGFP)Klt",
         "allele_type": "Targeted",
-        "mgi_allele_id": 1926153
+        "mgi_allele_id": 1926153,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
+        }
       },
       {
         "modified_gene": "MAPT",
         "ensembl_gene_id": "ENSG00000186868",
         "allele": "MAPT",
         "allele_type": "Transgenic",
-        "mgi_allele_id": 3057560
+        "mgi_allele_id": 3057560,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000186868"
+        }
       }
     ],
     "biomarkers": [

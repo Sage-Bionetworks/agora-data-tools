@@ -2284,7 +2284,7 @@ class TestCreateEnsemblInfoDf:
                     "ensembl_permalink": "",
                 },
             ],
-            dtype="object"
+            dtype="object",
         )
 
         with pytest.raises(

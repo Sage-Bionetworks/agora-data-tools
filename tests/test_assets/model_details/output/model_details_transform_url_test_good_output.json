@@ -18,7 +18,20 @@
     "transcriptomics": "comparison/expression?models=Model_url_default",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSMUSG00000022892",
+        "allele": null,
+        "allele_type": null,
+        "mgi_allele_id": 1234,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   },
@@ -40,7 +53,20 @@
     "transcriptomics": "comparison/expression?categories=category_string&models=Model_url_categories",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSMUSG00000022892",
+        "allele": null,
+        "allele_type": null,
+        "mgi_allele_id": 1234,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   },
@@ -63,7 +89,20 @@
     "transcriptomics": "comparison/expression?models=model1,model2",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSMUSG00000022892",
+        "allele": null,
+        "allele_type": null,
+        "mgi_allele_id": 1234,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   },
@@ -85,7 +124,20 @@
     "transcriptomics": "comparison/expression?categories=category_string&models=model3,model4",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "Mapt",
+        "ensembl_gene_id": "ENSMUSG00000018411",
+        "allele": null,
+        "allele_type": null,
+        "mgi_allele_id": 5678,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   }

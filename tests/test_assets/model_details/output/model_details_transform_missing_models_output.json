@@ -21,31 +21,7 @@
       {
         "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
-        "allele": "Allele1",
-        "allele_type": "Transgenic",
-        "mgi_allele_id": 2672831,
-        "ensembl_info": {
-          "ensembl_release": 116,
-          "ensembl_possible_replacements": [],
-          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
-        }
-      },
-      {
-        "modified_gene": "APP",
-        "ensembl_gene_id": "ENSG00000142192",
-        "allele": "Allele2",
-        "allele_type": "Transgenic",
-        "mgi_allele_id": 2672831,
-        "ensembl_info": {
-          "ensembl_release": 116,
-          "ensembl_possible_replacements": [],
-          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
-        }
-      },
-      {
-        "modified_gene": "APP",
-        "ensembl_gene_id": "ENSG00000142192",
-        "allele": "Allele3",
+        "allele": "APP K670_M671delinsNL (Swedish)",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831,
         "ensembl_info": {
@@ -67,15 +43,15 @@
         }
       },
       {
-        "modified_gene": "PSEN1",
-        "ensembl_gene_id": "ENSG00000080815",
+        "modified_gene": "Psen1",
+        "ensembl_gene_id": "ENSMUSG00000019969",
         "allele": "Psen1<sup>tm1Mpm</sup>",
         "allele_type": "Targeted",
         "mgi_allele_id": 1930937,
         "ensembl_info": {
           "ensembl_release": 116,
           "ensembl_possible_replacements": [],
-          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000080815"
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000019969"
         }
       }
     ],
@@ -461,15 +437,15 @@
     "spatial_transcriptomics": null,
     "genetic_info": [
       {
-        "modified_gene": "Mapt",
-        "ensembl_gene_id": "ENSMUSG00000018411",
+        "modified_gene": "MAPT",
+        "ensembl_gene_id": "ENSG00000186868",
         "allele": "Mapttm1(EGFP)Klt",
         "allele_type": "Targeted",
         "mgi_allele_id": 1926153,
         "ensembl_info": {
           "ensembl_release": 116,
           "ensembl_possible_replacements": [],
-          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000186868"
         }
       },
       {
@@ -673,5 +649,163 @@
         "data": []
       }
     ]
+  },
+  {
+    "name": "NewModel1",
+    "matched_controls": [
+      "B6129"
+    ],
+    "model_type": "Familial AD",
+    "contributing_group": "UCI",
+    "study_synid": "syn22964685",
+    "rrid": "MMRRC_034830-JAX",
+    "jax_id": "004808",
+    "alzforum_id": "new1",
+    "genotype": "B6;129-Tg(APPSwe)1Lfa",
+    "aliases": [
+      "New1"
+    ],
+    "transcriptomics": null,
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
+    "genetic_info": [
+      {
+        "modified_gene": "APP",
+        "ensembl_gene_id": "ENSG00000142192",
+        "allele": "APP K670_M671delinsNL (Swedish)",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
+        }
+      }
+    ],
+    "biomarkers": [],
+    "pathology": [
+      {
+        "name": "NewModel1",
+        "evidence_type": "Tangle count",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 7.0,
+        "data": []
+      },
+      {
+        "name": "NewModel1",
+        "evidence_type": "Tangle count",
+        "tissue": "Hippocampus",
+        "age": "6 months",
+        "units": "count/mm\u00b2",
+        "y_axis_max": 7.0,
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse9",
+            "value": 6.5
+          }
+        ]
+      },
+      {
+        "name": "NewModel1",
+        "evidence_type": "Tangle count",
+        "tissue": "Hippocampus",
+        "age": "8 months",
+        "units": "",
+        "y_axis_max": 7.0,
+        "data": []
+      },
+      {
+        "name": "NewModel1",
+        "evidence_type": "Tangle count",
+        "tissue": "Hippocampus",
+        "age": "12 months",
+        "units": "",
+        "y_axis_max": 7.0,
+        "data": []
+      }
+    ]
+  },
+  {
+    "name": "NewModel2",
+    "matched_controls": [
+      "C57BL/6J"
+    ],
+    "model_type": "Tauopathy",
+    "contributing_group": "Mayo",
+    "study_synid": "syn25539881",
+    "rrid": "IMSR_JAX:005492",
+    "jax_id": "005492",
+    "alzforum_id": "new2",
+    "genotype": "B6.Cg-Mapttm1(EGFP)Klt",
+    "aliases": [
+      "New2"
+    ],
+    "transcriptomics": null,
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
+    "genetic_info": [
+      {
+        "modified_gene": "MAPT",
+        "ensembl_gene_id": "ENSG00000186868",
+        "allele": "Mapttm1(EGFP)Klt",
+        "allele_type": "Targeted",
+        "mgi_allele_id": 1926153,
+        "ensembl_info": {
+          "ensembl_release": 116,
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000186868"
+        }
+      }
+    ],
+    "biomarkers": [
+      {
+        "name": "NewModel2",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
+        "age": "4 months",
+        "units": "",
+        "y_axis_max": 25.0,
+        "data": []
+      },
+      {
+        "name": "NewModel2",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
+        "age": "6 months",
+        "units": "ng/ml",
+        "y_axis_max": 25.0,
+        "data": [
+          {
+            "genotype": "transgenic",
+            "sex": "Male",
+            "individual_id": "mouse9",
+            "value": 20.1
+          }
+        ]
+      },
+      {
+        "name": "NewModel2",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
+        "age": "8 months",
+        "units": "",
+        "y_axis_max": 25.0,
+        "data": []
+      },
+      {
+        "name": "NewModel2",
+        "evidence_type": "Tau",
+        "tissue": "Hippocampus",
+        "age": "12 months",
+        "units": "",
+        "y_axis_max": 25.0,
+        "data": []
+      }
+    ],
+    "pathology": []
   }
 ]
