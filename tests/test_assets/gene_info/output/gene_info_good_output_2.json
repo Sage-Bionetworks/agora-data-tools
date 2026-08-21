@@ -33,7 +33,9 @@
     ],
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": 1.0,
     "biodomains": [
@@ -48,7 +50,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000005"
     },
-    "uniprotkb_accessions": ["Q9H2S6"]
+    "uniprotkb_accessions": [
+      "Q9H2S6"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000000419",
@@ -139,7 +143,9 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": 3.0,
     "biodomains": [
@@ -153,7 +159,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000419"
     },
-    "uniprotkb_accessions": ["O60762"]
+    "uniprotkb_accessions": [
+      "O60762"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000000457",
@@ -198,7 +206,9 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": 1.0,
     "biodomains": [
@@ -212,7 +222,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000457"
     },
-    "uniprotkb_accessions": ["Q8IZE3"]
+    "uniprotkb_accessions": [
+      "Q8IZE3"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000000460",
@@ -234,7 +246,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -246,7 +260,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000460"
     },
-    "uniprotkb_accessions": ["Q9NSG2"]
+    "uniprotkb_accessions": [
+      "Q9NSG2"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000000938",
@@ -271,7 +287,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tchem"]
+      "pharos_class": [
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -283,7 +301,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000938"
     },
-    "uniprotkb_accessions": ["P09769"]
+    "uniprotkb_accessions": [
+      "P09769"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000000971",
@@ -319,7 +339,9 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -331,7 +353,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000971"
     },
-    "uniprotkb_accessions": ["P08603"]
+    "uniprotkb_accessions": [
+      "P08603"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001036",
@@ -369,7 +393,9 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tchem"]
+      "pharos_class": [
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -381,7 +407,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001036"
     },
-    "uniprotkb_accessions": ["Q9BTY2"]
+    "uniprotkb_accessions": [
+      "Q9BTY2"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001084",
@@ -403,7 +431,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tchem"]
+      "pharos_class": [
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -415,7 +445,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": null
     },
-    "uniprotkb_accessions": ["P48506"]
+    "uniprotkb_accessions": [
+      "P48506"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001167",
@@ -437,7 +469,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -449,7 +483,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001167"
     },
-    "uniprotkb_accessions": ["P23511"]
+    "uniprotkb_accessions": [
+      "P23511"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001460",
@@ -469,7 +505,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -481,7 +519,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001460"
     },
-    "uniprotkb_accessions": ["Q5TH74"]
+    "uniprotkb_accessions": [
+      "Q5TH74"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001461",
@@ -502,7 +542,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tdark"]
+      "pharos_class": [
+        "Tdark"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -514,7 +556,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001461"
     },
-    "uniprotkb_accessions": ["Q6P499"]
+    "uniprotkb_accessions": [
+      "Q6P499"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001497",
@@ -537,7 +581,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -549,7 +595,35 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001497"
     },
-    "uniprotkb_accessions": ["Q9Y4W2"]
+    "uniprotkb_accessions": [
+      "Q9Y4W2"
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001517",
+    "name": null,
+    "summary": null,
+    "symbol": null,
+    "alias": [],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": null,
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": null
+    }
   },
   {
     "ensembl_gene_id": "ENSG00000001561",
@@ -568,7 +642,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -580,7 +656,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001561"
     },
-    "uniprotkb_accessions": ["Q9Y6X5"]
+    "uniprotkb_accessions": [
+      "Q9Y6X5"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001617",
@@ -601,7 +679,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -613,7 +693,10 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001617"
     },
-    "uniprotkb_accessions": ["Q13275", "Q1TEST"]
+    "uniprotkb_accessions": [
+      "Q13275",
+      "Q1TEST"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001626",
@@ -638,7 +721,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tclin"]
+      "pharos_class": [
+        "Tclin"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -650,7 +735,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001626"
     },
-    "uniprotkb_accessions": ["P13569"]
+    "uniprotkb_accessions": [
+      "P13569"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001629",
@@ -667,7 +754,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tdark"]
+      "pharos_class": [
+        "Tdark"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -679,7 +768,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001629"
     },
-    "uniprotkb_accessions": ["Q9P2G1"]
+    "uniprotkb_accessions": [
+      "Q9P2G1"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001630",
@@ -703,7 +794,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tchem"]
+      "pharos_class": [
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -715,7 +808,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001630"
     },
-    "uniprotkb_accessions": ["Q16850"]
+    "uniprotkb_accessions": [
+      "Q16850"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000001631",
@@ -754,7 +849,10 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tbio", "Tchem"]
+      "pharos_class": [
+        "Tbio",
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -766,7 +864,9 @@
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000001631"
     },
-    "uniprotkb_accessions": ["O00522"]
+    "uniprotkb_accessions": [
+      "O00522"
+    ]
   },
   {
     "ensembl_gene_id": "ENSG00000161149",
@@ -824,32 +924,6 @@
         "ENSG00000288607"
       ],
       "ensembl_permalink": "https://apr2020.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000183791"
-    }
-  },
-  {
-    "ensembl_gene_id": "ENSG00000001517",
-    "name": null,
-    "summary": null,
-    "symbol": null,
-    "alias": [],
-    "is_igap": false,
-    "is_eqtl": false,
-    "is_any_rna_changed_in_ad_brain": false,
-    "rna_brain_change_studied": false,
-    "is_any_protein_changed_in_ad_brain": false,
-    "protein_brain_change_studied": false,
-    "target_nominations": null,
-    "median_expression": null,
-    "druggability": null,
-    "total_nominations": null,
-    "biodomains": null,
-    "is_adi": false,
-    "is_tep": false,
-    "resource_url": null,
-    "ensembl_info": {
-      "ensembl_release": null,
-      "ensembl_possible_replacements": [],
-      "ensembl_permalink": null
     }
   }
 ]

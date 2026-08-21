@@ -11,7 +11,7 @@ jupyter-server = ">=2.20.0, <3.0.0"
 agoradatatools = {editable = true, extras = ["dev"], path = "."}
 
 [requires]
-python_version = "3.10.17"
+python_version = "3.11.15"
 
 [pipenv]
 allow_prereleases = true

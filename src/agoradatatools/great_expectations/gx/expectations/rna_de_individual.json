@@ -118,7 +118,8 @@
         "column": "matched_control",
         "value_set": [
           "B6129",
-          "C57BL/6J"
+          "C57BL/6J",
+          "LOAD1"
         ]
       },
       "meta": {}
@@ -170,7 +171,8 @@
         "value_set": [
           "4 months",
           "12 months",
-          "18 months"
+          "18 months",
+          "24 months"
         ]
       },
       "meta": {}
@@ -197,7 +199,8 @@
         "value_set": [
           4,
           12,
-          18
+          18,
+          24
         ]
       },
       "meta": {}
