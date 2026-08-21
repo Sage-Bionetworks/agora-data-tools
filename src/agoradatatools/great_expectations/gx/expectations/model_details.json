@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Familial AD",
-          "Late Onset AD"
+          "Late Onset AD",
+          "Familial AD"
         ]
       },
       "meta": {}
@@ -70,8 +70,8 @@
       "kwargs": {
         "column": "contributing_group",
         "value_set": [
-          "UCI",
-          "IU/Jax/Pitt"
+          "IU/Jax/Pitt",
+          "UCI"
         ]
       },
       "meta": {}
@@ -243,7 +243,7 @@
       "kwargs": {
         "column": "disease_correlation",
         "condition_parser": "pandas",
-        "regex": "^comparison/correlation",
+        "regex": "^comparison/correlation\\?models=",
         "row_condition": "disease_correlation.notnull()"
       },
       "meta": {}
@@ -275,8 +275,10 @@
       "kwargs": {
         "column": "genetic_info",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_details/genetic_info_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
-            "additionalProperties": false,
+            "additionalProperties": true,
             "properties": {
               "allele": {
                 "minLength": 1,
@@ -294,6 +296,36 @@
                 "pattern": "^ENS(MUS)?G[0-9]{11}$",
                 "type": "string"
               },
+              "ensembl_info": {
+                "additionalProperties": false,
+                "properties": {
+                  "ensembl_permalink": {
+                    "format": "uri",
+                    "pattern": "^https://\\w+\\.archive\\.ensembl\\.org/.*/Gene/Summary\\?db=core;g=ENS(MUS)?G[0-9]{11}$",
+                    "type": "string"
+                  },
+                  "ensembl_possible_replacements": {
+                    "items": {
+                      "pattern": "^ENS(MUS)?G[0-9]{11}$",
+                      "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 0,
+                    "type": "array"
+                  },
+                  "ensembl_release": {
+                    "maxLength": 3,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ensembl_release",
+                  "ensembl_possible_replacements",
+                  "ensembl_permalink"
+                ],
+                "type": "object"
+              },
               "mgi_allele_id": {
                 "type": "integer"
               },
@@ -307,7 +339,8 @@
               "ensembl_gene_id",
               "allele",
               "allele_type",
-              "mgi_allele_id"
+              "mgi_allele_id",
+              "ensembl_info"
             ],
             "type": "object"
           },
@@ -336,6 +369,8 @@
       "kwargs": {
         "column": "biomarkers",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_details/biomarkers_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
             "additionalProperties": false,
             "properties": {
@@ -450,6 +485,8 @@
       "kwargs": {
         "column": "pathology",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_details/pathology_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
             "additionalProperties": false,
             "properties": {
