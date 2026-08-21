@@ -226,8 +226,10 @@ rna_de_model_name_filter_vals_hemibrain <- c(
                             'LOAD2',
                             'Trem2R47H')
 
-# Cortex: 5xFAD (UCI); need to wrap single value in a list for JSON serialization
-rna_de_model_name_filter_vals_cerebral_cortex <- list('5xFAD (UCI)')
+# Cortex: 5xFAD (UCI) and Clu-h2kbKI
+de_model_name_filter_vals_cerebral_cortex <- c('5xFAD (UCI)',
+                                               'Clu-h2kbKI',
+                                               'Clu-h2kbKI.5xFAD')
 
 # Hippocampus: All UCI models
 rna_de_model_name_filter_vals_hippocampus <- c(
