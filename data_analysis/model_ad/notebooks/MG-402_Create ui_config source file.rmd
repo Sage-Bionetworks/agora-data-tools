@@ -210,7 +210,7 @@ rna_de_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hi
 rna_de_primary_column <- list("Gene", "primary", "gene_symbol", "Mouse Gene", NA, NA, NA, TRUE, FALSE)
 
 # Variable heatmap column names vary by contributing center and by tissue, since each center sequences different tissues
-rna_de_dynamic_names_jax <- c("4 months", "12 months")
+rna_de_dynamic_names_jax <- c("4 months", "12 months", "18 months", "24 months")
 rna_de_dynamic_names_uci <- c("4 months", "12 months", "18 months")
 
 
@@ -223,7 +223,7 @@ rna_de_model_name_filter_vals_hemibrain <- c(
                             '5xFAD (IU/Jax/Pitt)',
                             'APOE4',
                             'LOAD1',
-                            "LOAD2",
+                            'LOAD2',
                             'Trem2R47H')
 
 # Cortex: 5xFAD (UCI); need to wrap single value in a list for JSON serialization
@@ -235,6 +235,10 @@ rna_de_model_name_filter_vals_hippocampus <- c(
                             '5xFAD (UCI)',
                             'Abca7*V1599M',
                             'Abca7*V1599M.5xFAD',
+                            'Bin1K358R',
+                            'Bin1K358R.5xFAD',
+                            'Clu-h2kbKI',
+                            'Clu-h2kbKI.5xFAD',
                             'Trem2-R47H_NSS',
                             'Trem2-R47H_NSS.5xFAD')
 
@@ -569,10 +573,12 @@ mo_filters <- data.frame(
 mo_modified_gene_filter_vals <- c('Abca7',
                                'APOE',
                                'Apoe',
-                               "APP",
-                               "App",
+                               'APP',
+                               'App',
+                               'Bin1',
                                'Ceacam1',
                                'Clasp2',
+                               'CLU',
                                'CR1',
                                'CR2',
                                'Il1rap',
