@@ -113,8 +113,10 @@ class TestProcessGeneticModifications:
         assert list(output.columns) == expected_columns
 
     def test_process_genetic_modifications_normalizes_missing_values(self) -> None:
-        # Create test input DataFrames with some missing values. Only "mouse_ensembl_id", "allele", "allele_type",
-        # and "human_ensembl_id" can have missing values and still appear in the output.
+        # Create test input DataFrames with some missing values. "allele" and "allele_type" can be missing and should
+        # be normalized in the output. Missing "human_ensembl_id" and "human_gene_symbol" are overridden by the mouse
+        # values. "mouse_ensembl_id" values are not supposed to be missing and should be validated as non-missing
+        # outside the function, but we test that the function gracefully handles this case anyway.
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["Model1", "Model1", "Model1"],
