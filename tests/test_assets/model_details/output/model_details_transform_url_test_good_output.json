@@ -26,7 +26,7 @@
         "allele_type": null,
         "mgi_allele_id": 1234,
         "ensembl_info": {
-          "ensembl_release": 116,
+          "ensembl_release": "116",
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
         }
@@ -61,7 +61,7 @@
         "allele_type": null,
         "mgi_allele_id": 1234,
         "ensembl_info": {
-          "ensembl_release": 116,
+          "ensembl_release": "116",
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
         }
@@ -97,7 +97,7 @@
         "allele_type": null,
         "mgi_allele_id": 1234,
         "ensembl_info": {
-          "ensembl_release": 116,
+          "ensembl_release": "116",
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
         }
@@ -132,7 +132,7 @@
         "allele_type": null,
         "mgi_allele_id": 5678,
         "ensembl_info": {
-          "ensembl_release": 116,
+          "ensembl_release": "116",
           "ensembl_possible_replacements": [],
           "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
         }

@@ -973,6 +973,14 @@ def create_ensembl_info_df(gene_metadata_df: pd.DataFrame) -> pd.DataFrame:
         empty_list_columns=["ensembl_possible_replacements"],
     )
 
+    # Ensure that "ensembl_release" is a string, not a number
+    ensembl_info_df["ensembl_release"] = ensembl_info_df["ensembl_release"].astype(str)
+
+    # Ensure that all "ensembl_possible_replacements" entries are lists and not ndarrays
+    ensembl_info_df["ensembl_possible_replacements"] = ensembl_info_df[
+        "ensembl_possible_replacements"
+    ].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+
     ensembl_info_df = nest_fields(
         ensembl_info_df,
         grouping="ensembl_gene_id",

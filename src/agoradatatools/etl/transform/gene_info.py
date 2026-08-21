@@ -5,6 +5,7 @@ import pandas as pd
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
+    create_ensembl_info_df,
     nest_fields,
     normalize_null_values,
 )
@@ -199,21 +200,7 @@ def transform_gene_info(
 
     # Add ensembl_info as a nested field. This is done after merging all other data sets so it applies to
     # all possible Ensembl IDs in all data sets.
-    ensembl_info = gene_info[
-        [
-            "ensembl_gene_id",
-            "ensembl_release",
-            "ensembl_possible_replacements",
-            "ensembl_permalink",
-        ]
-    ]
-    ensembl_info = nest_fields(
-        df=ensembl_info,
-        grouping="ensembl_gene_id",
-        new_column="ensembl_info",
-        drop_columns=["ensembl_gene_id"],
-        nested_field_is_list=False,
-    )
+    ensembl_info = create_ensembl_info_df(gene_info)
 
     gene_info = pd.merge(
         left=gene_info,

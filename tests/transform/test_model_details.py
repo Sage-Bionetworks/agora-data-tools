@@ -274,7 +274,7 @@ class TestNestGeneticInfo:
     basic_gene_metadata_df = pd.DataFrame(
         {
             "ensembl_gene_id": ["ENSG000001", "ENSMUSG0000002"],
-            "ensembl_release": [104, 104],
+            "ensembl_release": ["104", "104"],
             "ensembl_possible_replacements": [["ENSG000004"], []],
             "ensembl_permalink": [
                 "http://example.com/geneA",
@@ -303,7 +303,7 @@ class TestNestGeneticInfo:
                             "allele_type": "type1",
                             "mgi_allele_id": "MGI:1",
                             "ensembl_info": {
-                                "ensembl_release": 104,
+                                "ensembl_release": "104",
                                 "ensembl_possible_replacements": ["ENSG000004"],
                                 "ensembl_permalink": "http://example.com/geneA",
                             },
@@ -315,7 +315,7 @@ class TestNestGeneticInfo:
                             "allele_type": "type2",
                             "mgi_allele_id": "MGI:2",
                             "ensembl_info": {
-                                "ensembl_release": 104,
+                                "ensembl_release": "104",
                                 "ensembl_possible_replacements": [],
                                 "ensembl_permalink": "http://example.com/geneB",
                             },
@@ -360,7 +360,7 @@ class TestNestGeneticInfo:
                 "allele_type": "type1",
                 "mgi_allele_id": "MGI:1",
                 "ensembl_info": {
-                    "ensembl_release": 104,
+                    "ensembl_release": "104",
                     "ensembl_possible_replacements": ["ENSG000004"],
                     "ensembl_permalink": "http://example.com/geneA",
                 },
@@ -383,7 +383,7 @@ class TestNestGeneticInfo:
         gene_meta = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSG000001"],
-                "ensembl_release": [104],
+                "ensembl_release": ["104"],
                 "ensembl_possible_replacements": [["ENSG000004"]],
                 "ensembl_permalink": ["http://example.com/geneA"],
             }

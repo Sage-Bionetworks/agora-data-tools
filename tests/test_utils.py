@@ -2098,7 +2098,7 @@ class TestCreateEnsemblInfoDf:
                     "ensembl_gene_id": "ENSG00000142192",
                     "gene_symbol": "APP",
                     "alias": ["AD1", "ALPHA-SAPP"],
-                    "ensembl_release": 116,
+                    "ensembl_release": "116",
                     "ensembl_possible_replacements": ["test_replacement"],
                     "ensembl_permalink": "https://link_to_ENSG00000142192",
                 },
@@ -2106,7 +2106,7 @@ class TestCreateEnsemblInfoDf:
                     "ensembl_gene_id": "ENSMUSG00000018411",
                     "gene_symbol": "Mapt",
                     "alias": ["Mtapt", "Tau"],
-                    "ensembl_release": 116,
+                    "ensembl_release": "116",
                     "ensembl_possible_replacements": [],
                     "ensembl_permalink": "https://link_to_ENSMUSG00000018411",
                 },
@@ -2119,7 +2119,7 @@ class TestCreateEnsemblInfoDf:
                 {
                     "ensembl_gene_id": "ENSG00000142192",
                     "ensembl_info": {
-                        "ensembl_release": 116,
+                        "ensembl_release": "116",
                         "ensembl_possible_replacements": ["test_replacement"],
                         "ensembl_permalink": "https://link_to_ENSG00000142192",
                     },
@@ -2127,7 +2127,7 @@ class TestCreateEnsemblInfoDf:
                 {
                     "ensembl_gene_id": "ENSMUSG00000018411",
                     "ensembl_info": {
-                        "ensembl_release": 116,
+                        "ensembl_release": "116",
                         "ensembl_possible_replacements": [],
                         "ensembl_permalink": "https://link_to_ENSMUSG00000018411",
                     },
@@ -2167,6 +2167,76 @@ class TestCreateEnsemblInfoDf:
         # Check dictionary directly so None and np.nan are not treated as equivalent by pd.testing.assert_frame_equal
         assert output["ensembl_info"].iloc[0] == expected_dict
 
+    def test_create_ensembl_info_df_converts_integer_release_to_string(self) -> None:
+        """
+        Tests that create_ensembl_info_df converts integer values in the "ensembl_release" column to strings.
+        """
+        gene_metadata = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_release": 116,
+                    "ensembl_possible_replacements": [],
+                    "ensembl_permalink": "",
+                }
+            ]
+        )
+
+        expected_df = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_info": {
+                        "ensembl_release": "116",  # Should be converted to string
+                        "ensembl_possible_replacements": [],
+                        "ensembl_permalink": "",
+                    },
+                }
+            ]
+        )
+
+        output = utils.create_ensembl_info_df(gene_metadata)
+
+        pd.testing.assert_frame_equal(output, expected_df)
+
+    def test_create_ensembl_info_df_converts_ndarray_to_list(self) -> None:
+        """
+        Tests that create_ensembl_info_df converts numpy ndarrays in the "ensembl_possible_replacements" column to lists.
+        """
+        gene_metadata = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_release": "116",
+                    "ensembl_possible_replacements": np.array(
+                        ["replacement1", "replacement2"]
+                    ),
+                    "ensembl_permalink": "",
+                }
+            ]
+        )
+
+        expected_df = pd.DataFrame(
+            [
+                {
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "ensembl_info": {
+                        "ensembl_release": "116",
+                        # Should be converted to list
+                        "ensembl_possible_replacements": [
+                            "replacement1",
+                            "replacement2",
+                        ],
+                        "ensembl_permalink": "",
+                    },
+                }
+            ]
+        )
+
+        output = utils.create_ensembl_info_df(gene_metadata)
+
+        pd.testing.assert_frame_equal(output, expected_df)
+
     def test_create_ensembl_info_df_drops_na_ensembl_ids(self) -> None:
         """
         Tests that create_ensembl_info_df drops rows with NA Ensembl IDs before nesting
@@ -2175,13 +2245,13 @@ class TestCreateEnsemblInfoDf:
             [
                 {
                     "ensembl_gene_id": None,
-                    "ensembl_release": 116,
+                    "ensembl_release": "116",
                     "ensembl_possible_replacements": [],
                     "ensembl_permalink": "",
                 },
                 {
                     "ensembl_gene_id": "ENSG00000142192",
-                    "ensembl_release": 116,
+                    "ensembl_release": "116",
                     "ensembl_possible_replacements": [],
                     "ensembl_permalink": "",
                 },
@@ -2194,7 +2264,7 @@ class TestCreateEnsemblInfoDf:
                 {
                     "ensembl_gene_id": "ENSG00000142192",
                     "ensembl_info": {
-                        "ensembl_release": 116,
+                        "ensembl_release": "116",
                         "ensembl_possible_replacements": [],
                         "ensembl_permalink": "",
                     },
@@ -2213,14 +2283,14 @@ class TestCreateEnsemblInfoDf:
             [
                 {
                     "ensembl_gene_id": "ENSG00000142192",
-                    "ensembl_release": 116,
+                    "ensembl_release": "116",
                     "ensembl_possible_replacements": [],
                     "ensembl_permalink": "",
                 },
                 {
                     # Duplicate row with the same Ensembl ID
                     "ensembl_gene_id": "ENSG00000142192",
-                    "ensembl_release": 110,
+                    "ensembl_release": "110",
                     "ensembl_possible_replacements": ["test"],
                     "ensembl_permalink": "link/to/gene",
                 },
@@ -2233,7 +2303,7 @@ class TestCreateEnsemblInfoDf:
                 {
                     "ensembl_gene_id": "ENSG00000142192",
                     "ensembl_info": {
-                        "ensembl_release": 116,
+                        "ensembl_release": "116",
                         "ensembl_possible_replacements": [],
                         "ensembl_permalink": "",
                     },
@@ -2273,13 +2343,13 @@ class TestCreateEnsemblInfoDf:
             [
                 {
                     "ensembl_gene_id": None,
-                    "ensembl_release": 116,
+                    "ensembl_release": "116",
                     "ensembl_possible_replacements": [],
                     "ensembl_permalink": "",
                 },
                 {
                     "ensembl_gene_id": np.nan,
-                    "ensembl_release": 116,
+                    "ensembl_release": "116",
                     "ensembl_possible_replacements": [],
                     "ensembl_permalink": "",
                 },
