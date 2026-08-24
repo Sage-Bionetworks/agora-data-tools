@@ -43,7 +43,7 @@ MODEL_GROUP     <- 'LOAD2'
 MATCHED_CONTROL <- 'LOAD1'
 MODEL_TYPE      <- 'Late Onset AD'
 TISSUE          <- 'Hemibrain'
-SEXES           <- c('Females', 'Males')
+SEXES           <- c('Female', 'Male')
 AGES            <- c(4, 12, 18, 24)
 
 
@@ -220,7 +220,9 @@ basic_results <- object_dict_expanded %>%
     `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
 
     # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
-    `24 months` = purrr::map(has_24_months, ~ if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL)
+    `24 months` = purrr::map(has_24_months, ~ {
+       if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL
+     })
   ) %>%
   select(-has_24_months)
 
@@ -296,7 +298,9 @@ rna_exists_multiple_proteins_results <- object_dict_expanded %>%
     `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
 
     # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
-    `24 months` = purrr::map(has_24_months, ~ if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL)
+    `24 months` = purrr::map(has_24_months, ~ {
+      if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL
+    })
   ) %>%
   select(-has_24_months)
 
@@ -363,7 +367,9 @@ no_rna_protein_exists_results <- object_dict_expanded %>%
     `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
 
     # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
-    `24 months` = purrr::map(has_24_months, ~ if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL)
+    `24 months` = purrr::map(has_24_months, ~ {
+      if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL
+    })
   ) %>%
   select(-has_24_months)
 
@@ -371,7 +377,7 @@ no_rna_protein_exists_results
 ```
 
 
-# Assemble and upload collection
+# Assemble the collection
 
 ```{r}
 # *********************************************
@@ -518,7 +524,7 @@ all_mocks <- rbind(
 
 all_mocks %>%
   # 1. Select only rows with sex == Female
-  filter(sex == "Females") %>%
+  filter(sex == "Female") %>%
 
   # 2. Look for duplicate uniprotid values among those rows
   group_by(uniprotid) %>%
