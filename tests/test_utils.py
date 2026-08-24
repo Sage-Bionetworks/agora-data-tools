@@ -1232,6 +1232,82 @@ class TestValidateOneToOneMapping:
             utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
 
+class TestFilterRowsByQcStatus:
+    """Tests for filter_rows_by_qc_status()."""
+
+    QC_COLUMNS = ["qc_ab", "qc_neuro"]
+    PASSING = {"PASS"}
+
+    @pytest.mark.parametrize(
+        "qc_ab,qc_neuro,kept",
+        [
+            # Only one panel was assayed and it passed, so the row is surfaced.
+            ("PASS", np.nan, True),
+            (np.nan, "PASS", True),
+            # None stands in for a blank the same way np.nan does.
+            (None, "PASS", True),
+            ("PASS", "PASS", True),
+            # A populated failure outweighs a populated pass on the same row.
+            ("FAIL", np.nan, False),
+            ("PASS", "FAIL", False),
+            # PENDING is not a passing status, so it is withheld.
+            ("PENDING", np.nan, False),
+            # No panel was assayed at all.
+            (np.nan, np.nan, False),
+        ],
+    )
+    def test_row_kept_only_when_populated_statuses_all_pass(
+        self, qc_ab: Any, qc_neuro: Any, kept: bool
+    ) -> None:
+        df = pd.DataFrame({"qc_ab": [qc_ab], "qc_neuro": [qc_neuro], "value": [1.0]})
+
+        result = utils.filter_rows_by_qc_status(df, self.QC_COLUMNS, self.PASSING)
+
+        assert len(result) == (1 if kept else 0)
+
+    def test_preserves_all_columns_and_original_index(self) -> None:
+        df = pd.DataFrame(
+            {
+                "qc_ab": ["PASS", "FAIL", "PASS"],
+                "qc_neuro": [np.nan, np.nan, np.nan],
+                "value": [1.0, 2.0, 3.0],
+            }
+        )
+
+        result = utils.filter_rows_by_qc_status(df, self.QC_COLUMNS, self.PASSING)
+
+        assert list(result.index) == [0, 2]
+        assert list(result.columns) == ["qc_ab", "qc_neuro", "value"]
+        assert list(result["value"]) == [1.0, 3.0]
+
+    def test_accepts_multiple_passing_statuses(self) -> None:
+        df = pd.DataFrame({"qc_ab": ["PASS", "PENDING", "FAIL"], "qc_neuro": np.nan})
+
+        result = utils.filter_rows_by_qc_status(
+            df, self.QC_COLUMNS, {"PASS", "PENDING"}
+        )
+
+        assert list(result["qc_ab"]) == ["PASS", "PENDING"]
+
+    @pytest.mark.parametrize(
+        "qc_columns,passing_statuses",
+        [([], {"PASS"}), (["qc_ab"], set())],
+    )
+    def test_raises_when_an_argument_is_empty(
+        self, qc_columns: list, passing_statuses: set
+    ) -> None:
+        df = pd.DataFrame({"qc_ab": ["PASS"], "qc_neuro": [np.nan]})
+
+        with pytest.raises(ValueError, match="non-empty"):
+            utils.filter_rows_by_qc_status(df, qc_columns, passing_statuses)
+
+    def test_raises_when_qc_column_is_missing(self) -> None:
+        df = pd.DataFrame({"qc_ab": ["PASS"]})
+
+        with pytest.raises(KeyError):
+            utils.filter_rows_by_qc_status(df, self.QC_COLUMNS, self.PASSING)
+
+
 class TestFlattenList:
     def test_flatten_list_empty(self):
         assert utils.flatten_list([]) == []

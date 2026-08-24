@@ -651,6 +651,54 @@ def check_column_rules(
         raise ValueError("\n".join(violations))
 
 
+def filter_rows_by_qc_status(
+    df: pd.DataFrame,
+    qc_columns: Collection[str],
+    passing_statuses: Collection[str],
+) -> pd.DataFrame:
+    """Keep only the rows that passed QC across a set of QC status columns.
+
+    A row is kept when at least one QC column reports a status and every populated
+    QC column reports one of passing_statuses.
+
+    Blanks are tolerated rather than treated as failures. A source that records QC
+    per assay panel leaves a column blank when the row has no measurement for that
+    panel at all, which is not the same as the panel failing. Requiring every QC
+    column to be populated and passing would discard rows carrying a single panel's
+    measurements, which is typically the common case.
+
+    A row whose QC columns are all blank is dropped: no panel was assayed, so the
+    row carries no measurement worth surfacing.
+
+    This function only filters. Confirming that the QC columns hold a known
+    vocabulary is left to check_column_rules with a OneOfRule, so an unrecognized
+    status fails loudly instead of being silently treated as non-passing.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to filter.
+        qc_columns (Collection[str]): Names of the QC status columns in df.
+        passing_statuses (Collection[str]): The statuses that count as passing.
+
+    Returns:
+        pd.DataFrame: The rows of df that passed QC, with all columns preserved.
+
+    Raises:
+        ValueError: If qc_columns or passing_statuses is empty.
+        KeyError: If any name in qc_columns is not a column of df.
+    """
+    if not qc_columns or not passing_statuses:
+        raise ValueError(
+            "qc_columns and passing_statuses must each be non-empty; otherwise no "
+            "row can pass and every row would be dropped."
+        )
+
+    qc = df[list(qc_columns)]
+    populated = qc.notna()
+    passed = qc.isin(list(passing_statuses))
+
+    return df[populated.any(axis=1) & (passed | ~populated).all(axis=1)]
+
+
 def flatten_list(lst: List[Any]) -> List[Any]:
     """
     Recursively flattens a nested list into a single list of values.
