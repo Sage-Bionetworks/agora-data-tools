@@ -2,25 +2,30 @@
 This file contains utility functions that may be used across multiple transforms related to Model-AD.
 
 Functions:
-    process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
+    process_genetic_modifications - process a genetic modifications DataFrame by updating the "ensembl_gene_id" and
+        "modified_gene" columns based on human and mouse gene information
     build_transcriptomics_url - build a URL linking to the gene comparison table for a given study
     zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
     remap_sex_labels - convert any plural sex values to singular form for consistent display
 """
 
-from typing import Any, Dict, List, Union
+from typing import Union
 import pandas as pd
 
 from agoradatatools.etl.utils import normalize_null_values
 
 
-def process_genetic_info(
+def process_genetic_modifications(
     model_genetic_modifications: pd.DataFrame,
-) -> List[Dict[str, Any]]:
+) -> pd.DataFrame:
     """
-    Processes the gene information DataFrame. If the allele is a human transgene,
-    replace the ensembl_id with the human one. Each model's alleles are processed independently.
-    Multiple entries are preserved for different alleles of the same gene.
+    Processes the gene modifications DataFrame by creating a new column, "ensembl_gene_id". If the allele is a human
+    transgene, "ensembl_gene_id" is filled with the value in "human_ensembl_id". Otherwise, the value is filled from
+    "mouse_ensembl_id". The "modified_gene" column is updated the same way, using the human gene symbol for human
+    transgenes and the mouse symbol for mouse genes.
+
+    Each model's alleles are processed independently. Multiple entries are preserved for different alleles of the same
+    gene.
 
     This function assumes the input data has been pre-validated so that model_genetic_modifications
     does not have any missing/NaN/none values in the "modified_gene" or "mouse_ensembl_id" columns.
@@ -31,7 +36,7 @@ def process_genetic_info(
             transgene information
 
     Returns:
-        List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
+        pd.DataFrame: The processed genetic modifications DataFrame.
     """
     # Normalize missing values to None.
     model_genetic_modifications = normalize_null_values(model_genetic_modifications)
@@ -56,14 +61,21 @@ def process_genetic_info(
         axis=1,
     )
 
-    # Drop duplicates to ensure we don't have exact duplicates of the same allele
+    # Drop duplicates for the same model to ensure we don't have exact duplicates of the same allele
     model_genetic_modifications = model_genetic_modifications.drop_duplicates(
-        subset=["modified_gene", "allele", "mgi_allele_id"]
+        subset=["name", "ensembl_gene_id", "modified_gene", "allele", "mgi_allele_id"]
     )
 
     return model_genetic_modifications[
-        ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
-    ].to_dict(orient="records")
+        [
+            "name",
+            "modified_gene",
+            "ensembl_gene_id",
+            "allele",
+            "allele_type",
+            "mgi_allele_id",
+        ]
+    ]
 
 
 def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
