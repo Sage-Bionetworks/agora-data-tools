@@ -16,8 +16,8 @@ files:
   - &marmo_genotype_label_map     { name: marmo_genotype_label_map     , format: csv  , id: syn76417167.2 }
   - &marmo_biomarker_measure_info { name: marmo_biomarker_measure_info , format: csv  , id: syn76417168.1 }
   - &marmo_individual_metadata    { name: marmo_individual_metadata    , format: csv  , id: syn63926850.19 }
-  - &marmo_biospecimen_metadata   { name: marmo_biospecimen_metadata   , format: csv  , id: syn63927118.16 }
-  - &marmo_results                { name: marmo_results                , format: csv  , id: syn64133726.17 }
+  - &marmo_biomaterial_metadata   { name: marmo_biomaterial_metadata   , format: csv  , id: syn74444970.5 }
+  - &marmo_results                { name: marmo_results                , format: csv  , id: syn64133726.18 }
   # Results
   - &biodom_genes_mm              { name: biodom_genes_mm              , format: csv  , id: syn66351272.1  }
   - &biomarkers                   { name: biomarkers                   , format: csv  , id: syn61250724.12 }
@@ -74,7 +74,7 @@ datasets:
         - <<: *marmo_genotype_label_map
         - <<: *marmo_biomarker_measure_info
         - <<: *marmo_individual_metadata
-        - <<: *marmo_biospecimen_metadata
+        - <<: *marmo_biomaterial_metadata
         - <<: *marmo_results
       final_format: json
       destination: *dest

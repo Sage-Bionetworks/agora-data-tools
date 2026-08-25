@@ -49,10 +49,10 @@ REQUIRED_INPUT = {
         "genotype",
         "sex",
     ],
-    "marmo_biospecimen_metadata": [
-        "specimenid",
-        "samplingage",
-        "samplingageunits",
+    "marmo_biomaterial_metadata": [
+        "biomaterialid",
+        "collectionage",
+        "collectionageunits",
     ],
     "marmo_results": [
         "biomaterialid",
@@ -62,10 +62,17 @@ REQUIRED_INPUT = {
 
 # Per-column content rules validated up front so bad source data fails loudly rather than
 # silently dropping or miscomputing rows downstream.
-#   - samplingageunits: ages are bucketed assuming months, so any other unit must fail.
-#   - samplingage: must be numeric so age bucketing is well-defined.
+#   - collectionage: must be numeric so age bucketing is well-defined.
 #   - ensembl_gene_id: marmoset (Callithrix jacchus) Ensembl gene ids are ENSCJAG-prefixed.
 #   - NotEmpty rules guard the id/label/order columns whose absence would corrupt joins or output.
+#
+# marmo_biomaterial_metadata describes every biomaterial collected for the study, not just the
+# MSD plasma samples this transform consumes, so its rules here are limited to ones that hold
+# file-wide. NumericRule skips nulls, so it tolerates the assays that record no age. A
+# NotEmptyRule on biomaterialid would not: the file carries a row with only modelSystemType
+# populated. That blank id is harmless because it can never match a results id, and the
+# meaningful presence check already lives on marmo_results.biomaterialid, which drives the join.
+# Rules that only hold for the consumed rows live in REFERENCED_BIOMATERIAL_RULES below.
 COLUMN_RULES = {
     "marmo_metadata": {
         "model": [NotEmptyRule()],
@@ -84,10 +91,8 @@ COLUMN_RULES = {
         "genotype": [NotEmptyRule()],
         "sex": [NotEmptyRule()],
     },
-    "marmo_biospecimen_metadata": {
-        "specimenid": [NotEmptyRule()],
-        "samplingage": [NumericRule()],
-        "samplingageunits": [OneOfRule({"months"})],
+    "marmo_biomaterial_metadata": {
+        "collectionage": [NumericRule()],
     },
     "marmo_results": {
         "biomaterialid": [NotEmptyRule()],
@@ -95,37 +100,49 @@ COLUMN_RULES = {
     },
 }
 
-# Number of months used to bucket sampling ages into whole-year ranges.
+# Rules checked against only the biomaterial rows that marmo_results references, applied after
+# that subset is taken in _build_measurements.
+#
+# collectionageunits: ages are bucketed assuming months, so any other unit must fail. OneOfRule
+# counts nulls as violations, and the file leaves collectionAgeUnits blank on assays that record
+# no age, so this cannot be checked file-wide. Every referenced row carries "months" today.
+REFERENCED_BIOMATERIAL_RULES = {
+    "marmo_biomaterial_metadata": {
+        "collectionageunits": [OneOfRule({"months"})],
+    },
+}
+
+# Number of months used to bucket collection ages into whole-year ranges.
 MONTHS_PER_YEAR = 12
 
 
-def _convert_to_year(sampling_age_months: float) -> int:
-    """Floor a sampling age in months to the whole year in which the sample was taken.
+def _convert_to_year(collection_age_months: float) -> int:
+    """Floor a collection age in months to the whole year in which the sample was taken.
 
     Shared by the bucket label and the numeric sort key so the flooring logic lives in one place.
 
     Args:
-        sampling_age_months (float): The animal's age in months at the time of sampling.
+        collection_age_months (float): The animal's age in months at the time of collection.
 
     Returns:
         int: The floored whole-year value, e.g. 9.9 -> 0, 13.0 -> 1.
     """
-    return int(sampling_age_months // MONTHS_PER_YEAR)
+    return int(collection_age_months // MONTHS_PER_YEAR)
 
 
-def _age_to_year_bucket(sampling_age_months: float) -> str:
-    """Convert a sampling age in months into a whole-year bucket label.
+def _age_to_year_bucket(collection_age_months: float) -> str:
+    """Convert a collection age in months into a whole-year bucket label.
 
     Ages are floored to the year in which the sample was taken, e.g. 9.9 months -> "0-1 years",
     13.0 months -> "1-2 years".
 
     Args:
-        sampling_age_months (float): The animal's age in months at the time of sampling.
+        collection_age_months (float): The animal's age in months at the time of collection.
 
     Returns:
         str: The bucket label, e.g. "2-3 years".
     """
-    bucket_start = _convert_to_year(sampling_age_months)
+    bucket_start = _convert_to_year(collection_age_months)
     return f"{bucket_start}-{bucket_start + 1} years"
 
 
@@ -137,8 +154,8 @@ def _build_measurements(
 
     Melts the wide marmo_results measure columns into long form, joins individual metadata
     (genotype, sex), maps genotypes to their display labels and models (dropping any genotype
-    not present in the label map), joins biospecimen sampling ages (dropping rows without a
-    biospecimen record), and attaches the measure metadata (evidence_type, units, display_order).
+    not present in the label map), joins biomaterial collection ages (dropping rows without a
+    biomaterial record), and attaches the measure metadata (evidence_type, units, display_order).
 
     Individual and results files have no model column. A measurement is tied to a model by
     joining its genotype to marmo_genotype_label_map. A genotype listed under more than one
@@ -156,11 +173,13 @@ def _build_measurements(
         biomarkers collection, including a model column from the label map.
 
     Raises:
-        ValueError: If marmo_genotype_label_map has duplicate (model, genotype) rows.
+        ValueError: If marmo_genotype_label_map has duplicate (model, genotype) rows, if a
+            referenced biomaterial row violates REFERENCED_BIOMATERIAL_RULES, or if no
+            measurement retains a collection age after the biomaterial join.
     """
     results = datasets["marmo_results"]
     individual = datasets["marmo_individual_metadata"]
-    biospecimen = datasets["marmo_biospecimen_metadata"]
+    biomaterial = datasets["marmo_biomaterial_metadata"]
     genotype_map = datasets["marmo_genotype_label_map"]
 
     # Every result_column listed in the measure-info mapping must exist in marmo_results.
@@ -215,22 +234,40 @@ def _build_measurements(
         validate="m:m",
     )
 
-    # Attach sampling age from the biospecimen record; drop measurements with no biospecimen match.
-    # validate="m:1": one sampling age per specimen; duplicate specimen rows would duplicate
-    # measurements.
+    # marmo_results and marmo_biomaterial_metadata share the biomaterialID vocabulary directly,
+    # so the age join is a plain key join. The biomaterial file also describes assays this
+    # transform never surfaces (ddPCR, rnaSeq, and others), so narrow it to the referenced rows
+    # before validating the rules that only hold for what is consumed.
+    referenced = biomaterial[
+        biomaterial["biomaterialid"].isin(results["biomaterialid"])
+    ]
+    check_column_rules(
+        {"marmo_biomaterial_metadata": referenced}, REFERENCED_BIOMATERIAL_RULES
+    )
+
+    # Attach collection age from the biomaterial record; drop measurements with no biomaterial
+    # match. validate="m:1": one collection age per biomaterial, so duplicate biomaterial rows
+    # cannot duplicate measurements.
     long = long.merge(
-        biospecimen[["specimenid", "samplingage"]].rename(
-            columns={"specimenid": "biomaterialid"}
-        ),
+        referenced[["biomaterialid", "collectionage"]],
         how="left",
         on="biomaterialid",
         validate="m:1",
     )
-    long["samplingage"] = pd.to_numeric(long["samplingage"], errors="coerce")
-    long = long.dropna(subset=["samplingage"])
+    long["collectionage"] = pd.to_numeric(long["collectionage"], errors="coerce")
+    retained = long.dropna(subset=["collectionage"])
+    # An empty result here means the two files no longer share an id vocabulary rather than that
+    # every sample is genuinely unrecorded. Without this guard that produces empty biomarkers
+    # collections instead of an error, which is how the previous id mismatch went unnoticed.
+    if not long.empty and retained.empty:
+        raise ValueError(
+            "No marmo_results measurement matched a marmo_biomaterial_metadata record with a "
+            "collection age. Check that biomaterialid values still agree between the two files."
+        )
+    long = retained
 
-    long["age"] = long["samplingage"].apply(_age_to_year_bucket)
-    long["age_start"] = long["samplingage"].apply(_convert_to_year)
+    long["age"] = long["collectionage"].apply(_age_to_year_bucket)
+    long["age_start"] = long["collectionage"].apply(_convert_to_year)
     long["sex"] = long["sex"].str.title()
 
     # Attach measure metadata. validate="m:1": one metadata row per result column, so duplicate
@@ -334,7 +371,7 @@ def transform_marmo_details(
 
     Source files: marmo_metadata (syn76417166), marmo_genotype_label_map (syn76417167),
     marmo_biomarker_measure_info (syn76417168), marmo_individual_metadata (syn63926850),
-    marmo_biospecimen_metadata (syn63927118), marmo_results (syn64133726).
+    marmo_biomaterial_metadata (syn74444970), marmo_results (syn64133726).
 
     One output object is produced per distinct model in marmo_metadata, matching how
     transform_model_details loops mouse models. A measurement is associated with a model
@@ -350,9 +387,9 @@ def transform_marmo_details(
         2. Each measurement is joined to its individual's genotype and sex; genotypes are mapped
            to display labels and models via marmo_genotype_label_map. Measurements whose
            genotype is not in the label map are excluded.
-        3. Each measurement's sampling age is joined from the biospecimen record on
-           biomaterialid == specimenid. Measurements with no biospecimen record are dropped.
-        4. Sampling ages (months) are bucketed into whole-year ranges (e.g. "0-1 years").
+        3. Each measurement's collection age is joined from the biomaterial record on
+           biomaterialid. Measurements with no biomaterial record are dropped.
+        4. Collection ages (months) are bucketed into whole-year ranges (e.g. "0-1 years").
         5. Measure metadata (evidence_type, units, display_order) is attached from
            marmo_biomarker_measure_info. y_axis_max is computed per model from the data
            (per-measure maximum rounded up via round_y_axis_max). Each model's biomarkers
@@ -368,8 +405,9 @@ def transform_marmo_details(
         marmo_metadata).
 
     Raises:
-        ValueError: If required datasets or columns are missing, or if marmo_genotype_label_map
-            has duplicate (model, genotype) rows.
+        ValueError: If required datasets or columns are missing, if marmo_genotype_label_map
+            has duplicate (model, genotype) rows, or if no measurement survives the
+            marmo_biomaterial_metadata join.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)

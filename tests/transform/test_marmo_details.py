@@ -23,7 +23,7 @@ class TestTransformMarmoDetails:
         "marmo_genotype_label_map": "marmo_genotype_label_map_good_input.csv",
         "marmo_biomarker_measure_info": "marmo_biomarker_measure_info_good_input.csv",
         "marmo_individual_metadata": "marmo_individual_metadata_good_input.csv",
-        "marmo_biospecimen_metadata": "marmo_biospecimen_metadata_good_input.csv",
+        "marmo_biomaterial_metadata": "marmo_biomaterial_metadata_good_input.csv",
         "marmo_results": "marmo_results_good_input.csv",
     }
 
@@ -37,7 +37,7 @@ class TestTransformMarmoDetails:
 
     def test_marmo_details_transform_should_pass(self):
         """Good data: exercises melt, genotype mapping (including exclusion of an unmapped
-        genotype), dropping rows with no biospecimen match, dropping null measurements,
+        genotype), dropping rows with no biomaterial match, dropping null measurements,
         empty-string ratio units, and measure/age sort order."""
         datasets = self._load_datasets(self.good_input_files)
 
@@ -61,7 +61,7 @@ class TestTransformMarmoDetails:
             "marmo_genotype_label_map",
             "marmo_biomarker_measure_info",
             "marmo_individual_metadata",
-            "marmo_biospecimen_metadata",
+            "marmo_biomaterial_metadata",
             "marmo_results",
         ],
     )
@@ -126,26 +126,49 @@ class TestTransformMarmoDetails:
         with pytest.raises(ValueError, match="duplicate \\(model, genotype\\)"):
             transform_marmo_details(datasets=datasets)
 
-    def test_marmo_details_bad_sampling_age_units_should_fail(self):
-        """A samplingAgeUnits value other than months fails validation and raises ValueError."""
+    def test_marmo_details_bad_collection_age_units_should_fail(self):
+        """A collectionAgeUnits value other than months on a referenced biomaterial row fails
+        validation and raises ValueError."""
         input_files = dict(self.good_input_files)
         input_files[
-            "marmo_biospecimen_metadata"
-        ] = "marmo_biospecimen_metadata_bad_units_input.csv"
+            "marmo_biomaterial_metadata"
+        ] = "marmo_biomaterial_metadata_bad_units_input.csv"
         datasets = self._load_datasets(input_files)
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
 
-    def test_marmo_details_non_numeric_sampling_age_should_fail(self):
-        """A non-numeric samplingage fails the NumericRule and raises ValueError."""
+    def test_marmo_details_blank_units_on_unreferenced_row_should_pass(self):
+        """A blank collectionAgeUnits is tolerated on a biomaterial row that marmo_results does
+        not reference. The file records assays with no age (e.g. nanostring), and OneOfRule counts
+        nulls as violations, so those rows must be excluded before the unit check runs."""
+        datasets = self._load_datasets(self.good_input_files)
+        assert datasets["marmo_biomaterial_metadata"]["collectionageunits"].isna().any()
+
+        transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_non_numeric_collection_age_should_fail(self):
+        """A non-numeric collectionage fails the NumericRule and raises ValueError."""
         input_files = dict(self.good_input_files)
         input_files[
-            "marmo_biospecimen_metadata"
-        ] = "marmo_biospecimen_metadata_bad_age_input.csv"
+            "marmo_biomaterial_metadata"
+        ] = "marmo_biomaterial_metadata_bad_age_input.csv"
         datasets = self._load_datasets(input_files)
 
         with pytest.raises(ValueError):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_no_biomaterial_match_should_fail(self):
+        """When no result biomaterialid matches a biomaterial record, the transform raises rather
+        than emitting empty biomarkers collections. This is the failure mode that let an earlier
+        id-scheme mismatch between the two files go unnoticed."""
+        datasets = self._load_datasets(self.good_input_files)
+        biomaterial = datasets["marmo_biomaterial_metadata"]
+        datasets["marmo_biomaterial_metadata"] = biomaterial.assign(
+            biomaterialid="unmatched-" + biomaterial["biomaterialid"]
+        )
+
+        with pytest.raises(ValueError, match="No marmo_results measurement matched"):
             transform_marmo_details(datasets=datasets)
 
     def test_marmo_details_unknown_result_column_should_fail(self):
@@ -203,7 +226,7 @@ class TestBuildMeasurements:
             # individual 9 has no row in marmo_individual_metadata
             "marmo_results": pd.DataFrame(
                 {
-                    "biomaterialid": ["msdpl-1_A", "msdpl-9_A"],
+                    "biomaterialid": ["7015_1", "7019_1"],
                     "individualid": [1, 9],
                     "ab40_pg_ml": [100.0, 900.0],
                 }
@@ -215,11 +238,11 @@ class TestBuildMeasurements:
                     "sex": ["male"],
                 }
             ),
-            "marmo_biospecimen_metadata": pd.DataFrame(
+            "marmo_biomaterial_metadata": pd.DataFrame(
                 {
-                    "specimenid": ["msdpl-1_A", "msdpl-9_A"],
-                    "samplingage": [6, 9],
-                    "samplingageunits": ["months", "months"],
+                    "biomaterialid": ["7015_1", "7019_1"],
+                    "collectionage": [6, 9],
+                    "collectionageunits": ["months", "months"],
                 }
             ),
             "marmo_genotype_label_map": pd.DataFrame(
