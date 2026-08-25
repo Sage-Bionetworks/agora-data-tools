@@ -95,23 +95,23 @@ def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
 
     Args:
         model_row (pd.Series): A single row from the model_info data frame, which must contain columns "name",
-            "transcriptomics", "url_categories_value", and "url_models_value". The latter two columns may be None or
-            contain strings. "transcriptomics" must be True or False. It is assumed that normalize_null_values has
-            already been called on this data so that all missing values used in this function are None, not NA or empty
-            strings.
+            "transcriptomics", "transcriptomics_url_categories_value", and "transcriptomics_url_models_value". The latter
+            two columns may be None or contain strings. "transcriptomics" must be True or False. It is assumed that
+            normalize_null_values has already been called on this data so that all missing values used in this function
+            are None, not NA or empty strings.
 
     Returns:
         a string with the completed URL, or None if there is no transcriptomics data for the model
     """
     categories_value = (
         # Contains the "&" at the end to separate it from the models=... statement
-        f"categories={model_row['url_categories_value']}&"
-        if model_row["url_categories_value"]  # must not be "" or None
-        else ""  # Only adds to URL if the url_categories_value is specified
+        f"categories={model_row['transcriptomics_url_categories_value']}&"
+        if model_row["transcriptomics_url_categories_value"]  # must not be "" or None
+        else ""  # Only adds to URL if the transcriptomics_url_categories_value is specified
     )
     models_value = (
-        model_row["url_models_value"]  # A comma-separated list, if specified
-        if model_row["url_models_value"]  # must not be "" or None
+        model_row["transcriptomics_url_models_value"]  # A comma-separated list, if specified
+        if model_row["transcriptomics_url_models_value"]  # must not be "" or None
         else model_row["name"]  # A single model name if url_models_value is blank
     )
     url = (
