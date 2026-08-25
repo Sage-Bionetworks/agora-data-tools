@@ -1,0 +1,30 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "title": "Drug Info Linked Targets Schema",
+    "type": "array",
+    "minItems": 0,
+    "maxItems": 100,
+    "items": {
+        "type": "object",
+        "properties": {
+            "ensembl_gene_id": {
+                "type": "string",
+                "pattern": "^ENSG\\d{11}$"
+            },
+            "hgnc_symbol": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+            },
+            "is_nominated_target": {
+                "type": "boolean"
+            }
+        },
+        "required": [
+            "ensembl_gene_id",
+            "hgnc_symbol",
+            "is_nominated_target"
+        ],
+        "additionalProperties": false
+    }
+}

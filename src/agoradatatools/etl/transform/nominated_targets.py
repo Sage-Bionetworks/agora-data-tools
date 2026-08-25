@@ -10,7 +10,7 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
 )
 
-ENSEMBL_GENE_ID_REGEX = r"^ENSG\d+$"
+ENSEMBL_GENE_ID_REGEX = r"^ENSG\d{11}$"
 
 # Genes can have multiple pharos_class values;
 # we only want the 'most interesting' single value.

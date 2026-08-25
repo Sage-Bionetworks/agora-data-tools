@@ -5,6 +5,7 @@ Functions:
     process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
     build_transcriptomics_url - build a URL linking to the gene comparison table for a given study
     zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
+    remap_sex_labels - convert any plural sex values to singular form for consistent display
 """
 
 from typing import Any, Dict, List, Union
@@ -149,8 +150,8 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
     """
     jax_id = (
         jax_id.astype("Int64")
-        .apply(lambda x: (str(x).zfill(6) if pd.notna(x) else ""))
-        .astype("O")  # Force object type to prevent empty columns remaining as Int64
+        # Prevent .apply from casting back to float
+        .astype("object").apply(lambda x: (str(x).zfill(6) if pd.notna(x) else ""))
     )
 
     # Check that non-missing values contain only digits and are at least 6 characters long
@@ -182,3 +183,17 @@ def validate_jax_ids(jax_id: pd.Series) -> None:
             "Jax IDs must be strings that contain only digits and are at least 6 characters long, or must be empty strings"
         )
     return None
+
+
+def remap_sex_labels(sex: pd.Series) -> pd.Series:
+    """
+    Converts plural sex values ("Females" or "Males") to singular form ("Female" or "Male"). Sex values that are
+    already singular, and any other value, are not modified.
+
+    Args:
+        sex (pd.Series): A pandas Series containing sex labels that may need to be converted.
+
+    Returns:
+        pd.Series: A pandas Series containing sex labels in only the singular form.
+    """
+    return sex.copy().replace({"Females": "Female", "Males": "Male"})

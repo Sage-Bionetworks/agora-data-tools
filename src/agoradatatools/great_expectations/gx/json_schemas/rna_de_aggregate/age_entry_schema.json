@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/rna_de_aggregate/age_entry_schema.json",
+  "oneOf": [
+    { "type": "null" },
+    {
+      "type": "object",
+      "properties": {
+        "log2_fc": { "type": "number" },
+        "adj_p_val": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "required": ["log2_fc", "adj_p_val"],
+      "additionalProperties": false
+    }
+  ]
+}
