@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Late Onset AD",
-          "Familial AD"
+          "Familial AD",
+          "Late Onset AD"
         ]
       },
       "meta": {}
@@ -278,7 +278,7 @@
           "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_details/genetic_info_schema.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
-            "additionalProperties": true,
+            "additionalProperties": false,
             "properties": {
               "allele": {
                 "minLength": 1,

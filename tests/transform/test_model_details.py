@@ -162,6 +162,17 @@ class TestTransformModelDetails:
             },
             ValueError,
         ),
+        (
+            # Fail with missing model in model_genetic_modifications
+            {
+                "biomarkers": "model_details_biomarkers_good_test_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_missing_model_input.csv",
+                "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_input.json",
+                "model_metadata": "model_details_model_metadata_good_test_input.csv",
+                "pathology": "model_details_pathology_good_test_input.csv",
+            },
+            ValueError,
+        ),
     ]
     fail_test_ids = [
         "Fail with missing biomarkers dataset",
@@ -169,6 +180,7 @@ class TestTransformModelDetails:
         "Fail with missing required columns in model_metadata",
         "Fail with missing required columns in model_genetic_modifications",
         "Fail with missing required columns in mouse_gene_metadata",
+        "Fail with missing model in model_genetic_modifications",
     ]
 
     def _load_data(self, input_files):

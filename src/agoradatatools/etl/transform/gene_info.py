@@ -13,7 +13,12 @@ from agoradatatools.etl import transform
 
 
 REQUIRED_INPUT = {
-    "gene_metadata": ["ensembl_gene_id"],
+    "gene_metadata": [
+        "ensembl_gene_id",
+        "ensembl_release",
+        "ensembl_possible_replacements",
+        "ensembl_permalink",
+    ],
     "igap": ["ensembl_gene_id"],
     "eqtl": ["ensembl_gene_id"],
     "proteomics": [

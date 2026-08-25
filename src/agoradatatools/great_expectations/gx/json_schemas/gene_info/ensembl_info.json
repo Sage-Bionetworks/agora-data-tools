@@ -19,7 +19,7 @@
             "type": "array",
             "items": {
                 "type": "string",
-                "pattern": "^ENSG\\d{11}$"
+                "pattern": "^ENSG[0-9]{11}$"
             },
             "minItems": 0,
             "maxItems": 5
@@ -27,7 +27,7 @@
         "ensembl_permalink": {
             "type": "string",
             "format": "uri",
-            "pattern": "^https:\/\/\\w+\\.archive\\.ensembl\\.org\/Homo_sapiens\/Gene\/Summary\\?db=core;g=ENS(MUS)?G[0-9]{11}$"
+            "pattern": "^https:\/\/\\w+\\.archive\\.ensembl\\.org\/Homo_sapiens\/Gene\/Summary\\?db=core;g=ENSG[0-9]{11}$"
         }
     }
 }

@@ -618,12 +618,12 @@
           "properties": {
             "ensembl_permalink": {
               "format": "uri",
-              "pattern": "^https://\\w+\\.archive\\.ensembl\\.org/Homo_sapiens/Gene/Summary\\?db=core;g=ENS(MUS)?G[0-9]{11}$",
+              "pattern": "^https://\\w+\\.archive\\.ensembl\\.org/Homo_sapiens/Gene/Summary\\?db=core;g=ENSG[0-9]{11}$",
               "type": "string"
             },
             "ensembl_possible_replacements": {
               "items": {
-                "pattern": "^ENSG\\d{11}$",
+                "pattern": "^ENSG[0-9]{11}$",
                 "type": "string"
               },
               "maxItems": 5,

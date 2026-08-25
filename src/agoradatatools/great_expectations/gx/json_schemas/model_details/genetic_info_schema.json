@@ -41,6 +41,6 @@
       "mgi_allele_id",
       "ensembl_info"
     ],
-    "additionalProperties": true
+    "additionalProperties": false
   }
 }
