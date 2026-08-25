@@ -173,8 +173,8 @@ class TestBuildTranscriptomicsUrl:
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": "model1,model2",
+                "transcriptomics_url_categories_value": "category_string",
+                "transcriptomics_url_models_value": "model1,model2",
                 "transcriptomics": false_val,
             }
         )
@@ -186,8 +186,8 @@ class TestBuildTranscriptomicsUrl:
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": None,
-                "url_models_value": None,
+                "transcriptomics_url_categories_value": None,
+                "transcriptomics_url_models_value": None,
                 "transcriptomics": True,
             }
         )
@@ -207,8 +207,8 @@ class TestBuildTranscriptomicsUrl:
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": empty_val,
-                "url_models_value": "model1,model2",
+                "transcriptomics_url_categories_value": empty_val,
+                "transcriptomics_url_models_value": "model1,model2",
                 "transcriptomics": True,
             }
         )
@@ -228,8 +228,8 @@ class TestBuildTranscriptomicsUrl:
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": empty_val,
+                "transcriptomics_url_categories_value": "category_string",
+                "transcriptomics_url_models_value": empty_val,
                 "transcriptomics": True,
             }
         )
