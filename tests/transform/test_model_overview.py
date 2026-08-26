@@ -157,6 +157,9 @@ class TestTransformModelOverview:
                 "disease_correlation",
                 "pathology",
                 "biomarkers",
+                "proteomics",
+                "proteomics_url_categories_value",
+                "proteomics_url_models_value",
             ]
         )
         empty_model_genetic_modifications = pd.DataFrame(
@@ -206,6 +209,9 @@ class TestTransformModelOverview:
                 "disease_correlation": [False],
                 "pathology": [True],
                 "biomarkers": [False],
+                "proteomics": [None],
+                "proteomics_url_categories_value": [None],
+                "proteomics_url_models_value": [None],
             }
         )
         model_genetic_modifications = pd.DataFrame(
@@ -239,6 +245,7 @@ class TestTransformModelOverview:
                 "transcriptomics": {
                     "link_url": "comparison/expression?models=test_model"
                 },
+                "proteomics": None,
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/test_model/pathology"},
                 "biomarkers": None,
@@ -275,6 +282,9 @@ class TestTransformModelOverview:
                 "disease_correlation": [None],
                 "pathology": [None],
                 "biomarkers": [None],
+                "proteomics": [None],
+                "proteomics_url_categories_value": [None],
+                "proteomics_url_models_value": [None],
             }
         )
         model_genetic_modifications = pd.DataFrame(
@@ -306,6 +316,7 @@ class TestTransformModelOverview:
                 "model_type": "Familial AD",
                 "matched_controls": [],
                 "transcriptomics": None,
+                "proteomics": None,
                 "disease_correlation": None,
                 "pathology": None,
                 "biomarkers": None,
@@ -344,6 +355,9 @@ class TestTransformModelOverview:
                 "disease_correlation": [False, True],
                 "pathology": [True, True],
                 "biomarkers": [False, True],
+                "proteomics": [None, None],
+                "proteomics_url_categories_value": [None, None],
+                "proteomics_url_models_value": [None, None],
             }
         )
         model_genetic_modifications = pd.DataFrame(
@@ -383,6 +397,7 @@ class TestTransformModelOverview:
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
                 "transcriptomics": {"link_url": "comparison/expression?models=model1"},
+                "proteomics": None,
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/model1/pathology"},
                 "biomarkers": None,
@@ -399,6 +414,7 @@ class TestTransformModelOverview:
                 "model_type": "Tauopathy",
                 "matched_controls": ["B6129", "B6130"],
                 "transcriptomics": None,
+                "proteomics": None,
                 "disease_correlation": {
                     "link_url": "comparison/correlation?models=model2"
                 },
