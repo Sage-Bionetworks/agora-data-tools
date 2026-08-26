@@ -119,16 +119,16 @@
         "y_axis_max": 15.0,
         "data": [
           {
-            "value": 10.5,
-            "sex": "Female",
             "genotype": "transgenic",
-            "individual_id": "mouse1"
+            "sex": "Female",
+            "individual_id": "mouse1",
+            "value": 10.5
           },
           {
-            "value": 12.3,
-            "sex": "Male",
             "genotype": "transgenic",
-            "individual_id": "mouse2"
+            "sex": "Male",
+            "individual_id": "mouse2",
+            "value": 12.3
           }
         ]
       },
@@ -141,10 +141,10 @@
         "y_axis_max": 20.0,
         "data": [
           {
-            "value": 15.7,
-            "sex": "Female",
             "genotype": "transgenic",
-            "individual_id": "mouse3"
+            "sex": "Female",
+            "individual_id": "mouse3",
+            "value": 15.7
           }
         ]
       },
@@ -193,10 +193,10 @@
         "y_axis_max": 8.5,
         "data": [
           {
-            "value": 8.2,
-            "sex": "Male",
             "genotype": "transgenic",
-            "individual_id": "mouse4"
+            "sex": "Male",
+            "individual_id": "mouse4",
+            "value": 8.2
           }
         ]
       },
@@ -209,10 +209,10 @@
         "y_axis_max": 9.5,
         "data": [
           {
-            "value": 9.1,
-            "sex": "Female",
             "genotype": "transgenic",
-            "individual_id": "mouse5"
+            "sex": "Female",
+            "individual_id": "mouse5",
+            "value": 9.1
           }
         ]
       },
@@ -277,14 +277,14 @@
         "evidence_type": "Plaque area",
         "tissue": "Hippocampus",
         "age": "4 months",
-        "units": "µm²",
+        "units": "\u00b5m\u00b2",
         "y_axis_max": 3.5,
         "data": [
           {
-            "individual_id": "mouse3",
-            "value": 3.2,
+            "genotype": "transgenic",
             "sex": "Female",
-            "genotype": "transgenic"
+            "individual_id": "mouse3",
+            "value": 3.2
           }
         ]
       },
@@ -293,20 +293,20 @@
         "evidence_type": "Plaque count",
         "tissue": "Hippocampus",
         "age": "4 months",
-        "units": "count/mm²",
+        "units": "count/mm\u00b2",
         "y_axis_max": 6.5,
         "data": [
           {
-            "individual_id": "mouse1",
-            "value": 5.3,
+            "genotype": "transgenic",
             "sex": "Female",
-            "genotype": "transgenic"
+            "individual_id": "mouse1",
+            "value": 5.3
           },
           {
+            "genotype": "transgenic",
+            "sex": "Male",
             "individual_id": "mouse2",
-            "value": 6.1,
-            "sex": "Male",
-            "genotype": "transgenic"
+            "value": 6.1
           }
         ]
       },
@@ -387,14 +387,14 @@
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
         "age": "8 months",
-        "units": "µm²",
+        "units": "\u00b5m\u00b2",
         "y_axis_max": 3.0,
         "data": [
           {
-            "individual_id": "mouse5",
-            "value": 2.5,
+            "genotype": "transgenic",
             "sex": "Female",
-            "genotype": "transgenic"
+            "individual_id": "mouse5",
+            "value": 2.5
           }
         ]
       },
@@ -403,14 +403,14 @@
         "evidence_type": "Tangle count",
         "tissue": "Cortex",
         "age": "8 months",
-        "units": "count/mm²",
+        "units": "count/mm\u00b2",
         "y_axis_max": 5.0,
         "data": [
           {
-            "individual_id": "mouse4",
-            "value": 4.8,
+            "genotype": "transgenic",
             "sex": "Male",
-            "genotype": "transgenic"
+            "individual_id": "mouse4",
+            "value": 4.8
           }
         ]
       },
@@ -543,16 +543,16 @@
         "y_axis_max": 25.0,
         "data": [
           {
-            "value": 22.4,
-            "sex": "Male",
             "genotype": "transgenic",
-            "individual_id": "mouse6"
+            "sex": "Male",
+            "individual_id": "mouse6",
+            "value": 22.4
           },
           {
-            "value": 24.8,
-            "sex": "Female",
             "genotype": "transgenic",
-            "individual_id": "mouse7"
+            "sex": "Female",
+            "individual_id": "mouse7",
+            "value": 24.8
           }
         ]
       },
@@ -583,10 +583,10 @@
         "y_axis_max": 20.0,
         "data": [
           {
-            "value": 18.3,
-            "sex": "Male",
             "genotype": "transgenic",
-            "individual_id": "mouse8"
+            "sex": "Male",
+            "individual_id": "mouse8",
+            "value": 18.3
           }
         ]
       },
@@ -633,20 +633,20 @@
         "evidence_type": "Tangle count",
         "tissue": "Hippocampus",
         "age": "6 months",
-        "units": "count/mm²",
+        "units": "count/mm\u00b2",
         "y_axis_max": 8.5,
         "data": [
           {
-            "individual_id": "mouse6",
-            "value": 7.2,
+            "genotype": "transgenic",
             "sex": "Male",
-            "genotype": "transgenic"
+            "individual_id": "mouse6",
+            "value": 7.2
           },
           {
-            "individual_id": "mouse7",
-            "value": 8.1,
+            "genotype": "transgenic",
             "sex": "Female",
-            "genotype": "transgenic"
+            "individual_id": "mouse7",
+            "value": 8.1
           }
         ]
       },
@@ -673,14 +673,14 @@
         "evidence_type": "Tangle area",
         "tissue": "Cortex",
         "age": "12 months",
-        "units": "µm²",
+        "units": "\u00b5m\u00b2",
         "y_axis_max": 5.0,
         "data": [
           {
-            "individual_id": "mouse8",
-            "value": 4.6,
+            "genotype": "transgenic",
             "sex": "Male",
-            "genotype": "transgenic"
+            "individual_id": "mouse8",
+            "value": 4.6
           }
         ]
       },

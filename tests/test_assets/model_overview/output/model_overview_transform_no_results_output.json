@@ -2,9 +2,7 @@
   {
     "name": "3xTg-AD",
     "model_type": "Familial AD",
-    "matched_controls": [
-      "B6129"
-    ],
+    "matched_controls": ["B6129"],
     "transcriptomics": {
       "link_url": "comparison/expression?models=3xTg-AD"
     },
@@ -37,9 +35,7 @@
   {
     "name": "5xFAD (UCI)",
     "model_type": "Familial AD",
-    "matched_controls": [
-      "C57BL6J"
-    ],
+    "matched_controls": ["C57BL6J"],
     "transcriptomics": {
       "link_url": "comparison/expression?models=5xFAD (UCI)"
     },
@@ -68,9 +64,7 @@
   {
     "name": "APOE4",
     "model_type": "Late Onset AD",
-    "matched_controls": [
-      "C57BL6J"
-    ],
+    "matched_controls": ["C57BL6J"],
     "transcriptomics": {
       "link_url": "comparison/expression?models=APOE4"
     },
