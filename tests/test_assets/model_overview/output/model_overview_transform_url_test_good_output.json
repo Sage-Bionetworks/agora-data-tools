@@ -2,9 +2,7 @@
   {
     "name": "Model_url_default",
     "model_type": "Tauopathy",
-    "matched_controls": [
-      "C57BL/6J"
-    ],
+    "matched_controls": ["C57BL/6J"],
     "transcriptomics": {
       "link_url": "comparison/expression?models=Model_url_default"
     },
@@ -27,9 +25,7 @@
   {
     "name": "Model_url_categories",
     "model_type": "Familial AD",
-    "matched_controls": [
-      "B6129"
-    ],
+    "matched_controls": ["B6129"],
     "transcriptomics": {
       "link_url": "comparison/expression?categories=category_string&models=Model_url_categories"
     },
@@ -52,9 +48,7 @@
   {
     "name": "Model_url_models",
     "model_type": "Tauopathy",
-    "matched_controls": [
-      "C57BL/6J"
-    ],
+    "matched_controls": ["C57BL/6J"],
     "transcriptomics": {
       "link_url": "comparison/expression?models=Model_url_models,model1,model2"
     },
@@ -77,9 +71,7 @@
   {
     "name": "Model_url_both",
     "model_type": "Familial AD",
-    "matched_controls": [
-      "B6129"
-    ],
+    "matched_controls": ["B6129"],
     "transcriptomics": {
       "link_url": "comparison/expression?categories=category_string&models=Model_url_both,model3,model4"
     },

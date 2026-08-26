@@ -84,9 +84,9 @@ def build_results_url(
     hemibrain samples. For models without hemibrain data, we will specify 'categories' to set tissue = Hippocampus.
 
     The 'models' parameter always includes the model name. Additional model names can be included if specified by the
-    model's url_models_value. For example,some UCI studies have 4 associated genotypes (2 sets of case vs control differential
-    expression results), and the comparisons table should load results for both sets of DE data. For those studies, we
-    add two (or more) model names to the 'models' query parameter.
+    model's url_models_value. For example,some UCI studies have 4 associated genotypes (2 sets of case vs control
+    differential expression results), and the comparisons table should load results for both sets of DE data. For those
+    studies, we add two (or more) model names to the 'models' query parameter.
 
     The url will be None if the result_type is unsupported or there is no result data for this model.
 
@@ -96,7 +96,8 @@ def build_results_url(
             * <result_type> (must be True or False)
             * <result_type>_url_categories_value (must be None or non-empty string)
             * <result_type>_url_models_value (must be None or non-empty string)
-            It is assumed that normalize_null_values has already been called so that all missing values are None, not NA or empty strings.
+            It is assumed that normalize_null_values has already been called so that all missing values are None, not
+            NA or empty strings.
         result_type (str): The type of result data to build the URL for (default: "transcriptomics")
 
     Returns:
