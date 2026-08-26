@@ -14,7 +14,7 @@ from agoradatatools.etl.utils import (
     delim_string_to_list,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    build_transcriptomics_url,
+    build_results_url,
     process_genetic_info,
     zero_pad_jax_ids,
 )
@@ -172,8 +172,9 @@ def transform_model_details(
             "pathology": model_pathology,
         }
 
-        # Add transcriptomics and disease correlation links if they exist
-        model_entry["transcriptomics"] = build_transcriptomics_url(model_row)
+        # Add transcriptomics, proteomics, and disease correlation links if they exist
+        model_entry["transcriptomics"] = build_results_url(model_row, result_type="transcriptomics")
+        model_entry["proteomics"] = build_results_url(model_row, result_type="proteomics")
         model_entry["disease_correlation"] = (
             f"comparison/correlation?models={model_name}"
             if bool(model_row["disease_correlation"])

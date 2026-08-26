@@ -13,7 +13,7 @@ from agoradatatools.etl.utils import (
     remove_duplicates_keep_order,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    build_transcriptomics_url,
+    build_results_url,
     process_genetic_info,
     zero_pad_jax_ids,
 )
@@ -165,8 +165,13 @@ def transform_model_overview(
 
         # Build the links
         row["transcriptomics"] = (
-            {"link_url": build_transcriptomics_url(row)}
+            {"link_url": build_results_url(row, result_type="transcriptomics")}
             if row["transcriptomics"]
+            else None
+        )
+        row["proteomics"] = (
+            {"link_url": build_results_url(row, result_type="proteomics")}
+            if row["proteomics"]
             else None
         )
         row["disease_correlation"] = (
