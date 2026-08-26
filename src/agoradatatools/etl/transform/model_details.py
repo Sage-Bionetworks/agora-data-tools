@@ -173,8 +173,12 @@ def transform_model_details(
         }
 
         # Add transcriptomics, proteomics, and disease correlation links if they exist
-        model_entry["transcriptomics"] = build_results_url(model_row, result_type="transcriptomics")
-        model_entry["proteomics"] = build_results_url(model_row, result_type="proteomics")
+        model_entry["transcriptomics"] = build_results_url(
+            model_row, result_type="transcriptomics"
+        )
+        model_entry["proteomics"] = build_results_url(
+            model_row, result_type="proteomics"
+        )
         model_entry["disease_correlation"] = (
             f"comparison/correlation?models={model_name}"
             if bool(model_row["disease_correlation"])
