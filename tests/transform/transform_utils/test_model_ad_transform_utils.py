@@ -180,9 +180,7 @@ class TestBuildResultsUrl:
         [False, None],
         ids=["Pass with False boolean value", "Pass with None value"],
     )
-    def test_build_results_url_no_transcriptomics(
-        self, false_val: bool
-    ) -> None:
+    def test_build_results_url_no_transcriptomics(self, false_val: bool) -> None:
         """
         The function should treat both None and False as transcriptomics = False, and return None.
         """
@@ -203,9 +201,7 @@ class TestBuildResultsUrl:
         [False, None],
         ids=["Pass with False boolean value", "Pass with None value"],
     )
-    def test_build_results_url_no_proteomics(
-        self, false_val: bool
-    ) -> None:
+    def test_build_results_url_no_proteomics(self, false_val: bool) -> None:
         """
         The function should treat both None and False as proteomics = False, and return None.
         """
@@ -235,24 +231,29 @@ class TestBuildResultsUrl:
         assert url == "comparison/expression?models=Model"
 
     def test_build_results_url_all_default_proteomics_values(self) -> None:
-            model = pd.Series(
-                {
-                    "name": "Model",
-                    "proteomics_url_categories_value": None,
-                    "proteomics_url_models_value": None,
-                    "proteomics": True,
-                }
-            )
+        model = pd.Series(
+            {
+                "name": "Model",
+                "proteomics_url_categories_value": None,
+                "proteomics_url_models_value": None,
+                "proteomics": True,
+            }
+        )
 
-            url = build_results_url(model, result_type="proteomics")
-            assert url == "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model"
+        url = build_results_url(model, result_type="proteomics")
+        assert (
+            url
+            == "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model"
+        )
 
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_results_url_default_transcriptomics_category(self, empty_val: str) -> None:
+    def test_build_results_url_default_transcriptomics_category(
+        self, empty_val: str
+    ) -> None:
         """
         The function should treat both "" and None as empty values and not have a "categories=..." for the transcriptomics
         url
@@ -274,7 +275,9 @@ class TestBuildResultsUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_results_url_default_proteomics_category(self, empty_val: str) -> None:
+    def test_build_results_url_default_proteomics_category(
+        self, empty_val: str
+    ) -> None:
         """
         The function should treat both "" and None as empty values and use a default category for the proteomics url
         """
@@ -288,14 +291,19 @@ class TestBuildResultsUrl:
         )
 
         url = build_results_url(model, result_type="proteomics")
-        assert url == "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model,model1,model2"
+        assert (
+            url
+            == "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model,model1,model2"
+        )
 
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_results_url_default_transcriptomics_models(self, empty_val: str) -> None:
+    def test_build_results_url_default_transcriptomics_models(
+        self, empty_val: str
+    ) -> None:
         """
         The function should treat both "" and None as empty values and have just the model name in the URL
         """

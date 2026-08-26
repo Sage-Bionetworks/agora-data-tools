@@ -38,7 +38,7 @@ REQUIRED_INPUT = {
         "biomarkers",
         "proteomics",
         "proteomics_url_categories_value",
-        "proteomics_url_models_value"
+        "proteomics_url_models_value",
     ],
     "model_genetic_modifications": [
         "name",
