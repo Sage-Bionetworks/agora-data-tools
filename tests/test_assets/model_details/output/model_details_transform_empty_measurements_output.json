@@ -15,6 +15,7 @@
       "3xTg"
     ],
     "transcriptomics": "comparison/expression?models=3xTg-AD",
+    "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [
@@ -74,6 +75,7 @@
       "Mapt-/-"
     ],
     "transcriptomics": null,
+    "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [

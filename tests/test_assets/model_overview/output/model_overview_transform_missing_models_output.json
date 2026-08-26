@@ -2,10 +2,13 @@
   {
     "name": "3xTg-AD",
     "model_type": "Familial AD",
-    "matched_controls": ["B6129"],
+    "matched_controls": [
+      "B6129"
+    ],
     "transcriptomics": {
       "link_url": "comparison/expression?models=3xTg-AD"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": {
       "link_url": "models/3xTg-AD/pathology"
@@ -34,8 +37,11 @@
   {
     "name": "5xFAD (UCI)",
     "model_type": "Familial AD",
-    "matched_controls": ["C57BL6J"],
+    "matched_controls": [
+      "C57BL6J"
+    ],
     "transcriptomics": null,
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": null,
     "biomarkers": null,
