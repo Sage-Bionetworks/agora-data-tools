@@ -188,6 +188,29 @@ class NumericRule(ColumnRule):
         return int(coerced.isna().sum())
 
 
+class NonNegativeRule(ColumnRule):
+    """Rule that every present numeric value must be greater than or equal to zero.
+
+    Null values are skipped so this rule only validates the sign of present values;
+    use NotEmptyRule to require presence.
+
+    Values that cannot be parsed as numbers are not counted here. Pair this rule with
+    NumericRule on the same column so those values are still reported: doing so keeps a
+    single bad cell from being counted as two separate violations.
+    """
+
+    rule = "non_negative"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null, numeric values in *series* that are negative.
+
+        A length-0 series yields 0 (no values to fail the rule).
+        """
+        present = series[series.notna()]
+        coerced = pd.to_numeric(present, errors="coerce")
+        return int((coerced < 0).sum())
+
+
 # TODO remove "_" - these utils functions are not only used internally
 def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     """Logs into Synapse python client, returns authenticated Synapse session.

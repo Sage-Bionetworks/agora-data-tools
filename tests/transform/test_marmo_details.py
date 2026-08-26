@@ -158,6 +158,17 @@ class TestTransformMarmoDetails:
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
 
+    def test_marmo_details_negative_collection_age_should_fail(self):
+        """A negative collectionage fails the NonNegativeRule and raises ValueError. Negative ages
+        are rejected at the trust boundary rather than clamped during year bucketing, so bad source
+        data can't reach the output as a silently wrong age bucket."""
+        datasets = self._load_datasets(self.good_input_files)
+        biomaterial = datasets["marmo_biomaterial_metadata"]
+        biomaterial.loc[0, "collectionage"] = -6
+
+        with pytest.raises(ValueError, match="non_negative"):
+            transform_marmo_details(datasets=datasets)
+
     def test_marmo_details_no_biomaterial_match_should_fail(self):
         """When no result biomaterialid matches a biomaterial record, the transform raises rather
         than emitting empty biomarkers collections. This is the failure mode that let an earlier

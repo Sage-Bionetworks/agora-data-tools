@@ -13,6 +13,7 @@ import pandas as pd
 
 from agoradatatools.etl.utils import (
     MatchesRegexRule,
+    NonNegativeRule,
     NotEmptyRule,
     NumericRule,
     OneOfRule,
@@ -62,17 +63,24 @@ REQUIRED_INPUT = {
 
 # Per-column content rules validated up front so bad source data fails loudly rather than
 # silently dropping or miscomputing rows downstream.
-#   - collectionage: must be numeric so age bucketing is well-defined.
+#   - collectionage: must be numeric and non-negative so age bucketing is well-defined.
 #   - ensembl_gene_id: marmoset (Callithrix jacchus) Ensembl gene ids are ENSCJAG-prefixed.
 #   - NotEmpty rules guard the id/label/order columns whose absence would corrupt joins or output.
 #
 # marmo_biomaterial_metadata describes every biomaterial collected for the study, not just the
 # MSD plasma samples this transform consumes, so its rules here are limited to ones that hold
-# file-wide. NumericRule skips nulls, so it tolerates the assays that record no age. A
-# NotEmptyRule on biomaterialid would not: the file carries a row with only modelSystemType
-# populated. That blank id is harmless because it can never match a results id, and the
-# meaningful presence check already lives on marmo_results.biomaterialid, which drives the join.
-# Rules that only hold for the consumed rows live in REFERENCED_BIOMATERIAL_RULES below.
+# file-wide. NumericRule and NonNegativeRule both skip nulls, so they tolerate the assays that
+# record no age. NonNegativeRule belongs here rather than in REFERENCED_BIOMATERIAL_RULES because
+# a negative age is impossible for any assay, not only for the rows this transform reads. It is
+# paired with NumericRule so unparseable ages are still reported: NonNegativeRule alone ignores
+# them. A NotEmptyRule on biomaterialid would not hold file-wide: the file carries a row with
+# only modelSystemType populated. That blank id is harmless because it can never match a results
+# id, and the meaningful presence check already lives on marmo_results.biomaterialid, which
+# drives the join. Rules that only hold for the consumed rows live in
+# REFERENCED_BIOMATERIAL_RULES below.
+#
+# A negative age is rejected here rather than clamped in _convert_to_year: clamping would let bad
+# source data through as a silently wrong year bucket, and this file is the trust boundary.
 COLUMN_RULES = {
     "marmo_metadata": {
         "model": [NotEmptyRule()],
@@ -92,7 +100,7 @@ COLUMN_RULES = {
         "sex": [NotEmptyRule()],
     },
     "marmo_biomaterial_metadata": {
-        "collectionage": [NumericRule()],
+        "collectionage": [NumericRule(), NonNegativeRule()],
     },
     "marmo_results": {
         "biomaterialid": [NotEmptyRule()],
