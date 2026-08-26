@@ -36,6 +36,9 @@ REQUIRED_INPUT = {
         "disease_correlation",
         "pathology",
         "biomarkers",
+        "proteomics",
+        "proteomics_url_categories_value",
+        "proteomics_url_models_value"
     ],
     "model_genetic_modifications": [
         "name",
@@ -64,6 +67,7 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     """
     fields = {
         "transcriptomics": "Transcriptomics",
+        "proteomics": "Proteomics",
         "disease_correlation": "Disease Correlation",
         "pathology": "Pathology",
         "biomarkers": "Biomarkers",
@@ -129,6 +133,7 @@ def transform_model_overview(
 
     boolean_columns = [
         "transcriptomics",
+        "proteomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
@@ -207,6 +212,7 @@ def transform_model_overview(
             "model_type",
             "matched_controls",
             "transcriptomics",
+            "proteomics",
             "disease_correlation",
             "pathology",
             "biomarkers",

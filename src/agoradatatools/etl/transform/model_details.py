@@ -47,6 +47,9 @@ REQUIRED_INPUT = {
         "disease_correlation",
         "pathology",
         "biomarkers",
+        "proteomics",
+        "proteomics_url_categories_value",
+        "proteomics_url_models_value",
     ],
     "immunohisto_measure_order": [
         "dataset_name",
@@ -115,7 +118,7 @@ def transform_model_details(
 
     model_metadata_df = normalize_null_values(
         model_metadata_df,
-        boolean_columns=["transcriptomics", "disease_correlation"],
+        boolean_columns=["transcriptomics", "proteomics", "disease_correlation"],
         empty_string_columns=["rrid", "alzforum_id"],
     )
 
@@ -161,6 +164,7 @@ def transform_model_details(
             "genotype": model_row["genotype"],
             "aliases": model_row["aliases"],
             "transcriptomics": None,
+            "proteomics": None,
             "disease_correlation": None,
             "spatial_transcriptomics": None,
             "genetic_info": genetic_info,
