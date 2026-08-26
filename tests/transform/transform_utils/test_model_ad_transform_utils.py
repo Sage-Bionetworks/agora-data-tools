@@ -173,7 +173,7 @@ class TestBuildResultsUrl:
         )
 
         url = build_results_url(model, result_type="foo")
-        assert url == None
+        assert url is None
 
     @pytest.mark.parametrize(
         "false_val",
