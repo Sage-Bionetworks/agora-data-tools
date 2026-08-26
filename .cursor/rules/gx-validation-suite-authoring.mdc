@@ -17,6 +17,15 @@ alwaysApply: false
 
 ---
 
+## Prerequisite — Environment Setup
+
+Every step in this guide runs Python, `jupyter`, or the `adt` CLI, so before anything else set up and
+activate your environment per `python-env.mdc` (package manager, `dev_config.yaml`, and an editable
+`pip install -e ".[dev]"`). That rule owns environment setup for **every** workflow here — Option A
+and Option B alike — and all commands below assume the correct environment is active.
+
+---
+
 ## Core Principle — Tighten Validations to the Actual Data
 
 Always author expectations against the **latest processed output data** (downloaded from Synapse when available, or freshly generated), and tighten every validation to what is actually present in that data rather than to loose, generic bounds.
@@ -140,6 +149,7 @@ is intentionally hidden from the UI filter — so surface the difference and let
 rather than assuming they must match.
 
 #### Parallel lists — Agora
+
 Notebook: `data_analysis/agora/notebooks/preprocessing/AG-2005_ui_config.rmd`
 
 | GX suite → column | GX expectation | ui_config filter-value vector |
@@ -155,6 +165,7 @@ Other Agora datasets (e.g. `gene_info`, `network`, `team_info`) have GX value-se
 are **not** produced by this ui_config notebook, so they have no parallel filter list here.
 
 #### Parallel lists — model_ad
+
 Notebook: `data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd`
 
 | GX suite → column | GX expectation | MG-402 filter-value list |
@@ -575,13 +586,24 @@ an Option A dataset.** Editing it by hand leaves the notebook out of sync with t
 so the next person who runs the notebook will silently regenerate a suite that's missing your
 change.
 
-Always activate the conda env and reinstall the package first:
+With your environment set up per the prerequisite above (editable `pip install -e ".[dev]"`),
+generate the suite by executing the notebook; after successful execution, immediately strip its outputs:
 
 ```bash
-conda activate adt_py310
-pip install . -q
 jupyter nbconvert --to notebook --inplace --execute gx_suite_definitions/<transform>.ipynb
+# nbconvert --execute bakes cell outputs into the .ipynb. Strip them IMMEDIATELY — as part of
+# generating the suite, right after execution — so the notebook stays output-free like every other
+# suite notebook. Scope pre-commit to just the nbstripout hook and this file:
+pre-commit run nbstripout --files gx_suite_definitions/<transform>.ipynb
 ```
+
+**Strip via `pre-commit`, not at commit time.** Do the strip as part of generation, immediately after
+execution — not deferred to commit, since commits could be made by someone (the user) other than whoever (AI)
+generated the suite. Go through `pre-commit`, not `nbstripout` directly: `nbstripout` isn't installed
+as a standalone command, whereas `pre-commit` provisions the pinned version (`kynan/nbstripout 0.6.1`
+in `.pre-commit-config.yaml`). Use `pre-commit run nbstripout --files <notebook>` for one notebook, or
+`pre-commit run --all-files` for the full pre-push sweep (per the README). Do not install a git commit
+hook — the README's workflow is manual invocation.
 
 ### Option B — Write the JSON directly (only for `rna_de_aggregate` / `rna_de_individual` today)
 
@@ -663,15 +685,14 @@ for r in results.results:
 
 ---
 
-## Step 5 — Reinstall After Generating the Suite
+## Step 5 — Loading the Generated Suite
 
-The `GreatExpectationsRunner` loads suites from the *installed* package, not from source. After the notebook generates `<transform>.json`, reinstall:
+The `GreatExpectationsRunner` resolves suites relative to the installed `agoradatatools` package. With
+the editable install from `python-env.mdc` (`pip install -e ".[dev]"`), the installed package points
+at your source tree, so the suite you just generated is loaded directly — **no reinstall needed**.
 
-```bash
-pip install . -q
-```
-
-If you skip this, the runner will log:
+If instead you did a non-editable `pip install .`, the runner loads suites from the copy in
+`site-packages`, so you must re-run `pip install .` after generating the suite, or it will log:
 > `Expectation suite <transform> does not exist. Data validation will not be performed.`
 
 ---
@@ -704,3 +725,4 @@ Check the output for GX validation results.
 | GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists (and nested-column `enum`s) mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keeping Related Constraints in Sync" → "External sync"). When you change one, prompt the user to update the parallel list in the R notebook |
 | `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Keeping Related Constraints in Sync" → "Internal sync" |
 | Suite `.json` edited by hand for an Option A dataset, notebook left unchanged | Only `rna_de_aggregate`/`rna_de_individual` use Option B. For every other dataset, edit the `.ipynb` (Cell 0 import + the column's `validator.expect_...()` call) and regenerate via `nbconvert` — see Step 4 |
+| Notebook left with execution outputs after `nbconvert --execute` | Strip immediately after executing — as part of generation, not at commit time — with `pre-commit run nbstripout --files <notebook>`. All suite notebooks are kept output-free. `nbstripout` isn't a standalone command, so go through `pre-commit`; don't install a git commit hook — see Step 4 |
