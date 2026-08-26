@@ -1,0 +1,586 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "disease_correlation",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "name",
+          "matched_control",
+          "model_type",
+          "modified_genes",
+          "cluster",
+          "age",
+          "age_numeric",
+          "sex",
+          "IFG",
+          "PHG",
+          "TCX",
+          "CBE",
+          "DLPFC",
+          "FP",
+          "STG"
+        ],
+        "exact_match": true
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "name",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "name"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "name",
+        "value_set": [
+          "5xFAD (IU/Jax/Pitt)",
+          "APOE4",
+          "LOAD1",
+          "LOAD1.Abca7A1527G",
+          "LOAD1.Ceacam1KO",
+          "LOAD1.Clasp2L163P",
+          "LOAD1.CR1long",
+          "LOAD1.Il1rapExon2KO",
+          "LOAD1.MthfrC677T",
+          "LOAD1.Snx1D465N",
+          "Trem2R47H"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "matched_control",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "matched_control"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "matched_control",
+        "value_set": [
+          "C57BL/6J"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "model_type",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "model_type"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "model_type",
+        "value_set": [
+          "Familial AD",
+          "Late Onset AD"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "cluster",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "cluster"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "cluster",
+        "value_set": [
+          "Immune System - Consensus Cluster B",
+          "Neuronal System - Consensus Cluster C",
+          "Organelle Biogenesis, Cellular Stress Response - Consensus Cluster E",
+          "Cell Cycle, NMD Consensus Cluster D",
+          "ECM Organization - Consensus Cluster A"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "age",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "age"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "age",
+        "value_set": [
+          "4 months",
+          "8 months",
+          "12 months"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "age_numeric",
+        "type_": "int"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "age_numeric"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "age_numeric",
+        "value_set": [
+          4,
+          8,
+          12
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "sex",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "sex"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "sex",
+        "value_set": [
+          "Female",
+          "Male"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "modified_genes",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "modified_genes"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "modified_genes",
+        "list_length_range": [
+          1,
+          4
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "modified_genes",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_unique_list_members",
+      "kwargs": {
+        "column": "modified_genes"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members",
+      "kwargs": {
+        "column": "modified_genes",
+        "list_members": [
+          "Abca7",
+          "APOE",
+          "APP",
+          "Ceacam1",
+          "Clasp2",
+          "CR1",
+          "CR2",
+          "Il1rap",
+          "Mthfr",
+          "PSEN1",
+          "Snx1",
+          "Trem2"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "PHG",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_present_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "additionalProperties": false,
+          "properties": {
+            "adj_p_val": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "correlation": {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "correlation",
+            "adj_p_val"
+          ],
+          "type": "object"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "TCX",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_present_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "additionalProperties": false,
+          "properties": {
+            "adj_p_val": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "correlation": {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "correlation",
+            "adj_p_val"
+          ],
+          "type": "object"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "IFG",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_present_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "additionalProperties": false,
+          "properties": {
+            "adj_p_val": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "correlation": {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "correlation",
+            "adj_p_val"
+          ],
+          "type": "object"
+        },
+        "row_condition": "cluster != \"Organelle Biogenesis, Cellular Stress Response - Consensus Cluster E\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "IFG",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_absent_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "null"
+        },
+        "row_condition": "cluster == \"Organelle Biogenesis, Cellular Stress Response - Consensus Cluster E\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "CBE",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_present_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "additionalProperties": false,
+          "properties": {
+            "adj_p_val": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "correlation": {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "correlation",
+            "adj_p_val"
+          ],
+          "type": "object"
+        },
+        "row_condition": "cluster != \"ECM Organization - Consensus Cluster A\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "CBE",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_absent_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "null"
+        },
+        "row_condition": "cluster == \"ECM Organization - Consensus Cluster A\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "DLPFC",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_present_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "additionalProperties": false,
+          "properties": {
+            "adj_p_val": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "correlation": {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "correlation",
+            "adj_p_val"
+          ],
+          "type": "object"
+        },
+        "row_condition": "cluster != \"ECM Organization - Consensus Cluster A\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "DLPFC",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_absent_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "null"
+        },
+        "row_condition": "cluster == \"ECM Organization - Consensus Cluster A\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "FP",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_present_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "additionalProperties": false,
+          "properties": {
+            "adj_p_val": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "correlation": {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "correlation",
+            "adj_p_val"
+          ],
+          "type": "object"
+        },
+        "row_condition": "cluster != \"ECM Organization - Consensus Cluster A\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "FP",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_absent_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "null"
+        },
+        "row_condition": "cluster == \"ECM Organization - Consensus Cluster A\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "STG",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_present_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "additionalProperties": false,
+          "properties": {
+            "adj_p_val": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "correlation": {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            }
+          },
+          "required": [
+            "correlation",
+            "adj_p_val"
+          ],
+          "type": "object"
+        },
+        "row_condition": "cluster != \"ECM Organization - Consensus Cluster A\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "STG",
+        "condition_parser": "pandas",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_absent_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "null"
+        },
+        "row_condition": "cluster == \"ECM Organization - Consensus Cluster A\""
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_compound_columns_to_be_unique",
+      "kwargs": {
+        "column_list": [
+          "name",
+          "cluster",
+          "age",
+          "sex"
+        ]
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}

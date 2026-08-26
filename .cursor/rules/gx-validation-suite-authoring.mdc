@@ -168,8 +168,15 @@ Notebook: `data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.
 | `rna_de_aggregate` → `sex` | `expect_column_values_to_be_in_set` | `sex_filter_vals` |
 | `rna_de_aggregate` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
 | `rna_de_individual` → `data[].sex` (nested `enum`) | `expect_column_values_to_match_json_schema` | `sex_filter_vals` |
+| `disease_correlation` → `name` | `expect_column_values_to_be_in_set` | `dc_model_name_filter_vals` |
+| `disease_correlation` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `disease_correlation` → `sex` | `expect_column_values_to_be_in_set` | `sex_filter_vals` |
+| `disease_correlation` → `cluster` | `expect_column_values_to_be_in_set` | `dc_menu2` |
+| `disease_correlation` → `age` | `expect_column_values_to_be_in_set` | `dc_age_filter_vals` |
+| `disease_correlation` → `age_numeric` | `expect_column_values_to_be_in_set` | numeric part of `dc_age_filter_vals` |
+| `disease_correlation` → `modified_genes` | `expect_column_values_to_have_list_members` | `dc_modified_gene_filter_vals` |
 
-The last row's mechanism differs from the rest of the table: `rna_de_individual.data` is a nested
+The rna_de_individual row's mechanism differs from the rest of the table: `rna_de_individual.data` is a nested
 column (see "Choosing the Validation Mechanism" above), so its `sex` field is constrained by an
 `enum` on that property inside the column's JSON Schema, not a top-level `be_in_set`/`list_members`
 expectation. It still enforces the same `sex_filter_vals` vocabulary and must stay in sync the same

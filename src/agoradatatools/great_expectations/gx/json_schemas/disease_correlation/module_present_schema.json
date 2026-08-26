@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/disease_correlation/module_present_schema.json",
+  "type": "object",
+  "properties": {
+    "correlation": { "type": "number", "minimum": -1, "maximum": 1 },
+    "adj_p_val": { "type": "number", "minimum": 0, "maximum": 1 }
+  },
+  "required": ["correlation", "adj_p_val"],
+  "additionalProperties": false
+}
