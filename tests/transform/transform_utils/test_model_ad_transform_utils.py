@@ -176,45 +176,30 @@ class TestBuildResultsUrl:
         assert url is None
 
     @pytest.mark.parametrize(
-        "false_val",
-        [False, None],
-        ids=["Pass with False boolean value", "Pass with None value"],
+        "result_type",
+        ["transcriptomics", "proteomics"],
     )
-    def test_build_results_url_no_transcriptomics(self, false_val: bool) -> None:
-        """
-        The function should treat both None and False as transcriptomics = False, and return None.
-        """
-        model = pd.Series(
-            {
-                "name": "Model",
-                "transcriptomics_url_categories_value": "category_string",
-                "transcriptomics_url_models_value": "model1,model2",
-                "transcriptomics": false_val,
-            }
-        )
-
-        url = build_results_url(model, result_type="transcriptomics")
-        assert url is None
-
     @pytest.mark.parametrize(
         "false_val",
         [False, None],
         ids=["Pass with False boolean value", "Pass with None value"],
     )
-    def test_build_results_url_no_proteomics(self, false_val: bool) -> None:
+    def test_build_results_url_no_results_data(
+        self, false_val: bool, result_type: str
+    ) -> None:
         """
-        The function should treat both None and False as proteomics = False, and return None.
+        The function should treat both None and False as result_type = False, and return None.
         """
         model = pd.Series(
             {
                 "name": "Model",
-                "proteomics_url_categories_value": "category_string",
-                "proteomics_url_models_value": "model1,model2",
-                "proteomics": false_val,
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: false_val,
             }
         )
 
-        url = build_results_url(model, result_type="proteomics")
+        url = build_results_url(model, result_type=result_type)
         assert url is None
 
     def test_build_results_url_all_default_transcriptomics_values(self) -> None:
@@ -255,8 +240,8 @@ class TestBuildResultsUrl:
         self, empty_val: str
     ) -> None:
         """
-        The function should treat both "" and None as empty values and not have a "categories=..." for the transcriptomics
-        url
+        The function should treat both "" and None as empty values and not have a "categories=..." for the
+        transcriptomics url
         """
         model = pd.Series(
             {
@@ -297,12 +282,16 @@ class TestBuildResultsUrl:
         )
 
     @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    @pytest.mark.parametrize(
         "empty_val",
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_results_url_default_transcriptomics_models(
-        self, empty_val: str
+    def test_build_results_url_default_models(
+        self, empty_val: str, result_type: str
     ) -> None:
         """
         The function should treat both "" and None as empty values and have just the model name in the URL
@@ -310,35 +299,116 @@ class TestBuildResultsUrl:
         model = pd.Series(
             {
                 "name": "Model",
-                "transcriptomics_url_categories_value": "category_string",
-                "transcriptomics_url_models_value": empty_val,
-                "transcriptomics": True,
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": empty_val,
+                result_type: True,
             }
         )
 
-        url = build_results_url(model, result_type="transcriptomics")
+        url = build_results_url(model, result_type=result_type)
         assert url == "comparison/expression?categories=category_string&models=Model"
 
     @pytest.mark.parametrize(
-        "empty_val",
-        ["", None],
-        ids=["Pass with empty string value", "Pass with None value"],
+        "result_type",
+        ["transcriptomics", "proteomics"],
     )
-    def test_build_results_url_default_proteomics_models(self, empty_val: str) -> None:
+    def test_build_results_url_model_group_handling_no_duplicates(
+        self, result_type: str
+    ) -> None:
         """
-        The function should treat both "" and None as empty values and have just the model name in the URL
+        The function should handle the model group correctly (model name + models listed in url_models_value), and not
+        include duplicates or empty values in the URL.
         """
         model = pd.Series(
             {
                 "name": "Model",
-                "proteomics_url_categories_value": "category_string",
-                "proteomics_url_models_value": empty_val,
-                "proteomics": True,
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: True,
             }
         )
 
-        url = build_results_url(model, result_type="proteomics")
-        assert url == "comparison/expression?categories=category_string&models=Model"
+        url = build_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        )
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_results_url_model_group_handling_with_duplicates(
+        self, result_type: str
+    ) -> None:
+        """
+        The function should handle the model group correctly (model name + models listed in url_models_value), and not
+        include duplicates or empty values in the URL.
+        """
+        model = pd.Series(
+            {
+                "name": "model1",
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: True,
+            }
+        )
+
+        url = build_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_results_url_model_group_handling_with_extra_whitespace(
+        self, result_type: str
+    ) -> None:
+        """
+        The function should handle the model group correctly (model name + models listed in url_models_value), and not
+        include duplicates or empty values in the URL.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "       model1, model2   ",
+                result_type: True,
+            }
+        )
+        url = build_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        )
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_results_url_model_group_handling_with_empty_values(
+        self, result_type: str
+    ) -> None:
+        """
+        The function should handle the model group correctly (model name + models listed in url_models_value), and not
+        include duplicates or empty values in the URL.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "model1, model2, , ,",
+                result_type: True,
+            }
+        )
+        url = build_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        )
 
 
 class TestZeroPadJaxIds:

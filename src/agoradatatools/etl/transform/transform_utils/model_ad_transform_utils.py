@@ -111,6 +111,7 @@ def build_results_url(
     # Return None for unsupported result types instead of raising an error.
     if result_type not in default_categories:
         return None
+
     if not model_row[result_type]:
         return None
 
@@ -121,13 +122,13 @@ def build_results_url(
     )
     categories_param = f"categories={categories_value}&" if categories_value else ""
 
-    # Combine the model name with any additional models specified, but only keep the unique values. For best test
-    # reproducibility, sort the names so that the order is consistent.
-    models_group = {model_row["name"]} | (
-        {m.strip() for m in model_row[f"{result_type}_url_models_value"].split(",")}
-        if model_row[f"{result_type}_url_models_value"]
-        else set()
-    )
+    # Combine the model name with any additional models specified, but only keep the unique values. For the additional
+    # models, ignore any leading/trailing whitespace, and empty values. For best test reproducibility, sort the names
+    # so that the order is consistent.
+    other_models_to_list = model_row.get(f"{result_type}_url_models_value") or ""
+    models_group = {model_row["name"]} | {
+        m.strip() for m in other_models_to_list.split(",") if m.strip()
+    }
     models_value = ",".join(sorted(models_group))
     return f"comparison/expression?{categories_param}models={models_value}"
 
