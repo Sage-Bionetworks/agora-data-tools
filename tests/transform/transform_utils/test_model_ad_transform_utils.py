@@ -205,8 +205,14 @@ class TestBuildExpressionResultsUrl:
     @pytest.mark.parametrize(
         "result_type, category_default",
         [
-            ("transcriptomics", "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain"),
-            ("proteomics", "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain"),
+            (
+                "transcriptomics",
+                "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+            ),
+            (
+                "proteomics",
+                "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+            ),
         ],
     )
     def test_build_expression_results_url_all_default_values(
@@ -225,13 +231,21 @@ class TestBuildExpressionResultsUrl:
         )
 
         url = build_expression_results_url(model, result_type=result_type)
-        assert url == f"comparison/expression?categories={category_default}&models=Model"
+        assert (
+            url == f"comparison/expression?categories={category_default}&models=Model"
+        )
 
     @pytest.mark.parametrize(
         "result_type, category_default",
         [
-            ("transcriptomics", "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain"),
-            ("proteomics", "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain"),
+            (
+                "transcriptomics",
+                "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+            ),
+            (
+                "proteomics",
+                "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+            ),
         ],
     )
     @pytest.mark.parametrize(
@@ -255,7 +269,10 @@ class TestBuildExpressionResultsUrl:
         )
 
         url = build_expression_results_url(model, result_type=result_type)
-        assert url == f"comparison/expression?categories={category_default}&models=Model,model1,model2"
+        assert (
+            url
+            == f"comparison/expression?categories={category_default}&models=Model,model1,model2"
+        )
 
     @pytest.mark.parametrize(
         "result_type",
@@ -305,7 +322,10 @@ class TestBuildExpressionResultsUrl:
         )
 
         url = build_expression_results_url(model, result_type=result_type)
-        assert url == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        )
 
     @pytest.mark.parametrize(
         "result_type",
@@ -328,7 +348,10 @@ class TestBuildExpressionResultsUrl:
         )
 
         url = build_expression_results_url(model, result_type=result_type)
-        assert url == "comparison/expression?categories=category_string&models=model1,model2"
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
 
     @pytest.mark.parametrize(
         "result_type",
@@ -350,7 +373,10 @@ class TestBuildExpressionResultsUrl:
             }
         )
         url = build_expression_results_url(model, result_type=result_type)
-        assert url == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        )
 
     @pytest.mark.parametrize(
         "result_type",
@@ -372,7 +398,10 @@ class TestBuildExpressionResultsUrl:
             }
         )
         url = build_expression_results_url(model, result_type=result_type)
-        assert url == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=Model,model1,model2"
+        )
 
 
 class TestZeroPadJaxIds:
