@@ -151,12 +151,15 @@ class TestTransformModelOverview:
                 "alzforum_id",
                 "genotype",
                 "aliases",
-                "url_categories_value",
-                "url_models_value",
+                "transcriptomics_url_categories_value",
+                "transcriptomics_url_models_value",
                 "transcriptomics",
                 "disease_correlation",
                 "pathology",
                 "biomarkers",
+                "proteomics",
+                "proteomics_url_categories_value",
+                "proteomics_url_models_value",
             ]
         )
         empty_model_genetic_modifications = pd.DataFrame(
@@ -200,12 +203,15 @@ class TestTransformModelOverview:
                 "alzforum_id": ["test"],
                 "genotype": ["Test Genotype"],
                 "aliases": ["Test Alias"],
-                "url_categories_value": [None],
-                "url_models_value": [None],
+                "transcriptomics_url_categories_value": [None],
+                "transcriptomics_url_models_value": [None],
                 "transcriptomics": [True],
                 "disease_correlation": [False],
                 "pathology": [True],
                 "biomarkers": [False],
+                "proteomics": [None],
+                "proteomics_url_categories_value": [None],
+                "proteomics_url_models_value": [None],
             }
         )
         model_genetic_modifications = pd.DataFrame(
@@ -239,6 +245,7 @@ class TestTransformModelOverview:
                 "transcriptomics": {
                     "link_url": "comparison/expression?models=test_model"
                 },
+                "proteomics": None,
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/test_model/pathology"},
                 "biomarkers": None,
@@ -269,12 +276,15 @@ class TestTransformModelOverview:
                 "alzforum_id": [None],
                 "genotype": ["Test Genotype"],
                 "aliases": [None],
-                "url_categories_value": [None],
-                "url_models_value": [None],
+                "transcriptomics_url_categories_value": [None],
+                "transcriptomics_url_models_value": [None],
                 "transcriptomics": [None],
                 "disease_correlation": [None],
                 "pathology": [None],
                 "biomarkers": [None],
+                "proteomics": [None],
+                "proteomics_url_categories_value": [None],
+                "proteomics_url_models_value": [None],
             }
         )
         model_genetic_modifications = pd.DataFrame(
@@ -306,6 +316,7 @@ class TestTransformModelOverview:
                 "model_type": "Familial AD",
                 "matched_controls": [],
                 "transcriptomics": None,
+                "proteomics": None,
                 "disease_correlation": None,
                 "pathology": None,
                 "biomarkers": None,
@@ -338,12 +349,15 @@ class TestTransformModelOverview:
                 "alzforum_id": ["id1", "id2"],
                 "genotype": ["Geno1", "Geno2"],
                 "aliases": ["Alias1", "Alias2"],
-                "url_categories_value": [None, None],
-                "url_models_value": [None, None],
+                "transcriptomics_url_categories_value": [None, None],
+                "transcriptomics_url_models_value": [None, None],
                 "transcriptomics": [True, False],
                 "disease_correlation": [False, True],
                 "pathology": [True, True],
                 "biomarkers": [False, True],
+                "proteomics": [None, None],
+                "proteomics_url_categories_value": [None, None],
+                "proteomics_url_models_value": [None, None],
             }
         )
         model_genetic_modifications = pd.DataFrame(
@@ -383,6 +397,7 @@ class TestTransformModelOverview:
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
                 "transcriptomics": {"link_url": "comparison/expression?models=model1"},
+                "proteomics": None,
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/model1/pathology"},
                 "biomarkers": None,
@@ -399,6 +414,7 @@ class TestTransformModelOverview:
                 "model_type": "Tauopathy",
                 "matched_controls": ["B6129", "B6130"],
                 "transcriptomics": None,
+                "proteomics": None,
                 "disease_correlation": {
                     "link_url": "comparison/correlation?models=model2"
                 },

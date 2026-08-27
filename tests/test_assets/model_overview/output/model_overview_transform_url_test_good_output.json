@@ -6,6 +6,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?models=Model_url_default"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": null,
     "biomarkers": null,
@@ -28,6 +29,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?categories=category_string&models=Model_url_categories"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": null,
     "biomarkers": null,
@@ -48,8 +50,9 @@
     "model_type": "Tauopathy",
     "matched_controls": ["C57BL/6J"],
     "transcriptomics": {
-      "link_url": "comparison/expression?models=model1,model2"
+      "link_url": "comparison/expression?models=Model_url_models,model1,model2"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": null,
     "biomarkers": null,
@@ -70,7 +73,10 @@
     "model_type": "Familial AD",
     "matched_controls": ["B6129"],
     "transcriptomics": {
-      "link_url": "comparison/expression?categories=category_string&models=model3,model4"
+      "link_url": "comparison/expression?categories=category_string&models=Model_url_both,model3,model4"
+    },
+    "proteomics": {
+      "link_url": "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model_url_both"
     },
     "disease_correlation": null,
     "pathology": null,
@@ -84,8 +90,8 @@
     "center": "UCI",
     "modified_genes": [],
     "available_data": [
-      "Transcriptomics"
+      "Transcriptomics",
+      "Proteomics"
     ]
   }
 ]
-  

@@ -6,6 +6,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?models=3xTg-AD"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": {
       "link_url": "models/3xTg-AD/pathology"
@@ -36,6 +37,7 @@
     "model_type": "Familial AD",
     "matched_controls": ["C57BL6J"],
     "transcriptomics": null,
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": null,
     "biomarkers": null,

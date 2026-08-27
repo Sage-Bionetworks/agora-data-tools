@@ -13,7 +13,7 @@ from agoradatatools.etl.utils import (
     remove_duplicates_keep_order,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    build_transcriptomics_url,
+    build_expression_results_url,
     process_genetic_info,
     zero_pad_jax_ids,
 )
@@ -30,12 +30,15 @@ REQUIRED_INPUT = {
         "alzforum_id",
         "genotype",
         "aliases",
-        "url_categories_value",
-        "url_models_value",
+        "transcriptomics_url_categories_value",
+        "transcriptomics_url_models_value",
         "transcriptomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
+        "proteomics",
+        "proteomics_url_categories_value",
+        "proteomics_url_models_value",
     ],
     "model_genetic_modifications": [
         "name",
@@ -64,6 +67,7 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     """
     fields = {
         "transcriptomics": "Transcriptomics",
+        "proteomics": "Proteomics",
         "disease_correlation": "Disease Correlation",
         "pathology": "Pathology",
         "biomarkers": "Biomarkers",
@@ -74,6 +78,53 @@ def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
     ]
 
     return available_data
+
+
+def _build_model_links(row: pd.Series) -> Dict[str, Any]:
+    """Build all link_url entries for a single model row."""
+    return {
+        "transcriptomics": (
+            {
+                "link_url": build_expression_results_url(
+                    row, result_type="transcriptomics"
+                )
+            }
+            if row["transcriptomics"]
+            else None
+        ),
+        "proteomics": (
+            {"link_url": build_expression_results_url(row, result_type="proteomics")}
+            if row["proteomics"]
+            else None
+        ),
+        "disease_correlation": (
+            {"link_url": f"comparison/correlation?models={row['name']}"}
+            if row["disease_correlation"]
+            else None
+        ),
+        "pathology": (
+            {"link_url": f"models/{row['name']}/pathology"}
+            if row["pathology"]
+            else None
+        ),
+        "biomarkers": (
+            {"link_url": f"models/{row['name']}/biomarkers"}
+            if row["biomarkers"]
+            else None
+        ),
+        "study_data": (
+            {
+                "link_url": f"https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study={row['study_synid']}"
+            }
+            if row["study_synid"]
+            else None
+        ),
+        "jax_strain": (
+            {"link_url": f"https://jax.org/strain/{row['jax_id']}"}
+            if row["jax_id"]
+            else None
+        ),
+    }
 
 
 def get_center_link_url(contributing_group: str) -> str:
@@ -129,6 +180,7 @@ def transform_model_overview(
 
     boolean_columns = [
         "transcriptomics",
+        "proteomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
@@ -159,38 +211,8 @@ def transform_model_overview(
         row["modified_genes"] = [gene for gene in modified_genes if gene is not None]
 
         # Build the links
-        row["transcriptomics"] = (
-            {"link_url": build_transcriptomics_url(row)}
-            if row["transcriptomics"]
-            else None
-        )
-        row["disease_correlation"] = (
-            {"link_url": f"comparison/correlation?models={row['name']}"}
-            if row["disease_correlation"]
-            else None
-        )
-        row["pathology"] = (
-            {"link_url": f"models/{row['name']}/pathology"}
-            if row["pathology"]
-            else None
-        )
-        row["biomarkers"] = (
-            {"link_url": f"models/{row['name']}/biomarkers"}
-            if row["biomarkers"]
-            else None
-        )
-        row["study_data"] = (
-            {
-                "link_url": f"https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study={row['study_synid']}"
-            }
-            if row["study_synid"]
-            else None
-        )
-        row["jax_strain"] = (
-            {"link_url": f"https://jax.org/strain/{row['jax_id']}"}
-            if row["jax_id"]
-            else None
-        )
+        for key, value in _build_model_links(row).items():
+            row[key] = value
         row["center"] = row["contributing_group"]
 
         # Calculate available_data based on which links are actually present
@@ -207,6 +229,7 @@ def transform_model_overview(
             "model_type",
             "matched_controls",
             "transcriptomics",
+            "proteomics",
             "disease_correlation",
             "pathology",
             "biomarkers",

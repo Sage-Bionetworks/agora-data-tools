@@ -3,7 +3,7 @@ This file contains utility functions that may be used across multiple transforms
 
 Functions:
     process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
-    build_transcriptomics_url - build a URL linking to the gene comparison table for a given study
+    build_results_url - build a URL linking to the gene/protein comparison table for a given study
     zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
     remap_sex_labels - convert any plural sex values to singular form for consistent display
 """
@@ -66,60 +66,71 @@ def process_genetic_info(
     ].to_dict(orient="records")
 
 
-def build_transcriptomics_url(model_row: pd.Series) -> Union[str, None]:
+def build_expression_results_url(
+    model_row: pd.Series, result_type: str = "transcriptomics"
+) -> Union[str, None]:
     """
-    Creates the link-url to the gene comparison table for a given model. The default string is
-    "comparison/expression?models=<model_name>".
+    Creates the link-url to the comparison table for a given model and result type. Currently supported result
+    types are "transcriptomics" and "proteomics", where the default is "transcriptomics".
 
-    However, this default isn't an appropriate value for every model. By default, the gene comparison table loads with
-    tissue = Hemibrain by default, and only Jax studies have hemibrain samples. For models without hemibrain data, we
-    add a "categories=..." string to the URL that sets tissue = Hippocampus.
-
-    Additionally, some UCI studies have 4 associated genotypes (2 sets of case vs control differential expression
-    results), and the gene comparison table should load results for both sets of DE data. For those studies, we add
-    two (or more) model names to the "models=..." part of the string.
-
-    The exact values that should go in "categories=..." and "models=..." are pulled from columns in model_row. If the
-    url_categories_value is None or "", the "categories=..." string is not added. If the url_models_value is None or "",
-    the "models=..." string defaults to "models=<model_name>".
-
-    The final url can have two different formats:
-        "comparison/expression?models=..."
+    The URL base is "comparison/expression?" with 'categories' and 'models' query parameters. The final URL can have
+    two different formats:
+        "comparison/expression?models=..." (transcriptomics only)
         "comparison/expression?categories=...&models=..."
-    where:
-        the models "..." could be a single model name or a comma-separated list of models, and
-        the categories "..." is a string like
-            "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hippocampus,Sex%2520-%2520Females%2520%2526%2520Males"
 
-    The url will be None if there is no transcriptomics data for this model.
+    The 'categories' parameter uses the model's url_categories_value if specified; otherwise the default value is used.
+    For transcriptomics, there is no default, so 'categories' is omitted entirely. For proteomics, a Hemibrain default
+    is used. For example, the gene comparison table loads with tissue = Hemibrain by default, and only Jax studies have
+    hemibrain samples. For models without hemibrain data, we will specify 'categories' to set tissue = Hippocampus.
+
+    The 'models' parameter always includes the model name. Additional model names can be included if specified by the
+    model's url_models_value. For example,some UCI studies have 4 associated genotypes (2 sets of case vs control
+    differential expression results), and the comparisons table should load results for both sets of DE data. For those
+    studies, we add two (or more) model names to the 'models' query parameter.
+
+    The url will be None if the result_type is unsupported or there is no result data for this model.
 
     Args:
-        model_row (pd.Series): A single row from the model_info data frame, which must contain columns "name",
-            "transcriptomics", "url_categories_value", and "url_models_value". The latter two columns may be None or
-            contain strings. "transcriptomics" must be True or False. It is assumed that normalize_null_values has
-            already been called on this data so that all missing values used in this function are None, not NA or empty
-            strings.
+        model_row (pd.Series): A single row from the model_info data frame, which must contain columns:
+            * name
+            * <result_type> (must be True or False)
+            * <result_type>_url_categories_value (must be None or non-empty string)
+            * <result_type>_url_models_value (must be None or non-empty string)
+            It is assumed that normalize_null_values has already been called so that all missing values are None, not
+            NA or empty strings.
+        result_type (str): The type of result data to build the URL for (default: "transcriptomics")
 
     Returns:
-        a string with the completed URL, or None if there is no transcriptomics data for the model
+        a string with the completed URL, or None if there is no data for the model or if the result_type is unsupported
     """
+    default_categories = {
+        "transcriptomics": "",
+        "proteomics": "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+    }
+
+    # Return None for unsupported result types instead of raising an error.
+    if result_type not in default_categories:
+        return None
+
+    if not model_row[result_type]:
+        return None
+
     categories_value = (
-        # Contains the "&" at the end to separate it from the models=... statement
-        f"categories={model_row['url_categories_value']}&"
-        if model_row["url_categories_value"]  # must not be "" or None
-        else ""  # Only adds to URL if the url_categories_value is specified
+        model_row[f"{result_type}_url_categories_value"]
+        if model_row[f"{result_type}_url_categories_value"]  # must not be "" or None
+        else default_categories[result_type]
     )
-    models_value = (
-        model_row["url_models_value"]  # A comma-separated list, if specified
-        if model_row["url_models_value"]  # must not be "" or None
-        else model_row["name"]  # A single model name if url_models_value is blank
-    )
-    url = (
-        f"comparison/expression?{categories_value}models={models_value}"
-        if model_row["transcriptomics"]
-        else None
-    )
-    return url
+    categories_param = f"categories={categories_value}&" if categories_value else ""
+
+    # Combine the model name with any additional models specified, but only keep the unique values. For the additional
+    # models, ignore any leading/trailing whitespace, and empty values. For best test reproducibility, sort the names
+    # so that the order is consistent.
+    other_models_to_list = model_row.get(f"{result_type}_url_models_value") or ""
+    models_group = {model_row["name"]} | {
+        m.strip() for m in other_models_to_list.split(",") if m.strip()
+    }
+    models_value = ",".join(sorted(models_group))
+    return f"comparison/expression?{categories_param}models={models_value}"
 
 
 def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:

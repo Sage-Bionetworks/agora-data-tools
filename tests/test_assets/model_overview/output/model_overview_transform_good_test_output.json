@@ -6,6 +6,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?models=3xTg-AD"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": {
       "link_url": "models/3xTg-AD/pathology"
@@ -38,6 +39,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?models=5xFAD (UCI)"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": {
       "link_url": "models/5xFAD (UCI)/pathology"
@@ -66,6 +68,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?models=APOE4"
     },
+    "proteomics": null,
     "disease_correlation": {
       "link_url": "comparison/correlation?models=APOE4"
     },
@@ -82,6 +85,31 @@
     "available_data": [
       "Transcriptomics",
       "Disease Correlation"
+    ]
+  },
+  {
+    "name": "LOAD2",
+    "model_type": "Late Onset AD",
+    "matched_controls": [
+      "LOAD1"
+    ],
+    "transcriptomics": null,
+    "proteomics": {
+      "link_url": "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=LOAD2"
+    },
+    "disease_correlation": null,
+    "pathology": null,
+    "biomarkers": null,
+    "study_data": {
+      "link_url": "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn51534997"
+    },
+    "jax_strain": {
+      "link_url": "https://jax.org/strain/030670"
+    },
+    "center": "IU/Jax/Pitt",
+    "modified_genes": [],
+    "available_data": [
+      "Proteomics"
     ]
   }
 ]
