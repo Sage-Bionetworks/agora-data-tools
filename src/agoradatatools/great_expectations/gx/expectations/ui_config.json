@@ -3,13 +3,198 @@
   "expectation_suite_name": "ui_config",
   "expectations": [
     {
-      "expectation_type": "expect_column_nested_object_string_length",
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "page",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "page"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "page",
+        "value_set": [
+          "Nominated Targets",
+          "Nominated Drugs",
+          "Differential Expression",
+          "Disease Correlation",
+          "Model Overview",
+          "Marmoset Model Overview",
+          "eQTLs"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "columns",
-        "length_threshold": 0,
-        "operator": ">",
-        "target_field": "tooltip",
-        "valid_threshold": 0.20
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/ui_config/columns_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "column_width": {
+                "type": "integer"
+              },
+              "data_key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "is_exported": {
+                "type": "boolean"
+              },
+              "is_hidden": {
+                "type": "boolean"
+              },
+              "link_text": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "link_url": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "sort_tooltip": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "tooltip": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "primary",
+                  "text",
+                  "numeric",
+                  "link_internal",
+                  "link_external",
+                  "heat_map"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "data_key",
+              "is_exported",
+              "is_hidden",
+              "type"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "filters",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/ui_config/filters_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "data_key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "query_param_key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "short_name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "values": {
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "items": {
+                      "type": [
+                        "string",
+                        "number"
+                      ]
+                    },
+                    "type": "array"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "data_key",
+              "name",
+              "query_param_key",
+              "values"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "dropdowns",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "dropdowns"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "dropdowns",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "dropdowns",
+        "list_length_range": [
+          0,
+          2
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_null",
+      "kwargs": {
+        "column": "row_count"
       },
       "meta": {}
     }
