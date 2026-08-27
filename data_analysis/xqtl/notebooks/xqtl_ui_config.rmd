@@ -42,6 +42,11 @@ library(jsonlite)
 ## Variables and functions
 Sources the required variables and functions.
 ```{r}
+# *******************************
+# STATIC ROW COUNTS (MG-384)
+# *******************************
+# we don't need row_count values CT loading indicators since we've introduced server-side pagination
+eqtl_row_count = NA
 
 # *********
 # FUNCTIONS
@@ -62,6 +67,7 @@ build_eqtl_object <- function(page, eqtl_columns, eqtl_filters, eqtl_filter_valu
   list(
     page = page,
     dropdowns = list(),
+    row_count = eqtl_row_count,
     columns = columns,
     filters = filters
   )
@@ -182,7 +188,7 @@ download_file <- function(synId, df_name, type) {
   }
   else {
     if (type == 'json') { data <- fromJSON(path) }
-    if (type == 'csv' || type == 'table') { data <- read.csv(path) }
+    if (type == 'csv' || type == 'table') { data <- read.csv(path, na.strings = c("", "NA")) }
     if (type == 'tsv') { data <- read.csv(path, sep = "\t") }
     name <- as.data.frame(data)
   }
@@ -195,8 +201,8 @@ download_file <- function(synId, df_name, type) {
 
 ```{r}
 
-columns <- download_file("syn77140300", columns ,"csv")
-filters <- download_file("syn77140301", filters ,"csv")
+columns <- download_file("syn77143572", columns ,"csv")
+filters <- download_file("syn77143748", filters ,"csv")
 cell_classes <- download_file("syn77140302", cell_classes, "txt")
 cell_subclasses <- download_file("syn77140299", cell_subclasses, "txt")
 filter_vals <- list(
@@ -207,7 +213,7 @@ filter_vals <- list(
   )
 
 
-json_list <- c(
+json_list <- list(
   build_eqtl_object("eQTLs", columns, filters, filter_vals)
 )
 
@@ -240,7 +246,7 @@ res <- synStore(
           syn_file,
           forceVersion = FALSE,
           used = data_sources,
-          executed = ""
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/xqtl/notebooks/xqtl_ui_config.rmd"
         )
 # print synapse_id and new version number
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
@@ -257,3 +263,5 @@ TESTS
 download_file("syn77140300", eqtl_columns, "csv")
 download_file("syn77140302", genesis_cell_classes, "txt")
 ```
+
+
