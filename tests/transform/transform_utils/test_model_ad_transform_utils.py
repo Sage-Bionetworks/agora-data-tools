@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    build_results_url,
+    build_expression_results_url,
     process_genetic_info,
     zero_pad_jax_ids,
     validate_jax_ids,
@@ -152,14 +152,14 @@ class TestProcessGeneticInfo:
         assert output == expected_output
 
 
-class TestBuildResultsUrl:
+class TestBuildExpressionResultsUrl:
     """
-    This class is for testing the build_results_url function for the model_details & model_overview transforms.
-    The function takes a pd.Series object (representing a single row from the model_info file) and builds a URL if the
-    model has transcriptomics or proteomics data.
+    This class is for testing the build_expression_results_url function for the model_details & model_overview
+    transforms. The function takes a pd.Series object (representing a single row from the model_info file) and builds a
+    URL if the model has transcriptomics or proteomics data.
     """
 
-    def test_build_results_url_unknown_result_type(self) -> None:
+    def test_build_expression_results_url_unknown_result_type(self) -> None:
         """
         The function should return None if the result_type is not "transcriptomics" or "proteomics".
         """
@@ -172,7 +172,7 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type="foo")
+        url = build_expression_results_url(model, result_type="foo")
         assert url is None
 
     @pytest.mark.parametrize(
@@ -184,7 +184,7 @@ class TestBuildResultsUrl:
         [False, None],
         ids=["Pass with False boolean value", "Pass with None value"],
     )
-    def test_build_results_url_no_results_data(
+    def test_build_expression_results_url_no_results_data(
         self, false_val: bool, result_type: str
     ) -> None:
         """
@@ -199,10 +199,10 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type=result_type)
+        url = build_expression_results_url(model, result_type=result_type)
         assert url is None
 
-    def test_build_results_url_all_default_transcriptomics_values(self) -> None:
+    def test_build_expression_results_url_all_default_transcriptomics_values(self) -> None:
         model = pd.Series(
             {
                 "name": "Model",
@@ -212,10 +212,10 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type="transcriptomics")
+        url = build_expression_results_url(model, result_type="transcriptomics")
         assert url == "comparison/expression?models=Model"
 
-    def test_build_results_url_all_default_proteomics_values(self) -> None:
+    def test_build_expression_results_url_all_default_proteomics_values(self) -> None:
         model = pd.Series(
             {
                 "name": "Model",
@@ -225,7 +225,7 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type="proteomics")
+        url = build_expression_results_url(model, result_type="proteomics")
         assert (
             url
             == "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model"
@@ -236,7 +236,7 @@ class TestBuildResultsUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_results_url_default_transcriptomics_category(
+    def test_build_expression_results_url_default_transcriptomics_category(
         self, empty_val: str
     ) -> None:
         """
@@ -252,7 +252,7 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type="transcriptomics")
+        url = build_expression_results_url(model, result_type="transcriptomics")
         assert url == "comparison/expression?models=Model,model1,model2"
 
     @pytest.mark.parametrize(
@@ -260,7 +260,7 @@ class TestBuildResultsUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_results_url_default_proteomics_category(
+    def test_build_expression_results_url_default_proteomics_category(
         self, empty_val: str
     ) -> None:
         """
@@ -275,7 +275,7 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type="proteomics")
+        url = build_expression_results_url(model, result_type="proteomics")
         assert (
             url
             == "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model,model1,model2"
@@ -290,7 +290,7 @@ class TestBuildResultsUrl:
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_results_url_default_models(
+    def test_build_expression_results_url_default_models(
         self, empty_val: str, result_type: str
     ) -> None:
         """
@@ -305,14 +305,14 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type=result_type)
+        url = build_expression_results_url(model, result_type=result_type)
         assert url == "comparison/expression?categories=category_string&models=Model"
 
     @pytest.mark.parametrize(
         "result_type",
         ["transcriptomics", "proteomics"],
     )
-    def test_build_results_url_model_group_handling_no_duplicates(
+    def test_build_expression_results_url_model_group_handling_no_duplicates(
         self, result_type: str
     ) -> None:
         """
@@ -328,7 +328,7 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type=result_type)
+        url = build_expression_results_url(model, result_type=result_type)
         assert (
             url
             == "comparison/expression?categories=category_string&models=Model,model1,model2"
@@ -338,7 +338,7 @@ class TestBuildResultsUrl:
         "result_type",
         ["transcriptomics", "proteomics"],
     )
-    def test_build_results_url_model_group_handling_with_duplicates(
+    def test_build_expression_results_url_model_group_handling_with_duplicates(
         self, result_type: str
     ) -> None:
         """
@@ -354,7 +354,7 @@ class TestBuildResultsUrl:
             }
         )
 
-        url = build_results_url(model, result_type=result_type)
+        url = build_expression_results_url(model, result_type=result_type)
         assert (
             url
             == "comparison/expression?categories=category_string&models=model1,model2"
@@ -364,7 +364,7 @@ class TestBuildResultsUrl:
         "result_type",
         ["transcriptomics", "proteomics"],
     )
-    def test_build_results_url_model_group_handling_with_extra_whitespace(
+    def test_build_expression_results_url_model_group_handling_with_extra_whitespace(
         self, result_type: str
     ) -> None:
         """
@@ -379,7 +379,7 @@ class TestBuildResultsUrl:
                 result_type: True,
             }
         )
-        url = build_results_url(model, result_type=result_type)
+        url = build_expression_results_url(model, result_type=result_type)
         assert (
             url
             == "comparison/expression?categories=category_string&models=Model,model1,model2"
@@ -389,7 +389,7 @@ class TestBuildResultsUrl:
         "result_type",
         ["transcriptomics", "proteomics"],
     )
-    def test_build_results_url_model_group_handling_with_empty_values(
+    def test_build_expression_results_url_model_group_handling_with_empty_values(
         self, result_type: str
     ) -> None:
         """
@@ -404,7 +404,7 @@ class TestBuildResultsUrl:
                 result_type: True,
             }
         )
-        url = build_results_url(model, result_type=result_type)
+        url = build_expression_results_url(model, result_type=result_type)
         assert (
             url
             == "comparison/expression?categories=category_string&models=Model,model1,model2"
