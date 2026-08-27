@@ -19,3 +19,4 @@ datasets:
       gx_enabled: true
       gx_nested_columns:
         - columns
+        - filters

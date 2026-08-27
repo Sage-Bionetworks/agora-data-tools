@@ -1,5 +1,5 @@
 destination: &dest syn51498088   # prod
-staging_path: ./staging
+staging_path: ./staging/model_ad
 gx_folder: syn63141014           # prod
 gx_table: syn71888383            # prod
 # Reusable file reference anchors used by datasets below.
@@ -86,6 +86,7 @@ datasets:
       gx_enabled: true
       gx_nested_columns:
         - columns
+        - filters
 
   - model_overview:
       files:
