@@ -73,15 +73,14 @@ def build_expression_results_url(
     Creates the link-url to the comparison table for a given model and result type. Currently supported result
     types are "transcriptomics" and "proteomics", where the default is "transcriptomics".
 
-    The URL base is "comparison/expression?" with 'categories' and 'models' query parameters. The final URL can have
-    two different formats:
-        "comparison/expression?models=..." (transcriptomics only)
+    The URL base is "comparison/expression?" with 'categories' and 'models' query parameters. The final URL format will
+    look something like this:
         "comparison/expression?categories=...&models=..."
 
-    The 'categories' parameter uses the model's url_categories_value if specified; otherwise the default value is used.
-    For transcriptomics, there is no default, so 'categories' is omitted entirely. For proteomics, a Hemibrain default
-    is used. For example, the gene comparison table loads with tissue = Hemibrain by default, and only Jax studies have
-    hemibrain samples. For models without hemibrain data, we will specify 'categories' to set tissue = Hippocampus.
+    The 'categories' parameter uses the model's url_categories_value if specified; otherwise a default value is used.
+    For both transcriptomics and proteomics, the default values include "Tissue - Hemibrain", but this may not be
+    appropriate for all models. For example, only JAX models currently have Hemibrain data, so for non-JAX models we
+    use 'categories' to specify the tissue type to Hippocampus instead.
 
     The 'models' parameter always includes the model name. Additional model names can be included if specified by the
     model's url_models_value. For example,some UCI studies have 4 associated genotypes (2 sets of case vs control
@@ -104,7 +103,7 @@ def build_expression_results_url(
         a string with the completed URL, or None if there is no data for the model or if the result_type is unsupported
     """
     default_categories = {
-        "transcriptomics": "",
+        "transcriptomics": "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
         "proteomics": "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
     }
 
@@ -120,7 +119,6 @@ def build_expression_results_url(
         if model_row[f"{result_type}_url_categories_value"]  # must not be "" or None
         else default_categories[result_type]
     )
-    categories_param = f"categories={categories_value}&" if categories_value else ""
 
     # Combine the model name with any additional models specified, but only keep the unique values. For the additional
     # models, ignore any leading/trailing whitespace, and empty values. For best test reproducibility, sort the names
@@ -130,7 +128,7 @@ def build_expression_results_url(
         m.strip() for m in other_models_to_list.split(",") if m.strip()
     }
     models_value = ",".join(sorted(models_group))
-    return f"comparison/expression?{categories_param}models={models_value}"
+    return f"comparison/expression?categories={categories_value}&models={models_value}"
 
 
 def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
