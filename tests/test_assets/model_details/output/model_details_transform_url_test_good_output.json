@@ -15,7 +15,7 @@
       "hTau",
       "Mapt-/-"
     ],
-    "transcriptomics": "comparison/expression?models=Model_url_default",
+    "transcriptomics": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model_url_default",
     "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
@@ -62,7 +62,7 @@
       "hTau",
       "Mapt-/-"
     ],
-    "transcriptomics": "comparison/expression?models=Model_url_models,model1,model2",
+    "transcriptomics": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model_url_models,model1,model2",
     "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
