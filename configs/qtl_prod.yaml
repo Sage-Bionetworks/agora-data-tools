@@ -6,7 +6,7 @@ gx_table: syn74766226          # prod
 # Reusable file reference anchors used by datasets below.
 files:
   # Metadata & Configuration
-  - &ui_config                    { name: ui_config                    , format: json , id: syn77129966 }
+  - &ui_config                    { name: ui_config                    , format: json , id: syn77143753 }
   # QTL Results
   # Expression Results
 
