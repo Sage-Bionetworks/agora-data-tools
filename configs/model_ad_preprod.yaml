@@ -1,5 +1,5 @@
 destination: &dest syn51498091 # preprod
-staging_path: ./staging
+staging_path: ./staging/model_ad
 gx_folder: syn59934608         # preprod
 gx_table: syn71888382          # preprod
 # Reusable file reference anchors used by datasets below.
