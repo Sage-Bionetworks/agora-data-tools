@@ -13,7 +13,7 @@ from agoradatatools.etl.utils import (
     remove_duplicates_keep_order,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    build_results_url,
+    build_expression_results_url,
     process_genetic_info,
     zero_pad_jax_ids,
 )
@@ -84,12 +84,16 @@ def _build_model_links(row: pd.Series) -> Dict[str, Any]:
     """Build all link_url entries for a single model row."""
     return {
         "transcriptomics": (
-            {"link_url": build_results_url(row, result_type="transcriptomics")}
+            {
+                "link_url": build_expression_results_url(
+                    row, result_type="transcriptomics"
+                )
+            }
             if row["transcriptomics"]
             else None
         ),
         "proteomics": (
-            {"link_url": build_results_url(row, result_type="proteomics")}
+            {"link_url": build_expression_results_url(row, result_type="proteomics")}
             if row["proteomics"]
             else None
         ),

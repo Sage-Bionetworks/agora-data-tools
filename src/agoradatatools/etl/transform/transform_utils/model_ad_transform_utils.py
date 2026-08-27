@@ -66,7 +66,7 @@ def process_genetic_info(
     ].to_dict(orient="records")
 
 
-def build_results_url(
+def build_expression_results_url(
     model_row: pd.Series, result_type: str = "transcriptomics"
 ) -> Union[str, None]:
     """
