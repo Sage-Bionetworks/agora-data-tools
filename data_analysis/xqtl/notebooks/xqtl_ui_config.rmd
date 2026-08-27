@@ -263,5 +263,3 @@ TESTS
 download_file("syn77140300", eqtl_columns, "csv")
 download_file("syn77140302", genesis_cell_classes, "txt")
 ```
-
-
