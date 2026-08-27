@@ -243,7 +243,7 @@ class TestTransformModelOverview:
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
                 "transcriptomics": {
-                    "link_url": "comparison/expression?models=test_model"
+                    "link_url": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=test_model"
                 },
                 "proteomics": None,
                 "disease_correlation": None,
@@ -396,7 +396,9 @@ class TestTransformModelOverview:
                 "name": "model1",
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
-                "transcriptomics": {"link_url": "comparison/expression?models=model1"},
+                "transcriptomics": {
+                    "link_url": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=model1"
+                },
                 "proteomics": None,
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/model1/pathology"},
