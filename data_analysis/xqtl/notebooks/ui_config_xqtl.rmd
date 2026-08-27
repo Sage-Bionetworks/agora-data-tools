@@ -1,0 +1,265 @@
+---
+title: "Create xQTL ui_config source file"
+related issues: QTL-104
+---
+This notebook generates the ui_config.json source file (syn77129966) containing the data required to construct Comparison Tool interfaces for the xQTL Explorer.
+
+Interfaces that are currently handled by this notebook:
+* eQTL CT
+
+This notebook must be updated when the Explorer is updated to:
+* Add a new CT interface
+* Add or modify a column of an existing CT interface
+* Add or modify a CT dropdown menu or dropdown value
+* Add or modify a filterset or filter value
+
+
+Notes:
+* `query_param_key`: Values must be plural, camelCase, and should intelligibly align with the related display values presented to users on the page:
+   - filter.name (filter panels)
+   - filter.short_name (filter chiclets)
+   - column.name (column header)
+
+
+## Library setup
+Install required packages:
+- synapser (also requires a Synapse account with an auth token)
+- jsonlite
+```{r}
+if (!require("synapser", quietly = TRUE)) {
+  install.packages("synapser", repos = c("http://ran.synapse.org",
+                                         "https://cloud.r-project.org"))
+}
+if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
+if (!require("purrr")) { install.packages("purrr") }
+
+library(synapser)
+library(purrr)
+library(jsonlite)
+```
+
+
+## Variables and functions
+Sources the required variables and functions.
+```{r}
+# *******************************
+# STATIC ROW COUNTS (MG-384)
+# *******************************
+# we don't need row_count values CT loading indicators since we've introduced server-side pagination
+eqtl_row_count = NA
+
+# *********
+# FUNCTIONS
+# *********
+
+# Builds a ui_config object from a dataframe containing column info
+# - eqtl_columns: a csv-compatible dataframe containing a row of values per CT column:
+#    - name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width
+# eqtl_filters: a csv-compatible dataframe containing a row of values per CT filterset:
+#
+# eqtl_filter_values: A list of lists of filter values; value lists must be in the same order as the filters
+#
+build_eqtl_object <- function(page, eqtl_columns, eqtl_filters, eqtl_filter_values) {
+  columns <- build_columns(eqtl_columns)
+  filters <- build_filters(eqtl_filters, eqtl_filter_values)
+
+  # Assemble the ui_config object
+  list(
+    page = page,
+    dropdowns = list(),
+    row_count = eqtl_row_count,
+    columns = columns,
+    filters = filters
+  )
+}
+
+
+build_columns <- function(page_column_data) {
+
+  columns <- purrr::pmap(page_column_data, build_column)
+  names(columns) <- NULL
+  columns
+}
+
+# Builds a column object
+# - name: The column display name
+#   -- Specify NA for hidden columns; if you specify a different value, it will be ignored
+# - type: The column type
+# - tooltip: The tooltip display value for the column name
+#   -- Specify NA for column names that need no explanatory tooltip, and for hidden columns
+# - sort_tooltip: The tooltip display value for the column sort indicator
+#   -- This key is always omitted for columns with the primary type, and for hidden columns
+#   -- Specify NA to use the default sort_tooltip value for any other column: "Sort by <name> value"
+# - link_url: The optional default target URL for columns with a link_* type
+#   -- Specify NA for columns with other types
+# - link_text: The optional default link display text for columns with a link_* type
+#   -- Specify NA for columns with other types
+# - is_exported: Whether this column should be included in CSV data exports
+# - is_hidden: Whether this column should be displayed in the CT table
+# - column_width: Optional override that specifies the column's width, in pixels
+#   -- By default, the column width is automatically calculated
+#   -- Specify a numeric value to specify a fixed width for columns with variable content length / auto widths
+build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width = NA) {
+
+  # Use the default sort_tooltip if one isn't specified, for non-hidden columns only
+  if (is_hidden == TRUE) { sort_tooltip = NA }
+  else { sort_tooltip = if (!is.na(sort_tooltip)) sort_tooltip else paste("Sort by", name, "value") }
+
+  column <- list(
+    name = name,
+    type = type,
+    data_key = data_key,
+    tooltip = tooltip,
+    sort_tooltip = sort_tooltip,
+    link_url = link_url ,
+    link_text = link_text,
+    is_exported = is_exported,
+    is_hidden = is_hidden,
+    column_width = column_width
+  )
+
+  # Omit keys with NA values
+  clean_column <- purrr::discard(column, ~ is.null(.x) | all(is.na(.x)))
+  clean_column
+}
+
+# Builds a list of filter definitions
+# - filter_defs: A dataframe of filterset info:
+#   - name, data_field, short_name, query_param_key, filter_values
+# - filter_vals: A list of lists specifying the filter values for each filterset
+build_filters <- function(filter_defs, filter_values) {
+
+  # Construct list of filters
+  filters <- Map(function(name, data_key, short_name, query_param_key, filter_values) {
+
+    filter <- list(
+      name = name,
+      data_key = data_key,
+      short_name = short_name,
+      query_param_key = query_param_key,
+      values = filter_values
+      )
+
+      # Omit keys with NA values
+      filter <- discard(filter, ~ is.null(.x) | all(is.na(.x)))
+
+    }, filter_defs$name, filter_defs$data_key, filter_defs$short_name, filter_defs$query_param_key, filter_values)
+
+  # Remove names to ensure JSON is an array, not object
+  names(filters) <- NULL
+  filters
+}
+
+
+# Vector to store all downloaded synIds for Synapse provenance (populated via download_file function)
+data_sources <- character()
+
+# Download a file from Synapse by synId and read it into a dataframe
+# - synId: The synapseId of the file to download
+# - name: The name to assign to the resulting dataframe or vector
+# - type: The type of file being downloaded
+#   -- Supports: tsv, csv, json, txt
+download_file <- function(synId, df_name, type) {
+
+  synLogin()
+
+  # Capture all downloaded synIds for provenance
+  data_sources <<- c(data_sources, synId)
+
+  input_dir <- file.path("./", "input")
+  id_parts <- strsplit(synId, '.', fixed = TRUE)
+  id_value <- id_parts[[1]][1]
+  version_value <- id_parts[[1]][2]
+
+  if (is.na(version_value)) {
+    version_value <- NULL
+  }
+
+  cat(paste0("Downloading ", synId, "..."))
+  file <- synGet(id_value, version = version_value, downloadLocation = input_dir, ifcollision='overwrite.local')
+  path <- file$path
+
+  cat("\nDownload on:  ", date())
+  cat("\n", synId, "\n- Modified on ", file$properties$modifiedOn, "\n- Version ", file$properties$versionNumber)
+  cat("\npath: ", file$path, "\n")
+
+  if (type == 'txt') {
+    name <- readLines(path)
+  }
+  else {
+    if (type == 'json') { data <- fromJSON(path) }
+    if (type == 'csv' || type == 'table') { data <- read.csv(path, na.strings = c("", "NA")) }
+    if (type == 'tsv') { data <- read.csv(path, sep = "\t") }
+    name <- as.data.frame(data)
+  }
+  name
+}
+
+```
+
+# Generate ui_config.json
+
+```{r}
+
+columns <- download_file("syn77143572", columns ,"csv")
+filters <- download_file("syn77143748", filters ,"csv")
+cell_classes <- download_file("syn77140302", cell_classes, "txt")
+cell_subclasses <- download_file("syn77140299", cell_subclasses, "txt")
+filter_vals <- list(
+  c('rs12345', 'rs67890'),
+  c('geneA', 'geneB'),
+  cell_classes,
+  cell_subclasses
+  )
+
+
+json_list <- list(
+  build_eqtl_object("eQTLs", columns, filters, filter_vals)
+)
+
+json_output <- toJSON(json_list, pretty = TRUE, auto_unbox = TRUE)
+# cat(json_output)
+
+# write json file
+output_dir <- file.path("./", "output")
+if(!dir.exists(output_dir)){
+  dir.create(output_dir)
+}
+
+write(json_output, file.path(output_dir, "ui_config.json"))
+```
+
+
+# Upload to synapse
+**********************************************
+Validate ./output/ui_config.json before upload
+**********************************************
+```{r}
+synLogin()
+syn_file <- File(
+              file.path(output_dir, "ui_config.json"),
+              description = "ui_config.json for xQTL Explorer",
+              parent = "syn75312280"
+            )
+
+res <- synStore(
+          syn_file,
+          forceVersion = FALSE,
+          used = data_sources,
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/xqtl/notebooks/xqtl_ui_config.rmd"
+        )
+# print synapse_id and new version number
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
+```
+
+
+-----
+TESTS
+-----
+
+## Test download_file
+```{r}
+download_file("syn77140300", eqtl_columns, "csv")
+download_file("syn77140302", genesis_cell_classes, "txt")
+```
