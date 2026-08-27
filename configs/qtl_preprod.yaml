@@ -17,6 +17,4 @@ datasets:
         - <<: *ui_config
       final_format: json
       destination: *dest
-      gx_enabled: true
-      gx_nested_columns:
-        - columns
+      gx_enabled: false
