@@ -21,7 +21,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
-        "regex": "^ENSG\\d{11}$"
+        "regex": "^ENSG[0-9]{11}$\\"
       },
       "meta": {}
     },
@@ -358,6 +358,17 @@
         "column": "target_nominations",
         "non_null_threshold": 0.85,
         "target_field": "validation_study_details"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_nested_object_string_length",
+      "kwargs": {
+        "column": "target_nominations",
+        "length_threshold": 0,
+        "operator": ">",
+        "target_field": "data_used_to_support_target_selection",
+        "valid_threshold": 0.95
       },
       "meta": {}
     },
