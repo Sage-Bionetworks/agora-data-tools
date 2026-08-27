@@ -202,7 +202,9 @@ class TestBuildExpressionResultsUrl:
         url = build_expression_results_url(model, result_type=result_type)
         assert url is None
 
-    def test_build_expression_results_url_all_default_transcriptomics_values(self) -> None:
+    def test_build_expression_results_url_all_default_transcriptomics_values(
+        self,
+    ) -> None:
         model = pd.Series(
             {
                 "name": "Model",
