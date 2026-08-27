@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/ui_config/filters_schema.json",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "data_key": { "type": "string", "minLength": 1 },
+      "name": { "type": "string", "minLength": 1 },
+      "query_param_key": { "type": "string", "minLength": 1 },
+      "short_name": { "type": "string", "minLength": 1 },
+      "values": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "array", "items": { "type": ["string", "number"] } }
+        ]
+      }
+    },
+    "required": ["data_key", "name", "query_param_key", "values"],
+    "additionalProperties": false
+  }
+}
