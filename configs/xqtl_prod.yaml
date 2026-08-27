@@ -1,15 +1,14 @@
-destination: &dest syn74766141 # preprod
+destination: &dest syn74766136 # prod
 staging_path: ./staging/xqtl
-gx_folder: syn74766208         # preprod
-gx_table: syn74766241          # preprod
+gx_folder: syn74766204         # prod
+gx_table: syn74766226          # prod
 
 # Reusable file reference anchors used by datasets below.
 files:
   # Metadata & Configuration
-  - &ui_config                    { name: ui_config                    , format: json , id: syn77129966 }
+  - &ui_config                    { name: ui_config                    , format: json , id: syn77143753 }
   # QTL Results
   # Expression Results
-
 
 datasets:
   - ui_config:
