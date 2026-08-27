@@ -98,7 +98,7 @@ def build_expression_results_url(
         a string with the completed URL, or None if there is no data for the model or if the result_type is unsupported
     """
     default_categories = {
-        "transcriptomics": "",
+        "transcriptomics": "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
         "proteomics": "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
     }
 
@@ -114,7 +114,6 @@ def build_expression_results_url(
         if model_row[f"{result_type}_url_categories_value"]  # must not be "" or None
         else default_categories[result_type]
     )
-    categories_param = f"categories={categories_value}&" if categories_value else ""
 
     models_value = (
         model_row[f"{result_type}_url_models_value"].strip()
