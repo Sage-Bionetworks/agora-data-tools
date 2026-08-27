@@ -12,7 +12,7 @@
     "aliases": [
       "3xTg"
     ],
-    "transcriptomics": "comparison/expression?models=3xTg-AD",
+    "transcriptomics": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=3xTg-AD",
     "proteomics": null,
     "disease_correlation": "comparison/correlation?models=3xTg-AD",
     "spatial_transcriptomics": null,
