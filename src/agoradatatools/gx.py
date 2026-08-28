@@ -71,6 +71,9 @@ class GreatExpectationsRunner:
         from expectations.expect_column_values_to_have_list_members_of_type import (
             ExpectColumnValuesToHaveListMembersOfType,
         )
+        from expectations.expect_column_values_to_have_unique_list_members import (
+            ExpectColumnValuesToHaveUniqueListMembers,
+        )
         from expectations.expect_column_values_to_have_list_of_dict_with_expected_values import (
             ExpectColumnValuesToHaveListOfDictWithExpectedValues,
         )

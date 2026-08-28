@@ -33,7 +33,9 @@
     ],
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": 1.0,
     "biodomains": [
@@ -141,7 +143,9 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": 3.0,
     "biodomains": [
@@ -202,7 +206,9 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": 1.0,
     "biodomains": [
@@ -240,7 +246,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -279,7 +287,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tchem"]
+      "pharos_class": [
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -329,7 +339,9 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -381,7 +393,9 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tchem"]
+      "pharos_class": [
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -417,7 +431,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tchem"]
+      "pharos_class": [
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -453,7 +469,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -487,7 +505,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -522,7 +542,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tdark"]
+      "pharos_class": [
+        "Tdark"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -559,7 +581,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -574,6 +598,32 @@
     "uniprotkb_accessions": [
       "Q9Y4W2"
     ]
+  },
+  {
+    "ensembl_gene_id": "ENSG00000001517",
+    "name": null,
+    "summary": null,
+    "symbol": null,
+    "alias": [],
+    "is_igap": false,
+    "is_eqtl": false,
+    "is_any_rna_changed_in_ad_brain": false,
+    "rna_brain_change_studied": false,
+    "is_any_protein_changed_in_ad_brain": false,
+    "protein_brain_change_studied": false,
+    "target_nominations": null,
+    "median_expression": null,
+    "druggability": null,
+    "total_nominations": null,
+    "biodomains": null,
+    "is_adi": false,
+    "is_tep": false,
+    "resource_url": null,
+    "ensembl_info": {
+      "ensembl_release": null,
+      "ensembl_possible_replacements": [],
+      "ensembl_permalink": null
+    }
   },
   {
     "ensembl_gene_id": "ENSG00000001561",
@@ -592,7 +642,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -627,7 +679,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tbio"]
+      "pharos_class": [
+        "Tbio"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -667,7 +721,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tclin"]
+      "pharos_class": [
+        "Tclin"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -698,7 +754,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tdark"]
+      "pharos_class": [
+        "Tdark"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -736,7 +794,9 @@
     "target_nominations": null,
     "median_expression": null,
     "druggability": {
-      "pharos_class":["Tchem"]
+      "pharos_class": [
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -789,7 +849,10 @@
       }
     ],
     "druggability": {
-      "pharos_class":["Tbio", "Tchem"]
+      "pharos_class": [
+        "Tbio",
+        "Tchem"
+      ]
     },
     "total_nominations": null,
     "biodomains": null,
@@ -861,32 +924,6 @@
         "ENSG00000288607"
       ],
       "ensembl_permalink": "https://apr2020.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000183791"
-    }
-  },
-  {
-    "ensembl_gene_id": "ENSG00000001517",
-    "name": null,
-    "summary": null,
-    "symbol": null,
-    "alias": [],
-    "is_igap": false,
-    "is_eqtl": false,
-    "is_any_rna_changed_in_ad_brain": false,
-    "rna_brain_change_studied": false,
-    "is_any_protein_changed_in_ad_brain": false,
-    "protein_brain_change_studied": false,
-    "target_nominations": null,
-    "median_expression": null,
-    "druggability": null,
-    "total_nominations": null,
-    "biodomains": null,
-    "is_adi": false,
-    "is_tep": false,
-    "resource_url": null,
-    "ensembl_info": {
-      "ensembl_release": null,
-      "ensembl_possible_replacements": [],
-      "ensembl_permalink": null
     }
   }
 ]
