@@ -76,7 +76,9 @@ differs by mechanism:
 | **Nested sub-field** (inside a `gx_nested_columns` column) | `mostly` can't reach inside the JSON string — use the nested aggregate expectations (`ExpectColumnNestedObjectNotNull` / `…StringLength` / `…RegexRule`), whose own `non_null_threshold`/`valid_threshold` kwargs are the `mostly` equivalent |
 | **JSON Schema** (`match_json_schema`) | No per-row tolerance — the schema either matches a document or it doesn't; move a "mostly"-style density floor to a nested aggregate expectation on the same column |
 
-See "Using `mostly` (deliberately)" in Step 3 for how to derive the threshold and the one-of-each-type-per-column limit on the nested aggregates.
+Relaxing any check below 100% (a `mostly` kwarg, or a nested aggregate's threshold) **requires
+prompting the user first** — see "Using `mostly` (deliberately)" in Step 3, which also covers how to
+derive the threshold and the one-of-each-type-per-column limit on the nested aggregates.
 
 **When auditing an existing suite, re-derive each field's mechanism from its value shape — do not
 trust the current `gx_nested_columns` list.** The existing configuration can itself be the
@@ -412,6 +414,18 @@ when at least that fraction of the evaluated rows satisfy it. Use it for **compl
 monitoring** and for checks that hold for the vast majority of rows but not every one. Use it
 deliberately, not as a way to silence a failing check:
 
+- **ALWAYS prompt the user before adding (or loosening) a `mostly` threshold** — relaxing a check
+  below 100% is a domain-knowledge decision, not an authoring convenience. A field failing strict
+  validation may reflect a real, as-yet-undiagnosed data problem, and only someone with domain
+  knowledge can decide *whether* it's acceptable to relax that specific check on that specific field
+  and *how far*. This applies to every `mostly`-style lever — a `mostly` kwarg on a native/custom
+  expectation **and** the `non_null_threshold`/`valid_threshold` on the nested aggregate expectations.
+  Name the field, the check, the observed rate, and the threshold you propose, e.g.:
+  > "`name` is only 79.4% non-null in the current output, so a strict `not_be_null` would fail. Is it
+  > expected that ~20% of rows have no `name`, and is it OK to relax this to `mostly=0.75`? Or does
+  > that gap point to a data problem that should be investigated first?"
+  Do not add the threshold until the user confirms. If they suspect a data issue, surface it rather
+  than papering over it with a threshold.
 - **Derive the threshold from the observed rate, with a deliberate buffer** — compute it from the
   data (per "Core Principle — Tighten Validations to the Actual Data"); do not pick round numbers. A
   threshold far below the true rate is a blind spot; one above it causes false alarms.
@@ -756,4 +770,5 @@ Check the output for GX validation results.
 | GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists (and nested-column `enum`s) mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keeping Related Constraints in Sync" → "External sync"). When you change one, prompt the user to update the parallel list in the R notebook |
 | `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Keeping Related Constraints in Sync" → "Internal sync" |
 | Suite `.json` edited by hand for an Option A dataset, notebook left unchanged | Only `rna_de_aggregate`/`rna_de_individual` use Option B. For every other dataset, edit the `.ipynb` (Cell 0 import + the column's `validator.expect_...()` call) and regenerate via `nbconvert` — see Step 4 |
+| `mostly` threshold added without domain sign-off | Relaxing a check below 100% is a domain-knowledge call — always prompt the user first (name the field, check, observed rate, and proposed threshold); a sub-100% rate may be an undiagnosed data problem, not a tolerance to encode. Applies to `mostly` kwargs and nested-aggregate `non_null_threshold`/`valid_threshold` alike — see "Using `mostly` (deliberately)" in Step 3 |
 | A second nested aggregate of the same type on one column silently disappears | GX keys aggregate expectations by `(expectation_type, column)`, not `target_field`, so the later call overwrites the earlier — each column holds at most one `nested_object_not_null` / one `…_string_length` / one `…_regex_rule`. Use a different aggregate type per sub-field, or move the check into the JSON Schema; verify the generated suite's nested-aggregate count — see "Using `mostly` (deliberately)" in Step 3 |
