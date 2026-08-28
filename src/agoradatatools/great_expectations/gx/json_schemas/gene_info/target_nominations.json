@@ -4,6 +4,8 @@
     "type": ["array", "null"],
     "default": [],
     "title": "Target Nominations Schema",
+    "minItems": 1,
+    "maxItems": 10,
     "items": {
         "type": "object",
         "default": {},

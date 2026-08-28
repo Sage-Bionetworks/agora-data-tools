@@ -4,6 +4,8 @@
     "type": ["array", "null"],
     "default": [],
     "title": "Median Expression Schema",
+    "minItems": 2,
+    "maxItems": 9,
     "items": {
         "type": "object",
         "required": [
@@ -17,22 +19,34 @@
         ],
         "properties": {
             "min": {
-                "type": "number"
+                "type": "number",
+                "minimum": -8,
+                "maximum": 14
             },
             "first_quartile": {
-                "type": "number"
+                "type": "number",
+                "minimum": -7,
+                "maximum": 15
             },
             "median": {
-                "type": "number"
+                "type": "number",
+                "minimum": -7,
+                "maximum": 15
             },
             "mean": {
-                "type": "number"
+                "type": "number",
+                "minimum": -7,
+                "maximum": 15
             },
             "third_quartile": {
-                "type": "number"
+                "type": "number",
+                "minimum": -7,
+                "maximum": 15
             },
             "max": {
-                "type": "number"
+                "type": "number",
+                "minimum": -5,
+                "maximum": 15
             },
             "tissue": {
                 "type": "string",

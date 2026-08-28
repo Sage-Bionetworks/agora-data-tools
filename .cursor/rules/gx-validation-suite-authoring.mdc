@@ -64,6 +64,22 @@ The governing question is: *what is this field's value shape, and does it have i
 that only a schema can validate?* If yes → make it a nested column (`gx_nested_columns`) and use
 JSON Schema; if no → native/custom expectations on the un-nested column.
 
+**Strict vs. `mostly` is a second, orthogonal decision — made *after* the mechanism.** Once the
+table above tells you *which* expectation to use, decide *how strictly* it must hold: 100% (the
+default — omit `mostly`) when the field is always valid, or a `mostly` threshold when a known,
+measured fraction of rows legitimately deviate (completeness floors, drift monitoring). The lever
+differs by mechanism:
+
+| Mechanism | How to relax below 100% |
+|---|---|
+| **Scalar / list-of-scalars** native & custom expectations (per-row `ColumnMapExpectation`) | Pass `mostly=<fraction>` |
+| **Nested sub-field** (inside a `gx_nested_columns` column) | `mostly` can't reach inside the JSON string — use the nested aggregate expectations (`ExpectColumnNestedObjectNotNull` / `…StringLength` / `…RegexRule`), whose own `non_null_threshold`/`valid_threshold` kwargs are the `mostly` equivalent |
+| **JSON Schema** (`match_json_schema`) | No per-row tolerance — the schema either matches a document or it doesn't; move a "mostly"-style density floor to a nested aggregate expectation on the same column |
+
+Relaxing any check below 100% (a `mostly` kwarg, or a nested aggregate's threshold) **requires
+prompting the user first** — see "Using `mostly` (deliberately)" in Step 3, which also covers how to
+derive the threshold and the one-of-each-type-per-column limit on the nested aggregates.
+
 **When auditing an existing suite, re-derive each field's mechanism from its value shape — do not
 trust the current `gx_nested_columns` list.** The existing configuration can itself be the
 deviation. Treat a field's presence in `gx_nested_columns` as a *hypothesis to verify against the
@@ -391,9 +407,66 @@ validator.expect_column_values_to_have_list_members_of_type(column="my_col", mem
 validator.expect_column_values_to_have_list_length_in_range("my_col", list_length_range=[1, 10])
 ```
 
-### Do NOT use `mostly`
+### Using `mostly` (deliberately)
 
-Never add `mostly=` to any expectation. All validations should be strict (100%).
+`mostly` (a float `0 < mostly <= 1` accepted by any ColumnMapExpectation) makes an expectation pass
+when at least that fraction of the evaluated rows satisfy it. Use it for **completeness / drift
+monitoring** and for checks that hold for the vast majority of rows but not every one. Use it
+deliberately, not as a way to silence a failing check:
+
+- **ALWAYS prompt the user before adding (or loosening) a `mostly` threshold** — relaxing a check
+  below 100% is a domain-knowledge decision, not an authoring convenience. A field failing strict
+  validation may reflect a real, as-yet-undiagnosed data problem, and only someone with domain
+  knowledge can decide *whether* it's acceptable to relax that specific check on that specific field
+  and *how far*. This applies to every `mostly`-style lever — a `mostly` kwarg on a native/custom
+  expectation **and** the `non_null_threshold`/`valid_threshold` on the nested aggregate expectations.
+  Name the field, the check, the observed rate, and the threshold you propose, e.g.:
+  > "`name` is only 79.4% non-null in the current output, so a strict `not_be_null` would fail. Is it
+  > expected that ~20% of rows have no `name`, and is it OK to relax this to `mostly=0.75`? Or does
+  > that gap point to a data problem that should be investigated first?"
+  Do not add the threshold until the user confirms. If they suspect a data issue, surface it rather
+  than papering over it with a threshold.
+- **Derive the threshold from the observed rate, with a deliberate buffer** — compute it from the
+  data (per "Core Principle — Tighten Validations to the Actual Data"); do not pick round numbers. A
+  threshold far below the true rate is a blind spot; one above it causes false alarms.
+- **`mostly` excludes nulls** from its denominator — except `expect_column_values_to_not_be_null`,
+  which is specifically about nulls. So `match_regex(mostly=0.9)` means 90% of the *non-null* values
+  match; nulls are not counted against it.
+- **Prefer strict (omit `mostly`, i.e. 100%) when the field is always valid.** `mostly` is for
+  tolerating a real, known exception fraction — not for papering over a check that should pass.
+- **Nested sub-fields:** row-level `mostly` cannot see inside a JSON-stringified nested column. For a
+  "mostly"-style floor on a sub-field, use the aggregate expectations instead —
+  `ExpectColumnNestedObjectNotNull` (`non_null_threshold`), `ExpectColumnNestedObjectStringLength`
+  (`valid_threshold`), and `ExpectColumnNestedObjectRegexRule` (`valid_threshold`) — which flatten the
+  nested objects and treat a missing/null sub-field as invalid. These express a cross-document density
+  floor a per-document JSON Schema cannot.
+- **Document why** each threshold sits where it does (tie the comment to the observed rate).
+
+#### ⚠️ One nested aggregate of each type per column (they key by type + column, not `target_field`)
+
+GX identifies an aggregate expectation by `(expectation_type, column)` — the custom
+`target_field` kwarg is **not** part of that identity. So a second aggregate of the **same type** on
+the **same column** does not add a check for a different sub-field; it **silently overwrites** the
+first (last one written wins), and the earlier sub-field's floor is lost with no error. Each nested
+column therefore admits **at most one of each aggregate type**:
+
+| Column can hold, at most, one of each | keyed as |
+|---|---|
+| `expect_column_nested_object_not_null` | `(not_null, column)` |
+| `expect_column_nested_object_string_length` | `(string_length, column)` |
+| `expect_column_nested_object_regex_rule` | `(regex_rule, column)` |
+
+Practical consequences when a nested column has several sub-fields you want to floor:
+- The three **different** types coexist freely — e.g. on `target_nominations` you can hold a
+  `not_null` floor on `validation_study_details`, a `string_length` floor on
+  `data_used_to_support_target_selection`, and a `regex_rule` floor on `data_synapseid`
+  simultaneously (three types, three sub-fields).
+- But you **cannot** put a `not_null` floor on *two* sub-fields of the same column — the second
+  displaces the first. Pick the higher-value sub-field, express the other constraint via a different
+  aggregate type if one fits, or move a per-document check into the column's JSON Schema.
+- **Verify after regenerating:** count the nested aggregates in the generated
+  `<transform>.json` and confirm every `target_field` you intended is present. A collision shows up
+  as a *lower-than-expected* expectation count with a sub-field missing — not as an error.
 
 ### Common expectations by use case
 
@@ -679,6 +752,164 @@ Check the output for GX validation results.
 
 ---
 
+## Step 7 — Summarize the Expectation Changes for Review
+
+Once the suite passes, **surface a bullet-point summary of every validation check this PR added,
+removed, or modified** — this is what a reviewer reads to understand the PR without diffing the
+generated JSON. Produce it whenever you finish a round of suite edits (and refresh it before
+opening/updating a PR).
+
+Derive the list by diffing the generated `<transform>.json` against the branch base (e.g.
+`git merge-base dev HEAD`), so nothing is missed and the provenance tags are exact.
+
+### Scope — only what this PR changed
+
+**Include a check only if this PR added, removed, or modified it.** Preexisting checks that are
+unchanged do NOT belong on the list — even if they carry a `mostly`/threshold or otherwise look
+noteworthy. (A `mostly` you did not touch is preexisting; leave it off.) Do not surface preexisting
+checks "for context" — that has repeatedly caused confusion about what actually changed. If the user
+explicitly asks about unchanged checks, answer separately, outside the list.
+
+### One bullet per (field × validation type)
+
+**Emit the entire summary inside a fenced code block** (```` ```markdown ````) — including both the
+`### Overview` and `### Summary of changed expectations` sections — so it renders as literal text the
+user can copy-paste verbatim, rather than being rendered as live headers/bullets (which strip the raw
+markers and aren't selectable as source).
+
+### Lead with an `### Overview` section
+
+Above the changed-expectations list, emit an `### Overview` section with two short parts:
+
+1. **What you did** — one or two sentences describing the work at a high level (e.g. "Audited the
+   suite field-by-field against the authoring rules, fixed misapplied/broken expectations, and added
+   missing coverage across scalars, lists, and nested objects."). **Keep it high-level — do not
+   restate the specific per-field changes that the summary list already enumerates** (no naming
+   individual columns, regexes, or bounds); the overview frames the work, the list carries the
+   detail.
+2. **Final suite stats** — the final expectation count **and the base-branch count it grew/shrank
+   from** as `(was N)`, plus the pass result and how it was verified, e.g. "Final suite: 53
+   expectations (was 52), 100% passing (runner-faithful, verified against the installed package)."
+   `N` is the expectation count in the base version of `<transform>.json` (the `git merge-base dev
+   HEAD` revision you diffed against).
+
+   **Report the pass status truthfully — state only what you actually verified in THIS session, and
+   say how.** The pass claim must correspond to a run you performed and can point to; the wording in
+   the example above is a template for the *verified* case, not boilerplate to paste unconditionally.
+   Pick the phrasing that matches reality:
+   - You ran a runner-faithful validation this session → "100% passing (runner-faithful, verified
+     against the installed package)" (or the real pass rate, e.g. "148/150 passing").
+   - The user reported an authoritative run (e.g. their own `adt`) → attribute it: "100% passing (per
+     the user's `adt` run)".
+   - You only inspected the suite via git / static read and did **not** run it → "pass status not
+     independently verified in this session".
+
+   Never upgrade a "not verified" to "verified" — including when regenerating an overview from the
+   template or after an unrelated edit. If nothing was re-run, carry forward the prior, accurate
+   status verbatim. If you want a stronger claim, run the validation first (Steps 5–6), then update
+   the line.
+
+Begin the list with the header `### Summary of changed expectations` (followed by a blank line),
+then emit exactly one bullet for each field-and-check combination. **Prefix every bullet with a
+GitHub-markdown list marker (`- `)** so the block can be copy-pasted directly as a bulleted list.
+Structure each bullet in this fixed order:
+
+````markdown
+### Summary of changed expectations
+
+- `<column>[.<field_name>]`: <validation type> <info about the check> [added | removed | modified<, previous state>]
+````
+
+1. **Field** — the column name, plus `.<field_name>` if the check acts on a nested sub-field.
+   Format the whole identifier as inline code: `` `column` `` or `` `column.field_name` ``.
+2. **Validation type** — the kind of check: `length`, `range`, `regex`, `not-null`, `type`,
+   `string length`, `unique members`, `member check`, etc. **For anything encoded inside a JSON
+   Schema, prefix the type with `json_schema` and break each schema-encoded check into its own
+   bullet** — e.g. `json_schema list length`, `json_schema range`, `json_schema regex`,
+   `json_schema member check`. (A single `match_json_schema` expectation thus expands into several
+   bullets, one per interior check added/removed/modified.) This applies uniformly — a `pattern`
+   inside a schema is `json_schema regex` (no exceptions); reserve plain `regex` for a native
+   `expect_column_values_to_match_regex` expectation on a scalar column.
+3. **Info about the check** — whatever pins the check down:
+   - a threshold **and the data stat it was derived from** (e.g. `@0.70 (73.7% match)`,
+     `@0.75 (79.4% populated)`);
+   - a range's boundaries (e.g. `[-7,15]`) or a list-length range (e.g. `[1,4]`, `max 5`);
+   - a members list's length, or the actual members **unless the list has > 5** (then give the count
+     or a derivation, e.g. `[1,19] (max = # allowed biodomains)`).
+   - **Interpret the stat correctly for the check's null handling:** `not_be_null(mostly=…)` counts
+     nulls, so its stat is the *populated* rate; every other `mostly` and any `row_condition`-guarded
+     check excludes nulls, so the stat is "% of *non-null* rows satisfying the check"; a nested
+     aggregate's stat is the rate among flattened sub-documents.
+4. **Change type** — `[added]`, `[removed]`, or `[modified]`. For `[modified]`, state the previous
+   state unless part 3 already makes it obvious — e.g. `[modified, was @0.70]`,
+   `[modified, was "\d"]`.
+
+### Container-level JSON-schema checks — use sub-bullets
+
+For a **top-level column's** `match_json_schema` expectation, the checks that describe the
+**container itself** (rather than an individual property) — its `type`, `additionalProperties`, the
+`required` key list, and its **list length** (`minItems`/`maxItems`) — go on the column's own line as
+**indented sub-bullets** under a parent `` - `column`: json_schema <container shape> `` line. Each
+**property**-level check still gets its own top-level `` `column.field_name` `` bullet as usual
+(sorted into the flat list). This grouping applies to **top-level columns only** — a nested array
+property (e.g. `` `ensembl_info.ensembl_possible_replacements` ``) keeps its checks as ordinary flat
+`` `column.field_name` `` bullets.
+
+**Change-tag placement:**
+- If the **whole expectation is added or removed**, put the tag on the parent line; the sub-bullets
+  inherit it (leave them untagged).
+- If the expectation is **modified** (only some container-level checks changed), leave the parent
+  line untagged — it's just naming the container — and put a `[added|removed|modified]` tag on each
+  changed sub-bullet. Do not list unchanged container checks.
+
+```markdown
+# whole expectation added — tag on parent, sub-bullets inherit:
+- `columns`: json_schema array of objects [added]
+  - additionalProperties false
+  - required: data_key, is_exported, is_hidden, type
+
+# preexisting expectation, only list length added — tag on the sub-bullet:
+- `median_expression`: json_schema array of objects
+  - list length [2,9] [added]
+```
+
+### Formatting rules
+
+- **Sort the bullets by `column.field_name`** (column-level checks sort before that column's nested
+  fields). No other grouping.
+- **Do not add any section headers beyond the single `### Summary of changed expectations` header**
+  at the top — no category groupings; a flat, sorted list only.
+- **Describe the check, not just the kwarg that changed.** "added `row_condition=…`" alone is
+  misleading; say what it guards and that behavior is unchanged if it is (GX already skips nulls, so
+  a null-guard on a map expectation is defensive, not a fix).
+
+### Example (excerpt, from the gene_info suite)
+
+````markdown
+### Overview
+Audited the gene_info suite field-by-field against the authoring rules, fixed expectations that were
+misapplied or broken, and added missing coverage across scalars, lists, and nested objects.
+
+Final suite: 53 expectations (was 52), 100% passing (runner-faithful, verified against the installed package).
+
+### Summary of changed expectations
+
+- `biodomains`: length [1,19] (max = # allowed biodomains) [added]
+- `druggability.pharos_class`: json_schema member check removed spurious null value [modified]
+- `druggability.pharos_class`: json_schema list length [1,4] [added]
+- `ensembl_info.ensembl_release`: json_schema regex "^\d+$" [added]
+- `hgnc_symbol`: not-null @0.75 (79.4% populated) [modified, was @0.70]
+- `median_expression`: json_schema array of objects
+  - list length [2,9] [added]
+- `median_expression.min`: json_schema range [-8,14] [added]
+- `resource_url`: regex — added defensive row_condition="resource_url.notnull()" (GX already skips nulls; no behavior change) [modified]
+- `target_nominations.data_synapseid`: regex "^syn[0-9]+$" @0.70 (73.7% match) [added]
+- `total_nominations`: range [1,10] [modified, was [0,1000]]
+- `uniprotkb_accessions`: unique members [added]
+````
+
+---
+
 ## Common Pitfalls
 
 | Pitfall | Fix |
@@ -697,3 +928,5 @@ Check the output for GX validation results.
 | GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists (and nested-column `enum`s) mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keeping Related Constraints in Sync" → "External sync"). When you change one, prompt the user to update the parallel list in the R notebook |
 | `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Keeping Related Constraints in Sync" → "Internal sync" |
 | Suite `.json` edited by hand for an Option A dataset, notebook left unchanged | Only `rna_de_aggregate`/`rna_de_individual` use Option B. For every other dataset, edit the `.ipynb` (Cell 0 import + the column's `validator.expect_...()` call) and regenerate via `nbconvert` — see Step 4 |
+| `mostly` threshold added without domain sign-off | Relaxing a check below 100% is a domain-knowledge call — always prompt the user first (name the field, check, observed rate, and proposed threshold); a sub-100% rate may be an undiagnosed data problem, not a tolerance to encode. Applies to `mostly` kwargs and nested-aggregate `non_null_threshold`/`valid_threshold` alike — see "Using `mostly` (deliberately)" in Step 3 |
+| A second nested aggregate of the same type on one column silently disappears | GX keys aggregate expectations by `(expectation_type, column)`, not `target_field`, so the later call overwrites the earlier — each column holds at most one `nested_object_not_null` / one `…_string_length` / one `…_regex_rule`. Use a different aggregate type per sub-field, or move the check into the JSON Schema; verify the generated suite's nested-aggregate count — see "Using `mostly` (deliberately)" in Step 3 |

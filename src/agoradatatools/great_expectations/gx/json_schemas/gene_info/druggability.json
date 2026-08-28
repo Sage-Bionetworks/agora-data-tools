@@ -9,6 +9,8 @@
             "type": "array",
             "default": [],
             "title": "The pharos_class Schema",
+            "minItems": 1,
+            "maxItems": 4,
             "items": {
                 "type": "string",
                 "default": "",
@@ -17,8 +19,7 @@
                     "Tdark",
                     "Tchem",
                     "Tbio",
-                    "Tclin",
-                    null
+                    "Tclin"
                 ]
             }
         }

@@ -21,7 +21,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
-        "regex": "^ENSG\\d{11}$"
+        "regex": "^ENSG[0-9]{11}$"
       },
       "meta": {}
     },
@@ -53,7 +53,7 @@
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "name",
-        "mostly": 0.7
+        "mostly": 0.75
       },
       "meta": {}
     },
@@ -102,7 +102,7 @@
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "hgnc_symbol",
-        "mostly": 0.7
+        "mostly": 0.75
       },
       "meta": {}
     },
@@ -133,6 +133,17 @@
       "expectation_type": "expect_column_values_to_have_unique_list_members",
       "kwargs": {
         "column": "alias"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "alias",
+        "list_length_range": [
+          0,
+          23
+        ]
       },
       "meta": {}
     },
@@ -223,14 +234,6 @@
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "protein_brain_change_studied"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "target_nominations",
-        "type_": "str"
       },
       "meta": {}
     },
@@ -343,6 +346,8 @@
             ],
             "type": "object"
           },
+          "maxItems": 10,
+          "minItems": 1,
           "title": "Target Nominations Schema",
           "type": [
             "array",
@@ -362,10 +367,23 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
+      "expectation_type": "expect_column_nested_object_string_length",
       "kwargs": {
-        "column": "median_expression",
-        "type_": "str"
+        "column": "target_nominations",
+        "length_threshold": 0,
+        "operator": ">",
+        "target_field": "data_used_to_support_target_selection",
+        "valid_threshold": 0.95
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_nested_object_regex_rule",
+      "kwargs": {
+        "column": "target_nominations",
+        "regex_pattern": "^syn[0-9]+$",
+        "target_field": "data_synapseid",
+        "valid_threshold": 0.7
       },
       "meta": {}
     },
@@ -380,21 +398,33 @@
           "items": {
             "properties": {
               "first_quartile": {
+                "maximum": 15,
+                "minimum": -7,
                 "type": "number"
               },
               "max": {
+                "maximum": 15,
+                "minimum": -5,
                 "type": "number"
               },
               "mean": {
+                "maximum": 15,
+                "minimum": -7,
                 "type": "number"
               },
               "median": {
+                "maximum": 15,
+                "minimum": -7,
                 "type": "number"
               },
               "min": {
+                "maximum": 14,
+                "minimum": -8,
                 "type": "number"
               },
               "third_quartile": {
+                "maximum": 15,
+                "minimum": -7,
                 "type": "number"
               },
               "tissue": {
@@ -423,6 +453,8 @@
             ],
             "type": "object"
           },
+          "maxItems": 9,
+          "minItems": 2,
           "title": "Median Expression Schema",
           "type": [
             "array",
@@ -430,14 +462,6 @@
           ]
         },
         "mostly": 0.95
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "druggability",
-        "type_": "str"
       },
       "meta": {}
     },
@@ -465,12 +489,13 @@
                   "Tdark",
                   "Tchem",
                   "Tbio",
-                  "Tclin",
-                  null
+                  "Tclin"
                 ],
                 "title": "Pharos object",
                 "type": "string"
               },
+              "maxItems": 4,
+              "minItems": 1,
               "title": "The pharos_class Schema",
               "type": "array"
             }
@@ -496,8 +521,8 @@
       "expectation_type": "expect_column_values_to_be_between",
       "kwargs": {
         "column": "total_nominations",
-        "max_value": 1000,
-        "min_value": 0
+        "max_value": 10,
+        "min_value": 1
       },
       "meta": {}
     },
@@ -515,6 +540,17 @@
         "column": "biodomains",
         "member_type": "str",
         "mostly": 0.95
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "biodomains",
+        "list_length_range": [
+          1,
+          19
+        ]
       },
       "meta": {}
     },
@@ -588,22 +624,9 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "resource_url",
-        "regex": "^https://adknowledgeportal.synapse.org/Explore/Target"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "ensembl_info",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "ensembl_info"
+        "condition_parser": "pandas",
+        "regex": "^https://adknowledgeportal.synapse.org/Explore/Target",
+        "row_condition": "resource_url.notnull()"
       },
       "meta": {}
     },
@@ -618,19 +641,21 @@
           "properties": {
             "ensembl_permalink": {
               "format": "uri",
-              "pattern": "^https://\\w+\\.archive\\.ensembl\\.org/Homo_sapiens/Gene/Summary\\?db=core\\;g=(ENSG\\d+)$",
+              "pattern": "^https://\\w+\\.archive\\.ensembl\\.org/Homo_sapiens/Gene/Summary\\?db=core\\;g=(ENSG[0-9]+)$",
               "type": "string"
             },
             "ensembl_possible_replacements": {
               "items": {
-                "pattern": "^ENSG\\d{11}$",
+                "pattern": "^ENSG[0-9]{11}$",
                 "type": "string"
               },
+              "maxItems": 5,
               "type": "array"
             },
             "ensembl_release": {
               "maxLength": 3,
               "minLength": 1,
+              "pattern": "^\\d+$",
               "type": "string"
             }
           },
@@ -659,6 +684,24 @@
       "kwargs": {
         "column": "uniprotkb_accessions",
         "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_unique_list_members",
+      "kwargs": {
+        "column": "uniprotkb_accessions"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_length_in_range",
+      "kwargs": {
+        "column": "uniprotkb_accessions",
+        "list_length_range": [
+          1,
+          4
+        ]
       },
       "meta": {}
     }
