@@ -32,10 +32,12 @@ if (!require("synapser", quietly = TRUE)) {
 }
 if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
 if (!require("purrr")) { install.packages("purrr") }
+if (!require("stringr")) { install.packages("stringr") }
 
 library(synapser)
 library(purrr)
 library(jsonlite)
+library(stringr)
 ```
 
 
@@ -55,10 +57,10 @@ eqtl_row_count = NA
 # Builds a ui_config object from a dataframe containing column info
 # - eqtl_columns: a csv-compatible dataframe containing a row of values per CT column:
 #    - name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width
-# eqtl_filters: a csv-compatible dataframe containing a row of values per CT filterset:
-#
-# eqtl_filter_values: A list of lists of filter values; value lists must be in the same order as the filters
-#
+# eqtl_filters: a dataframe containing a row of values per CT filterset:
+#    - name, data_key, short_name, query_param_key
+# eqtl_filter_values: A list of lists of filter values; value lists must be in the same order as eqtl_filters
+#   - list(c(eqtl_filters[1]_value list here), c(eqtl_filters[2]_value list here), ...)
 build_eqtl_object <- function(page, eqtl_columns, eqtl_filters, eqtl_filter_values) {
   columns <- build_columns(eqtl_columns)
   filters <- build_filters(eqtl_filters, eqtl_filter_values)
@@ -200,16 +202,19 @@ download_file <- function(synId, df_name, type) {
 # Generate ui_config.json
 
 ```{r}
-
+# download source files from synapse
 columns <- download_file("syn77143572", columns ,"csv")
 filters <- download_file("syn77143748", filters ,"csv")
-cell_classes <- download_file("syn77140302", cell_classes, "txt")
-cell_subclasses <- download_file("syn77140299", cell_subclasses, "txt")
+labels <- download_file("syn77171904", labels, "csv")
+
+# extract filter values from display label mapping file
+cell_class_values <- str_sort(unique(labels$cell_class))
+cell_subclass_values <- str_sort(labels$cell_subclass)
 filter_vals <- list(
-  c('rs12345', 'rs67890'),
-  c('geneA', 'geneB'),
-  cell_classes,
-  cell_subclasses
+  c('rs12345', 'rs67890'), # temp placeholder
+  c('geneA', 'geneB'),     # temp placeholder
+  cell_class_values,
+  cell_subclass_values
   )
 
 
@@ -261,5 +266,4 @@ TESTS
 ## Test download_file
 ```{r}
 download_file("syn77140300", eqtl_columns, "csv")
-download_file("syn77140302", genesis_cell_classes, "txt")
 ```
