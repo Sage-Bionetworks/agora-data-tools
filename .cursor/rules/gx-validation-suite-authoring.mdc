@@ -64,6 +64,20 @@ The governing question is: *what is this field's value shape, and does it have i
 that only a schema can validate?* If yes → make it a nested column (`gx_nested_columns`) and use
 JSON Schema; if no → native/custom expectations on the un-nested column.
 
+**Strict vs. `mostly` is a second, orthogonal decision — made *after* the mechanism.** Once the
+table above tells you *which* expectation to use, decide *how strictly* it must hold: 100% (the
+default — omit `mostly`) when the field is always valid, or a `mostly` threshold when a known,
+measured fraction of rows legitimately deviate (completeness floors, drift monitoring). The lever
+differs by mechanism:
+
+| Mechanism | How to relax below 100% |
+|---|---|
+| **Scalar / list-of-scalars** native & custom expectations (per-row `ColumnMapExpectation`) | Pass `mostly=<fraction>` |
+| **Nested sub-field** (inside a `gx_nested_columns` column) | `mostly` can't reach inside the JSON string — use the nested aggregate expectations (`ExpectColumnNestedObjectNotNull` / `…StringLength` / `…RegexRule`), whose own `non_null_threshold`/`valid_threshold` kwargs are the `mostly` equivalent |
+| **JSON Schema** (`match_json_schema`) | No per-row tolerance — the schema either matches a document or it doesn't; move a "mostly"-style density floor to a nested aggregate expectation on the same column |
+
+See "Using `mostly` (deliberately)" in Step 3 for how to derive the threshold and the one-of-each-type-per-column limit on the nested aggregates.
+
 **When auditing an existing suite, re-derive each field's mechanism from its value shape — do not
 trust the current `gx_nested_columns` list.** The existing configuration can itself be the
 deviation. Treat a field's presence in `gx_nested_columns` as a *hypothesis to verify against the
@@ -391,9 +405,54 @@ validator.expect_column_values_to_have_list_members_of_type(column="my_col", mem
 validator.expect_column_values_to_have_list_length_in_range("my_col", list_length_range=[1, 10])
 ```
 
-### Do NOT use `mostly`
+### Using `mostly` (deliberately)
 
-Never add `mostly=` to any expectation. All validations should be strict (100%).
+`mostly` (a float `0 < mostly <= 1` accepted by any ColumnMapExpectation) makes an expectation pass
+when at least that fraction of the evaluated rows satisfy it. Use it for **completeness / drift
+monitoring** and for checks that hold for the vast majority of rows but not every one. Use it
+deliberately, not as a way to silence a failing check:
+
+- **Derive the threshold from the observed rate, with a deliberate buffer** — compute it from the
+  data (per "Core Principle — Tighten Validations to the Actual Data"); do not pick round numbers. A
+  threshold far below the true rate is a blind spot; one above it causes false alarms.
+- **`mostly` excludes nulls** from its denominator — except `expect_column_values_to_not_be_null`,
+  which is specifically about nulls. So `match_regex(mostly=0.9)` means 90% of the *non-null* values
+  match; nulls are not counted against it.
+- **Prefer strict (omit `mostly`, i.e. 100%) when the field is always valid.** `mostly` is for
+  tolerating a real, known exception fraction — not for papering over a check that should pass.
+- **Nested sub-fields:** row-level `mostly` cannot see inside a JSON-stringified nested column. For a
+  "mostly"-style floor on a sub-field, use the aggregate expectations instead —
+  `ExpectColumnNestedObjectNotNull` (`non_null_threshold`), `ExpectColumnNestedObjectStringLength`
+  (`valid_threshold`), and `ExpectColumnNestedObjectRegexRule` (`valid_threshold`) — which flatten the
+  nested objects and treat a missing/null sub-field as invalid. These express a cross-document density
+  floor a per-document JSON Schema cannot.
+- **Document why** each threshold sits where it does (tie the comment to the observed rate).
+
+#### ⚠️ One nested aggregate of each type per column (they key by type + column, not `target_field`)
+
+GX identifies an aggregate expectation by `(expectation_type, column)` — the custom
+`target_field` kwarg is **not** part of that identity. So a second aggregate of the **same type** on
+the **same column** does not add a check for a different sub-field; it **silently overwrites** the
+first (last one written wins), and the earlier sub-field's floor is lost with no error. Each nested
+column therefore admits **at most one of each aggregate type**:
+
+| Column can hold, at most, one of each | keyed as |
+|---|---|
+| `expect_column_nested_object_not_null` | `(not_null, column)` |
+| `expect_column_nested_object_string_length` | `(string_length, column)` |
+| `expect_column_nested_object_regex_rule` | `(regex_rule, column)` |
+
+Practical consequences when a nested column has several sub-fields you want to floor:
+- The three **different** types coexist freely — e.g. on `target_nominations` you can hold a
+  `not_null` floor on `validation_study_details`, a `string_length` floor on
+  `data_used_to_support_target_selection`, and a `regex_rule` floor on `data_synapseid`
+  simultaneously (three types, three sub-fields).
+- But you **cannot** put a `not_null` floor on *two* sub-fields of the same column — the second
+  displaces the first. Pick the higher-value sub-field, express the other constraint via a different
+  aggregate type if one fits, or move a per-document check into the column's JSON Schema.
+- **Verify after regenerating:** count the nested aggregates in the generated
+  `<transform>.json` and confirm every `target_field` you intended is present. A collision shows up
+  as a *lower-than-expected* expectation count with a sub-field missing — not as an error.
 
 ### Common expectations by use case
 
@@ -697,3 +756,4 @@ Check the output for GX validation results.
 | GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists (and nested-column `enum`s) mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keeping Related Constraints in Sync" → "External sync"). When you change one, prompt the user to update the parallel list in the R notebook |
 | `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Keeping Related Constraints in Sync" → "Internal sync" |
 | Suite `.json` edited by hand for an Option A dataset, notebook left unchanged | Only `rna_de_aggregate`/`rna_de_individual` use Option B. For every other dataset, edit the `.ipynb` (Cell 0 import + the column's `validator.expect_...()` call) and regenerate via `nbconvert` — see Step 4 |
+| A second nested aggregate of the same type on one column silently disappears | GX keys aggregate expectations by `(expectation_type, column)`, not `target_field`, so the later call overwrites the earlier — each column holds at most one `nested_object_not_null` / one `…_string_length` / one `…_regex_rule`. Use a different aggregate type per sub-field, or move the check into the JSON Schema; verify the generated suite's nested-aggregate count — see "Using `mostly` (deliberately)" in Step 3 |

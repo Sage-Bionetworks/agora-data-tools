@@ -53,7 +53,7 @@
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "name",
-        "mostly": 0.7
+        "mostly": 0.75
       },
       "meta": {}
     },
@@ -102,7 +102,7 @@
       "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "hgnc_symbol",
-        "mostly": 0.7
+        "mostly": 0.75
       },
       "meta": {}
     },
@@ -374,6 +374,16 @@
         "operator": ">",
         "target_field": "data_used_to_support_target_selection",
         "valid_threshold": 0.95
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_nested_object_regex_rule",
+      "kwargs": {
+        "column": "target_nominations",
+        "regex_pattern": "^syn[0-9]+$",
+        "target_field": "data_synapseid",
+        "valid_threshold": 0.7
       },
       "meta": {}
     },
