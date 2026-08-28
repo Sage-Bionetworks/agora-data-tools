@@ -179,13 +179,9 @@ class NumericRule(ColumnRule):
     rule = "numeric"
 
     def count_violations(self, series: pd.Series) -> int:
-        """Return the number of non-null values in *series* that are not numeric.
-
-        A length-0 series yields 0 (no values to fail the rule).
-        """
+        """Return the number of non-null values in *series* that are not numeric."""
         present = series[series.notna()]
-        coerced = pd.to_numeric(present, errors="coerce")
-        return int(coerced.isna().sum())
+        return int(pd.to_numeric(present, errors="coerce").isna().sum())
 
 
 class NonNegativeRule(ColumnRule):
@@ -202,13 +198,9 @@ class NonNegativeRule(ColumnRule):
     rule = "non_negative"
 
     def count_violations(self, series: pd.Series) -> int:
-        """Return the number of non-null, numeric values in *series* that are negative.
-
-        A length-0 series yields 0 (no values to fail the rule).
-        """
+        """Return the number of non-null, numeric values in *series* that are negative."""
         present = series[series.notna()]
-        coerced = pd.to_numeric(present, errors="coerce")
-        return int((coerced < 0).sum())
+        return int((pd.to_numeric(present, errors="coerce") < 0).sum())
 
 
 # TODO remove "_" - these utils functions are not only used internally

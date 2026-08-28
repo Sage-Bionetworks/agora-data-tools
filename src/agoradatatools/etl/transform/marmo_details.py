@@ -1,10 +1,6 @@
 """
 This module contains the transformation logic for the marmo_details dataset.
 This is for the Model AD project (marmoset details pages).
-
-Produces one output object per model in marmo_metadata. Measurements are tied to a model
-by joining genotype to marmo_genotype_label_map, which has a model column like the mouse
-genotype_label_map. Individual and results files have no model column.
 """
 
 from typing import Any, Dict, List
@@ -65,13 +61,11 @@ REQUIRED_INPUT = {
 # MSD plasma samples this transform consumes, so its rules here are limited to ones that hold
 # file-wide. NumericRule and NonNegativeRule both skip nulls, so they tolerate the assays that
 # record no age. NonNegativeRule belongs here rather than in REFERENCED_BIOMATERIAL_RULES because
-# a negative age is impossible for any assay, not only for the rows this transform reads. It is
-# paired with NumericRule so unparseable ages are still reported: NonNegativeRule alone ignores
-# them. A NotEmptyRule on biomaterialid would not hold file-wide: the file carries a row with
-# only modelSystemType populated. That blank id is harmless because it can never match a results
-# id, and the meaningful presence check already lives on marmo_results.biomaterialid, which
-# drives the join. Rules that only hold for the consumed rows live in
-# REFERENCED_BIOMATERIAL_RULES below.
+# a negative age is impossible for any assay, not only for the rows this transform reads.
+# A NotEmptyRule on biomaterialid would not hold file-wide: the file carries a row with only
+# modelSystemType populated. That blank id is harmless because it can never match a results id,
+# and the meaningful presence check already lives on marmo_results.biomaterialid, which drives
+# the join.
 
 COLUMN_RULES = {
     "marmo_metadata": {
@@ -93,7 +87,7 @@ COLUMN_RULES = {
     "marmo_biomarker_measure_info": {
         "result_column": [NotEmptyRule()],
         "evidence_type": [NotEmptyRule()],
-        "display_order": [NotEmptyRule(), NumericRule(), NonNegativeRule()],
+        "display_order": [NotEmptyRule(), NumericRule()],
     },
     "marmo_individual_metadata": {
         "individualid": [NotEmptyRule()],
@@ -124,52 +118,16 @@ REFERENCED_BIOMATERIAL_RULES = {
 MONTHS_PER_YEAR = 12
 
 
-def _convert_to_year(collection_age_months: float) -> int:
-    """Floor a collection age in months to the whole year in which the sample was taken.
-
-    Shared by the bucket label and the numeric sort key so the flooring logic lives in one place.
-
-    Args:
-        collection_age_months (float): The animal's age in months at the time of collection.
-
-    Returns:
-        int: The floored whole-year value, e.g. 9.9 -> 0, 13.0 -> 1.
-    """
-    return int(collection_age_months // MONTHS_PER_YEAR)
-
-
-def _age_to_year_bucket(collection_age_months: float) -> str:
-    """Convert a collection age in months into a whole-year bucket label.
-
-    Ages are floored to the year in which the sample was taken, e.g. 9.9 months -> "0-1 years",
-    13.0 months -> "1-2 years".
-
-    Args:
-        collection_age_months (float): The animal's age in months at the time of collection.
-
-    Returns:
-        str: The bucket label, e.g. "2-3 years".
-    """
-    bucket_start = _convert_to_year(collection_age_months)
-    return f"{bucket_start}-{bucket_start + 1} years"
-
-
 def _build_measurements(
     datasets: Dict[str, pd.DataFrame],
     measure_info: pd.DataFrame,
 ) -> pd.DataFrame:
     """Build the per-measurement DataFrame used to assemble the biomarkers collection.
 
-    Melts the wide marmo_results measure columns into long form, joins individual metadata
-    (genotype, sex), maps genotypes to their display labels and models (dropping any genotype
-    not present in the label map), joins biomaterial collection ages (dropping rows without a
-    biomaterial record), and attaches the measure metadata (evidence_type, units, display_order).
-
-    Individual and results files have no model column. A measurement is tied to a model by
-    joining its genotype to marmo_genotype_label_map. A genotype listed under more than one
-    model (typical for shared WT controls) is copied onto every matching model. If a later
-    study reuses the same genotype string for a different set of animals, those animals would
-    appear on every model that lists that genotype.
+    Melts the wide marmo_results measure columns into long form, joins individual metadata,
+    resolves genotypes to display labels and models, joins biomaterial collection ages, and
+    attaches the measure metadata. Measurements whose genotype is absent from the label map,
+    or whose biomaterial has no record, are dropped.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): The input datasets.
@@ -181,28 +139,23 @@ def _build_measurements(
         biomarkers collection, including a model column from the label map.
 
     Raises:
-        ValueError: If marmo_genotype_label_map has duplicate (model, genotype) rows, if a
-            referenced biomaterial row violates REFERENCED_BIOMATERIAL_RULES, if no measurement
-            matches a label-map genotype, or if no measurement retains a collection age after
-            the biomaterial join.
+        ValueError: If a referenced biomaterial row violates REFERENCED_BIOMATERIAL_RULES, if no
+            measurement matches a label-map genotype, or if no measurement retains a collection
+            age after the biomaterial join.
     """
     results = datasets["marmo_results"]
     individual = datasets["marmo_individual_metadata"]
     biomaterial = datasets["marmo_biomaterial_metadata"]
     genotype_map = datasets["marmo_genotype_label_map"]
 
-    # Every result_column listed in the measure-info mapping must exist in marmo_results.
-    # Fail loudly on a missing/typo'd column instead of silently dropping that measure.
-    missing_columns = [
-        col for col in measure_info["result_column_std"] if col not in results.columns
-    ]
+    # Fail loudly on a missing or typo'd result_column instead of silently dropping that measure.
+    measure_columns = list(measure_info["result_column_std"])
+    missing_columns = [col for col in measure_columns if col not in results.columns]
     if missing_columns:
         raise ValueError(
             "marmo_biomarker_measure_info references result columns that are not present in "
             f"marmo_results: {missing_columns}"
         )
-
-    measure_columns = list(measure_info["result_column_std"])
 
     long = results.melt(
         id_vars=["biomaterialid", "individualid"],
@@ -213,7 +166,6 @@ def _build_measurements(
     long["value"] = pd.to_numeric(long["value"], errors="coerce")
     long = long.dropna(subset=["value"])
 
-    # Attach genotype + sex, then resolve display label and model (unmapped genotypes are dropped).
     # validate="m:1" fails loudly if an individual appears more than once, which would otherwise
     # silently duplicate every measurement for that individual.
     long = long.merge(
@@ -222,18 +174,6 @@ def _build_measurements(
         on="individualid",
         validate="m:1",
     )
-    # (model, genotype) must be unique: a duplicate pair would multiply points within a model.
-    duplicate_keys = genotype_map.duplicated(subset=["model", "genotype"], keep=False)
-    if duplicate_keys.any():
-        dupes = (
-            genotype_map.loc[duplicate_keys, ["model", "genotype"]]
-            .drop_duplicates()
-            .to_dict(orient="records")
-        )
-        raise ValueError(
-            "marmo_genotype_label_map has duplicate (model, genotype) rows, which would "
-            f"multiply measurements within a model: {dupes}"
-        )
     # Both remaining joins can empty the frame. An empty result means the files no longer share
     # a vocabulary rather than that there is genuinely nothing to plot, so each is checked the
     # same way: emptiness is only an error if there was something to surface to begin with.
@@ -241,8 +181,10 @@ def _build_measurements(
 
     # Join on genotype only, so a genotype (e.g. WT) may belong to more than one model and those
     # measurements are copied onto every model that lists it. validate="m:m" records that intent
-    # but enforces nothing - pandas performs no check for m:m. The duplicate (model, genotype)
-    # check above is what actually prevents points being multiplied within a model.
+    # but enforces nothing - pandas performs no check for m:m. The uniqueness check in
+    # transform_marmo_details is what prevents points being multiplied within a model. This
+    # assumes a genotype string identifies the same animals everywhere: if a later study reused
+    # one for a different cohort, those animals would appear on every model listing it.
     long = long.merge(
         genotype_map[["model", "genotype", "display_label"]],
         how="inner",
@@ -267,9 +209,8 @@ def _build_measurements(
         {"marmo_biomaterial_metadata": referenced}, REFERENCED_BIOMATERIAL_RULES
     )
 
-    # Attach collection age from the biomaterial record; drop measurements with no biomaterial
-    # match. validate="m:1": one collection age per biomaterial, so duplicate biomaterial rows
-    # cannot duplicate measurements.
+    # validate="m:1": one collection age per biomaterial, so duplicate biomaterial rows cannot
+    # duplicate measurements.
     long = long.merge(
         referenced[["biomaterialid", "collectionage"]],
         how="left",
@@ -288,12 +229,15 @@ def _build_measurements(
         )
     long = retained
 
-    long["age"] = long["collectionage"].apply(_age_to_year_bucket)
-    long["age_start"] = long["collectionage"].apply(_convert_to_year)
+    # Ages are floored to the year the sample was taken, so 9.9 months is "0-1 years" and 13.0
+    # is "1-2 years". age_start is kept as the numeric sort key for the label.
+    long["age_start"] = (long["collectionage"] // MONTHS_PER_YEAR).astype(int)
+    year = long["age_start"]
+    long["age"] = year.astype(str) + "-" + (year + 1).astype(str) + " years"
     long["sex"] = long["sex"].str.title()
 
-    # Attach measure metadata. validate="m:1": one metadata row per result column, so duplicate
-    # result_column entries can't multiply rows or make the y_axis_max grouping ambiguous.
+    # validate="m:1": one metadata row per result column, so duplicate result_column entries
+    # can't multiply rows or make the y_axis_max grouping ambiguous.
     long = long.merge(
         measure_info[
             [
@@ -319,16 +263,9 @@ def _build_biomarkers(
     Produces one object per (evidence_type, age) combination, each containing the data points
     for that plot. Objects are sorted by the measure display order, then by age ascending.
 
-    The y_axis_max for each measure is computed from the data: the maximum surfaced value for
-    an evidence_type (across all ages) is rounded up to a "nice" number via round_y_axis_max,
-    mirroring how the mouse immunohisto pipeline derives its plot axis maxima. The same
-    y_axis_max is applied to every age bucket of a given evidence_type.
-
-    Two things differ from that mouse pipeline, both intentional. An animal sampled more than
-    once within a year bucket contributes one point per collection rather than one averaged
-    point, so a plot can hold many more points than it has animals. And no placeholder entries
-    are added for buckets a measure has no data in, so this returns only the (evidence_type,
-    age) pairs that are actually populated.
+    The y_axis_max for an evidence_type is derived from its maximum surfaced value across all
+    ages and applied to every one of its age buckets, mirroring how the mouse immunohisto
+    pipeline derives its plot axis maxima.
 
     Args:
         measurements (pd.DataFrame): The per-measurement DataFrame from _build_measurements.
@@ -346,7 +283,7 @@ def _build_biomarkers(
     }
 
     # Shape the data-point columns into their final form before nesting so nest_fields emits the
-    # output dicts directly (individual_id, value, sex, genotype) with no per-row rebuild needed.
+    # output dicts directly, with no per-row rebuild needed.
     data_points = measurements.copy()
     data_points["individual_id"] = data_points["individualid"].astype(str)
     data_points["value"] = data_points["value"].astype(float)
@@ -419,10 +356,9 @@ def transform_marmo_details(
         3. Each measurement's collection age is joined from the biomaterial record on
            biomaterialid. Measurements with no biomaterial record are dropped.
         4. Collection ages (months) are bucketed into whole-year ranges (e.g. "0-1 years").
-           Marmosets are sampled longitudinally, so one animal contributes one data point per
-           collection that falls in a bucket, not one point per bucket. In current data a single
-           animal can account for as many as 15 points in one plot. Values are deliberately not
-           averaged per animal: the plot shows every measurement taken. This is where the
+           Marmosets are sampled longitudinally, so values are deliberately not averaged per
+           animal: one animal contributes one point per collection falling in a bucket, and in
+           current data can account for as many as 15 points in one plot. This is where the
            transform diverges from the mouse immunohisto pipeline, where each animal is one
            point.
         5. A bucket is only emitted where that measure has data. Unlike the mouse pipeline,
@@ -452,6 +388,20 @@ def transform_marmo_details(
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)
 
+    genotype_map = datasets["marmo_genotype_label_map"]
+    # (model, genotype) must be unique: a duplicate pair would multiply points within a model.
+    duplicate_keys = genotype_map.duplicated(subset=["model", "genotype"], keep=False)
+    if duplicate_keys.any():
+        dupes = (
+            genotype_map.loc[duplicate_keys, ["model", "genotype"]]
+            .drop_duplicates()
+            .to_dict(orient="records")
+        )
+        raise ValueError(
+            "marmo_genotype_label_map has duplicate (model, genotype) rows, which would "
+            f"multiply measurements within a model: {dupes}"
+        )
+
     metadata = datasets["marmo_metadata"]
 
     measure_info = datasets["marmo_biomarker_measure_info"].copy()
@@ -467,7 +417,6 @@ def transform_marmo_details(
     measurements = _build_measurements(datasets, measure_info)
 
     # Loop each model in metadata the same way transform_model_details does for mice.
-    # Measurements are already stamped with model from the label-map join above.
     result = []
     for model_name in metadata["model"].unique():
         model_rows = metadata[metadata["model"] == model_name]

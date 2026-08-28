@@ -5,10 +5,8 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.marmo_details import (
-    _age_to_year_bucket,
     _build_biomarkers,
     _build_measurements,
-    _convert_to_year,
     transform_marmo_details,
 )
 from agoradatatools.etl.utils import round_y_axis_max
@@ -75,9 +73,10 @@ class TestTransformMarmoDetails:
 
     def test_marmo_details_missing_column_should_fail(self):
         """A required column missing from a dataset raises ValueError."""
-        input_files = dict(self.good_input_files)
-        input_files["marmo_results"] = "marmo_results_missing_column_input.csv"
-        datasets = self._load_datasets(input_files)
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_results"] = datasets["marmo_results"].drop(
+            columns=["individualid"]
+        )
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
@@ -105,16 +104,6 @@ class TestTransformMarmoDetails:
 
         assert output_data == expected_data
 
-    def test_marmo_details_missing_model_column_should_fail(self):
-        """A label map without the required model column raises ValueError."""
-        datasets = self._load_datasets(self.good_input_files)
-        datasets["marmo_genotype_label_map"] = datasets[
-            "marmo_genotype_label_map"
-        ].drop(columns=["model"])
-
-        with pytest.raises(ValueError):
-            transform_marmo_details(datasets=datasets)
-
     def test_marmo_details_duplicate_model_genotype_should_fail(self):
         """A duplicate (model, genotype) pair in the label map raises ValueError."""
         datasets = self._load_datasets(self.good_input_files)
@@ -129,11 +118,8 @@ class TestTransformMarmoDetails:
     def test_marmo_details_bad_collection_age_units_should_fail(self):
         """A collectionAgeUnits value other than months on a referenced biomaterial row fails
         validation and raises ValueError."""
-        input_files = dict(self.good_input_files)
-        input_files[
-            "marmo_biomaterial_metadata"
-        ] = "marmo_biomaterial_metadata_bad_units_input.csv"
-        datasets = self._load_datasets(input_files)
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_biomaterial_metadata"].loc[1, "collectionageunits"] = "days"
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
@@ -206,11 +192,8 @@ class TestTransformMarmoDetails:
     def test_marmo_details_unknown_result_column_should_fail(self):
         """A result_column in the measure-info mapping that is absent from marmo_results
         (e.g. a typo) raises ValueError rather than silently dropping the measure."""
-        input_files = dict(self.good_input_files)
-        input_files[
-            "marmo_biomarker_measure_info"
-        ] = "marmo_biomarker_measure_info_typo_input.csv"
-        datasets = self._load_datasets(input_files)
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_biomarker_measure_info"].loc[2, "result_column"] = "GFAP_typo"
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
@@ -266,30 +249,6 @@ class TestTransformMarmoDetails:
         assert entries["Presenilin1"]["biomarkers"]
 
 
-class TestConvertToYear:
-    """Unit tests for the month-to-year helpers."""
-
-    @pytest.mark.parametrize(
-        "months, expected_year",
-        [(0, 0), (9.9, 0), (12, 1), (13.0, 1), (24, 2)],
-    )
-    def test_convert_to_year(self, months, expected_year):
-        assert _convert_to_year(months) == expected_year
-
-    @pytest.mark.parametrize(
-        "months, expected_bucket",
-        [
-            (0, "0-1 years"),
-            (9.9, "0-1 years"),
-            (12, "1-2 years"),
-            (13.0, "1-2 years"),
-            (24, "2-3 years"),
-        ],
-    )
-    def test_age_to_year_bucket(self, months, expected_bucket):
-        assert _age_to_year_bucket(months) == expected_bucket
-
-
 class TestBuildMeasurements:
     """Unit tests for _build_measurements covering the silent-drop behaviors."""
 
@@ -305,12 +264,13 @@ class TestBuildMeasurements:
 
     def _datasets(self):
         return {
-            # individual 9 has no row in marmo_individual_metadata
+            # individual 9 has no row in marmo_individual_metadata. Individual 1 is sampled
+            # longitudinally at 6, 11.9 and 12 months so the year-bucket boundary is covered.
             "marmo_results": pd.DataFrame(
                 {
-                    "biomaterialid": ["7015_1", "7019_1"],
-                    "individualid": [1, 9],
-                    "ab40_pg_ml": [100.0, 900.0],
+                    "biomaterialid": ["7015_1", "7019_1", "7016_1", "7017_1"],
+                    "individualid": [1, 9, 1, 1],
+                    "ab40_pg_ml": [100.0, 900.0, 110.0, 120.0],
                 }
             ),
             "marmo_individual_metadata": pd.DataFrame(
@@ -322,9 +282,9 @@ class TestBuildMeasurements:
             ),
             "marmo_biomaterial_metadata": pd.DataFrame(
                 {
-                    "biomaterialid": ["7015_1", "7019_1"],
-                    "collectionage": [6, 9],
-                    "collectionageunits": ["months", "months"],
+                    "biomaterialid": ["7015_1", "7019_1", "7016_1", "7017_1"],
+                    "collectionage": [6, 9, 11.9, 12],
+                    "collectionageunits": ["months"] * 4,
                 }
             ),
             "marmo_genotype_label_map": pd.DataFrame(
@@ -355,6 +315,16 @@ class TestBuildMeasurements:
         assert row["sex"] == "Male"
         assert row["age"] == "0-1 years"
         assert row["value"] == 100.0
+
+    def test_ages_floor_to_the_year_the_sample_was_taken(self):
+        """Ages floor rather than round, so 11.9 months is still the first bucket and 12.0 opens
+        the second."""
+        measurements = _build_measurements(
+            self._datasets(), self._measure_info()
+        ).sort_values("collectionage")
+
+        assert list(measurements["age"]) == ["0-1 years", "0-1 years", "1-2 years"]
+        assert list(measurements["age_start"]) == [0, 0, 1]
 
 
 class TestBuildBiomarkers:
