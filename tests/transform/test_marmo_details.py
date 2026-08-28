@@ -141,7 +141,8 @@ class TestTransformMarmoDetails:
     def test_marmo_details_blank_units_on_unreferenced_row_should_pass(self):
         """A blank collectionAgeUnits is tolerated on a biomaterial row that marmo_results does
         not reference. The file records assays with no age (e.g. nanostring), and OneOfRule counts
-        nulls as violations, so those rows must be excluded before the unit check runs."""
+        nulls as violations, so those rows must be excluded before the unit check runs.
+        """
         datasets = self._load_datasets(self.good_input_files)
         assert datasets["marmo_biomaterial_metadata"]["collectionageunits"].isna().any()
 
@@ -179,7 +180,27 @@ class TestTransformMarmoDetails:
             biomaterialid="unmatched-" + biomaterial["biomaterialid"]
         )
 
-        with pytest.raises(ValueError, match="No marmo_results measurement matched"):
+        with pytest.raises(
+            ValueError,
+            match="No marmo_results measurement matched a marmo_biomaterial_metadata record",
+        ):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_no_genotype_match_should_fail(self):
+        """When no measurement's genotype is present in the label map, the transform raises
+        rather than emitting empty biomarkers collections. The genotype join is inner and can
+        empty the frame just as a biomaterialid mismatch can, so it is guarded the same way.
+        """
+        datasets = self._load_datasets(self.good_input_files)
+        label_map = datasets["marmo_genotype_label_map"]
+        datasets["marmo_genotype_label_map"] = label_map.assign(
+            genotype=label_map["genotype"] + "_unmatched"
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="No marmo_results measurement matched a marmo_genotype_label_map genotype",
+        ):
             transform_marmo_details(datasets=datasets)
 
     def test_marmo_details_unknown_result_column_should_fail(self):
@@ -193,6 +214,56 @@ class TestTransformMarmoDetails:
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_non_numeric_display_order_should_fail(self):
+        """A non-numeric display_order fails the NumericRule. Without it the value is coerced to
+        NaN and, because display_order is a nest_fields grouping key, pandas groupby drops the
+        whole measure from every model page with no error."""
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_biomarker_measure_info"].loc[2, "display_order"] = "third"
+
+        with pytest.raises(ValueError, match="numeric"):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_blank_evidence_type_should_fail(self):
+        """A blank evidence_type fails the NotEmptyRule. It is also a nest_fields grouping key,
+        so an unvalidated null would silently delete that measure from every model page.
+        """
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_biomarker_measure_info"].loc[2, "evidence_type"] = None
+
+        with pytest.raises(ValueError, match="not_empty"):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_blank_result_column_should_fail(self):
+        """A blank result_column fails the NotEmptyRule. Without it the null reaches
+        standardize_column_name and raises a bare TypeError naming neither file nor column.
+        """
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_biomarker_measure_info"].loc[2, "result_column"] = None
+
+        with pytest.raises(ValueError, match="not_empty"):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_model_without_label_map_rows_gets_empty_biomarkers(self):
+        """A model in marmo_metadata with no matching label-map rows still gets an output entry,
+        with an empty biomarkers list rather than being dropped."""
+        datasets = self._load_datasets(self.good_input_files)
+        metadata = datasets["marmo_metadata"]
+        datasets["marmo_metadata"] = pd.concat(
+            [
+                metadata,
+                metadata.assign(model="Orphan", ensembl_gene_id="ENSCJAG00000000001"),
+            ],
+            ignore_index=True,
+        )
+
+        output_data = transform_marmo_details(datasets=datasets)
+
+        entries = {model["name"]: model for model in output_data}
+        assert set(entries) == {"Presenilin1", "Orphan"}
+        assert entries["Orphan"]["biomarkers"] == []
+        assert entries["Presenilin1"]["biomarkers"]
 
 
 class TestConvertToYear:
@@ -290,11 +361,16 @@ class TestBuildBiomarkers:
     """Unit tests for _build_biomarkers covering sort order, y_axis_max, and empty units."""
 
     def _measurements(self):
+        """Mirrors what _build_measurements emits, including the raw genotype column carried
+        over from the individual join. That column must be dropped before display_label is
+        renamed to genotype, so the fixture has to carry it for the collision path to be
+        exercised at all."""
         return pd.DataFrame(
             {
                 "individualid": [1, 2, 1],
                 "value": [100.0, 200.0, 0.1],
                 "sex": ["Male", "Female", "Male"],
+                "genotype": ["WT", "PSEN1-C410Y_Y410/Y410", "WT"],
                 "display_label": ["Matched Control", "Presenilin-1", "Matched Control"],
                 "evidence_type": ["A&beta;40", "A&beta;40", "A&beta;42/A&beta;40"],
                 "age": ["0-1 years", "1-2 years", "0-1 years"],
@@ -339,3 +415,33 @@ class TestBuildBiomarkers:
 
         point = biomarkers[0]["data"][0]
         assert set(point.keys()) == {"individual_id", "value", "sex", "genotype"}
+
+    def test_output_genotype_is_the_display_label(self):
+        """The emitted genotype is the display label, not the raw genotype the measurements
+        frame carries in from the individual join."""
+        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
+
+        genotypes = {p["genotype"] for b in biomarkers for p in b["data"]}
+        assert genotypes == {"Matched Control", "Presenilin-1"}
+
+    def test_data_points_sort_individuals_numerically(self):
+        """Points are ordered by the numeric individualid, so animal 2 precedes animal 10
+        rather than sorting lexicographically as the stringified individual_id would."""
+        measurements = pd.DataFrame(
+            {
+                "individualid": [10, 2, 1],
+                "value": [300.0, 200.0, 100.0],
+                "sex": ["Male", "Female", "Male"],
+                "genotype": ["WT", "WT", "WT"],
+                "display_label": ["Matched Control"] * 3,
+                "evidence_type": ["A&beta;40"] * 3,
+                "age": ["0-1 years"] * 3,
+                "units": ["pg/mL"] * 3,
+                "display_order": [1, 1, 1],
+                "age_start": [0, 0, 0],
+            }
+        )
+
+        biomarkers = _build_biomarkers(measurements, "Presenilin1")
+
+        assert [p["individual_id"] for p in biomarkers[0]["data"]] == ["1", "2", "10"]
