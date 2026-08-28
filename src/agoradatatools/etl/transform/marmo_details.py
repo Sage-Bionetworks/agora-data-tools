@@ -61,12 +61,6 @@ REQUIRED_INPUT = {
     ],
 }
 
-# Per-column content rules validated up front so bad source data fails loudly rather than
-# silently dropping or miscomputing rows downstream.
-#   - collectionage: must be numeric and non-negative so age bucketing is well-defined.
-#   - ensembl_gene_id: marmoset (Callithrix jacchus) Ensembl gene ids are ENSCJAG-prefixed.
-#   - NotEmpty rules guard the id/label/order columns whose absence would corrupt joins or output.
-#
 # marmo_biomaterial_metadata describes every biomaterial collected for the study, not just the
 # MSD plasma samples this transform consumes, so its rules here are limited to ones that hold
 # file-wide. NumericRule and NonNegativeRule both skip nulls, so they tolerate the assays that
@@ -78,9 +72,7 @@ REQUIRED_INPUT = {
 # id, and the meaningful presence check already lives on marmo_results.biomaterialid, which
 # drives the join. Rules that only hold for the consumed rows live in
 # REFERENCED_BIOMATERIAL_RULES below.
-#
-# A negative age is rejected here rather than clamped in _convert_to_year: clamping would let bad
-# source data through as a silently wrong year bucket, and this file is the trust boundary.
+
 COLUMN_RULES = {
     "marmo_metadata": {
         "model": [NotEmptyRule()],
@@ -101,7 +93,7 @@ COLUMN_RULES = {
     "marmo_biomarker_measure_info": {
         "result_column": [NotEmptyRule()],
         "evidence_type": [NotEmptyRule()],
-        "display_order": [NotEmptyRule(), NumericRule()],
+        "display_order": [NotEmptyRule(), NumericRule(), NonNegativeRule()],
     },
     "marmo_individual_metadata": {
         "individualid": [NotEmptyRule()],
@@ -129,7 +121,6 @@ REFERENCED_BIOMATERIAL_RULES = {
     },
 }
 
-# Number of months used to bucket collection ages into whole-year ranges.
 MONTHS_PER_YEAR = 12
 
 
