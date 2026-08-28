@@ -752,6 +752,164 @@ Check the output for GX validation results.
 
 ---
 
+## Step 7 — Summarize the Expectation Changes for Review
+
+Once the suite passes, **surface a bullet-point summary of every validation check this PR added,
+removed, or modified** — this is what a reviewer reads to understand the PR without diffing the
+generated JSON. Produce it whenever you finish a round of suite edits (and refresh it before
+opening/updating a PR).
+
+Derive the list by diffing the generated `<transform>.json` against the branch base (e.g.
+`git merge-base dev HEAD`), so nothing is missed and the provenance tags are exact.
+
+### Scope — only what this PR changed
+
+**Include a check only if this PR added, removed, or modified it.** Preexisting checks that are
+unchanged do NOT belong on the list — even if they carry a `mostly`/threshold or otherwise look
+noteworthy. (A `mostly` you did not touch is preexisting; leave it off.) Do not surface preexisting
+checks "for context" — that has repeatedly caused confusion about what actually changed. If the user
+explicitly asks about unchanged checks, answer separately, outside the list.
+
+### One bullet per (field × validation type)
+
+**Emit the entire summary inside a fenced code block** (```` ```markdown ````) — including both the
+`### Overview` and `### Summary of changed expectations` sections — so it renders as literal text the
+user can copy-paste verbatim, rather than being rendered as live headers/bullets (which strip the raw
+markers and aren't selectable as source).
+
+### Lead with an `### Overview` section
+
+Above the changed-expectations list, emit an `### Overview` section with two short parts:
+
+1. **What you did** — one or two sentences describing the work at a high level (e.g. "Audited the
+   suite field-by-field against the authoring rules, fixed misapplied/broken expectations, and added
+   missing coverage across scalars, lists, and nested objects."). **Keep it high-level — do not
+   restate the specific per-field changes that the summary list already enumerates** (no naming
+   individual columns, regexes, or bounds); the overview frames the work, the list carries the
+   detail.
+2. **Final suite stats** — the final expectation count **and the base-branch count it grew/shrank
+   from** as `(was N)`, plus the pass result and how it was verified, e.g. "Final suite: 53
+   expectations (was 52), 100% passing (runner-faithful, verified against the installed package)."
+   `N` is the expectation count in the base version of `<transform>.json` (the `git merge-base dev
+   HEAD` revision you diffed against).
+
+   **Report the pass status truthfully — state only what you actually verified in THIS session, and
+   say how.** The pass claim must correspond to a run you performed and can point to; the wording in
+   the example above is a template for the *verified* case, not boilerplate to paste unconditionally.
+   Pick the phrasing that matches reality:
+   - You ran a runner-faithful validation this session → "100% passing (runner-faithful, verified
+     against the installed package)" (or the real pass rate, e.g. "148/150 passing").
+   - The user reported an authoritative run (e.g. their own `adt`) → attribute it: "100% passing (per
+     the user's `adt` run)".
+   - You only inspected the suite via git / static read and did **not** run it → "pass status not
+     independently verified in this session".
+
+   Never upgrade a "not verified" to "verified" — including when regenerating an overview from the
+   template or after an unrelated edit. If nothing was re-run, carry forward the prior, accurate
+   status verbatim. If you want a stronger claim, run the validation first (Steps 5–6), then update
+   the line.
+
+Begin the list with the header `### Summary of changed expectations` (followed by a blank line),
+then emit exactly one bullet for each field-and-check combination. **Prefix every bullet with a
+GitHub-markdown list marker (`- `)** so the block can be copy-pasted directly as a bulleted list.
+Structure each bullet in this fixed order:
+
+````markdown
+### Summary of changed expectations
+
+- `<column>[.<field_name>]`: <validation type> <info about the check> [added | removed | modified<, previous state>]
+````
+
+1. **Field** — the column name, plus `.<field_name>` if the check acts on a nested sub-field.
+   Format the whole identifier as inline code: `` `column` `` or `` `column.field_name` ``.
+2. **Validation type** — the kind of check: `length`, `range`, `regex`, `not-null`, `type`,
+   `string length`, `unique members`, `member check`, etc. **For anything encoded inside a JSON
+   Schema, prefix the type with `json_schema` and break each schema-encoded check into its own
+   bullet** — e.g. `json_schema list length`, `json_schema range`, `json_schema regex`,
+   `json_schema member check`. (A single `match_json_schema` expectation thus expands into several
+   bullets, one per interior check added/removed/modified.) This applies uniformly — a `pattern`
+   inside a schema is `json_schema regex` (no exceptions); reserve plain `regex` for a native
+   `expect_column_values_to_match_regex` expectation on a scalar column.
+3. **Info about the check** — whatever pins the check down:
+   - a threshold **and the data stat it was derived from** (e.g. `@0.70 (73.7% match)`,
+     `@0.75 (79.4% populated)`);
+   - a range's boundaries (e.g. `[-7,15]`) or a list-length range (e.g. `[1,4]`, `max 5`);
+   - a members list's length, or the actual members **unless the list has > 5** (then give the count
+     or a derivation, e.g. `[1,19] (max = # allowed biodomains)`).
+   - **Interpret the stat correctly for the check's null handling:** `not_be_null(mostly=…)` counts
+     nulls, so its stat is the *populated* rate; every other `mostly` and any `row_condition`-guarded
+     check excludes nulls, so the stat is "% of *non-null* rows satisfying the check"; a nested
+     aggregate's stat is the rate among flattened sub-documents.
+4. **Change type** — `[added]`, `[removed]`, or `[modified]`. For `[modified]`, state the previous
+   state unless part 3 already makes it obvious — e.g. `[modified, was @0.70]`,
+   `[modified, was "\d"]`.
+
+### Container-level JSON-schema checks — use sub-bullets
+
+For a **top-level column's** `match_json_schema` expectation, the checks that describe the
+**container itself** (rather than an individual property) — its `type`, `additionalProperties`, the
+`required` key list, and its **list length** (`minItems`/`maxItems`) — go on the column's own line as
+**indented sub-bullets** under a parent `` - `column`: json_schema <container shape> `` line. Each
+**property**-level check still gets its own top-level `` `column.field_name` `` bullet as usual
+(sorted into the flat list). This grouping applies to **top-level columns only** — a nested array
+property (e.g. `` `ensembl_info.ensembl_possible_replacements` ``) keeps its checks as ordinary flat
+`` `column.field_name` `` bullets.
+
+**Change-tag placement:**
+- If the **whole expectation is added or removed**, put the tag on the parent line; the sub-bullets
+  inherit it (leave them untagged).
+- If the expectation is **modified** (only some container-level checks changed), leave the parent
+  line untagged — it's just naming the container — and put a `[added|removed|modified]` tag on each
+  changed sub-bullet. Do not list unchanged container checks.
+
+```markdown
+# whole expectation added — tag on parent, sub-bullets inherit:
+- `columns`: json_schema array of objects [added]
+  - additionalProperties false
+  - required: data_key, is_exported, is_hidden, type
+
+# preexisting expectation, only list length added — tag on the sub-bullet:
+- `median_expression`: json_schema array of objects
+  - list length [2,9] [added]
+```
+
+### Formatting rules
+
+- **Sort the bullets by `column.field_name`** (column-level checks sort before that column's nested
+  fields). No other grouping.
+- **Do not add any section headers beyond the single `### Summary of changed expectations` header**
+  at the top — no category groupings; a flat, sorted list only.
+- **Describe the check, not just the kwarg that changed.** "added `row_condition=…`" alone is
+  misleading; say what it guards and that behavior is unchanged if it is (GX already skips nulls, so
+  a null-guard on a map expectation is defensive, not a fix).
+
+### Example (excerpt, from the gene_info suite)
+
+````markdown
+### Overview
+Audited the gene_info suite field-by-field against the authoring rules, fixed expectations that were
+misapplied or broken, and added missing coverage across scalars, lists, and nested objects.
+
+Final suite: 53 expectations (was 52), 100% passing (runner-faithful, verified against the installed package).
+
+### Summary of changed expectations
+
+- `biodomains`: length [1,19] (max = # allowed biodomains) [added]
+- `druggability.pharos_class`: json_schema member check removed spurious null value [modified]
+- `druggability.pharos_class`: json_schema list length [1,4] [added]
+- `ensembl_info.ensembl_release`: json_schema regex "^\d+$" [added]
+- `hgnc_symbol`: not-null @0.75 (79.4% populated) [modified, was @0.70]
+- `median_expression`: json_schema array of objects
+  - list length [2,9] [added]
+- `median_expression.min`: json_schema range [-8,14] [added]
+- `resource_url`: regex — added defensive row_condition="resource_url.notnull()" (GX already skips nulls; no behavior change) [modified]
+- `target_nominations.data_synapseid`: regex "^syn[0-9]+$" @0.70 (73.7% match) [added]
+- `total_nominations`: range [1,10] [modified, was [0,1000]]
+- `uniprotkb_accessions`: unique members [added]
+````
+
+---
+
 ## Common Pitfalls
 
 | Pitfall | Fix |
