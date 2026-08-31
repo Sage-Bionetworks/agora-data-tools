@@ -1,0 +1,47 @@
+destination: &dest syn74766141 # preprod
+staging_path: ./staging/xqtl
+gx_folder: syn74766208         # preprod
+gx_table: syn74766241          # preprod
+
+# Reusable file reference anchors used by datasets below.
+files:
+  # Metadata & Configuration
+  - &ui_config                    { name: ui_config,                format: json,       id: syn77143753 }
+  - &gene_metadata                { name: gene_metadata,            format: feather,    id: syn25953363.17 }
+  - &eqtl_cell_label_map          { name: eqtl_cell_label_map,      format: csv,        id: syn77171904 }
+  # QTL Results (Expression)
+  - &eqtl_results_astro           { name: eqtl_results_astro,           format: tsv,        id: syn77170670 } # modified version of syn75312498 w/mock rs2120461_rere row added, plus missing beta & tab fixes
+  - &eqtl_results_en_l3-5_it_1    { name: eqtl_results_en_l3-5_it_1,      format: tsv,        id: syn75312504 } # _en file renamed to fake a subclass-level file
+  # Phenotype Results (Expression)
+  #- &exp_rs2120461_rere_astro     { name: exp_rs2120461_rere_astro, format: tsv,  id: syn75312283 }
+
+datasets:
+  - eqtl_results:
+      files:
+        - <<: *gene_metadata
+        - <<: *eqtl_results_astro
+        - <<: *eqtl_results_en_l3-5_it_1
+        - <<: *eqtl_cell_label_map
+        #- <<: *exp_rs2120461_rere_astro
+      final_format: json
+      custom_transformations: transform_eqtl_results
+      column_rename:
+        chr: variant_chr
+        start: variant_start
+        end: variant_end
+        not_assessed: reference_allele
+        assessed_allele: minor_allele
+        gene: gene_symbol
+        symbol: gene_symbol
+      destination: *dest
+      gx_enabled: false
+
+  - ui_config:
+      files:
+        - <<: *ui_config
+      final_format: json
+      destination: *dest
+      gx_enabled: false
+      gx_nested_columns:
+        - columns
+        - filters
