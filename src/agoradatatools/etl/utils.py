@@ -203,6 +203,29 @@ class NonNegativeRule(ColumnRule):
         return int((pd.to_numeric(present, errors="coerce") < 0).sum())
 
 
+class UniqueRule(ColumnRule):
+    """Rule that every present value in a column must appear exactly once.
+
+    Unlike the other rules, this one is a property of the column as a whole rather than of
+    each cell, so the violation count is the number of rows belonging to a duplicated group:
+    two rows sharing a value count as two violations. The reported count therefore locates how
+    much of the column is affected, but not which values repeat.
+
+    Null values are skipped, so a key column that is allowed to be blank on some rows can still
+    be checked for uniqueness. This matters because pandas treats null as equal to null, so an
+    unfiltered duplicate check would flag a second blank row as a duplicate of the first. Empty
+    and whitespace-only strings are not treated as null here; pair this rule with NotEmptyRule
+    on columns where blanks are also unacceptable.
+    """
+
+    rule = "unique"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null rows in *series* whose value occurs more than once."""
+        present = series[series.notna()]
+        return int(present.duplicated(keep=False).sum())
+
+
 # TODO remove "_" - these utils functions are not only used internally
 def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     """Logs into Synapse python client, returns authenticated Synapse session.
@@ -684,6 +707,39 @@ def check_column_rules(
 
     if violations:
         raise ValueError("\n".join(violations))
+
+
+def require_survivors(
+    before: pd.DataFrame, after: pd.DataFrame, message: str
+) -> pd.DataFrame:
+    """Return after, unless a filtering step emptied a frame that had rows going in.
+
+    Guards inner joins and null drops that are legitimately empty when their input was already
+    empty, but that mean the source files stopped sharing a vocabulary when they discard every
+    row of a non-empty frame. Unguarded, such a mismatch surfaces as silently empty output
+    rather than as an error.
+
+    Args:
+        before (pd.DataFrame): The frame going into the step.
+        after (pd.DataFrame): The frame the step produced.
+        message (str): Error message naming the inputs that disagree.
+
+    Returns:
+        pd.DataFrame: The after frame.
+
+    Raises:
+        ValueError: If before had rows and after has none.
+
+    Example:
+        long = require_survivors(
+            long,
+            long.merge(label_map, how="inner", on="genotype"),
+            "No measurement matched a label-map genotype.",
+        )
+    """
+    if not before.empty and after.empty:
+        raise ValueError(message)
+    return after
 
 
 def flatten_list(lst: List[Any]) -> List[Any]:

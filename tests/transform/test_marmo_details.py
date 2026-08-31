@@ -12,6 +12,27 @@ from agoradatatools.etl.transform.marmo_details import (
 from agoradatatools.etl.utils import round_y_axis_max
 
 
+# Each of these breaks the vocabulary one filtering step in _build_measurements joins on, so
+# that step discards every measurement.
+def _blank_every_measure_column(datasets):
+    for column in ["ab40_pg_ml", "ab_ratio", "gfap_pg_ml"]:
+        datasets["marmo_results"][column] = None
+
+
+def _unmatch_label_map_genotypes(datasets):
+    label_map = datasets["marmo_genotype_label_map"]
+    datasets["marmo_genotype_label_map"] = label_map.assign(
+        genotype=label_map["genotype"] + "_unmatched"
+    )
+
+
+def _unmatch_biomaterial_ids(datasets):
+    biomaterial = datasets["marmo_biomaterial_metadata"]
+    datasets["marmo_biomaterial_metadata"] = biomaterial.assign(
+        biomaterialid="unmatched-" + biomaterial["biomaterialid"]
+    )
+
+
 class TestTransformMarmoDetails:
     data_files_path = "tests/test_assets/marmo_details"
 
@@ -104,6 +125,27 @@ class TestTransformMarmoDetails:
 
         assert output_data == expected_data
 
+    def test_marmo_details_missing_model_column_should_fail(self):
+        """The label map's model column is what ties a measurement to a model page, so its
+        absence must fail up front rather than reaching the genotype join."""
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_genotype_label_map"] = datasets[
+            "marmo_genotype_label_map"
+        ].drop(columns=["model"])
+
+        with pytest.raises(ValueError):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_unknown_label_map_model_should_fail(self):
+        """A label-map model that matches no marmo_metadata model is a typo between two
+        hand-maintained files. Unguarded it is silent: the measurements are attributed to a model
+        with no output entry, and the real model page emits an empty biomarkers list."""
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_genotype_label_map"]["model"] = "Presenilin-1"
+
+        with pytest.raises(ValueError, match="not present in marmo_metadata"):
+            transform_marmo_details(datasets=datasets)
+
     def test_marmo_details_duplicate_model_genotype_should_fail(self):
         """A duplicate (model, genotype) pair in the label map raises ValueError."""
         datasets = self._load_datasets(self.good_input_files)
@@ -134,6 +176,49 @@ class TestTransformMarmoDetails:
 
         transform_marmo_details(datasets=datasets)
 
+    def test_marmo_details_bad_units_on_unplotted_row_should_pass(self):
+        """A biomaterial row that marmo_results references but whose measurements never reach the
+        output is out of scope for the units rule. Biomaterial 7017_1 belongs to individual 3,
+        whose NOTCH3 genotype the label map does not list. marmo_results carries such rows for
+        every model not yet onboarded, so a bad unit there must not fail a release over data
+        that is never plotted.
+        """
+        datasets = self._load_datasets(self.good_input_files)
+        datasets["marmo_biomaterial_metadata"].loc[2, "collectionageunits"] = "days"
+
+        transform_marmo_details(datasets=datasets)
+
+    @pytest.mark.parametrize(
+        "break_source,expected_message",
+        [
+            (
+                _blank_every_measure_column,
+                "No marmo_results row carries a numeric value",
+            ),
+            (
+                _unmatch_label_map_genotypes,
+                "No marmo_results measurement matched a marmo_genotype_label_map genotype",
+            ),
+            (
+                _unmatch_biomaterial_ids,
+                "No marmo_results measurement matched a marmo_biomaterial_metadata record",
+            ),
+        ],
+    )
+    def test_marmo_details_source_mismatch_should_fail(
+        self, break_source, expected_message
+    ):
+        """Every step that can discard all measurements is guarded by require_survivors, so a
+        source regression raises instead of emitting empty biomarkers collections. This is the
+        failure mode that let an earlier id-scheme mismatch between two files go unnoticed. The
+        guard's own logic is covered in tests/test_utils.py; these cases only pin that each step
+        is guarded and reports which files disagree."""
+        datasets = self._load_datasets(self.good_input_files)
+        break_source(datasets)
+
+        with pytest.raises(ValueError, match=expected_message):
+            transform_marmo_details(datasets=datasets)
+
     def test_marmo_details_non_numeric_collection_age_should_fail(self):
         """A non-numeric collectionage fails the NumericRule and raises ValueError."""
         input_files = dict(self.good_input_files)
@@ -154,39 +239,6 @@ class TestTransformMarmoDetails:
         biomaterial.loc[0, "collectionage"] = -6
 
         with pytest.raises(ValueError, match="non_negative"):
-            transform_marmo_details(datasets=datasets)
-
-    def test_marmo_details_no_biomaterial_match_should_fail(self):
-        """When no result biomaterialid matches a biomaterial record, the transform raises rather
-        than emitting empty biomarkers collections. This is the failure mode that let an earlier
-        id-scheme mismatch between the two files go unnoticed."""
-        datasets = self._load_datasets(self.good_input_files)
-        biomaterial = datasets["marmo_biomaterial_metadata"]
-        datasets["marmo_biomaterial_metadata"] = biomaterial.assign(
-            biomaterialid="unmatched-" + biomaterial["biomaterialid"]
-        )
-
-        with pytest.raises(
-            ValueError,
-            match="No marmo_results measurement matched a marmo_biomaterial_metadata record",
-        ):
-            transform_marmo_details(datasets=datasets)
-
-    def test_marmo_details_no_genotype_match_should_fail(self):
-        """When no measurement's genotype is present in the label map, the transform raises
-        rather than emitting empty biomarkers collections. The genotype join is inner and can
-        empty the frame just as a biomaterialid mismatch can, so it is guarded the same way.
-        """
-        datasets = self._load_datasets(self.good_input_files)
-        label_map = datasets["marmo_genotype_label_map"]
-        datasets["marmo_genotype_label_map"] = label_map.assign(
-            genotype=label_map["genotype"] + "_unmatched"
-        )
-
-        with pytest.raises(
-            ValueError,
-            match="No marmo_results measurement matched a marmo_genotype_label_map genotype",
-        ):
             transform_marmo_details(datasets=datasets)
 
     def test_marmo_details_unknown_result_column_should_fail(self):
@@ -363,6 +415,22 @@ class TestBuildBiomarkers:
             ("A&beta;42/A&beta;40", "0-1 years"),
         ]
 
+    def test_tied_display_order_keeps_each_measure_contiguous(self):
+        """When two measures share a display_order, sorting on age alone interleaves them and
+        breaks each measure's run of ascending ages. evidence_type breaks the tie so every
+        measure stays in one contiguous block."""
+        measurements = self._measurements()
+        measurements["display_order"] = 1
+
+        biomarkers = _build_biomarkers(measurements, "Presenilin1")
+
+        order = [(b["evidence_type"], b["age"]) for b in biomarkers]
+        assert order == [
+            ("A&beta;40", "0-1 years"),
+            ("A&beta;40", "1-2 years"),
+            ("A&beta;42/A&beta;40", "0-1 years"),
+        ]
+
     def test_ratio_units_are_empty_string(self):
         biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
 
@@ -381,10 +449,13 @@ class TestBuildBiomarkers:
             assert b["y_axis_max"] == expected[b["evidence_type"]]
 
     def test_data_points_have_expected_keys(self):
+        """Key order is pinned, not just membership: nest_fields emits keys in column order, so
+        this is what keeps the serialized output matching the golden fixtures and the structure
+        the ticket defines."""
         biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
 
         point = biomarkers[0]["data"][0]
-        assert set(point.keys()) == {"individual_id", "value", "sex", "genotype"}
+        assert list(point.keys()) == ["individual_id", "value", "sex", "genotype"]
 
     def test_output_genotype_is_the_display_label(self):
         """The emitted genotype is the display label, not the raw genotype the measurements

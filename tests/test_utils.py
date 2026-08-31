@@ -1241,6 +1241,29 @@ class TestCheckColumnRules:
             rule_class(value=None)
 
 
+class TestRequireSurvivors:
+    """Tests for require_survivors()."""
+
+    rows = pd.DataFrame({"col": ["a", "b"]})
+    empty = pd.DataFrame({"col": []})
+
+    def test_returns_after_when_rows_survive(self) -> None:
+        after = self.rows.iloc[[0]]
+        pd.testing.assert_frame_equal(
+            utils.require_survivors(self.rows, after, "boom"), after
+        )
+
+    def test_raises_when_every_row_is_dropped(self) -> None:
+        with pytest.raises(ValueError, match="boom"):
+            utils.require_survivors(self.rows, self.empty, "boom")
+
+    def test_empty_before_is_allowed_to_stay_empty(self) -> None:
+        # An empty input legitimately produces an empty result, which is not a mismatch.
+        pd.testing.assert_frame_equal(
+            utils.require_survivors(self.empty, self.empty, "boom"), self.empty
+        )
+
+
 class TestValidateOneToOneMapping:
     """Tests for validate_one_to_one_mapping()."""
 
