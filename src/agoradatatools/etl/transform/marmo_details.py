@@ -13,6 +13,7 @@ from agoradatatools.etl.utils import (
     NotEmptyRule,
     NumericRule,
     OneOfRule,
+    UniqueRule,
     check_column_rules,
     check_required_datasets_and_columns,
     nest_fields,
@@ -58,11 +59,6 @@ REQUIRED_INPUT = {
     ],
 }
 
-# marmo_biomaterial_metadata covers every biomaterial in the study, not just the MSD plasma rows
-# this transform reads, so only file-wide rules live here - nulls pass NumericRule and
-# NonNegativeRule, which is what lets the no-age assays through. biomaterialid gets no
-# NotEmptyRule: one row carries only modelSystemType, and a blank id can never match a results id.
-
 COLUMN_RULES = {
     "marmo_metadata": {
         "model": [NotEmptyRule()],
@@ -73,10 +69,6 @@ COLUMN_RULES = {
         "genotype": [NotEmptyRule()],
         "display_label": [NotEmptyRule()],
     },
-    # evidence_type and display_order are nest_fields grouping keys and pandas drops null keys, so
-    # a bad value silently deletes that measure from every model page. display_order also needs
-    # NumericRule: to_numeric coerces junk to NaN, which NotEmptyRule cannot see. units is
-    # unvalidated because it is legitimately blank for the A-beta ratio.
     "marmo_biomarker_measure_info": {
         "result_column": [NotEmptyRule()],
         "evidence_type": [NotEmptyRule()],
@@ -88,6 +80,7 @@ COLUMN_RULES = {
         "sex": [NotEmptyRule()],
     },
     "marmo_biomaterial_metadata": {
+        "biomaterialid": [UniqueRule()],
         "collectionage": [NumericRule(), NonNegativeRule()],
     },
     "marmo_results": {
@@ -150,8 +143,8 @@ def _build_measurements(
         value_name="value",
     )
     long["value"] = pd.to_numeric(long["value"], errors="coerce")
-    # An empty marmo_results and a measure_info listing no measures both leave long empty, so
-    # require_survivors passes them while still rejecting an all-blank measure column.
+
+    # An empty marmo_results and a measure_info listing no measures both leave long empty
     long = require_survivors(
         long,
         long.dropna(subset=["value"]),
@@ -166,10 +159,8 @@ def _build_measurements(
         on="individualid",
         validate="m:1",
     )
-    # Joining on genotype alone fans a shared genotype (WT) out to every model listing it. pandas
-    # enforces nothing for m:m, so the (model, genotype) uniqueness check in the caller is what
-    # keeps points from multiplying within a model. Assumes a genotype string means the same
-    # animals everywhere.
+    # A shared genotype (WT) intentionally fans out to every model listing it; the caller's
+    # (model, genotype) uniqueness check is what prevents duplicates within a model.
     long = require_survivors(
         long,
         long.merge(
@@ -190,12 +181,11 @@ def _build_measurements(
         {"marmo_biomaterial_metadata": referenced}, REFERENCED_BIOMATERIAL_RULES
     )
 
-    # m:1: duplicate biomaterial rows must not duplicate measurements.
+    # No validate="m:1" here: UniqueRule on biomaterialid already makes the right side unique.
     long = long.merge(
         referenced[["biomaterialid", "collectionage"]],
         how="left",
         on="biomaterialid",
-        validate="m:1",
     )
     long["collectionage"] = pd.to_numeric(long["collectionage"], errors="coerce")
     long = require_survivors(

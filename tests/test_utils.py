@@ -1100,6 +1100,50 @@ class TestNonNegativeRule:
         assert utils.NonNegativeRule().value_detail == ""
 
 
+class TestUniqueRule:
+    """Unit tests for UniqueRule.count_violations()."""
+
+    def _series(self, data: Sequence[object]) -> pd.Series:
+        return pd.Series(data)
+
+    def test_no_violations_for_distinct_values(self) -> None:
+        assert utils.UniqueRule().count_violations(self._series(["a", "b", "c"])) == 0
+
+    def test_counts_every_row_of_a_duplicate_group(self) -> None:
+        assert utils.UniqueRule().count_violations(self._series(["a", "a", "b"])) == 2
+
+    def test_counts_each_duplicate_group_separately(self) -> None:
+        s = self._series(["a", "a", "b", "b", "b", "c"])
+        assert utils.UniqueRule().count_violations(s) == 5
+
+    def test_skips_repeated_nulls(self) -> None:
+        # pandas treats null as equal to null, so skipping nulls is what keeps a second
+        # blank row from being reported as a duplicate of the first. Both nulls must be nan
+        # rather than one None and one nan: in an object column those are distinct objects,
+        # so a mixed pair is not a duplicate even without the null filter and would pass
+        # against a broken implementation. read_csv yields the matching-nan shape.
+        s = self._series(["a", np.nan, np.nan, "b"])
+        assert utils.UniqueRule().count_violations(s) == 0
+
+    def test_counts_duplicates_alongside_nulls(self) -> None:
+        # Only the real duplicate counts; the repeated nulls do not add to it.
+        s = self._series(["a", "a", np.nan, np.nan])
+        assert utils.UniqueRule().count_violations(s) == 2
+
+    def test_does_not_skip_repeated_empty_strings(self) -> None:
+        # Blanks are NotEmptyRule's job; this rule only exempts true nulls.
+        assert utils.UniqueRule().count_violations(self._series(["", "", "a"])) == 2
+
+    def test_counts_duplicate_numeric_values(self) -> None:
+        assert utils.UniqueRule().count_violations(self._series([1, 2, 1])) == 2
+
+    def test_empty_series(self) -> None:
+        assert utils.UniqueRule().count_violations(self._series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.UniqueRule().value_detail == ""
+
+
 class TestCheckColumnRules:
     """Tests for check_column_rules() and its supporting _check_single_rule() helper."""
 

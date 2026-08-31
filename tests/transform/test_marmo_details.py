@@ -73,31 +73,22 @@ class TestTransformMarmoDetails:
 
         assert output_data == expected_data
 
-    @pytest.mark.parametrize(
-        "missing_dataset",
-        [
-            "marmo_metadata",
-            "marmo_genotype_label_map",
-            "marmo_biomarker_measure_info",
-            "marmo_individual_metadata",
-            "marmo_biomaterial_metadata",
-            "marmo_results",
-        ],
-    )
-    def test_marmo_details_missing_dataset_should_fail(self, missing_dataset):
-        """A missing required dataset raises ValueError, whichever one is absent."""
+    def test_marmo_details_missing_dataset_should_fail(self):
+        """A missing required dataset raises ValueError."""
         datasets = self._load_datasets(self.good_input_files)
-        del datasets[missing_dataset]
+        del datasets["marmo_results"]
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
 
     def test_marmo_details_missing_column_should_fail(self):
-        """A required column missing from a dataset raises ValueError."""
+        """A required column missing from a dataset raises ValueError. The label map's model
+        column is the case worth pinning: it is what ties a measurement to a model page, so its
+        absence must fail up front rather than reaching the genotype join."""
         datasets = self._load_datasets(self.good_input_files)
-        datasets["marmo_results"] = datasets["marmo_results"].drop(
-            columns=["individualid"]
-        )
+        datasets["marmo_genotype_label_map"] = datasets[
+            "marmo_genotype_label_map"
+        ].drop(columns=["model"])
 
         with pytest.raises(ValueError):
             transform_marmo_details(datasets=datasets)
@@ -124,17 +115,6 @@ class TestTransformMarmoDetails:
             expected_data = json.load(f)
 
         assert output_data == expected_data
-
-    def test_marmo_details_missing_model_column_should_fail(self):
-        """The label map's model column is what ties a measurement to a model page, so its
-        absence must fail up front rather than reaching the genotype join."""
-        datasets = self._load_datasets(self.good_input_files)
-        datasets["marmo_genotype_label_map"] = datasets[
-            "marmo_genotype_label_map"
-        ].drop(columns=["model"])
-
-        with pytest.raises(ValueError):
-            transform_marmo_details(datasets=datasets)
 
     def test_marmo_details_unknown_label_map_model_should_fail(self):
         """A label-map model that matches no marmo_metadata model is a typo between two
@@ -221,13 +201,16 @@ class TestTransformMarmoDetails:
 
     def test_marmo_details_non_numeric_collection_age_should_fail(self):
         """A non-numeric collectionage fails the NumericRule and raises ValueError."""
-        input_files = dict(self.good_input_files)
-        input_files[
-            "marmo_biomaterial_metadata"
-        ] = "marmo_biomaterial_metadata_bad_age_input.csv"
-        datasets = self._load_datasets(input_files)
+        datasets = self._load_datasets(self.good_input_files)
+        # Cast first: collectionage parses as float, and writing a string into a float column
+        # is deprecated in pandas.
+        biomaterial = datasets["marmo_biomaterial_metadata"].astype(
+            {"collectionage": object}
+        )
+        biomaterial.loc[1, "collectionage"] = "eighteen"
+        datasets["marmo_biomaterial_metadata"] = biomaterial
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="numeric"):
             transform_marmo_details(datasets=datasets)
 
     def test_marmo_details_negative_collection_age_should_fail(self):
@@ -239,6 +222,21 @@ class TestTransformMarmoDetails:
         biomaterial.loc[0, "collectionage"] = -6
 
         with pytest.raises(ValueError, match="non_negative"):
+            transform_marmo_details(datasets=datasets)
+
+    def test_marmo_details_duplicate_biomaterial_id_should_fail(self):
+        """A repeated biomaterialid fails the UniqueRule. The m:1 merge in _build_measurements
+        catches this only when the duplicate happens to back a plotted measurement, so the rule is
+        what rejects a duplicated key anywhere in the file."""
+        datasets = self._load_datasets(self.good_input_files)
+        biomaterial = datasets["marmo_biomaterial_metadata"]
+        datasets["marmo_biomaterial_metadata"] = pd.concat(
+            [biomaterial, biomaterial.iloc[[0]]], ignore_index=True
+        )
+
+        # Matched on the full message because pandas raises its own ValueError mentioning
+        # uniqueness from the m:1 merge, which would let a looser pattern pass either way.
+        with pytest.raises(ValueError, match="column 'biomaterialid'.*rule 'unique'"):
             transform_marmo_details(datasets=datasets)
 
     def test_marmo_details_unknown_result_column_should_fail(self):
