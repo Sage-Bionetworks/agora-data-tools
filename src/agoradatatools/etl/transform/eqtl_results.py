@@ -5,6 +5,7 @@ This is for the xQTL explorer.
 from pathlib import Path
 from typing import Any, Dict, List
 import logging
+import hashlib
 
 import math
 import pandas as pd
@@ -30,8 +31,6 @@ REQUIRED_INPUT = {
     ],
 
     # TODO gene location data
-
-    # TODO maf data
 }
 
 FILE_NAME_PREFIX = "eqtl_results_"
@@ -46,7 +45,7 @@ OUTPUT_COLUMN_ORDER = [
     # "gene_location",
     "beta",
     "p_val",
-    # "maf",
+    "maf",
     "minor_allele",
     "reference_allele",
     "cell_class",
@@ -149,6 +148,10 @@ def map_and_log_gene_ids(
 
     return data_file
 
+def _mock_maf(key: str) -> float:
+    """Deterministic mock MAF in (0, 0.5) from a stable key → 0.0001..0.4999."""
+    h = int(hashlib.sha256(str(key).encode("utf-8")).hexdigest(), 16)
+    return (h % 4999 + 1) / 10000
 
 # handle results for a cell_subclass / file
 def _process_single_data_file(
@@ -188,6 +191,9 @@ def _process_single_data_file(
     data_file["p_val"] = data_file["z"].apply(
         lambda z: _zscore_to_pval_string(z) if pd.notna(z) else None
     )
+
+    # TODO use real maf values when we have them
+    data_file["maf"] = data_file["variant"].map(_mock_maf)
 
     # add effect_direction column
     data_file["effect_direction"] = data_file["beta"].apply(
@@ -247,7 +253,8 @@ def transform_eqtl_results(
         "gene_symbol",
         "beta",
         "se",
-        "z"
+        "z",
+        #"maf" # TODO maf data will be provided by GENESIS, probably here
     ]
 
     logger.info(f"Transform eqtl_results total data files: {total_files}")
