@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
+    determine_result_order,
     filter_to_mouse_genes,
     validate_model_group_consistency,
     create_gene_metadata_dict,
@@ -19,6 +20,32 @@ from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import
     preprocess_data_file,
 )
 from agoradatatools.etl.utils import MatchesRegexRule, NotEmptyRule
+
+
+class TestDetermineResultOrder:
+    """Tests for determine_result_order function.
+
+    The function accepts a data_file already merged with the label map and filtered to a
+    single model_group. Empty display_label values are rejected upstream by
+    check_column_rules and never reach it.
+    """
+
+    def test_orders_labels_by_result_order(self) -> None:
+        """Test that display labels are ordered by their result_order value."""
+        data_file = pd.DataFrame(
+            {
+                "display_label": ["Model_B", "Control_B", "Model_C"],
+                "result_order": [20, 10, 30],
+            }
+        )
+
+        assert determine_result_order(data_file) == ["Control_B", "Model_B", "Model_C"]
+
+    def test_empty_data_file(self) -> None:
+        """Test that an empty data_file yields an empty list."""
+        data_file = pd.DataFrame(columns=["display_label", "result_order"])
+
+        assert determine_result_order(data_file) == []
 
 
 class TestFilterMouseGenes:

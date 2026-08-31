@@ -43,9 +43,6 @@ files:
   - &uci_Trem2_R47H_NSS_ne        { name: uci_Trem2_R47H_NSS_ne        , format: csv  , id: syn72388498.1  }
   - &uci_Trem2_R47H_NSS_5xFAD_ne  { name: uci_Trem2_R47H_NSS_5xFAD_ne  , format: csv  , id: syn72388499.2  }
   # Proteomics (Individual)
-  # genotype_label_map v18 is the first version with the LOAD2 model rows the proteomics
-  # transform joins on; a dedicated anchor keeps the RNA datasets on their pinned v17.
-  - &genotype_label_map_load2     { name: genotype_label_map           , format: csv  , id: syn69014401.18 }
   - &load2_harmonized_metadata    { name: load2_harmonized_metadata    , format: csv  , id: syn75965714.2  }
   - &uniprot_ensembl_map          { name: uniprot_ensembl_map          , format: tsv  , id: syn75830091.1  }
   - &jax_load2_proteomics         { name: jax_load2_proteomics         , format: csv  , id: syn63886488.1  }
@@ -167,7 +164,7 @@ datasets:
 
   - protein_de_individual:
       files:
-        - <<: *genotype_label_map_load2
+        - <<: *genotype_label_map
         - <<: *mouse_gene_metadata
         - <<: *load2_harmonized_metadata
         - <<: *uniprot_ensembl_map
