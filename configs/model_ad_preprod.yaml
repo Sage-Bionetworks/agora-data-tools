@@ -172,4 +172,8 @@ datasets:
         - <<: *jax_load2_proteomics_24mo
       final_format: json
       destination: *dest
-      custom_transformations: transform_protein_de_individual
+      custom_transformations:
+        transform_protein_de_individual:
+          model_map:
+            jax_load2_proteomics: LOAD2
+            jax_load2_proteomics_24mo: LOAD2

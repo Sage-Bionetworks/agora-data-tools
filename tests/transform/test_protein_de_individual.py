@@ -18,17 +18,19 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.protein_de_individual import (
+    REQUIRED_INPUT,
     transform_protein_de_individual,
-    _build_uniprot_to_ensembl,
+    _build_uniprot_candidates,
     _normalize_tissue,
+    _resolve_gene_ids,
 )
 
 
-class TestBuildUniprotToEnsembl:
-    """Unit tests for the UniProt accession to mouse Ensembl gene id lookup."""
+class TestBuildUniprotCandidates:
+    """Unit tests for the UniProt accession to candidate mouse Ensembl gene ids lookup."""
 
-    def test_drops_human_genes_and_dedups_multi_mapped_accessions(self) -> None:
-        """Test that human genes are excluded and multi-mapped accessions keep the smallest id."""
+    def test_drops_human_genes_and_keeps_all_mouse_candidates(self) -> None:
+        """Test that human genes are excluded and multi-mapped accessions keep every candidate."""
         mapping = pd.DataFrame(
             {
                 "uniprotkb_accession": ["P1", "P1", "P2", "P3"],
@@ -41,10 +43,81 @@ class TestBuildUniprotToEnsembl:
             }
         )
 
-        assert _build_uniprot_to_ensembl(mapping) == {
-            "P1": "ENSMUSG00000000002",
-            "P3": "ENSMUSG00000000003",
+        assert _build_uniprot_candidates(mapping) == {
+            "P1": ["ENSMUSG00000000002", "ENSMUSG00000000005"],
+            "P3": ["ENSMUSG00000000003"],
         }
+
+
+class TestResolveGeneIds:
+    """Unit tests for choosing one gene when an accession maps to several."""
+
+    candidates = {"P1": ["ENSMUSG00000000001", "ENSMUSG00000000009"]}
+    gene_symbols = {"ENSMUSG00000000001": "Gm10053", "ENSMUSG00000000009": "Cycs"}
+
+    @staticmethod
+    def _long_df(uniprotid: str, header_symbol: str) -> pd.DataFrame:
+        return pd.DataFrame(
+            {"uniprotid": [uniprotid], "header_symbol": [header_symbol]}
+        )
+
+    @pytest.mark.parametrize(
+        "header_symbol,expected",
+        [
+            # The named gene wins even though it holds the larger Ensembl gene id.
+            ("Cycs", "ENSMUSG00000000009"),
+            ("cycs", "ENSMUSG00000000009"),
+            ("Gm10053", "ENSMUSG00000000001"),
+            # Unusable symbols fall back to the smallest id.
+            ("", "ENSMUSG00000000001"),
+            ("NA", "ENSMUSG00000000001"),
+            # A symbol naming neither candidate cannot resolve.
+            ("Rps27", "ENSMUSG00000000001"),
+            # A symbol naming both candidates is genuinely ambiguous.
+            ("Cycs; Gm10053", "ENSMUSG00000000001"),
+        ],
+    )
+    def test_header_symbol_picks_the_gene(
+        self, header_symbol: str, expected: str
+    ) -> None:
+        resolved = _resolve_gene_ids(
+            self._long_df("P1", header_symbol), self.candidates, self.gene_symbols, {}
+        )
+
+        assert resolved == {"P1": expected}
+
+    def test_multi_gene_header_symbol_resolves_on_one_match(self) -> None:
+        """Test that a semicolon-joined symbol still resolves if only one candidate matches."""
+        resolved = _resolve_gene_ids(
+            self._long_df("P1", "Cycs; Rps27"),
+            self.candidates,
+            self.gene_symbols,
+            {},
+        )
+
+        assert resolved == {"P1": "ENSMUSG00000000009"}
+
+    def test_alias_resolves_nomenclature_drift(self) -> None:
+        """Test the alias fallback when the file uses an older symbol than the metadata.
+
+        The proteomics files still say Srp54 where mouse_gene_metadata says Srp54a.
+        """
+        resolved = _resolve_gene_ids(
+            self._long_df("P2", "Srp54"),
+            {"P2": ["ENSMUSG00000000002", "ENSMUSG00000000008"]},
+            {"ENSMUSG00000000002": "Srp54b", "ENSMUSG00000000008": "Srp54a"},
+            {"ENSMUSG00000000008": {"srp54"}},
+        )
+
+        assert resolved == {"P2": "ENSMUSG00000000008"}
+
+    def test_isoform_symbol_resolves_base_accession(self) -> None:
+        """Test that an isoform's header symbol resolves the base accession's gene."""
+        resolved = _resolve_gene_ids(
+            self._long_df("P1-2", "Cycs"), self.candidates, self.gene_symbols, {}
+        )
+
+        assert resolved == {"P1": "ENSMUSG00000000009"}
 
 
 class TestNormalizeTissue:
@@ -88,6 +161,19 @@ class TestTransformProteinDeIndividual:
             entry["data"] = sorted(entry["data"], key=lambda x: x["individual_id"])
         return sorted(entries, key=lambda x: (x["unique_id"], x["age"]))
 
+    @staticmethod
+    def _transform(
+        datasets: Dict[str, pd.DataFrame], model_map: Dict[str, str] = None
+    ) -> List[Dict[str, Any]]:
+        """Run the transform, defaulting every data file to LOAD2.
+
+        Tests that do not care about the model get the single-model case for free; tests
+        that do pass model_map explicitly.
+        """
+        if model_map is None:
+            model_map = {key: "LOAD2" for key in datasets if key not in REQUIRED_INPUT}
+        return transform_protein_de_individual(datasets=datasets, model_map=model_map)
+
     def _build_datasets(
         self,
         harmonized: Dict[str, Any] = None,
@@ -120,6 +206,7 @@ class TestTransformProteinDeIndividual:
                     {
                         "ensembl_gene_id": ["ENSMUSG00000000001"],
                         "gene_symbol": ["Gnai3"],
+                        "alias": [[]],
                     }
                 )
             ),
@@ -184,7 +271,7 @@ class TestTransformProteinDeIndividual:
         ) as f:
             expected = json.load(f)
 
-        output = transform_protein_de_individual(datasets=datasets)
+        output = self._transform(datasets)
 
         assert self._normalize(output) == self._normalize(expected)
 
@@ -212,13 +299,12 @@ class TestTransformProteinDeIndividual:
                 {
                     "ensembl_gene_id": ["ENSMUSG00000000001"],
                     "gene_symbol": ["Gnai3"],
+                    "alias": [[]],
                 }
             ),
         )
 
-        by_uniprot = {
-            e["uniprotid"]: e for e in transform_protein_de_individual(datasets)
-        }
+        by_uniprot = {e["uniprotid"]: e for e in self._transform(datasets)}
 
         assert set(by_uniprot) == {"Q8C8R3", "Q8C8R3-2"}
         isoform = by_uniprot["Q8C8R3-2"]
@@ -247,7 +333,7 @@ class TestTransformProteinDeIndividual:
             ),
         )
 
-        output = transform_protein_de_individual(datasets=datasets)
+        output = self._transform(datasets)
 
         assert {e["uniprotid"] for e in output} == {"P00001"}
 
@@ -272,7 +358,7 @@ class TestTransformProteinDeIndividual:
             },
         )
 
-        output = transform_protein_de_individual(datasets=datasets)
+        output = self._transform(datasets)
 
         assert len(output) == 1
         assert {d["individual_id"] for d in output[0]["data"]} == {"i1", "i2"}
@@ -311,7 +397,7 @@ class TestTransformProteinDeIndividual:
             },
         )
 
-        output = transform_protein_de_individual(datasets=datasets)
+        output = self._transform(datasets)
 
         age_by_individual = {
             record["individual_id"]: entry["age"]
@@ -333,7 +419,7 @@ class TestTransformProteinDeIndividual:
         )
 
         with pytest.raises(ValueError, match="unbucketable ageDeath.*i2"):
-            transform_protein_de_individual(datasets=datasets)
+            self._transform(datasets)
 
     def test_multiple_data_files_are_combined(self) -> None:
         """Test that the two source proteomics files are melted and combined."""
@@ -360,9 +446,177 @@ class TestTransformProteinDeIndividual:
             }
         )
 
-        output = transform_protein_de_individual(datasets=datasets)
+        output = self._transform(datasets)
 
         assert {e["age"] for e in output} == {"4 months", "24 months"}
+
+    def test_synthetic_multimodel_data(self) -> None:
+        """Test the multi-model happy path against the golden fixture output.
+
+        Three data files carry three models across two model groups, so every per-model
+        output field has to be resolved per group. LOAD2 has two genotypes and Bin1K358R
+        has four, which is what makes a globally computed result_order visibly wrong.
+        """
+        input_path = os.path.join(self.data_files_path, "input")
+        datasets = {
+            "genotype_label_map": pd.read_csv(
+                os.path.join(input_path, "synthetic_multimodel_genotype_label_map.csv")
+            ),
+            "mouse_gene_metadata": pd.read_csv(
+                os.path.join(input_path, "synthetic_mouse_gene_metadata.csv")
+            ),
+            "load2_harmonized_metadata": pd.read_csv(
+                os.path.join(input_path, "synthetic_multimodel_harmonized_metadata.csv")
+            ),
+            "uniprot_ensembl_map": pd.read_csv(
+                os.path.join(input_path, "synthetic_uniprot_ensembl_map.csv")
+            ),
+        }
+        model_map = {
+            "synthetic_multimodel_load2_data": "LOAD2",
+            "synthetic_multimodel_bin1_data": "Bin1-K358R",
+            "synthetic_multimodel_bin1_5xfad_data": "Bin1-K358R.5xFAD",
+        }
+        for data_key in model_map:
+            datasets[data_key] = pd.read_csv(
+                os.path.join(input_path, f"{data_key}.csv")
+            )
+        with open(
+            os.path.join(
+                self.data_files_path, "output", "synthetic_multimodel_output.json"
+            )
+        ) as f:
+            expected = json.load(f)
+
+        output = self._transform(datasets, model_map=model_map)
+
+        assert self._normalize(output) == self._normalize(expected)
+
+    def test_per_model_group_fields_are_not_shared_across_groups(self) -> None:
+        """Test that name, matched_control, and result_order are resolved per model_group.
+
+        Uses the real Model AD shape: LOAD2 is one model in its own group with two
+        genotypes, while Bin1K358R is one group fed by two models across two files with
+        four genotypes between them. The differing genotype counts mean a result_order
+        computed over the whole frame, rather than per group, would be visibly wrong.
+        """
+        datasets = self._build_datasets(
+            label_map={
+                "model": [
+                    "LOAD2",
+                    "LOAD2",
+                    "Bin1-K358R",
+                    "Bin1-K358R",
+                    "Bin1-K358R.5xFAD",
+                    "Bin1-K358R.5xFAD",
+                ],
+                "model_group": ["LOAD2", "LOAD2"] + ["Bin1K358R"] * 4,
+                "display_label": [
+                    "LOAD2",
+                    "LOAD1",
+                    "C57BL/6J",
+                    "Bin1K358R",
+                    "5xFAD",
+                    "Bin1K358R.5xFAD",
+                ],
+                "genotype": [
+                    "geno_hom",
+                    "geno_wt",
+                    "fad_non",
+                    "bin1_hom",
+                    "fad_car",
+                    "fad_car_bin1",
+                ],
+                "result_order": [2, 1, 1, 2, 3, 4],
+            },
+            harmonized={
+                "individualid": ["i1", "i2", "i3", "i4", "i5", "i6"],
+                "sex": ["male"] * 6,
+                "agedeath": [4.0] * 6,
+                "genotype": [
+                    "geno_hom",
+                    "geno_wt",
+                    "fad_non",
+                    "bin1_hom",
+                    "fad_car",
+                    "fad_car_bin1",
+                ],
+                "tissue": ["right cerebral hemisphere"] * 6,
+            },
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": ["i1", "i2"],
+                "gene1|p00001": [1.0, 2.0],
+            },
+            data_key="load2_file",
+        )
+        datasets["bin1_file"] = pd.DataFrame(
+            {
+                "specimenid": ["c3", "c4"],
+                "individualid": ["i3", "i4"],
+                "gene1|p00001": [3.0, 4.0],
+            }
+        )
+        datasets["bin1_fad_file"] = pd.DataFrame(
+            {
+                "specimenid": ["c5", "c6"],
+                "individualid": ["i5", "i6"],
+                "gene1|p00001": [5.0, 6.0],
+            }
+        )
+
+        output = self._transform(
+            datasets,
+            model_map={
+                "load2_file": "LOAD2",
+                "bin1_file": "Bin1-K358R",
+                "bin1_fad_file": "Bin1-K358R.5xFAD",
+            },
+        )
+
+        by_group = {entry["model_group"]: entry for entry in output}
+        assert set(by_group) == {"LOAD2", "Bin1K358R"}
+
+        load2 = by_group["LOAD2"]
+        assert load2["name"] == "LOAD2"
+        assert load2["matched_control"] == "LOAD1"
+        assert load2["result_order"] == ["LOAD1", "LOAD2"]
+        assert {d["individual_id"] for d in load2["data"]} == {"i1", "i2"}
+
+        bin1 = by_group["Bin1K358R"]
+        assert bin1["name"] == "Bin1K358R"
+        assert bin1["matched_control"] == "C57BL/6J"
+        assert bin1["result_order"] == [
+            "C57BL/6J",
+            "Bin1K358R",
+            "5xFAD",
+            "Bin1K358R.5xFAD",
+        ]
+        assert {d["individual_id"] for d in bin1["data"]} == {"i3", "i4", "i5", "i6"}
+
+    @pytest.mark.parametrize(
+        "model_map,error",
+        [
+            # A data file the config forgot to declare.
+            ({}, "No model declared"),
+            # A config typo naming a file that is not in this dataset.
+            (
+                {"proteomics_file": "LOAD2", "typo_file": "LOAD2"},
+                "not proteomics data files",
+            ),
+            # A model the label map cannot label, which would otherwise drop every row and
+            # surface as the unrelated "No rows remained" error.
+            ({"proteomics_file": "LOAD3"}, "absent from the genotype label map"),
+        ],
+    )
+    def test_invalid_model_map_raises(
+        self, model_map: Dict[str, str], error: str
+    ) -> None:
+        """Test that a model_map not matching the data files fails with an actionable message."""
+        datasets = self._build_datasets()
+
+        with pytest.raises(ValueError, match=error):
+            self._transform(datasets, model_map=model_map)
 
     @pytest.mark.parametrize(
         "mutation,error",
@@ -395,4 +649,4 @@ class TestTransformProteinDeIndividual:
             datasets["load2_harmonized_metadata"]["genotype"] = ["unknown", "unknown"]
 
         with pytest.raises(ValueError, match=error):
-            transform_protein_de_individual(datasets=datasets)
+            self._transform(datasets)
