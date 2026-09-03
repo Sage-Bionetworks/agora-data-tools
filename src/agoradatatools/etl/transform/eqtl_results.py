@@ -29,7 +29,7 @@ REQUIRED_INPUT = {
         "cell_subclass_short",
         "cell_subclass",
     ],
-
+    # TODO variant location data - extract from results files?
     # TODO gene location data
 }
 
@@ -71,14 +71,11 @@ def _zscore_to_pval_string(z) -> str:
     return f"{mant:.2f}E{exp:+03d}"
 
 # resolve cell type labels
-def _resolve_cell_labels(file_name, label_map_df) -> Dict[str, str]:
-    key = Path(file_name[len(FILE_NAME_PREFIX) :]).stem
-
+def _resolve_cell_labels(key, label_map_df) -> Dict[str, str]:
     cell_type_labels = label_map_df.loc[
         label_map_df["cell_subclass_short"].str.lower() == key.lower()
         ].iloc[0].to_dict()
-
-    logger.info(f"Resolved cell type labels: {cell_type_labels} for file: {file_name} ")
+    logger.info(f"Resolved cell type labels for key {key} : {cell_type_labels}")
     return cell_type_labels
 
 def build_location(df, chr_col, start_col, end_col) -> list[dict]:
@@ -143,7 +140,6 @@ def map_and_log_gene_ids(
 
     # TODO we can't just drop real rows with no ensembl_gene_id
     # see log statements for symbols that don't resolve
-    #
     data_file = data_file[~unmapped_mask]
 
     return data_file
@@ -184,7 +180,9 @@ def _process_single_data_file(
     data_file = map_and_log_gene_ids(data_file, ensembl_gene_id_lookup_map)
 
     # use the filename to get the cell type labels for this file's cell_subclass
-    cell_labels = _resolve_cell_labels(file_name, label_map_df)
+    key = Path(file_name[len(FILE_NAME_PREFIX) :]).stem
+
+    cell_labels = _resolve_cell_labels(key, label_map_df)
     data_file = data_file.assign(**cell_labels)
 
     # Compute p-value
