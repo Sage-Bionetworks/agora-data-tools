@@ -693,7 +693,7 @@ stopifnot(
 
 # 6. Biodomains Validity
 stopifnot(
-  "Biodomains list elements must not be empty" = all(purrr::map_int(df$biodomains, length) > 0),
+  "Biodomains list elements must not be empty" = purrr::map_int(df$biodomains, length) > 0,
   "Biodomains elements must be valid BIODOMAINS subsets" = unlist(df$biodomains) %in% BIODOMAINS
 )
 ```
