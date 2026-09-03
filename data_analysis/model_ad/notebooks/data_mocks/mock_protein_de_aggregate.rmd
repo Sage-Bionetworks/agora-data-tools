@@ -121,13 +121,21 @@ sample_vector <- function(sample_size, vec) {
   }
 }
 
-# Generate a heatmap data object
-generate_heatmap_object <- function(key_name, min = -2, max = 2) {
-  log2_fc <- runif(1, min = min, max = max)
-  adj_p_val <- runif(1, min = 0, max = 1)
+# Generate a heatmap data object with deterministic values based on ensembl_gene_id + sex
+generate_heatmap_object <- function(key_name, id = "default", min = -2, max = 2) {
+  # Create a deterministic numeric seed from the string combination
+  hash_seed <- sum(utf8ToInt(paste0(key_name, id))) * 1000
+
+  # Sine-based pseudo-random noise generator (yields values bound between 0 and 1)
+  noise_fc    <- (sin(hash_seed * 12.9898) * 43758.5453) %% 1
+  noise_p_val <- (sin(hash_seed * 78.2330) * 43758.5453) %% 1
+
+  # Scale noise to target ranges
+  log2_fc   <- min + noise_fc * (max - min)
+  adj_p_val <- noise_p_val
 
   value_list <- list(
-    log2_fc = round(log2_fc, 5),
+    log2_fc   = round(log2_fc, 5),
     adj_p_val = round(adj_p_val, 5)
   )
 
@@ -137,6 +145,7 @@ generate_heatmap_object <- function(key_name, min = -2, max = 2) {
   return(heatmap_obj)
 }
 
+# Generate a link data object
 generate_link_object <- function(key_name, link_url = NULL, link_text = NULL) {
 
   value_list <- list(
@@ -148,6 +157,19 @@ generate_link_object <- function(key_name, link_url = NULL, link_text = NULL) {
   link_obj[[key_name]] <- value_list
 
   return(link_obj)
+}
+
+# Generate a list of biodomains; length and members are deterministic for a given i value
+get_deterministic_biodomains <- function(i, domains) {
+  n_domains <- length(domains)
+  # Cycle domain counts from 1 to 5 across rows
+  target_len <- ((i - 1) %% 5) + 1
+  # Cycle start index through BIODOMAINS
+  start_idx  <- ((i - 1) %% n_domains) + 1
+
+  # Select slice with wraparound
+  indices <- ((seq_len(target_len) + start_idx - 2) %% n_domains) + 1
+  return(domains[indices])
 }
 ```
 
@@ -166,63 +188,86 @@ Requirement summary
 # 1. basic_results
 * 60 pairs of objects (m/f with matching metadata and unique measurements)
 * 1 gene : 1 uniprotid
-* All gene_symbol values include "GeneP" for typeahead
+* All gene_symbol values include "GeneX" for typeahead
 * Some objects don't have '18 months' results
 ```{r}
 # Populate gene/protein fields: ensembl_gene_id, gene_symbol, uniprotid, unique_id, display_symbol
-ids <- 0:59
-pad_number <- "1"
+
+# two-digit base id values + pad length == 11 == valid numeric part of ensembl_gene_id
+ids <- 10:69
+
+# pad number that does not allow duplicate id generation (1 vs 11 vs 111...)
+pad_number <- "9"
+
+# pattern used to deterministically generate unique_ids, some with isoform suffixes: no suffix (70%), -1 (20%), -2 (6.7%), -3 (3.3%)
+isoform_pattern <- c(
+  rep("", 7), rep("-1", 2), "-2",
+  rep("", 7), rep("-1", 2), "-2",
+  rep("", 7), rep("-1", 2), "-3"
+)
+
 object_dict <- tibble(
 
   ensembl_gene_id = paste0(ENSEMBL_PREFIX, gsub(" ", pad_number, sprintf("%11d", ids))),
   gene_symbol = paste0("GeneX_", ids),
   uniprotid = paste0(
     "P", gsub(" ", pad_number, sprintf("%5d", ids)),
-    sample(c("", "-1", "-2", "-3"), size = length(ids), replace = TRUE, prob = c(0.7, 0.2, 0.07, 0.03))
+    rep(isoform_pattern, length.out = length(ids))
   ),
   unique_id = paste0(ensembl_gene_id, uniprotid),
   display_symbol = paste0(gene_symbol, " (", uniprotid, ")")
 )
 
-# biodomains[], name{}, matched_control, model_group, model_type, tissue, sex, age_cols...
+# Populate fields that match across sexes: biodomains, name, matched_control, model_group, model_type, tissue
 
 # generate link object for name field
 name_link_object <- generate_link_object("name", link_url = paste0("/models/", MODEL_NAME), link_text = MODEL_NAME)[["name"]]
 
-# Populate fields that match across sexes
-# biodomains, name, matched_control, model_group, model_type, tissue
 object_dict <- object_dict %>%
-
-  # 15% chance this object won't have 24 months data
-  mutate(has_24_months = runif(nrow(object_dict)) >= 0.15) %>%
-
-  rowwise() %>%
   mutate(
-    biodomains = list(sample_vector(sample(1:10, 1), BIODOMAINS)),
+        biodomains = purrr::map(
+      ensembl_gene_id,
+      ~ {
+        # Extract numeric digits from ensg as double float to prevent integer overflow
+        gene_num <- as.numeric(gsub("\\D", "", .x))
+        # rows for the same gene always get the same biodomains
+        get_deterministic_biodomains(gene_num, BIODOMAINS)
+      }
+    ),
     name            = list(name_link_object),
     matched_control = MATCHED_CONTROL,
     model_group     = MODEL_GROUP,
     model_type      = MODEL_TYPE,
-    tissue          = TISSUE,
-  ) %>%
-  ungroup()
+    tissue          = TISSUE
 
-# Expand to include an object per sex for each gene:protein
-object_dict_expanded <- object_dict %>%
-  crossing(sex = SEXES)
+# Expand to include an object for each sex with identical metadata
+  ) %>% crossing(sex = SEXES)
+
+
+# populate row-specific heatmap data values
+
+# pattern used to deterministically omit 24 month data (15% overall)
+pattern_24m <- c(
+  FALSE, FALSE,  # Gene Pair 1: Both missing
+  FALSE, TRUE,   # Gene Pair 2: Female missing only
+  TRUE,  FALSE,  # Gene Pair 3: Male missing only
+  FALSE, FALSE,  # Gene Pair 4: Both missing
+  rep(TRUE, 32)  # Genes 5-20: Neither missing
+)
 
 # Generate row-specific heatmap data
-basic_results <- object_dict_expanded %>%
-  mutate(
-    # 1. Map over an existing column to execute exactly once per row
-    `4 months`  = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("4 months")[["4 months"]]),
-    `12 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("12 months")[["12 months"]]),
-    `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
-
-    # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
-    `24 months` = purrr::map(has_24_months, ~ {
-       if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL
-     })
+basic_results <- object_dict %>%
+  dplyr::mutate(
+    has_24_months = rep(pattern_24m, length.out = nrow(object_dict))
+  ) %>%
+  dplyr::mutate(
+    # Populate timepoint data with deterministic values
+    `4 months`  = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("4 months", paste0(.x, .y))[["4 months"]]),
+    `12 months` = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("12 months", paste0(.x, .y))[["12 months"]]),
+    `18 months` = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("18 months", paste0(.x, .y))[["18 months"]]),
+    `24 months` = purrr::map2(has_24_months, paste0(ensembl_gene_id, sex), ~ {
+      if (.x) generate_heatmap_object("24 months", .y)[["24 months"]] else NULL
+    })
   ) %>%
   select(-has_24_months)
 
@@ -230,13 +275,103 @@ basic_results <- object_dict_expanded %>%
 basic_results
 ```
 
+## Validate basic results
 
-2. rna_exists_multiple_proteins_results
-* 15 pairs of objects (m/f with matching metadata and unique measurments)
+### deterministic output
+1. Generate the basic_results df, then run this to store it
+```{r}
+basic_results_old <- basic_results
+```
+
+2. Generate the basic_results df again, then run this to compare it with the previous run
+```{r}
+all.equal(basic_results, basic_results_old)
+```
+
+### fields
+```{r}
+
+df <- basic_results
+row_count <- 120
+
+# 1. Total Rows & Sex Distribution
+stopifnot(
+  "Row count must be exactly 120" = nrow(df) == row_count,
+  "Must contain 60 Female objects" = sum(df$sex %in% c("Female", "f", "female")) == row_count / 2,
+  "Must contain 60 Male objects"   = sum(df$sex %in% c("Male", "m", "male")) == row_count / 2
+)
+
+# 2. Key Uniqueness & Pair Counts
+stopifnot(
+  "Must have exactly 60 unique Ensembl IDs" = length(unique(df$ensembl_gene_id)) == row_count / 2,
+  "Must have exactly 60 unique UniProt IDs" = length(unique(df$uniprotid)) == row_count / 2,
+  "Must have exactly 60 unique Gene Symbols"= length(unique(df$gene_symbol)) == row_count / 2,
+  "Gene symbols must all start with GeneX_" = all(startsWith(df$gene_symbol, "GeneX_"))
+)
+
+# 3. String Construction Logic
+stopifnot(
+  "unique_id must equal ensg + uniprot" =
+    all(df$unique_id == paste0(df$ensembl_gene_id, df$uniprotid)),
+  "display_symbol must equal gene_symbol + (uniprot)" =
+    all(df$display_symbol == paste0(df$gene_symbol, " (", df$uniprotid, ")"))
+)
+
+# Ensembl Gene ID Regex Format Validation
+stopifnot(
+  "All ensembl_gene_id values must match pattern ^ENSMUSG\\d{11}$" =
+    all(grepl("^ENSMUSG\\d{11}$", df$ensembl_gene_id))
+)
+
+# 4. M/F Pair Equality on Shared Metadata
+pair_validation <- df %>%
+  group_by(ensembl_gene_id) %>%
+  dplyr::summarise(
+    pair_count      = n(),
+    has_both_sexes  = n_distinct(sex) == 2,
+    same_uniprot    = n_distinct(uniprotid) == 1,
+    same_symbol     = n_distinct(gene_symbol) == 1,
+    same_tissue     = n_distinct(tissue) == 1,
+    same_matched_ctrl = n_distinct(matched_control) == 1,
+    same_biodomains = identical(biodomains[[1]], biodomains[[2]]),
+    .groups = "drop"
+  )
+
+stopifnot(
+  "Every gene must appear as an exact M/F pair" = all(pair_validation$pair_count == 2),
+  "Every gene pair must contain two distinct sexes" = all(pair_validation$has_both_sexes),
+  "UniProt IDs must match across M/F pair"       = all(pair_validation$same_uniprot),
+  "Gene symbols must match across M/F pair"      = all(pair_validation$same_symbol),
+  "Tissue values must match across M/F pair"     = all(pair_validation$same_tissue),
+  "Biodomains lists must match across M/F pair"  = all(pair_validation$same_biodomains)
+)
+
+# 5. Month Data Population & Missingness
+stopifnot(
+  "4 months must never be NULL"  = all(!purrr::map_lgl(df$`4 months`, is.null)),
+  "12 months must never be NULL" = all(!purrr::map_lgl(df$`12 months`, is.null)),
+  "18 months must never be NULL" = all(!purrr::map_lgl(df$`18 months`, is.null)),
+  "24 months must have exactly 18 NULL objects" = sum(purrr::map_lgl(df$`24 months`, is.null)) == 18
+)
+
+# 6. Biodomains Validity
+stopifnot(
+  "Biodomains list elements must not be empty" = all(purrr::map_int(df$biodomains, length) > 0),
+  "Biodomains elements must be valid BIODOMAINS subsets" =
+    all(purrr::map_lgl(df$biodomains, ~ all(.x %in% BIODOMAINS)))
+)
+
+message("✅ All 6 validation suites passed successfully!")
+```
+
+# 2. rna_exists_multiple_proteins_results
+* 15 pairs of objects (m/f with matching metadata and unique measurements)
 * 1 gene : 3 uniprotid
 * Some objects don't have '18 months' results
 ```{r}
 ids <- 100:114
+pad_number <- "9"
+
 ensembl_id_in_rna_results <- c("ENSMUSG00000000001", "ENSMUSG00000000001", "ENSMUSG00000000001",
                                "ENSMUSG00000000056", "ENSMUSG00000000056", "ENSMUSG00000000056",
                                "ENSMUSG00000000214", "ENSMUSG00000000214", "ENSMUSG00000000214",
@@ -250,63 +385,194 @@ gene_symbol_in_rna_results <- c("Gnai3", "Gnai3", "Gnai3",
                                 "Dbt", "Dbt", "Dbt"
                                 )
 
+# pattern used to deterministically generate unique_ids, some with isoform suffixes: no suffix (66.7%), -1 (20%), -2 (6.7%), -3 (6.7%)
+isoform_pattern <- c(
+  rep("", 3), rep("-1", 2), "-2",
+  rep("", 3), rep("-1", 2), "-2",
+  rep("", 4), rep("-1", 2), "-3"
+)
+
 object_dict <- tibble(
 
   ensembl_gene_id = ensembl_id_in_rna_results,
   gene_symbol = gene_symbol_in_rna_results,
   uniprotid = paste0(
-    sprintf("P%05d", ids),
-    sample(c("", "-1", "-2", "-3"), size = length(ids), replace = TRUE, prob = c(0.7, 0.2, 0.07, 0.03))
+    "P", gsub(" ", pad_number, sprintf("%5d", ids)),
+    rep(isoform_pattern, length.out = length(ids))
   ),
   unique_id = paste0(ensembl_gene_id, uniprotid),
   display_symbol = paste0(gene_symbol, " (", uniprotid, ")")
 )
 
-# biodomains[], name{}, matched_control, model_group, model_type, tissue, sex, age_cols...
+# Populate fields that match across sexes: biodomains, name, matched_control, model_group, model_type, tissue
 
 # generate link object for name field
 name_link_object <- generate_link_object("name", link_url = paste0("/models/", MODEL_NAME), link_text = MODEL_NAME)[["name"]]
 
-# Populate fields that match across sexes
-# biodomains, name, matched_control, model_group, model_type, tissue
 object_dict <- object_dict %>%
-
-  # 15% chance this object won't have 18 months data
-  mutate(has_24_months = runif(nrow(object_dict)) >= 0.15) %>%
-
-  rowwise() %>%
   mutate(
-    biodomains = list(sample_vector(sample(1:10, 1), BIODOMAINS)),
+    biodomains = purrr::map(
+      ensembl_gene_id,
+      ~ {
+        # Extract numeric digits from ensg as double float to prevent integer overflow
+        gene_num <- as.numeric(gsub("\\D", "", .x))
+        # rows for the same gene always get the same biodomains
+        get_deterministic_biodomains(gene_num, BIODOMAINS)
+      }
+    ),
     name            = list(name_link_object),
     matched_control = MATCHED_CONTROL,
     model_group     = MODEL_GROUP,
     model_type      = MODEL_TYPE,
-    tissue          = TISSUE,
-  ) %>%
-  ungroup()
+    tissue          = TISSUE
 
-# Expand to include an object per sex for each gene:protein
-object_dict_expanded <- object_dict %>%
-  crossing(sex = SEXES)
+# Expand to include an object for each sex with identical metadata
+  ) %>% crossing(sex = SEXES)
+
+
+# populate row-specific heatmap data values
+
+# pattern used to deterministically omit 24 month data (15% overall)
+pattern_24m <- c(
+  FALSE, FALSE,  # Gene Pair 1: Both missing
+  FALSE, TRUE,   # Gene Pair 2: Female missing only
+  TRUE,  FALSE,  # Gene Pair 3: Male missing only
+  rep(TRUE, 24)  # Gene Pairs 4-15: Neither missing
+)
 
 # Generate row-specific heatmap data
-rna_exists_multiple_proteins_results <- object_dict_expanded %>%
-  mutate(
-    # 1. Map over an existing column to execute exactly once per row
-    `4 months`  = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("4 months")[["4 months"]]),
-    `12 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("12 months")[["12 months"]]),
-    `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
-
-    # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
-    `24 months` = purrr::map(has_24_months, ~ {
-      if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL
+rna_exists_multiple_proteins_results <- object_dict %>%
+  dplyr::mutate(
+    has_24_months = rep(pattern_24m, length.out = nrow(object_dict))
+  ) %>%
+  dplyr::mutate(
+    # Populate timepoint data with deterministic values
+    `4 months`  = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("4 months", paste0(.x, .y))[["4 months"]]),
+    `12 months` = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("12 months", paste0(.x, .y))[["12 months"]]),
+    `18 months` = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("18 months", paste0(.x, .y))[["18 months"]]),
+    `24 months` = purrr::map2(has_24_months, paste0(ensembl_gene_id, sex), ~ {
+      if (.x) generate_heatmap_object("24 months", .y)[["24 months"]] else NULL
     })
   ) %>%
   select(-has_24_months)
 
 
 rna_exists_multiple_proteins_results
+```
 
+
+## Validation
+
+### output is deterministic
+1. Generate first file, then run this to store the output
+```{r}
+rna_exists_multiple_proteins_results_old <- rna_exists_multiple_proteins_results
+```
+
+2. Generate the file again, then run this to compare with the previous output
+```{r}
+all.equal(rna_exists_multiple_proteins_results, rna_exists_multiple_proteins_results_old)
+```
+
+## Validate fields
+```{r}
+
+df <- rna_exists_multiple_proteins_results
+row_count <- 30
+
+# 1. Total Rows & Sex Distribution
+stopifnot(
+  "Row count must contain expected #" = nrow(df) == row_count,
+  "Must contain expected # Female objects" = sum(df$sex %in% c("Female", "f", "female")) == row_count/2,
+  "Must contain expected # Male objects"   = sum(df$sex %in% c("Male", "m", "male")) == row_count/2
+)
+
+# 2. Key Uniqueness & Pair Counts
+stopifnot(
+  "Must have expected unique Ensembl IDs" = length(unique(df$ensembl_gene_id)) == length(unique(ensembl_id_in_rna_results)),
+  "Must have expected unique UniProt IDs" = length(unique(df$uniprotid)) == length(unique(ensembl_id_in_rna_results))  * 3,
+  "Must have expected unique Gene Symbols"= length(unique(df$gene_symbol)) == length(unique(ensembl_id_in_rna_results)),
+  "Gene symbols match rna_results" = setequal(unique(df$gene_symbol), unique(gene_symbol_in_rna_results)),
+  "Ensembl IDs match rna_results" = setequal(unique(df$ensembl_gene_id), unique(ensembl_id_in_rna_results))
+)
+
+# 3. String Construction Logic
+stopifnot(
+  "unique_id must equal ensg + uniprot" =
+    all(df$unique_id == paste0(df$ensembl_gene_id, df$uniprotid)),
+  "display_symbol must equal gene_symbol + (uniprot)" =
+    all(df$display_symbol == paste0(df$gene_symbol, " (", df$uniprotid, ")"))
+)
+
+# Ensembl Gene ID Regex Format Validation
+stopifnot(
+  "All ensembl_gene_id values must match pattern ^ENSMUSG\\d{11}$" =
+    all(grepl("^ENSMUSG\\d{11}$", df$ensembl_gene_id))
+)
+
+# 4a. Gene-Level Validation (Metadata across all 6 rows per gene)
+gene_validation <- df %>%
+  group_by(ensembl_gene_id) %>%
+  dplyr::summarise(
+    row_count         = n(),
+    male_count        = sum(sex %in% c("Male", "m", "male")),
+    female_count      = sum(sex %in% c("Female", "f", "female")),
+    uniprot_count     = n_distinct(uniprotid),
+    same_symbol       = n_distinct(gene_symbol) == 1,
+    same_tissue       = n_distinct(tissue) == 1,
+    same_matched_ctrl = n_distinct(matched_control) == 1,
+    same_biodomains   = all(purrr::map_lgl(biodomains, ~ identical(.x, biodomains[[1]]))),
+    .groups = "drop"
+  )
+
+# 4b. Isoform-Level Validation (1 M / 1 F pair per UniProt ID)
+isoform_validation <- df %>%
+  group_by(ensembl_gene_id, uniprotid) %>%
+  dplyr::summarise(
+    pair_count     = n(),
+    has_both_sexes = n_distinct(sex) == 2,
+    .groups = "drop"
+  )
+
+stopifnot(
+  "Every gene must have exactly 6 rows"              = all(gene_validation$row_count == 6),
+  "Every gene must contain 3 Male rows"              = all(gene_validation$male_count == 3),
+  "Every gene must contain 3 Female rows"            = all(gene_validation$female_count == 3),
+  "Every gene must have exactly 3 unique UniProt IDs"= all(gene_validation$uniprot_count == 3),
+  "Gene symbols must match across all 6 rows"        = all(gene_validation$same_symbol),
+  "Tissue values must match across all 6 rows"       = all(gene_validation$same_tissue),
+  "Matched controls must match across all 6 rows"    = all(gene_validation$same_matched_ctrl),
+  "Biodomains lists must match across all 6 rows"    = all(gene_validation$same_biodomains),
+  "Every UniProt ID must appear as an exact pair (2 rows)" = all(isoform_validation$pair_count == 2),
+  "Every UniProt ID pair must contain both sexes"          = all(isoform_validation$has_both_sexes)
+)
+
+# 5. Month Data Population & Missingness
+stopifnot(
+  "4 months must never be NULL"  = all(!purrr::map_lgl(df$`4 months`, is.null)),
+  "12 months must never be NULL" = all(!purrr::map_lgl(df$`12 months`, is.null)),
+  "18 months must never be NULL" = all(!purrr::map_lgl(df$`18 months`, is.null)),
+  "24 months must have exactly 4 NULL objects" = sum(purrr::map_lgl(df$`24 months`, is.null)) == 4
+)
+
+# 6. Biodomains Validity
+stopifnot(
+  "Biodomains list elements must not be empty" = all(purrr::map_int(df$biodomains, length) > 0),
+  "Biodomains elements must be valid BIODOMAINS subsets" =
+    all(purrr::map_lgl(df$biodomains, ~ all(.x %in% BIODOMAINS)))
+)
+
+biodomains_consistency <- df %>%
+  group_by(ensembl_gene_id) %>%
+  dplyr::summarise(
+    same_biodomains = all(purrr::map_lgl(biodomains, ~ identical(.x, biodomains[[1]]))),
+    .groups = "drop"
+  )
+
+stopifnot(
+  "Biodomains must be identical across all rows sharing the same ensembl_gene_id" =
+    all(biodomains_consistency$same_biodomains)
+)
 ```
 
 
@@ -316,73 +582,199 @@ rna_exists_multiple_proteins_results
 * Some objects don't have '18 months' results
 ```{r}
 # Populate gene/protein fields: ensembl_gene_id, gene_symbol, uniprotid, unique_id, display_symbol
-ids <- 0:14
-pad_number <- "3"
+ids <- 10:24
+pad_number <- "8"
+
+# pattern used to deterministically generate unique_ids, some with isoform suffixes: no suffix (66.7%), -1 (20%), -2 (6.7%), -3 (6.7%)
+isoform_pattern <- c(
+  rep("", 3), rep("-1", 2), "-2",
+  rep("", 3), rep("-1", 2), "-2",
+  rep("", 4), rep("-1", 2), "-3"
+)
 
 object_dict <- tibble(
-
   ensembl_gene_id = paste0(ENSEMBL_PREFIX, gsub(" ", pad_number, sprintf("%11d", ids))),
   gene_symbol = paste0("GeneP_", ids),
   uniprotid = paste0(
     "P", gsub(" ", pad_number, sprintf("%5d", ids)),
-    sample(c("", "-1", "-2", "-3"), size = length(ids), replace = TRUE, prob = c(0.7, 0.2, 0.07, 0.03))
+    rep(isoform_pattern, length.out = length(ids))
   ),
   unique_id = paste0(ensembl_gene_id, uniprotid),
   display_symbol = paste0(gene_symbol, " (", uniprotid, ")")
 )
 
-# biodomains[], name{}, matched_control, model_group, model_type, tissue, sex, age_cols...
+# Populate fields that match across sexes: biodomains, name, matched_control, model_group, model_type, tissue
 
 # generate link object for name field
 name_link_object <- generate_link_object("name", link_url = paste0("/models/", MODEL_NAME), link_text = MODEL_NAME)[["name"]]
 
-# Populate fields that match across sexes
-# biodomains, name, matched_control, model_group, model_type, tissue
 object_dict <- object_dict %>%
-
-  # 15% chance this object won't have 24 months data
-  mutate(has_24_months = runif(nrow(object_dict)) >= 0.15) %>%
-
-  rowwise() %>%
   mutate(
-    biodomains = list(sample_vector(sample(1:10, 1), BIODOMAINS)),
+    biodomains = purrr::map(
+      ensembl_gene_id,
+      ~ {
+        # Extract numeric digits from ensg as double float to prevent integer overflow
+        gene_num <- as.numeric(gsub("\\D", "", .x))
+        # rows for the same gene always get the same biodomains
+        get_deterministic_biodomains(gene_num, BIODOMAINS)
+      }
+    ),
     name            = list(name_link_object),
     matched_control = MATCHED_CONTROL,
     model_group     = MODEL_GROUP,
     model_type      = MODEL_TYPE,
-    tissue          = TISSUE,
-  ) %>%
-  ungroup()
+    tissue          = TISSUE
 
-# Expand to include an object per sex for each gene:protein
-object_dict_expanded <- object_dict %>%
-  crossing(sex = SEXES)
+# Expand to include an object for each sex with identical metadata
+  ) %>% crossing(sex = SEXES)
+
+
+# populate row-specific heatmap data values
+
+# pattern used to deterministically omit 24 month data (15% overall)
+pattern_24m <- c(
+  FALSE, FALSE,  # Gene Pair 1: Both missing
+  FALSE, TRUE,   # Gene Pair 2: Female missing only
+  TRUE,  FALSE,  # Gene Pair 3: Male missing only
+  rep(TRUE, 24)  # Gene Pairs 4-15: Neither missing
+)
 
 # Generate row-specific heatmap data
-no_rna_protein_exists_results <- object_dict_expanded %>%
-  mutate(
-    # 1. Map over an existing column to execute exactly once per row
-    `4 months`  = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("4 months")[["4 months"]]),
-    `12 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("12 months")[["12 months"]]),
-    `18 months` = purrr::map(ensembl_gene_id, ~ generate_heatmap_object("18 months")[["18 months"]]),
-
-    # 2. Loop through the logical flags one-by-one so if() only ever sees a single TRUE/FALSE
-    `24 months` = purrr::map(has_24_months, ~ {
-      if (.x) generate_heatmap_object("24 months")[["24 months"]] else NULL
+no_rna_protein_exists_results <- object_dict %>%
+  dplyr::mutate(
+    has_24_months = rep(pattern_24m, length.out = nrow(object_dict))
+  ) %>%
+  dplyr::mutate(
+    # Populate timepoint data with deterministic values
+    `4 months`  = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("4 months", paste0(.x, .y))[["4 months"]]),
+    `12 months` = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("12 months", paste0(.x, .y))[["12 months"]]),
+    `18 months` = purrr::map2(ensembl_gene_id, sex, ~ generate_heatmap_object("18 months", paste0(.x, .y))[["18 months"]]),
+    `24 months` = purrr::map2(has_24_months, paste0(ensembl_gene_id, sex), ~ {
+      if (.x) generate_heatmap_object("24 months", .y)[["24 months"]] else NULL
     })
   ) %>%
   select(-has_24_months)
 
 no_rna_protein_exists_results
 ```
+## Validation
 
+### output is deterministic
+1. Generate first file, then run this to store the output
+```{r}
+no_rna_protein_exists_results_old <- no_rna_protein_exists_results
+```
+
+2. Generate the file again, then run this to compare with the previous output
+```{r}
+all.equal(no_rna_protein_exists_results, no_rna_protein_exists_results_old)
+```
+
+## Validate fields
+```{r}
+df <- no_rna_protein_exists_results
+row_count <- 30
+
+# 1. Total Rows & Sex Distribution
+stopifnot(
+  "Row count must contain expected #" = nrow(df) == row_count,
+  "Must contain expected # Female objects" = sum(df$sex %in% c("Female", "f", "female")) == row_count/2,
+  "Must contain expected # Male objects"   = sum(df$sex %in% c("Male", "m", "male")) == row_count/2
+)
+
+# 2. Key Uniqueness & Pair Counts
+stopifnot(
+  "Must have exactly 15 unique Ensembl IDs" = length(unique(df$ensembl_gene_id)) == row_count / 2,
+  "Must have exactly 15 unique UniProt IDs" = length(unique(df$uniprotid)) == row_count / 2,
+  "Must have exactly 15 unique Gene Symbols"= length(unique(df$gene_symbol)) == row_count / 2
+)
+
+# 3. String Construction Logic
+stopifnot(
+  "unique_id must equal ensg + uniprot" =
+    all(df$unique_id == paste0(df$ensembl_gene_id, df$uniprotid)),
+  "display_symbol must equal gene_symbol + (uniprot)" =
+    all(df$display_symbol == paste0(df$gene_symbol, " (", df$uniprotid, ")"))
+)
+
+# Ensembl Gene ID Regex Format Validation
+stopifnot(
+  "All ensembl_gene_id values must match pattern ^ENSMUSG\\d{11}$" =
+    all(grepl("^ENSMUSG\\d{11}$", df$ensembl_gene_id))
+)
+
+# 4a. Gene-Level Validation (Metadata across all 6 rows per gene)
+gene_validation <- df %>%
+  group_by(ensembl_gene_id) %>%
+  dplyr::summarise(
+    row_count         = n(),
+    male_count        = sum(sex %in% c("Male", "m", "male")),
+    female_count      = sum(sex %in% c("Female", "f", "female")),
+    uniprot_count     = n_distinct(uniprotid),
+    same_symbol       = n_distinct(gene_symbol) == 1,
+    same_tissue       = n_distinct(tissue) == 1,
+    same_matched_ctrl = n_distinct(matched_control) == 1,
+    same_biodomains   = all(purrr::map_lgl(biodomains, ~ identical(.x, biodomains[[1]]))),
+    .groups = "drop"
+  )
+
+# 4. M/F Pair Equality on Shared Metadata
+pair_validation <- df %>%
+  group_by(ensembl_gene_id) %>%
+  dplyr::summarise(
+    pair_count      = n(),
+    has_both_sexes  = n_distinct(sex) == 2,
+    same_uniprot    = n_distinct(uniprotid) == 1,
+    same_symbol     = n_distinct(gene_symbol) == 1,
+    same_tissue     = n_distinct(tissue) == 1,
+    same_matched_ctrl = n_distinct(matched_control) == 1,
+    same_biodomains = identical(biodomains[[1]], biodomains[[2]]),
+    .groups = "drop"
+  )
+
+stopifnot(
+  "Every gene must appear as an exact M/F pair" = all(pair_validation$pair_count == 2),
+  "Every gene pair must contain two distinct sexes" = all(pair_validation$has_both_sexes),
+  "UniProt IDs must match across M/F pair"       = all(pair_validation$same_uniprot),
+  "Gene symbols must match across M/F pair"      = all(pair_validation$same_symbol),
+  "Tissue values must match across M/F pair"     = all(pair_validation$same_tissue),
+  "Biodomains lists must match across M/F pair"  = all(pair_validation$same_biodomains)
+)
+
+# 5. Month Data Population & Missingness
+stopifnot(
+  "4 months must never be NULL"  = all(!purrr::map_lgl(df$`4 months`, is.null)),
+  "12 months must never be NULL" = all(!purrr::map_lgl(df$`12 months`, is.null)),
+  "18 months must never be NULL" = all(!purrr::map_lgl(df$`18 months`, is.null)),
+  "24 months must have exactly 4 NULL objects" = sum(purrr::map_lgl(df$`24 months`, is.null)) == 4
+)
+
+# 6. Biodomains Validity
+stopifnot(
+  "Biodomains list elements must not be empty" = all(purrr::map_int(df$biodomains, length) > 0),
+  "Biodomains elements must be valid BIODOMAINS subsets" =
+    all(purrr::map_lgl(df$biodomains, ~ all(.x %in% BIODOMAINS)))
+)
+
+biodomains_consistency <- df %>%
+  group_by(ensembl_gene_id) %>%
+  dplyr::summarise(
+    same_biodomains = all(purrr::map_lgl(biodomains, ~ identical(.x, biodomains[[1]]))),
+    .groups = "drop"
+  )
+
+stopifnot(
+  "Biodomains must be identical across all rows sharing the same ensembl_gene_id" =
+    all(biodomains_consistency$same_biodomains)
+)
+```
 
 # Assemble the collection
 
 ```{r}
-# *********************************************
-# Generate ui_config.json and upload to Synapse
-# *********************************************
+# ***************************************************
+# Generate protein_de_aggregate and upload to Synapse
+# ***************************************************
 
 json_list <- list(
   basic_results,
@@ -414,15 +806,15 @@ Validate ./output/proteomics_mocks.json before upload
 ```{r}
 synLogin()
 syn_file <- File(
-              file.path(output_dir, "ui_config.json"),
-              description = "ui_config.json for Model-AD Explorer 2.0.",
-              parent = "syn51498054"
+              file.path(output_dir, "protein_de_aggregate.json"),
+              description = "mock protein_de_aggregate.json for Model AD 1.1 development",
+              parent = "syn51498091"
             )
 
 res <- synStore(
           syn_file,
           forceVersion = FALSE,
-          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd"
+          executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/data_mocks/mock_protein_de_aggregate.rmd"
         )
 # print synapse_id and new version number
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
@@ -462,19 +854,6 @@ cat(json_output)
 ```
 
 
-# test sample_data
-```{r}
-sample_vector(1, sex)
-sample_vector(2, sex)
-sample_vector(3, sex)
-sample_vector(10, sex)
-
-sample_vector(1, biodomains)
-sample_vector(2, biodomains)
-sample_vector(3, biodomains)
-sample_vector(19, biodomains)
-```
-
 # test generate heatmap object
 ```{r}
 object <- generate_heatmap_object("12 months")
@@ -509,29 +888,13 @@ all_mocks <- rbind(
   no_rna_protein_exists_results
 )
 
-nrow(all_mocks)
-
-```
-
-check for duplicate uniprotids
-```{r}
-
-all_mocks <- rbind(
-  basic_results,
-  rna_exists_multiple_proteins_results,
-  no_rna_protein_exists_results
+stopifnot(
+ nrow(all_mocks) == 120 + 30 + 30,
+# ensure no collisions across collections
+ length(unique(all_mocks$ensembl_gene_id)) == 60 + 5 + 15,
+ length(unique(all_mocks$gene_symbol)) == 60 + 5 + 15,
+length(unique(all_mocks$uniprotid)) == 60 + 15 + 15
 )
 
-all_mocks %>%
-  # 1. Select only rows with sex == Female
-  filter(sex == "Female") %>%
-
-  # 2. Look for duplicate uniprotid values among those rows
-  group_by(uniprotid) %>%
-  filter(n() > 1) %>%
-  ungroup() %>%
-
-  # Arrange them side-by-side for easy inspection
-  arrange(uniprotid)
-
 ```
+
