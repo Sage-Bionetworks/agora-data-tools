@@ -29,7 +29,6 @@ The transformation:
 Key Functions:
     transform_rna_de_individual: Main transformation function that orchestrates data processing
     _process_individual_data_file_core: Processes the core transformation logic for individual expression data
-    _determine_result_order: Determines the ordering of display labels for genotypes in a model_group
 
 Required Inputs:
     - genotype_label_map: Maps models and genotypes to display labels and model_groups
@@ -55,6 +54,7 @@ from agoradatatools.etl.utils import (
     NotEmptyRule,
 )
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
+    determine_result_order,
     validate_model_group_consistency,
     create_gene_metadata_dict,
     preprocess_data_file,
@@ -99,26 +99,6 @@ DATA_FILE_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
     "model": [NotEmptyRule()],
     "age": [MatchesRegexRule(value=r"\d+ months$")],
 }
-
-
-def _determine_result_order(data_file: pd.DataFrame) -> List[str]:
-    """
-    Determines the result_order (ordering of display labels) for genotypes in a data file.
-
-    Operates on a data_file that has already been merged with the genotype label map
-    and filtered to a single model_group, so every display_label present is guaranteed
-    to exist in the actual data. Empty display_label values are guaranteed not to be
-    present — check_column_rules validates the label map before processing begins.
-
-    Args:
-        data_file: DataFrame already merged with the genotype label map and filtered to
-            one model_group. Must have columns: display_label, result_order.
-
-    Returns:
-        List of display labels in the correct order based on result_order values.
-    """
-    unique_labels = data_file[["display_label", "result_order"]].drop_duplicates()
-    return unique_labels.sort_values("result_order")["display_label"].tolist()
 
 
 def _process_individual_data_file_core(
@@ -179,7 +159,7 @@ def _process_individual_data_file_core(
     # all rows.
     #
     # Because data_file has already been merged with the label map and filtered to a
-    # single model_group, every label returned by _determine_result_order is guaranteed
+    # single model_group, every label returned by determine_result_order is guaranteed
     # to exist in the data. result_order_list[0] is therefore always the control
     # (lowest result_order) that is present in this file.
     #
@@ -188,7 +168,7 @@ def _process_individual_data_file_core(
     # vs C57BL/6J). In those cases, a single matched_control value is a simplification
     # — it reflects the overall reference genotype for the group (lowest result_order)
     # rather than the per-case-genotype DE pairing.
-    result_order_list = _determine_result_order(data_file)
+    result_order_list = determine_result_order(data_file)
     matched_control = result_order_list[0] if result_order_list else ""
 
     # Step 4: Rename columns for output format.

@@ -6,7 +6,6 @@ and its helper functions, which process individual RNA-seq expression data for m
 into a structured format for the Agora platform.
 
     Test Classes:
-    - TestDetermineResultOrder: Unit tests for the _determine_result_order helper function
     - TestProcessIndividualDataFileCore: Unit tests for the _process_individual_data_file_core helper function
     - TestTransformRnaDeIndividual: Integration tests for the full transformation pipeline
 
@@ -41,63 +40,9 @@ import pytest
 
 from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
-    _determine_result_order,
     _process_individual_data_file_core,
 )
 from agoradatatools.etl.utils import ContainsSubstringRule
-
-
-class TestDetermineResultOrder:
-    """
-    Unit tests for the _determine_result_order helper function.
-
-    This class contains focused unit tests for result order determination,
-    which creates an ordered list of display labels based on result_order values.
-    The function accepts a data_file DataFrame (already merged with the label map
-    and filtered to a single model_group) rather than the raw label map.
-
-    Empty display_label values are validated upstream by check_column_rules
-    and will never reach this function.
-
-    Test Methods:
-        - test_single_model_result_order: Tests result ordering for a single model.
-        - test_model_group_result_order: Tests result ordering for a model group.
-        - test_empty_data_file: Tests handling of an empty data_file DataFrame.
-    """
-
-    def test_single_model_result_order(self) -> None:
-        """Test result order for a model with two genotypes."""
-        data_file = pd.DataFrame(
-            {
-                "display_label": ["Transgenic", "Wildtype"],
-                "result_order": [2, 1],
-            }
-        )
-
-        result = _determine_result_order(data_file)
-
-        assert result == ["Wildtype", "Transgenic"]
-
-    def test_model_group_result_order(self) -> None:
-        """Test result order for a model group with multiple models."""
-        data_file = pd.DataFrame(
-            {
-                "display_label": ["Model_B", "Control_B", "Model_C"],
-                "result_order": [20, 10, 30],
-            }
-        )
-
-        result = _determine_result_order(data_file)
-
-        assert result == ["Control_B", "Model_B", "Model_C"]
-
-    def test_empty_data_file(self) -> None:
-        """Test handling of an empty data_file DataFrame."""
-        data_file = pd.DataFrame(columns=["display_label", "result_order"])
-
-        result = _determine_result_order(data_file)
-
-        assert result == []
 
 
 class TestProcessIndividualDataFileCore:

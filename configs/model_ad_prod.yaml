@@ -42,6 +42,11 @@ files:
   - &uci_Clu_5xFAD_ne             { name: uci_Clu_5xFAD_ne             , format: csv  , id: syn76459744.1  }
   - &uci_Trem2_R47H_NSS_ne        { name: uci_Trem2_R47H_NSS_ne        , format: csv  , id: syn72388498.1  }
   - &uci_Trem2_R47H_NSS_5xFAD_ne  { name: uci_Trem2_R47H_NSS_5xFAD_ne  , format: csv  , id: syn72388499.2  }
+  # Proteomics (Individual)
+  - &load2_harmonized_metadata    { name: load2_harmonized_metadata    , format: csv  , id: syn75965714.2  }
+  - &uniprot_ensembl_map          { name: uniprot_ensembl_map          , format: tsv  , id: syn75830091.1  }
+  - &jax_load2_proteomics         { name: jax_load2_proteomics         , format: csv  , id: syn63886488.1  }
+  - &jax_load2_proteomics_24mo    { name: jax_load2_proteomics_24mo    , format: csv  , id: syn63886489.1  }
 
 datasets:
   - model_details:
@@ -156,3 +161,23 @@ datasets:
       gx_enabled: true
       gx_nested_columns:
         - data
+
+  - protein_de_individual:
+      files:
+        - <<: *genotype_label_map
+        - <<: *mouse_gene_metadata
+        - <<: *load2_harmonized_metadata
+        - <<: *uniprot_ensembl_map
+        - <<: *jax_load2_proteomics
+        - <<: *jax_load2_proteomics_24mo
+      final_format: json
+      destination: *dest
+      custom_transformations:
+        transform_protein_de_individual:
+          model_map:
+            jax_load2_proteomics: LOAD2
+            jax_load2_proteomics_24mo: LOAD2
+          harmonized_metadata:
+            - load2_harmonized_metadata
+      column_rename:
+        resource_identifier: ensembl_gene_id

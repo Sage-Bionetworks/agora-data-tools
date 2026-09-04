@@ -100,6 +100,11 @@ def apply_custom_transformations(
 ) -> Union[DataFrame, Dict[str, Any], List[Dict[str, Any]], None]:
     """Apply custom transformations to the dataset based on the provided function names and parameters.
 
+    The config's custom_transformations key takes either a bare function name, or the
+    function name mapped to parameters. Parameters are passed through to the function as
+    keyword arguments with no type coercion, so a value may be a scalar, a list, or a
+    nested mapping.
+
     Args:
         datasets (dict): datasets to be transformed
         dataset_name (str): name of the datasets

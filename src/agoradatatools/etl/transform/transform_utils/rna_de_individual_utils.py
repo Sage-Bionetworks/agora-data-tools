@@ -8,6 +8,7 @@ future reuse by other RNA-seq transforms if needed.
 
 Key Functions:
     filter_to_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
+    determine_result_order: Order genotype display labels within a model_group
     validate_model_group_consistency: Validate that each model has consistent model_group values
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
     log_file_processing_info: Log information about a file being processed
@@ -44,6 +45,26 @@ def filter_to_mouse_genes(df: pd.DataFrame) -> pd.DataFrame:
         Filtered DataFrame containing only mouse genes
     """
     return df[df["ensembl_gene_id"].str.startswith("ENSMUSG")].copy()
+
+
+def determine_result_order(data_file: pd.DataFrame) -> List[str]:
+    """
+    Determines the result_order (ordering of display labels) for genotypes in a data file.
+
+    Operates on a data_file that has already been merged with the genotype label map
+    and filtered to a single model_group, so every display_label present is guaranteed
+    to exist in the actual data. Empty display_label values are guaranteed not to be
+    present — check_column_rules validates the label map before processing begins.
+
+    Args:
+        data_file: DataFrame already merged with the genotype label map and filtered to
+            one model_group. Must have columns: display_label, result_order.
+
+    Returns:
+        List of display labels in the correct order based on result_order values.
+    """
+    unique_labels = data_file[["display_label", "result_order"]].drop_duplicates()
+    return unique_labels.sort_values("result_order")["display_label"].tolist()
 
 
 def validate_model_group_consistency(
