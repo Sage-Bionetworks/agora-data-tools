@@ -709,39 +709,6 @@ def check_column_rules(
         raise ValueError("\n".join(violations))
 
 
-def require_survivors(
-    before: pd.DataFrame, after: pd.DataFrame, message: str
-) -> pd.DataFrame:
-    """Return after, unless a filtering step emptied a frame that had rows going in.
-
-    Guards inner joins and null drops that are legitimately empty when their input was already
-    empty, but that mean the source files stopped sharing a vocabulary when they discard every
-    row of a non-empty frame. Unguarded, such a mismatch surfaces as silently empty output
-    rather than as an error.
-
-    Args:
-        before (pd.DataFrame): The frame going into the step.
-        after (pd.DataFrame): The frame the step produced.
-        message (str): Error message naming the inputs that disagree.
-
-    Returns:
-        pd.DataFrame: The after frame.
-
-    Raises:
-        ValueError: If before had rows and after has none.
-
-    Example:
-        long = require_survivors(
-            long,
-            long.merge(label_map, how="inner", on="genotype"),
-            "No measurement matched a label-map genotype.",
-        )
-    """
-    if not before.empty and after.empty:
-        raise ValueError(message)
-    return after
-
-
 def flatten_list(lst: List[Any]) -> List[Any]:
     """
     Recursively flattens a nested list into a single list of values.
