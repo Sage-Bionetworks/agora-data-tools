@@ -180,9 +180,21 @@ def _resolve_gene_ids(
     the parent gene, so choosing the smallest id alone would label cytochrome c as Gm10053.
     The proteomics header symbol comes from the UniProt entry the spectra were searched
     against, so it identifies the intended gene. Aliases catch nomenclature drift, where
-    the file still says Srp54 and mouse_gene_metadata says Srp54a. Accessions the header
-    cannot resolve -- multi-copy families such as the histones, whose peptides genuinely
-    cannot be attributed to one locus -- keep the smallest id so runs stay reproducible.
+    the file still says Srp54 and mouse_gene_metadata says Srp54a.
+
+    Accessions the header cannot resolve keep the smallest id. MG-985 reviewed the six that
+    reach this fallback -- multi-copy families such as the histones, whose peptides
+    genuinely cannot be attributed to one locus -- and confirmed it, on the reasoning that
+    the lowest Ensembl id is the more likely to be the better-characterized gene. Attaching
+    the protein to one gene was chosen over repeating identical measurements across every
+    candidate or dropping the protein from the output.
+
+    Candidates only ever come from the UniProt mapping file. A header symbol naming a gene
+    the mapping file does not offer for that accession does not pull that gene in: P10853
+    is headed H2bc15, which mouse_gene_metadata knows as ENSMUSG00000095217, but the
+    mapping file pairs P10853 with three other histone genes, so the fallback picks among
+    those three. Trusting the header over the mapping would attach a protein to a gene the
+    mapping file says it does not come from.
     """
     names = _observed_gene_names(long_df)
     resolved = {}
@@ -193,7 +205,10 @@ def _resolve_gene_ids(
         ]
         if not matches:
             matches = [gene for gene in genes if wanted & gene_aliases.get(gene, set())]
-        resolved[accession] = matches[0] if len(matches) == 1 else min(genes)
+        # candidates arrive sorted, so matches[0] is the smallest matching id. Falling back
+        # to min(genes) when several candidates match would pick a gene the header never
+        # named, which no current accession hits but which the sort order would hide.
+        resolved[accession] = matches[0] if matches else min(genes)
     return resolved
 
 

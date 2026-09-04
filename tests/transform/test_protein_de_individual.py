@@ -97,6 +97,31 @@ class TestResolveGeneIds:
 
         assert resolved == {"P1": "ENSMUSG00000000009"}
 
+    def test_ambiguous_match_stays_within_the_named_genes(self) -> None:
+        """Test that a tie between named genes is broken without leaving the named genes.
+
+        No production accession matches several candidates today, so the smallest candidate
+        happens to be a named one; this pins the behavior if that ever stops holding.
+        """
+        resolved = _resolve_gene_ids(
+            self._long_df("P3", "H4c1; H4c2"),
+            {
+                "P3": [
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000004",
+                    "ENSMUSG00000000007",
+                ]
+            },
+            {
+                "ENSMUSG00000000001": "Gm10053",
+                "ENSMUSG00000000004": "H4c1",
+                "ENSMUSG00000000007": "H4c2",
+            },
+            {},
+        )
+
+        assert resolved == {"P3": "ENSMUSG00000000004"}
+
     def test_alias_resolves_nomenclature_drift(self) -> None:
         """Test the alias fallback when the file uses an older symbol than the metadata.
 
