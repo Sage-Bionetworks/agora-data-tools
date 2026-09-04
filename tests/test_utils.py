@@ -1022,6 +1022,113 @@ class TestOneOfRule:
         assert rule.count_violations(s) == 0
 
 
+class TestNumericRule:
+    """Unit tests for NumericRule.count_violations()."""
+
+    def test_no_violations_for_all_numeric(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, 2.5, 3])) == 0
+
+    def test_no_violations_for_numeric_strings(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series(["6", "9.9"])) == 0
+
+    def test_counts_non_numeric_string(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, "abc", 3])) == 1
+
+    def test_counts_all_non_numeric(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series(["a", "b"])) == 2
+
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the type of present values.
+        assert utils.NumericRule().count_violations(pd.Series([1, None, 3])) == 0
+
+    def test_skips_nan(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, np.nan, 3])) == 0
+
+    def test_empty_series(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.NumericRule().value_detail == ""
+
+
+class TestNonNegativeRule:
+    """Unit tests for NonNegativeRule.count_violations()."""
+
+    def test_no_violations_for_all_positive(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, 2.5, 3])) == 0
+
+    def test_no_violations_for_zero(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([0, 0.0])) == 0
+
+    def test_counts_negative(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, -2.5, 3])) == 1
+
+    def test_counts_all_negative(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([-1, -2])) == 2
+
+    def test_counts_negative_numeric_string(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series(["6", "-9.9"])) == 1
+
+    def test_skips_non_numeric(self) -> None:
+        # Unparseable values are NumericRule's job, so a single bad cell isn't
+        # counted as two violations.
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, "abc", -3])) == 1
+
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the sign of present values.
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, None, 3])) == 0
+
+    def test_skips_nan(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, np.nan, 3])) == 0
+
+    def test_empty_series(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.NonNegativeRule().value_detail == ""
+
+
+class TestUniqueRule:
+    """Unit tests for UniqueRule.count_violations()."""
+
+    def test_no_violations_for_distinct_values(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series(["a", "b", "c"])) == 0
+
+    def test_counts_every_row_of_a_duplicate_group(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series(["a", "a", "b"])) == 2
+
+    def test_counts_each_duplicate_group_separately(self) -> None:
+        s = pd.Series(["a", "a", "b", "b", "b", "c"])
+        assert utils.UniqueRule().count_violations(s) == 5
+
+    def test_skips_repeated_nulls(self) -> None:
+        # pandas treats null as equal to null, so skipping nulls is what keeps a second
+        # blank row from being reported as a duplicate of the first. Both nulls must be nan
+        # rather than one None and one nan: in an object column those are distinct objects,
+        # so a mixed pair is not a duplicate even without the null filter and would pass
+        # against a broken implementation. read_csv yields the matching-nan shape.
+        s = pd.Series(["a", np.nan, np.nan, "b"])
+        assert utils.UniqueRule().count_violations(s) == 0
+
+    def test_counts_duplicates_alongside_nulls(self) -> None:
+        # Only the real duplicate counts; the repeated nulls do not add to it.
+        s = pd.Series(["a", "a", np.nan, np.nan])
+        assert utils.UniqueRule().count_violations(s) == 2
+
+    def test_does_not_skip_repeated_empty_strings(self) -> None:
+        # Blanks are NotEmptyRule's job; this rule only exempts true nulls.
+        assert utils.UniqueRule().count_violations(pd.Series(["", "", "a"])) == 2
+
+    def test_counts_duplicate_numeric_values(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series([1, 2, 1])) == 2
+
+    def test_empty_series(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.UniqueRule().value_detail == ""
+
+
 class TestCheckColumnRules:
     """Tests for check_column_rules() and its supporting _check_single_rule() helper."""
 
