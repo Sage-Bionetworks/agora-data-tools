@@ -103,7 +103,7 @@ def apply_custom_transformations(
     The config's custom_transformations key takes either a bare function name, or the
     function name mapped to parameters. Parameters are passed through to the function as
     keyword arguments with no type coercion, so a value may be a scalar, a list, or a
-    nested mapping; transform_protein_de_individual's model_map is an example of the last.
+    nested mapping.
 
     Args:
         datasets (dict): datasets to be transformed

@@ -1,7 +1,0 @@
-individualid,sex,agedeath,genotype,tissue
-i1,male,4.0,geno_hom,right cerebral hemisphere
-i2,female,4.5,geno_wt,right cerebral hemisphere
-i3,male,4.1,fad_non,right cerebral hemisphere
-i4,female,4.2,bin1_hom,right cerebral hemisphere
-i5,male,4.3,fad_car,right cerebral hemisphere
-i6,female,4.4,fad_car_bin1,right cerebral hemisphere

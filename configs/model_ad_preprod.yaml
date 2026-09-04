@@ -177,3 +177,5 @@ datasets:
           model_map:
             jax_load2_proteomics: LOAD2
             jax_load2_proteomics_24mo: LOAD2
+      column_rename:
+        resource_identifier: ensembl_gene_id
