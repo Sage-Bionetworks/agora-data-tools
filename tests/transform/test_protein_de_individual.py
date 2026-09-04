@@ -273,16 +273,31 @@ class TestTransformProteinDeIndividual:
 
     @staticmethod
     def _transform(
-        datasets: Dict[str, pd.DataFrame], model_map: Dict[str, str] = None
+        datasets: Dict[str, pd.DataFrame],
+        model_map: Dict[str, str] = None,
+        harmonized_metadata: List[str] = None,
     ) -> List[Dict[str, Any]]:
         """Run the transform, defaulting every data file to LOAD2.
 
         Tests that do not care about the model get the single-model case for free; tests
-        that do pass model_map explicitly.
+        that do pass model_map explicitly. Any dataset whose key ends in
+        _harmonized_metadata is taken as metadata, mirroring how the config declares it.
         """
+        if harmonized_metadata is None:
+            harmonized_metadata = [
+                key for key in datasets if key.endswith("harmonized_metadata")
+            ]
         if model_map is None:
-            model_map = {key: "LOAD2" for key in datasets if key not in REQUIRED_INPUT}
-        return transform_protein_de_individual(datasets=datasets, model_map=model_map)
+            model_map = {
+                key: "LOAD2"
+                for key in datasets
+                if key not in REQUIRED_INPUT and key not in harmonized_metadata
+            }
+        return transform_protein_de_individual(
+            datasets=datasets,
+            model_map=model_map,
+            harmonized_metadata=harmonized_metadata,
+        )
 
     def _build_datasets(
         self,
@@ -849,7 +864,130 @@ class TestTransformProteinDeIndividual:
         datasets = self._build_datasets()
 
         with pytest.raises(ValueError, match=error):
-            transform_protein_de_individual(datasets=datasets, model_map=model_map)
+            transform_protein_de_individual(
+                datasets=datasets,
+                model_map=model_map,
+                harmonized_metadata=["load2_harmonized_metadata"],
+            )
+
+    @pytest.mark.parametrize(
+        "harmonized_metadata,error",
+        [
+            # A config that forgot the harmonized_metadata block entirely.
+            (None, "No harmonized_metadata provided"),
+            ([], "No harmonized_metadata provided"),
+            # A config typo naming a file that is not in this dataset.
+            (["load2_harmonized_metadta"], "not files in this dataset"),
+        ],
+    )
+    def test_invalid_harmonized_metadata_raises(
+        self, harmonized_metadata: List[str], error: str
+    ) -> None:
+        """Test that an undeclared or mistyped metadata file fails with an actionable message.
+
+        Without its own check the file would fall through to file_list and surface as the
+        unrelated "No model declared" error.
+        """
+        datasets = self._build_datasets()
+
+        with pytest.raises(ValueError, match=error):
+            transform_protein_de_individual(
+                datasets=datasets,
+                model_map={"proteomics_file": "LOAD2"},
+                harmonized_metadata=harmonized_metadata,
+            )
+
+    def test_second_study_metadata_file_is_combined(self) -> None:
+        """Test that a second study's metadata file is concatenated rather than replacing.
+
+        The metadata is study-scoped, so a second study arrives as its own file. Its animals
+        must reach the output alongside the first study's.
+        """
+        datasets = self._build_datasets(
+            harmonized={
+                "individualid": ["i1"],
+                "sex": ["male"],
+                "agedeath": [4.0],
+                "genotype": ["geno_hom"],
+                "tissue": ["right cerebral hemisphere"],
+            },
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": ["i1", "i2"],
+                "gene1|p00001": [1.0, 2.0],
+            },
+        )
+        datasets["uci_harmonized_metadata"] = pd.DataFrame(
+            {
+                "individualid": ["i2"],
+                "sex": ["female"],
+                "agedeath": [4.5],
+                "genotype": ["geno_wt"],
+                "tissue": ["Cortex"],
+            }
+        )
+
+        output = self._transform(datasets)
+
+        assert {e["tissue"] for e in output} == {"Hemibrain", "Cortex"}
+        assert {
+            record["individual_id"] for entry in output for record in entry["data"]
+        } == {"i1", "i2"}
+
+    def test_metadata_files_disagreeing_about_an_animal_raise(self) -> None:
+        """Test that an individualID meaning different animals in two studies raises.
+
+        Model AD studies number their animals in non-overlapping ranges today, and nothing
+        structurally prevents a future collision, so it must not resolve to whichever file
+        was listed first.
+        """
+        datasets = self._build_datasets()
+        datasets["uci_harmonized_metadata"] = pd.DataFrame(
+            {
+                "individualid": ["i1"],
+                "sex": ["female"],
+                "agedeath": [24.0],
+                "genotype": ["geno_wt"],
+                "tissue": ["Cortex"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="not a many-to-one merge"):
+            self._transform(datasets)
+
+    def test_metadata_files_agreeing_about_an_animal_are_deduplicated(self) -> None:
+        """Test that an animal appearing identically in two studies' metadata is not fanned out.
+
+        The two files can disagree on the dtype of the join key, so 51503 and "51503" must
+        collapse to one row rather than surviving as two.
+        """
+        datasets = self._build_datasets(
+            harmonized={
+                "individualid": [51503, 51504],
+                "sex": ["male", "female"],
+                "agedeath": [4.0, 4.5],
+                "genotype": ["geno_hom", "geno_wt"],
+                "tissue": ["right cerebral hemisphere"] * 2,
+            },
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": [51503, 51504],
+                "gene1|p00001": [1.0, 2.0],
+            },
+        )
+        datasets["uci_harmonized_metadata"] = pd.DataFrame(
+            {
+                "individualid": ["51503"],
+                "sex": ["male"],
+                "agedeath": [4.0],
+                "genotype": ["geno_hom"],
+                "tissue": ["right cerebral hemisphere"],
+            }
+        )
+
+        output = self._transform(datasets)
+
+        assert [d["individual_id"] for d in output[0]["data"]] == ["51503", "51504"]
 
     def test_undeclared_data_file_raises(self) -> None:
         """Test that a data file missing from a populated model_map is named."""
@@ -864,6 +1002,10 @@ class TestTransformProteinDeIndividual:
         [
             ("drop_required_dataset", "Missing required datasets"),
             ("drop_data_file_id_column", "Missing required columns"),
+            # HARMONIZED_COLUMNS and its rules are enforced per declared metadata file
+            # rather than under a fixed dataset key.
+            ("drop_metadata_column", "Missing required columns"),
+            ("empty_metadata_genotype", "not_empty"),
             ("empty_data_file", "is empty"),
             ("drop_data_file", "No proteomics data files"),
             ("empty_display_label", "not_empty"),
@@ -876,6 +1018,12 @@ class TestTransformProteinDeIndividual:
 
         if mutation == "drop_required_dataset":
             del datasets["uniprot_ensembl_map"]
+        elif mutation == "drop_metadata_column":
+            datasets["load2_harmonized_metadata"] = datasets[
+                "load2_harmonized_metadata"
+            ].drop(columns=["agedeath"])
+        elif mutation == "empty_metadata_genotype":
+            datasets["load2_harmonized_metadata"]["genotype"] = ["", "geno_wt"]
         elif mutation == "drop_data_file_id_column":
             datasets["proteomics_file"] = datasets["proteomics_file"].drop(
                 columns=["individualid"]
