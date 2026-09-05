@@ -190,6 +190,8 @@ def _process_single_data_file(
         lambda z: _zscore_to_pval_string(z) if pd.notna(z) else None
     )
 
+    # TODO include numeric version of p_val for sorting & filtering, somehow
+
     # TODO use real maf values when we have them
     data_file["maf"] = data_file["variant"].map(_mock_maf)
 
