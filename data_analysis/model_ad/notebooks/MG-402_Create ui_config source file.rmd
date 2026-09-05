@@ -372,6 +372,7 @@ dc_filters <- data.frame(
 
 # Disease Correlation Filter values
 # ---------------------------------
+dc_age_filter_vals <- c('4 months', '8 months', '12 months')
 # Only include model.name filter values for models with Disease Correlation results
 dc_model_name_filter_vals <- c('5xFAD (IU/Jax/Pitt)',
                             'APOE4',
@@ -398,7 +399,7 @@ dc_modified_gene_filter_vals <- c('Abca7',
                                'Snx1',
                                'Trem2')
 dc_filter_values <- list(
-  c('4 months', '8 months', '12 months'),
+  dc_age_filter_vals,
   model_type_filter_vals,
   dc_modified_gene_filter_vals,
   dc_model_name_filter_vals,
