@@ -451,6 +451,35 @@ validator.expect_column_values_to_match_regex(
 
 ---
 
+### ⚠️ GX dedups expectations by domain (`type` + column + `row_condition`)
+
+GX identifies each expectation by its **`(expectation_type + domain kwargs)`**, where *domain kwargs*
+= the **column** plus **`row_condition`/`condition_parser`** — **not** the full kwargs. Value kwargs
+(`json_schema`, `value_set`, `min_value`, a custom `target_field`, etc.) are **not** part of the
+identity. Adding a second expectation with the same `(type, column, row_condition)` **overwrites** the
+first on load/validation — silently, with no error. Consequences:
+
+- **Same column + same type + no (or identical) `row_condition` → they collide.** Two
+  `match_json_schema` (or two `be_in_set`, or two custom `nested_object_*`) on one column keep only the
+  last. Two custom nested-object expectations that differ only by `target_field` also collide —
+  `target_field` is a value kwarg, not a domain kwarg. To put several checks on one column they must
+  differ in **type** or in **`row_condition`**.
+- **Different `row_condition` → different domain → both are kept.** This is the supported way to attach
+  multiple same-type expectations to one column, each validating a disjoint row subset (e.g. one schema
+  where `cluster == "X"`, another where `cluster != "X"`). *Caveat:* a `row_condition` that hardcodes
+  data values (cluster names, categories) is brittle — if those values drift, the condition silently
+  mis-targets and the check stops doing what you think. Prefer a single condition-free expectation
+  (e.g. a `oneOf` schema covering all valid states) unless the per-subset precision is worth the
+  coupling.
+- **When verifying or testing an expectation, reproduce its FULL kwargs — never drop
+  `row_condition`/`condition_parser`.** Dropping the condition changes the domain, so an ad-hoc test
+  can falsely show a collision (or a false pass/fail) the real suite doesn't have. Mirror the exact
+  `row_condition` when checking behavior or dedup.
+- **After regenerating, count the surviving expectations per column** and confirm it matches intent — a
+  collision surfaces as a *lower-than-expected count* / a missing check, not an error.
+
+---
+
 ### ⚠️ Custom list expectations do NOT work on nested columns
 
 `expect_column_values_to_have_list_length_in_range`, `expect_column_values_to_have_list_members_of_type`, and `expect_column_values_to_have_unique_list_members` all check `isinstance(cell, list)` internally. By the time GX runs, any column listed in `gx_nested_columns` has already been converted to a JSON **string** by `convert_nested_columns_to_json`, so these expectations will always fail silently (returning `False` for every row).
@@ -715,6 +744,8 @@ Check the output for GX validation results.
 | `InvalidExpectationConfigurationError: Invalid positional argument` | Use `column=` keyword arg for all custom expectations |
 | Suite not found at runtime | Run `pip install .` after generating the `.json` file |
 | Pre-commit hook modifies files on commit | Re-stage modified files and commit again |
+| A second expectation on a column silently disappears / a suite has fewer expectations than authored | GX dedups by `(expectation_type + column + row_condition/condition_parser)`; two same-type, same-column expectations with no/identical `row_condition` collide (last wins). Differentiate by type or `row_condition`, or combine into one schema. After regenerating, count expectations per column — see "GX dedups expectations by domain" in Step 3 |
+| Ad-hoc test shows a collision / wrong pass-fail the real suite doesn't have | You dropped `row_condition`/`condition_parser` when reproducing the expectation, changing its domain. Always mirror the FULL kwargs when verifying behavior or dedup |
 | Regex fails on a zero-padded string column (e.g. `jax_id`) | `pd.read_json()` converts `"004807"` → `4807` (int); validate as `int`, not `str` |
 | Regex fails on a nullable column | Use `row_condition="col.notnull()"` + `condition_parser="pandas"` to skip null rows |
 | Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
