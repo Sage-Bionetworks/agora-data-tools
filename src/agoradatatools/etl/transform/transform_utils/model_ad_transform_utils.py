@@ -3,7 +3,7 @@ This file contains utility functions that may be used across multiple transforms
 
 Functions:
     process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
-    build_results_url - build a URL linking to the gene/protein comparison table for a given study
+    build_expressions_results_url - build a URL linking to the gene/protein comparison table for a given study
     zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
     remap_sex_labels - convert any plural sex values to singular form for consistent display
 """
@@ -73,21 +73,15 @@ def build_expression_results_url(
     Creates the link-url to the comparison table for a given model and result type. Currently supported result
     types are "transcriptomics" and "proteomics", where the default is "transcriptomics".
 
-    The URL base is "comparison/expression?" with 'categories' and 'models' query parameters. The final URL can have
-    two different formats:
+    The URL base is "comparison/expression?" with 'categories' and 'models' query parameters, where:
+        * 'categories' = url_categories_value if set, else use the default value for the result_type
+        * 'models' = url_models_value if specified, otherwise default to the model name. For example, some UCI studies
+            have 4 associated genotypes, and url_models_value should load all 4 in the comparison table
+        
+    The final URL can have two formats:
         "comparison/expression?models=..." (transcriptomics only)
         "comparison/expression?categories=...&models=..."
-
-    The 'categories' parameter uses the model's url_categories_value if specified; otherwise the default value is used.
-    For transcriptomics, there is no default, so 'categories' is omitted entirely. For proteomics, a Hemibrain default
-    is used. For example, the gene comparison table loads with tissue = Hemibrain by default, and only Jax studies have
-    hemibrain samples. For models without hemibrain data, we will specify 'categories' to set tissue = Hippocampus.
-
-    The 'models' parameter always includes the model name. Additional model names can be included if specified by the
-    model's url_models_value. For example,some UCI studies have 4 associated genotypes (2 sets of case vs control
-    differential expression results), and the comparisons table should load results for both sets of DE data. For those
-    studies, we add two (or more) model names to the 'models' query parameter.
-
+    
     The url will be None if the result_type is unsupported or there is no result data for this model.
 
     Args:
@@ -122,14 +116,11 @@ def build_expression_results_url(
     )
     categories_param = f"categories={categories_value}&" if categories_value else ""
 
-    # Combine the model name with any additional models specified, but only keep the unique values. For the additional
-    # models, ignore any leading/trailing whitespace, and empty values. For best test reproducibility, sort the names
-    # so that the order is consistent.
-    other_models_to_list = model_row.get(f"{result_type}_url_models_value") or ""
-    models_group = {model_row["name"]} | {
-        m.strip() for m in other_models_to_list.split(",") if m.strip()
-    }
-    models_value = ",".join(sorted(models_group))
+    models_value = (
+        model_row[f"{result_type}_url_models_value"]
+        if model_row[f"{result_type}_url_models_value"]  # must not be "" or None
+        else model_row["name"]
+    )
     return f"comparison/expression?{categories_param}models={models_value}"
 
 
