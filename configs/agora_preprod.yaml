@@ -1,5 +1,5 @@
 destination: &dest syn17015333
-staging_path: ./staging
+staging_path: ./staging/agora
 gx_folder: syn52948670
 gx_table: syn60527065
 team_images_id: syn12861877
@@ -291,4 +291,7 @@ datasets:
         - <<: *ui_config
       final_format: json
       destination: *dest
-      gx_enabled: false
+      gx_enabled: true
+      gx_nested_columns:
+        - columns
+        - filters
