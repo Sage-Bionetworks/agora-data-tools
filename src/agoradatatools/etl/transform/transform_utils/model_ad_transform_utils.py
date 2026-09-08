@@ -110,14 +110,14 @@ def build_expression_results_url(
         return None
 
     categories_value = (
-        model_row[f"{result_type}_url_categories_value"]
+        model_row[f"{result_type}_url_categories_value"].strip()
         if model_row[f"{result_type}_url_categories_value"]  # must not be "" or None
         else default_categories[result_type]
     )
     categories_param = f"categories={categories_value}&" if categories_value else ""
 
     models_value = (
-        model_row[f"{result_type}_url_models_value"]
+        model_row[f"{result_type}_url_models_value"].strip()
         if model_row[f"{result_type}_url_models_value"]  # must not be "" or None
         else model_row["name"]
     )
