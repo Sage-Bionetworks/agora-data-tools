@@ -211,8 +211,9 @@ def transform_model_overview(
         row["modified_genes"] = [gene for gene in modified_genes if gene is not None]
 
         # Build the links
-        for key, value in _build_model_links(row).items():
-            row[key] = value
+        for field_name, link_data in _build_model_links(row).items():
+            row[field_name] = link_data
+        
         row["center"] = row["contributing_group"]
 
         # Calculate available_data based on which links are actually present
