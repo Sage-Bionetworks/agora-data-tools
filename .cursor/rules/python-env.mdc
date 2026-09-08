@@ -5,19 +5,47 @@ alwaysApply: true
 
 # Python Environment Setup
 
-Before running any Python code, tests, or scripts in this project, use the virtual environment defined in your local `dev_config.yaml` at the repo root. If you don't use a package manager, you can skip this setup and run on your base/current environment.
+Before running any Python code, tests, or scripts in this project, use the virtual environment defined in the local
+`dev_config.yaml` at the repo root.
 
-## Optional developer setup
+If `dev_config.yaml` does not exist, prompt the user to create one:
 
-If you use a virtual environment, copy the example and fill in your package manager and environment name:
+```
+No local dev_config.yaml file found. Do you want me to help you create one, or should I use the current environment
+for this session?
+```
+
+If the user wants to create dev_config.yaml, copy the example file:
 
 ```bash
 cp dev_config.yaml.example dev_config.yaml
 ```
 
+Then ask the user which package manager (`conda`/`venv`/`virtualenv`/`poetry`/`pipenv`) and
+environment to use, and populate `dev_config.yaml` based on the response. Do not guess these values.
+
+If the user says they don't use a package manager, skip this setup and confirm with the user that you should use
+the base/current environment for this session.
+
+If you are using the base/current environment, skip to the Install step.
+
 ## Activating your environment
 
-Use the `package_manager` and `env_name` values from your `dev_config.yaml`:
+Use the `package_manager` and `env_name` values from `dev_config.yaml`.
+
+First confirm the named environment actually exists — do not proceed on a guessed or unverified
+environment name:
+
+| package_manager | Confirm command |
+|---|---|
+| `conda` | `conda env list` (check `<env_name>` is listed) |
+| `venv` / `virtualenv` | `ls <env_name>/bin/activate` (the env directory exists) |
+| `poetry` | `poetry env list` (check the project's env is listed) |
+| `pipenv` | `pipenv --venv` (prints the env path; errors if none) |
+
+If the environment does not exist, prompt the user to help resolve the issue.
+
+If the environment does exist, activate it:
 
 | package_manager | Activation command |
 |---|---|
@@ -26,7 +54,9 @@ Use the `package_manager` and `env_name` values from your `dev_config.yaml`:
 | `poetry` | `poetry shell` |
 | `pipenv` | `pipenv shell` |
 
-Then install the project in editable mode:
+
+## Installing the project in editable mode
+Once you have confirmed that you are in the expected environment, install the project in editable mode:
 
 ```bash
 pip install -e ".[dev]"

@@ -77,6 +77,15 @@ datasets:
       final_format: json
       destination: *dest
       custom_transformations: transform_disease_correlation
+      gx_enabled: true
+      gx_nested_columns:
+        - IFG
+        - PHG
+        - TCX
+        - CBE
+        - DLPFC
+        - FP
+        - STG
 
   - ui_config:
       files:
