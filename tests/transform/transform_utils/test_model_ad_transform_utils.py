@@ -314,42 +314,17 @@ class TestBuildExpressionResultsUrl:
         "result_type",
         ["transcriptomics", "proteomics"],
     )
-    def test_build_expression_results_url_model_group_handling_no_duplicates(
+    def test_build_expression_results_url_with_all_fields(
         self, result_type: str
     ) -> None:
         """
-        The function should handle the model group correctly (model name + models listed in url_models_value), and not
-        include duplicates or empty values in the URL.
+        This function should build the URL correctly when all relevant fields (categories and models) are
+        populated with non-missing values, using those values to set the 'categories' and 'models' query
+        parameters.
         """
         model = pd.Series(
             {
                 "name": "Model",
-                f"{result_type}_url_categories_value": "category_string",
-                f"{result_type}_url_models_value": "model1,model2",
-                result_type: True,
-            }
-        )
-
-        url = build_expression_results_url(model, result_type=result_type)
-        assert (
-            url
-            == "comparison/expression?categories=category_string&models=Model,model1,model2"
-        )
-
-    @pytest.mark.parametrize(
-        "result_type",
-        ["transcriptomics", "proteomics"],
-    )
-    def test_build_expression_results_url_model_group_handling_with_duplicates(
-        self, result_type: str
-    ) -> None:
-        """
-        The function should handle the model group correctly (model name + models listed in url_models_value), and not
-        include duplicates or empty values in the URL.
-        """
-        model = pd.Series(
-            {
-                "name": "model1",
                 f"{result_type}_url_categories_value": "category_string",
                 f"{result_type}_url_models_value": "model1,model2",
                 result_type: True,
@@ -366,18 +341,43 @@ class TestBuildExpressionResultsUrl:
         "result_type",
         ["transcriptomics", "proteomics"],
     )
-    def test_build_expression_results_url_model_group_handling_with_extra_whitespace(
+    def test_build_expression_results_url_strips_outer_whitespace_from_categories(
         self, result_type: str
     ) -> None:
         """
-        The function should handle the model group correctly (model name + models listed in url_models_value), and not
-        include duplicates or empty values in the URL.
+        This function should strip leading/trailing whitespace around the url_categories_value string, and set it
+        as the 'categories' query parameter.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "   category_string   ",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: True,
+            }
+        )
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_expression_results_url_strips_outer_whitespace_from_models(
+        self, result_type: str
+    ) -> None:
+        """
+        This function should strip leading/trailing whitespace around the whole url_models_value string (without
+        altering the comma-separated values inside it), and set it as the 'models' query parameter.
         """
         model = pd.Series(
             {
                 "name": "Model",
                 f"{result_type}_url_categories_value": "category_string",
-                f"{result_type}_url_models_value": "       model1, model2   ",
+                f"{result_type}_url_models_value": "   model1,model2   ",
                 result_type: True,
             }
         )
