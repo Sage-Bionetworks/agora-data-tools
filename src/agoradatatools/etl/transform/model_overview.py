@@ -213,7 +213,7 @@ def transform_model_overview(
         # Build the links
         for field_name, link_data in _build_model_links(row).items():
             row[field_name] = link_data
-        
+
         row["center"] = row["contributing_group"]
 
         # Calculate available_data based on which links are actually present
