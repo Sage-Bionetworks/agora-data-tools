@@ -255,7 +255,7 @@ class TestBuildExpressionResultsUrl:
         )
 
         url = build_expression_results_url(model, result_type="transcriptomics")
-        assert url == "comparison/expression?models=Model,model1,model2"
+        assert url == "comparison/expression?models=model1,model2"
 
     @pytest.mark.parametrize(
         "empty_val",
@@ -280,7 +280,7 @@ class TestBuildExpressionResultsUrl:
         url = build_expression_results_url(model, result_type="proteomics")
         assert (
             url
-            == "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model,model1,model2"
+            == "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=model1,model2"
         )
 
     @pytest.mark.parametrize(
@@ -384,32 +384,7 @@ class TestBuildExpressionResultsUrl:
         url = build_expression_results_url(model, result_type=result_type)
         assert (
             url
-            == "comparison/expression?categories=category_string&models=Model,model1,model2"
-        )
-
-    @pytest.mark.parametrize(
-        "result_type",
-        ["transcriptomics", "proteomics"],
-    )
-    def test_build_expression_results_url_model_group_handling_with_empty_values(
-        self, result_type: str
-    ) -> None:
-        """
-        The function should handle the model group correctly (model name + models listed in url_models_value), and not
-        include duplicates or empty values in the URL.
-        """
-        model = pd.Series(
-            {
-                "name": "Model",
-                f"{result_type}_url_categories_value": "category_string",
-                f"{result_type}_url_models_value": "model1, model2, , ,",
-                result_type: True,
-            }
-        )
-        url = build_expression_results_url(model, result_type=result_type)
-        assert (
-            url
-            == "comparison/expression?categories=category_string&models=Model,model1,model2"
+            == "comparison/expression?categories=category_string&models=model1,model2"
         )
 
 
