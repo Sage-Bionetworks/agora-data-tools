@@ -15,16 +15,16 @@ model_map. Any number of models is supported: name, matched_control, and result_
 computed per model_group rather than once for the whole run.
 
 The harmonized metadata is study-scoped, so a second study arrives as its own file rather
-than as extra rows. The config lists them in harmonized_metadata and they are concatenated;
+than as extra rows. Any number of metadata files is supported; they are concatenated, and
 see _build_harmonized_metadata for why that is sufficient.
 
-Required inputs are declared in REQUIRED_INPUT, plus the per-animal metadata files named in
-harmonized_metadata and one or more wide proteomics data files whose model is declared in
-model_map. Any dataset in none of those roles is taken to be a proteomics data file.
+Inputs come in three roles: the fixed datasets in REQUIRED_INPUT, the wide proteomics data
+files named in model_map, and the per-animal metadata files, which are whatever is left. Only
+the first two are declared, since the third follows from them.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import pandas as pd
 
@@ -80,13 +80,6 @@ TISSUE_ALIASES = {"right cerebral hemisphere": "Hemibrain"}
 # 51503 into "51503.0" -- which would otherwise shrink the output with no failure.
 MIN_METADATA_COVERAGE = 0.5
 
-# Required of every file named in harmonized_metadata. The metadata is study-scoped, so
-# these are per-file requirements rather than REQUIRED_INPUT entries under a fixed key.
-HARMONIZED_COLUMNS = ["individualid", "sex", "agedeath", "genotype", "tissue"]
-HARMONIZED_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
-    "individualid": [NotEmptyRule()],
-    "genotype": [NotEmptyRule()],
-}
 
 REQUIRED_INPUT = {
     "genotype_label_map": [
@@ -102,12 +95,7 @@ REQUIRED_INPUT = {
     "uniprot_ensembl_map": ["uniprotkb_accession", "ensembl_gene_id"],
 }
 
-# The only column a wide proteomics file must carry. Protein columns are found by the pipe
-# in their header rather than by excluding known id columns, so specimenid needs no entry
-# here and a new metadata column upstream cannot become a phantom protein.
-DATA_FILE_REQUIRED_COLUMNS = ["individualid"]
-
-COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
+COLUMN_RULES = {
     "genotype_label_map": {
         "model": [NotEmptyRule()],
         "genotype": [NotEmptyRule()],
@@ -119,6 +107,23 @@ COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
         "uniprotkb_accession": [NotEmptyRule()],
         "ensembl_gene_id": [NotEmptyRule()],
     },
+}
+
+MODEL_METADATA_REQUIRED_COLUMNS = [
+    "individualid",
+    "sex",
+    "agedeath",
+    "genotype",
+    "tissue",
+]
+MODEL_METADATA_COLUMN_RULES = {
+    "individualid": [NotEmptyRule()],
+    "genotype": [NotEmptyRule()],
+}
+
+DATAFILE_REQUIRED_COLUMNS = ["individualid"]
+DATAFILE_COLUMN_RULES = {
+    "individualid": [NotEmptyRule()],
 }
 
 
@@ -352,7 +357,7 @@ def _log_stage(stage: str, df: pd.DataFrame) -> None:
 
 def _build_output(
     long_df: pd.DataFrame,
-    harmonized_df: pd.DataFrame,
+    harmonized_model_metadata_df: pd.DataFrame,
     uniprot_to_ensembl: Dict[str, str],
     gene_symbols: Dict[str, str],
     genotype_label_map_df: pd.DataFrame,
@@ -373,7 +378,10 @@ def _build_output(
     # validate rejects a harmonized metadata that disagrees with itself about an animal;
     # the caller de-duplicates whole rows, so only a genuine conflict reaches this.
     df = long_df.merge(
-        harmonized_df, on="individualid", how="inner", validate="many_to_one"
+        harmonized_model_metadata_df,
+        on="individualid",
+        how="inner",
+        validate="many_to_one",
     )
     _log_stage("after harmonized metadata join", df)
 
@@ -505,101 +513,76 @@ def _build_output(
 
 
 def _build_harmonized_metadata(
-    datasets: Dict[str, pd.DataFrame], harmonized_metadata: List[str]
+    datasets: Dict[str, pd.DataFrame],
+    model_metadata_file_names: List[str],
+    model_metadata_columns: List[str] = MODEL_METADATA_REQUIRED_COLUMNS,
 ) -> pd.DataFrame:
-    """Combine the declared per-animal metadata files into one frame keyed on individualid.
+    """Combine the per-animal metadata files into one frame keyed on individualid.
 
-    The metadata is study-scoped, so a second study arrives as its own file rather than as
-    extra rows. Concatenating them is enough because individualID is a study-independent
-    Synapse identifier: today's Model AD studies number their animals in non-overlapping
-    ranges (UCI 298-11428, JAX 32043-111090), and nothing here assumes which file an animal
-    came from. If two studies ever do issue the same individualID for different animals, the
-    validate on the join in _build_output rejects it rather than picking one silently.
+    Args
+        datasets: Dictionary mapping dataset names to DataFrames. Must include the datasets.
+        model_metadata_file_names: List of model metadata file names.
+        model_metadata_columns: List of model metadata columns.
+
+    Returns:
+        pd.DataFrame: Harmonized model metadata DataFrame.
     """
     combined = pd.concat(
-        [datasets[name][HARMONIZED_COLUMNS] for name in harmonized_metadata],
+        [datasets[name][model_metadata_columns] for name in model_metadata_file_names],
         ignore_index=True,
     )
-    # Cast before de-duplicating, not after: two metadata files can type individualid
-    # differently, and 51503 and "51503" are one animal but two rows.
     combined["individualid"] = combined["individualid"].astype(str)
     return combined.drop_duplicates()
 
 
-def _validate_harmonized_metadata(
-    harmonized_metadata: Optional[List[str]], dataset_names: set
-) -> None:
-    """Check that the declared per-animal metadata files exist.
+def _resolve_metadata_files(
+    datasets: Dict[str, pd.DataFrame], candidates: List[str], model_map: Dict[str, str]
+) -> List[str]:
+    """Take the candidate inputs model_map does not claim as data files to be metadata.
 
-    A file left out of the declaration is treated as a proteomics data file, so it would
-    otherwise surface as the unrelated "No model declared" error.
+    model_map already has to name every proteomics data file, so which inputs are metadata
+    follows from it and does not need declaring separately. A second config list would be
+    free to disagree with model_map about a file's role, with nothing to say which was meant.
+
+    That leaves one genuinely ambiguous input: a proteomics file missing from model_map is
+    indistinguishable from a metadata file, so the columns decide, and the error names both
+    possibilities rather than only the one this function happens to assume.
+
+    Raises:
+        ValueError: If no input is left to supply per-animal metadata, or if one that was
+            taken to be metadata does not carry MODEL_METADATA_REQUIRED_COLUMNS.
     """
-    if not harmonized_metadata:
+    model_metadata_file_names = [name for name in candidates if name not in model_map]
+    if not model_metadata_file_names:
         raise ValueError(
-            "No harmonized_metadata provided. List the per-animal metadata dataset(s) "
-            "under custom_transformations in the config:\n"
-            "  custom_transformations:\n"
-            "    transform_protein_de_individual:\n"
-            "      harmonized_metadata:\n"
-            "        - load2_harmonized_metadata"
+            "No per-animal metadata provided. Every input is either a required dataset or "
+            "a model_map data file, leaving nothing to supply sex, ageDeath, genotype, and "
+            "tissue. Add the study's harmonized metadata file to the dataset's files."
         )
 
-    unknown = sorted(set(harmonized_metadata) - dataset_names)
-    if unknown:
+    misfits = []
+    for name in model_metadata_file_names:
+        missing = [
+            column
+            for column in MODEL_METADATA_REQUIRED_COLUMNS
+            if column not in datasets[name].columns
+        ]
+        if missing:
+            misfits.append(f"'{name}' (missing {', '.join(missing)})")
+    if misfits:
         raise ValueError(
-            f"harmonized_metadata names dataset(s) {unknown} that are not files in this "
-            "dataset. Check the config for a typo."
+            f"Dataset(s) {'; '.join(misfits)} have no model_map entry, so they were taken "
+            "to be per-animal metadata, but they do not carry the columns metadata must "
+            "have. Add them to model_map in the config if they are proteomics data files, "
+            "or supply the missing metadata columns."
         )
-
-
-def _validate_model_map(
-    model_map: Optional[Dict[str, str]], file_list: List[str], known_models: set
-) -> None:
-    """Check that every data file has a declared model and every model can be labeled.
-
-    A model absent from the label map is caught here rather than left to the label map
-    merge, which would drop every one of its rows and report the unrelated "No rows
-    remained" error.
-    """
-    if not model_map:
-        raise ValueError(
-            "No model_map provided. Declare one under custom_transformations in the "
-            "config, mapping each proteomics data file's dataset name to its model:\n"
-            "  custom_transformations:\n"
-            "    transform_protein_de_individual:\n"
-            "      model_map:\n"
-            "        jax_load2_proteomics: LOAD2"
-        )
-
-    missing_files = sorted(set(file_list) - set(model_map))
-    if missing_files:
-        raise ValueError(
-            f"No model declared for proteomics data file(s) {missing_files}. Add an entry "
-            "to model_map in the config for every data file."
-        )
-
-    unknown_files = sorted(set(model_map) - set(file_list))
-    if unknown_files:
-        raise ValueError(
-            f"model_map declares a model for {unknown_files}, which are not proteomics "
-            "data files in this dataset. Check the config for a typo."
-        )
-
-    unknown_models = sorted(set(model_map.values()) - known_models)
-    if unknown_models:
-        raise ValueError(
-            f"model_map refers to model(s) {unknown_models} that are absent from the "
-            "genotype label map, so none of their rows could be labeled. Add the model to "
-            "the label map or correct the config."
-        )
+    return model_metadata_file_names
 
 
 def transform_protein_de_individual(
     datasets: Dict[str, pd.DataFrame],
-    model_map: Optional[Dict[str, str]] = None,
-    harmonized_metadata: Optional[List[str]] = None,
+    model_map: Dict[str, str],
     required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-    data_file_required_columns: List[str] = DATA_FILE_REQUIRED_COLUMNS,
     column_rules: Dict[str, Dict[str, List[ColumnRule]]] = COLUMN_RULES,
 ) -> List[Dict[str, Any]]:
     """
@@ -607,21 +590,16 @@ def transform_protein_de_individual(
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include the datasets
-            listed in REQUIRED_INPUT plus one or more wide proteomics data files whose keys
-            are not in required_input.
+            listed in REQUIRED_INPUT, one or more wide proteomics data files named in
+            model_map, and one or more per-animal metadata files.
         model_map: Model name for each proteomics data file, keyed on the data file's
             dataset name, declared in the config under custom_transformations. The
             proteomics files have no model column, so this is the only source of model.
-            Every data file must have an entry, every entry must name a data file, and
-            every model must exist in the genotype label map. Defaulted so that a config
-            that omits it gets an actionable error rather than a TypeError.
-        harmonized_metadata: Dataset names of the per-animal metadata files, declared in the
-            config alongside model_map. The metadata is study-scoped, so a second study
-            arrives as an additional file; they are concatenated and joined on individualID.
-            Any dataset that is neither listed here nor in required_input is taken to be a
-            proteomics data file.
+            Every entry must name an input and every model must exist in the genotype label
+            map. It also decides which inputs are metadata: anything that is neither a
+            required dataset nor named here is taken to be per-animal metadata.
         required_input: Required dataset names mapped to their required columns.
-        data_file_required_columns: Required columns for each wide data file.
+        DATAFILE_REQUIRED_COLUMNS: Required columns for each wide data file.
         column_rules: Per-column content rules for the static datasets.
 
     Returns:
@@ -635,59 +613,58 @@ def transform_protein_de_individual(
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, column_rules)
 
-    _validate_harmonized_metadata(harmonized_metadata, set(datasets))
-    check_required_datasets_and_columns(
-        datasets, {name: HARMONIZED_COLUMNS for name in harmonized_metadata}
-    )
-    check_column_rules(
-        datasets, {name: HARMONIZED_COLUMN_RULES for name in harmonized_metadata}
-    )
-
     genotype_label_map_df = datasets["genotype_label_map"].copy()
     genotype_label_map_df["result_order"] = genotype_label_map_df[
         "result_order"
     ].astype(int)
     validate_model_group_consistency(genotype_label_map_df)
 
-    gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
-
-    # individualID repeats in the harmonized metadata for animals with more than one
-    # specimen. De-duplicating whole rows rather than the key means an animal whose rows
-    # genuinely disagree survives as two rows, and the validate on the join in _build_output
-    # rejects it; de-duplicating on individualid alone would keep whichever row came first.
-    harmonized_df = _build_harmonized_metadata(datasets, harmonized_metadata)
-    known_individuals = set(harmonized_df["individualid"])
-
-    metadata_names = set(required_input) | set(harmonized_metadata)
-    file_list = [key for key in datasets if key not in metadata_names]
-    if not file_list:
+    # Get data files using model_map
+    datafile_list = [key for key in datasets if key in model_map]
+    for file_name in datafile_list:
+        validate_data_file_not_empty(file_name, datasets[file_name])
+    check_required_datasets_and_columns(datafile_list, DATAFILE_REQUIRED_COLUMNS)
+    check_column_rules(
+        datafile_list, {name: DATAFILE_COLUMN_RULES for name in datafile_list}
+    )
+    if unknown_models := sorted(
+        set(model_map.values()) - set(genotype_label_map_df["model"])
+    ):
         raise ValueError(
-            "No proteomics data files provided. Provide at least one wide proteomics file "
-            "whose dataset key is not one of the required metadata inputs."
+            f"model_map refers to model(s) {unknown_models} that are absent from the "
+            "genotype label map, so none of their rows could be labeled. Add the model to "
+            "the label map or correct the config."
         )
-    _validate_model_map(model_map, file_list, set(genotype_label_map_df["model"]))
-    logger.info(
-        f"Transform protein_de_individual: processing {len(file_list)} data files: "
-        f"{ {name: model_map[name] for name in file_list} }"
+
+    # get model metadata files
+    model_metadata_file_names = [
+        key for key in datasets if key not in model_map and key not in required_input
+    ]
+    check_required_datasets_and_columns(
+        model_metadata_file_names, MODEL_METADATA_REQUIRED_COLUMNS
+    )
+    check_column_rules(
+        model_metadata_file_names,
+        {name: MODEL_METADATA_COLUMN_RULES for name in model_metadata_file_names},
     )
 
-    for file_name in file_list:
-        validate_data_file_not_empty(file_name, datasets[file_name])
-    check_required_datasets_and_columns(
-        {name: datasets[name] for name in file_list},
-        {name: data_file_required_columns for name in file_list},
+    harmonized_model_metadata_df = _build_harmonized_metadata(
+        datasets, model_metadata_file_names
     )
 
     long_frames = []
-    for file_name in file_list:
-        # ponytail: one model per file, matching the RNA transform. The proteomics files are
-        # split by study and timepoint rather than by model, so a study delivering several
-        # models in one file would need model_map values widened from a string to a list.
+    for file_name in datafile_list:
         long_df = _melt_proteomics_file(
             file_name, datasets[file_name], model_map[file_name]
         )
-        _check_metadata_coverage(file_name, long_df["individualid"], known_individuals)
+        _check_metadata_coverage(
+            file_name,
+            long_df["individualid"],
+            set(harmonized_model_metadata_df["individualid"]),
+        )
         long_frames.append(long_df)
+
+    gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
 
     long_df = pd.concat(long_frames, ignore_index=True)
     uniprot_to_ensembl = _resolve_gene_ids(
@@ -699,7 +676,7 @@ def transform_protein_de_individual(
 
     output = _build_output(
         long_df,
-        harmonized_df,
+        harmonized_model_metadata_df,
         uniprot_to_ensembl,
         gene_symbols,
         genotype_label_map_df,

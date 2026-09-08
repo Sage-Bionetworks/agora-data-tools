@@ -273,31 +273,22 @@ class TestTransformProteinDeIndividual:
 
     @staticmethod
     def _transform(
-        datasets: Dict[str, pd.DataFrame],
-        model_map: Dict[str, str] = None,
-        harmonized_metadata: List[str] = None,
+        datasets: Dict[str, pd.DataFrame], model_map: Dict[str, str] = None
     ) -> List[Dict[str, Any]]:
         """Run the transform, defaulting every data file to LOAD2.
 
         Tests that do not care about the model get the single-model case for free; tests
-        that do pass model_map explicitly. Any dataset whose key ends in
-        _harmonized_metadata is taken as metadata, mirroring how the config declares it.
+        that do pass model_map explicitly. Datasets whose key ends in harmonized_metadata
+        are left out of the default model_map so the transform resolves them as metadata,
+        which is what the real config does by not naming them.
         """
-        if harmonized_metadata is None:
-            harmonized_metadata = [
-                key for key in datasets if key.endswith("harmonized_metadata")
-            ]
         if model_map is None:
             model_map = {
                 key: "LOAD2"
                 for key in datasets
-                if key not in REQUIRED_INPUT and key not in harmonized_metadata
+                if key not in REQUIRED_INPUT and not key.endswith("harmonized_metadata")
             }
-        return transform_protein_de_individual(
-            datasets=datasets,
-            model_map=model_map,
-            harmonized_metadata=harmonized_metadata,
-        )
+        return transform_protein_de_individual(datasets=datasets, model_map=model_map)
 
     def _build_datasets(
         self,
@@ -864,38 +855,41 @@ class TestTransformProteinDeIndividual:
         datasets = self._build_datasets()
 
         with pytest.raises(ValueError, match=error):
-            transform_protein_de_individual(
-                datasets=datasets,
-                model_map=model_map,
-                harmonized_metadata=["load2_harmonized_metadata"],
-            )
+            transform_protein_de_individual(datasets=datasets, model_map=model_map)
 
-    @pytest.mark.parametrize(
-        "harmonized_metadata,error",
-        [
-            # A config that forgot the harmonized_metadata block entirely.
-            (None, "No harmonized_metadata provided"),
-            ([], "No harmonized_metadata provided"),
-            # A config typo naming a file that is not in this dataset.
-            (["load2_harmonized_metadta"], "not files in this dataset"),
-        ],
-    )
-    def test_invalid_harmonized_metadata_raises(
-        self, harmonized_metadata: List[str], error: str
-    ) -> None:
-        """Test that an undeclared or mistyped metadata file fails with an actionable message.
+    def test_no_metadata_input_raises(self) -> None:
+        """Test that claiming every input as a data file leaves the error self-explanatory.
 
-        Without its own check the file would fall through to file_list and surface as the
-        unrelated "No model declared" error.
+        Metadata files are the inputs model_map does not name, so a model_map covering
+        everything means nothing is left to supply sex, ageDeath, genotype, and tissue.
         """
         datasets = self._build_datasets()
 
-        with pytest.raises(ValueError, match=error):
-            transform_protein_de_individual(
-                datasets=datasets,
-                model_map={"proteomics_file": "LOAD2"},
-                harmonized_metadata=harmonized_metadata,
+        with pytest.raises(ValueError, match="No per-animal metadata provided"):
+            self._transform(
+                datasets,
+                model_map={
+                    "proteomics_file": "LOAD2",
+                    "load2_harmonized_metadata": "LOAD2",
+                },
             )
+
+    def test_data_file_missing_from_model_map_names_both_roles(self) -> None:
+        """Test that a data file left out of model_map reports both possible causes.
+
+        Such a file is indistinguishable from a metadata file, so it is taken as metadata
+        and fails the metadata columns. The message has to name the model_map possibility
+        too, since that is the likelier mistake.
+        """
+        datasets = self._build_datasets()
+        datasets["second_proteomics_file"] = datasets["proteomics_file"]
+
+        with pytest.raises(ValueError, match="second_proteomics_file") as excinfo:
+            self._transform(datasets, model_map={"proteomics_file": "LOAD2"})
+
+        message = str(excinfo.value)
+        assert "Add them to model_map" in message
+        assert "sex" in message and "agedeath" in message
 
     def test_second_study_metadata_file_is_combined(self) -> None:
         """Test that a second study's metadata file is concatenated rather than replacing.
@@ -989,25 +983,17 @@ class TestTransformProteinDeIndividual:
 
         assert [d["individual_id"] for d in output[0]["data"]] == ["51503", "51504"]
 
-    def test_undeclared_data_file_raises(self) -> None:
-        """Test that a data file missing from a populated model_map is named."""
-        datasets = self._build_datasets()
-        datasets["second_file"] = datasets["proteomics_file"]
-
-        with pytest.raises(ValueError, match="No model declared.*second_file"):
-            self._transform(datasets, model_map={"proteomics_file": "LOAD2"})
-
     @pytest.mark.parametrize(
         "mutation,error",
         [
             ("drop_required_dataset", "Missing required datasets"),
             ("drop_data_file_id_column", "Missing required columns"),
-            # HARMONIZED_COLUMNS and its rules are enforced per declared metadata file
+            # HARMONIZED_COLUMNS and its rules are enforced per resolved metadata file
             # rather than under a fixed dataset key.
-            ("drop_metadata_column", "Missing required columns"),
+            ("drop_metadata_column", "do not carry the columns metadata must have"),
             ("empty_metadata_genotype", "not_empty"),
             ("empty_data_file", "is empty"),
-            ("drop_data_file", "No proteomics data files"),
+            ("drop_data_file", "No model_map provided"),
             ("empty_display_label", "not_empty"),
             ("unmatched_genotypes", "No rows remained"),
         ],
