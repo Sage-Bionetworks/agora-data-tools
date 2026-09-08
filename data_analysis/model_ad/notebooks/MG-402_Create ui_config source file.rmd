@@ -608,7 +608,7 @@ build_mo_object <- function() {
   # note that the page value does not actually control the CT's display title
   # so this is not updated to 'Mouse Model Overview' even though the display title will be updated
   list(
-    page = "Model Overview",
+    page = "Mouse Model Overview",
     dropdowns = list(),
     row_count = model_overview_row_count,
     columns = columns,
