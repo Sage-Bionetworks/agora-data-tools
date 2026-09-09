@@ -203,6 +203,12 @@ de_filters <- data.frame(
 rna_de_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
 rna_de_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
 
+# RNA - Composite id / parent-child fields
+# -----------------------------------------
+rna_de_row_id_data_key <- "composite_id"
+rna_de_parent_id_data_key <- "composite_id"
+rna_de_parent_noun <- list(singular = "gene", plural = "genes")
+
 # RNA - Columns
 # -------------
 # Static columns
@@ -250,6 +256,13 @@ rna_de_model_name_filter_vals_hippocampus <- c(
 protein_de_menu1 <- c("PROTEIN - DIFFERENTIAL EXPRESSION")
 protein_de_menu2 <- c("Tissue - Hemibrain")
 
+# Protein - Composite id / parent-child fields
+# ----------------------------------------------
+protein_de_row_id_data_key <- "composite_id"
+protein_de_parent_id_data_key <- "rna_composite_id"
+protein_de_parent_noun <- list(singular = "gene", plural = "genes")
+protein_de_child_noun <- list(singular = "protein", plural = "proteins")
+
 # Protein - Columns
 # -----------------
 # Static columns
@@ -273,7 +286,8 @@ protein_de_model_name_filter_vals <- list(
 # Shared by RNA and Protein; the assay-specific pieces (menu label, dynamic heatmap column
 # names, model filter values, and leading/trailing column definitions) are passed in.
 build_de_object <- function(menu1_label, tissue_label, dynamic_names,
-                            dynamic_model_filter_vals, leading_columns, trailing_columns) {
+                            dynamic_model_filter_vals, leading_columns, trailing_columns,
+                            row_id_data_key, parent_id_data_key, parent_noun, child_noun = NULL) {
 
   # Dynamic heatmap columns vary by assay and tissue
     dynamic_columns <- lapply(dynamic_names,function(name) {
@@ -291,13 +305,18 @@ build_de_object <- function(menu1_label, tissue_label, dynamic_names,
     # The column ordering is mirrored when a CSV is generated
   columns <- c(leading_columns, dynamic_columns, trailing_columns)
 
-    list(
+    object <- list(
       page = "Differential Expression",
     dropdowns = c(menu1_label, tissue_label),
+      row_id_data_key = row_id_data_key,
+      parent_id_data_key = parent_id_data_key,
+      parent_noun = parent_noun,
+      child_noun = child_noun,
       row_count = gene_expression_row_count,
       columns = columns,
     filters = build_filters(de_filters, de_filter_values)
   )
+  purrr::discard(object, is.null)
 }
 
 # Generates RNA Differential Expression ui_config objects (one per tissue)
@@ -336,7 +355,8 @@ build_rna_de_objects <- function() {
     }
 
     build_de_object(rna_de_menu1, tissue, dynamic_names, dynamic_model_filter_vals,
-                    leading_columns, trailing_columns)
+                    leading_columns, trailing_columns,
+                    rna_de_row_id_data_key, rna_de_parent_id_data_key, rna_de_parent_noun)
   })
 }
 
@@ -365,7 +385,9 @@ build_protein_de_objects <- function() {
     build_de_object(protein_de_menu1, tissue,
                     protein_de_dynamic_names[[tissue]],
                     protein_de_model_name_filter_vals[[tissue]],
-                    leading_columns, trailing_columns)
+                    leading_columns, trailing_columns,
+                    protein_de_row_id_data_key, protein_de_parent_id_data_key,
+                    protein_de_parent_noun, protein_de_child_noun)
   })
 }
 
