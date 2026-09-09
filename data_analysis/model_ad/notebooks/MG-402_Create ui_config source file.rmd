@@ -166,10 +166,11 @@ build_filters <- function(filter_defs, filter_values) {
 # ***********************
 # Differential Expression
 # ***********************
-# name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 
 # Shared - Columns
 # ----------------
+# name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
+
 # Static columns are the same across all DE views
 de_model_column <- list("Model", "link_internal", "name", "Mouse Model", "Sort by Model value", NA, NA, TRUE, FALSE, 220)
 de_sex_column <- list("Sex", "text", "sex", NA, "Sort by Sex value", NA, NA, TRUE, FALSE)
@@ -198,10 +199,19 @@ de_filters <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# RNA - Dropdowns
-# ---------------
+# RNA Views
+# ---------
+# Dropdowns
 rna_de_menu1 <- c("RNA - DIFFERENTIAL EXPRESSION")
 rna_de_menu2 <- c("Tissue - Hemibrain", "Tissue - Cerebral Cortex", "Tissue - Hippocampus")
+
+# Parent/child row keys
+rna_de_row_id_data_key <- "composite_id"
+rna_de_parent_id_data_key <- "composite_id"
+
+# Display label noun
+rna_de_view_noun <- list(singular = "Gene", plural = "Genes")
+rna_de_parent_noun <- NA
 
 # RNA - Columns
 # -------------
@@ -245,10 +255,19 @@ rna_de_model_name_filter_vals_hippocampus <- c(
                             'Trem2-R47H_NSS.5xFAD')
 
 
-# Protein - Dropdowns
-# -------------------
+# Protein Views
+# -------------
+# Dropdowns
 protein_de_menu1 <- c("PROTEIN - DIFFERENTIAL EXPRESSION")
 protein_de_menu2 <- c("Tissue - Hemibrain")
+
+# Parent/child row_ids
+protein_de_row_id_data_key <- "composite_id"
+protein_de_parent_id_data_key <- "rna_composite_id"
+
+# Display label nouns
+protein_de_view_noun <- list(singular = "Protein", plural = "Proteins")
+protein_de_parent_noun <- list(singular = "Gene", plural = "Genes")
 
 # Protein - Columns
 # -----------------
@@ -271,9 +290,11 @@ protein_de_model_name_filter_vals <- list(
 
 # Generates a single Differential Expression ui_config object.
 # Shared by RNA and Protein; the assay-specific pieces (menu label, dynamic heatmap column
-# names, model filter values, and leading/trailing column definitions) are passed in.
+# names, model filter values, leading/trailing column definitions, and view-level
+# keys and display nouns) are passed in.
 build_de_object <- function(menu1_label, tissue_label, dynamic_names,
-                            dynamic_model_filter_vals, leading_columns, trailing_columns) {
+                            dynamic_model_filter_vals, leading_columns, trailing_columns,
+                            row_id_data_key, parent_id_data_key, view_noun, parent_noun = NULL) {
 
   # Dynamic heatmap columns vary by assay and tissue
     dynamic_columns <- lapply(dynamic_names,function(name) {
@@ -291,9 +312,13 @@ build_de_object <- function(menu1_label, tissue_label, dynamic_names,
     # The column ordering is mirrored when a CSV is generated
   columns <- c(leading_columns, dynamic_columns, trailing_columns)
 
-    list(
+  list(
       page = "Differential Expression",
-    dropdowns = c(menu1_label, tissue_label),
+      dropdowns = c(menu1_label, tissue_label),
+      row_id_data_key = row_id_data_key,
+      parent_id_data_key = parent_id_data_key,
+      view_noun = view_noun,
+      parent_noun = parent_noun,
       row_count = gene_expression_row_count,
       columns = columns,
     filters = build_filters(de_filters, de_filter_values)
@@ -335,8 +360,11 @@ build_rna_de_objects <- function() {
       stop() # fail if we are missing required filter values
     }
 
-    build_de_object(rna_de_menu1, tissue, dynamic_names, dynamic_model_filter_vals,
-                    leading_columns, trailing_columns)
+    build_de_object(rna_de_menu1, tissue,
+                    dynamic_names, dynamic_model_filter_vals,
+                    leading_columns, trailing_columns,
+                    rna_de_row_id_data_key, rna_de_parent_id_data_key,
+                    rna_de_view_noun, rna_de_parent_noun)
   })
 }
 
@@ -365,7 +393,9 @@ build_protein_de_objects <- function() {
     build_de_object(protein_de_menu1, tissue,
                     protein_de_dynamic_names[[tissue]],
                     protein_de_model_name_filter_vals[[tissue]],
-                    leading_columns, trailing_columns)
+                    leading_columns, trailing_columns,
+                    protein_de_row_id_data_key, protein_de_parent_id_data_key,
+                    protein_de_view_noun, protein_de_parent_noun)
   })
 }
 
@@ -373,6 +403,10 @@ build_protein_de_objects <- function() {
 # *******************
 # Disease Correlation
 # *******************
+dc_page <- "Disease Correlation"
+# when no noun is provided, app will fall back to display "Results"
+dc_view_noun <- NA
+dc_parent_noun <- NA
 
 # Disease Correlation Dropdowns Menus
 # -----------------------------------
@@ -511,8 +545,10 @@ build_dc_objects <- function() {
     filters <- build_filters(dc_filters, dc_filter_values)
 
     list(
-      page = "Disease Correlation",
+      page = dc_page,
       dropdowns = c(combo$menu1, combo$menu2),
+      view_noun = dc_view_noun,
+      parent_noun = dc_parent_noun,
       row_count = disease_correlation_row_count,
       columns = columns,
       filters = filters
@@ -520,16 +556,17 @@ build_dc_objects <- function() {
   })
 }
 
-
-# **************
-# Model Overview
-# **************
-
 # ********************
 # Mouse Model Overview
 # ********************
+mo_page <- "Mouse Model Overview"
+mo_view_noun <- list(singular = "Model", plural = "Models")
+mo_parent_noun <- NA
+
+# Mouse Model Overview Columns
+# ----------------------------
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
-#
+
 mo_columns <- data.frame(
   name = c("Model", "Model Type", "Matched Controls",
            "Transcriptomics", "Proteomics", "Disease Correlation",
@@ -557,8 +594,8 @@ mo_columns <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Model Overview Filters
-# ----------------------
+# Mouse Model Overview Filters
+# ----------------------------
 mo_filters <- data.frame(
   name = c('Available Data', 'Contributing Center', 'Model Type', 'Modified Gene'),
   data_key = c('available_data', 'center', 'model_type', 'modified_genes'),
@@ -567,8 +604,8 @@ mo_filters <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# Model Overview Filter Values
-# ----------------------------
+# Mouse Model Overview Filter Values
+# ----------------------------------
 # Include modified_gene filter values for genes modified in any included model
 # - Mouse gene symbols use initial caps, e.g. Psen1
 # - For human transgenes introduced into mouse models use all caps, e.g. PSEN1
@@ -605,11 +642,11 @@ build_mo_object <- function() {
   filters <- build_filters(mo_filters, mo_filter_values)
 
   # Assemble the ui_config object
-  # note that the page value does not actually control the CT's display title
-  # so this is not updated to 'Mouse Model Overview' even though the display title will be updated
   list(
-    page = "Mouse Model Overview",
+    page = mo_page,
     dropdowns = list(),
+    view_noun = mo_view_noun,
+    parent_noun = mo_parent_noun,
     row_count = model_overview_row_count,
     columns = columns,
     filters = filters
@@ -620,9 +657,13 @@ build_mo_object <- function() {
 # ********************
 # Marmo Model Overview
 # ********************
-
+marmo_mo_page <- "Marmoset Model Overview"
+marmo_mo_view_noun <- list(singular = "Model", plural = "Models")
+marmo_mo_parent_noun <- NA
 marmo_ad_adkp_study_url <- "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn61849889"
 
+# Marmo Model Overview Columns
+# ----------------------------
 # name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden
 #
 marmo_mo_columns <- data.frame(
@@ -639,7 +680,7 @@ marmo_mo_columns <- data.frame(
 )
 
 # Marmo Model Overview Filters
-# ----------------------
+# ----------------------------
 marmo_mo_filters <- data.frame(
   name = c('Available Data', 'Model Type', 'Modified Gene'),
   data_key = c('available_data', 'model_type', 'modified_genes'),
@@ -667,8 +708,10 @@ build_marmo_mo_object <- function() {
 
   # Assemble the ui_config object
   list(
-    page = "Marmoset Model Overview",
+    page = marmo_mo_page,
     dropdowns = list(),
+    view_noun = marmo_mo_view_noun,
+    parent_noun = marmo_mo_parent_noun,
     row_count = model_overview_row_count,
     columns = columns,
     filters = filters
