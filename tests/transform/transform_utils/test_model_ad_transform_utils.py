@@ -215,17 +215,23 @@ class TestBuildExpressionResultsUrl:
             ),
         ],
     )
+    @pytest.mark.parametrize(
+        "empty_val",
+        ["", None],
+        ids=["Pass with empty string value", "Pass with None value"],
+    )
     def test_build_expression_results_url_all_default_values(
-        self, result_type: str, category_default: str
+        self, empty_val: str, result_type: str, category_default: str
     ) -> None:
         """
-        The function should use a default category for the URL when the url_categories_value is None.
+        The function should treat both "" and None as empty values and use a default category for the URL. When
+        url_models_value is also empty, the model name should be used for the 'models' query parameter.
         """
         model = pd.Series(
             {
                 "name": "Model",
-                f"{result_type}_url_categories_value": None,
-                f"{result_type}_url_models_value": None,
+                f"{result_type}_url_categories_value": empty_val,
+                f"{result_type}_url_models_value": empty_val,
                 result_type: True,
             }
         )
@@ -233,45 +239,6 @@ class TestBuildExpressionResultsUrl:
         url = build_expression_results_url(model, result_type=result_type)
         assert (
             url == f"comparison/expression?categories={category_default}&models=Model"
-        )
-
-    @pytest.mark.parametrize(
-        "result_type, category_default",
-        [
-            (
-                "transcriptomics",
-                "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
-            ),
-            (
-                "proteomics",
-                "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
-            ),
-        ],
-    )
-    @pytest.mark.parametrize(
-        "empty_val",
-        ["", None],
-        ids=["Pass with empty string value", "Pass with None value"],
-    )
-    def test_build_expression_results_url_default_category(
-        self, empty_val: str, result_type: str, category_default: str
-    ) -> None:
-        """
-        The function should treat both "" and None as empty values and use a default category for the URL.
-        """
-        model = pd.Series(
-            {
-                "name": "Model",
-                f"{result_type}_url_categories_value": empty_val,
-                f"{result_type}_url_models_value": "model1,model2",
-                result_type: True,
-            }
-        )
-
-        url = build_expression_results_url(model, result_type=result_type)
-        assert (
-            url
-            == f"comparison/expression?categories={category_default}&models=model1,model2"
         )
 
     @pytest.mark.parametrize(
