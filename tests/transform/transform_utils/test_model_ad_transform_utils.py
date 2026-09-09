@@ -271,7 +271,7 @@ class TestBuildExpressionResultsUrl:
         url = build_expression_results_url(model, result_type=result_type)
         assert (
             url
-            == f"comparison/expression?categories={category_default}&models=Model,model1,model2"
+            == f"comparison/expression?categories={category_default}&models=model1,model2"
         )
 
     @pytest.mark.parametrize(
