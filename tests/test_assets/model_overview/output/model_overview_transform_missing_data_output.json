@@ -6,7 +6,9 @@
     "transcriptomics": {
       "link_url": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=3xTg-AD"
     },
-    "proteomics": null,
+    "proteomics": {
+      "link_url": "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=3xTg-AD"
+    },
     "disease_correlation": null,
     "pathology": {
       "link_url": "models/3xTg-AD/pathology"
@@ -26,6 +28,7 @@
     ],
     "available_data": [
       "Transcriptomics",
+      "Proteomics",
       "Pathology",
       "Biomarkers"
     ]
@@ -33,7 +36,9 @@
   {
     "name": "5xFAD (UCI)",
     "model_type": null,
-    "matched_controls": ["C57BL6J"],
+    "matched_controls": [
+      "C57BL6J"
+    ],
     "transcriptomics": {
       "link_url": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=5xFAD (UCI)"
     },
@@ -59,7 +64,9 @@
   {
     "name": "APOE4",
     "model_type": "Late Onset AD",
-    "matched_controls": ["C57BL6J"],
+    "matched_controls": [
+      "C57BL6J"
+    ],
     "transcriptomics": {
       "link_url": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=APOE4"
     },
