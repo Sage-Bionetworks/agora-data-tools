@@ -211,6 +211,7 @@ rna_de_parent_id_data_key <- "composite_id"
 
 # Display label noun
 rna_de_view_noun <- list(singular = "Gene", plural = "Genes")
+rna_de_parent_noun <- NA
 
 # RNA - Columns
 # -------------
@@ -311,9 +312,9 @@ build_de_object <- function(menu1_label, tissue_label, dynamic_names,
     # The column ordering is mirrored when a CSV is generated
   columns <- c(leading_columns, dynamic_columns, trailing_columns)
 
-    object <- list(
+  list(
       page = "Differential Expression",
-    dropdowns = c(menu1_label, tissue_label),
+      dropdowns = c(menu1_label, tissue_label),
       row_id_data_key = row_id_data_key,
       parent_id_data_key = parent_id_data_key,
       view_noun = view_noun,
@@ -322,7 +323,6 @@ build_de_object <- function(menu1_label, tissue_label, dynamic_names,
       columns = columns,
     filters = build_filters(de_filters, de_filter_values)
   )
-  purrr::discard(object, is.null)
 }
 
 # Generates RNA Differential Expression ui_config objects (one per tissue)
@@ -360,9 +360,11 @@ build_rna_de_objects <- function() {
       stop() # fail if we are missing required filter values
     }
 
-    build_de_object(rna_de_menu1, tissue, dynamic_names, dynamic_model_filter_vals,
+    build_de_object(rna_de_menu1, tissue,
+                    dynamic_names, dynamic_model_filter_vals,
                     leading_columns, trailing_columns,
-                    rna_de_row_id_data_key, rna_de_parent_id_data_key, rna_de_view_noun)
+                    rna_de_row_id_data_key, rna_de_parent_id_data_key,
+                    rna_de_view_noun, rna_de_parent_noun)
   })
 }
 
@@ -403,7 +405,8 @@ build_protein_de_objects <- function() {
 # *******************
 dc_page <- "Disease Correlation"
 # when no noun is provided, app will fall back to display "Results"
-dc_view_noun <- NULL
+dc_view_noun <- NA
+dc_parent_noun <- NA
 
 # Disease Correlation Dropdowns Menus
 # -----------------------------------
@@ -541,15 +544,15 @@ build_dc_objects <- function() {
     columns <- c(list(primary, cluster, age, sex), dynamic_columns, c(list(model_type, matched_control, modified_genes)))
     filters <- build_filters(dc_filters, dc_filter_values)
 
-    object <- list(
+    list(
       page = dc_page,
       dropdowns = c(combo$menu1, combo$menu2),
       view_noun = dc_view_noun,
+      parent_noun = dc_parent_noun,
       row_count = disease_correlation_row_count,
       columns = columns,
       filters = filters
     )
-    purrr::discard(object, is.null)
   })
 }
 
@@ -558,6 +561,7 @@ build_dc_objects <- function() {
 # ********************
 mo_page <- "Mouse Model Overview"
 mo_view_noun <- list(singular = "Model", plural = "Models")
+mo_parent_noun <- NA
 
 # Mouse Model Overview Columns
 # ----------------------------
@@ -642,6 +646,7 @@ build_mo_object <- function() {
     page = mo_page,
     dropdowns = list(),
     view_noun = mo_view_noun,
+    parent_noun = mo_parent_noun,
     row_count = model_overview_row_count,
     columns = columns,
     filters = filters
@@ -654,6 +659,7 @@ build_mo_object <- function() {
 # ********************
 marmo_mo_page <- "Marmoset Model Overview"
 marmo_mo_view_noun <- list(singular = "Model", plural = "Models")
+marmo_mo_parent_noun <- NA
 marmo_ad_adkp_study_url <- "https://adknowledgeportal.synapse.org/Explore/Studies/DetailsPage/StudyDetails?Study=syn61849889"
 
 # Marmo Model Overview Columns
@@ -705,6 +711,7 @@ build_marmo_mo_object <- function() {
     page = marmo_mo_page,
     dropdowns = list(),
     view_noun = marmo_mo_view_noun,
+    parent_noun = marmo_mo_parent_noun,
     row_count = model_overview_row_count,
     columns = columns,
     filters = filters
