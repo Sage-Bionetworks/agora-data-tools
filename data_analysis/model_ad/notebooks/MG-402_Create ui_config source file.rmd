@@ -210,7 +210,7 @@ rna_de_row_id_data_key <- "composite_id"
 rna_de_parent_id_data_key <- "composite_id"
 
 # Display label noun
-rna_de_view_noun <- list(singular = "gene", plural = "genes")
+rna_de_view_noun <- list(singular = "Gene", plural = "Genes")
 
 # RNA - Columns
 # -------------
