@@ -6,6 +6,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?models=3xTg-AD"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": {
       "link_url": "models/3xTg-AD/pathology"
@@ -36,6 +37,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?models=5xFAD (UCI)"
     },
+    "proteomics": null,
     "disease_correlation": null,
     "pathology": {
       "link_url": "models/5xFAD (UCI)/pathology"
@@ -61,6 +63,7 @@
     "transcriptomics": {
       "link_url": "comparison/expression?models=APOE4"
     },
+    "proteomics": null,
     "disease_correlation": {
       "link_url": "comparison/correlation?models=APOE4"
     },

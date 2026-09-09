@@ -14,7 +14,7 @@ from agoradatatools.etl.utils import (
     delim_string_to_list,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    build_transcriptomics_url,
+    build_expression_results_url,
     process_genetic_info,
     zero_pad_jax_ids,
 )
@@ -41,12 +41,15 @@ REQUIRED_INPUT = {
         "alzforum_id",
         "genotype",
         "aliases",
-        "url_categories_value",
-        "url_models_value",
+        "transcriptomics_url_categories_value",
+        "transcriptomics_url_models_value",
         "transcriptomics",
         "disease_correlation",
         "pathology",
         "biomarkers",
+        "proteomics",
+        "proteomics_url_categories_value",
+        "proteomics_url_models_value",
     ],
     "immunohisto_measure_order": [
         "dataset_name",
@@ -115,7 +118,7 @@ def transform_model_details(
 
     model_metadata_df = normalize_null_values(
         model_metadata_df,
-        boolean_columns=["transcriptomics", "disease_correlation"],
+        boolean_columns=["transcriptomics", "proteomics", "disease_correlation"],
         empty_string_columns=["rrid", "alzforum_id"],
     )
 
@@ -161,6 +164,7 @@ def transform_model_details(
             "genotype": model_row["genotype"],
             "aliases": model_row["aliases"],
             "transcriptomics": None,
+            "proteomics": None,
             "disease_correlation": None,
             "spatial_transcriptomics": None,
             "genetic_info": genetic_info,
@@ -168,8 +172,13 @@ def transform_model_details(
             "pathology": model_pathology,
         }
 
-        # Add transcriptomics and disease correlation links if they exist
-        model_entry["transcriptomics"] = build_transcriptomics_url(model_row)
+        # Add transcriptomics, proteomics, and disease correlation links if they exist
+        model_entry["transcriptomics"] = build_expression_results_url(
+            model_row, result_type="transcriptomics"
+        )
+        model_entry["proteomics"] = build_expression_results_url(
+            model_row, result_type="proteomics"
+        )
         model_entry["disease_correlation"] = (
             f"comparison/correlation?models={model_name}"
             if bool(model_row["disease_correlation"])
