@@ -78,8 +78,7 @@ def build_expression_results_url(
         * 'models' = url_models_value if specified, otherwise default to the model name. For example, some UCI studies
             have 4 associated genotypes, and url_models_value should load all 4 in the comparison table
 
-    The final URL can have two formats:
-        "comparison/expression?models=..." (transcriptomics only)
+    The final URL will look something like this:
         "comparison/expression?categories=...&models=..."
 
     The url will be None if the result_type is unsupported or there is no result data for this model.
@@ -98,7 +97,7 @@ def build_expression_results_url(
         a string with the completed URL, or None if there is no data for the model or if the result_type is unsupported
     """
     default_categories = {
-        "transcriptomics": "",
+        "transcriptomics": "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
         "proteomics": "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
     }
 
