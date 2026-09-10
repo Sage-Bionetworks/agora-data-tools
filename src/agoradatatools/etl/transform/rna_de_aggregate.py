@@ -15,7 +15,7 @@ The transformation:
 - Normalizes zero values in log2 fold change for consistent representation
 - Enriches data with gene symbols, biodomains, and model metadata
 - Maps genotypes to display labels with strict validation (raises ValueError if mappings are missing)
-- Applies special tissue name transformation for JAX models ("Right Cerebral Hemisphere" -> "Hemibrain")
+- Applies the shared tissue alias mapping (Right Cerebral Hemisphere -> Hemibrain), case-insensitively
 - Rounds numeric columns to 5 decimal places for consistency
 - Processes multiple data files sequentially to minimize memory usage
 
@@ -48,6 +48,15 @@ from agoradatatools.etl.utils import (
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
+)
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    build_model_to_model_group,
+    create_gene_metadata_dict,
+    filter_to_mouse_genes,
+    log_file_processing_info,
+    normalize_tissue,
+    validate_data_file_not_empty,
+    validate_model_group_consistency,
 )
 
 logger = logging.getLogger(__name__)
@@ -143,7 +152,8 @@ def _create_age_entries_from_group(
     p-values) for each age timepoint in the group. The function performs data normalization and
     validation, including:
     - Normalizing zero values in log2 fold change to ensure consistent representation
-    - Converting missing (NA) adjusted p-values to 0.0
+    - Converting missing (NA) adjusted p-values to 1.0, because a missing p-value is
+      not evidence of significance and must not present as 0.0 (maximally significant)
     - Validating that adjusted p-values are non-negative when present
 
     The resulting dictionary structure allows for easy lookup of differential expression metrics
@@ -163,12 +173,13 @@ def _create_age_entries_from_group(
         Dictionary mapping age strings (e.g., '3 months', '6 months') to nested dictionaries
         containing:
             - 'log2_fc': float, normalized log2 fold change value (zero values normalized)
-            - 'adj_p_val': float, adjusted p-value (NA values converted to 0.0)
+            - 'adj_p_val': float, adjusted p-value (NA values converted to 1.0, because
+              a missing p-value is not evidence of significance)
 
         Example:
             {
                 '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
-                '6 months': {'log2_fc': 2.456, 'adj_p_val': 0.0}
+                '6 months': {'log2_fc': 2.456, 'adj_p_val': 1.0}  # missing padj
             }
 
     Raises:
@@ -215,8 +226,7 @@ def _create_output_entry_from_group(
     1. Extracts metadata from lookup dictionaries for efficient data enrichment
     2. Creates age-based entries from the grouped DataFrame using helper functions
     3. Validates and sorts age entries by numeric age value
-    4. Applies special tissue name transformation (JAX models: "Right Cerebral Hemisphere" -> "Hemibrain")
-    5. Constructs a comprehensive output dictionary combining all metadata and age-based data
+    4. Constructs a comprehensive output dictionary combining all metadata and age-based data
 
     The resulting entry represents a complete record for one gene-model-tissue-sex combination
     with all associated age timepoint measurements, ready for inclusion in the final output.
@@ -252,7 +262,7 @@ def _create_output_entry_from_group(
             - 'matched_control': str, Display label for the control genotype
             - 'model_group': str or None, Model group name (None if empty)
             - 'model_type': str, Model type classification (empty string if not found)
-            - 'tissue': str, Tissue name (transformed for JAX models if applicable)
+            - 'tissue': str, Tissue name (aliases already applied by the caller)
             - 'sex': str, Sex category
             - Age-based entries: Dictionary keys are age strings (e.g., '3 months', '6 months')
               with values containing 'log2_fc' and 'adj_p_val' for each age timepoint
@@ -313,10 +323,6 @@ def _create_output_entry_from_group(
         age_entries, ensembl_gene_id, model, tissue, sex
     )
 
-    # If tissue is "Right Cerebral Hemisphere", change tissue to "Hemibrain"
-    # Only expected for JAX models
-    tissue = "Hemibrain" if tissue == "Right Cerebral Hemisphere" else tissue
-
     return {
         "ensembl_gene_id": ensembl_gene_id,
         "gene_symbol": gene_symbol,
@@ -358,10 +364,11 @@ def _process_single_data_file(
     4. Filtering to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*)
     5. Filtering out combined-cohort rows where sex is "Females & Males"
     6. Mapping plural sex values to singular display labels
-    7. Rounding numeric columns to 5 decimal places for consistency
-    8. Grouping data by gene, model, tissue, sex, case, and control
-    9. Creating enriched output entries for each group using metadata dictionaries
-    10. Cleaning up memory by deleting the processed DataFrame and running garbage collection
+    7. Applying the shared tissue alias mapping before grouping
+    8. Rounding numeric columns to 5 decimal places for consistency
+    9. Grouping data by gene, model, tissue, sex, case, and control
+    10. Creating enriched output entries for each group using metadata dictionaries
+    11. Cleaning up memory by deleting the processed DataFrame and running garbage collection
 
     Each output entry represents a unique combination of gene, model, tissue, and sex,
     with age-based differential expression measurements and enriched metadata.
@@ -410,28 +417,24 @@ def _process_single_data_file(
         genes to ensure only mouse (Mus musculus) data is processed, as indicated by
         Ensembl IDs starting with "ENSMUSG".
     """
-    logger.info(
-        f"Processing {file_name} ({file_index+1}/{total_files}): {len(data_file)} rows, "
-        f"{len(data_file.columns)} columns, "
-        f"{data_file.memory_usage(deep=True).sum() / 1024**2:.2f} MB"
-    )
-
-    # Check if data file is empty (before column validation)
-    if len(data_file) == 0:
-        raise ValueError(f"Data file {file_name} is empty")
+    log_file_processing_info(file_name, file_index, total_files, data_file)
+    validate_data_file_not_empty(file_name, data_file)
 
     check_required_datasets_and_columns(
         {file_name: data_file}, {file_name: data_file_required_columns}
     )
 
-    # Filter out rows with human gene ensembl IDs (ENSG*), keep only mouse (ENSMUSG*)
-    data_file = data_file[data_file["ensembl_gene_id"].str.startswith("ENSMUSG")]
+    data_file = filter_to_mouse_genes(data_file)
 
     # Filter out combined-cohort rows; keep single-sex rows only
     data_file = data_file[data_file["sex"] != "Females & Males"]
 
     # Map plural source sex labels to their singular display form
     data_file["sex"] = remap_sex_labels(data_file["sex"])
+    # Before the groupby: tissue is a grouping key, so two casings of the same alias
+    # would otherwise become two groups. Shared with the individual transforms so a
+    # Hemibrain label cannot differ across the three datasets on the same page.
+    data_file["tissue"] = normalize_tissue(data_file["tissue"])
 
     # Round numeric columns to 5 decimal places for consistency
     data_file = data_file.round(decimals=5)
@@ -558,34 +561,17 @@ def transform_rna_de_aggregate(
         axis="index", subset=["ensembl_id"]
     )
 
-    # Create Ensembl -> Gene symbol lookup. Missing/NA gene symbols are dropped. When looking up an Ensembl ID, the
-    # symbol will default to "" if the ID isn't in the dict.
-    gene_metadata_dict = (
-        mouse_gene_metadata_df.set_index("ensembl_gene_id")["gene_symbol"]
-        .dropna()
-        .to_dict()
-    )
+    # Missing gene symbols are dropped inside create_gene_metadata_dict; lookups default
+    # to an empty string when the Ensembl ID is absent.
+    gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
 
     # Create label map dictionaries for efficient lookups
     label_map_dict = genotype_label_map_df.set_index(["model", "genotype"])[
         "display_label"
     ].to_dict()
 
-    # Validate that each model has consistent model_group values
-    inconsistent_models = (
-        genotype_label_map_df.groupby("model")["model_group"]
-        .nunique()
-        .pipe(lambda x: x[x > 1].index.tolist())
-    )
-    if inconsistent_models:
-        raise ValueError(
-            f"Each model must have a consistent model_group value in genotype_label_map. "
-            f"Models with inconsistent model_group values: {inconsistent_models}"
-        )
-
-    model_group_dict = (
-        genotype_label_map_df.groupby("model")["model_group"].first().to_dict()
-    )
+    validate_model_group_consistency(genotype_label_map_df)
+    model_group_dict = build_model_to_model_group(genotype_label_map_df)
 
     # Derive model_type from genotype_label_map so that split variant models
     # (e.g., "Abca7*V1599M.5xFAD") are covered without requiring entries in model_info.
