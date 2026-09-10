@@ -499,7 +499,8 @@ class TestCreateOutputEntryFromGroup:
     Test Methods:
         - test_create_output_entry_basic: Tests basic output entry creation.
         - test_create_output_entry_missing_metadata: Tests handling of missing metadata.
-        - test_create_output_entry_jax_tissue_mapping: Tests JAX tissue name mapping.
+        - test_create_output_entry_passes_tissue_through: Tissue aliases are applied
+          before grouping, so this function writes the tissue it is given.
         - test_create_output_entry_empty_model_group: Tests empty model_group conversion to None.
         - test_create_output_entry_multiple_biodomains: Tests multiple biodomain assignments.
     """
@@ -606,8 +607,8 @@ class TestCreateOutputEntryFromGroup:
         assert result["tissue"] == "Hippocampus"
         assert result["sex"] == "Female"
 
-    def test_create_output_entry_jax_tissue_mapping(self) -> None:
-        """Test that JAX tissue name 'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
+    def test_create_output_entry_passes_tissue_through(self) -> None:
+        """Tissue aliases are applied in _process_single_data_file, not here."""
         group_key = (
             "ENSMUSG00000000003",
             "Model_C",
@@ -643,7 +644,7 @@ class TestCreateOutputEntryFromGroup:
             model_type_dict=model_type_dict,
         )
 
-        assert result["tissue"] == "Hemibrain"  # Should be mapped
+        assert result["tissue"] == "Right Cerebral Hemisphere"
 
     def test_create_output_entry_multiple_biodomains(self) -> None:
         """Test output entry with multiple biodomain assignments."""
@@ -1143,6 +1144,51 @@ class TestProcessSingleDataFile:
         assert len(result) == 2
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result[1]["ensembl_gene_id"] == "ENSMUSG00000000002"
+
+    def test_process_single_data_file_maps_tissue_case_insensitively(self) -> None:
+        """Right Cerebral Hemisphere maps to Hemibrain regardless of source casing."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "log2foldchange": [1.5, 1.6],
+                "padj": [0.01, 0.02],
+                "model": ["Model_A", "Model_A"],
+                "case": ["Tg", "Tg"],
+                "control": ["Wt", "Wt"],
+                "age": ["6 months", "6 months"],
+                "sex": ["Male", "Male"],
+                "tissue": ["right cerebral hemisphere", " Right Cerebral Hemisphere "],
+            }
+        )
+
+        result = _process_single_data_file(
+            file_name="jax_tissue.csv",
+            data_file=data_file,
+            data_file_required_columns=[
+                "ensembl_gene_id",
+                "log2foldchange",
+                "padj",
+                "model",
+                "case",
+                "control",
+                "age",
+                "sex",
+                "tissue",
+            ],
+            gene_metadata_dict={},
+            label_map_dict={
+                ("Model_A", "Tg"): "Transgenic",
+                ("Model_A", "Wt"): "Wildtype",
+            },
+            model_group_dict={},
+            biodomain_dict={},
+            model_type_dict={},
+            file_index=0,
+            total_files=1,
+        )
+
+        assert len(result) == 1
+        assert result[0]["tissue"] == "Hemibrain"
 
 
 class TestTransformRnaDeAggregate:
@@ -1750,6 +1796,27 @@ class TestTransformRnaDeAggregate:
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
+
+    def test_mixed_none_and_real_model_group_raises(self) -> None:
+        """A model with both a real group and a missing one is inconsistent.
+
+        nunique(dropna=False) rejects this; the previous nunique() call skipped NaN
+        and would have treated the model as having a single group.
+        """
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+        label_map = datasets["genotype_label_map"].copy()
+        label_map.loc[label_map.index[0], "model_group"] = None
+        datasets["genotype_label_map"] = label_map
+
+        with pytest.raises(ValueError, match="consistent model_group value"):
+            transform_rna_de_aggregate(datasets=datasets)
 
     def test_inconsistent_model_type_values(self) -> None:
         """Test error handling for inconsistent model_type values within the same model.
