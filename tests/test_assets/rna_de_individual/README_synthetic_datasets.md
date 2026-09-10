@@ -139,7 +139,7 @@ Each output JSON file contains the expected transformed data structure:
 2. **TestProcessIndividualDataFileCore**: Tests single file processing logic, including:
    - `test_name_equals_model_for_single_model_group`: Verifies `name` is set to `model` (not `model_group`) for single-model groups where they differ
 
-### Unit Tests (`test_rna_de_individual_utils.py`)
+### Unit Tests (`test_model_ad_expression_utils.py`)
 
 1. **TestFilterMouseGenes**: Tests mouse gene filtering logic
 2. **TestTissueNameMapping**: Tests tissue name transformation
