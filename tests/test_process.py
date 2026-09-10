@@ -458,6 +458,24 @@ class TestApplyCustomTransformations:
 
         return _mock_transform_with_args
 
+    @pytest.fixture(scope="function", autouse=True)
+    def mapping_transform_function(
+        self,
+    ) -> Callable[[pd.DataFrame, Dict[str, str]], pd.DataFrame]:
+        """mock transform function that takes a dict parameter, as transform_protein_de_individual does with model_map"""
+
+        def _mock_transform_with_mapping(
+            df: pd.DataFrame, test_mapping: Dict[str, str]
+        ) -> pd.DataFrame:
+            """mock transform function that looks values up in a dict argument
+
+            Using the dict rather than just receiving it proves it survives the config to
+            keyword argument hop as a usable mapping.
+            """
+            return df.assign(new_key=df["test_key"].map(test_mapping))
+
+        return _mock_transform_with_mapping
+
     @pytest.mark.parametrize(
         "example_config_with_custom_transform,expected_error",
         # Fails because mock_transform_function_false doesn't exist
@@ -630,10 +648,42 @@ class TestApplyCustomTransformations:
                     }
                 ),
             ),
+            (
+                # valid custom transformations with a dict-valued parameter
+                {
+                    "neuropath_corr": {
+                        "files": [
+                            {"name": "test_file_1", "id": "syn1111111", "format": "csv"}
+                        ],
+                        "final_format": "json",
+                        "provenance": ["syn1111111"],
+                        "destination": "syn1111113",
+                        "gx_enabled": False,
+                        "custom_transformations": {
+                            "mapping_transform_function": {
+                                "test_mapping": {
+                                    "test_value1": "model_a",
+                                    "test_value2": "model_b",
+                                }
+                            }
+                        },
+                    }
+                },
+                "mapping_transform_function",
+                does_not_raise(),
+                pd.DataFrame(
+                    {
+                        "test_key": ["test_value1", "test_value2"],
+                        "value_column": [1, 2],
+                        "new_key": ["model_a", "model_b"],
+                    }
+                ),
+            ),
         ],
         ids=[
             "valid_custom_transformations_standard_params",
             "valid_custom_transformations_special_params",
+            "valid_custom_transformations_mapping_params",
         ],
     )
     def test_apply_valid_custom_transformations(
@@ -644,6 +694,9 @@ class TestApplyCustomTransformations:
         special_transform_function: Callable[
             [pd.DataFrame, str, Dict[str, pd.DataFrame]], pd.DataFrame
         ],
+        mapping_transform_function: Callable[
+            [pd.DataFrame, Dict[str, str]], pd.DataFrame
+        ],
         function_name: str,
         example_config_with_custom_transform: Dict[str, Any],
         expectation: ContextManager[None],
@@ -651,10 +704,10 @@ class TestApplyCustomTransformations:
     ) -> None:
         """Test that transformations are applied correctly when a valid transformation function is provided."""
 
-        if function_name == "special_transform_function":
-            mocked_transform = special_transform_function
-        else:
-            mocked_transform = standard_transform_function
+        mocked_transform = {
+            "special_transform_function": special_transform_function,
+            "mapping_transform_function": mapping_transform_function,
+        }.get(function_name, standard_transform_function)
         with patch.object(transform, function_name, mocked_transform, create=True):
             with expectation:
                 df_transformed = process.apply_custom_transformations(
