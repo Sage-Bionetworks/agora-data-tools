@@ -27,6 +27,9 @@ from agoradatatools.etl.transform.nominated_targets import transform_nominated_t
 from agoradatatools.etl.transform.model_overview import transform_model_overview
 from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggregate
 from agoradatatools.etl.transform.rna_de_individual import transform_rna_de_individual
+from agoradatatools.etl.transform.protein_de_individual import (
+    transform_protein_de_individual,
+)
 
 
 __all__ = [
@@ -49,4 +52,5 @@ __all__ = [
     "transform_model_overview",
     "transform_rna_de_aggregate",
     "transform_rna_de_individual",
+    "transform_protein_de_individual",
 ]
