@@ -1,8 +1,10 @@
 """
-Test suite for the shared Model AD individual-expression transform utilities.
+Test suite for the shared Model AD expression transform utilities.
 
 Covers model_ad_expression_utils, which rna_de_individual, protein_de_individual,
-and rna_de_aggregate call into.
+and rna_de_aggregate call into. The module is not individual-only: nest_individual_records
+is, but the file, tissue, genotype-label, and gene-metadata helpers are used by
+aggregate as well.
 """
 
 import pandas as pd
