@@ -339,4 +339,29 @@ Parameters:
 - `datasets/<dataset>/destination`: Override the default destination for a specific dataset by specifying a synID, or use `*dest` to use the default destination
 - `datasets/<dataset>/column_rename`: Columns to be renamed prior to data transformation
 - `datasets/<dataset>/agora_rename`: Columns to be renamed after data transformation, but prior to json serialization
-- `datasets/<dataset>/custom_transformations`: The list of additional transformations to apply to the dataset; a value of 1 indicates the default transformation
+- `datasets/<dataset>/custom_transformations`: The custom transformation function to apply to the dataset. Only one function per dataset is supported. It takes one of two forms:
+
+  The function name on its own, when the function needs no configuration beyond its input files:
+
+  ```yaml
+  custom_transformations: transform_team_info
+  ```
+
+  Or the function name mapped to the parameters to pass it, which are supplied to the function as keyword arguments. Values may be scalars, lists, or nested mappings:
+
+  ```yaml
+  custom_transformations:
+    transform_gene_info:
+      adjusted_p_value_threshold: 0.05
+      protein_level_threshold: 0.05
+  ```
+
+  ```yaml
+  custom_transformations:
+    transform_protein_de_individual:
+      model_map:
+        jax_load2_proteomics: LOAD2
+        jax_load2_proteomics_24mo: LOAD2
+  ```
+
+  Each parameter name must match a keyword argument of the transformation function, which is where its accepted values are documented.
