@@ -10,6 +10,7 @@ Key Functions:
     filter_to_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
     determine_result_order: Order genotype display labels within a model_group
     validate_model_group_consistency: Validate that each model has consistent model_group values
+    build_model_to_model_group: Look up each model's model_group
     create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
     log_file_processing_info: Log information about a file being processed
     validate_data_file_not_empty: Validate that a data file is not empty
@@ -94,6 +95,28 @@ def validate_model_group_consistency(
             f"Each model must have a consistent model_group value in genotype_label_map. "
             f"Models with inconsistent model_group values: {inconsistent_models}"
         )
+
+
+def build_model_to_model_group(
+    genotype_label_map_df: pd.DataFrame,
+) -> Dict[str, str]:
+    """
+    Build a lookup mapping each model to its model_group.
+
+    Taking the first row per model is safe because validate_model_group_consistency
+    rejects a label map that gives one model more than one model_group.
+
+    Args:
+        genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
+
+    Returns:
+        Dictionary mapping model to model_group
+    """
+    return (
+        genotype_label_map_df.drop_duplicates("model")
+        .set_index("model")["model_group"]
+        .to_dict()
+    )
 
 
 def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str, str]:

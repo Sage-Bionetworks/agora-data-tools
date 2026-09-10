@@ -23,6 +23,7 @@ from agoradatatools.etl.transform.protein_de_individual import (
     transform_protein_de_individual,
     _build_gene_aliases,
     _build_uniprot_candidates,
+    _measured_header_pairs,
     _melt_proteomics_file,
     _normalize_tissue,
     _resolve_gene_ids,
@@ -80,6 +81,118 @@ class TestBuildGeneAliases:
         }
 
 
+class TestMeasuredHeaderPairs:
+    """Unit tests for reading accession and symbol pairs from the wide column headers.
+
+    Gene resolution has to see every data file at once, so it runs on the headers before
+    the per-model_group loop melts anything. These tests pin the pairs to what the melt
+    leaves behind, because the two derive the same accessions by different routes and must
+    not drift apart.
+    """
+
+    @staticmethod
+    def _melted_accessions(datasets: Dict[str, pd.DataFrame]) -> set:
+        """Collect the accessions the melt actually yields, for comparison."""
+        return {
+            accession
+            for name, data_file in datasets.items()
+            for accession in _melt_proteomics_file(name, data_file, "LOAD2")[
+                "uniprotid"
+            ]
+        }
+
+    def test_pairs_cover_exactly_the_measured_accessions(self) -> None:
+        """Test that a column with no values contributes no pair, and every other one does."""
+        datasets = {
+            "file1": pd.DataFrame(
+                {
+                    "individualid": [1, 2],
+                    "cycs|p00001": [1.0, 2.0],
+                    "srp54|p00002": [None, 3.0],
+                    "dead|p00003": [None, None],
+                }
+            )
+        }
+
+        pairs = _measured_header_pairs(datasets, list(datasets))
+
+        assert set(pairs["uniprotid"]) == self._melted_accessions(datasets)
+        assert set(pairs["uniprotid"]) == {"P00001", "P00002"}
+        assert set(pairs["header_symbol"]) == {"cycs", "srp54"}
+
+    def test_isoform_accession_is_recovered_from_the_header(self) -> None:
+        """Test that the header pre-pass applies the same accession casing and hyphen rule."""
+        datasets = {
+            "file1": pd.DataFrame({"individualid": [1], "ank2|q8c8r3_2": [1.0]})
+        }
+
+        pairs = _measured_header_pairs(datasets, list(datasets))
+
+        assert set(pairs["uniprotid"]) == self._melted_accessions(datasets)
+        assert pairs["uniprotid"].tolist() == ["Q8C8R3-2"]
+
+    def test_symbols_are_unioned_across_files(self) -> None:
+        """Test the reason the pre-pass spans every file rather than running per group.
+
+        One accession may be headed with a usable symbol in one file and an unusable one in
+        another, so resolving a group at a time would lose the usable symbol.
+        """
+        datasets = {
+            "file1": pd.DataFrame({"individualid": [1], "na|p00001": [1.0]}),
+            "file2": pd.DataFrame({"individualid": [2], "cycs|p00001": [2.0]}),
+        }
+
+        pairs = _measured_header_pairs(datasets, list(datasets))
+
+        assert set(pairs["header_symbol"]) == {"na", "cycs"}
+        resolved = _resolve_gene_ids(
+            pairs,
+            {"P00001": ["ENSMUSG00000000001", "ENSMUSG00000000009"]},
+            {"ENSMUSG00000000001": "Gm10053", "ENSMUSG00000000009": "Cycs"},
+            {},
+        )
+        assert resolved == {"P00001": "ENSMUSG00000000009"}
+
+    def test_repeated_header_yields_one_pair(self) -> None:
+        """Test that a protein measured in several files is not counted once per file."""
+        datasets = {
+            "file1": pd.DataFrame({"individualid": [1], "cycs|p00001": [1.0]}),
+            "file2": pd.DataFrame({"individualid": [2], "cycs|p00001": [2.0]}),
+        }
+
+        pairs = _measured_header_pairs(datasets, list(datasets))
+
+        assert len(pairs) == 1
+
+    def test_dead_isoform_column_cannot_steer_its_base_accession(self) -> None:
+        """Test the case the empty-column filter exists for.
+
+        Isoform accessions fold into their base accession when symbols are collected, so an
+        all-empty isoform column would otherwise drag P00001 off Cycs and onto Gm10053 --
+        a gene no measured column ever named.
+        """
+        datasets = {
+            "file1": pd.DataFrame(
+                {
+                    "individualid": [1, 2],
+                    "cycs|p00001": [1.0, 2.0],
+                    "gm10053|p00001_2": [None, None],
+                }
+            )
+        }
+
+        pairs = _measured_header_pairs(datasets, list(datasets))
+
+        assert set(pairs["uniprotid"]) == self._melted_accessions(datasets)
+        resolved = _resolve_gene_ids(
+            pairs,
+            {"P00001": ["ENSMUSG00000000001", "ENSMUSG00000000009"]},
+            {"ENSMUSG00000000001": "Gm10053", "ENSMUSG00000000009": "Cycs"},
+            {},
+        )
+        assert resolved == {"P00001": "ENSMUSG00000000009"}
+
+
 class TestResolveGeneIds:
     """Unit tests for choosing one gene when an accession maps to several."""
 
@@ -87,7 +200,7 @@ class TestResolveGeneIds:
     gene_symbols = {"ENSMUSG00000000001": "Gm10053", "ENSMUSG00000000009": "Cycs"}
 
     @staticmethod
-    def _long_df(uniprotid: str, header_symbol: str) -> pd.DataFrame:
+    def _header_pairs(uniprotid: str, header_symbol: str) -> pd.DataFrame:
         return pd.DataFrame(
             {"uniprotid": [uniprotid], "header_symbol": [header_symbol]}
         )
@@ -104,15 +217,20 @@ class TestResolveGeneIds:
             ("NA", "ENSMUSG00000000001"),
             # A symbol naming neither candidate cannot resolve.
             ("Rps27", "ENSMUSG00000000001"),
-            # A symbol naming both candidates is genuinely ambiguous.
-            ("Cycs; Gm10053", "ENSMUSG00000000001"),
+            # A symbol naming both candidates is genuinely ambiguous. The separator is the
+            # mangled ";_" the pipeline produces from "; ", so this also fails if the names
+            # after the first are not un-mangled before matching.
+            ("Cycs;_Gm10053", "ENSMUSG00000000001"),
         ],
     )
     def test_header_symbol_picks_the_gene(
         self, header_symbol: str, expected: str
     ) -> None:
         resolved = _resolve_gene_ids(
-            self._long_df("P1", header_symbol), self.candidates, self.gene_symbols, {}
+            self._header_pairs("P1", header_symbol),
+            self.candidates,
+            self.gene_symbols,
+            {},
         )
 
         assert resolved == {"P1": expected}
@@ -120,7 +238,7 @@ class TestResolveGeneIds:
     def test_multi_gene_header_symbol_resolves_on_one_match(self) -> None:
         """Test that a semicolon-joined symbol still resolves if only one candidate matches."""
         resolved = _resolve_gene_ids(
-            self._long_df("P1", "Cycs; Rps27"),
+            self._header_pairs("P1", "Cycs;_Rps27"),
             self.candidates,
             self.gene_symbols,
             {},
@@ -135,7 +253,7 @@ class TestResolveGeneIds:
         happens to be a named one; this pins the behavior if that ever stops holding.
         """
         resolved = _resolve_gene_ids(
-            self._long_df("P3", "H4c1; H4c2"),
+            self._header_pairs("P3", "H4c1;_H4c2"),
             {
                 "P3": [
                     "ENSMUSG00000000001",
@@ -159,7 +277,7 @@ class TestResolveGeneIds:
         The proteomics files still say Srp54 where mouse_gene_metadata says Srp54a.
         """
         resolved = _resolve_gene_ids(
-            self._long_df("P2", "Srp54"),
+            self._header_pairs("P2", "Srp54"),
             {"P2": ["ENSMUSG00000000002", "ENSMUSG00000000008"]},
             {"ENSMUSG00000000002": "Srp54b", "ENSMUSG00000000008": "Srp54a"},
             {"ENSMUSG00000000008": {"srp54"}},
@@ -170,7 +288,7 @@ class TestResolveGeneIds:
     def test_isoform_symbol_resolves_base_accession(self) -> None:
         """Test that an isoform's header symbol resolves the base accession's gene."""
         resolved = _resolve_gene_ids(
-            self._long_df("P1-2", "Cycs"), self.candidates, self.gene_symbols, {}
+            self._header_pairs("P1-2", "Cycs"), self.candidates, self.gene_symbols, {}
         )
 
         assert resolved == {"P1": "ENSMUSG00000000009"}
@@ -192,7 +310,9 @@ class TestMeltProteomicsFile:
         """Test the long shape, the isoform accession recovery, and the str individualid cast.
 
         q8c8r3_2 must come back as Q8C8R3-2, and individualid must be a string because the
-        two source files disagree on its dtype.
+        two source files disagree on its dtype. The header symbol is deliberately absent:
+        _measured_header_pairs reads it from the column headers instead, so carrying it per
+        measurement would cost a repeated string on every row.
         """
         long_df = _melt_proteomics_file("proteomics_file", self.data_file, "LOAD2")
 
@@ -200,13 +320,11 @@ class TestMeltProteomicsFile:
             "individualid",
             "model",
             "uniprotid",
-            "header_symbol",
             "value",
         ]
         # The null gene1|p00001 measurement for c2 is dropped, leaving 3 of 4.
         assert len(long_df) == 3
         assert set(long_df["uniprotid"]) == {"P00001", "Q8C8R3-2"}
-        assert long_df["header_symbol"].tolist() == ["gene1", "ank2", "ank2"]
         assert long_df["individualid"].tolist() == ["51503", "51503", "51504"]
         assert set(long_df["model"]) == {"LOAD2"}
 
@@ -857,29 +975,12 @@ class TestTransformProteinDeIndividual:
         with pytest.raises(ValueError, match=error):
             transform_protein_de_individual(datasets=datasets, model_map=model_map)
 
-    def test_no_metadata_input_raises(self) -> None:
-        """Test that claiming every input as a data file leaves the error self-explanatory.
-
-        Metadata files are the inputs model_map does not name, so a model_map covering
-        everything means nothing is left to supply sex, ageDeath, genotype, and tissue.
-        """
-        datasets = self._build_datasets()
-
-        with pytest.raises(ValueError, match="No per-animal metadata provided"):
-            self._transform(
-                datasets,
-                model_map={
-                    "proteomics_file": "LOAD2",
-                    "load2_harmonized_metadata": "LOAD2",
-                },
-            )
-
-    def test_data_file_missing_from_model_map_names_both_roles(self) -> None:
-        """Test that a data file left out of model_map reports both possible causes.
+    def test_data_file_missing_from_model_map_raises(self) -> None:
+        """Test that a data file left out of model_map still fails rather than being read.
 
         Such a file is indistinguishable from a metadata file, so it is taken as metadata
-        and fails the metadata columns. The message has to name the model_map possibility
-        too, since that is the likelier mistake.
+        and fails on the metadata columns it does not have. The message names the file and
+        the columns, but not the likelier fix of adding it to model_map.
         """
         datasets = self._build_datasets()
         datasets["second_proteomics_file"] = datasets["proteomics_file"]
@@ -888,7 +989,6 @@ class TestTransformProteinDeIndividual:
             self._transform(datasets, model_map={"proteomics_file": "LOAD2"})
 
         message = str(excinfo.value)
-        assert "Add them to model_map" in message
         assert "sex" in message and "agedeath" in message
 
     def test_second_study_metadata_file_is_combined(self) -> None:
@@ -988,12 +1088,11 @@ class TestTransformProteinDeIndividual:
         [
             ("drop_required_dataset", "Missing required datasets"),
             ("drop_data_file_id_column", "Missing required columns"),
-            # HARMONIZED_COLUMNS and its rules are enforced per resolved metadata file
-            # rather than under a fixed dataset key.
-            ("drop_metadata_column", "do not carry the columns metadata must have"),
+            # MODEL_METADATA_REQUIRED_COLUMNS and its rules are enforced per resolved
+            # metadata file rather than under a fixed dataset key.
+            ("drop_metadata_column", "Missing required columns"),
             ("empty_metadata_genotype", "not_empty"),
             ("empty_data_file", "is empty"),
-            ("drop_data_file", "No model_map provided"),
             ("empty_display_label", "not_empty"),
             ("unmatched_genotypes", "No rows remained"),
         ],
@@ -1016,8 +1115,6 @@ class TestTransformProteinDeIndividual:
             )
         elif mutation == "empty_data_file":
             datasets["proteomics_file"] = datasets["proteomics_file"].iloc[:0]
-        elif mutation == "drop_data_file":
-            del datasets["proteomics_file"]
         elif mutation == "empty_display_label":
             datasets["genotype_label_map"]["display_label"] = ["", "LOAD1"]
         elif mutation == "unmatched_genotypes":

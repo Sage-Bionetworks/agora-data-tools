@@ -54,6 +54,7 @@ from agoradatatools.etl.utils import (
     NotEmptyRule,
 )
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
+    build_model_to_model_group,
     determine_result_order,
     validate_model_group_consistency,
     create_gene_metadata_dict,
@@ -357,11 +358,7 @@ def transform_rna_de_individual(
     )
 
     # Build a model → model_group lookup from the label map df
-    model_to_mg: Dict[str, str] = (
-        genotype_label_map_df.drop_duplicates("model")
-        .set_index("model")["model_group"]
-        .to_dict()
-    )
+    model_to_mg: Dict[str, str] = build_model_to_model_group(genotype_label_map_df)
 
     # Assign each file to the model_group of its data.
     # Reading the 'model' column from the already-loaded DataFrame is cheap.

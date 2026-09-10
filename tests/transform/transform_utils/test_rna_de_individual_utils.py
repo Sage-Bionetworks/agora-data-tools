@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
+    build_model_to_model_group,
     determine_result_order,
     filter_to_mouse_genes,
     validate_model_group_consistency,
@@ -310,6 +311,52 @@ class TestValidateModelGroupConsistency:
 
         with pytest.raises(ValueError, match="consistent model_group value"):
             validate_model_group_consistency(df)
+
+
+class TestBuildModelToModelGroup:
+    """Tests for build_model_to_model_group function."""
+
+    def test_creates_correct_mapping(self) -> None:
+        """Test that each model maps to its model_group."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_B"],
+                "model_group": ["Group1", "Group2"],
+            }
+        )
+
+        result = build_model_to_model_group(df)
+
+        assert result == {"Model_A": "Group1", "Model_B": "Group2"}
+
+    def test_repeated_model_rows_collapse(self) -> None:
+        """Test that a model with one row per genotype still yields a single entry."""
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A", "Model_B"],
+                "model_group": ["Group1", "Group1", "Group2"],
+            }
+        )
+
+        result = build_model_to_model_group(df)
+
+        assert result == {"Model_A": "Group1", "Model_B": "Group2"}
+
+    def test_several_models_can_share_a_group(self) -> None:
+        """Test the UCI shape, where two models are displayed as one group."""
+        df = pd.DataFrame(
+            {
+                "model": ["Bin1-K358R", "Bin1-K358R.5xFAD"],
+                "model_group": ["Bin1K358R", "Bin1K358R"],
+            }
+        )
+
+        result = build_model_to_model_group(df)
+
+        assert result == {
+            "Bin1-K358R": "Bin1K358R",
+            "Bin1-K358R.5xFAD": "Bin1K358R",
+        }
 
 
 class TestCreateGeneMetadataDict:
