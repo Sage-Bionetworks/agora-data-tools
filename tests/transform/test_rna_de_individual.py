@@ -225,7 +225,7 @@ class TestProcessIndividualDataFileCore:
 
         with pytest.raises(
             ValueError,
-            match="all genotypes in this file were absent from the label map",
+            match="none of the genotypes present were found in the genotype label map",
         ):
             _process_individual_data_file_core(
                 data_file, gene_metadata_dict, genotype_label_map_df

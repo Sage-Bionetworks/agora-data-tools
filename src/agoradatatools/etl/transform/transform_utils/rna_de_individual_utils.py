@@ -1,20 +1,13 @@
 """
-RNA DE Individual Transform Utility Functions
+Shared utilities for the Model AD individual-expression transforms.
 
-This module contains utility functions extracted from the rna_de_individual transform
-for better code organization. These functions are currently used exclusively by the
-rna_de_individual transform, but are structured in a way that allows for potential
-future reuse by other RNA-seq transforms if needed.
+Used by both rna_de_individual and protein_de_individual. The genotype label map pieces in
+particular are a shared contract: MG-980 renders the two datasets on the same page, so a
+genotype label, an ordering, or a tissue name that differs between them is a visible
+product bug. Changing anything here changes both datasets.
 
-Key Functions:
-    filter_to_mouse_genes: Filter DataFrame to keep only mouse genes (ENSMUSG*)
-    determine_result_order: Order genotype display labels within a model_group
-    validate_model_group_consistency: Validate that each model has consistent model_group values
-    build_model_to_model_group: Look up each model's model_group
-    create_gene_metadata_dict: Create a lookup dictionary mapping Ensembl gene IDs to gene symbols
-    log_file_processing_info: Log information about a file being processed
-    validate_data_file_not_empty: Validate that a data file is not empty
-    preprocess_data_file: Apply common validation and transformation steps to a single data file
+The module keeps its rna_de_individual name for history. filter_to_mouse_genes and
+preprocess_data_file are still RNA-only.
 """
 
 import logging
@@ -26,6 +19,7 @@ from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
     ColumnRule,
+    NotEmptyRule,
 )
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
@@ -33,6 +27,23 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 )
 
 logger = logging.getLogger(__name__)
+
+GENOTYPE_LABEL_MAP_COLUMNS = [
+    "model",
+    "model_group",
+    "display_label",
+    "genotype",
+    "result_order",
+]
+
+# Every column is required to be populated: a blank display_label or result_order silently
+# unlabels or reorders a genotype rather than failing.
+GENOTYPE_LABEL_MAP_RULES: Dict[str, List[ColumnRule]] = {
+    column: [NotEmptyRule()] for column in GENOTYPE_LABEL_MAP_COLUMNS
+}
+
+# Keyed case-folded, because tissue arrives in whatever case the source study used.
+TISSUE_ALIASES = {"right cerebral hemisphere": "Hemibrain"}
 
 
 def filter_to_mouse_genes(df: pd.DataFrame) -> pd.DataFrame:
@@ -66,6 +77,62 @@ def determine_result_order(data_file: pd.DataFrame) -> List[str]:
     """
     unique_labels = data_file[["display_label", "result_order"]].drop_duplicates()
     return unique_labels.sort_values("result_order")["display_label"].tolist()
+
+
+def prepare_genotype_label_map(genotype_label_map_df: pd.DataFrame) -> pd.DataFrame:
+    """Copy the label map, make result_order sortable, and reject an inconsistent one."""
+    genotype_label_map_df = genotype_label_map_df.copy()
+    genotype_label_map_df["result_order"] = genotype_label_map_df[
+        "result_order"
+    ].astype(int)
+    validate_model_group_consistency(genotype_label_map_df)
+    return genotype_label_map_df
+
+
+def label_genotypes(
+    data_file: pd.DataFrame,
+    genotype_label_map_df: pd.DataFrame,
+    context: str = "",
+) -> pd.DataFrame:
+    """Attach display labels to data_file and drop rows whose (model, genotype) has no label.
+
+    Unmatched rows carry NA result_order out of the left merge, which is what identifies
+    them. Dropping them is how wildtype and heterozygous animals are kept out of the output,
+    so an empty result means the data and the label map no longer share a genotype
+    vocabulary rather than that everything was correctly filtered.
+
+    display_label is deliberately left un-renamed: determine_result_order reads it, so the
+    caller renames only once it is finished with it.
+
+    Args:
+        data_file: Rows with model and genotype columns.
+        genotype_label_map_df: Label map, already through prepare_genotype_label_map.
+        context: Named in the error message when nothing survives, e.g. a model_group.
+    """
+    data_file = data_file.merge(
+        genotype_label_map_df,
+        on=["model", "genotype"],
+        how="left",
+        validate="many_to_one",
+    ).dropna(subset=["result_order"])
+
+    if data_file.empty:
+        where = f" for {context}" if context else ""
+        raise ValueError(
+            f"No rows remained{where} after filtering to mapped genotypes — none of the "
+            "genotypes present were found in the genotype label map."
+        )
+    return data_file
+
+
+def normalize_tissue(tissue: pd.Series) -> pd.Series:
+    """Apply TISSUE_ALIASES case-insensitively, leaving any other tissue unchanged.
+
+    The cast is required, not cosmetic: an entirely unpopulated tissue column is read as
+    float and has no usable str accessor.
+    """
+    normalized = tissue.astype("string").str.strip()
+    return normalized.str.casefold().map(TISSUE_ALIASES).fillna(normalized)
 
 
 def validate_model_group_consistency(
@@ -198,7 +265,7 @@ def preprocess_data_file(
 
     Returns:
         Preprocessed DataFrame with mouse genes only, tissue names mapped and
-        sentence-cased, plural sex values mapped to singular display labels, and
+        plural sex values mapped to singular display labels, and
         numeric values rounded to 5 decimal places.
 
     Raises:
@@ -212,11 +279,7 @@ def preprocess_data_file(
     )
     check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
     data_file = filter_to_mouse_genes(data_file)
-    # Map JAX-specific names from Right Cerebral Hemisphere -> Hemibrain
-    # To add a new multi-word mapping, insert another .str.replace() call in the chain.
-    data_file["tissue"] = data_file["tissue"].str.replace(
-        "Right Cerebral Hemisphere", "Hemibrain", regex=False
-    )
+    data_file["tissue"] = normalize_tissue(data_file["tissue"])
     # Map plural source sex values to the singular display form
     data_file["sex"] = remap_sex_labels(data_file["sex"])
     data_file["expression"] = data_file["expression"].astype(float)

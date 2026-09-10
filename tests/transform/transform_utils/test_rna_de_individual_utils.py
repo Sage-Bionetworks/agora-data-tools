@@ -1,8 +1,8 @@
 """
-Test suite for RNA-seq individual transform utility functions.
+Test suite for the shared Model AD individual-expression transform utilities.
 
-This module contains comprehensive tests for the utility functions in rna_de_individual_utils
-that are used by the rna_de_individual transform.
+Covers rna_de_individual_utils, which both rna_de_individual and protein_de_individual
+call into.
 """
 
 import pandas as pd
@@ -14,6 +14,9 @@ from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import
     build_model_to_model_group,
     determine_result_order,
     filter_to_mouse_genes,
+    label_genotypes,
+    normalize_tissue,
+    prepare_genotype_label_map,
     validate_model_group_consistency,
     create_gene_metadata_dict,
     log_file_processing_info,
@@ -21,6 +24,97 @@ from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import
     preprocess_data_file,
 )
 from agoradatatools.etl.utils import MatchesRegexRule, NotEmptyRule
+
+
+class TestNormalizeTissue:
+    """Tests for the shared tissue alias mapping."""
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("right cerebral hemisphere", "Hemibrain"),
+            ("Right Cerebral Hemisphere", "Hemibrain"),
+            (" right cerebral hemisphere ", "Hemibrain"),
+            ("Cortex", "Cortex"),
+        ],
+    )
+    def test_normalize_tissue(self, value: Any, expected: str) -> None:
+        assert normalize_tissue(pd.Series([value])).iloc[0] == expected
+
+    def test_all_null_column_is_left_null(self) -> None:
+        """pandas reads an entirely empty column as float, which has no str accessor."""
+        assert normalize_tissue(pd.Series([None, None])).isna().all()
+
+
+class TestPrepareGenotypeLabelMap:
+    """Tests for the shared label map preparation."""
+
+    _LABEL_MAP = pd.DataFrame(
+        {
+            "model": ["Model_A", "Model_A"],
+            "model_group": ["Group_A", "Group_A"],
+            "display_label": ["Case", "Control"],
+            "genotype": ["Tg", "WT"],
+            "result_order": ["2", "1"],
+        }
+    )
+
+    def test_casts_result_order_without_mutating_the_input(self) -> None:
+        prepared = prepare_genotype_label_map(self._LABEL_MAP)
+
+        assert prepared["result_order"].tolist() == [2, 1]
+        assert self._LABEL_MAP["result_order"].tolist() == ["2", "1"]
+
+    def test_inconsistent_model_group_raises(self) -> None:
+        label_map = self._LABEL_MAP.assign(model_group=["Group_A", "Group_B"])
+
+        with pytest.raises(ValueError, match="consistent model_group"):
+            prepare_genotype_label_map(label_map)
+
+
+class TestLabelGenotypes:
+    """Tests for the shared genotype labeling merge."""
+
+    _LABEL_MAP = pd.DataFrame(
+        {
+            "model": ["Model_A", "Model_A"],
+            "model_group": ["Group_A", "Group_A"],
+            "display_label": ["Case", "Control"],
+            "genotype": ["Tg", "WT"],
+            "result_order": [2, 1],
+        }
+    )
+
+    def test_labels_matched_rows_and_drops_the_rest(self) -> None:
+        data_file = pd.DataFrame(
+            {
+                "model": ["Model_A"] * 3,
+                "genotype": ["Tg", "WT", "Het"],
+                "value": [1.0, 2.0, 3.0],
+            }
+        )
+
+        result = label_genotypes(data_file, self._LABEL_MAP)
+
+        assert result["display_label"].tolist() == ["Case", "Control"]
+        # display_label is not renamed here; determine_result_order still reads it.
+        assert "genotype" in result.columns
+
+    def test_no_matching_genotype_raises_with_context(self) -> None:
+        data_file = pd.DataFrame({"model": ["Model_A"], "genotype": ["Het"]})
+
+        with pytest.raises(
+            ValueError, match="No rows remained for model_group 'Group_A'"
+        ):
+            label_genotypes(data_file, self._LABEL_MAP, "model_group 'Group_A'")
+
+    def test_duplicate_model_genotype_in_label_map_raises(self) -> None:
+        """A duplicate row would fan every measurement of that genotype out into two."""
+        label_map = pd.concat([self._LABEL_MAP, self._LABEL_MAP.iloc[[0]]])
+        data_file = pd.DataFrame({"model": ["Model_A"], "genotype": ["Tg"]})
+
+        with pytest.raises(ValueError, match="not a many-to-one merge"):
+            label_genotypes(data_file, label_map)
 
 
 class TestDetermineResultOrder:

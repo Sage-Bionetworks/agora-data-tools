@@ -22,8 +22,7 @@ The transformation:
 - Enriches data with gene symbols from gene metadata
 - Maps genotypes to display labels for better readability
 - Maps plural sex values to singular display labels
-- Applies tissue name transformations: "Right Cerebral Hemisphere" → "Hemibrain" and
-  converts all tissues to sentence case
+- Applies tissue name transformations: "Right Cerebral Hemisphere" → "Hemibrain"
 - Rounds numeric columns to 5 decimal places for consistency
 
 Key Functions:
@@ -56,22 +55,19 @@ from agoradatatools.etl.utils import (
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
     build_model_to_model_group,
     determine_result_order,
-    validate_model_group_consistency,
+    label_genotypes,
+    prepare_genotype_label_map,
     create_gene_metadata_dict,
     preprocess_data_file,
     validate_data_file_not_empty,
+    GENOTYPE_LABEL_MAP_COLUMNS,
+    GENOTYPE_LABEL_MAP_RULES,
 )
 
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
-    "genotype_label_map": [
-        "model",
-        "model_group",
-        "display_label",
-        "genotype",
-        "result_order",
-    ],
+    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
 }
 
@@ -87,13 +83,7 @@ DATA_FILE_REQUIRED_COLUMNS = [
 ]
 
 COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
-    "genotype_label_map": {
-        "model": [NotEmptyRule()],
-        "genotype": [NotEmptyRule()],
-        "display_label": [NotEmptyRule()],
-        "model_group": [NotEmptyRule()],
-        "result_order": [NotEmptyRule()],
-    },
+    "genotype_label_map": GENOTYPE_LABEL_MAP_RULES,
 }
 
 DATA_FILE_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
@@ -110,19 +100,9 @@ def _process_individual_data_file_core(
     """
     Core transformation logic for individual expression data.
 
-    This function contains the individual-transform-specific processing logic:
-    1. Enriches data with genotype metadata (display labels, result_order, model_group)
-    2. Drops rows with no label-map match (NA result_order after the left merge)
-    3. Derives the name field directly from model_group
-    4. Renames columns and uses nest_fields to group individual records by (gene, tissue, name, age),
-       producing one output row per combination with a nested "data" list;
-       model_group is restored from name after nesting
-    5. Adds metadata columns (gene_symbol, age_numeric, units, result_order, matched_control) vectorially
-
-    Note: This function expects preprocessed data (mouse genes only, rounded numeric values,
-    age strings already validated to match r'\\d+ months$') and is called once per
-    model_group, so result_order and matched_control are constant across all rows and
-    can be computed once as scalars.
+    Expects preprocessed data (mouse genes only, rounded numeric values, age strings already
+    validated to match r'\\d+ months$') and is called once per model_group, so result_order
+    and matched_control are constant across all rows and can be computed once as scalars.
 
     Args:
         data_file: Preprocessed DataFrame containing individual expression data with columns:
@@ -134,28 +114,10 @@ def _process_individual_data_file_core(
     Returns:
         List of output entry dictionaries, one per (gene, tissue, model_group, age)
     """
-    # Step 1: Enrich with genotype metadata using vectorized merge
-    # This adds display labels, result_order, and model_group to each row
-    # validate="many_to_one" ensures data integrity (each (model, genotype) has one label)
-    data_file = data_file.merge(
-        genotype_label_map_df,
-        on=["model", "genotype"],
-        how="left",
-        validate="many_to_one",
-    )
+    # Enrich with genotype metadata, dropping rows with no label-map row.
+    data_file = label_genotypes(data_file, genotype_label_map_df)
 
-    # Step 2: Drop rows that had no match in the label map.
-    # After a left merge, any unmatched row has NA for result_order, so dropping
-    # those NAs identifies rows absent from the label map.
-    data_file = data_file.dropna(subset=["result_order"])
-
-    if data_file.empty:
-        raise ValueError(
-            "No rows remained after filtering to mapped genotypes — "
-            "all genotypes in this file were absent from the label map."
-        )
-
-    # Step 3: Pre-calculate result_order list and matched_control.
+    # Pre-calculate result_order list and matched_control.
     # This function is called once per model_group, so these values are constant across
     # all rows.
     #
@@ -172,7 +134,7 @@ def _process_individual_data_file_core(
     result_order_list = determine_result_order(data_file)
     matched_control = result_order_list[0] if result_order_list else ""
 
-    # Step 4: Rename columns for output format.
+    # Rename columns for output format.
     # Drop the raw genotype column first — it was only needed for the merge to look up
     # display_label. Removing it before the rename prevents a duplicate "genotype" column.
     data_file = data_file.drop(columns=["genotype"])
@@ -184,7 +146,7 @@ def _process_individual_data_file_core(
         }
     )
 
-    # Step 5: Nest individual records by (gene, tissue, model_group, age).
+    # Nest individual records by (gene, tissue, model_group, age).
     # Each combination of these grouping keys produces one output row, with all
     # individual-level columns (genotype, sex, individual_id, value) nested into "data".
     #
@@ -208,7 +170,7 @@ def _process_individual_data_file_core(
         drop_columns=group_cols,
     )
 
-    # Step 6: Add metadata columns vectorially.
+    # Add metadata columns vectorially.
     # age values are guaranteed to match r'\d+ months$' by check_column_rules upstream.
     age_groups["age_numeric"] = (
         age_groups["age"].str.extract(r"(\d+) months")[0].astype(int)
@@ -224,7 +186,7 @@ def _process_individual_data_file_core(
     age_groups["result_order"] = [result_order_list] * len(age_groups)
     age_groups["matched_control"] = matched_control
 
-    # Step 7: Select output columns, sort by gene then age, and return as records
+    # Select output columns, sort by gene then age, and return as records
     output_cols = [
         "ensembl_gene_id",
         "gene_symbol",
@@ -259,29 +221,11 @@ def transform_rna_de_individual(
     into a structured format grouped by model_group. The output supports display paradigms
     for models with single or multiple controls.
 
-    Processing Steps:
-        1. Validates required datasets and columns (check_required_datasets_and_columns)
-        2. Validates column values for static datasets (check_column_rules on COLUMN_RULES)
-        3. Prepares metadata DataFrames (normalizes genotype label map; loads gene metadata)
-        4. Validates data consistency (model_group values)
-        5. Creates gene metadata lookup dictionary (Ensembl ID → gene symbol)
-        6. Groups input files by model_group so that models whose data is split across
-           multiple files (e.g. UCI models) are combined before output creation, while
-           unrelated files are processed and freed independently; each file is
-           preprocessed using data_file_required_columns for column validation and
-           data_file_column_rules for column value rules (filters to mouse genes,
-           rounds numeric values to 5 decimal places); raises ValueError if any file
-           contains rows from more than one model (each input file must contain data
-           for exactly one model)
-        7. For each model_group:
-           - Concatenates preprocessed DataFrames within the group (no-op for
-             single-file groups)
-           - Enriches with genotype metadata
-           - Drops rows with no label-map match (NA result_order after the merge)
-           - Groups by gene, tissue, and model_group
-           - Creates output entries with individual data points
-           - Frees memory before moving to the next group
-        8. Consolidates output from all groups
+    Input files are grouped by model_group so that models whose data is split across several
+    files (e.g. UCI models) are combined before output creation, while unrelated files are
+    processed and freed independently. Each input file must contain data for exactly one
+    model, since result_order and matched_control cannot be computed for a file spanning
+    several.
 
     Args:
         datasets: Dictionary mapping dataset names to DataFrames. Must include:
@@ -306,7 +250,7 @@ def transform_rna_de_individual(
         model_group, and age. Each entry contains:
             - ensembl_gene_id: Mouse gene identifier (ENSMUSG*)
             - gene_symbol: Human-readable gene name (empty string if not found)
-            - tissue: Tissue name (with JAX-specific mappings and sentence case applied)
+            - tissue: Tissue name (with JAX-specific mappings applied)
             - name: model_group value
             - model_group: Explicit model group for display (None if not set)
             - matched_control: Display label of the control genotype
@@ -325,24 +269,18 @@ def transform_rna_de_individual(
             if model_group values are inconsistent for any model, or if all rows in a
             data file are dropped because none of its genotypes matched the label map.
     """
-    # Step 1: Validate inputs
+    # Validate inputs
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, column_rules)
 
-    # Step 2: Prepare metadata DataFrames
-    genotype_label_map_df = datasets["genotype_label_map"].copy()
-    genotype_label_map_df["result_order"] = genotype_label_map_df[
-        "result_order"
-    ].astype(int)
+    # Prepare metadata DataFrames
+    genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
 
-    # Step 3: Validate data consistency
-    validate_model_group_consistency(genotype_label_map_df)
-
-    # Step 4: Create gene metadata lookup dictionary (Ensembl ID → gene symbol)
+    # Create gene metadata lookup dictionary (Ensembl ID → gene symbol)
     gene_metadata_dict = create_gene_metadata_dict(mouse_gene_metadata_df)
 
-    # Step 5: Group files by model_group so that models sharing the same group
+    # Group files by model_group so that models sharing the same group
     # (e.g. UCI models split across two input files) are processed together, while
     # unrelated files are processed and freed independently.
     #
@@ -388,7 +326,7 @@ def transform_rna_de_individual(
         + ", ".join(f"{mg}={files}" for mg, files in mg_to_files.items())
     )
 
-    # Step 6: Process one model_group at a time.
+    # Process one model_group at a time.
     # Groups with a single file are processed without any extra concatenation.
     # Groups with multiple files (e.g. UCI split-file models) are concatenated
     # only within that group before processing, then freed immediately after.
