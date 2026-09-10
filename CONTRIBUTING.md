@@ -168,7 +168,7 @@ This package has a `src/agoradatatools/etl/transform` submodule. This folder hou
 
 1. Create new script in the transform submodule that matches the dataset name and name the function `transform_...`. For example, if you have a dataset named `genome_variants`, your new script would be `src/agoradatatools/etl/transform/transform_genome_variants.py`.
 1. Register the new transform function in `src/agoradatatools/etl/transform/__init__.py`. Look in that file for examples.
-1. Add your transform function in `configs/agora_preprod.yaml` and `configs/agora_prod.yaml`. As an example, the block here means that `transform_team_info` function will be applied to team_info dataset:
+1. Add your transform function in `configs/agora_preprod.yaml` and `configs/agora_prod.yaml`, or in `configs/model_ad_preprod.yaml` and `configs/model_ad_prod.yaml` for Model AD datasets. As an example, the block here means that `transform_team_info` function will be applied to team_info dataset:
 ```
   - team_info:
       files:
@@ -178,6 +178,8 @@ This package has a `src/agoradatatools/etl/transform` submodule. This folder hou
       final_format: json
       custom_transformations: transform_team_info
 ```
+If your transform needs configuration that does not belong in the source data, map the function name to its parameters instead — see [`custom_transformations`](README.md#pipeline-configuration) in the README for the syntax. Prefer reading a value from the source data when it is available there; reach for a config parameter when it is not.
+
 Note: **Only one custom transform per dataset is supported at this time**
 
 1. Write a test for the transform:

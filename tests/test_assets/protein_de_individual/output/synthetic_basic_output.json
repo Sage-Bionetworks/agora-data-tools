@@ -1,0 +1,98 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "uniprotid": "P00001",
+    "unique_id": "ENSMUSG00000000001P00001",
+    "display_symbol": "Gnai3 (P00001)",
+    "tissue": "Hemibrain",
+    "name": "LOAD2",
+    "model_group": "LOAD2",
+    "matched_control": "LOAD1",
+    "units": "Log2 Counts per Million",
+    "age": "4 months",
+    "age_numeric": 4,
+    "result_order": [
+      "LOAD1",
+      "LOAD2"
+    ],
+    "data": [
+      {
+        "genotype": "LOAD2",
+        "sex": "Male",
+        "individual_id": "i1",
+        "value": 1.11111
+      },
+      {
+        "genotype": "LOAD1",
+        "sex": "Female",
+        "individual_id": "i2",
+        "value": 4.44444
+      }
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000002",
+    "gene_symbol": "Cdc45",
+    "uniprotid": "P00002",
+    "unique_id": "ENSMUSG00000000002P00002",
+    "display_symbol": "Cdc45 (P00002)",
+    "tissue": "Hemibrain",
+    "name": "LOAD2",
+    "model_group": "LOAD2",
+    "matched_control": "LOAD1",
+    "units": "Log2 Counts per Million",
+    "age": "4 months",
+    "age_numeric": 4,
+    "result_order": [
+      "LOAD1",
+      "LOAD2"
+    ],
+    "data": [
+      {
+        "genotype": "LOAD2",
+        "sex": "Male",
+        "individual_id": "i1",
+        "value": 2.22222
+      },
+      {
+        "genotype": "LOAD1",
+        "sex": "Female",
+        "individual_id": "i2",
+        "value": 5.55555
+      }
+    ]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000003",
+    "gene_symbol": "",
+    "uniprotid": "Q00003",
+    "unique_id": "ENSMUSG00000000003Q00003",
+    "display_symbol": "ENSMUSG00000000003 (Q00003)",
+    "tissue": "Hemibrain",
+    "name": "LOAD2",
+    "model_group": "LOAD2",
+    "matched_control": "LOAD1",
+    "units": "Log2 Counts per Million",
+    "age": "4 months",
+    "age_numeric": 4,
+    "result_order": [
+      "LOAD1",
+      "LOAD2"
+    ],
+    "data": [
+      {
+        "genotype": "LOAD2",
+        "sex": "Male",
+        "individual_id": "i1",
+        "value": 3.33333
+      },
+      {
+        "genotype": "LOAD1",
+        "sex": "Female",
+        "individual_id": "i2",
+        "value": 6.66666
+      }
+    ]
+  }
+]
