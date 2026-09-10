@@ -11,10 +11,12 @@ import logging
 from typing import Any
 
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
+    INDIVIDUAL_DATA_COLUMNS,
     build_model_to_model_group,
     determine_result_order,
     filter_to_mouse_genes,
     label_genotypes,
+    nest_individual_records,
     normalize_tissue,
     prepare_genotype_label_map,
     validate_model_group_consistency,
@@ -115,6 +117,81 @@ class TestLabelGenotypes:
 
         with pytest.raises(ValueError, match="not a many-to-one merge"):
             label_genotypes(data_file, label_map)
+
+
+class TestNestIndividualRecords:
+    """Tests for the shared per-model_group nesting tail.
+
+    Expects a frame already through label_genotypes. The empty-result error that
+    names a context lives on label_genotypes, which is what both callers invoke
+    before this function.
+    """
+
+    _UNITS = "test units"
+
+    @staticmethod
+    def _labeled_frame(**overrides: Any) -> pd.DataFrame:
+        data = {
+            "model": ["Model_A", "Model_A"],
+            "genotype": ["Tg", "WT"],
+            "display_label": ["Case", "Control"],
+            "result_order": [2, 1],
+            "model_group": ["Group_A", "Group_A"],
+            "ensembl_gene_id": ["ENSMUSG1", "ENSMUSG1"],
+            "tissue": ["Cortex", "Cortex"],
+            "age": ["6 months", "6 months"],
+            "sex": ["Male", "Female"],
+            "individualid": ["i1", "i2"],
+            "value": [1.0, 2.0],
+        }
+        data.update(overrides)
+        return pd.DataFrame(data)
+
+    def _nest(self, df: pd.DataFrame, name_from_model: bool = False) -> pd.DataFrame:
+        return nest_individual_records(
+            df,
+            group_columns=["ensembl_gene_id", "tissue", "model_group", "age"],
+            units=self._UNITS,
+            name_from_model=name_from_model,
+        )
+
+    def test_name_defaults_to_model_group(self) -> None:
+        result = self._nest(self._labeled_frame())
+
+        assert result["name"].tolist() == ["Group_A"]
+
+    def test_name_is_the_model_for_a_single_model_group(self) -> None:
+        result = self._nest(self._labeled_frame(), name_from_model=True)
+
+        assert result["name"].tolist() == ["Model_A"]
+        assert result["model_group"].tolist() == ["Group_A"]
+
+    def test_name_falls_back_to_model_group_for_several_models(self) -> None:
+        df = self._labeled_frame(
+            model=["Model_A", "Model_B"],
+            genotype=["Tg", "Tg"],
+            display_label=["Case_A", "Case_B"],
+            result_order=[2, 3],
+        )
+
+        result = self._nest(df, name_from_model=True)
+
+        assert result["name"].tolist() == ["Group_A"]
+
+    def test_matched_control_is_the_lowest_result_order(self) -> None:
+        result = self._nest(self._labeled_frame())
+
+        assert result["matched_control"].tolist() == ["Control"]
+        assert result["result_order"].iloc[0] == ["Control", "Case"]
+
+    def test_nests_the_four_per_animal_columns(self) -> None:
+        result = self._nest(self._labeled_frame())
+
+        nested = result["data"].iloc[0]
+        assert len(nested) == 2
+        assert set(nested[0]) == set(INDIVIDUAL_DATA_COLUMNS)
+        assert {row["individual_id"] for row in nested} == {"i1", "i2"}
+        assert result["units"].tolist() == [self._UNITS]
 
 
 class TestDetermineResultOrder:
@@ -452,6 +529,18 @@ class TestBuildModelToModelGroup:
             "Bin1-K358R.5xFAD": "Bin1K358R",
         }
 
+    def test_all_missing_model_group_becomes_none(self) -> None:
+        df = pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "model_group": [None, None],
+            }
+        )
+
+        result = build_model_to_model_group(df)
+
+        assert result == {"Model_A": None}
+
 
 class TestCreateGeneMetadataDict:
     """Tests for create_gene_metadata_dict function."""
@@ -479,6 +568,19 @@ class TestCreateGeneMetadataDict:
         result = create_gene_metadata_dict(df)
 
         assert result == {}
+
+    def test_drops_missing_gene_symbols(self) -> None:
+        df = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
+                "gene_symbol": ["Gene1", None],
+            }
+        )
+
+        result = create_gene_metadata_dict(df)
+
+        assert result == {"ENSMUSG00000000001": "Gene1"}
+        assert "ENSMUSG00000000002" not in result
 
 
 class TestLogFileProcessingInfo:

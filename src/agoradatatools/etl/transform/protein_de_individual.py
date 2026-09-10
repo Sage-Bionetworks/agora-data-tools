@@ -21,7 +21,6 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
-    nest_fields,
     normalize_zero,
     ColumnRule,
     NotEmptyRule,
@@ -32,8 +31,8 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
     build_model_to_model_group,
     create_gene_metadata_dict,
-    determine_result_order,
     label_genotypes,
+    nest_individual_records,
     normalize_tissue,
     prepare_genotype_label_map,
     validate_data_file_not_empty,
@@ -348,11 +347,12 @@ def _build_output(
 
     # MG-985 confirmed the wildtype and heterozygous animals dropped here should not be
     # shown. The model this labels on comes from model_map via the melt.
+    #
+    # Labeled before the age and tissue validations below, not after: those animals are
+    # the ones MG-985 says arrive without complete metadata, so validating first would
+    # raise on rows that are not in the output anyway.
     df = label_genotypes(df, genotype_label_map_df, f"model_group '{model_group}'")
     _log_stage(model_group, "after genotype labeling", df)
-
-    # determine_result_order expects rows from one model_group, which is what this frame is.
-    result_order = determine_result_order(df)
 
     # age is a nest_fields grouping key and groupby drops null keys, so an unbucketable
     # ageDeath would delete those animals with no error.
@@ -390,11 +390,6 @@ def _build_output(
     # -0.0 and json.dumps keeps the sign.
     df["value"] = df["value"].round(5).apply(normalize_zero)
 
-    # Drop the raw genotype before renaming display_label so there is no duplicate column.
-    df = df.drop(columns=["genotype"]).rename(
-        columns={"display_label": "genotype", "individualid": "individual_id"}
-    )
-
     # ensembl_gene_id, uniprotid, gene_symbol and display_symbol are functionally determined
     # by unique_id, and age_numeric by age, so grouping on them keeps them as top-level
     # columns without creating extra groups.
@@ -409,21 +404,9 @@ def _build_output(
         "age",
         "age_numeric",
     ]
-    data_cols = ["genotype", "sex", "individual_id", "value"]
-    entries = nest_fields(
-        df[group_cols + data_cols],
-        grouping=group_cols,
-        new_column="data",
-        drop_columns=group_cols,
-    )
-
-    entries["units"] = UNITS
-    # name mirrors model_group, as in the RNA individual transform.
-    entries["name"] = entries["model_group"]
-    entries["matched_control"] = result_order[0]
-    # Every row shares one list object. Safe because nothing mutates it after this point;
-    # to_dict and json.dump only read it.
-    entries["result_order"] = [result_order] * len(entries)
+    # name is left to default to model_group: unlike the RNA individual transform, this
+    # dataset names the group even when it holds a single model.
+    entries = nest_individual_records(df, group_columns=group_cols, units=UNITS)
 
     output_cols = [
         "ensembl_gene_id",

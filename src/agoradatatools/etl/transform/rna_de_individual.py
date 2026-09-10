@@ -47,15 +47,15 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
-    nest_fields,
+    extract_age_numeric,
     ColumnRule,
     MatchesRegexRule,
     NotEmptyRule,
 )
 from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
     build_model_to_model_group,
-    determine_result_order,
     label_genotypes,
+    nest_individual_records,
     prepare_genotype_label_map,
     create_gene_metadata_dict,
     preprocess_data_file,
@@ -65,6 +65,8 @@ from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import
 )
 
 logger = logging.getLogger(__name__)
+
+UNITS = "Log2 Counts per Million"
 
 REQUIRED_INPUT = {
     "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
@@ -96,13 +98,14 @@ def _process_individual_data_file_core(
     data_file: pd.DataFrame,
     gene_metadata_dict: Dict[str, str],
     genotype_label_map_df: pd.DataFrame,
+    context: str = "",
 ) -> List[Dict[str, Any]]:
     """
     Core transformation logic for individual expression data.
 
     Expects preprocessed data (mouse genes only, rounded numeric values, age strings already
-    validated to match r'\\d+ months$') and is called once per model_group, so result_order
-    and matched_control are constant across all rows and can be computed once as scalars.
+    validated to match r'\\d+ months$') and is called once per model_group, so the fields
+    nest_individual_records resolves as scalars are constant across all rows.
 
     Args:
         data_file: Preprocessed DataFrame containing individual expression data with columns:
@@ -110,83 +113,33 @@ def _process_individual_data_file_core(
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols
         genotype_label_map_df: Genotype label map DataFrame with columns: model, genotype,
             display_label, model_group, result_order (result_order cast to int)
+        context: model_group being processed, named in the error raised when none of its
+            genotypes match the label map.
 
     Returns:
         List of output entry dictionaries, one per (gene, tissue, model_group, age)
     """
     # Enrich with genotype metadata, dropping rows with no label-map row.
-    data_file = label_genotypes(data_file, genotype_label_map_df)
+    data_file = label_genotypes(data_file, genotype_label_map_df, context)
 
-    # Pre-calculate result_order list and matched_control.
-    # This function is called once per model_group, so these values are constant across
-    # all rows.
-    #
-    # Because data_file has already been merged with the label map and filtered to a
-    # single model_group, every label returned by determine_result_order is guaranteed
-    # to exist in the data. result_order_list[0] is therefore always the control
-    # (lowest result_order) that is present in this file.
-    #
-    # Limitation for 4-genotype UCI studies: some DE analyses pair each case genotype
-    # with a *different* control (e.g., Trem2-R47H_NSS.5xFAD vs Trem2-R47H_NSS, not
-    # vs C57BL/6J). In those cases, a single matched_control value is a simplification
-    # — it reflects the overall reference genotype for the group (lowest result_order)
-    # rather than the per-case-genotype DE pairing.
-    result_order_list = determine_result_order(data_file)
-    matched_control = result_order_list[0] if result_order_list else ""
-
-    # Rename columns for output format.
-    # Drop the raw genotype column first — it was only needed for the merge to look up
-    # display_label. Removing it before the rename prevents a duplicate "genotype" column.
-    data_file = data_file.drop(columns=["genotype"])
-    data_file = data_file.rename(
-        columns={
-            "display_label": "genotype",
-            "individualid": "individual_id",
-            "expression": "value",
-        }
+    # name_from_model because this dataset displays the model itself for the single-model
+    # groups that are the common case, falling back to model_group only for multi-model
+    # groups (UCI 4-genotype studies, whose data spans two input files).
+    entries = nest_individual_records(
+        data_file.rename(columns={"expression": "value"}),
+        group_columns=["ensembl_gene_id", "tissue", "model_group", "age"],
+        units=UNITS,
+        name_from_model=True,
     )
 
-    # Nest individual records by (gene, tissue, model_group, age).
-    # Each combination of these grouping keys produces one output row, with all
-    # individual-level columns (genotype, sex, individual_id, value) nested into "data".
-    #
-    # name is derived from model before nesting because model is not a grouping key
-    # and would not survive as a top-level column after nest_fields. For groups with a
-    # single model (the common case), name == model. For multi-model groups (e.g. UCI
-    # 4-genotype studies whose data spans two input files), name falls back to model_group
-    # since there is no single model value that represents the whole group.
-    unique_models = data_file["model"].unique()
-    name_value = (
-        unique_models[0]
-        if len(unique_models) == 1
-        else data_file["model_group"].iloc[0]
-    )
-    group_cols = ["ensembl_gene_id", "tissue", "model_group", "age"]
-    cols_keep = group_cols + ["genotype", "sex", "individual_id", "value"]
-    age_groups = nest_fields(
-        data_file[cols_keep],
-        grouping=group_cols,
-        new_column="data",
-        drop_columns=group_cols,
+    # Derived after nesting, on one row per entry rather than one per animal. age values
+    # are guaranteed to match r'\d+ months$' by check_column_rules upstream, so
+    # extract_age_numeric cannot return None here.
+    entries["age_numeric"] = entries["age"].map(extract_age_numeric).astype(int)
+    entries["gene_symbol"] = (
+        entries["ensembl_gene_id"].map(gene_metadata_dict).fillna("")
     )
 
-    # Add metadata columns vectorially.
-    # age values are guaranteed to match r'\d+ months$' by check_column_rules upstream.
-    age_groups["age_numeric"] = (
-        age_groups["age"].str.extract(r"(\d+) months")[0].astype(int)
-    )
-    age_groups["gene_symbol"] = (
-        age_groups["ensembl_gene_id"].map(gene_metadata_dict).fillna("")
-    )
-    age_groups["units"] = "Log2 Counts per Million"
-    age_groups["name"] = name_value
-    # All rows share the same result_order list. The multiplication creates n
-    # references to the same list object, which is safe because the list is never
-    # mutated after this point — to_dict(orient="records") only reads it.
-    age_groups["result_order"] = [result_order_list] * len(age_groups)
-    age_groups["matched_control"] = matched_control
-
-    # Select output columns, sort by gene then age, and return as records
     output_cols = [
         "ensembl_gene_id",
         "gene_symbol",
@@ -201,7 +154,7 @@ def _process_individual_data_file_core(
         "data",
     ]
     return (
-        age_groups[output_cols]
+        entries[output_cols]
         .sort_values(by=["ensembl_gene_id", "age_numeric"])
         .to_dict(orient="records")
     )
@@ -251,7 +204,8 @@ def transform_rna_de_individual(
             - ensembl_gene_id: Mouse gene identifier (ENSMUSG*)
             - gene_symbol: Human-readable gene name (empty string if not found)
             - tissue: Tissue name (with JAX-specific mappings applied)
-            - name: model_group value
+            - name: the model itself for a single-model model_group, otherwise the
+              model_group value
             - model_group: Explicit model group for display (None if not set)
             - matched_control: Display label of the control genotype
             - units: "Log2 Counts per Million"
@@ -358,7 +312,7 @@ def transform_rna_de_individual(
         )
 
         group_output = _process_individual_data_file_core(
-            combined_data, gene_metadata_dict, genotype_label_map_df
+            combined_data, gene_metadata_dict, genotype_label_map_df, context=mg
         )
         output.extend(group_output)
 
