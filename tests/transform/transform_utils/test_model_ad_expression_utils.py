@@ -1,8 +1,8 @@
 """
 Test suite for the shared Model AD individual-expression transform utilities.
 
-Covers rna_de_individual_utils, which both rna_de_individual and protein_de_individual
-call into.
+Covers model_ad_expression_utils, which rna_de_individual, protein_de_individual,
+and rna_de_aggregate call into.
 """
 
 import pandas as pd
@@ -10,7 +10,7 @@ import pytest
 import logging
 from typing import Any
 
-from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     INDIVIDUAL_DATA_COLUMNS,
     build_model_to_model_group,
     determine_result_order,

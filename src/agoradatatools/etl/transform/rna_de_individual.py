@@ -52,7 +52,7 @@ from agoradatatools.etl.utils import (
     MatchesRegexRule,
     NotEmptyRule,
 )
-from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     build_model_to_model_group,
     label_genotypes,
     nest_individual_records,

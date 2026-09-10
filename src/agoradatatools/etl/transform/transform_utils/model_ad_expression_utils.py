@@ -1,13 +1,12 @@
 """
-Shared utilities for the Model AD individual-expression transforms.
+Shared utilities for the Model AD expression transforms.
 
-Used by both rna_de_individual and protein_de_individual. The genotype label map pieces in
-particular are a shared contract: MG-980 renders the two datasets on the same page, so a
-genotype label, an ordering, or a tissue name that differs between them is a visible
-product bug. Changing anything here changes both datasets.
+Used by rna_de_individual, protein_de_individual, and rna_de_aggregate. The genotype
+label map pieces in particular are a shared contract: MG-980 renders the datasets on
+the same page, so a genotype label, an ordering, or a tissue name that differs between
+them is a visible product bug. Changing anything here changes all three datasets.
 
-The module keeps its rna_de_individual name for history. filter_to_mouse_genes and
-preprocess_data_file are still RNA-only.
+filter_to_mouse_genes and preprocess_data_file are still RNA-only.
 """
 
 import logging

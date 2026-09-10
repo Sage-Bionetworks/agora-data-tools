@@ -49,7 +49,7 @@ from agoradatatools.etl.utils import (
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
 )
-from agoradatatools.etl.transform.transform_utils.rna_de_individual_utils import (
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     build_model_to_model_group,
     create_gene_metadata_dict,
     filter_to_mouse_genes,
