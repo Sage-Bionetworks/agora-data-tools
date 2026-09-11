@@ -11,6 +11,13 @@ files:
   - &mouse_gene_metadata          { name: mouse_gene_metadata          , format: json , id: syn51615422.7  }
   - &genotype_label_map           { name: genotype_label_map           , format: csv  , id: syn69014401.20 }
   - &ui_config                    { name: ui_config                    , format: json , id: syn66527739 }
+  # Marmoset source files
+  - &marmo_model_metadata         { name: marmo_model_metadata         , format: csv  , id: syn76417166.1 }
+  - &marmo_genotype_label_map     { name: marmo_genotype_label_map     , format: csv  , id: syn76417167.2 }
+  - &marmo_biomarker_measure_info { name: marmo_biomarker_measure_info , format: csv  , id: syn76417168.1 }
+  - &marmo_individual_metadata    { name: marmo_individual_metadata    , format: csv  , id: syn63926850.19 }
+  - &marmo_biomaterial_metadata   { name: marmo_biomaterial_metadata   , format: csv  , id: syn74444970.5 }
+  - &marmo_results                { name: marmo_results                , format: csv  , id: syn64133726.18 }
   # Results
   - &biodom_genes_mm              { name: biodom_genes_mm              , format: csv  , id: syn66351272.1  }
   - &biomarkers                   { name: biomarkers                   , format: csv  , id: syn61250724.12 }
@@ -68,6 +75,18 @@ datasets:
         - biomarkers
         - pathology
       gx_enabled: true
+
+  - marmo_details:
+      files:
+        - <<: *marmo_model_metadata
+        - <<: *marmo_genotype_label_map
+        - <<: *marmo_biomarker_measure_info
+        - <<: *marmo_individual_metadata
+        - <<: *marmo_biomaterial_metadata
+        - <<: *marmo_results
+      final_format: json
+      destination: *dest
+      custom_transformations: transform_marmo_details
 
   - disease_correlation:
       files:

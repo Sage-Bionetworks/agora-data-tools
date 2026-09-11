@@ -1,0 +1,3 @@
+model,model_type,study_synid,modified_gene,ensembl_gene_id,allele_type
+Presenilin1,Familial AD,syn61849889,PSEN1,ENSCJAG00000021617,Endonuclease-mediated
+SomeOtherModel,Familial AD,syn00000000,APP,ENSCJAG00000000000,Endonuclease-mediated
