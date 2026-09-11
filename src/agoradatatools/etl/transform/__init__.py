@@ -28,6 +28,7 @@ from agoradatatools.etl.transform.model_overview import transform_model_overview
 from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggregate
 from agoradatatools.etl.transform.rna_de_individual import transform_rna_de_individual
 from agoradatatools.etl.transform.eqtl_results import transform_eqtl_results
+from agoradatatools.etl.transform.eqtl_phenotype import transform_eqtl_phenotype
 
 
 __all__ = [
@@ -51,4 +52,5 @@ __all__ = [
     "transform_rna_de_aggregate",
     "transform_rna_de_individual",
     "transform_eqtl_results",
+    "transform_eqtl_phenotype",
 ]

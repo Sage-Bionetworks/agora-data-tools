@@ -3,13 +3,19 @@ This module contains the transformation logic for the eqtl_results dataset.
 This is for the xQTL explorer.
 """
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple, Optional
 import logging
 import hashlib
 
 import math
 import pandas as pd
 
+from agoradatatools.etl.transform.transform_utils.xqtl_transform_utils import (
+    resolve_cell_labels,
+    build_location,
+    build_gene_lookup_map,
+    map_and_log_gene_ids,
+)
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
 )
@@ -24,125 +30,76 @@ REQUIRED_INPUT = {
     ],
 
     "eqtl_cell_label_map": [
+        "cell_type_id",
         "cell_class_short",
         "cell_class",
         "cell_subclass_short",
         "cell_subclass",
     ],
-    # TODO variant location data - extract from results files?
-    # TODO gene location data
+
+    # TODO eventually we should drive this via the independent variant location source file
+    # "variant_location_info": [
+    #     "variant",
+    #     "variant_chr",
+    #     "variant_start",
+    #     "variant_end"
+    # ]
+
+   "chromosome_features": [
+       "type",
+       "gene_symbol", # only on gene documents, might have to remove this and check after filtering?
+       "location"
+   ]
 }
 
 FILE_NAME_PREFIX = "eqtl_results_"
 
-# TODO align ui_config column order
+# TODO verify alignment with ui_config
 OUTPUT_COLUMN_ORDER = [
     "variant",
     "variant_location",
     "effect_direction",
     "gene_symbol",
     "ensembl_gene_id",
-    # "gene_location",
+    "gene_location",
     "beta",
-    "p_val",
+    "adj_p_val",
+    "adj_p_val_numeric",
     "maf",
     "minor_allele",
     "reference_allele",
+    "cell_type_id",
     "cell_class",
     "cell_class_short",
     "cell_subclass",
     "cell_subclass_short",
 ]
 
-# convert z to p_val TODO apply human scientist eyes here
-def _zscore_to_pval_string(z) -> str:
+# convert z to p_val, return as both string display value, and as log10 numeric value for sorting
+# TODO we can't do this for real, we need to precalculate adjusted p-value prior to picking "top" results
+def _zscore_to_pval_info(z) -> Tuple[Optional[str], Optional[float]]:
+    if pd.isna(z):
+        return None, None
+
     x = abs(float(z)) / math.sqrt(2.0)      # two-sided p = erfc(x)
     if x < 25.0:                            # erfc representable → exact
         ln_p = math.log(math.erfc(x))
     else:                                   # erfc underflows past ~x=26 → asymptotic tail
         inv = 1.0 / (x * x)
-        series = 1 - 0.5*inv + 0.75*inv**2 - 1.875*inv**3
-        ln_p = -x*x - math.log(x) - 0.5*math.log(math.pi) + math.log(series)
+        series = 1 - 0.5 * inv + 0.75 * inv**2 - 1.875 * inv**3
+        ln_p = -x * x - math.log(x) - 0.5 * math.log(math.pi) + math.log(series)
+
     log10_p = ln_p / math.log(10.0)
     exp = math.floor(log10_p)
     mant = 10 ** (log10_p - exp)            # mantissa in [1, 10)
     if mant >= 10.0:                        # guard rounding to 10.0
-        mant /= 10.0; exp += 1
-    return f"{mant:.2f}E{exp:+03d}"
+        mant /= 10.0
+        exp += 1
 
-# resolve cell type labels
-def _resolve_cell_labels(key, label_map_df) -> Dict[str, str]:
-    cell_type_labels = label_map_df.loc[
-        label_map_df["cell_subclass_short"].str.lower() == key.lower()
-        ].iloc[0].to_dict()
-    logger.info(f"Resolved cell type labels for key {key} : {cell_type_labels}")
-    return cell_type_labels
+    p_display = f"{mant:.2f}E{exp:+03d}"
 
-def build_location(df, chr_col, start_col, end_col) -> list[dict]:
-    loc = pd.DataFrame({
-        "chr":   df[chr_col].astype(str),    # string to allow X / Y
-        "start": df[start_col].astype(int),
-        "end":   df[end_col].astype(int),
-    })
-    return loc.to_dict(orient="records")
+    return p_display, round(log10_p, 6)
 
-def build_gene_lookup_map(gene_metadata_df: pd.DataFrame) -> dict[str, str]:
-    """Builds a unified lookup map handling list-column aliases and primary symbol fallbacks."""
-    # Step 2 setup: Unnest alias list column and create alias -> ensembl_gene_id map
-    alias_df = gene_metadata_df.dropna(subset=["alias"]).explode("alias")
-
-    alias_map = (
-        alias_df.assign(alias=alias_df["alias"].astype(str).str.strip())
-        .drop_duplicates(subset=["alias"])
-        .set_index("alias")["ensembl_gene_id"]
-        .to_dict()
-    )
-
-    # Step 1 setup: Create primary gene_symbol -> ensembl_gene_id map
-    primary_map = (
-        gene_metadata_df.dropna(subset=["gene_symbol"])
-        .assign(
-            gene_symbol=gene_metadata_df["gene_symbol"]
-            .astype(str)
-            .str.strip()
-        )
-        .drop_duplicates(subset=["gene_symbol"])
-        .set_index("gene_symbol")["ensembl_gene_id"]
-        .to_dict()
-    )
-
-    # Primary keys overwrite alias keys on collision
-    # (Guarantees Primary match is checked FIRST, Alias SECOND)
-    return {**alias_map, **primary_map}
-
-def map_and_log_gene_ids(
-        data_file: pd.DataFrame, lookup_map: dict[str, str]
-) -> pd.DataFrame:
-    """Maps gene symbols using the fallback hierarchy and logs unmapped symbols."""
-    # Clean input symbols
-    data_file["gene_symbol"] = (
-        data_file["gene_symbol"].astype(str).str.strip()
-    )
-
-    # Steps 1 & 2: Map symbol (checks primary first, then alias)
-    data_file["ensembl_gene_id"] = data_file["gene_symbol"].map(lookup_map)
-
-    # Step 3: Identify and log unmapped symbols
-    unmapped_mask = data_file["ensembl_gene_id"].isna()
-    if unmapped_mask.any():
-        unmapped_symbols = (
-            data_file.loc[unmapped_mask, "gene_symbol"].unique().tolist()
-        )
-        logger.warning(
-            f"Failed to match {unmapped_mask.sum()} rows ({len(unmapped_symbols)} unique symbols). "
-            f"Unmapped gene_symbol values: {unmapped_symbols}"
-        )
-
-    # TODO we can't just drop real rows with no ensembl_gene_id
-    # see log statements for symbols that don't resolve
-    data_file = data_file[~unmapped_mask]
-
-    return data_file
 
 def _mock_maf(key: str) -> float:
     """Deterministic mock MAF in (0, 0.5) from a stable key → 0.0001..0.4999."""
@@ -155,6 +112,7 @@ def _process_single_data_file(
         data_file: pd.DataFrame,
         data_file_required_columns: List[str],
         ensembl_gene_id_lookup_map: Dict,
+        chromosome_features_df: pd.DataFrame,
         label_map_df: pd.DataFrame,
         file_index: int,
         total_files: int,
@@ -179,20 +137,16 @@ def _process_single_data_file(
     # resolve ensembl_gene_id from gene_symbol
     data_file = map_and_log_gene_ids(data_file, ensembl_gene_id_lookup_map)
 
-    # use the filename to get the cell type labels for this file's cell_subclass
+    # use the filename to get the cell type labels & id for this file's cell_subclass
     key = Path(file_name[len(FILE_NAME_PREFIX) :]).stem
 
-    cell_labels = _resolve_cell_labels(key, label_map_df)
+    cell_labels = resolve_cell_labels(key, label_map_df)
     data_file = data_file.assign(**cell_labels)
 
-    # Compute p-value
-    data_file["p_val"] = data_file["z"].apply(
-        lambda z: _zscore_to_pval_string(z) if pd.notna(z) else None
-    )
+    # TODO adapt this to leverage real adj_p_vals
+    data_file[["adj_p_val", "adj_p_val_numeric"]] = data_file["z"].apply(_zscore_to_pval_info).tolist()
 
-    # TODO include numeric version of p_val for sorting & filtering, somehow
-
-    # TODO use real maf values when we have them
+    # TODO integrate real maf values when we have them
     data_file["maf"] = data_file["variant"].map(_mock_maf)
 
     # add effect_direction column
@@ -200,13 +154,23 @@ def _process_single_data_file(
         lambda x: "Up" if x > 0 else ("Down" if x < 0 else "-")
     )
 
-    # nest location data
+    # nest variant location data
     data_file["variant_location"] = build_location(data_file, "variant_chr", "variant_start", "variant_end")
+
+    # add gene location data
+    data_file = data_file.merge(
+        chromosome_features_df[['gene_symbol', 'location']]
+        .drop_duplicates(subset=['gene_symbol'])
+        .rename(columns={'location': 'gene_location'}),
+        on='gene_symbol',
+        how='left'
+    )
 
     data_file = data_file.drop(columns=["variant_chr", "variant_start", "variant_end"])
 
     data_file = data_file.reindex(columns=OUTPUT_COLUMN_ORDER)
     return data_file.to_dict(orient="records")
+
 
 
 def transform_eqtl_results(
@@ -234,6 +198,7 @@ def transform_eqtl_results(
 
     # Load and prepare datasets & lookup map
     gene_metadata_df = datasets["gene_metadata"]
+    chromosome_features_df = datasets["chromosome_features"]
     eqtl_cell_label_map_df = datasets["eqtl_cell_label_map"]
     ensembl_gene_id_lookup_map = build_gene_lookup_map(gene_metadata_df)
 
@@ -252,9 +217,9 @@ def transform_eqtl_results(
         "minor_allele",
         "gene_symbol",
         "beta",
-        "se",
-        "z",
-        #"maf" # TODO maf data will be provided by GENESIS, probably here
+        "se", # TODO not actually required for this dataset?
+        "z", # TODO expect this to be replaced by adj_p_val in the source file?
+        #"maf" # TODO maf data will be provided by GENESIS, probably here? maybe in a separate variant:maf file?
     ]
 
     logger.info(f"Transform eqtl_results total data files: {total_files}")
@@ -268,6 +233,7 @@ def transform_eqtl_results(
             data_file,
             data_file_required_columns,
             ensembl_gene_id_lookup_map,
+            chromosome_features_df,
             eqtl_cell_label_map_df,
             i,
             total_files,

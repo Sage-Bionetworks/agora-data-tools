@@ -9,30 +9,63 @@ files:
   - &ui_config                    { name: ui_config,                format: json,       id: syn77143753 }
   - &gene_metadata                { name: gene_metadata,            format: feather,    id: syn25953363.17 }
   - &eqtl_cell_label_map          { name: eqtl_cell_label_map,      format: csv,        id: syn77171904 }
+  - &gene_structure               { name: gene_structure,           format: json,       id: syn77351874 }
+  - &chromosome_features          { name: chromosome_features,      format: json,       id: syn77352438 }    # TODO: replace with file that aligns w/sample genes & variants
   # QTL Results (Expression)
   - &eqtl_results_astro           { name: eqtl_results_astro,           format: tsv,        id: syn77170670 } # modified version of syn75312498 w/mock rs2120461_rere row added, plus missing beta & tab fixes
-  - &eqtl_results_en_l3-5_it_1    { name: eqtl_results_en_l3-5_it_1,      format: tsv,        id: syn75312504 } # _en file renamed to fake a subclass-level file
-  # Phenotype Results (Expression)
-  #- &exp_rs2120461_rere_astro     { name: exp_rs2120461_rere_astro, format: tsv,  id: syn75312283 }
+  - &eqtl_results_en_l3-5_it_1    { name: eqtl_results_en_l3-5_it_1,    format: tsv,        id: syn75312504 } # _en file renamed to fake a subclass-level file
+  # Phenotype Results (Expression) - if we really get unique files per variant-gene-cell_type, we will need a coping strategy
+  - &eqtl_pheno_rere_rs2120461     { name: eqtl_pheno_rere_rs2120461, format: csv,  id: syn77273276 }
 
 datasets:
   - eqtl_results:
       files:
         - <<: *gene_metadata
+        - <<: *chromosome_features
+        - <<: *eqtl_cell_label_map
         - <<: *eqtl_results_astro
         - <<: *eqtl_results_en_l3-5_it_1
-        - <<: *eqtl_cell_label_map
-        #- <<: *exp_rs2120461_rere_astro
       final_format: json
       custom_transformations: transform_eqtl_results
       column_rename:
+        symbol: gene_symbol
+        hgnc_symbol: gene_symbol
         chr: variant_chr
         start: variant_start
         end: variant_end
         not_assessed: reference_allele
         assessed_allele: minor_allele
         gene: gene_symbol
+      destination: *dest
+      gx_enabled: false
+
+  - eqtl_phenotype:
+      files:
+        - <<: *eqtl_cell_label_map
+        - <<: *eqtl_pheno_rere_rs2120461
+      final_format: json
+      custom_transformations: transform_eqtl_phenotype
+      column_rename:
         symbol: gene_symbol
+        chr: variant_chr
+        start: variant_start
+        end: variant_end
+        geno: genotype
+        phe: phenotype
+      destination: *dest
+      gx_enabled: false
+
+  - chromosome_features:
+      files:
+        - <<: *chromosome_features
+      final_format: json
+      destination: *dest
+      gx_enabled: false
+
+  - gene_structure:
+      files:
+        - <<: *gene_structure
+      final_format: json
       destination: *dest
       gx_enabled: false
 
