@@ -327,6 +327,51 @@ class TestTransformMarmoDetails:
         assert biomarkers["Orphan"] == []
         assert biomarkers["Presenilin1"]
 
+    @pytest.mark.parametrize(
+        "column,bad_value,expected_message",
+        [
+            ("model_type", "Something Else", "multiple model_type"),
+            ("study_synid", "syn00000000", "multiple study_synid"),
+        ],
+        ids=["conflicting model_type", "conflicting study_synid"],
+    )
+    def test_marmo_details_inconsistent_model_fields_should_fail(
+        self, column, bad_value, expected_message
+    ):
+        """A model with more than one modified-gene row must still have a single model_type
+        and study_synid; iloc[0] would otherwise pick an arbitrary value."""
+        datasets = self._load_datasets()
+        metadata = datasets["marmo_model_metadata"]
+        extra = metadata.copy()
+        extra[column] = bad_value
+        extra["ensembl_gene_id"] = "ENSCJAG00000000001"
+        datasets["marmo_model_metadata"] = pd.concat(
+            [metadata, extra], ignore_index=True
+        )
+
+        with pytest.raises(ValueError, match=expected_message):
+            transform_marmo_details(datasets=datasets)
+
+    @pytest.mark.parametrize(
+        "column,output_getter",
+        [
+            ("model_type", lambda model: model["model_type"]),
+            ("allele_type", lambda model: model["genetic_info"][0]["allele_type"]),
+        ],
+        ids=["page-level model_type", "genetic_info allele_type"],
+    )
+    def test_marmo_details_blank_model_metadata_becomes_none(
+        self, column, output_getter
+    ):
+        """Blank model_type, study_synid, modified_gene, and allele_type become None in the
+        JSON rather than NaN."""
+        datasets = self._load_datasets()
+        self._set_bad_value(datasets, "marmo_model_metadata", column, None)
+
+        output_data = transform_marmo_details(datasets=datasets)
+
+        assert output_getter(output_data[0]) is None
+
 
 def _measurement_inputs():
     """Inputs for the two behaviors the golden files cannot cover: a measurement belonging to an

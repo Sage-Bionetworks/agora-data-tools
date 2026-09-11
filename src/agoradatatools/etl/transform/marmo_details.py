@@ -17,8 +17,11 @@ from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
     nest_fields,
+    normalize_null_values,
     round_y_axis_max,
     standardize_column_name,
+    validate_one_to_one_mapping,
+    validate_references_exist,
 )
 
 
@@ -134,12 +137,13 @@ def _build_measurements(
 
     # A typo'd result_column would otherwise drop that measure silently.
     measure_columns = list(measure_info["result_column_std"])
-    missing_columns = [col for col in measure_columns if col not in results.columns]
-    if missing_columns:
-        raise ValueError(
-            "marmo_biomarker_measure_info references result columns that are not present in "
-            f"marmo_results: {missing_columns}"
-        )
+    validate_references_exist(
+        measure_columns,
+        results.columns,
+        source_name="marmo_biomarker_measure_info",
+        target_name="marmo_results",
+        item_name="result columns",
+    )
 
     long = results.melt(
         id_vars=["biomaterialid", "individualid"],
@@ -321,9 +325,10 @@ def transform_marmo_details(
 
     Raises:
         ValueError: If required datasets or columns are missing, if any column violates
-            COLUMN_RULES, if marmo_genotype_label_map has duplicate (model, genotype) rows or
-            names a model absent from marmo_model_metadata, or if no measurement survives the
-            value, genotype, or collection-age filters.
+            COLUMN_RULES, if a model has inconsistent model_type or study_synid values, if
+            marmo_genotype_label_map has duplicate (model, genotype) rows or names a model
+            absent from marmo_model_metadata, or if no measurement survives the value,
+            genotype, or collection-age filters.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)
@@ -342,17 +347,24 @@ def transform_marmo_details(
             f"multiply measurements within a model: {dupes}"
         )
 
-    metadata = datasets["marmo_model_metadata"]
+    # Blanks in model_type, study_synid, modified_gene, and allele_type are allowed and become
+    # None in the JSON, matching transform_model_details. ensembl_gene_id stays NotEmptyRule.
+    metadata = normalize_null_values(datasets["marmo_model_metadata"])
+    # A model has one row per modified gene. model_type and study_synid must be the same on
+    # every row so taking iloc[0] below is not an arbitrary pick.
+    validate_one_to_one_mapping(metadata, "model", "model_type")
+    validate_one_to_one_mapping(metadata, "model", "study_synid")
 
     # Hand-maintained files: all models in genotype_map must exist in marmo_model_metadata.
     # Extra or typo'd models in genotype_map would have their rows silently removed and would
     # not get a page on the explorer.
-    unknown_models = sorted(set(genotype_map["model"]) - set(metadata["model"]))
-    if unknown_models:
-        raise ValueError(
-            "marmo_genotype_label_map references models that are not present in "
-            f"marmo_model_metadata: {unknown_models}"
-        )
+    validate_references_exist(
+        genotype_map["model"],
+        metadata["model"],
+        source_name="marmo_genotype_label_map",
+        target_name="marmo_model_metadata",
+        item_name="models",
+    )
 
     measure_info = datasets["marmo_biomarker_measure_info"].copy()
     measure_info["result_column_std"] = measure_info["result_column"].apply(

@@ -620,6 +620,37 @@ def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) 
         )
 
 
+def validate_references_exist(
+    referenced: Collection,
+    available: Collection,
+    source_name: str,
+    target_name: str,
+    item_name: str,
+) -> None:
+    """Raise if any values in referenced are absent from available.
+
+    Used for hand-maintained cross-file keys: a typo in the referencing file
+    would otherwise drop those rows silently.
+
+    Args:
+        referenced: Values that must exist in available.
+        available: The set of allowed values.
+        source_name: Name of the dataset that holds the references.
+        target_name: Name of the dataset that should contain them.
+        item_name: What the values are called in the error message, for example
+            models or result columns.
+
+    Raises:
+        ValueError: If any referenced value is missing from available.
+    """
+    missing = sorted(set(referenced) - set(available))
+    if missing:
+        raise ValueError(
+            f"{source_name} references {item_name} that are not present in "
+            f"{target_name}: {missing}"
+        )
+
+
 def _check_single_rule(
     df: pd.DataFrame,
     dataset_name: str,

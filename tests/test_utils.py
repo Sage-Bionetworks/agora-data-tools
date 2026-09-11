@@ -1339,6 +1339,44 @@ class TestValidateOneToOneMapping:
             utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
 
+class TestValidateReferencesExist:
+    """Tests for validate_references_exist()."""
+
+    def test_passes_when_every_reference_is_present(self) -> None:
+        utils.validate_references_exist(
+            ["Presenilin1", "WT"],
+            ["WT", "Presenilin1", "APP"],
+            source_name="marmo_genotype_label_map",
+            target_name="marmo_model_metadata",
+            item_name="models",
+        )
+
+    def test_raises_when_a_reference_is_missing(self) -> None:
+        with pytest.raises(
+            ValueError,
+            match=(
+                "marmo_genotype_label_map references models that are not present in "
+                r"marmo_model_metadata: \['Presenilin-1'\]"
+            ),
+        ):
+            utils.validate_references_exist(
+                ["Presenilin1", "Presenilin-1"],
+                ["Presenilin1"],
+                source_name="marmo_genotype_label_map",
+                target_name="marmo_model_metadata",
+                item_name="models",
+            )
+
+    def test_passes_when_both_sides_are_empty(self) -> None:
+        utils.validate_references_exist(
+            [],
+            [],
+            source_name="source",
+            target_name="target",
+            item_name="values",
+        )
+
+
 class TestFlattenList:
     def test_flatten_list_empty(self):
         assert utils.flatten_list([]) == []
