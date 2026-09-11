@@ -1791,8 +1791,7 @@ class TestTransformRnaDeAggregate:
 
         # Verify the error message contains expected information
         error_message = str(exc_info.value)
-        assert "Each model must have a consistent model_group value" in error_message
-        assert "genotype_label_map" in error_message
+        assert "multiple model_group values" in error_message
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
@@ -1815,7 +1814,7 @@ class TestTransformRnaDeAggregate:
         label_map.loc[label_map.index[0], "model_group"] = None
         datasets["genotype_label_map"] = label_map
 
-        with pytest.raises(ValueError, match="consistent model_group value"):
+        with pytest.raises(ValueError, match="multiple model_group"):
             transform_rna_de_aggregate(datasets=datasets)
 
     def test_inconsistent_model_type_values(self) -> None:
@@ -1840,8 +1839,7 @@ class TestTransformRnaDeAggregate:
             transform_rna_de_aggregate(datasets=datasets)
 
         error_message = str(exc_info.value)
-        assert "Each model must have a consistent model_type value" in error_message
-        assert "genotype_label_map" in error_message
+        assert "multiple model_type values" in error_message
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message

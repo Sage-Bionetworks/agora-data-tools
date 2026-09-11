@@ -21,7 +21,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     nest_individual_records,
     normalize_tissue,
     prepare_genotype_label_map,
-    validate_model_group_consistency,
     create_gene_metadata_dict,
     log_file_processing_info,
     validate_data_file_not_empty,
@@ -72,7 +71,7 @@ class TestPrepareGenotypeLabelMap:
     def test_inconsistent_model_group_raises(self) -> None:
         label_map = self._LABEL_MAP.assign(model_group=["Group_A", "Group_B"])
 
-        with pytest.raises(ValueError, match="consistent model_group"):
+        with pytest.raises(ValueError, match="multiple model_group"):
             prepare_genotype_label_map(label_map)
 
 
@@ -413,77 +412,6 @@ class TestPreprocessDataRemapsSexLabels:
         )
         result = preprocess_data_file("test.csv", df, 0, 1, [], {})
         assert result["sex"].reset_index(drop=True).tolist() == ["Male", "Female"]
-
-
-class TestValidateModelGroupConsistency:
-    """Tests for validate_model_group_consistency function."""
-
-    def test_consistent_model_groups(self) -> None:
-        """Test that consistent model_group values pass validation."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A", "Model_B", "Model_B"],
-                "model_group": ["Group1", "Group1", "Group2", "Group2"],
-            }
-        )
-
-        # Should not raise
-        validate_model_group_consistency(df)
-
-    def test_inconsistent_model_groups_raises_error(self) -> None:
-        """Test that inconsistent model_group values raise ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A", "Model_B", "Model_B"],
-                "model_group": ["Group1", "Group2", "Group3", "Group3"],
-            }
-        )
-
-        with pytest.raises(ValueError, match="consistent model_group value"):
-            validate_model_group_consistency(df)
-
-    def test_none_model_groups(self) -> None:
-        """Test handling of None model_group values (models with no explicit group)."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": [None, None],
-            }
-        )
-
-        # Should not raise — all-None model_group is consistently "no group"
-        validate_model_group_consistency(df)
-
-    def test_empty_string_model_groups(self) -> None:
-        """Test that consistent empty-string model_group values do not raise an error.
-
-        Consistent "" values are considered valid because all rows agree on the same value.
-        """
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": ["", ""],
-            }
-        )
-
-        # Should not raise — both rows agree on the same value
-        validate_model_group_consistency(df)
-
-    def test_mixed_none_and_real_group_raises_error(self) -> None:
-        """Test that a model with both None and a real group name raises ValueError.
-
-        Mixing None (no group) with an actual group name for the same model is
-        inconsistent and should be caught by validation.
-        """
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": [None, "GroupX"],
-            }
-        )
-
-        with pytest.raises(ValueError, match="consistent model_group value"):
-            validate_model_group_consistency(df)
 
 
 class TestBuildModelToModelGroup:
