@@ -503,6 +503,10 @@ class TestNestFields:
     )
 
     def test_nest_fields_with_dropped_column(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries but drops a single column
+        ("d") from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "b": "1", "c": "1"},
@@ -524,6 +528,10 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_with_dropped_column_list(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries and drops multiple columns
+        ("b" and "d") from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "c": "1"},
@@ -545,6 +553,10 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_no_drop_column(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries without dropping any columns
+        from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "b": "1", "c": "1", "d": "1"},
@@ -563,7 +575,60 @@ class TestNestFields:
         nested_df = utils.nest_fields(df=self.df_multirow, grouping="a", new_column="e")
         assert list(nested_df["e"]) == expected_column_e
 
+    def test_nest_fields_with_str_dropped_column_arg(self):
+        """
+        Test that nest_fields accepts a string for the drop_columns argument instead of a list.
+        """
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_singlerow, grouping="a", new_column="e", drop_columns="d"
+        )
+        assert list(nested_df["e"]) == expected_column_e
+
+    def test_nest_fields_grouping_list(self) -> None:
+        """
+        Test that nest_fields correctly handles a DataFrame when the grouping parameter is a list of columns.
+        """
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_multirow,
+            grouping=["a", "b"],
+            new_column="e",
+            drop_columns=["d"],
+        )
+
+        assert nested_df["e"].tolist() == expected_column_e
+
     def test_nest_fields_multirow_ValueError(self):
+        """
+        Test that nest_fields raises a ValueError when nested_field_is_list is set to False and the DataFrame has
+        multiple rows for the same group.
+        """
         with pytest.raises(ValueError, match="nested_field_is_list *"):
             utils.nest_fields(
                 df=self.df_multirow,
@@ -574,6 +639,10 @@ class TestNestFields:
             )
 
     def test_nest_fields_singlerow_nested_list_false(self):
+        """
+        Test that nest_fields correctly creates nested column "e" with a dictionary in each row instead of a list of
+        dictionaries, when nested_field_is_list is set to False.
+        """
         expected_column_e = [
             {"a": "group_1", "b": "1", "c": "1"},
             {"a": "group_2", "b": "1", "c": "1"},
@@ -590,6 +659,9 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_normalizes_null_values(self) -> None:
+        """
+        Test that nest_fields correctly normalizes null values in the nested dictionaries.
+        """
         df_with_nulls = pd.DataFrame(
             {
                 "a": ["group_1", "group_1", "group_2"],
@@ -620,7 +692,23 @@ class TestNestFields:
             drop_columns=["a"],
         )
 
+        # Along with checking data frame equivalence, we need to check that the lists of dictionaries in "nested" are
+        # equal because assert_frame_equal treats None and np.nan as equivalent.
         pd.testing.assert_frame_equal(nested_df, expected_df)
+        assert all(nested_df["nested"] == expected_df["nested"])
+
+    def test_nest_fields_fails_on_empty_dataframe(self) -> None:
+        """
+        Test that nest_fields raises a ValueError when the input DataFrame is empty.
+        """
+        empty_df = pd.DataFrame(columns=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Input DataFrame is empty"):
+            utils.nest_fields(
+                df=empty_df,
+                grouping="a",
+                new_column="nested",
+                drop_columns=["a"],
+            )
 
 
 class TestCalculateDistribution:

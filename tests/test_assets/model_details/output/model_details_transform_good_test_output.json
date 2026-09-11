@@ -19,21 +19,21 @@
     "spatial_transcriptomics": null,
     "genetic_info": [
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele1",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele2",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele3",
         "allele_type": "Transgenic",
@@ -47,7 +47,7 @@
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "Psen1",
+        "modified_gene": "PSEN1",
         "ensembl_gene_id": "ENSG00000080815",
         "allele": "Psen1<sup>tm1Mpm</sup>",
         "allele_type": "Targeted",
@@ -55,42 +55,6 @@
       }
     ],
     "biomarkers": [
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;40",
-        "tissue": "Cortex",
-        "age": "3 months",
-        "units": "",
-        "y_axis_max": 8.5,
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;42",
-        "tissue": "Cortex",
-        "age": "3 months",
-        "units": "",
-        "y_axis_max": 9.5,
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;40",
-        "tissue": "Hippocampus",
-        "age": "3 months",
-        "units": "",
-        "y_axis_max": 15.0,
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;42",
-        "tissue": "Hippocampus",
-        "age": "3 months",
-        "units": "",
-        "y_axis_max": 20.0,
-        "data": []
-      },
       {
         "name": "3xTg-AD",
         "evidence_type": "Insoluble &beta;40",
@@ -487,24 +451,6 @@
       }
     ],
     "biomarkers": [
-      {
-        "name": "hTau",
-        "evidence_type": "Phospho-tau",
-        "tissue": "Cortex",
-        "age": "3 months",
-        "units": "",
-        "y_axis_max": 20.0,
-        "data": []
-      },
-      {
-        "name": "hTau",
-        "evidence_type": "Tau",
-        "tissue": "Hippocampus",
-        "age": "3 months",
-        "units": "",
-        "y_axis_max": 25.0,
-        "data": []
-      },
       {
         "name": "hTau",
         "evidence_type": "Phospho-tau",
