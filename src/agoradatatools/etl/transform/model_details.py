@@ -3,7 +3,7 @@ This module contains the transformation logic for the model_details datasets.
 This is for the Model AD project.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
@@ -15,7 +15,7 @@ from agoradatatools.etl.utils import (
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     build_transcriptomics_url,
-    process_genetic_info,
+    process_genetic_modifications,
     zero_pad_jax_ids,
 )
 
@@ -78,9 +78,9 @@ REQUIRED_INPUT = {
 
 
 def transform_model_details(
-    datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-) -> List[Dict[str, Any]]:
+    datasets: dict[str, pd.DataFrame],
+    required_input: dict[str, list[str]] = REQUIRED_INPUT,
+) -> list[dict[str, Any]]:
     """
     Transforms the model_details souce files into a structured format for Model AD.
 
@@ -98,11 +98,11 @@ def transform_model_details(
         4. Human Ensembl IDs and gene symbols are used in place of mouse values for human transgenes
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
-        required_input (Dict[str, List[str]]): Dictionary of required input datasets and columns.
+        datasets (dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
+        required_input (dict[str, list[str]]): Dictionary of required input datasets and columns.
 
     Returns:
-        list[dict[str, Any]]: A list containing dicionaries with the transformed data.
+        list[dict[str, Any]]: A list containing dictionaries with the transformed data.
 
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
@@ -111,7 +111,9 @@ def transform_model_details(
 
     # Load and prepare datasets
     model_metadata_df = datasets["model_metadata"]
-    model_genetic_modifications_df = datasets["model_genetic_modifications"]
+    model_genetic_modifications_df = process_genetic_modifications(
+        datasets["model_genetic_modifications"]
+    )
 
     model_metadata_df = normalize_null_values(
         model_metadata_df,
@@ -138,10 +140,12 @@ def transform_model_details(
         model_name = model_row["name"]
 
         # Get genetic info for this model
-        genetic_info = process_genetic_info(
+        genetic_info = (
             model_genetic_modifications_df[
                 model_genetic_modifications_df["name"] == model_name
-            ],
+            ]
+            .drop(columns=["name"])
+            .to_dict(orient="records")
         )
 
         # Process the biomarkers and pathology datasets for this model

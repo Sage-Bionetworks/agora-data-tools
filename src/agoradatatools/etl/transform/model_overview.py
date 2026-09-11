@@ -4,17 +4,16 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-from typing import Any, Dict, List
+from typing import Any
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     normalize_null_values,
     delim_string_to_list,
-    remove_duplicates_keep_order,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     build_transcriptomics_url,
-    process_genetic_info,
+    process_genetic_modifications,
     zero_pad_jax_ids,
 )
 
@@ -50,17 +49,17 @@ REQUIRED_INPUT = {
 }
 
 
-def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
+def get_list_of_available_data(row: pd.Series) -> list[str]:
     """
     Get a list of available data for a given model.
     This is used to populate the "Available Data" section of the model overview page.
     If the value is not None, it is considered available.
 
     Args:
-        row (Dict[str, Any]): A dictionary containing the model information.
+        row (pd.Series): A pandas Series containing the model information.
 
     Returns:
-        List[str]: A list of available data for the model.
+        list[str]: A list of available data for the model.
     """
     fields = {
         "transcriptomics": "Transcriptomics",
@@ -91,9 +90,9 @@ def get_center_link_url(contributing_group: str) -> str:
 
 
 def transform_model_overview(
-    datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-) -> List[Dict[str, Any]]:
+    datasets: dict[str, pd.DataFrame],
+    required_input: dict[str, list[str]] = REQUIRED_INPUT,
+) -> list[dict[str, Any]]:
     """
     Transforms the model_overview source files into a structured format for Model AD.
 
@@ -104,19 +103,19 @@ def transform_model_overview(
             including human Ensembl gene IDs for human transgene alleles
 
     The transformation includes:
-        1. For each model, extracting genetic information using process_genetic_info, which maps alleles to human
-           Ensembl IDs where possible.
+        1. For each model, extracting genetic information using process_genetic_modifications, which maps alleles to
+           human Ensembl IDs where possible.
         2. Building a structured dictionary for each model, including:
             - model metadata (name, model_type, matched_controls, etc.)
             - links to available results (gene_expression, disease_correlation, pathology, biomarkers)
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): Dictionary mapping dataset names to their DataFrames.
-        required_input (Dict[str, List[str]], optional): Dictionary specifying required datasets and columns. Defaults
+        datasets (dict[str, pd.DataFrame]): Dictionary mapping dataset names to their DataFrames.
+        required_input (dict[str, list[str]], optional): Dictionary specifying required datasets and columns. Defaults
         to REQUIRED_INPUT.
 
     Returns:
-        List[Dict[str, Any]]: A list of dictionaries, each representing a transformed model overview record.
+        list[dict[str, Any]]: A list of dictionaries, each representing a transformed model overview record.
 
     Raises:
         ValueError: If required datasets or columns are missing.
@@ -125,7 +124,9 @@ def transform_model_overview(
     check_required_datasets_and_columns(datasets, required_input)
 
     model_metadata = datasets["model_metadata"]
-    model_genetic_modifications_df = datasets["model_genetic_modifications"]
+    model_genetic_modifications_df = process_genetic_modifications(
+        datasets["model_genetic_modifications"]
+    )
 
     boolean_columns = [
         "transcriptomics",
@@ -143,20 +144,11 @@ def transform_model_overview(
 
     for _, row in model_metadata.iterrows():
         # Get genetic info for this model
-        genetic_info = process_genetic_info(
-            model_genetic_modifications_df[
-                model_genetic_modifications_df["name"] == row["name"]
-            ],
-        )
+        genetic_info = model_genetic_modifications_df[
+            model_genetic_modifications_df["name"] == row["name"]
+        ]
 
-        modified_genes = (
-            remove_duplicates_keep_order(
-                [gene["modified_gene"] for gene in genetic_info]
-            )
-            if genetic_info
-            else []
-        )
-        row["modified_genes"] = [gene for gene in modified_genes if gene is not None]
+        row["modified_genes"] = genetic_info["modified_gene"].dropna().unique().tolist()
 
         # Build the links
         row["transcriptomics"] = (
