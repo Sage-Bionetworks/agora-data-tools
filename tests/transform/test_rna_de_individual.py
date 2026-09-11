@@ -914,8 +914,7 @@ class TestTransformRnaDeIndividual:
 
         # Verify the error message contains expected information
         error_message = str(exc_info.value)
-        assert "Each model must have a consistent model_group value" in error_message
-        assert "genotype_label_map" in error_message
+        assert "multiple model_group values" in error_message
         assert "APOE4" in error_message
 
     def _build_minimal_datasets(

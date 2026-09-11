@@ -285,7 +285,7 @@ This transform is designed to handle two distinct experimental scenarios:
 ### 4. Model to Model Group Mapping
 - **Method:** Extracts from genotype metadata (one entry per model)
 - **Assumption:** All genotypes for a model have the same model_group
-- **Validation:** Pre-validated by `validate_model_group_consistency`
+- **Validation:** Pre-validated by `validate_one_to_one_mapping` (model to model_group)
 - **Impact:** Ensures consistent model_group assignment
 
 ## Output Structure

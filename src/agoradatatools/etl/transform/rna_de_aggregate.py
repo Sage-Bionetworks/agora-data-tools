@@ -44,6 +44,7 @@ import gc
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     normalize_zero,
+    validate_one_to_one_mapping,
 )
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
@@ -56,7 +57,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     log_file_processing_info,
     normalize_tissue,
     validate_data_file_not_empty,
-    validate_model_group_consistency,
 )
 
 logger = logging.getLogger(__name__)
@@ -539,7 +539,7 @@ def transform_rna_de_aggregate(
 
     Raises:
         ValueError: If required datasets or columns are missing, if any model has
-            inconsistent model_group values, if any data file is empty or invalid,
+            inconsistent model_group or model_type values, if any data file is empty or invalid,
             or if any case or control genotype used in the data files is not found
             in the genotype_label_map dataset.
             Error messages include specific details about what validation failed.
@@ -570,22 +570,19 @@ def transform_rna_de_aggregate(
         "display_label"
     ].to_dict()
 
-    validate_model_group_consistency(genotype_label_map_df)
+    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
+    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_type")
     model_group_dict = build_model_to_model_group(genotype_label_map_df)
 
     # Derive model_type from genotype_label_map so that split variant models
     # (e.g., "Abca7*V1599M.5xFAD") are covered without requiring entries in model_info.
-    model_type_df = genotype_label_map_df[["model", "model_type"]].drop_duplicates()
-    if model_type_df["model"].duplicated().any():
-        inconsistent_model_type_models = model_type_df["model"][
-            model_type_df["model"].duplicated()
-        ].tolist()
-        raise ValueError(
-            f"Each model must have a consistent model_type value in "
-            f"genotype_label_map. Models with inconsistent model_type values: "
-            f"{inconsistent_model_type_models}"
-        )
-    model_type_dict = model_type_df.set_index("model")["model_type"].to_dict()
+    # Safe to take one row per model: the mapping check above rejected conflicts.
+    model_type_dict = (
+        genotype_label_map_df[["model", "model_type"]]
+        .drop_duplicates("model")
+        .set_index("model")["model_type"]
+        .to_dict()
+    )
 
     # Create biodomain lookup dictionary
     biodomain_dict = (
