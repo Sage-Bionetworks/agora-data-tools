@@ -355,7 +355,7 @@ class TestTransformModelOverview:
                 "disease_correlation": [False, True],
                 "pathology": [True, True],
                 "biomarkers": [False, True],
-                "proteomics": [None, None],
+                "proteomics": [True, False],
                 "proteomics_url_categories_value": [None, None],
                 "proteomics_url_models_value": [None, None],
             }
@@ -397,7 +397,9 @@ class TestTransformModelOverview:
                 "model_type": "Familial AD",
                 "matched_controls": ["C57BL6J"],
                 "transcriptomics": {"link_url": "comparison/expression?models=model1"},
-                "proteomics": None,
+                "proteomics": {
+                    "link_url": "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=model1"
+                },
                 "disease_correlation": None,
                 "pathology": {"link_url": "models/model1/pathology"},
                 "biomarkers": None,
@@ -407,7 +409,7 @@ class TestTransformModelOverview:
                 "jax_strain": {"link_url": "https://jax.org/strain/000111"},
                 "center": "UCI",
                 "modified_genes": ["Gene1", "Gene2"],
-                "available_data": ["Transcriptomics", "Pathology"],
+                "available_data": ["Transcriptomics", "Proteomics", "Pathology"],
             },
             {
                 "name": "model2",
