@@ -375,9 +375,9 @@ def rename_columns(
 
 def nest_fields(
     df: pd.DataFrame,
-    grouping: Union[str, List[str]],
+    grouping: str | list[str],
     new_column: str,
-    drop_columns: list = [],
+    drop_columns: str | list[str] = None,
     nested_field_is_list: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame by grouping and nesting fields.
@@ -393,7 +393,8 @@ def nest_fields(
         df (pd.DataFrame): DataFrame to be collapsed
         grouping (str or list of str): The column(s) that you want to group by
         new_column (str): the new column created to contain the nested dictionaries created
-        drop_columns (list, optional): List of columns to leave out of the new nested dictionary. Defaults to [].
+        drop_columns (str or list of str, optional): List of columns to leave out of the new nested dictionary. Defaults
+                        to [].
         nested_field_is_list (bool, optional): if True (default), each nested field will be a list of dicts. This
                         applies to data sets where there may be multiple rows to collapse, e.g. multiple biodomain
                         rows for a single Ensembl ID. If False, each nested field will be a single dict. This applies
@@ -402,7 +403,17 @@ def nest_fields(
 
     Returns:
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
+
+    Raises:
+        ValueError: If the input DataFrame is empty
+        ValueError: If nested_field_is_list is False and there are multiple rows per group.
     """
+    if df.empty:
+        raise ValueError("Input DataFrame is empty")
+
+    # Initialize to empty list if not provided
+    drop_columns = drop_columns or []
+
     nested = (
         normalize_null_values(df)
         .groupby(grouping)

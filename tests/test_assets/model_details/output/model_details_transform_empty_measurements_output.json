@@ -19,21 +19,21 @@
     "spatial_transcriptomics": null,
     "genetic_info": [
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele1",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele2",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele3",
         "allele_type": "Transgenic",
@@ -47,7 +47,7 @@
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "Psen1",
+        "modified_gene": "PSEN1",
         "ensembl_gene_id": "ENSG00000080815",
         "allele": "Psen1<sup>tm1Mpm</sup>",
         "allele_type": "Targeted",
