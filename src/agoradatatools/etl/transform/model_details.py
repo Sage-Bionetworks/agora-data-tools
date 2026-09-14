@@ -10,6 +10,8 @@ import pandas as pd
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
+    create_ensembl_info_df,
+    nest_fields,
     normalize_null_values,
     delim_string_to_list,
 )
@@ -29,6 +31,12 @@ REQUIRED_INPUT = {
         "mgi_allele_id",
         "human_gene_symbol",
         "human_ensembl_id",
+    ],
+    "mouse_gene_metadata": [
+        "ensembl_gene_id",
+        "ensembl_release",
+        "ensembl_possible_replacements",
+        "ensembl_permalink",
     ],
     "model_metadata": [
         "name",
@@ -77,6 +85,59 @@ REQUIRED_INPUT = {
 }
 
 
+def nest_genetic_info(
+    model_genetic_modifications_df: pd.DataFrame, gene_metadata_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Merges model genetic modifications with gene metadata and nests the data to create the expected genetic_info
+    structure for the model details output.
+
+    Args:
+        model_genetic_modifications_df (pd.DataFrame): DataFrame containing model genetic modifications.
+        gene_metadata_df (pd.DataFrame): DataFrame containing gene metadata.
+
+    Returns:
+        pd.DataFrame: DataFrame with nested genetic_info for each model.
+
+    Raises:
+        ValueError: If gene_metadata is missing any Ensembl IDs present in model_genetic_modifications_df.
+    """
+    # Check that all Ensembl gene IDs in model_genetic_modifications_df are present in gene_metadata_df
+    if not all(
+        model_genetic_modifications_df["ensembl_gene_id"].isin(
+            gene_metadata_df["ensembl_gene_id"]
+        )
+    ):
+        raise ValueError(
+            "`gene_metadata_df` is missing some Ensembl IDs present in `model_genetic_modifications_df`."
+        )
+
+    # Subset gene_metadata_df to only include genes present in model_genetic_modifications_df to avoid long processing
+    # time in nest_fields
+    gene_metadata_df = gene_metadata_df[
+        gene_metadata_df["ensembl_gene_id"].isin(
+            model_genetic_modifications_df["ensembl_gene_id"]
+        )
+    ]
+
+    ensembl_info_df = create_ensembl_info_df(gene_metadata_df)
+
+    # Create genetic info for output by merging model genetic modifications with Ensembl info and
+    # nesting the data
+    genetic_info = model_genetic_modifications_df.merge(
+        ensembl_info_df, how="left", on="ensembl_gene_id", validate="m:1"
+    )
+
+    genetic_info = nest_fields(
+        genetic_info,
+        grouping="name",
+        new_column="genetic_info",
+        drop_columns="name",
+    )
+
+    return genetic_info
+
+
 def transform_model_details(
     datasets: dict[str, pd.DataFrame],
     required_input: dict[str, list[str]] = REQUIRED_INPUT,
@@ -106,6 +167,7 @@ def transform_model_details(
 
     Raises:
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
+        ValueError: If any models in `model_metadata_df` are missing from `model_genetic_modifications_df`.
     """
     check_required_datasets_and_columns(datasets, required_input)
 
@@ -113,6 +175,20 @@ def transform_model_details(
     model_metadata_df = datasets["model_metadata"]
     model_genetic_modifications_df = process_genetic_modifications(
         datasets["model_genetic_modifications"]
+    )
+
+    # All models should be represented in the genetic modifications df, otherwise raise an error
+    if not model_metadata_df["name"].isin(model_genetic_modifications_df["name"]).all():
+        missing = set(model_metadata_df["name"]) - set(
+            model_genetic_modifications_df["name"]
+        )
+        raise ValueError(
+            f"Some models in `model_metadata_df` are missing from `model_genetic_modifications_df`: {missing}"
+        )
+
+    # Format genetic information
+    genetic_info_df = nest_genetic_info(
+        model_genetic_modifications_df, datasets["mouse_gene_metadata"]
     )
 
     model_metadata_df = normalize_null_values(
@@ -139,14 +215,11 @@ def transform_model_details(
     for _, model_row in model_metadata_df.iterrows():
         model_name = model_row["name"]
 
-        # Get genetic info for this model
-        genetic_info = (
-            model_genetic_modifications_df[
-                model_genetic_modifications_df["name"] == model_name
-            ]
-            .drop(columns=["name"])
-            .to_dict(orient="records")
-        )
+        # Get genetic info for this model -- guaranteed not to be empty because of the check above.
+        # Use .iloc[0] to extract the first row of the single-row DataFrame returned by the filtering operation.
+        model_genetic_info = genetic_info_df[genetic_info_df["name"] == model_name][
+            "genetic_info"
+        ].iloc[0]
 
         # Process the biomarkers and pathology datasets for this model
         model_biomarkers = [x for x in grouped_biomarkers if x["name"] == model_name]
@@ -167,7 +240,7 @@ def transform_model_details(
             "transcriptomics": None,
             "disease_correlation": None,
             "spatial_transcriptomics": None,
-            "genetic_info": genetic_info,
+            "genetic_info": model_genetic_info,
             "biomarkers": model_biomarkers,
             "pathology": model_pathology,
         }
