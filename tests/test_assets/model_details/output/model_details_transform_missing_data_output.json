@@ -13,6 +13,7 @@
       "3xTg"
     ],
     "transcriptomics": "comparison/expression?models=3xTg-AD",
+    "proteomics": null,
     "disease_correlation": "comparison/correlation?models=3xTg-AD",
     "spatial_transcriptomics": null,
     "genetic_info": [
@@ -285,6 +286,7 @@
     "genotype": "B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J",
     "aliases": [],
     "transcriptomics": null,
+    "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [

@@ -15,6 +15,7 @@
       "3xTg"
     ],
     "transcriptomics": "comparison/expression?models=3xTg-AD",
+    "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [
@@ -468,6 +469,7 @@
       "Mapt-/-"
     ],
     "transcriptomics": null,
+    "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [
@@ -692,5 +694,28 @@
         "data": []
       }
     ]
+  },
+  {
+    "name": "LOAD2",
+    "matched_controls": [
+      "LOAD1"
+    ],
+    "model_type": "Late Onset AD",
+    "contributing_group": "IU/Jax/Pitt",
+    "study_synid": "syn51534997",
+    "rrid": "IMSR_JAX:030670",
+    "jax_id": "030670",
+    "alzforum_id": "habetaapoe4trem2r47h-load2",
+    "genotype": "B6.Cg-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup> App<sup>em1Adiuj</sup> Trem2<sup>em1Adiuj</sup></i>/J",
+    "aliases": [
+      "hAbeta/APOE4/Trem2*R47H"
+    ],
+    "transcriptomics": null,
+    "proteomics": "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=LOAD2",
+    "disease_correlation": null,
+    "spatial_transcriptomics": null,
+    "genetic_info": [],
+    "biomarkers": [],
+    "pathology": []
   }
 ]
