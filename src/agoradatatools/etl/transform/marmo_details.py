@@ -102,6 +102,82 @@ REFERENCED_BIOMATERIAL_RULES = {
 MONTHS_PER_YEAR = 12
 
 
+def _validate_and_prepare_model_metadata(
+    genotype_map: pd.DataFrame, raw_metadata: pd.DataFrame
+) -> pd.DataFrame:
+    """Validate the label map and model metadata together, and normalize metadata blanks.
+
+    Returns marmo_model_metadata with blanks normalized to None so taking iloc[0] later is
+    not an arbitrary pick of conflicting model_type or study_synid values.
+
+    Args:
+        genotype_map (pd.DataFrame): marmo_genotype_label_map.
+        raw_metadata (pd.DataFrame): marmo_model_metadata before null normalization.
+
+    Returns:
+        pd.DataFrame: Normalized marmo_model_metadata.
+
+    Raises:
+        ValueError: If the label map has duplicate (model, genotype) rows, a model has
+            inconsistent model_type or study_synid values, or the label map names a model
+            absent from marmo_model_metadata.
+    """
+    # (model, genotype) must be unique: a duplicate pair would multiply points within a model.
+    duplicate_keys = genotype_map.duplicated(subset=["model", "genotype"], keep=False)
+    if duplicate_keys.any():
+        dupes = (
+            genotype_map.loc[duplicate_keys, ["model", "genotype"]]
+            .drop_duplicates()
+            .to_dict(orient="records")
+        )
+        raise ValueError(
+            "marmo_genotype_label_map has duplicate (model, genotype) rows, which would "
+            f"multiply measurements within a model: {dupes}"
+        )
+
+    # Blanks in model_type, study_synid, modified_gene, and allele_type are allowed and become
+    # None in the JSON, matching transform_model_details. ensembl_gene_id stays NotEmptyRule.
+    metadata = normalize_null_values(raw_metadata)
+    # A model has one row per modified gene. model_type and study_synid must be the same on
+    # every row so taking the first row of each model later is not an arbitrary pick.
+    validate_one_to_one_mapping(metadata, "model", "model_type")
+    validate_one_to_one_mapping(metadata, "model", "study_synid")
+
+    # Hand-maintained files: all models in genotype_map must exist in marmo_model_metadata.
+    # Extra or typo'd models in genotype_map would have their rows silently removed and would
+    # not get a page on the explorer.
+    validate_references_exist(
+        genotype_map["model"],
+        metadata["model"],
+        source_name="marmo_genotype_label_map",
+        target_name="marmo_model_metadata",
+        item_name="models",
+    )
+    return metadata
+
+
+def _prepare_measure_info(raw_measure_info: pd.DataFrame) -> pd.DataFrame:
+    """Return measure info with the derived columns _build_measurements needs.
+
+    Adds a standardized result_column_std, a numeric display_order, and empty-string units.
+
+    Args:
+        raw_measure_info (pd.DataFrame): marmo_biomarker_measure_info.
+
+    Returns:
+        pd.DataFrame: Measure info ready for _build_measurements.
+    """
+    measure_info = raw_measure_info.copy()
+    measure_info["result_column_std"] = measure_info["result_column"].apply(
+        standardize_column_name
+    )
+    measure_info["display_order"] = pd.to_numeric(
+        measure_info["display_order"], errors="coerce"
+    )
+    # The A-beta ratio has no units; empty string rather than null.
+    return normalize_null_values(measure_info, empty_string_columns=["units"])
+
+
 def _build_measurements(
     datasets: Dict[str, pd.DataFrame],
     measure_info: pd.DataFrame,
@@ -333,49 +409,10 @@ def transform_marmo_details(
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)
 
-    genotype_map = datasets["marmo_genotype_label_map"]
-    # (model, genotype) must be unique: a duplicate pair would multiply points within a model.
-    duplicate_keys = genotype_map.duplicated(subset=["model", "genotype"], keep=False)
-    if duplicate_keys.any():
-        dupes = (
-            genotype_map.loc[duplicate_keys, ["model", "genotype"]]
-            .drop_duplicates()
-            .to_dict(orient="records")
-        )
-        raise ValueError(
-            "marmo_genotype_label_map has duplicate (model, genotype) rows, which would "
-            f"multiply measurements within a model: {dupes}"
-        )
-
-    # Blanks in model_type, study_synid, modified_gene, and allele_type are allowed and become
-    # None in the JSON, matching transform_model_details. ensembl_gene_id stays NotEmptyRule.
-    metadata = normalize_null_values(datasets["marmo_model_metadata"])
-    # A model has one row per modified gene. model_type and study_synid must be the same on
-    # every row so taking iloc[0] below is not an arbitrary pick.
-    validate_one_to_one_mapping(metadata, "model", "model_type")
-    validate_one_to_one_mapping(metadata, "model", "study_synid")
-
-    # Hand-maintained files: all models in genotype_map must exist in marmo_model_metadata.
-    # Extra or typo'd models in genotype_map would have their rows silently removed and would
-    # not get a page on the explorer.
-    validate_references_exist(
-        genotype_map["model"],
-        metadata["model"],
-        source_name="marmo_genotype_label_map",
-        target_name="marmo_model_metadata",
-        item_name="models",
+    metadata = _validate_and_prepare_model_metadata(
+        datasets["marmo_genotype_label_map"], datasets["marmo_model_metadata"]
     )
-
-    measure_info = datasets["marmo_biomarker_measure_info"].copy()
-    measure_info["result_column_std"] = measure_info["result_column"].apply(
-        standardize_column_name
-    )
-    measure_info["display_order"] = pd.to_numeric(
-        measure_info["display_order"], errors="coerce"
-    )
-    # The A-beta ratio has no units; empty string rather than null.
-    measure_info = normalize_null_values(measure_info, empty_string_columns=["units"])
-
+    measure_info = _prepare_measure_info(datasets["marmo_biomarker_measure_info"])
     measurements = _build_measurements(datasets, measure_info)
 
     result = []
