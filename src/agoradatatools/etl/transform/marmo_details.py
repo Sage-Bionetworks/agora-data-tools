@@ -374,7 +374,7 @@ def transform_marmo_details(
         measure_info["display_order"], errors="coerce"
     )
     # The A-beta ratio has no units; empty string rather than null.
-    measure_info["units"] = measure_info["units"].fillna("")
+    measure_info = normalize_null_values(measure_info, empty_string_columns=["units"])
 
     measurements = _build_measurements(datasets, measure_info)
 
