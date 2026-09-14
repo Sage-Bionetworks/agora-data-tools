@@ -1943,6 +1943,109 @@ class TestDelimStringToList:
             utils.delim_string_to_list(input_string, delimiter)
 
 
+class TestYAxisMaxByGroups:
+    """Tests for y_axis_max_by_groups."""
+
+    _GROUP_COLS = ["name", "evidence_type", "tissue"]
+
+    def test_multi_column_keys(self) -> None:
+        """Several group columns produce tuple keys, as immunohisto uses."""
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1", "Model2", "Model2"],
+                "evidence_type": ["Type1", "Type1", "Type2", "Type2"],
+                "tissue": ["Tissue1", "Tissue1", "Tissue2", "Tissue2"],
+                "age": ["6 months", "12 months", "6 months", "12 months"],
+                "value": [1.0, 3.0, 2.0, 5.0],
+                "units": ["mg", "mg", "mg", "mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {
+            ("Model1", "Type1", "Tissue1"): 3.5,
+            ("Model2", "Type2", "Tissue2"): 5.5,
+        }
+
+    def test_single_column_keys(self) -> None:
+        """One group column produces scalar keys so the result can map onto a Series."""
+        dataset = pd.DataFrame(
+            {
+                "evidence_type": ["Type1", "Type1", "Type2"],
+                "value": [1.0, 3.0, 5.0],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, "evidence_type")
+
+        assert result == {"Type1": 3.5, "Type2": 5.5}
+
+    def test_single_group(self) -> None:
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1"],
+                "evidence_type": ["Type1"],
+                "tissue": ["Tissue1"],
+                "age": ["6 months"],
+                "value": [1.0],
+                "units": ["mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {("Model1", "Type1", "Tissue1"): 1.5}
+
+    def test_non_numeric_values_are_coerced(self) -> None:
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months"],
+                "value": ["1.0", "invalid"],
+                "units": ["mg", "mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {("Model1", "Type1", "Tissue1"): 1.5}
+
+    def test_all_invalid_values_default_to_ten(self) -> None:
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months"],
+                "value": ["invalid1", "invalid2"],
+                "units": ["mg", "mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {("Model1", "Type1", "Tissue1"): 10.0}
+
+    def test_mixed_data_types(self) -> None:
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months", "18 months"],
+                "value": [1.0, "2.5", 3.0],
+                "units": ["mg", "mg", "mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {("Model1", "Type1", "Tissue1"): 3.5}
+
+
 class TestRoundYAxisMax:
     """Test class for the round_y_axis_max function."""
 

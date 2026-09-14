@@ -958,6 +958,33 @@ def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
     return []
 
 
+def y_axis_max_by_groups(
+    df: pd.DataFrame,
+    group_cols: Union[str, List[str]],
+    value_col: str = "value",
+) -> Dict[Any, float]:
+    """Max of value_col per group, then round_y_axis_max.
+
+    A group with no numeric values gets round_y_axis_max(0). One group column
+    produces scalar keys so the result can map onto a Series; several group
+    columns produce tuple keys.
+
+    Args:
+        df: DataFrame containing the value column and grouping columns.
+        group_cols: Column name, or list of column names, to group by.
+        value_col: Column whose maximum is rounded. Defaults to value.
+
+    Returns:
+        Mapping from each group key to its rounded y-axis maximum.
+    """
+    y_axis_max_map: Dict[Any, float] = {}
+    for key, group in df.groupby(group_cols):
+        numeric_values = pd.to_numeric(group[value_col], errors="coerce").dropna()
+        raw_max = numeric_values.max() if len(numeric_values) > 0 else 0
+        y_axis_max_map[key] = round_y_axis_max(raw_max)
+    return y_axis_max_map
+
+
 def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     """
     This function rounds the y_axis_max value to the nearest sensible nice round number.
