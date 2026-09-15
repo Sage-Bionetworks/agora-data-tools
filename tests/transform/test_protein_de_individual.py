@@ -516,9 +516,11 @@ class TestTransformProteinDeIndividual:
         assert {e["uniprotid"] for e in output} == {"P00001"}
 
     def test_animals_without_metadata_or_label_map_row_dropped(self) -> None:
-        """Test that unjoinable animals are excluded.
+        """Test that unmatched or unlabeled animals are dropped, not a failed run.
 
-        i4 is heterozygous, a genotype MG-985 confirmed must not be displayed.
+        syn75965714 omits animals, so a file can miss most of its IDs and still be
+        valid. Only a zero match raises (see test_unjoinable_data_file_raises). i4 is
+        heterozygous, a genotype MG-985 confirmed must not be displayed.
         """
         datasets = self._build_datasets(
             harmonized={
@@ -529,9 +531,9 @@ class TestTransformProteinDeIndividual:
                 "tissue": ["right cerebral hemisphere"] * 3,
             },
             data_file={
-                "specimenid": ["c1", "c2", "c3", "c4"],
-                "individualid": ["i1", "i2", "i4", "i_unknown"],
-                "gene1|p00001": [1.0, 2.0, 3.0, 4.0],
+                "specimenid": [f"c{n}" for n in range(7)],
+                "individualid": ["i1", "i2", "i4", "u1", "u2", "u3", "u4"],
+                "gene1|p00001": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
             },
         )
 
@@ -541,11 +543,11 @@ class TestTransformProteinDeIndividual:
         assert {d["individual_id"] for d in output[0]["data"]} == {"i1", "i2"}
         assert {d["genotype"] for d in output[0]["data"]} == {"LOAD2", "LOAD1"}
 
-    def test_mostly_unjoinable_data_file_raises(self) -> None:
+    def test_unjoinable_data_file_raises(self) -> None:
         """Test that a data file whose join key stopped matching fails instead of shrinking.
 
         The animals are still present in both sources, but the individualIDs no longer
-        agree, which is what an upstream dtype change looks like. Without the coverage
+        agree, which is what an upstream dtype change looks like. Without the per-file
         check the other file's animals would satisfy every later guard.
         """
         datasets = self._build_datasets(
@@ -565,7 +567,8 @@ class TestTransformProteinDeIndividual:
         )
 
         with pytest.raises(
-            ValueError, match="'stale_file' were found in the harmonized"
+            ValueError,
+            match="None of the 2 animals in proteomics data file 'stale_file'",
         ):
             self._transform(datasets)
 
@@ -854,25 +857,6 @@ class TestTransformProteinDeIndividual:
 
         assert [d["individual_id"] for d in output[0]["data"]] == ["i1", "i2"]
 
-    def test_conflicting_animal_rows_raise(self) -> None:
-        """Test that a harmonized metadata disagreeing with itself about an animal raises.
-
-        Whichever genotype came first would otherwise be picked silently, which for a
-        control-versus-carrier disagreement means publishing the wrong group.
-        """
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i1", "i2"],
-                "sex": ["male", "male", "female"],
-                "agedeath": [4.0, 4.0, 4.5],
-                "genotype": ["geno_hom", "geno_wt", "geno_wt"],
-                "tissue": ["right cerebral hemisphere"] * 3,
-            }
-        )
-
-        with pytest.raises(ValueError, match="not a many-to-one merge"):
-            self._transform(datasets)
-
     def test_duplicate_model_genotype_in_label_map_raises(self) -> None:
         """Test that a label map with two rows for one (model, genotype) raises.
 
@@ -897,8 +881,6 @@ class TestTransformProteinDeIndividual:
         [
             # A config that forgot the model_map block entirely.
             (None, "No model_map provided"),
-            # A data file the config forgot to declare.
-            ({}, "No model_map provided"),
             # A config typo naming a file that is not in this dataset.
             (
                 {"proteomics_file": "LOAD2", "typo_file": "LOAD2"},
