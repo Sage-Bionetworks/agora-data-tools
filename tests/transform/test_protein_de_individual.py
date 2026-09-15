@@ -13,7 +13,7 @@ tests/test_assets/protein_de_individual/; targeted behaviors use inline DataFram
 import json
 import math
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -37,7 +37,6 @@ class TestBuildUniprotCandidates:
     """Unit tests for the UniProt accession to candidate mouse Ensembl gene ids lookup."""
 
     def test_drops_human_genes_and_keeps_all_mouse_candidates(self) -> None:
-        """Test that human genes are excluded and multi-mapped accessions keep every candidate."""
         mapping = pd.DataFrame(
             {
                 "uniprotkb_accession": ["P1", "P1", "P2", "P3"],
@@ -93,7 +92,7 @@ class TestMeasuredHeaderPairs:
     """
 
     @staticmethod
-    def _melted_accessions(datasets: Dict[str, pd.DataFrame]) -> set:
+    def _melted_accessions(datasets: dict[str, pd.DataFrame]) -> set:
         return {
             accession
             for name, data_file in datasets.items()
@@ -122,7 +121,7 @@ class TestMeasuredHeaderPairs:
         ],
     )
     def test_pairs_match_what_the_melt_yields(
-        self, columns: Dict[str, list], accessions: set, symbols: set
+        self, columns: dict[str, list], accessions: set, symbols: set
     ) -> None:
         datasets = {
             "file1": pd.DataFrame({"individualid": [1, 2], **columns}),
@@ -218,7 +217,6 @@ class TestResolveGeneIds:
         assert resolved == {"P1": expected}
 
     def test_multi_gene_header_symbol_resolves_on_one_match(self) -> None:
-        """Test that a semicolon-joined symbol still resolves if only one candidate matches."""
         resolved = _resolve_gene_ids(
             self._header_pairs("P1", "Cycs;_Rps27"),
             CANDIDATES,
@@ -268,7 +266,6 @@ class TestResolveGeneIds:
         assert resolved == {"P2": "ENSMUSG00000000008"}
 
     def test_isoform_symbol_resolves_base_accession(self) -> None:
-        """Test that an isoform's header symbol resolves the base accession's gene."""
         resolved = _resolve_gene_ids(
             self._header_pairs("P1-2", "Cycs"), CANDIDATES, GENE_SYMBOLS, {}
         )
@@ -318,7 +315,6 @@ class TestMeltProteomicsFile:
         assert set(long_df["uniprotid"]) == {"P00001", "Q8C8R3-2"}
 
     def test_no_protein_columns_raises(self) -> None:
-        """Test that a file whose protein columns went missing fails loudly."""
         with pytest.raises(ValueError, match="no protein columns"):
             _melt_proteomics_file(
                 "proteomics_file",
@@ -327,7 +323,6 @@ class TestMeltProteomicsFile:
             )
 
     def test_non_numeric_value_names_its_file(self) -> None:
-        """Test that an unparseable abundance reports the file it came from."""
         data_file = self.data_file.assign(**{"gene1|p00001": ["1.0", "not_a_number"]})
 
         with pytest.raises(ValueError, match="'proteomics_file'.*not_a_number"):
@@ -340,7 +335,7 @@ class TestTransformProteinDeIndividual:
     data_files_path = "tests/test_assets/protein_de_individual"
 
     @staticmethod
-    def _normalize(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _normalize(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Sort inner data lists and the outer list for order-independent comparison."""
         for entry in entries:
             entry["data"] = sorted(entry["data"], key=lambda x: x["individual_id"])
@@ -348,8 +343,8 @@ class TestTransformProteinDeIndividual:
 
     @staticmethod
     def _transform(
-        datasets: Dict[str, pd.DataFrame], model_map: Dict[str, str] = None
-    ) -> List[Dict[str, Any]]:
+        datasets: dict[str, pd.DataFrame], model_map: dict[str, str] = None
+    ) -> list[dict[str, Any]]:
         """Run the transform, defaulting every data file to LOAD2.
 
         Tests that do not care about the model get the single-model case for free; tests
@@ -367,13 +362,13 @@ class TestTransformProteinDeIndividual:
 
     def _build_datasets(
         self,
-        harmonized: Dict[str, Any] = None,
-        data_file: Dict[str, Any] = None,
+        harmonized: dict[str, Any] = None,
+        data_file: dict[str, Any] = None,
         data_key: str = "proteomics_file",
-        label_map: Dict[str, Any] = None,
+        label_map: dict[str, Any] = None,
         mapping: pd.DataFrame = None,
         gene_metadata: pd.DataFrame = None,
-    ) -> Dict[str, pd.DataFrame]:
+    ) -> dict[str, pd.DataFrame]:
         """Build a minimal valid datasets dict, allowing any input to be replaced.
 
         Defaults: one homozygous (LOAD2) and one hAPP-WT (LOAD1 control) animal, both at
@@ -494,7 +489,6 @@ class TestTransformProteinDeIndividual:
         assert isoform["display_symbol"] == "Gnai3 (Q8C8R3-2)"
 
     def test_unmapped_and_human_proteins_dropped(self) -> None:
-        """Test that an unmapped accession and a human-only one are both dropped."""
         datasets = self._build_datasets(
             data_file={
                 "specimenid": ["c1", "c2"],
@@ -609,7 +603,6 @@ class TestTransformProteinDeIndividual:
         }
 
     def test_missing_agedeath_raises(self) -> None:
-        """Test that an unbucketable ageDeath fails loudly rather than dropping the animal."""
         datasets = self._build_datasets(
             harmonized={
                 "individualid": ["i1", "i2"],
@@ -652,12 +645,8 @@ class TestTransformProteinDeIndividual:
         ],
     )
     def test_sex_labels_are_singular_and_title_cased(
-        self, source: List[str], expected: set
+        self, source: list[str], expected: set
     ) -> None:
-        """Test that plural and lowercase source spellings are both normalized.
-
-        The RNA data says Males/Females and both datasets render on the same page.
-        """
         datasets = self._build_datasets(
             harmonized={
                 "individualid": ["i1", "i2"],
@@ -673,7 +662,6 @@ class TestTransformProteinDeIndividual:
         assert {d["sex"] for d in output[0]["data"]} == expected
 
     def test_all_null_sex_survives(self) -> None:
-        """Test that an unpopulated sex column serializes as null rather than raising."""
         datasets = self._build_datasets(
             harmonized={
                 "individualid": ["i1", "i2"],
@@ -708,7 +696,6 @@ class TestTransformProteinDeIndividual:
         assert not any(math.copysign(1, value) < 0 for value in values)
 
     def test_multiple_data_files_are_combined(self) -> None:
-        """Test that the two source proteomics files are melted and combined."""
         datasets = self._build_datasets(
             harmonized={
                 "individualid": ["i1", "i2"],
@@ -892,32 +879,24 @@ class TestTransformProteinDeIndividual:
         ],
     )
     def test_invalid_model_map_raises(
-        self, model_map: Dict[str, str], error: str
+        self, model_map: dict[str, str], error: str
     ) -> None:
-        """Test that a model_map not matching the data files fails with an actionable message."""
         datasets = self._build_datasets()
 
         with pytest.raises(ValueError, match=error):
             transform_protein_de_individual(datasets=datasets, model_map=model_map)
 
     def test_data_file_missing_from_model_map_raises(self) -> None:
-        """Test that a data file left out of model_map still fails rather than being read.
-
-        Such a file is indistinguishable from a metadata file, so it is taken as metadata
-        and fails on the metadata columns it does not have. The message names the file and
-        the columns, but not the likelier fix of adding it to model_map.
-        """
+        """A proteomics file left out of model_map must not be read as metadata."""
         datasets = self._build_datasets()
         datasets["second_proteomics_file"] = datasets["proteomics_file"]
 
-        with pytest.raises(ValueError, match="second_proteomics_file") as excinfo:
+        with pytest.raises(ValueError, match="not in model_map") as excinfo:
             self._transform(datasets, model_map={"proteomics_file": "LOAD2"})
 
-        message = str(excinfo.value)
-        assert "sex" in message and "agedeath" in message
+        assert "second_proteomics_file" in str(excinfo.value)
 
     def test_second_study_metadata_file_is_combined(self) -> None:
-        """Test that a second study's metadata file is concatenated rather than replacing."""
         datasets = self._build_datasets(
             harmonized={
                 "individualid": ["i1"],
@@ -1004,41 +983,64 @@ class TestTransformProteinDeIndividual:
         assert [d["individual_id"] for d in output[0]["data"]] == ["51503", "51504"]
 
     @pytest.mark.parametrize(
-        "mutation,error",
+        "mutate,error",
         [
-            ("drop_required_dataset", "Missing required datasets"),
-            ("drop_data_file_id_column", "Missing required columns"),
-            # MODEL_METADATA_REQUIRED_COLUMNS and its rules are enforced per resolved
-            # metadata file rather than under a fixed dataset key.
-            ("drop_metadata_column", "Missing required columns"),
-            ("empty_metadata_genotype", "not_empty"),
-            ("empty_data_file", "is empty"),
-            ("empty_display_label", "not_empty"),
-            ("unmatched_genotypes", "No rows remained"),
+            (lambda d: d.pop("uniprot_ensembl_map"), "Missing required datasets"),
+            (
+                lambda d: d.update(
+                    {
+                        "load2_harmonized_metadata": d[
+                            "load2_harmonized_metadata"
+                        ].drop(columns=["agedeath"])
+                    }
+                ),
+                "Missing required columns",
+            ),
+            (
+                lambda d: d["load2_harmonized_metadata"].__setitem__(
+                    "genotype", ["", "geno_wt"]
+                ),
+                "not_empty",
+            ),
+            (
+                lambda d: d.update(
+                    {
+                        "proteomics_file": d["proteomics_file"].drop(
+                            columns=["individualid"]
+                        )
+                    }
+                ),
+                "Missing required columns",
+            ),
+            (
+                lambda d: d.update({"proteomics_file": d["proteomics_file"].iloc[:0]}),
+                "is empty",
+            ),
+            (
+                lambda d: d["genotype_label_map"].__setitem__(
+                    "display_label", ["", "LOAD1"]
+                ),
+                "not_empty",
+            ),
+            (
+                lambda d: d["load2_harmonized_metadata"].__setitem__(
+                    "genotype", ["unknown", "unknown"]
+                ),
+                "No rows remained",
+            ),
+        ],
+        ids=[
+            "drop_required_dataset",
+            "drop_metadata_column",
+            "empty_metadata_genotype",
+            "drop_data_file_id_column",
+            "empty_data_file",
+            "empty_display_label",
+            "unmatched_genotypes",
         ],
     )
-    def test_invalid_input_raises(self, mutation: str, error: str) -> None:
-        """Test that each invalid-input path raises with an actionable message."""
+    def test_invalid_input_raises(self, mutate, error: str) -> None:
         datasets = self._build_datasets()
-
-        if mutation == "drop_required_dataset":
-            del datasets["uniprot_ensembl_map"]
-        elif mutation == "drop_metadata_column":
-            datasets["load2_harmonized_metadata"] = datasets[
-                "load2_harmonized_metadata"
-            ].drop(columns=["agedeath"])
-        elif mutation == "empty_metadata_genotype":
-            datasets["load2_harmonized_metadata"]["genotype"] = ["", "geno_wt"]
-        elif mutation == "drop_data_file_id_column":
-            datasets["proteomics_file"] = datasets["proteomics_file"].drop(
-                columns=["individualid"]
-            )
-        elif mutation == "empty_data_file":
-            datasets["proteomics_file"] = datasets["proteomics_file"].iloc[:0]
-        elif mutation == "empty_display_label":
-            datasets["genotype_label_map"]["display_label"] = ["", "LOAD1"]
-        elif mutation == "unmatched_genotypes":
-            datasets["load2_harmonized_metadata"]["genotype"] = ["unknown", "unknown"]
-
+        mutate(datasets)
         with pytest.raises(ValueError, match=error):
             self._transform(datasets)
