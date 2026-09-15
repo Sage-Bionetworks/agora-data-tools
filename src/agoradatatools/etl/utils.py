@@ -168,6 +168,64 @@ class OneOfRule(ColumnRule):
         return f" (value={self.value!r})"
 
 
+class NumericRule(ColumnRule):
+    """Rule that every present value must be numeric (parseable as a number).
+
+    Null values are skipped so this rule only validates the type of present values;
+    use NotEmptyRule to require presence. Values are checked with pandas to_numeric,
+    so numeric strings such as "6" or "9.9" pass.
+    """
+
+    rule = "numeric"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null values in *series* that are not numeric."""
+        present = series[series.notna()]
+        return int(pd.to_numeric(present, errors="coerce").isna().sum())
+
+
+class NonNegativeRule(ColumnRule):
+    """Rule that every present numeric value must be greater than or equal to zero.
+
+    Null values are skipped so this rule only validates the sign of present values;
+    use NotEmptyRule to require presence.
+
+    Values that cannot be parsed as numbers are not counted here. Pair this rule with
+    NumericRule on the same column so those values are still reported: doing so keeps a
+    single bad cell from being counted as two separate violations.
+    """
+
+    rule = "non_negative"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null, numeric values in *series* that are negative."""
+        present = series[series.notna()]
+        return int((pd.to_numeric(present, errors="coerce") < 0).sum())
+
+
+class UniqueRule(ColumnRule):
+    """Rule that every present value in a column must appear exactly once.
+
+    Unlike the other rules, this one is a property of the column as a whole rather than of
+    each cell, so the violation count is the number of rows belonging to a duplicated group:
+    two rows sharing a value count as two violations. The reported count therefore locates how
+    much of the column is affected, but not which values repeat.
+
+    Null values are skipped, so a key column that is allowed to be blank on some rows can still
+    be checked for uniqueness. This matters because pandas treats null as equal to null, so an
+    unfiltered duplicate check would flag a second blank row as a duplicate of the first. Empty
+    and whitespace-only strings are not treated as null here; pair this rule with NotEmptyRule
+    on columns where blanks are also unacceptable.
+    """
+
+    rule = "unique"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null rows in *series* whose value occurs more than once."""
+        present = series[series.notna()]
+        return int(present.duplicated(keep=False).sum())
+
+
 # TODO remove "_" - these utils functions are not only used internally
 def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     """Logs into Synapse python client, returns authenticated Synapse session.
@@ -559,6 +617,37 @@ def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) 
             f"multiple {value_col} values: {offending_keys}. "
             f"There must be a one-to-one mapping between {key_col} and {value_col}. "
             "Please fix the source data before re-running."
+        )
+
+
+def validate_references_exist(
+    referenced: Collection,
+    available: Collection,
+    source_name: str,
+    target_name: str,
+    item_name: str,
+) -> None:
+    """Raise if any values in referenced are absent from available.
+
+    Used for hand-maintained cross-file keys: a typo in the referencing file
+    would otherwise drop those rows silently.
+
+    Args:
+        referenced: Values that must exist in available.
+        available: The set of allowed values.
+        source_name: Name of the dataset that holds the references.
+        target_name: Name of the dataset that should contain them.
+        item_name: What the values are called in the error message, for example
+            models or result columns.
+
+    Raises:
+        ValueError: If any referenced value is missing from available.
+    """
+    missing = sorted(set(referenced) - set(available))
+    if missing:
+        raise ValueError(
+            f"{source_name} references {item_name} that are not present in "
+            f"{target_name}: {missing}"
         )
 
 

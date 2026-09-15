@@ -1,0 +1,91 @@
+[
+  {
+    "name": "Presenilin1",
+    "model_type": "Familial AD",
+    "study_synid": "syn61849889",
+    "genetic_info": [
+      {
+        "modified_gene": "PSEN1",
+        "ensembl_gene_id": "ENSCJAG00000021617",
+        "allele_type": "Endonuclease-mediated"
+      }
+    ],
+    "biomarkers": [
+      {
+        "name": "Presenilin1",
+        "evidence_type": "A&beta;40",
+        "age": "0-1 years",
+        "units": "pg/mL",
+        "y_axis_max": 250.0,
+        "data": [
+          {
+            "individual_id": "1",
+            "value": 100.0,
+            "sex": "Male",
+            "genotype": "Matched Control"
+          }
+        ]
+      },
+      {
+        "name": "Presenilin1",
+        "evidence_type": "A&beta;40",
+        "age": "1-2 years",
+        "units": "pg/mL",
+        "y_axis_max": 250.0,
+        "data": [
+          {
+            "individual_id": "2",
+            "value": 200.0,
+            "sex": "Female",
+            "genotype": "Presenilin-1"
+          }
+        ]
+      },
+      {
+        "name": "Presenilin1",
+        "evidence_type": "A&beta;42/A&beta;40",
+        "age": "0-1 years",
+        "units": "",
+        "y_axis_max": 0.25,
+        "data": [
+          {
+            "individual_id": "1",
+            "value": 0.1,
+            "sex": "Male",
+            "genotype": "Matched Control"
+          }
+        ]
+      },
+      {
+        "name": "Presenilin1",
+        "evidence_type": "A&beta;42/A&beta;40",
+        "age": "1-2 years",
+        "units": "",
+        "y_axis_max": 0.25,
+        "data": [
+          {
+            "individual_id": "2",
+            "value": 0.2,
+            "sex": "Female",
+            "genotype": "Presenilin-1"
+          }
+        ]
+      },
+      {
+        "name": "Presenilin1",
+        "evidence_type": "GFAP",
+        "age": "0-1 years",
+        "units": "pg/mL",
+        "y_axis_max": 55.0,
+        "data": [
+          {
+            "individual_id": "1",
+            "value": 50.0,
+            "sex": "Male",
+            "genotype": "Matched Control"
+          }
+        ]
+      }
+    ]
+  }
+]
