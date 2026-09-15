@@ -337,7 +337,7 @@ def _build_biomarkers(
     data_points = data_points.drop(columns=["genotype"]).rename(
         columns={"display_label": "genotype"}
     )
-    # Sort on individualid, not the individual_id copy made above: as strings, animals would
+    # Sort on numeric individualid, not the string individual_id copy made above: as strings, animals would
     # order 1, 10, 2.
     data_points = data_points.sort_values(["individualid", "value"])
 
@@ -418,8 +418,8 @@ def transform_marmo_details(
     result = []
     for model_name in metadata["model"].unique():
         model_rows = metadata[metadata["model"] == model_name]
-        # A model gets one row per modified gene, so any of them carries the model-level fields;
-        # only genetic_info varies, and it keeps all the rows.
+        # A model gets one row per modified gene, but all rows contain the same model-level information
+        # (model_type, study_synid). We can safely take the first row to extract these fields.
         model_row = model_rows.iloc[0]
         model_measurements = measurements[measurements["model"] == model_name]
         biomarkers = _build_biomarkers(model_measurements, model_name)

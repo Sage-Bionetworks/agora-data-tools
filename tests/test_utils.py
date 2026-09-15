@@ -1356,11 +1356,11 @@ class TestValidateReferencesExist:
             ValueError,
             match=(
                 "marmo_genotype_label_map references models that are not present in "
-                r"marmo_model_metadata: \['Presenilin-1'\]"
+                r"marmo_model_metadata: \['APP'\]"
             ),
         ):
             utils.validate_references_exist(
-                ["Presenilin1", "Presenilin-1"],
+                ["Presenilin1", "APP"],
                 ["Presenilin1"],
                 source_name="marmo_genotype_label_map",
                 target_name="marmo_model_metadata",
