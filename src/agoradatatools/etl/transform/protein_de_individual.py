@@ -47,12 +47,6 @@ UNITS = "Log2 Counts per Million"
 AGE_BINS = [float("-inf"), 6, 10, 16, 20, float("inf")]
 AGE_LABELS = [4, 8, 12, 18, 24]
 
-# MG-985: syn75965714 omits 15 of the 64 24-month animals, so partial coverage is expected
-# and cannot be an error. A file losing most of its animals instead means the two sources
-# stopped sharing an individualID vocabulary.
-MIN_METADATA_COVERAGE = 0.5
-
-
 REQUIRED_INPUT = {
     "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
@@ -279,6 +273,8 @@ def _melt_proteomics_file(
         var_name="header",
         value_name="value",
     )
+    # Drop missing abundances; reject non-numeric filled cells and name the file. Fail
+    # if the file then has no values left.
     value = pd.to_numeric(long_df["value"], errors="coerce")
     unparseable = value.isna() & long_df["value"].notna()
     if unparseable.any():
@@ -295,10 +291,7 @@ def _melt_proteomics_file(
         )
 
     long_df["uniprotid"] = _canonical_accession(long_df["header"])
-    # Required, not cosmetic: individualID arrives as int64 from one source file and as
-    # object from the other, and the harmonized metadata is cast to match. Without this the
-    # merge on individualid would silently match nothing for one of the files.
-    long_df["individualid"] = long_df["individualid"].astype(str)
+    long_df["individualid"] = long_df["individualid"].astype(str)  # astype is required
     long_df["model"] = model
     return long_df[["individualid", "model", "uniprotid", "value"]]
 
@@ -306,21 +299,25 @@ def _melt_proteomics_file(
 def _check_metadata_coverage(
     file_name: str, individuals: pd.Series, known_individuals: set
 ) -> None:
-    """Log how many of a file's animals have harmonized metadata; raise if most do not."""
+    """Log how many of a file's animals have harmonized metadata; raise if none do.
+
+    syn75965714 omits 15 of the 64 24-month animals, so some unmatched IDs are expected
+    (MG-985). A join-key break (51503 becoming 51503.0) matches nobody, which is the
+    case that must fail. A coverage ratio is not used because any cutoff between those
+    two situations is arbitrary.
+    """
     unique = set(individuals.unique())
     matched = unique & known_individuals
-    coverage = len(matched) / len(unique)
     logger.info(
         f"Transform protein_de_individual: {file_name}: {len(matched)}/{len(unique)} "
-        f"animals have harmonized metadata ({coverage:.0%})"
+        f"animals have harmonized metadata"
     )
-    if coverage < MIN_METADATA_COVERAGE:
+    if not matched:
         raise ValueError(
-            f"Only {len(matched)} of {len(unique)} animals in proteomics data file "
-            f"'{file_name}' were found in the harmonized metadata, below the "
-            f"{MIN_METADATA_COVERAGE:.0%} expected. The individualID values in the two "
-            f"sources are probably no longer comparable. Unmatched (first 10): "
-            f"{sorted(unique - matched)[:10]}"
+            f"None of the {len(unique)} animals in proteomics data file "
+            f"'{file_name}' were found in the harmonized metadata. The "
+            f"individualID values in the two sources are probably no longer "
+            f"comparable. Unmatched (first 10): {sorted(unique)[:10]}"
         )
 
 
