@@ -86,7 +86,16 @@ DATAFILE_COLUMN_RULES = {
 
 
 def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> Dict[str, List[str]]:
-    """Map each UniProt accession to its candidate mouse Ensembl gene ids, smallest first."""
+    """
+    Map each UniProt accession to its candidate mouse Ensembl gene ids, smallest first.
+
+    Args:
+        mapping_df: pd.DataFrame - UniProt to Ensembl gene id mapping
+
+    Returns:
+        Dict[str, List[str]] - Map of UniProt accession to list of candidate mouse Ensembl gene ids, smallest first
+
+    """
     mouse = mapping_df[
         mapping_df["ensembl_gene_id"].astype(str).str.startswith("ENSMUSG")
     ]
@@ -99,7 +108,14 @@ def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> Dict[str, List[str]]:
 
 
 def _build_gene_aliases(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str, set]:
-    """Map each Ensembl gene id to its case-folded alias set."""
+    """Map each Ensembl gene id to its case-folded alias set.
+
+    Args:
+        mouse_gene_metadata_df: pd.DataFrame - Mouse gene metadata
+
+    Returns:
+        Dict[str, set] - Map of Ensembl gene id to set of case-folded aliases
+    """
     return {
         gene: {alias.casefold() for alias in aliases if isinstance(alias, str)}
         for gene, aliases in zip(
@@ -134,6 +150,13 @@ def _measured_header_pairs(
     headed with different symbols in different files and _observed_gene_names unions them.
     Taking the pairs from the column headers rather than from melted rows keeps that global
     step off the measurements, which is what lets the melt run one model_group at a time.
+
+    Args:
+        datasets: Dict[str, pd.DataFrame] - Datasets containing the data files
+        datafile_list: List[str] - List of data file names
+
+    Returns:
+        pd.DataFrame - DataFrame containing the accession and header symbol of every protein column that holds data
     """
     headers = pd.Series(
         [
@@ -166,6 +189,12 @@ def _observed_gene_names(header_pairs: pd.DataFrame) -> Dict[str, set]:
     after the first would read as "-h4c2" and match no gene.
 
     Isoform accessions contribute to their base accession, which carries the gene mapping.
+
+    Args:
+        header_pairs: pd.DataFrame - DataFrame containing the accession and header symbol of every protein column that holds data
+
+    Returns:
+        Dict[str, set] - Map of UniProt accession to set of case-folded gene names
     """
     names: Dict[str, set] = {}
     for accession, symbol in (
@@ -199,10 +228,14 @@ def _resolve_gene_ids(
     Attaching each protein to exactly one gene was chosen over repeating identical
     measurements across every candidate or dropping the protein from the output.
 
-    MG-985 comment 340902 supports two readings of this and the narrow one is implemented
-    here. PR #370 records the disagreement and the measured cost of the strict reading,
-    under which this function, _build_gene_aliases and _observed_gene_names all collapse to
-    a groupby-min over the mapping file.
+    Args:
+        header_pairs: pd.DataFrame - DataFrame containing the accession and header symbol of every protein column that holds data
+        candidates: Dict[str, List[str]] - Map of UniProt accession to list of candidate mouse Ensembl gene ids, smallest first
+        gene_symbols: Dict[str, str] - Map of Ensembl gene id to gene symbol
+        gene_aliases: Dict[str, set] - Map of Ensembl gene id to set of case-folded aliases
+
+    Returns:
+        Dict[str, str] - Map of UniProt accession to Ensembl gene id
     """
     names = _observed_gene_names(header_pairs)
     resolved = {}
@@ -246,8 +279,6 @@ def _melt_proteomics_file(
         var_name="header",
         value_name="value",
     )
-    # Coerced here, rather than at output time, so a non-numeric cell can name its file.
-    # Unmeasured proteins are already null and are dropped, not reported.
     value = pd.to_numeric(long_df["value"], errors="coerce")
     unparseable = value.isna() & long_df["value"].notna()
     if unparseable.any():
