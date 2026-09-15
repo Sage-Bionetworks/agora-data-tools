@@ -1,0 +1,12 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "alias": ["Gnai-3", "Hg1a"]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000002",
+    "gene_symbol": "Cdc45",
+    "alias": []
+  }
+]
