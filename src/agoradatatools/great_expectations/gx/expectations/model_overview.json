@@ -139,7 +139,7 @@
         "column": "available_data",
         "list_length_range": [
           1,
-          4
+          5
         ]
       },
       "meta": {}
@@ -158,9 +158,10 @@
         "column": "available_data",
         "list_members": [
           "Pathology",
-          "Transcriptomics",
           "Disease Correlation",
-          "Biomarkers"
+          "Biomarkers",
+          "Transcriptomics",
+          "Proteomics"
         ]
       },
       "meta": {}
