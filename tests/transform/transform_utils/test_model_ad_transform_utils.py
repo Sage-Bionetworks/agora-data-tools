@@ -532,12 +532,16 @@ class TestRemapSexLabels:
                 pd.Series(["Male", "Females", "Aardvarks", "", None]),
                 pd.Series(["Male", "Female", "Aardvarks", "", None]),
             ),
+            (pd.Series(["male", "female"]), pd.Series(["Male", "Female"])),
+            (pd.Series([None, None]), pd.Series([None, None])),
         ],
         ids=[
             "Pass with all plural input",
             "Pass with all singular input",
             "Pass with mixed input",
             "Pass with missing & other input",
+            "Pass with lowercase input",
+            "Pass with all-null input",
         ],
     )
     def test_remap_sex_labels_should_pass(

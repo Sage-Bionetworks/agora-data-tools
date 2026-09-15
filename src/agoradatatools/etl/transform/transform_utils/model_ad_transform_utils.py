@@ -187,14 +187,10 @@ def validate_jax_ids(jax_id: pd.Series) -> None:
 
 
 def remap_sex_labels(sex: pd.Series) -> pd.Series:
-    """
-    Converts plural sex values ("Females" or "Males") to singular form ("Female" or "Male"). Sex values that are
-    already singular, and any other value, are not modified.
+    """Title-case populated values, then map Females/Males to the singular form.
 
-    Args:
-        sex (pd.Series): A pandas Series containing sex labels that may need to be converted.
-
-    Returns:
-        pd.Series: A pandas Series containing sex labels in only the singular form.
+    Nulls are left as null. Already-singular labels and any other value are unchanged
+    beyond title-casing.
     """
-    return sex.copy().replace({"Females": "Female", "Males": "Male"})
+    titled = sex.where(sex.isna(), sex.astype(str).str.title())
+    return titled.replace({"Females": "Female", "Males": "Male"})
