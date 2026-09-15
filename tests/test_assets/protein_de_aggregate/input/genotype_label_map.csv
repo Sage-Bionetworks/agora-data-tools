@@ -1,0 +1,7 @@
+model,model_group,display_label,genotype,result_order,model_type
+Model_A,Group_A,Model_A,tg,2,Familial AD
+Model_A,Group_A,Control_A,wt,1,Familial AD
+Model_B,Group_B,Model_B,tg,2,Late Onset AD
+Model_B,Group_B,Control_B,wt,1,Late Onset AD
+LOAD2,LOAD2,LOAD2,geno_hom,2,Late Onset AD
+LOAD2,LOAD2,LOAD1,geno_wt,1,Late Onset AD

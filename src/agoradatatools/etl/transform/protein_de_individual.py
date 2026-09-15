@@ -38,6 +38,14 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     GENOTYPE_LABEL_MAP_COLUMNS,
     GENOTYPE_LABEL_MAP_RULES,
 )
+from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
+    build_gene_aliases,
+    build_uniprot_candidates,
+    canonical_accession,
+    protein_display_symbol,
+    protein_unique_id,
+    resolve_gene_ids,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,46 +86,6 @@ DATAFILE_COLUMN_RULES = {
 }
 
 
-def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> dict[str, list[str]]:
-    """Map each UniProt accession to its candidate mouse Ensembl gene ids, smallest first."""
-    mouse = mapping_df[
-        mapping_df["ensembl_gene_id"].astype(str).str.startswith("ENSMUSG")
-    ]
-    return {
-        accession: sorted(genes)
-        for accession, genes in mouse.groupby("uniprotkb_accession")["ensembl_gene_id"]
-        .unique()
-        .items()
-    }
-
-
-def _build_gene_aliases(mouse_gene_metadata_df: pd.DataFrame) -> dict[str, set[str]]:
-    """Map each Ensembl gene id to its case-folded alias set."""
-    return {
-        gene: {alias.casefold() for alias in aliases if isinstance(alias, str)}
-        for gene, aliases in zip(
-            mouse_gene_metadata_df["ensembl_gene_id"],
-            mouse_gene_metadata_df["alias"],
-        )
-        if isinstance(aliases, list)
-    }
-
-
-def _canonical_accession(headers: pd.Series) -> pd.Series:
-    """Recover the canonical UniProt accession from gene_symbol|uniprotid headers.
-
-    The pipeline lowercases headers and converts isoform hyphens to underscores;
-    upper-casing and restoring the hyphen recovers the accession losslessly
-    (ank2|q8c8r3_2 -> Q8C8R3-2). UniProt accessions never contain an underscore.
-    """
-    return (
-        headers.str.rsplit("|", n=1)
-        .str[-1]
-        .str.upper()
-        .str.replace("_", "-", regex=False)
-    )
-
-
 def _measured_header_pairs(
     datasets: dict[str, pd.DataFrame], datafile_list: list[str]
 ) -> pd.DataFrame:
@@ -139,70 +107,10 @@ def _measured_header_pairs(
     ).drop_duplicates()
     return pd.DataFrame(
         {
-            "uniprotid": _canonical_accession(headers),
+            "uniprotid": canonical_accession(headers),
             "header_symbol": headers.str.rsplit("|", n=1).str[0],
         }
     )
-
-
-def _observed_gene_names(header_pairs: pd.DataFrame) -> dict[str, set[str]]:
-    """Collect the case-folded gene names each accession is labeled with in the data files.
-
-    Names are unioned per accession rather than resolved per file: two files sharing a
-    model_group can head one accession differently, and resolving per file would split one
-    protein's age trajectory across two unique_ids.
-
-    Underscores are restored to hyphens because the pipeline mangles hyphenated symbols the
-    same way it mangles isoform accessions (h3_3b -> h3-3b), and mangles the separator
-    between several genes too, so "H4c1; H4c2" arrives as "h4c1;_h4c2". The leading
-    underscore is stripped before the interior ones are converted, otherwise every name
-    after the first would read as "-h4c2" and match no gene.
-
-    Isoform accessions contribute to their base accession, which carries the gene mapping.
-    """
-    names: dict[str, set[str]] = {}
-    for accession, symbol in (
-        header_pairs[["uniprotid", "header_symbol"]]
-        .drop_duplicates()
-        .itertuples(index=False)
-    ):
-        base = accession.split("-")[0]
-        for name in str(symbol).split(";"):
-            name = name.strip(" _").casefold().replace("_", "-")
-            if name and name != "na":
-                names.setdefault(base, set()).add(name)
-    return names
-
-
-def _resolve_gene_ids(
-    header_pairs: pd.DataFrame,
-    candidates: dict[str, list[str]],
-    gene_symbols: dict[str, str],
-    gene_aliases: dict[str, set[str]],
-) -> dict[str, str]:
-    """Pick one Ensembl gene per accession, preferring the gene the data file names.
-
-    Candidates come only from the UniProt mapping file; a header symbol naming a gene that
-    file does not offer for the accession cannot pull that gene in. Among the candidates,
-    the header symbol decides, because Ensembl ids carry no annotation-quality signal and
-    retrogenes often have lower ids than the parent gene, so the smallest id alone would
-    label cytochrome c as Gm10053. Aliases catch nomenclature drift, where the file still
-    says Srp54 and mouse_gene_metadata says Srp54a. The smallest id breaks what neither can.
-    """
-    names = _observed_gene_names(header_pairs)
-    resolved = {}
-    for accession, genes in candidates.items():
-        wanted = names.get(accession, set())
-        matches = [
-            gene for gene in genes if gene_symbols.get(gene, "").casefold() in wanted
-        ]
-        if not matches:
-            matches = [gene for gene in genes if wanted & gene_aliases.get(gene, set())]
-        # candidates arrive sorted, so matches[0] is the smallest matching id. Falling back
-        # to min(genes) when several candidates match would pick a gene the header never
-        # named, which no current accession hits but which the sort order would hide.
-        resolved[accession] = matches[0] if matches else min(genes)
-    return resolved
 
 
 def _melt_proteomics_file(
@@ -246,7 +154,7 @@ def _melt_proteomics_file(
             f"it contributes nothing to the output."
         )
 
-    long_df["uniprotid"] = _canonical_accession(long_df["header"])
+    long_df["uniprotid"] = canonical_accession(long_df["header"])
     # The two source files disagree on individualid dtype (int64 vs object); without
     # this the merge on individualid silently matches nothing for one of them.
     long_df["individualid"] = long_df["individualid"].astype(str)
@@ -280,6 +188,7 @@ def _check_metadata_coverage(
 
 
 def _log_stage(model_group: str, stage: str, df: pd.DataFrame) -> None:
+    """Log measurement and animal counts for one model_group processing stage."""
     logger.info(
         f"Transform protein_de_individual: {model_group}: {stage}: {len(df)} measurements, "
         f"{df['individualid'].nunique()} animals"
@@ -358,13 +267,9 @@ def _build_output(
 
     df["sex"] = remap_sex_labels(df["sex"])
     df["gene_symbol"] = df["ensembl_gene_id"].map(gene_symbols).fillna("")
-    df["unique_id"] = df["ensembl_gene_id"] + df["uniprotid"]
-    # MG-985: display_symbol falls back to the Ensembl gene id when no symbol is known.
-    df["display_symbol"] = (
-        df["gene_symbol"].where(df["gene_symbol"] != "", df["ensembl_gene_id"])
-        + " ("
-        + df["uniprotid"]
-        + ")"
+    df["unique_id"] = protein_unique_id(df["ensembl_gene_id"], df["uniprotid"])
+    df["display_symbol"] = protein_display_symbol(
+        df["gene_symbol"], df["ensembl_gene_id"], df["uniprotid"]
     )
     # Abundances are centred on zero, so small negatives round to -0.0 and json.dumps
     # keeps the sign. Threshold matches normalize_zero.
@@ -507,11 +412,11 @@ def transform_protein_de_individual(
 
     # Gene resolution is the one step that needs every data file at once, and reading it
     # from the column headers keeps it off the measurements. See _measured_header_pairs.
-    uniprot_to_ensembl = _resolve_gene_ids(
+    uniprot_to_ensembl = resolve_gene_ids(
         header_pairs=_measured_header_pairs(datasets, datafile_list),
-        candidates=_build_uniprot_candidates(datasets["uniprot_ensembl_map"]),
+        candidates=build_uniprot_candidates(datasets["uniprot_ensembl_map"]),
         gene_symbols=gene_symbols,
-        gene_aliases=_build_gene_aliases(datasets["mouse_gene_metadata"]),
+        gene_aliases=build_gene_aliases(datasets["mouse_gene_metadata"]),
     )
 
     # Files sharing a model_group have to be built together, because entries are keyed on
