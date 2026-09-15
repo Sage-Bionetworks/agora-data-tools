@@ -1,0 +1,4 @@
+protein_id,log2foldchange,padj,model,sex,age,tissue,case,control
+Gnai3|P27144,0.01167,0.7812,Model_A,Female,4 months,Hemibrain,tg,wt
+Gnai3|P27144,0.5,0.01,Model_A,Female,12 months,Hemibrain,tg,wt
+Sptan1|Q8C8R3-2,0.2,0.03,Model_A,Female,4 months,Hemibrain,tg,wt
