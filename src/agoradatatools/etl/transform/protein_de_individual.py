@@ -14,14 +14,13 @@ own file rather than as extra rows.
 import gc
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
-    normalize_zero,
     ColumnRule,
     NotEmptyRule,
 )
@@ -79,17 +78,8 @@ DATAFILE_COLUMN_RULES = {
 }
 
 
-def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> Dict[str, List[str]]:
-    """
-    Map each UniProt accession to its candidate mouse Ensembl gene ids, smallest first.
-
-    Args:
-        mapping_df: pd.DataFrame - UniProt to Ensembl gene id mapping
-
-    Returns:
-        Dict[str, List[str]] - Map of UniProt accession to list of candidate mouse Ensembl gene ids, smallest first
-
-    """
+def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> dict[str, list[str]]:
+    """Map each UniProt accession to its candidate mouse Ensembl gene ids, smallest first."""
     mouse = mapping_df[
         mapping_df["ensembl_gene_id"].astype(str).str.startswith("ENSMUSG")
     ]
@@ -101,15 +91,8 @@ def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> Dict[str, List[str]]:
     }
 
 
-def _build_gene_aliases(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str, set]:
-    """Map each Ensembl gene id to its case-folded alias set.
-
-    Args:
-        mouse_gene_metadata_df: pd.DataFrame - Mouse gene metadata
-
-    Returns:
-        Dict[str, set] - Map of Ensembl gene id to set of case-folded aliases
-    """
+def _build_gene_aliases(mouse_gene_metadata_df: pd.DataFrame) -> dict[str, set[str]]:
+    """Map each Ensembl gene id to its case-folded alias set."""
     return {
         gene: {alias.casefold() for alias in aliases if isinstance(alias, str)}
         for gene, aliases in zip(
@@ -136,7 +119,7 @@ def _canonical_accession(headers: pd.Series) -> pd.Series:
 
 
 def _measured_header_pairs(
-    datasets: Dict[str, pd.DataFrame], datafile_list: List[str]
+    datasets: dict[str, pd.DataFrame], datafile_list: list[str]
 ) -> pd.DataFrame:
     """Collect the accession and header symbol of every protein column that holds data.
 
@@ -144,13 +127,6 @@ def _measured_header_pairs(
     headed with different symbols in different files and _observed_gene_names unions them.
     Taking the pairs from the column headers rather than from melted rows keeps that global
     step off the measurements, which is what lets the melt run one model_group at a time.
-
-    Args:
-        datasets: Dict[str, pd.DataFrame] - Datasets containing the data files
-        datafile_list: List[str] - List of data file names
-
-    Returns:
-        pd.DataFrame - DataFrame containing the accession and header symbol of every protein column that holds data
     """
     headers = pd.Series(
         [
@@ -169,7 +145,7 @@ def _measured_header_pairs(
     )
 
 
-def _observed_gene_names(header_pairs: pd.DataFrame) -> Dict[str, set]:
+def _observed_gene_names(header_pairs: pd.DataFrame) -> dict[str, set[str]]:
     """Collect the case-folded gene names each accession is labeled with in the data files.
 
     Names are unioned per accession rather than resolved per file: two files sharing a
@@ -183,14 +159,8 @@ def _observed_gene_names(header_pairs: pd.DataFrame) -> Dict[str, set]:
     after the first would read as "-h4c2" and match no gene.
 
     Isoform accessions contribute to their base accession, which carries the gene mapping.
-
-    Args:
-        header_pairs: pd.DataFrame - DataFrame containing the accession and header symbol of every protein column that holds data
-
-    Returns:
-        Dict[str, set] - Map of UniProt accession to set of case-folded gene names
     """
-    names: Dict[str, set] = {}
+    names: dict[str, set[str]] = {}
     for accession, symbol in (
         header_pairs[["uniprotid", "header_symbol"]]
         .drop_duplicates()
@@ -206,10 +176,10 @@ def _observed_gene_names(header_pairs: pd.DataFrame) -> Dict[str, set]:
 
 def _resolve_gene_ids(
     header_pairs: pd.DataFrame,
-    candidates: Dict[str, List[str]],
-    gene_symbols: Dict[str, str],
-    gene_aliases: Dict[str, set],
-) -> Dict[str, str]:
+    candidates: dict[str, list[str]],
+    gene_symbols: dict[str, str],
+    gene_aliases: dict[str, set[str]],
+) -> dict[str, str]:
     """Pick one Ensembl gene per accession, preferring the gene the data file names.
 
     Candidates come only from the UniProt mapping file; a header symbol naming a gene that
@@ -218,18 +188,6 @@ def _resolve_gene_ids(
     retrogenes often have lower ids than the parent gene, so the smallest id alone would
     label cytochrome c as Gm10053. Aliases catch nomenclature drift, where the file still
     says Srp54 and mouse_gene_metadata says Srp54a. The smallest id breaks what neither can.
-
-    Attaching each protein to exactly one gene was chosen over repeating identical
-    measurements across every candidate or dropping the protein from the output.
-
-    Args:
-        header_pairs: pd.DataFrame - DataFrame containing the accession and header symbol of every protein column that holds data
-        candidates: Dict[str, List[str]] - Map of UniProt accession to list of candidate mouse Ensembl gene ids, smallest first
-        gene_symbols: Dict[str, str] - Map of Ensembl gene id to gene symbol
-        gene_aliases: Dict[str, set] - Map of Ensembl gene id to set of case-folded aliases
-
-    Returns:
-        Dict[str, str] - Map of UniProt accession to Ensembl gene id
     """
     names = _observed_gene_names(header_pairs)
     resolved = {}
@@ -273,8 +231,6 @@ def _melt_proteomics_file(
         var_name="header",
         value_name="value",
     )
-    # Drop missing abundances; reject non-numeric filled cells and name the file. Fail
-    # if the file then has no values left.
     value = pd.to_numeric(long_df["value"], errors="coerce")
     unparseable = value.isna() & long_df["value"].notna()
     if unparseable.any():
@@ -291,7 +247,9 @@ def _melt_proteomics_file(
         )
 
     long_df["uniprotid"] = _canonical_accession(long_df["header"])
-    long_df["individualid"] = long_df["individualid"].astype(str)  # astype is required
+    # The two source files disagree on individualid dtype (int64 vs object); without
+    # this the merge on individualid silently matches nothing for one of them.
+    long_df["individualid"] = long_df["individualid"].astype(str)
     long_df["model"] = model
     return long_df[["individualid", "model", "uniprotid", "value"]]
 
@@ -332,10 +290,10 @@ def _build_output(
     model_group: str,
     long_df: pd.DataFrame,
     harmonized_model_metadata_df: pd.DataFrame,
-    uniprot_to_ensembl: Dict[str, str],
-    gene_symbols: Dict[str, str],
+    uniprot_to_ensembl: dict[str, str],
+    gene_symbols: dict[str, str],
     genotype_label_map_df: pd.DataFrame,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Join metadata onto the long proteomics data, derive output fields, and nest records.
 
     Called once per model_group, so result_order and matched_control are constant across
@@ -343,15 +301,11 @@ def _build_output(
     model_group covers more than one, which is why name comes from the group rather than
     from the model column.
     """
-    # Rows are dropped at three points below and only the all-or-nothing case raises, so a
-    # partial failure -- one source file whose join key stopped matching -- would otherwise
-    # shrink the output with nothing in the log to show it.
     _log_stage(model_group, "melted", long_df)
 
-    # An inner join drops proteomics animals absent from the harmonized metadata. Per
-    # MG-985 those are all 24-month wildtypes, which the genotype filter below would drop.
-    # validate rejects a harmonized metadata that disagrees with itself about an animal;
-    # the caller de-duplicates whole rows, so only a genuine conflict reaches this.
+    # Inner join drops animals absent from the harmonized metadata. Per MG-985 those are
+    # all 24-month wildtypes, which the genotype filter below would drop. validate rejects
+    # a harmonized metadata that disagrees with itself about an animal.
     df = long_df.merge(
         harmonized_model_metadata_df,
         on="individualid",
@@ -374,16 +328,14 @@ def _build_output(
         )
 
     # MG-985 confirmed the wildtype and heterozygous animals dropped here should not be
-    # shown. The model this labels on comes from model_map via the melt.
-    #
-    # Labeled before the age and tissue validations below, not after: those animals are
-    # the ones MG-985 says arrive without complete metadata, so validating first would
-    # raise on rows that are not in the output anyway.
+    # shown. Labeled before the age and tissue validations: those animals are the ones
+    # MG-985 says arrive without complete metadata, so validating first would raise on
+    # rows that are not in the output anyway.
     df = label_genotypes(df, genotype_label_map_df, f"model_group '{model_group}'")
     _log_stage(model_group, "after genotype labeling", df)
 
-    # age is a nest_fields grouping key and groupby drops null keys, so an unbucketable
-    # ageDeath would delete those animals with no error.
+    # age is a grouping key and groupby drops null keys, so an unbucketable ageDeath
+    # would delete those animals with no error.
     age_numeric = pd.cut(df["agedeath"], bins=AGE_BINS, labels=AGE_LABELS)
     if age_numeric.isna().any():
         raise ValueError(
@@ -404,7 +356,7 @@ def _build_output(
             f"{sorted(df.loc[missing_tissue, 'individualid'].unique())}"
         )
 
-    df["sex"] = remap_sex_labels(df["sex"].astype("string").str.title())
+    df["sex"] = remap_sex_labels(df["sex"])
     df["gene_symbol"] = df["ensembl_gene_id"].map(gene_symbols).fillna("")
     df["unique_id"] = df["ensembl_gene_id"] + df["uniprotid"]
     # MG-985: display_symbol falls back to the Ensembl gene id when no symbol is known.
@@ -414,9 +366,10 @@ def _build_output(
         + df["uniprotid"]
         + ")"
     )
-    # normalize_zero because the abundances are centred on zero, so small negatives round to
-    # -0.0 and json.dumps keeps the sign.
-    df["value"] = df["value"].round(5).apply(normalize_zero)
+    # Abundances are centred on zero, so small negatives round to -0.0 and json.dumps
+    # keeps the sign. Threshold matches normalize_zero.
+    values = df["value"].round(5)
+    df["value"] = values.mask(values.abs() < 1e-15, 0.0)
 
     # ensembl_gene_id, uniprotid, gene_symbol and display_symbol are functionally determined
     # by unique_id, and age_numeric by age, so grouping on them keeps them as top-level
@@ -458,26 +411,17 @@ def _build_output(
 
 
 def transform_protein_de_individual(
-    datasets: Dict[str, pd.DataFrame],
-    model_map: Dict[str, str],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-    column_rules: Dict[str, Dict[str, List[ColumnRule]]] = COLUMN_RULES,
-) -> List[Dict[str, Any]]:
-    """
-    Main transformation function for Model AD individual proteomics data.
+    datasets: dict[str, pd.DataFrame],
+    model_map: dict[str, str],
+    required_input: dict[str, list[str]] = REQUIRED_INPUT,
+    column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
+) -> list[dict[str, Any]]:
+    """Transform Model AD individual proteomics data.
 
-    Args:
-        datasets: The datasets in REQUIRED_INPUT, one or more wide proteomics data files
-            named in model_map, and one or more per-animal metadata files.
-        model_map: Model name per proteomics data file, keyed on dataset name and declared
-            in the config under custom_transformations. Every entry must name an input and
-            every model must exist in the genotype label map.
-        required_input: Required dataset names mapped to their required columns.
-        column_rules: Per-column content rules for the static datasets.
-
-    Returns:
-        One dictionary per (unique_id, tissue, model_group, age), with the fields listed in
-        _build_output's output_cols.
+    model_map declares each proteomics file's model because the files have no model
+    column. Every entry must name an input and every model must exist in the genotype
+    label map. Inputs that are neither required_input nor a model_map key are per-animal
+    metadata.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, column_rules)
@@ -524,17 +468,28 @@ def transform_protein_de_individual(
             "the label map or correct the config."
         )
 
-    model_metadata_file_names = [
+    leftover_names = [
         key for key in datasets if key not in model_map and key not in required_input
     ]
-    model_metadata_files = {name: datasets[name] for name in model_metadata_file_names}
+    unmapped_proteomics = [
+        name
+        for name in leftover_names
+        if any("|" in str(column) for column in datasets[name].columns)
+    ]
+    if unmapped_proteomics:
+        raise ValueError(
+            f"{unmapped_proteomics} look like proteomics data files (columns named "
+            "gene_symbol|uniprotid) but are not in model_map. Add them to model_map "
+            "or remove them from this dataset's files."
+        )
+    model_metadata_files = {name: datasets[name] for name in leftover_names}
     check_required_datasets_and_columns(
         model_metadata_files,
-        {name: MODEL_METADATA_REQUIRED_COLUMNS for name in model_metadata_file_names},
+        {name: MODEL_METADATA_REQUIRED_COLUMNS for name in leftover_names},
     )
     check_column_rules(
         model_metadata_files,
-        {name: MODEL_METADATA_COLUMN_RULES for name in model_metadata_file_names},
+        {name: MODEL_METADATA_COLUMN_RULES for name in leftover_names},
     )
     harmonized_model_metadata_df = pd.concat(
         [df[MODEL_METADATA_REQUIRED_COLUMNS] for df in model_metadata_files.values()],
@@ -564,7 +519,7 @@ def transform_protein_de_individual(
     # for one key. Files in different groups share no key, so building one group at a time
     # keeps peak memory proportional to the largest group instead of to the whole run.
     model_to_model_group = build_model_to_model_group(genotype_label_map_df)
-    files_by_model_group: Dict[str, List[str]] = defaultdict(list)
+    files_by_model_group: dict[str, list[str]] = defaultdict(list)
     for file_name in datafile_list:
         files_by_model_group[model_to_model_group[model_map[file_name]]].append(
             file_name
