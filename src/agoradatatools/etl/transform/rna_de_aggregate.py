@@ -42,6 +42,8 @@ import logging
 import gc
 
 from agoradatatools.etl.utils import (
+    ColumnRule,
+    check_column_rules,
     check_required_datasets_and_columns,
     normalize_zero,
     validate_one_to_one_mapping,
@@ -51,6 +53,8 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     remap_sex_labels,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    GENOTYPE_LABEL_MAP_COLUMNS,
+    GENOTYPE_LABEL_MAP_RULES,
     build_model_to_model_group_lookup,
     create_gene_metadata_dict,
     filter_to_mouse_genes,
@@ -62,13 +66,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
-    "genotype_label_map": [
-        "model",
-        "model_group",
-        "display_label",
-        "genotype",
-        "model_type",
-    ],
+    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
     "biodom_genes_mm": [
         "biodomain",
@@ -81,6 +79,10 @@ REQUIRED_INPUT = {
         "symbol",
         "ensembl_id",
     ],
+}
+
+COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
+    "genotype_label_map": GENOTYPE_LABEL_MAP_RULES,
 }
 
 
@@ -466,9 +468,10 @@ def _process_single_data_file(
 
 
 def transform_rna_de_aggregate(
-    datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-) -> List[Dict[str, Any]]:
+    datasets: dict[str, pd.DataFrame],
+    required_input: dict[str, list[str]] = REQUIRED_INPUT,
+    column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
+) -> list[dict[str, Any]]:
     """
     Main transformation function that orchestrates the processing of RNA differential expression data.
 
@@ -553,6 +556,7 @@ def transform_rna_de_aggregate(
         genes (ENSG*) to ensure only mouse (Mus musculus) data is included in the output.
     """
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, column_rules)
 
     # Pre-compute lookup dictionaries for efficient lookups
     genotype_label_map_df = datasets["genotype_label_map"]

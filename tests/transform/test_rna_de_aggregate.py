@@ -1730,42 +1730,20 @@ class TestTransformRnaDeAggregate:
         assert len(output_data_sorted[0]["biodomains"]) == 2
         assert set(output_data_sorted[0]["biodomains"]) == {"Metabolic", "Synaptic"}
 
-    def test_synthetic_null_model_group(self) -> None:
-        """Test that empty/null model_group is converted to None in output.
-
-        Tests the specific logic that converts empty string model_group values to None
-        to maintain JSON null representation in the output.
-        """
+    def test_check_column_rules_rejects_empty_model_group(self) -> None:
+        """Test that empty/null model_group in the genotype label map raises an error"""
         # Load synthetic test data with model having no model_group
         datasets = self._load_synthetic_test_data(
             [
-                "synthetic_null_model_group_data.csv",
+                "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map_no_group.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
 
-        # Load expected output
-        with open(
-            os.path.join(
-                self.data_files_path, "output", "synthetic_null_model_group_output.json"
-            )
-        ) as f:
-            expected_data = json.load(f)
-
-        # Transform data
-        output_data = transform_rna_de_aggregate(datasets=datasets)
-
-        # Sort output data by ensembl_gene_id for deterministic comparison
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
-
-        # Compare output with expected
-        assert output_data_sorted == expected_data_sorted
-
-        # Explicitly verify model_group is None (not empty string)
-        assert output_data_sorted[0]["model_group"] is None
+        with pytest.raises(ValueError, match="not_empty"):
+            transform_rna_de_aggregate(datasets=datasets)
 
     def test_inconsistent_model_group_values(self) -> None:
         """Test error handling for inconsistent model_group values within the same model.
@@ -1795,27 +1773,6 @@ class TestTransformRnaDeAggregate:
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
-
-    def test_mixed_none_and_real_model_group_raises(self) -> None:
-        """A model with both a real group and a missing one is inconsistent.
-
-        nunique(dropna=False) rejects this; the previous nunique() call skipped NaN
-        and would have treated the model as having a single group.
-        """
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-        label_map = datasets["genotype_label_map"].copy()
-        label_map.loc[label_map.index[0], "model_group"] = None
-        datasets["genotype_label_map"] = label_map
-
-        with pytest.raises(ValueError, match="multiple model_group"):
-            transform_rna_de_aggregate(datasets=datasets)
 
     def test_inconsistent_model_type_values(self) -> None:
         """Test error handling for inconsistent model_type values within the same model.
