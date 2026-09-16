@@ -3,6 +3,29 @@
     "expectation_suite_name": "protein_de_individual",
     "expectations": [
         {
+            "expectation_type": "expect_table_columns_to_match_set",
+            "kwargs": {
+                "column_set": [
+                    "ensembl_gene_id",
+                    "gene_symbol",
+                    "uniprotid",
+                    "unique_id",
+                    "display_symbol",
+                    "tissue",
+                    "name",
+                    "model_group",
+                    "matched_control",
+                    "units",
+                    "age",
+                    "age_numeric",
+                    "result_order",
+                    "data"
+                ],
+                "exact_match": true
+            },
+            "meta": {}
+        },
+        {
             "expectation_type": "expect_column_values_to_be_of_type",
             "kwargs": {
                 "column": "ensembl_gene_id",
