@@ -339,7 +339,7 @@
                         "properties": {
                             "genotype": {
                                 "type": "string",
-                                "minLength": 1
+                                "minLength": 4
                             },
                             "sex": {
                                 "type": "string",
