@@ -12,12 +12,12 @@ from agoradatatools.etl.transform.protein_de_aggregate import (
     transform_protein_de_aggregate,
 )
 
-
 ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "test_assets",
     "protein_de_aggregate",
 )
+DEFAULT_DE_FILE = "jax_load2_f_4mo"
 
 
 def _default_label_map() -> dict[str, list]:
@@ -84,7 +84,7 @@ def _build_datasets(
     }
     if data_files is None:
         data_files = {
-            "de_file": {
+            DEFAULT_DE_FILE: {
                 "protein_id": ["Gnai3|P27144"],
                 "diff": [0.5],
                 "padj": [0.01],
@@ -115,52 +115,50 @@ def _load_shared_inputs() -> dict[str, pd.DataFrame]:
     }
 
 
+def _de_only() -> dict[str, Any]:
+    return {
+        "protein_id": ["Gnai3|P27144"],
+        "diff": [0.5],
+        "padj": [0.01],
+    }
+
+
 class TestTransformProteinDeAggregate:
-    def test_multi_study_columns_need_no_file_map(self) -> None:
+    def test_multi_study_columns_win_over_filename(self) -> None:
         datasets = _load_shared_inputs()
         input_path = os.path.join(ASSETS, "input")
-        datasets["study_a"] = pd.read_csv(os.path.join(input_path, "study_a.csv"))
-        datasets["study_b"] = pd.read_csv(os.path.join(input_path, "study_b.csv"))
+        datasets["jax_model_a_f_4mo"] = pd.read_csv(
+            os.path.join(input_path, "study_a.csv")
+        )
+        datasets["jax_model_b_m_4mo"] = pd.read_csv(
+            os.path.join(input_path, "study_b.csv")
+        )
         with open(os.path.join(ASSETS, "output", "multi_study_output.json")) as handle:
             expected = json.load(handle)
 
         assert transform_protein_de_aggregate(datasets) == expected
 
-    def test_overlay_fills_missing_biology_and_normalizes_tissue(self) -> None:
+    def test_filename_fills_missing_biology(self) -> None:
         datasets = _load_shared_inputs()
         input_path = os.path.join(ASSETS, "input")
-        datasets["overlay_f4"] = pd.read_csv(os.path.join(input_path, "overlay_f4.csv"))
-        datasets["overlay_f12"] = pd.read_csv(
+        datasets["jax_load2_f_4mo"] = pd.read_csv(
+            os.path.join(input_path, "overlay_f4.csv")
+        )
+        datasets["jax_load2_f_12mo"] = pd.read_csv(
             os.path.join(input_path, "overlay_f12.csv")
         )
         with open(os.path.join(ASSETS, "output", "overlay_output.json")) as handle:
             expected = json.load(handle)
 
-        output = transform_protein_de_aggregate(
-            datasets,
-            file_map={
-                "overlay_f4": {
-                    "model": "LOAD2",
-                    "sex": "Female",
-                    "age": "4 months",
-                    "tissue": "Right Cerebral Hemisphere",
-                },
-                "overlay_f12": {
-                    "model": "LOAD2",
-                    "sex": "Female",
-                    "age": "12 months",
-                    "tissue": "Hemibrain",
-                },
-            },
-        )
+        output = transform_protein_de_aggregate(datasets)
 
         assert output == expected
         assert "12 months" not in output[1]
 
-    def test_column_wins_over_overlay(self) -> None:
+    def test_column_wins_over_filename(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                "jax_load2_m_12mo": {
                     "protein_id": ["Gnai3|P27144"],
                     "diff": [0.5],
                     "padj": [0.01],
@@ -172,17 +170,7 @@ class TestTransformProteinDeAggregate:
             }
         )
 
-        output = transform_protein_de_aggregate(
-            datasets,
-            file_map={
-                "de_file": {
-                    "model": "LOAD2",
-                    "sex": "Male",
-                    "age": "12 months",
-                    "tissue": "Hemibrain",
-                }
-            },
-        )
+        output = transform_protein_de_aggregate(datasets)
 
         assert output[0]["tissue"] == "Cortex"
         assert output[0]["sex"] == "Female"
@@ -192,7 +180,7 @@ class TestTransformProteinDeAggregate:
     def test_one_gene_many_proteins(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "protein_id": ["Gnai3|P27144", "Gnai3|Q8C8R3"],
                     "diff": [0.1, 0.2],
                     "padj": [0.01, 0.02],
@@ -229,7 +217,7 @@ class TestTransformProteinDeAggregate:
     def test_na_padj_becomes_one_and_negative_zero_is_normalized(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "protein_id": ["Gnai3|P27144"],
                     "diff": [-0.0],
                     "padj": [float("nan")],
@@ -250,7 +238,7 @@ class TestTransformProteinDeAggregate:
     def test_sex_remap(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "protein_id": ["Gnai3|P27144"],
                     "diff": [0.5],
                     "padj": [0.01],
@@ -264,40 +252,40 @@ class TestTransformProteinDeAggregate:
 
         assert transform_protein_de_aggregate(datasets)[0]["sex"] == "Female"
 
-    def test_missing_biology_raises(self) -> None:
-        datasets = _build_datasets(
-            data_files={
-                "de_file": {
-                    "protein_id": ["Gnai3|P27144"],
-                    "diff": [0.5],
-                    "padj": [0.01],
-                }
-            }
-        )
+    def test_too_few_filename_tokens_raises(self) -> None:
+        datasets = _build_datasets(data_files={"de_file": _de_only()})
 
-        with pytest.raises(ValueError, match="missing 'model'"):
+        with pytest.raises(ValueError, match="does not match"):
             transform_protein_de_aggregate(datasets)
 
-    def test_file_map_key_without_file_raises(self) -> None:
-        datasets = _build_datasets()
+    def test_unknown_sex_token_raises(self) -> None:
+        datasets = _build_datasets(data_files={"jax_load2_x_4mo": _de_only()})
 
-        with pytest.raises(ValueError, match="file_map names"):
-            transform_protein_de_aggregate(
-                datasets,
-                file_map={
-                    "missing_file": {
-                        "model": "LOAD2",
-                        "sex": "Female",
-                        "age": "4 months",
-                        "tissue": "Hemibrain",
-                    }
-                },
-            )
+        with pytest.raises(ValueError, match="unrecognized sex token"):
+            transform_protein_de_aggregate(datasets)
+
+    def test_bad_age_token_raises(self) -> None:
+        datasets = _build_datasets(data_files={"jax_load2_f_4weeks": _de_only()})
+
+        with pytest.raises(ValueError, match="unrecognized age token"):
+            transform_protein_de_aggregate(datasets)
+
+    def test_unrecognized_center_raises(self) -> None:
+        datasets = _build_datasets(data_files={"uci_load2_f_4mo": _de_only()})
+
+        with pytest.raises(ValueError, match="Unrecognized center"):
+            transform_protein_de_aggregate(datasets)
+
+    def test_unknown_model_token_raises(self) -> None:
+        datasets = _build_datasets(data_files={"jax_unknown_f_4mo": _de_only()})
+
+        with pytest.raises(ValueError, match="not in the genotype label map"):
+            transform_protein_de_aggregate(datasets)
 
     def test_empty_file_raises(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "protein_id": pd.Series(dtype=str),
                     "diff": pd.Series(dtype=float),
                     "padj": pd.Series(dtype=float),
@@ -322,7 +310,7 @@ class TestTransformProteinDeAggregate:
     def test_missing_protein_id_column_raises(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "diff": [0.5],
                     "padj": [0.01],
                     "model": ["LOAD2"],
@@ -339,7 +327,7 @@ class TestTransformProteinDeAggregate:
     def test_protein_id_without_pipe_raises(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "protein_id": ["P27144"],
                     "diff": [0.5],
                     "padj": [0.01],
@@ -357,7 +345,7 @@ class TestTransformProteinDeAggregate:
     def test_negative_padj_raises(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "protein_id": ["Gnai3|P27144"],
                     "diff": [0.5],
                     "padj": [-0.01],
@@ -375,7 +363,7 @@ class TestTransformProteinDeAggregate:
     def test_label_map_miss_raises(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "protein_id": ["Gnai3|P27144"],
                     "diff": [0.5],
                     "padj": [0.01],
@@ -393,7 +381,7 @@ class TestTransformProteinDeAggregate:
     def test_missing_fold_change_raises(self) -> None:
         datasets = _build_datasets(
             data_files={
-                "de_file": {
+                DEFAULT_DE_FILE: {
                     "protein_id": ["Gnai3|P27144"],
                     "padj": [0.01],
                     "model": ["LOAD2"],

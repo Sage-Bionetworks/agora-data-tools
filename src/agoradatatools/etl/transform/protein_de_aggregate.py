@@ -1,12 +1,18 @@
 """Protein differential-expression aggregate transform for Model AD.
 
 RNA-aggregate grouping over protein-resolved rows. Biology (model, sex, age,
-tissue, and optional case/control) comes from the file's columns, or from the
-config file_map overlay when a column is absent. Filenames are not parsed.
+and tissue) comes from the file's columns when present, otherwise from leftover
+dataset names parsed as center_model_sex_age. Sex tokens f/m become
+Female/Male, age tokens like 4mo become N months, and model is resolved
+case-insensitively against the genotype label map. Tissue is Hemibrain when the
+contributing center is jax; any other center raises. name and matched_control
+always come from the genotype label map (min/max result_order). A present
+column wins over the filename overlay.
 """
 
 import gc
 import logging
+import re
 from typing import Any
 
 import pandas as pd
@@ -46,8 +52,10 @@ from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils impo
 logger = logging.getLogger(__name__)
 
 BIOLOGY_REQUIRED = ("model", "sex", "age", "tissue")
-BIOLOGY_OPTIONAL = ("case", "control")
 FOLD_CHANGE_COLUMNS = ("log2foldchange", "diff")
+FILENAME_PATTERN = "<center>_<model>_<sex>_<age>"
+SEX_TOKEN_MAP = {"f": "Female", "m": "Male"}
+AGE_TOKEN_RE = re.compile(r"^(\d+)mo$", re.IGNORECASE)
 
 REQUIRED_INPUT = {
     "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS + ["model_type"],
@@ -81,24 +89,94 @@ COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
 def _data_file_names(
     datasets: dict[str, pd.DataFrame],
     required_input: dict[str, list[str]],
-    file_map: dict[str, dict[str, str]] | None,
 ) -> list[str]:
-    """Return leftover dataset keys as DE files; reject file_map keys with no file."""
+    """Return leftover dataset keys as DE files."""
     file_list = [name for name in datasets if name not in required_input]
     if not file_list:
         raise ValueError(
             "No differential expression files found. Add DE files under files; "
             "they are the leftover keys after the required metadata datasets."
         )
-    overlay = file_map or {}
-    if unknown := sorted(set(overlay) - set(file_list)):
-        raise ValueError(
-            f"file_map names {unknown}, which are not differential expression "
-            "files in this dataset. Correct the name in the config or add the "
-            "file to the dataset's files. Inputs available: "
-            f"{', '.join(sorted(file_list))}."
-        )
     return file_list
+
+
+def _parse_filename_tokens(file_name: str) -> tuple[str, str, str, str]:
+    """Split a DE file name into center, model, sex, and age tokens.
+
+    Tokens are taken from the ends so a model name may contain underscores:
+    jax_APOE4_Trem2_R47H_f_4mo is center jax, model APOE4_Trem2_R47H, sex f,
+    age 4mo.
+    """
+    parts = file_name.split("_")
+    if len(parts) < 4:
+        raise ValueError(f"Data file '{file_name}' does not match {FILENAME_PATTERN}.")
+    center, *model_parts, sex, age = parts
+    model = "_".join(model_parts)
+    if not center or not model or not sex or not age:
+        raise ValueError(f"Data file '{file_name}' does not match {FILENAME_PATTERN}.")
+    return center, model, sex, age
+
+
+def _tissue_for_center(center: str) -> str:
+    """Map center to tissue. Only jax is recognized; it is Hemibrain."""
+    if center.casefold() == "jax":
+        return "Hemibrain"
+    raise ValueError(f"Unrecognized center '{center}', " "cannot resolve tissue value.")
+
+
+def _expand_sex_token(sex_token: str, file_name: str) -> str:
+    """Map filename sex tokens f/m to Female/Male."""
+    mapped = SEX_TOKEN_MAP.get(sex_token.casefold())
+    if mapped is None:
+        raise ValueError(
+            f"Data file '{file_name}' has unrecognized sex token '{sex_token}'. "
+            "Expected f or m."
+        )
+    return mapped
+
+
+def _expand_age_token(age_token: str, file_name: str) -> str:
+    """Map filename age tokens like 4mo to N months."""
+    match = AGE_TOKEN_RE.fullmatch(age_token)
+    if not match:
+        raise ValueError(
+            f"Data file '{file_name}' has unrecognized age token '{age_token}'. "
+            "Expected a token like 4mo."
+        )
+    return f"{int(match.group(1))} months"
+
+
+def _resolve_model_token(model_token: str, models: set[str], file_name: str) -> str:
+    """Resolve a filename model token against genotype label map models."""
+    matches = [model for model in models if model.casefold() == model_token.casefold()]
+    if len(matches) == 1:
+        return matches[0]
+    if not matches:
+        raise ValueError(
+            f"Data file '{file_name}' has model token '{model_token}' that is "
+            "not in the genotype label map."
+        )
+    raise ValueError(
+        f"Data file '{file_name}' has model token '{model_token}' that matches "
+        f"multiple genotype label map models: {sorted(matches)}."
+    )
+
+
+def _build_file_metadata_map(
+    file_list: list[str],
+    models: set[str],
+) -> dict[str, dict[str, str]]:
+    """Build model/sex/age/tissue overlays from leftover DE file names."""
+    metadata: dict[str, dict[str, str]] = {}
+    for file_name in file_list:
+        center, model_token, sex_token, age_token = _parse_filename_tokens(file_name)
+        metadata[file_name] = {
+            "model": _resolve_model_token(model_token, models, file_name),
+            "sex": _expand_sex_token(sex_token, file_name),
+            "age": _expand_age_token(age_token, file_name),
+            "tissue": _tissue_for_center(center),
+        }
+    return metadata
 
 
 def _fill_biology(
@@ -106,10 +184,10 @@ def _fill_biology(
     file_name: str,
     overlay: dict[str, str],
 ) -> pd.DataFrame:
-    """Fill model, sex, age, and tissue from the file column, else the file_map overlay.
+    """Fill model, sex, age, and tissue from the file column, else the filename overlay.
 
-    Column wins when present. Overlay fills a missing column. Neither is a
-    filename parse: Synapse names are not a contract.
+    Column wins when present. The overlay, built from the leftover dataset name,
+    fills a missing column.
     """
     data_file = data_file.copy()
     for field in BIOLOGY_REQUIRED:
@@ -120,12 +198,9 @@ def _fill_biology(
             continue
         raise ValueError(
             f"Data file '{file_name}' is missing '{field}': no column and no "
-            "file_map overlay. Add the column to the file or declare the "
-            f"value under custom_transformations.file_map.{file_name}."
+            f"filename metadata. Add the column to the file or name the file "
+            f"{FILENAME_PATTERN}."
         )
-    for field in BIOLOGY_OPTIONAL:
-        if field not in data_file.columns and field in overlay:
-            data_file[field] = overlay[field]
     return data_file
 
 
@@ -144,7 +219,12 @@ def _ensure_log2foldchange(data_file: pd.DataFrame, file_name: str) -> pd.DataFr
 def _model_display_labels(
     genotype_label_map_df: pd.DataFrame,
 ) -> dict[str, dict[str, str]]:
-    """Map each model to name and matched_control from min/max result_order labels."""
+    """Map each model to name and matched_control from min/max result_order labels.
+
+    Protein DE files are one comparison per model, so the label map's result_order
+    is enough. RNA aggregate still reads per-row case/control for multi-genotype
+    pairings; that path is not used here.
+    """
     labels: dict[str, dict[str, str]] = {}
     for model, group in genotype_label_map_df.groupby("model"):
         ordered = group.sort_values("result_order")
@@ -153,46 +233,6 @@ def _model_display_labels(
             "name": ordered.iloc[-1]["display_label"],
         }
     return labels
-
-
-def _resolve_name_and_control(
-    model: str,
-    group: pd.DataFrame,
-    label_map_dict: dict[tuple[str, str], str],
-    model_display_labels: dict[str, dict[str, str]],
-    ensembl_gene_id: str,
-    tissue: str,
-    sex: str,
-) -> tuple[str, str]:
-    """Resolve name and matched_control from case/control, else from result_order."""
-    case = group["case"].iloc[0] if "case" in group.columns else None
-    control = group["control"].iloc[0] if "control" in group.columns else None
-    has_case = pd.notna(case)
-    has_control = pd.notna(control)
-    if has_case ^ has_control:
-        raise ValueError(
-            f"Data for model '{model}' has only one of case/control "
-            f"(case={case!r}, control={control!r}). Provide both or neither."
-        )
-    if has_case and has_control:
-        case_key = (model, case)
-        control_key = (model, control)
-        missing = [key for key in (case_key, control_key) if key not in label_map_dict]
-        if missing:
-            raise ValueError(
-                "Label mapping not found for genotype. "
-                f"Model: '{model}', missing (model, genotype) {missing}. "
-                f"Gene: {ensembl_gene_id}, Tissue: {tissue}, Sex: {sex}."
-            )
-        return label_map_dict[case_key], label_map_dict[control_key]
-    if model not in model_display_labels:
-        raise ValueError(
-            f"Model '{model}' is not in the genotype label map, so name and "
-            "matched_control cannot be resolved. Add the model to the label "
-            "map or correct the file / file_map."
-        )
-    resolved = model_display_labels[model]
-    return resolved["name"], resolved["matched_control"]
 
 
 def _process_data_file(
@@ -254,14 +294,12 @@ def _process_data_file(
         "log2foldchange",
         "padj",
     ]
-    optional = [col for col in BIOLOGY_OPTIONAL if col in data_file.columns]
-    return data_file[keep + optional]
+    return data_file[keep]
 
 
 def _build_output_entry(
     group: pd.DataFrame,
     biodomain_dict: dict[str, list[str]],
-    label_map_dict: dict[tuple[str, str], str],
     model_group_dict: dict[str, str],
     model_type_dict: dict[str, str],
     model_display_labels: dict[str, dict[str, str]],
@@ -272,20 +310,14 @@ def _build_output_entry(
     model = row.model
     tissue = row.tissue
     sex = row.sex
-    if model not in model_group_dict:
+    if model not in model_display_labels:
         raise ValueError(
-            f"Model '{model}' is not in the genotype label map. Add the "
-            "model to the label map or correct the file / file_map."
+            f"Model '{model}' is not in the genotype label map, so name and "
+            "matched_control cannot be resolved. Add the model to the label "
+            "map or correct the file / filename."
         )
-    name, matched_control = _resolve_name_and_control(
-        model,
-        group,
-        label_map_dict,
-        model_display_labels,
-        ensembl_gene_id,
-        tissue,
-        sex,
-    )
+    resolved = model_display_labels[model]
+    name, matched_control = resolved["name"], resolved["matched_control"]
     age_entries = create_age_entries_from_group(
         group, ensembl_gene_id, model, tissue, sex
     )
@@ -312,7 +344,6 @@ def _build_output_entry(
 
 def transform_protein_de_aggregate(
     datasets: dict[str, pd.DataFrame],
-    file_map: dict[str, dict[str, str]] | None = None,
     required_input: dict[str, list[str]] = REQUIRED_INPUT,
     column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
 ) -> list[dict[str, Any]]:
@@ -320,8 +351,7 @@ def transform_protein_de_aggregate(
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, column_rules)
 
-    file_list = _data_file_names(datasets, required_input, file_map)
-    overlay = file_map or {}
+    file_list = _data_file_names(datasets, required_input)
     for file_name in file_list:
         validate_data_file_not_empty(file_name, datasets[file_name])
         check_required_datasets_and_columns(
@@ -340,9 +370,6 @@ def transform_protein_de_aggregate(
 
     genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
     validate_one_to_one_mapping(genotype_label_map_df, "model", "model_type")
-    label_map_dict = genotype_label_map_df.set_index(["model", "genotype"])[
-        "display_label"
-    ].to_dict()
     model_group_dict = build_model_to_model_group(genotype_label_map_df)
     model_type_dict = (
         genotype_label_map_df.drop_duplicates("model")
@@ -350,6 +377,9 @@ def transform_protein_de_aggregate(
         .to_dict()
     )
     model_display_labels = _model_display_labels(genotype_label_map_df)
+    overlay = _build_file_metadata_map(
+        file_list, set(genotype_label_map_df["model"].unique())
+    )
     gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
     biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(
         axis="index", subset=["ensembl_id"]
@@ -397,14 +427,11 @@ def transform_protein_de_aggregate(
         "tissue",
         "sex",
     ]
-    if "case" in combined.columns and "control" in combined.columns:
-        group_cols.extend(["case", "control"])
 
     output = [
         _build_output_entry(
             group,
             biodomain_dict,
-            label_map_dict,
             model_group_dict,
             model_type_dict,
             model_display_labels,
