@@ -433,9 +433,9 @@ def _process_single_data_file(
 
     # Map plural source sex labels to their singular display form
     data_file["sex"] = remap_sex_labels(data_file["sex"])
-    # Before the groupby: tissue is a grouping key, so two casings of the same alias
-    # would otherwise become two groups. Shared with the individual transforms so a
-    # Hemibrain label cannot differ across the three datasets on the same page.
+
+    # Ensure tissue names are normalized before grouping to avoid duplicate groups due to casing or
+    # alias differences
     data_file["tissue"] = normalize_tissue(data_file["tissue"])
 
     # Round numeric columns to 5 decimal places for consistency

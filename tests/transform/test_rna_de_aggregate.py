@@ -1217,7 +1217,7 @@ class TestTransformRnaDeAggregate:
         - test_synthetic_missing_columns_data: Tests error handling for missing columns.
         - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
         - test_synthetic_multiple_biodomains: Tests genes with multiple biodomain assignments.
-        - test_synthetic_null_model_group: Tests handling of null/empty model_group values.
+        - test_check_column_rules_rejects_empty_model_group: Tests error handling for null/empty model_group values.
         - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
         - test_inconsistent_model_type_values: Tests error handling for inconsistent model_type values.
 
