@@ -21,7 +21,7 @@
             "expectation_type": "expect_column_values_to_match_regex",
             "kwargs": {
                 "column": "ensembl_gene_id",
-                "regex": "^ENSMUSG\\d{11}$"
+                "regex": "^ENSMUSG[0-9]{11}$"
             },
             "meta": {}
         },
@@ -82,7 +82,7 @@
             "expectation_type": "expect_column_values_to_match_regex",
             "kwargs": {
                 "column": "unique_id",
-                "regex": "^ENSMUSG\\d{11}[A-Z0-9]{6,10}(-[0-9]+)?$"
+                "regex": "^ENSMUSG[0-9]{11}[A-Z0-9]{6,10}(-[0-9]+)?$"
             },
             "meta": {}
         },
