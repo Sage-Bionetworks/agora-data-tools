@@ -233,16 +233,6 @@ datasets:
         - <<: *jax_load2_m_24mo
       final_format: json
       destination: *dest
-      custom_transformations:
-        transform_protein_de_aggregate:
-          file_map:
-            jax_load2_f_4mo:  { model: LOAD2, sex: Female, age: "4 months",  tissue: Hemibrain }
-            jax_load2_f_12mo: { model: LOAD2, sex: Female, age: "12 months", tissue: Hemibrain }
-            jax_load2_f_18mo: { model: LOAD2, sex: Female, age: "18 months", tissue: Hemibrain }
-            jax_load2_f_24mo: { model: LOAD2, sex: Female, age: "24 months", tissue: Hemibrain }
-            jax_load2_m_4mo:  { model: LOAD2, sex: Male,   age: "4 months",  tissue: Hemibrain }
-            jax_load2_m_12mo: { model: LOAD2, sex: Male,   age: "12 months", tissue: Hemibrain }
-            jax_load2_m_18mo: { model: LOAD2, sex: Male,   age: "18 months", tissue: Hemibrain }
-            jax_load2_m_24mo: { model: LOAD2, sex: Male,   age: "24 months", tissue: Hemibrain }
+      custom_transformations: transform_protein_de_aggregate
       column_rename:
         resource_identifier: ensembl_gene_id
