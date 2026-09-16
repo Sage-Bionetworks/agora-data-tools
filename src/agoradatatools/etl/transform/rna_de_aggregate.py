@@ -51,7 +51,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     remap_sex_labels,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
-    build_model_to_model_group,
+    build_model_to_model_group_lookup,
     create_gene_metadata_dict,
     filter_to_mouse_genes,
     log_file_processing_info,
@@ -572,7 +572,7 @@ def transform_rna_de_aggregate(
 
     validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
     validate_one_to_one_mapping(genotype_label_map_df, "model", "model_type")
-    model_group_dict = build_model_to_model_group(genotype_label_map_df)
+    model_group_dict = build_model_to_model_group_lookup(genotype_label_map_df)
 
     # Derive model_type from genotype_label_map so that split variant models
     # (e.g., "Abca7*V1599M.5xFAD") are covered without requiring entries in model_info.

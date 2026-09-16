@@ -2,16 +2,14 @@
 Shared utilities for the Model AD expression transforms.
 
 Used by rna_de_individual, protein_de_individual, and rna_de_aggregate. The genotype
-label map pieces in particular are a shared contract: MG-980 renders the datasets on
-the same page, so a genotype label, an ordering, or a tissue name that differs between
-them is a visible product bug. Changing anything here changes all three datasets.
+label map pieces in particular are a shared contract: all three transforms use the same
+file and need to perform the same operations on that data. Changing anything here changes
+all three datasets.
 
 filter_to_mouse_genes and preprocess_data_file are still RNA-only.
 """
 
 import logging
-from typing import Dict, List
-
 import pandas as pd
 
 from agoradatatools.etl.utils import (
@@ -39,16 +37,16 @@ GENOTYPE_LABEL_MAP_COLUMNS = [
 
 # Every column is required to be populated: a blank display_label or result_order silently
 # unlabels or reorders a genotype rather than failing.
-GENOTYPE_LABEL_MAP_RULES: Dict[str, List[ColumnRule]] = {
+GENOTYPE_LABEL_MAP_RULES: dict[str, list[ColumnRule]] = {
     column: [NotEmptyRule()] for column in GENOTYPE_LABEL_MAP_COLUMNS
 }
 
-# Keyed case-folded, because tissue arrives in whatever case the source study used.
+# Key is lower-case but the matching will be case-insensitive, because tissue arrives in whateve
+# case the source study used.
 TISSUE_ALIASES = {"right cerebral hemisphere": "Hemibrain"}
 
-# The per-animal fields nested into each entry's data list. Shared rather than per-transform
-# because MG-980 renders both datasets from the same component, so a field present in one
-# data list and absent from the other is a visible product bug.
+# The per-animal fields nested into each entry's data list. This same set of columns is required in
+# all three transforms.
 INDIVIDUAL_DATA_COLUMNS = ["genotype", "sex", "individual_id", "value"]
 
 
@@ -65,7 +63,7 @@ def filter_to_mouse_genes(df: pd.DataFrame) -> pd.DataFrame:
     return df[df["ensembl_gene_id"].str.startswith("ENSMUSG")].copy()
 
 
-def determine_result_order(data_file: pd.DataFrame) -> List[str]:
+def determine_result_order(data_file: pd.DataFrame) -> list[str]:
     """
     Determines the result_order (ordering of display labels) for genotypes in a data file.
 
@@ -100,20 +98,25 @@ def label_genotypes(
     genotype_label_map_df: pd.DataFrame,
     context: str = "",
 ) -> pd.DataFrame:
-    """Attach display labels to data_file and drop rows whose (model, genotype) has no label.
+    """Attach display labels to data_file to map each genotype in data_file to a label, and
+    drop rows whose (model, genotype) has no label.
 
     Unmatched rows carry NA result_order out of the left merge, which is what identifies
-    them. Dropping them is how wildtype and heterozygous animals are kept out of the output,
-    so an empty result means the data and the label map no longer share a genotype
-    vocabulary rather than that everything was correctly filtered.
-
-    display_label is deliberately left un-renamed: determine_result_order reads it, so the
-    caller renames only once it is finished with it.
+    them. Dropping them is how heterozygous animals or other non-relevant genotypes are kept
+    out of the output. An empty result means the data and the label map no longer share a
+    genotype vocabulary rather than that everything was correctly filtered, and this case should
+    raise an error.
 
     Args:
         data_file: Rows with model and genotype columns.
         genotype_label_map_df: Label map, already through prepare_genotype_label_map.
         context: Named in the error message when nothing survives, e.g. a model_group.
+
+    Returns:
+        DataFrame with display labels attached and rows with unmapped genotypes removed.
+
+    Raises:
+        ValueError: If no rows remain after filtering to mapped genotypes.
     """
     data_file = data_file.merge(
         genotype_label_map_df,
@@ -133,22 +136,37 @@ def label_genotypes(
 
 def nest_individual_records(
     df: pd.DataFrame,
-    group_columns: List[str],
+    group_columns: list[str],
     units: str,
     name_from_model: bool = False,
 ) -> pd.DataFrame:
     """Nest the per-animal records of one model_group and attach its per-group fields.
 
-    The shared tail of the rna_de_individual and protein_de_individual transforms. Each
-    caller derives its own columns before calling and selects its own output columns after,
+    This function is the shared tail of the rna_de_individual and protein_de_individual transforms.
+    Each caller derives its own columns before calling and selects its own output columns after,
     which is where the two datasets genuinely differ; everything between is identical and
-    lives here so the two cannot drift apart on the same page.
-
-    A DataFrame is returned rather than records because rna_de_individual still adds
-    columns and sorts afterwards, and protein_de_individual does not.
+    lives here so the two cannot drift apart.
 
     Called once per model_group, so name, matched_control and result_order are constant
     across the frame and are resolved as scalars.
+
+    Example input:
+
+        model  genotype  display_label  result_order  individualid  value  model_group
+    0     M1     G1        L1             1             I1            10     MG1
+    1     M1     G2        L2             2             I2            20     MG1
+    ...
+
+    Example output:
+
+        model_group  name  result_order  data
+    0     MG1         M1     1            list of dicts, see below
+
+    `data` is a list of dictionaries of all the individuals belonging to this model:
+    [
+        {'individual_id': 'I1', 'genotype': 'G1', 'display_label': 'L1', 'value': 10},
+        {'individual_id': 'I2', 'genotype': 'G2', 'display_label': 'L2', 'value': 20}
+    ]
 
     Preconditions, none of which are re-checked here:
       - df is already through label_genotypes, so display_label and result_order exist and
@@ -160,26 +178,31 @@ def nest_individual_records(
         the fallback for name.
 
     Args:
-        df: Labeled per-animal rows carrying model, genotype, display_label, result_order,
-            individualid, value, and every column named in group_columns.
+        df: data frame with one row per animal, with the following columns: model, genotype,
+            display_label, result_order, individualid, value, and every column named in
+            group_columns.
         group_columns: Columns that key one output entry. Kept as top-level columns.
-        units: Value units, passed in per transform rather than shared, so correcting one
-            dataset's units does not silently change the other's.
-        name_from_model: When True, name is the model itself for a group that has exactly
-            one, which is rna_de_individual's behavior. protein_de_individual always names
-            the model_group.
+        units: Value units, which differ between transforms.
+        name_from_model: Whether to use the "model" column for the output name. When True, the
+            output name comes from the "model" column (rna_de_individual behavior). When False,
+            the name comes from the "model_group" column (protein_de_individual behavior). If
+            `name_from_model` is True but there is more than one unique value in the "model"
+            column (as happens with some UCI studies), then the name will come from the
+            "model_group" column instead.
 
     Returns:
         One row per group_columns combination, with the per-animal fields nested into a
         data list plus units, name, matched_control, and result_order.
     """
-    result_order = determine_result_order(df)
+    ordered_genotypes = determine_result_order(df)
 
-    # name identifies the group in the UI. Read from the labeled frame, because a model
-    # whose genotypes are all unmapped is gone by this point and must not make a
-    # single-model group look like several. model_group is the fallback for both.
-    models = df["model"].unique() if name_from_model else []
-    name = models[0] if len(models) == 1 else None
+    # name identifies the group in the UI. The name either comes from "model" or "model_group".
+    name = df["model" if name_from_model else "model_group"].unique()
+
+    # Fall back to "model_group" if there is more than one unique value in the "model" column. We
+    # are guaranteed to have one unique value in the model_group field from the pre-validation steps.
+    if name_from_model and len(name) > 1:
+        name = df["model_group"].unique()
 
     # Drop the raw genotype before renaming display_label so there is no duplicate column.
     df = df.drop(columns=["genotype"]).rename(
@@ -193,18 +216,15 @@ def nest_individual_records(
     )
 
     entries["units"] = units
-    entries["name"] = name if name is not None else entries["model_group"]
-    # result_order is non-empty: label_genotypes raises on an empty frame, so there is
-    # always at least one label, and the lowest result_order among them is the control.
-    #
-    # Limitation for 4-genotype UCI studies: some DE analyses pair each case genotype with
-    # a different control (e.g. Trem2-R47H_NSS.5xFAD vs Trem2-R47H_NSS, not vs C57BL/6J).
-    # A single matched_control is a simplification there — it reflects the group's overall
-    # reference genotype rather than the per-case-genotype DE pairing.
-    entries["matched_control"] = result_order[0]
-    # Every row shares one list object. Safe because nothing mutates it after this point;
-    # to_dict and json.dump only read it.
-    entries["result_order"] = [result_order] * len(entries)
+    entries["name"] = name[0]
+
+    # The genotype with the lowest result order in the group is the matched control. This should be
+    # the first entry in ordered_genotypes.
+    entries["matched_control"] = ordered_genotypes[0]
+
+    # Add the ordered_genotypes list to each row in the entries DataFrame so it is included with
+    # each entry in the JSON output
+    entries["result_order"] = [ordered_genotypes] * len(entries)
     return entries
 
 
@@ -215,21 +235,21 @@ def normalize_tissue(tissue: pd.Series) -> pd.Series:
     float and has no usable str accessor.
     """
     normalized = tissue.astype("string").str.strip()
+
+    # Any values not in TISSUE_ALIASES are assigned NaN by map(), so we fill NaN values with their
+    # original value
     return normalized.str.casefold().map(TISSUE_ALIASES).fillna(normalized)
 
 
-def build_model_to_model_group(
+def build_model_to_model_group_lookup(
     genotype_label_map_df: pd.DataFrame,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Build a lookup mapping each model to its model_group.
 
-    Taking the first row per model is safe because validate_one_to_one_mapping
-    rejects a label map that gives one model more than one model_group.
-
-    An all-missing model_group is stored as None rather than NaN so it matches
-    groupby().first() and serializes as JSON null. The individual transforms reject
-    empty model_group values before this is called; rna_de_aggregate still allows them.
+    This function assumes the following have been validated before calling:
+        * Each model maps to exactly one unique model_group
+        * There are no missing model or model_group values
 
     Args:
         genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
@@ -237,17 +257,14 @@ def build_model_to_model_group(
     Returns:
         Dictionary mapping model to model_group
     """
-    return {
-        model: None if pd.isna(group) else group
-        for model, group in (
-            genotype_label_map_df.drop_duplicates("model")
-            .set_index("model")["model_group"]
-            .items()
-        )
-    }
+    return (
+        genotype_label_map_df.drop_duplicates("model")
+        .set_index("model")["model_group"]
+        .to_dict()
+    )
 
 
-def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> Dict[str, str]:
+def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> dict[str, str]:
     """
     Create a lookup dictionary mapping Ensembl gene IDs to gene symbols.
 
@@ -310,8 +327,8 @@ def preprocess_data_file(
     data_file: pd.DataFrame,
     file_index: int,
     total_files: int,
-    data_file_required_columns: List[str],
-    data_file_column_rules: Dict[str, List[ColumnRule]],
+    data_file_required_columns: list[str],
+    data_file_column_rules: dict[str, list[ColumnRule]],
 ) -> pd.DataFrame:
     """
     Preprocess a single data file with common validation and transformation steps.
