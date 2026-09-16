@@ -28,7 +28,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     remap_sex_labels,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
-    build_model_to_model_group,
+    build_model_to_model_group_lookup,
     create_gene_metadata_dict,
     label_genotypes,
     nest_individual_records,
@@ -518,7 +518,7 @@ def transform_protein_de_individual(
     # (unique_id, tissue, model_group, age) and splitting a group would emit two entries
     # for one key. Files in different groups share no key, so building one group at a time
     # keeps peak memory proportional to the largest group instead of to the whole run.
-    model_to_model_group = build_model_to_model_group(genotype_label_map_df)
+    model_to_model_group = build_model_to_model_group_lookup(genotype_label_map_df)
     files_by_model_group: dict[str, list[str]] = defaultdict(list)
     for file_name in datafile_list:
         files_by_model_group[model_to_model_group[model_map[file_name]]].append(
