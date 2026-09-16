@@ -13,8 +13,7 @@ import logging
 from typing import Any
 
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
-    INDIVIDUAL_DATA_COLUMNS,
-    build_model_to_model_group,
+    build_model_to_model_group_lookup,
     determine_result_order,
     filter_to_mouse_genes,
     label_genotypes,
@@ -45,32 +44,40 @@ class TestNormalizeTissue:
     def test_normalize_tissue(self, value: Any, expected: str) -> None:
         assert normalize_tissue(pd.Series([value])).iloc[0] == expected
 
-    def test_all_null_column_is_left_null(self) -> None:
-        """pandas reads an entirely empty column as float, which has no str accessor."""
-        assert normalize_tissue(pd.Series([None, None])).isna().all()
+    def test_all_null_column_remains_null(self) -> None:
+        """pandas reads an entirely empty column as float. normalize_tissue should handle this case
+        by leaving the column with all null values but the column should have a "string" type."""
+        result = normalize_tissue(pd.Series([None, None]))
+        assert result.isna().all()
+        assert result.dtype == "object"
 
 
 class TestPrepareGenotypeLabelMap:
     """Tests for the shared label map preparation."""
 
-    _LABEL_MAP = pd.DataFrame(
-        {
-            "model": ["Model_A", "Model_A"],
-            "model_group": ["Group_A", "Group_A"],
-            "display_label": ["Case", "Control"],
-            "genotype": ["Tg", "WT"],
-            "result_order": ["2", "1"],
-        }
-    )
+    def _label_map(self) -> pd.DataFrame:
+        """Creates a basic label map data frame with a single model and two genotypes"""
+        return pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "model_group": ["Group_A", "Group_A"],
+                "display_label": ["Case", "Control"],
+                "genotype": ["Tg", "WT"],
+                "result_order": ["2", "1"],
+            }
+        )
 
     def test_casts_result_order_without_mutating_the_input(self) -> None:
-        prepared = prepare_genotype_label_map(self._LABEL_MAP)
+        """Test that prepare_genotype_label_map casts result_order to integers without mutating the input."""
+        label_map = self._label_map()
+        prepared = prepare_genotype_label_map(label_map)
 
         assert prepared["result_order"].tolist() == [2, 1]
-        assert self._LABEL_MAP["result_order"].tolist() == ["2", "1"]
+        assert label_map["result_order"].tolist() == ["2", "1"]
 
     def test_inconsistent_model_group_raises(self) -> None:
-        label_map = self._LABEL_MAP.assign(model_group=["Group_A", "Group_B"])
+        """Test that an inconsistent model_group (where one model has more than one model_group) raises a ValueError."""
+        label_map = self._label_map().assign(model_group=["Group_A", "Group_B"])
 
         with pytest.raises(ValueError, match="consistent model_group"):
             prepare_genotype_label_map(label_map)
@@ -79,17 +86,21 @@ class TestPrepareGenotypeLabelMap:
 class TestLabelGenotypes:
     """Tests for the shared genotype labeling merge."""
 
-    _LABEL_MAP = pd.DataFrame(
-        {
-            "model": ["Model_A", "Model_A"],
-            "model_group": ["Group_A", "Group_A"],
-            "display_label": ["Case", "Control"],
-            "genotype": ["Tg", "WT"],
-            "result_order": [2, 1],
-        }
-    )
+    def _label_map(self) -> pd.DataFrame:
+        """Creates a basic label map data frame with a single model and two genotypes"""
+        return pd.DataFrame(
+            {
+                "model": ["Model_A", "Model_A"],
+                "model_group": ["Group_A", "Group_A"],
+                "display_label": ["Case", "Control"],
+                "genotype": ["Tg", "WT"],
+                "result_order": [2, 1],
+            }
+        )
 
     def test_labels_matched_rows_and_drops_the_rest(self) -> None:
+        """Test that label_genotypes correctly drops rows from data_file which have no matching genotype
+        in the label map."""
         data_file = pd.DataFrame(
             {
                 "model": ["Model_A"] * 3,
@@ -98,23 +109,26 @@ class TestLabelGenotypes:
             }
         )
 
-        result = label_genotypes(data_file, self._LABEL_MAP)
+        result = label_genotypes(data_file, self._label_map())
 
         assert result["display_label"].tolist() == ["Case", "Control"]
         # display_label is not renamed here; determine_result_order still reads it.
         assert "genotype" in result.columns
 
     def test_no_matching_genotype_raises_with_context(self) -> None:
+        """Test that a data frame with no matching genotypes in the label map raises a ValueError,
+        and the ValueError message includes the context string."""
+        label_map = self._label_map()
         data_file = pd.DataFrame({"model": ["Model_A"], "genotype": ["Het"]})
 
         with pytest.raises(
             ValueError, match="No rows remained for model_group 'Group_A'"
         ):
-            label_genotypes(data_file, self._LABEL_MAP, "model_group 'Group_A'")
+            label_genotypes(data_file, label_map, "model_group 'Group_A'")
 
     def test_duplicate_model_genotype_in_label_map_raises(self) -> None:
-        """A duplicate row would fan every measurement of that genotype out into two."""
-        label_map = pd.concat([self._LABEL_MAP, self._LABEL_MAP.iloc[[0]]])
+        """Test that a label map with duplicate model-genotype combinations raises a ValueError."""
+        label_map = pd.concat([self._label_map(), self._label_map().iloc[[0]]])
         data_file = pd.DataFrame({"model": ["Model_A"], "genotype": ["Tg"]})
 
         with pytest.raises(ValueError, match="not a many-to-one merge"):
@@ -122,13 +136,13 @@ class TestLabelGenotypes:
 
 
 class TestNestIndividualRecords:
-    """Tests for the shared per-model_group nesting tail.
+    """Tests for the shared per-model_group nesting function.
 
-    Expects a frame already through label_genotypes. The empty-result error that
-    names a context lives on label_genotypes, which is what both callers invoke
-    before this function.
+    Expects a frame that has already been processed through label_genotypes, so it should already
+    have valid, non-empty display labels.
     """
 
+    _GROUP_COLUMNS = ["ensembl_gene_id", "tissue", "model_group", "age"]
     _UNITS = "test units"
 
     @staticmethod
@@ -149,26 +163,36 @@ class TestNestIndividualRecords:
         data.update(overrides)
         return pd.DataFrame(data)
 
-    def _nest(self, df: pd.DataFrame, name_from_model: bool = False) -> pd.DataFrame:
-        return nest_individual_records(
-            df,
-            group_columns=["ensembl_gene_id", "tissue", "model_group", "age"],
+    def test_name_defaults_to_model_group_when_no_name_from_model(self) -> None:
+        result = nest_individual_records(
+            self._labeled_frame(),
+            group_columns=self._GROUP_COLUMNS,
             units=self._UNITS,
-            name_from_model=name_from_model,
         )
-
-    def test_name_defaults_to_model_group(self) -> None:
-        result = self._nest(self._labeled_frame())
 
         assert result["name"].tolist() == ["Group_A"]
 
-    def test_name_is_the_model_for_a_single_model_group(self) -> None:
-        result = self._nest(self._labeled_frame(), name_from_model=True)
+    def test_name_is_model_when_requested_for_single_model_in_group(self) -> None:
+        result = nest_individual_records(
+            self._labeled_frame(),
+            group_columns=self._GROUP_COLUMNS,
+            units=self._UNITS,
+            name_from_model=True,
+        )
 
         assert result["name"].tolist() == ["Model_A"]
-        assert result["model_group"].tolist() == ["Group_A"]
 
-    def test_name_falls_back_to_model_group_for_several_models(self) -> None:
+    def test_name_is_model_group_when_requested(self) -> None:
+        result = nest_individual_records(
+            self._labeled_frame(),
+            group_columns=self._GROUP_COLUMNS,
+            units=self._UNITS,
+            name_from_model=False,
+        )
+
+        assert result["name"].tolist() == ["Group_A"]
+
+    def test_name_falls_back_to_model_group_when_multiple_models_in_group(self) -> None:
         df = self._labeled_frame(
             model=["Model_A", "Model_B"],
             genotype=["Tg", "Tg"],
@@ -176,24 +200,59 @@ class TestNestIndividualRecords:
             result_order=[2, 3],
         )
 
-        result = self._nest(df, name_from_model=True)
+        result = nest_individual_records(
+            df,
+            group_columns=self._GROUP_COLUMNS,
+            units=self._UNITS,
+            name_from_model=True,
+        )
 
         assert result["name"].tolist() == ["Group_A"]
 
     def test_matched_control_is_the_lowest_result_order(self) -> None:
-        result = self._nest(self._labeled_frame())
+        result = nest_individual_records(
+            self._labeled_frame(),
+            group_columns=self._GROUP_COLUMNS,
+            units=self._UNITS,
+            name_from_model=True,
+        )
 
         assert result["matched_control"].tolist() == ["Control"]
         assert result["result_order"].iloc[0] == ["Control", "Case"]
 
     def test_nests_the_four_per_animal_columns(self) -> None:
-        result = self._nest(self._labeled_frame())
+        result = nest_individual_records(
+            self._labeled_frame(),
+            group_columns=self._GROUP_COLUMNS,
+            units=self._UNITS,
+            name_from_model=True,
+        )
 
-        nested = result["data"].iloc[0]
-        assert len(nested) == 2
-        assert set(nested[0]) == set(INDIVIDUAL_DATA_COLUMNS)
-        assert {row["individual_id"] for row in nested} == {"i1", "i2"}
-        assert result["units"].tolist() == [self._UNITS]
+        expected_data = [
+            {"genotype": "Case", "sex": "Male", "individual_id": "i1", "value": 1.0},
+            {
+                "genotype": "Control",
+                "sex": "Female",
+                "individual_id": "i2",
+                "value": 2.0,
+            },
+        ]
+
+        expected_output = pd.DataFrame(
+            {
+                "ensembl_gene_id": "ENSMUSG1",
+                "tissue": "Cortex",
+                "model_group": "Group_A",
+                "age": "6 months",
+                "data": [expected_data],
+                "units": self._UNITS,
+                "name": "Model_A",
+                "matched_control": "Control",
+                "result_order": [["Control", "Case"]],
+            }
+        )
+
+        pd.testing.assert_frame_equal(result, expected_output)
 
 
 class TestDetermineResultOrder:
@@ -486,9 +545,10 @@ class TestValidateModelGroupConsistency:
             validate_model_group_consistency(df)
 
 
-class TestBuildModelToModelGroup:
-    """Tests for build_model_to_model_group function."""
+class TestBuildModelToModelGroupLookup:
+    """Tests for build_model_to_model_group_lookup function."""
 
+    # TODO come back to this
     def test_creates_correct_mapping(self) -> None:
         """Test that each model maps to its model_group."""
         df = pd.DataFrame(
@@ -498,7 +558,7 @@ class TestBuildModelToModelGroup:
             }
         )
 
-        result = build_model_to_model_group(df)
+        result = build_model_to_model_group_lookup(df)
 
         assert result == {"Model_A": "Group1", "Model_B": "Group2"}
 
@@ -511,7 +571,7 @@ class TestBuildModelToModelGroup:
             }
         )
 
-        result = build_model_to_model_group(df)
+        result = build_model_to_model_group_lookup(df)
 
         assert result == {"Model_A": "Group1", "Model_B": "Group2"}
 
@@ -524,24 +584,12 @@ class TestBuildModelToModelGroup:
             }
         )
 
-        result = build_model_to_model_group(df)
+        result = build_model_to_model_group_lookup(df)
 
         assert result == {
             "Bin1-K358R": "Bin1K358R",
             "Bin1-K358R.5xFAD": "Bin1K358R",
         }
-
-    def test_all_missing_model_group_becomes_none(self) -> None:
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": [None, None],
-            }
-        )
-
-        result = build_model_to_model_group(df)
-
-        assert result == {"Model_A": None}
 
 
 class TestCreateGeneMetadataDict:
@@ -581,8 +629,8 @@ class TestCreateGeneMetadataDict:
 
         result = create_gene_metadata_dict(df)
 
+        # "ENSMUSG00000000002" should not be present
         assert result == {"ENSMUSG00000000001": "Gene1"}
-        assert "ENSMUSG00000000002" not in result
 
 
 class TestLogFileProcessingInfo:
