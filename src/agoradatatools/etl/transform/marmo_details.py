@@ -58,6 +58,8 @@ REQUIRED_INPUT = {
     "marmo_results": [
         "biomaterialid",
         "individualid",
+        "qc_ab",
+        "qc_neuro",
     ],
 }
 
@@ -100,6 +102,40 @@ REFERENCED_BIOMATERIAL_RULES = {
 }
 
 MONTHS_PER_YEAR = 12
+
+# Each QC flag in marmo_results gates one assay group: a measurement is dropped when its group's QC
+# flag is not "PASS". The two flags are independent, so a row can pass one group and fail the other.
+# Column names are the standardized (lowercased) forms the transform sees after load.
+QC_MEASURE_GROUPS = {
+    "qc_ab": ["ab40_pg_ml", "ab42_pg_ml", "ab_ratio"],
+    "qc_neuro": ["gfap_pg_ml", "nfl_pg_ml", "ttau_fg_ml"],
+}
+
+
+def _apply_qc_masks(results: pd.DataFrame) -> pd.DataFrame:
+    """Null out measure values whose assay-group QC flag is not PASS.
+
+    For each QC flag in QC_MEASURE_GROUPS, sets that group's measure columns to NaN on rows where the
+    flag is not "PASS" (case-insensitive, ignoring leading/trailing whitespace).
+
+    Args:
+        results (pd.DataFrame): marmo_results, with the qc_ab and qc_neuro flag columns.
+
+    Returns:
+        pd.DataFrame: A copy of results with QC-failing measure values set to NaN.
+    """
+    masked = results.copy()
+    for qc_column, measure_columns in QC_MEASURE_GROUPS.items():
+        present = [column for column in measure_columns if column in masked.columns]
+        if not present:
+            continue
+        # astype(str) renders blank/NaN flags as "nan"/"none", so they compare unequal to "PASS"
+        # and are treated as not-passing; it also keeps the mask a plain boolean (a nullable-string
+        # comparison would yield pd.NA and break .loc indexing).
+        normalized = masked[qc_column].astype(str).str.strip().str.upper()
+        failing = normalized != "PASS"
+        masked.loc[failing, present] = pd.NA
+    return masked
 
 
 def _validate_and_prepare_model_metadata(
@@ -201,7 +237,9 @@ def _build_measurements(
             REFERENCED_BIOMATERIAL_RULES, or if no measurement survives the value, genotype, or
             collection-age filters.
     """
-    results = datasets["marmo_results"]
+    # Drop measurements whose assay-group QC flag is not PASS before melting; the null-drop below
+    # will remove them along with the genuinely missing values.
+    results = _apply_qc_masks(datasets["marmo_results"])
     individual = datasets["marmo_individual_metadata"]
     biomaterial = datasets["marmo_biomaterial_metadata"]
     genotype_map = datasets["marmo_genotype_label_map"]
@@ -379,6 +417,8 @@ def transform_marmo_details(
     an empty biomarkers list.
 
     Expected transformations:
+        0. Per-assay QC: each measure whose group QC flag (qc_ab for amyloid-beta, qc_neuro for the
+           neuro panel) is not "PASS" is dropped, independently per row.
         1. The wide marmo_results measure columns are melted long; null measurements are dropped.
         2. Genotype and sex are joined per individual, then genotypes are mapped to display labels
            and models. Measurements with an unmapped genotype are excluded.

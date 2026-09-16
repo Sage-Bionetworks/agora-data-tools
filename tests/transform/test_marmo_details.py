@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.marmo_details import (
+    _apply_qc_masks,
     _build_biomarkers,
     _build_measurements,
     _prepare_measure_info,
@@ -16,6 +17,9 @@ from agoradatatools.etl.transform.marmo_details import (
 # The measurement columns carried by the marmo_results fixture.
 MEASURE_COLUMNS = ["ab40_pg_ml", "ab_ratio", "gfap_pg_ml"]
 
+# Assay-group measure columns, matching QC_MEASURE_GROUPS in the transform.
+AB_COLS = ["ab40_pg_ml", "ab42_pg_ml", "ab_ratio"]
+NEURO_COLS = ["gfap_pg_ml", "nfl_pg_ml", "ttau_fg_ml"]
 
 # Each of these helper functions creates a dataset that causes _build_measurements to produce an
 # empty data frame in different ways.
@@ -112,6 +116,58 @@ class TestTransformMarmoDetails:
 
         with pytest.raises(ValueError, match="Missing required columns"):
             transform_marmo_details(datasets=datasets)
+
+    @pytest.mark.parametrize("qc_column", ["qc_ab", "qc_neuro"])
+    def test_marmo_details_missing_qc_column_should_fail(self, qc_column):
+        """qc_ab and qc_neuro are required on marmo_results; a missing one fails up front rather
+        than silently disabling the QC filter."""
+        datasets = self._load_datasets()
+        datasets["marmo_results"] = datasets["marmo_results"].drop(columns=[qc_column])
+
+        with pytest.raises(ValueError, match="Missing required columns"):
+            transform_marmo_details(datasets=datasets)
+
+    @pytest.mark.parametrize(
+        "qc_column,expected_biomarkers",
+        [
+            (
+                "qc_ab",
+                {
+                    ("A&beta;40", "1-2 years"),
+                    ("A&beta;42/A&beta;40", "1-2 years"),
+                    ("GFAP", "0-1 years"),
+                },
+            ),
+            (
+                "qc_neuro",
+                {
+                    ("A&beta;40", "0-1 years"),
+                    ("A&beta;40", "1-2 years"),
+                    ("A&beta;42/A&beta;40", "0-1 years"),
+                    ("A&beta;42/A&beta;40", "1-2 years"),
+                },
+            ),
+        ],
+        ids=[
+            "ab QC failure drops that row's ab plots",
+            "neuro QC failure drops its gfap plot",
+        ],
+    )
+    def test_marmo_details_qc_failure_removes_only_that_group(
+        self, qc_column, expected_biomarkers
+    ):
+        """Failing one QC group on biomaterial 7015_1 (individual 1) removes only that group's
+        measurements from the output; the other group on that row and the other rows are
+        untouched. Compare against the good output's five biomarkers."""
+        datasets = self._load_datasets()
+        results = datasets["marmo_results"]
+        results.loc[results["biomaterialid"] == "7015_1", qc_column] = "FAIL"
+
+        output_data = transform_marmo_details(datasets=datasets)
+
+        presenilin = next(m for m in output_data if m["name"] == "Presenilin1")
+        biomarkers = {(b["evidence_type"], b["age"]) for b in presenilin["biomarkers"]}
+        assert biomarkers == expected_biomarkers
 
     def _set_bad_value(self, datasets, dataset, column, bad_value):
         """Overwrite the first row of a column, which every rule below scans in full."""
@@ -424,6 +480,8 @@ class TestBuildMeasurements:
                     "biomaterialid": ["7015_1", "7019_1", "7016_1", "7017_1"],
                     "individualid": [1, 9, 1, 1],
                     "ab40_pg_ml": [100.0, 900.0, 110.0, 120.0],
+                    "qc_ab": ["PASS", "PASS", "PASS", "PASS"],
+                    "qc_neuro": ["PASS", "PASS", "PASS", "PASS"],
                 }
             ),
             "marmo_individual_metadata": pd.DataFrame(
@@ -473,6 +531,61 @@ class TestBuildMeasurements:
         )
 
         assert list(measurements["age"]) == ["0-1 years", "0-1 years", "1-2 years"]
+
+    @pytest.mark.parametrize(
+        "qc_ab,qc_neuro,expected_measures",
+        [
+            ("FAIL", "PASS", {"gfap_pg_ml"}),
+            ("PASS", "FAIL", {"ab40_pg_ml"}),
+        ],
+        ids=["ab fails -> only neuro survives", "neuro fails -> only ab survives"],
+    )
+    def test_build_measurements_applies_qc_masks_before_melt(
+        self, qc_ab, qc_neuro, expected_measures
+    ):
+        """A row's QC-failed group is nulled by _apply_qc_masks and then removed by the melt's
+        dropna, while the other group on the same row survives."""
+        datasets = {
+            "marmo_results": pd.DataFrame(
+                {
+                    "biomaterialid": ["7015_1"],
+                    "individualid": [1],
+                    "ab40_pg_ml": [100.0],
+                    "gfap_pg_ml": [50.0],
+                    "qc_ab": [qc_ab],
+                    "qc_neuro": [qc_neuro],
+                }
+            ),
+            "marmo_individual_metadata": pd.DataFrame(
+                {"individualid": [1], "genotype": ["WT"], "sex": ["male"]}
+            ),
+            "marmo_biomaterial_metadata": pd.DataFrame(
+                {
+                    "biomaterialid": ["7015_1"],
+                    "collectionage": [6],
+                    "collectionageunits": ["months"],
+                }
+            ),
+            "marmo_genotype_label_map": pd.DataFrame(
+                {
+                    "model": ["Presenilin1"],
+                    "genotype": ["WT"],
+                    "display_label": ["Matched Control"],
+                }
+            ),
+        }
+        measure_info = pd.DataFrame(
+            {
+                "result_column_std": ["ab40_pg_ml", "gfap_pg_ml"],
+                "evidence_type": ["A&beta;40", "GFAP"],
+                "units": ["pg/mL", "pg/mL"],
+                "display_order": [1, 3],
+            }
+        )
+
+        measurements = _build_measurements(datasets, measure_info)
+
+        assert set(measurements["result_column_std"]) == expected_measures
 
 
 class TestBuildBiomarkers:
@@ -554,3 +667,121 @@ class TestBuildBiomarkers:
         points = biomarkers[0]["data"]
         assert list(points[0].keys()) == ["individual_id", "value", "sex", "genotype"]
         assert [point["individual_id"] for point in points] == ["2", "10"]
+
+
+class TestApplyQcMasks:
+    """_apply_qc_masks nulls a group's measure values on rows whose QC flag is not PASS. qc_ab
+    gates the amyloid-beta measures, qc_neuro the neuro measures; the two are independent."""
+
+    def _results(self, qc_ab, qc_neuro):
+        """A wide marmo_results frame with all six measures populated (so masking is observable).
+        qc_ab and qc_neuro are per-row flag lists of equal length."""
+        n = len(qc_ab)
+        data = {
+            "biomaterialid": [f"b{i}" for i in range(n)],
+            "individualid": list(range(n)),
+            "qc_ab": qc_ab,
+            "qc_neuro": qc_neuro,
+        }
+        for offset, column in enumerate(AB_COLS + NEURO_COLS, start=1):
+            data[column] = [float(offset)] * n
+        return pd.DataFrame(data)
+
+    def test_ab_fail_masks_only_ab_measures(self):
+        result = _apply_qc_masks(self._results(qc_ab=["FAIL"], qc_neuro=["PASS"]))
+
+        assert result.loc[0, AB_COLS].isna().all()
+        assert result.loc[0, NEURO_COLS].notna().all()
+
+    def test_neuro_fail_masks_only_neuro_measures(self):
+        result = _apply_qc_masks(self._results(qc_ab=["PASS"], qc_neuro=["FAIL"]))
+
+        assert result.loc[0, NEURO_COLS].isna().all()
+        assert result.loc[0, AB_COLS].notna().all()
+
+    def test_both_fail_masks_all_measures(self):
+        result = _apply_qc_masks(self._results(qc_ab=["FAIL"], qc_neuro=["FAIL"]))
+
+        assert result.loc[0, AB_COLS + NEURO_COLS].isna().all()
+
+    def test_all_pass_masks_nothing(self):
+        result = _apply_qc_masks(self._results(qc_ab=["PASS"], qc_neuro=["PASS"]))
+
+        assert result.loc[0, AB_COLS + NEURO_COLS].notna().all()
+
+    @pytest.mark.parametrize(
+        "blank", [None, "", "   "], ids=["none", "empty", "whitespace"]
+    )
+    def test_blank_qc_is_treated_as_not_pass(self, blank):
+        """A blank/NaN flag counts as not-passing, so its group is masked."""
+        result = _apply_qc_masks(self._results(qc_ab=[blank], qc_neuro=["PASS"]))
+
+        assert result.loc[0, AB_COLS].isna().all()
+        assert result.loc[0, NEURO_COLS].notna().all()
+
+    def test_pending_is_masked(self):
+        result = _apply_qc_masks(self._results(qc_ab=["PENDING"], qc_neuro=["PASS"]))
+
+        assert result.loc[0, AB_COLS].isna().all()
+
+    @pytest.mark.parametrize("passing", ["PASS", "pass", "Pass", " PASS ", "pass "])
+    def test_pass_is_case_and_whitespace_insensitive(self, passing):
+        result = _apply_qc_masks(self._results(qc_ab=[passing], qc_neuro=[passing]))
+
+        assert result.loc[0, AB_COLS + NEURO_COLS].notna().all()
+
+    def test_absent_measure_columns_in_a_group_are_skipped(self):
+        """Only the Ab columns actually present are masked; the missing ones raise no KeyError."""
+        frame = pd.DataFrame(
+            {
+                "biomaterialid": ["b0"],
+                "individualid": [0],
+                "ab40_pg_ml": [100.0],  # ab42_pg_ml / ab_ratio absent
+                "gfap_pg_ml": [10.0],
+                "nfl_pg_ml": [20.0],
+                "ttau_fg_ml": [30.0],
+                "qc_ab": ["FAIL"],
+                "qc_neuro": ["PASS"],
+            }
+        )
+
+        result = _apply_qc_masks(frame)
+
+        assert pd.isna(result.loc[0, "ab40_pg_ml"])
+        assert result.loc[0, NEURO_COLS].notna().all()
+
+    def test_group_with_no_measure_columns_needs_no_qc_column(self):
+        """When a group has no measure columns present, it is skipped before its QC column is read,
+        so a frame carrying only the other group's columns does not raise."""
+        frame = pd.DataFrame(
+            {
+                "biomaterialid": ["b0"],
+                "individualid": [0],
+                "gfap_pg_ml": [10.0],
+                "qc_neuro": ["FAIL"],  # no ab measures and no qc_ab column at all
+            }
+        )
+
+        result = _apply_qc_masks(frame)
+
+        assert pd.isna(result.loc[0, "gfap_pg_ml"])
+
+    def test_does_not_mutate_input_and_preserves_other_columns(self):
+        original = self._results(qc_ab=["FAIL"], qc_neuro=["PASS"])
+        snapshot = original.copy(deep=True)
+
+        result = _apply_qc_masks(original)
+
+        pd.testing.assert_frame_equal(original, snapshot)
+        for column in ["biomaterialid", "individualid", "qc_ab", "qc_neuro"]:
+            assert list(result[column]) == list(original[column])
+
+    def test_masks_each_row_independently(self):
+        result = _apply_qc_masks(
+            self._results(qc_ab=["PASS", "FAIL"], qc_neuro=["FAIL", "PASS"])
+        )
+
+        assert result.loc[0, AB_COLS].notna().all()
+        assert result.loc[0, NEURO_COLS].isna().all()
+        assert result.loc[1, AB_COLS].isna().all()
+        assert result.loc[1, NEURO_COLS].notna().all()
