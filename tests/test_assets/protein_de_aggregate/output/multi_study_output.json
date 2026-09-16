@@ -1,0 +1,48 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "uniprotid": "P00002",
+    "unique_id": "ENSMUSG00000000001P00002",
+    "display_symbol": "Gnai3 (P00002)",
+    "biodomains": ["Apoptosis"],
+    "name": {"link_url": "models/Model_B", "link_text": "Model_B"},
+    "matched_control": "Control_B",
+    "model_group": "Group_B",
+    "model_type": "Late Onset AD",
+    "tissue": "Cortex",
+    "sex": "Male",
+    "4 months": {"log2_fc": 1.1, "adj_p_val": 0.002}
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "uniprotid": "P27144",
+    "unique_id": "ENSMUSG00000000001P27144",
+    "display_symbol": "Gnai3 (P27144)",
+    "biodomains": ["Apoptosis"],
+    "name": {"link_url": "models/Model_A", "link_text": "Model_A"},
+    "matched_control": "Control_A",
+    "model_group": "Group_A",
+    "model_type": "Familial AD",
+    "tissue": "Hemibrain",
+    "sex": "Female",
+    "4 months": {"log2_fc": 0.01167, "adj_p_val": 0.7812},
+    "12 months": {"log2_fc": 0.5, "adj_p_val": 0.01}
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000002",
+    "gene_symbol": "Sptan1",
+    "uniprotid": "Q8C8R3-2",
+    "unique_id": "ENSMUSG00000000002Q8C8R3-2",
+    "display_symbol": "Sptan1 (Q8C8R3-2)",
+    "biodomains": [],
+    "name": {"link_url": "models/Model_A", "link_text": "Model_A"},
+    "matched_control": "Control_A",
+    "model_group": "Group_A",
+    "model_type": "Familial AD",
+    "tissue": "Hemibrain",
+    "sex": "Female",
+    "4 months": {"log2_fc": 0.2, "adj_p_val": 0.03}
+  }
+]

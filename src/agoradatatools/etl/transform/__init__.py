@@ -31,6 +31,9 @@ from agoradatatools.etl.transform.rna_de_individual import transform_rna_de_indi
 from agoradatatools.etl.transform.protein_de_individual import (
     transform_protein_de_individual,
 )
+from agoradatatools.etl.transform.protein_de_aggregate import (
+    transform_protein_de_aggregate,
+)
 
 
 __all__ = [
@@ -55,4 +58,5 @@ __all__ = [
     "transform_rna_de_aggregate",
     "transform_rna_de_individual",
     "transform_protein_de_individual",
+    "transform_protein_de_aggregate",
 ]

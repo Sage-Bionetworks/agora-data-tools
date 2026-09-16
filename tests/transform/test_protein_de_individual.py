@@ -21,66 +21,16 @@ import pytest
 from agoradatatools.etl.transform.protein_de_individual import (
     REQUIRED_INPUT,
     transform_protein_de_individual,
-    _build_gene_aliases,
-    _build_uniprot_candidates,
     _measured_header_pairs,
     _melt_proteomics_file,
-    _resolve_gene_ids,
+)
+from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
+    resolve_gene_ids,
 )
 
 
 CANDIDATES = {"P1": ["ENSMUSG00000000001", "ENSMUSG00000000009"]}
 GENE_SYMBOLS = {"ENSMUSG00000000001": "Gm10053", "ENSMUSG00000000009": "Cycs"}
-
-
-class TestBuildUniprotCandidates:
-    """Unit tests for the UniProt accession to candidate mouse Ensembl gene ids lookup."""
-
-    def test_drops_human_genes_and_keeps_all_mouse_candidates(self) -> None:
-        mapping = pd.DataFrame(
-            {
-                "uniprotkb_accession": ["P1", "P1", "P2", "P3"],
-                "ensembl_gene_id": [
-                    "ENSMUSG00000000005",
-                    "ENSMUSG00000000002",
-                    "ENSG00000000001",
-                    "ENSMUSG00000000003",
-                ],
-            }
-        )
-
-        assert _build_uniprot_candidates(mapping) == {
-            "P1": ["ENSMUSG00000000002", "ENSMUSG00000000005"],
-            "P3": ["ENSMUSG00000000003"],
-        }
-
-
-class TestBuildGeneAliases:
-    """Unit tests for the Ensembl gene id to alias set lookup."""
-
-    def test_aliases_are_case_folded_and_missing_values_skipped(self) -> None:
-        """Test the shapes the alias column actually arrives in.
-
-        mouse_gene_metadata is JSON, so alias is a real list per gene, but a gene with no
-        aliases can arrive as an empty list or as a null, and a list can hold a null.
-        """
-        metadata = pd.DataFrame(
-            {
-                "ensembl_gene_id": [
-                    "ENSMUSG00000000001",
-                    "ENSMUSG00000000002",
-                    "ENSMUSG00000000003",
-                    "ENSMUSG00000000004",
-                ],
-                "alias": [["Gnai-3", "HG1A"], [], [None, "Srp54"], None],
-            }
-        )
-
-        assert _build_gene_aliases(metadata) == {
-            "ENSMUSG00000000001": {"gnai-3", "hg1a"},
-            "ENSMUSG00000000002": set(),
-            "ENSMUSG00000000003": {"srp54"},
-        }
 
 
 class TestMeasuredHeaderPairs:
@@ -148,7 +98,7 @@ class TestMeasuredHeaderPairs:
         pairs = _measured_header_pairs(datasets, list(datasets))
 
         assert set(pairs["header_symbol"]) == {"na", "cycs"}
-        assert _resolve_gene_ids(
+        assert resolve_gene_ids(
             pairs, {"P00001": CANDIDATES["P1"]}, GENE_SYMBOLS, {}
         ) == {"P00001": "ENSMUSG00000000009"}
 
@@ -172,105 +122,9 @@ class TestMeasuredHeaderPairs:
         pairs = _measured_header_pairs(datasets, list(datasets))
 
         assert set(pairs["uniprotid"]) == self._melted_accessions(datasets)
-        assert _resolve_gene_ids(
+        assert resolve_gene_ids(
             pairs, {"P00001": CANDIDATES["P1"]}, GENE_SYMBOLS, {}
         ) == {"P00001": "ENSMUSG00000000009"}
-
-
-class TestResolveGeneIds:
-    """Unit tests for choosing one gene when an accession maps to several."""
-
-    @staticmethod
-    def _header_pairs(uniprotid: str, header_symbol: str) -> pd.DataFrame:
-        return pd.DataFrame(
-            {"uniprotid": [uniprotid], "header_symbol": [header_symbol]}
-        )
-
-    @pytest.mark.parametrize(
-        "header_symbol,expected",
-        [
-            # The named gene wins even though it holds the larger Ensembl gene id.
-            ("Cycs", "ENSMUSG00000000009"),
-            ("cycs", "ENSMUSG00000000009"),
-            ("Gm10053", "ENSMUSG00000000001"),
-            # Unusable symbols fall back to the smallest id.
-            ("", "ENSMUSG00000000001"),
-            ("NA", "ENSMUSG00000000001"),
-            # A symbol naming neither candidate cannot resolve.
-            ("Rps27", "ENSMUSG00000000001"),
-            # A symbol naming both candidates is genuinely ambiguous. The separator is the
-            # mangled ";_" the pipeline produces from "; ", so this also fails if the names
-            # after the first are not un-mangled before matching.
-            ("Cycs;_Gm10053", "ENSMUSG00000000001"),
-        ],
-    )
-    def test_header_symbol_picks_the_gene(
-        self, header_symbol: str, expected: str
-    ) -> None:
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P1", header_symbol),
-            CANDIDATES,
-            GENE_SYMBOLS,
-            {},
-        )
-
-        assert resolved == {"P1": expected}
-
-    def test_multi_gene_header_symbol_resolves_on_one_match(self) -> None:
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P1", "Cycs;_Rps27"),
-            CANDIDATES,
-            GENE_SYMBOLS,
-            {},
-        )
-
-        assert resolved == {"P1": "ENSMUSG00000000009"}
-
-    def test_ambiguous_match_stays_within_the_named_genes(self) -> None:
-        """Test that a tie between named genes is broken without leaving the named genes.
-
-        No production accession matches several candidates today, so the smallest candidate
-        happens to be a named one; this pins the behavior if that ever stops holding.
-        """
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P3", "H4c1;_H4c2"),
-            {
-                "P3": [
-                    "ENSMUSG00000000001",
-                    "ENSMUSG00000000004",
-                    "ENSMUSG00000000007",
-                ]
-            },
-            {
-                "ENSMUSG00000000001": "Gm10053",
-                "ENSMUSG00000000004": "H4c1",
-                "ENSMUSG00000000007": "H4c2",
-            },
-            {},
-        )
-
-        assert resolved == {"P3": "ENSMUSG00000000004"}
-
-    def test_alias_resolves_nomenclature_drift(self) -> None:
-        """Test the alias fallback when the file uses an older symbol than the metadata.
-
-        The proteomics files still say Srp54 where mouse_gene_metadata says Srp54a.
-        """
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P2", "Srp54"),
-            {"P2": ["ENSMUSG00000000002", "ENSMUSG00000000008"]},
-            {"ENSMUSG00000000002": "Srp54b", "ENSMUSG00000000008": "Srp54a"},
-            {"ENSMUSG00000000008": {"srp54"}},
-        )
-
-        assert resolved == {"P2": "ENSMUSG00000000008"}
-
-    def test_isoform_symbol_resolves_base_accession(self) -> None:
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P1-2", "Cycs"), CANDIDATES, GENE_SYMBOLS, {}
-        )
-
-        assert resolved == {"P1": "ENSMUSG00000000009"}
 
 
 class TestMeltProteomicsFile:
