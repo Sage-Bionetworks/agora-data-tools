@@ -11,7 +11,7 @@ from agoradatatools.etl.transform.marmo_details import (
     _prepare_measure_info,
     _validate_and_prepare_model_metadata,
     transform_marmo_details,
-    QC_MEASURE_GROUPS
+    QC_MEASURE_GROUPS,
 )
 
 
