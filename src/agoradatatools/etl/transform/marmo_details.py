@@ -103,9 +103,8 @@ REFERENCED_BIOMATERIAL_RULES = {
 
 MONTHS_PER_YEAR = 12
 
-# Each QC flag in marmo_results gates one assay group: a measurement is dropped when its group's QC
-# flag is not "PASS". The two flags are independent, so a row can pass one group and fail the other.
-# Column names are the standardized (lowercased) forms the transform sees after load.
+# Each QC flag in marmo_results gates a group of assays: a measurement is dropped when its group's QC
+# flag is not "PASS". The two QC flags are independent, so a row can pass one group and fail the other.
 QC_MEASURE_GROUPS = {
     "qc_ab": ["ab40_pg_ml", "ab42_pg_ml", "ab_ratio"],
     "qc_neuro": ["gfap_pg_ml", "nfl_pg_ml", "ttau_fg_ml"],
@@ -113,13 +112,13 @@ QC_MEASURE_GROUPS = {
 
 
 def _apply_qc_masks(results: pd.DataFrame) -> pd.DataFrame:
-    """Null out measure values whose assay-group QC flag is not PASS.
+    """Null out measurements for an assay-group if that group's QC flag is not PASS.
 
     For each QC flag in QC_MEASURE_GROUPS, sets that group's measure columns to NaN on rows where the
     flag is not "PASS" (case-insensitive, ignoring leading/trailing whitespace).
 
     Args:
-        results (pd.DataFrame): marmo_results, with the qc_ab and qc_neuro flag columns.
+        results (pd.DataFrame): marmo_results
 
     Returns:
         pd.DataFrame: A copy of results with QC-failing measure values set to NaN.
@@ -221,8 +220,8 @@ def _build_measurements(
     """Build the per-measurement DataFrame behind the biomarkers collection.
 
     Melts the wide measure columns, resolves genotypes to display labels and models, joins
-    collection ages, and attaches measure metadata. Measurements with no label-map genotype or
-    no biomaterial record are dropped.
+    collection ages, and attaches measure metadata. Measurements that did not pass QC, have
+    no label-map genotype, or have no biomaterial record are dropped.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): The input datasets.
@@ -237,9 +236,6 @@ def _build_measurements(
             REFERENCED_BIOMATERIAL_RULES, or if no measurement survives the value, genotype, or
             collection-age filters.
     """
-    # Drop measurements whose assay-group QC flag is not PASS before melting; the null-drop below
-    # will remove them along with the genuinely missing values.
-    results = _apply_qc_masks(datasets["marmo_results"])
     individual = datasets["marmo_individual_metadata"]
     biomaterial = datasets["marmo_biomaterial_metadata"]
     genotype_map = datasets["marmo_genotype_label_map"]
@@ -248,6 +244,10 @@ def _build_measurements(
         raise ValueError(
             "marmo_biomarker_measure_info lists no measures, so no biomarker can be plotted."
         )
+
+    # Convert measurements whose assay-group QC flag is not PASS before melting; the null-drop below
+    # will remove them along with the genuinely missing values.
+    results = _apply_qc_masks(datasets["marmo_results"])
 
     # A typo'd result_column would otherwise drop that measure silently.
     measure_columns = list(measure_info["result_column_std"])
@@ -417,19 +417,18 @@ def transform_marmo_details(
     an empty biomarkers list.
 
     Expected transformations:
-        0. Per-assay QC: each measure whose group QC flag (qc_ab for amyloid-beta, qc_neuro for the
-           neuro panel) is not "PASS" is dropped, independently per row.
-        1. The wide marmo_results measure columns are melted long; null measurements are dropped.
-        2. Genotype and sex are joined per individual, then genotypes are mapped to display labels
+        1. Measures that did not pass QC are converted to nulls.
+        2. The wide marmo_results measure columns are melted long; all null measurements are dropped.
+        3. Genotype and sex are joined per individual, then genotypes are mapped to display labels
            and models. Measurements with an unmapped genotype are excluded.
-        3. Collection age is joined on biomaterialid; measurements with no record are dropped.
-        4. Ages (months) are bucketed into whole-year ranges (e.g. "0-1 years"). Marmosets are
+        4. Collection age is joined on biomaterialid; measurements with no record are dropped.
+        5. Ages (months) are bucketed into whole-year ranges (e.g. "0-1 years"). Marmosets are
            sampled longitudinally and values are deliberately not averaged per animal, so one
            animal can contribute many points to a bucket - up to 15 in current data, unlike the
            mouse pipeline where an animal is one point.
-        5. Only buckets with data are emitted. There is no _add_missing_age_entries equivalent, so
+        6. Only buckets with data are emitted. There is no _add_missing_age_entries equivalent, so
            measures with different coverage produce different bucket sets on one model page.
-        6. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
+        7. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
            computed per model via round_y_axis_max.
 
     Args:

@@ -11,15 +11,16 @@ from agoradatatools.etl.transform.marmo_details import (
     _prepare_measure_info,
     _validate_and_prepare_model_metadata,
     transform_marmo_details,
+    QC_MEASURE_GROUPS
 )
 
 
 # The measurement columns carried by the marmo_results fixture.
 MEASURE_COLUMNS = ["ab40_pg_ml", "ab_ratio", "gfap_pg_ml"]
 
-# Assay-group measure columns, matching QC_MEASURE_GROUPS in the transform.
-AB_COLS = ["ab40_pg_ml", "ab42_pg_ml", "ab_ratio"]
-NEURO_COLS = ["gfap_pg_ml", "nfl_pg_ml", "ttau_fg_ml"]
+# Assay-group measure columns from the transform
+AB_COLS = QC_MEASURE_GROUPS["qc_ab"]
+NEURO_COLS = QC_MEASURE_GROUPS["qc_neuro"]
 
 # Each of these helper functions creates a dataset that causes _build_measurements to produce an
 # empty data frame in different ways.
