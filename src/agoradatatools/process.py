@@ -256,23 +256,37 @@ def process_dataset(
             data=transform_result, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
-    if isinstance(transform_result, dict):
-        json_path = load.dict_to_json(
+    final_format = dataset_obj[dataset_name]["final_format"]
+    output_filename = dataset_name + "." + final_format
+
+    if isinstance(transform_result, (dict, list)) and final_format == "csv":
+        raise ADTDataProcessingError(
+            f"Dataset '{dataset_name}' has final_format 'csv' but its transform produced a "
+            f"{type(transform_result).__name__}, which is not currently supported."
+        )
+    elif isinstance(transform_result, dict):
+        output_path = load.dict_to_json(
             data_as_dict=transform_result,
             staging_path=staging_path,
-            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+            filename=output_filename,
         )
     elif isinstance(transform_result, list):
-        json_path = load.list_to_json(
+        output_path = load.list_to_json(
             data_as_list=transform_result,
             staging_path=staging_path,
-            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+            filename=output_filename,
+        )
+    elif final_format == "csv":
+        output_path = load.df_to_csv(
+            df=transform_result,
+            staging_path=staging_path,
+            filename=output_filename,
         )
     else:
-        json_path = load.df_to_json(
+        output_path = load.df_to_json(
             data_as_df=transform_result,
             staging_path=staging_path,
-            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+            filename=output_filename,
         )
 
     gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False)
@@ -280,7 +294,7 @@ def process_dataset(
     if gx_enabled:
         gx_runner = GreatExpectationsRunner(
             syn=syn,
-            dataset_path=json_path,
+            dataset_path=output_path,
             dataset_name=dataset_name,
             staging_path=staging_path,
             upload_folder=gx_folder if upload else None,
@@ -306,7 +320,7 @@ def process_dataset(
 
         if upload and not gx_runner.failures:
             file_id, file_version = load.load(
-                file_path=json_path,
+                file_path=output_path,
                 provenance=provenance_ids,
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,
@@ -324,7 +338,7 @@ def process_dataset(
     else:
         if upload:
             file_id, file_version = load.load(
-                file_path=json_path,
+                file_path=output_path,
                 provenance=provenance_ids,
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,

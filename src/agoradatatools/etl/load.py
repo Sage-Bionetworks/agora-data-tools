@@ -129,6 +129,9 @@ def df_to_json(data_as_df: pd.DataFrame, staging_path: str, filename: str) -> st
 def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> str:
     """Converts a data frame into a csv file.
 
+    List-valued cells are joined into a comma-separated string (e.g. ['A', 'B'] -> "A,B")
+    instead of being written as their Python list representation (e.g. "['A', 'B']").
+
     Args:
         df (pd.DataFrame): DataFrame to be converted to a csv file
         staging_path (str): Path to staging directory
@@ -138,6 +141,9 @@ def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> str:
         str: Returns a string containing the name of the new CSV file
     """
 
+    df = df.map(
+        lambda cell: ",".join(map(str, cell)) if isinstance(cell, list) else cell
+    )
     temp_csv = open(os.path.join(staging_path, filename), "w+")
     df.to_csv(path_or_buf=temp_csv, index=False)
     temp_csv.close()

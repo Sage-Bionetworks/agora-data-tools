@@ -778,6 +778,15 @@ class TestProcessDataset:
         }
     }
 
+    dataset_object_csv = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "csv",
+            "provenance": ["syn1111111"],
+            "destination": "syn1111113",
+        }
+    }
+
     def setup_method(self):
         self.patch_get_entity_as_df = patch.object(
             extract, "get_entity_as_df", return_value=pd.DataFrame
@@ -793,6 +802,9 @@ class TestProcessDataset:
         ).start()
         self.patch_df_to_json = patch.object(
             load, "df_to_json", return_value="path/to/json"
+        ).start()
+        self.patch_df_to_csv = patch.object(
+            load, "df_to_csv", return_value="path/to/csv"
         ).start()
         self.patch_load = patch.object(load, "load", return_value=("syn123", 1)).start()
         self.patch_custom_transform = patch.object(
@@ -821,6 +833,7 @@ class TestProcessDataset:
         self.patch_standardize_values.stop()
         self.patch_rename_columns.stop()
         self.patch_df_to_json.stop()
+        self.patch_df_to_csv.stop()
         self.patch_load.stop()
         self.patch_custom_transform.stop()
         self.patch_dict_to_json.stop()
@@ -858,6 +871,7 @@ class TestProcessDataset:
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_gx_runner_run.assert_not_called()
         self.patch_set_attributes.assert_not_called()
         self.patch_format_link.assert_not_called()
@@ -897,6 +911,7 @@ class TestProcessDataset:
 
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_gx_runner_run.assert_not_called()
         self.patch_set_attributes.assert_not_called()
         self.patch_format_link.assert_not_called()
@@ -942,6 +957,7 @@ class TestProcessDataset:
         pd.testing.assert_frame_equal(kwargs["data_as_df"], pd.DataFrame())
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_gx_runner_run.assert_not_called()
         self.patch_set_attributes.assert_not_called()
         self.patch_format_link.assert_not_called()
@@ -983,6 +999,7 @@ class TestProcessDataset:
 
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_gx_runner_run.assert_not_called()
         self.patch_set_attributes.assert_not_called()
         self.patch_format_link.assert_not_called()
@@ -1012,6 +1029,7 @@ class TestProcessDataset:
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_dict_to_json.assert_called_once_with(
             data_as_dict={}, staging_path=STAGING_PATH, filename="neuropath_corr.json"
         )
@@ -1044,6 +1062,7 @@ class TestProcessDataset:
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_list_to_json.assert_called_once_with(
             data_as_list=[], staging_path=STAGING_PATH, filename="neuropath_corr.json"
         )
@@ -1078,6 +1097,7 @@ class TestProcessDataset:
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_gx_runner_run.assert_not_called()
         self.patch_set_attributes.assert_not_called()
         self.patch_format_link.assert_not_called()
@@ -1114,6 +1134,7 @@ class TestProcessDataset:
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_gx_runner_run.assert_called_once()
         self.patch_set_attributes.assert_called()
         self.patch_format_link.assert_called()
@@ -1150,9 +1171,146 @@ class TestProcessDataset:
         )
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
         self.patch_gx_runner_run.assert_called_once()
         self.patch_set_attributes.assert_called()
         self.patch_format_link.assert_called()
+        self.patch_load.assert_not_called()
+
+    def test_process_dataset_upload_false_gx_not_specified_final_format_csv(
+        self, syn: synapseclient.Synapse
+    ):
+        process.process_dataset(
+            dataset_obj=self.dataset_object_csv,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=False,
+        )
+        self.patch_get_entity_as_df.assert_called_once_with(
+            syn_id="syn1111111", source="csv", syn=syn
+        )
+        self.patch_standardize_column_names.assert_called_once_with(
+            df=self.patch_get_entity_as_df.return_value
+        )
+        self.patch_standardize_values.assert_called_once_with(
+            df=self.patch_standardize_column_names.return_value
+        )
+        self.patch_rename_columns.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
+        self.patch_df_to_csv.assert_called_once_with(
+            df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.csv",
+        )
+        self.patch_df_to_json.assert_not_called()
+        self.patch_dict_to_json.assert_not_called()
+        self.patch_list_to_json.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_set_attributes.assert_not_called()
+        self.patch_format_link.assert_not_called()
+        self.patch_load.assert_not_called()
+
+    def test_process_dataset_upload_true_gx_disabled_final_format_csv(
+        self, syn: synapseclient.Synapse
+    ):
+        dataset_object_csv_gx_disabled = {
+            "neuropath_corr": {
+                **self.dataset_object_csv["neuropath_corr"],
+                "gx_enabled": False,
+            }
+        }
+        process.process_dataset(
+            dataset_obj=dataset_object_csv_gx_disabled,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+        self.patch_df_to_csv.assert_called_once_with(
+            df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.csv",
+        )
+        self.patch_df_to_json.assert_not_called()
+        self.patch_dict_to_json.assert_not_called()
+        self.patch_list_to_json.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_called_once_with(
+            file_path=self.patch_df_to_csv.return_value,
+            provenance=self.dataset_object_csv["neuropath_corr"]["provenance"],
+            destination=self.dataset_object_csv["neuropath_corr"]["destination"],
+            syn=syn,
+        )
+
+    def test_process_dataset_upload_true_gx_enabled_final_format_csv(
+            self, syn: synapseclient.Synapse
+    ):
+        dataset_object_csv_gx_disabled = {
+            "neuropath_corr": {
+                **self.dataset_object_csv["neuropath_corr"],
+                "gx_enabled": True,
+            }
+        }
+        process.process_dataset(
+            dataset_obj=dataset_object_csv_gx_disabled,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=True,
+        )
+        self.patch_df_to_csv.assert_called_once_with(
+            df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.csv",
+        )
+        self.patch_df_to_json.assert_not_called()
+        self.patch_dict_to_json.assert_not_called()
+        self.patch_list_to_json.assert_not_called()
+        self.patch_gx_runner_run.assert_called_once()
+        self.patch_load.assert_called_once_with(
+            file_path=self.patch_df_to_csv.return_value,
+            provenance=self.dataset_object_csv["neuropath_corr"]["provenance"],
+            destination=self.dataset_object_csv["neuropath_corr"]["destination"],
+            syn=syn,
+        )
+
+    def test_process_dataset_type_dict_final_format_csv_failure(
+        self, syn: synapseclient.Synapse
+    ):
+        self.patch_standardize_values.return_value = dict()
+        with pytest.raises(ADTDataProcessingError):
+            process.process_dataset(
+                dataset_obj=self.dataset_object_csv,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+            )
+        self.patch_dict_to_json.assert_not_called()
+        self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_not_called()
+
+    def test_process_dataset_type_list_final_format_csv_failure(
+        self, syn: synapseclient.Synapse
+    ):
+        self.patch_standardize_values.return_value = list()
+        with pytest.raises(ADTDataProcessingError):
+            process.process_dataset(
+                dataset_obj=self.dataset_object_csv,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+            )
+        self.patch_dict_to_json.assert_not_called()
+        self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
         self.patch_load.assert_not_called()
 
 

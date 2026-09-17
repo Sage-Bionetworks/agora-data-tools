@@ -123,6 +123,20 @@ class TestDFToCSV:
         )
         assert csv_name == "./staging/test.json"
 
+    def test_df_to_csv_joins_list_valued_cells(self):
+        mock.patch.stopall()  # undo the mocked to_csv from setup_method for this test
+        df = pd.DataFrame(
+            {
+                "hgnc_symbol": ["APOE"],
+                "nominating_teams": [["ASU", "Duke", "Emory-Sage-SGC"]],
+                "total_nominations": [5],
+            }
+        )
+        load.df_to_csv(df=df, staging_path="./staging", filename="test.csv")
+        written_csv = pd.read_csv("./staging/test.csv")
+        assert written_csv.loc[0, "nominating_teams"] == "ASU,Duke,Emory-Sage-SGC"
+        os.remove("./staging/test.csv")
+
 
 class TestDictToJSON:
     df_dict = {"a": "b", "c": {"d": "e"}}
