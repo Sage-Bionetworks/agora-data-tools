@@ -111,32 +111,6 @@ QC_MEASURE_GROUPS = {
 }
 
 
-def _apply_qc_masks(results: pd.DataFrame) -> pd.DataFrame:
-    """Null out measurements for an assay-group if that group's QC flag is not PASS.
-
-    For each QC flag in QC_MEASURE_GROUPS, sets that group's measure columns to NaN on rows where the
-    flag is not "PASS" (case-insensitive, ignoring leading/trailing whitespace).
-
-    Args:
-        results (pd.DataFrame): marmo_results
-
-    Returns:
-        pd.DataFrame: A copy of results with QC-failing measure values set to NaN.
-    """
-    masked = results.copy()
-    for qc_column, measure_columns in QC_MEASURE_GROUPS.items():
-        present = [column for column in measure_columns if column in masked.columns]
-        if not present:
-            continue
-        # astype(str) renders blank/NaN flags as "nan"/"none", so they compare unequal to "PASS"
-        # and are treated as not-passing; it also keeps the mask a plain boolean (a nullable-string
-        # comparison would yield pd.NA and break .loc indexing).
-        normalized = masked[qc_column].astype(str).str.strip().str.upper()
-        failing = normalized != "PASS"
-        masked.loc[failing, present] = pd.NA
-    return masked
-
-
 def _validate_and_prepare_model_metadata(
     genotype_map: pd.DataFrame, raw_metadata: pd.DataFrame
 ) -> pd.DataFrame:
@@ -211,6 +185,32 @@ def _prepare_measure_info(raw_measure_info: pd.DataFrame) -> pd.DataFrame:
     )
     # The A-beta ratio has no units; empty string rather than null.
     return normalize_null_values(measure_info, empty_string_columns=["units"])
+
+
+def _apply_qc_masks(results: pd.DataFrame) -> pd.DataFrame:
+    """Null out measurements for an assay-group if that group's QC flag is not PASS.
+
+    For each QC flag in QC_MEASURE_GROUPS, sets that group's measure columns to NaN on rows where the
+    flag is not "PASS" (case-insensitive, ignoring leading/trailing whitespace).
+
+    Args:
+        results (pd.DataFrame): marmo_results
+
+    Returns:
+        pd.DataFrame: A copy of results with QC-failing measure values set to NaN.
+    """
+    masked = results.copy()
+    for qc_column, measure_columns in QC_MEASURE_GROUPS.items():
+        present = [column for column in measure_columns if column in masked.columns]
+        if not present:
+            continue
+        # astype(str) renders blank/NaN flags as "nan"/"none", so they compare unequal to "PASS"
+        # and are treated as not-passing; it also keeps the mask a plain boolean (a nullable-string
+        # comparison would yield pd.NA and break .loc indexing).
+        normalized = masked[qc_column].astype(str).str.strip().str.upper()
+        failing = normalized != "PASS"
+        masked.loc[failing, present] = pd.NA
+    return masked
 
 
 def _build_measurements(
@@ -341,13 +341,75 @@ def _build_measurements(
     return long
 
 
+def _drop_single_genotype_buckets(measurements: pd.DataFrame) -> pd.DataFrame:
+    """Drop (evidence_type, age) buckets that do not compare at least two genotypes.
+
+    A biomarker plot is only meaningful with two or more distinct display-label genotypes (e.g. a
+    model and its matched control). Single-genotype buckets - common where longitudinal controls
+    outlive the model animals - are removed. Filtering here, before y_axis_max is computed, keeps the
+    axis scaled to the retained data.
+
+    Args:
+        measurements (pd.DataFrame): The per-measurement DataFrame, carrying display_label.
+
+    Returns:
+        pd.DataFrame: measurements limited to buckets with >= 2 unique display_label values.
+    """
+    genotype_counts = measurements.groupby(["evidence_type", "age"])[
+        "display_label"
+    ].transform("nunique")
+    return measurements[genotype_counts >= 2]
+
+
+def _fill_age_gaps(grouped: pd.DataFrame) -> pd.DataFrame:
+    """Backfill missing age buckets with empty-data placeholders so each evidence type is contiguous.
+
+    For each evidence_type, every whole-year bucket from "0-1 years" up to its oldest retained bucket
+    that has no data gets a placeholder object (same name/units/display_order/y_axis_max, empty data).
+    This keeps the app's per-age plots aligned after single-genotype buckets are dropped, so a bucket
+    dropped from the start or middle of the series does not shift the ages that follow it. Trailing
+    buckets beyond the oldest retained one are not added.
+
+    Args:
+        grouped (pd.DataFrame): One row per retained (evidence_type, age) bucket, with name, units,
+            display_order, age_start, y_axis_max, and the nested data column.
+
+    Returns:
+        pd.DataFrame: grouped with placeholder rows appended for the missing buckets.
+    """
+    placeholders = []
+    for evidence_type, group in grouped.groupby("evidence_type"):
+        present = set(group["age_start"])
+        template = group.iloc[0]
+        for age_start in range(max(present) + 1):
+            if age_start in present:
+                continue
+            placeholders.append(
+                {
+                    "name": template["name"],
+                    "evidence_type": evidence_type,
+                    "age": f"{age_start}-{age_start + 1} years",
+                    "units": template["units"],
+                    "display_order": template["display_order"],
+                    "age_start": age_start,
+                    "y_axis_max": template["y_axis_max"],
+                    "data": [],
+                }
+            )
+    if not placeholders:
+        return grouped
+    return pd.concat([grouped, pd.DataFrame(placeholders)], ignore_index=True)
+
+
 def _build_biomarkers(
     measurements: pd.DataFrame, model_name: str
 ) -> List[Dict[str, Any]]:
     """Assemble one model's biomarkers collection from its measurements.
 
-    One object per (evidence_type, age), sorted by display order then age ascending. y_axis_max is
-    the per-evidence_type maximum across all ages, applied to every one of its buckets, as in the
+    One object per (evidence_type, age), sorted by display order then age ascending. Buckets that do
+    not compare at least two genotypes are dropped, and any resulting age gap (from "0-1 years" up to
+    the oldest retained bucket) is backfilled with an empty-data placeholder. y_axis_max is the
+    per-evidence_type maximum across the retained ages, applied to every one of its buckets, as in the
     mouse immunohisto pipeline.
 
     Args:
@@ -358,7 +420,12 @@ def _build_biomarkers(
         List[Dict[str, Any]]: The sorted biomarkers collection.
     """
     # The caller passes one model's subset of the measurements, which is legitimately empty for a
-    # model whose genotypes are all absent from the label map.
+    # model whose genotypes are all absent from the label map, or if all results failed QC.
+    if measurements.empty:
+        return []
+
+    # Drop single-genotype buckets before computing y_axis_max so the axis fits the retained data.
+    measurements = _drop_single_genotype_buckets(measurements)
     if measurements.empty:
         return []
 
@@ -389,11 +456,12 @@ def _build_biomarkers(
         drop_columns=group_cols,
     )
 
-    # evidence_type is only a tiebreaker: it matters when two measures share a display_order,
-    # where sorting on age alone would interleave them.
-    grouped = grouped.sort_values(["display_order", "evidence_type", "age_start"])
     grouped["name"] = model_name
     grouped["y_axis_max"] = grouped["evidence_type"].map(y_axis_max_map).astype(float)
+
+    # Backfill missing age buckets with metadata placeholders, then sort.
+    grouped = _fill_age_gaps(grouped)
+    grouped = grouped.sort_values(["display_order", "evidence_type", "age_start"])
 
     return grouped[
         ["name", "evidence_type", "age", "units", "y_axis_max", "data"]
