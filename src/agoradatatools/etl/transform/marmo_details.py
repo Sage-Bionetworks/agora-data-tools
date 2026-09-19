@@ -18,8 +18,8 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
     normalize_null_values,
-    round_y_axis_max,
     standardize_column_name,
+    y_axis_max_by_groups,
     validate_one_to_one_mapping,
     validate_references_exist,
 )
@@ -324,10 +324,7 @@ def _build_biomarkers(
     if measurements.empty:
         return []
 
-    y_axis_max_map = {
-        evidence_type: round_y_axis_max(group["value"].max())
-        for evidence_type, group in measurements.groupby("evidence_type")
-    }
+    y_axis_max_map = y_axis_max_by_groups(measurements, "evidence_type")
 
     # Shape the data-point columns before nesting so nest_fields emits the output dicts directly.
     data_points = measurements.copy()
