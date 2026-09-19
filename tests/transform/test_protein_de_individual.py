@@ -138,7 +138,7 @@ class TestMeasuredHeaderPairs:
     def test_symbols_are_unioned_across_files(self) -> None:
         """One accession headed usably in one file and unusably in another still resolves.
 
-        This is why the pre-pass spans every file rather than running per model_group.
+        The pre-pass spans every file rather than running per model_group.
         """
         datasets = {
             "file1": pd.DataFrame({"individualid": [1], "na|p00001": [1.0]}),
@@ -155,9 +155,9 @@ class TestMeasuredHeaderPairs:
     def test_dead_isoform_column_cannot_steer_its_base_accession(self) -> None:
         """Test the case the empty-column filter exists for.
 
-        Isoform accessions fold into their base accession when symbols are collected, so an
-        all-empty isoform column would otherwise drag P00001 off Cycs and onto Gm10053 --
-        a gene no measured column ever named.
+        Accessions with a hyphen fold into the base accession when symbols are
+        collected, so an all-empty hyphenated column must not change the gene of a
+        measured base accession.
         """
         datasets = {
             "file1": pd.DataFrame(
@@ -227,11 +227,7 @@ class TestResolveGeneIds:
         assert resolved == {"P1": "ENSMUSG00000000009"}
 
     def test_ambiguous_match_stays_within_the_named_genes(self) -> None:
-        """Test that a tie between named genes is broken without leaving the named genes.
-
-        No production accession matches several candidates today, so the smallest candidate
-        happens to be a named one; this pins the behavior if that ever stops holding.
-        """
+        """Test that a tie between named genes is broken without leaving the named genes."""
         resolved = _resolve_gene_ids(
             self._header_pairs("P3", "H4c1;_H4c2"),
             {
@@ -251,11 +247,8 @@ class TestResolveGeneIds:
 
         assert resolved == {"P3": "ENSMUSG00000000004"}
 
-    def test_alias_resolves_nomenclature_drift(self) -> None:
-        """Test the alias fallback when the file uses an older symbol than the metadata.
-
-        The proteomics files still say Srp54 where mouse_gene_metadata says Srp54a.
-        """
+    def test_alias_resolves_header_symbol(self) -> None:
+        """Test that a header symbol matching an alias can pick that gene."""
         resolved = _resolve_gene_ids(
             self._header_pairs("P2", "Srp54"),
             {"P2": ["ENSMUSG00000000002", "ENSMUSG00000000008"]},
@@ -286,9 +279,9 @@ class TestMeltProteomicsFile:
     )
 
     def test_melts_protein_columns_and_recovers_isoform_accessions(self) -> None:
-        """Test the long shape, the isoform accession recovery, and the str individualid cast.
+        """Test the long shape, the hyphenated accession recovery, and the str individualid cast.
 
-        individualid must be a string because the two source files disagree on its dtype.
+        individualid is cast to string so it matches the metadata join key.
         The header symbol is deliberately absent: _measured_header_pairs reads it from the
         column headers instead.
         """
@@ -463,8 +456,8 @@ class TestTransformProteinDeIndividual:
 
         assert self._normalize(output) == self._normalize(expected)
 
-    def test_isoform_proteoforms_stay_distinct(self) -> None:
-        """Test that an isoform maps on its base accession but stays a distinct proteoform."""
+    def test_hyphenated_accession_stays_a_separate_row(self) -> None:
+        """Test that an accession with a hyphen maps on its base but stays a separate row."""
         datasets = self._build_datasets(
             data_file={
                 "specimenid": ["c1", "c2"],
@@ -618,11 +611,7 @@ class TestTransformProteinDeIndividual:
 
     @pytest.mark.parametrize("tissue", [None, ""])
     def test_missing_tissue_raises(self, tissue: Any) -> None:
-        """Test that a blank tissue fails loudly rather than defaulting to Hemibrain.
-
-        MG-985 asked whether tissue had to be hard-coded because the study metadata carried
-        none; it does not, so a non-JAX study arriving without one must not be mislabeled.
-        """
+        """Test that a blank tissue raises."""
         datasets = self._build_datasets(
             harmonized={
                 "individualid": ["i1", "i2"],
@@ -679,8 +668,7 @@ class TestTransformProteinDeIndividual:
     def test_negative_zero_is_normalized(self) -> None:
         """Test that a small negative abundance does not serialize as -0.0.
 
-        The abundances are batch-regressed and centred on zero, so rounding to 5 places
-        turns many of them into negative zero, which json.dumps writes with its sign.
+        round(5) can produce signed zero, which json.dumps keeps.
         """
         datasets = self._build_datasets(
             data_file={
@@ -726,10 +714,9 @@ class TestTransformProteinDeIndividual:
     def test_per_model_group_fields_are_not_shared_across_groups(self) -> None:
         """Test that name, matched_control, and result_order are resolved per model_group.
 
-        Uses the real Model AD shape: LOAD2 is one model in its own group with two
-        genotypes, while Bin1K358R is one group fed by two models across two files with
-        four genotypes between them. The differing genotype counts mean a result_order
-        computed over the whole frame, rather than per group, would be visibly wrong.
+        Two constructed groups: one model with two genotypes, and one group fed by two
+        models across two files with four genotypes. A result_order computed over the
+        whole frame, rather than per group, would be wrong.
         """
         datasets = self._build_datasets(
             label_map={
@@ -949,10 +936,9 @@ class TestTransformProteinDeIndividual:
             self._transform(datasets)
 
     def test_metadata_files_agreeing_about_an_animal_are_deduplicated(self) -> None:
-        """Test that an animal appearing identically in two studies' metadata is not fanned out.
+        """Test that an animal appearing identically in two metadata files is not fanned out.
 
-        The two files can disagree on the dtype of the join key, so 51503 and "51503" must
-        collapse to one row rather than surviving as two.
+        51503 and "51503" must collapse to one row rather than surviving as two.
         """
         datasets = self._build_datasets(
             harmonized={

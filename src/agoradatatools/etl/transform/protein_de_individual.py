@@ -1,14 +1,13 @@
 """
 Protein Individual Expression Transform Module
 
-Transforms individual proteomics (normalized abundance) data for Model AD into the RNA
-individual transform's nested shape, plus uniprotid, unique_id, and display_symbol.
+Transforms individual proteomics data for Model AD into the RNA individual transform's
+nested shape, plus uniprotid, unique_id, and display_symbol.
 
-The source files are wide (one column per protein, header gene_symbol|uniprotid), carry no
-biology metadata, and have no model column, so each file's model is declared in the config
-as model_map. Inputs whose name is neither a required dataset nor a model_map key are taken
-to be per-animal metadata. That metadata is study-scoped, so a second study arrives as its
-own file rather than as extra rows.
+The source files are wide tables (one column per protein, header gene_symbol|uniprotid)
+with individualID and specimenID and no genotype. Each file's model is declared in the
+config as model_map. Inputs whose name is neither a required dataset nor a model_map key
+are treated as per-animal metadata.
 """
 
 import gc
@@ -30,6 +29,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     build_model_to_model_group_lookup,
     create_gene_metadata_dict,
+    filter_to_mouse_genes,
     label_genotypes,
     nest_individual_records,
     normalize_tissue,
@@ -79,10 +79,11 @@ DATAFILE_COLUMN_RULES = {
 
 
 def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> dict[str, list[str]]:
-    """Map each UniProt accession to its candidate mouse Ensembl gene ids, smallest first."""
-    mouse = mapping_df[
-        mapping_df["ensembl_gene_id"].astype(str).str.startswith("ENSMUSG")
-    ]
+    """Map each UniProt accession to its candidate mouse Ensembl gene ids, smallest first.
+
+    Non-ENSMUSG rows are ignored.
+    """
+    mouse = filter_to_mouse_genes(mapping_df)
     return {
         accession: sorted(genes)
         for accession, genes in mouse.groupby("uniprotkb_accession")["ensembl_gene_id"]
@@ -106,9 +107,9 @@ def _build_gene_aliases(mouse_gene_metadata_df: pd.DataFrame) -> dict[str, set[s
 def _canonical_accession(headers: pd.Series) -> pd.Series:
     """Recover the canonical UniProt accession from gene_symbol|uniprotid headers.
 
-    The pipeline lowercases headers and converts isoform hyphens to underscores;
-    upper-casing and restoring the hyphen recovers the accession losslessly
-    (ank2|q8c8r3_2 -> Q8C8R3-2). UniProt accessions never contain an underscore.
+    Extract lowercases headers and turns hyphens into underscores; upper-casing and
+    restoring the hyphen reverses that so the accession matches the mapping file
+    (ank2|q8c8r3_2 -> Q8C8R3-2).
     """
     return (
         headers.str.rsplit("|", n=1)
@@ -123,10 +124,10 @@ def _measured_header_pairs(
 ) -> pd.DataFrame:
     """Collect the accession and header symbol of every protein column that holds data.
 
-    Gene resolution has to see all the data files at once, because one accession may be
-    headed with different symbols in different files and _observed_gene_names unions them.
-    Taking the pairs from the column headers rather than from melted rows keeps that global
-    step off the measurements, which is what lets the melt run one model_group at a time.
+    Gene resolution reads every data file at once so _observed_gene_names can union
+    header symbols per accession. Taking the pairs from the column headers rather than
+    from melted rows keeps that step off the measurements, which is what lets the melt
+    run one model_group at a time.
     """
     headers = pd.Series(
         [
@@ -148,17 +149,16 @@ def _measured_header_pairs(
 def _observed_gene_names(header_pairs: pd.DataFrame) -> dict[str, set[str]]:
     """Collect the case-folded gene names each accession is labeled with in the data files.
 
-    Names are unioned per accession rather than resolved per file: two files sharing a
-    model_group can head one accession differently, and resolving per file would split one
-    protein's age trajectory across two unique_ids.
+    Names are unioned per accession rather than resolved per file so one protein keeps
+    one unique_id.
 
-    Underscores are restored to hyphens because the pipeline mangles hyphenated symbols the
-    same way it mangles isoform accessions (h3_3b -> h3-3b), and mangles the separator
-    between several genes too, so "H4c1; H4c2" arrives as "h4c1;_h4c2". The leading
+    Extract lowercases headers and turns hyphens into underscores, including the
+    separator between several genes (H4c1; H4c2 arrives as h4c1;_h4c2). The leading
     underscore is stripped before the interior ones are converted, otherwise every name
-    after the first would read as "-h4c2" and match no gene.
+    after the first would read as -h4c2 and match no gene.
 
-    Isoform accessions contribute to their base accession, which carries the gene mapping.
+    Accessions with a hyphen after the base (Q8C8R3-2) contribute names to the base
+    accession, which is the mapping-file key.
     """
     names: dict[str, set[str]] = {}
     for accession, symbol in (
@@ -180,14 +180,12 @@ def _resolve_gene_ids(
     gene_symbols: dict[str, str],
     gene_aliases: dict[str, set[str]],
 ) -> dict[str, str]:
-    """Pick one Ensembl gene per accession, preferring the gene the data file names.
+    """Pick one Ensembl gene per accession.
 
-    Candidates come only from the UniProt mapping file; a header symbol naming a gene that
+    Candidates come from the UniProt mapping file. A header symbol naming a gene that
     file does not offer for the accession cannot pull that gene in. Among the candidates,
-    the header symbol decides, because Ensembl ids carry no annotation-quality signal and
-    retrogenes often have lower ids than the parent gene, so the smallest id alone would
-    label cytochrome c as Gm10053. Aliases catch nomenclature drift, where the file still
-    says Srp54 and mouse_gene_metadata says Srp54a. The smallest id breaks what neither can.
+    the header symbol is preferred. The smallest Ensembl id is used when the header is
+    empty or matches none of them.
     """
     names = _observed_gene_names(header_pairs)
     resolved = {}
@@ -198,9 +196,7 @@ def _resolve_gene_ids(
         ]
         if not matches:
             matches = [gene for gene in genes if wanted & gene_aliases.get(gene, set())]
-        # candidates arrive sorted, so matches[0] is the smallest matching id. Falling back
-        # to min(genes) when several candidates match would pick a gene the header never
-        # named, which no current accession hits but which the sort order would hide.
+        # candidates arrive sorted, so matches[0] is the smallest matching id.
         resolved[accession] = matches[0] if matches else min(genes)
     return resolved
 
@@ -214,8 +210,8 @@ def _melt_proteomics_file(
     alternative, treating every column that is not a known id column as a protein, silently
     turns a metadata column added upstream into a protein named after it.
 
-    The file's model comes from the caller because the proteomics files carry no model
-    column; it is set here so the returned frame needs no further copies.
+    The file's model comes from the caller (config model_map) and is set here so the
+    returned frame needs no further copies.
     """
     protein_columns = [column for column in data_file.columns if "|" in column]
     if not protein_columns:
@@ -247,8 +243,7 @@ def _melt_proteomics_file(
         )
 
     long_df["uniprotid"] = _canonical_accession(long_df["header"])
-    # The two source files disagree on individualid dtype (int64 vs object); without
-    # this the merge on individualid silently matches nothing for one of them.
+    # Cast the join key to string so it matches the metadata key.
     long_df["individualid"] = long_df["individualid"].astype(str)
     long_df["model"] = model
     return long_df[["individualid", "model", "uniprotid", "value"]]
@@ -314,8 +309,8 @@ def _build_output(
     )
     _log_stage(model_group, "after harmonized metadata join", df)
 
-    # Isoform accessions (Q8C8R3-2) inherit the base accession's gene mapping, but the full
-    # accession stays in the output so distinct proteoforms stay distinct.
+    # Mapping-file keys are the accession before the hyphen; the full accession stays
+    # in the output so Q8C8R3 and Q8C8R3-2 remain separate rows.
     df["ensembl_gene_id"] = (
         df["uniprotid"].str.split("-").str[0].map(uniprot_to_ensembl)
     )
@@ -366,8 +361,8 @@ def _build_output(
         + df["uniprotid"]
         + ")"
     )
-    # Abundances are centred on zero, so small negatives round to -0.0 and json.dumps
-    # keeps the sign. Threshold matches normalize_zero.
+    # round(5) can produce signed zero, which json.dumps keeps. Threshold matches
+    # normalize_zero.
     values = df["value"].round(5)
     df["value"] = values.mask(values.abs() < 1e-15, 0.0)
 
@@ -385,8 +380,6 @@ def _build_output(
         "age",
         "age_numeric",
     ]
-    # name is left to default to model_group: unlike the RNA individual transform, this
-    # dataset names the group even when it holds a single model.
     entries = nest_individual_records(df, group_columns=group_cols, units=UNITS)
 
     output_cols = [
@@ -418,10 +411,9 @@ def transform_protein_de_individual(
 ) -> list[dict[str, Any]]:
     """Transform Model AD individual proteomics data.
 
-    model_map declares each proteomics file's model because the files have no model
-    column. Every entry must name an input and every model must exist in the genotype
-    label map. Inputs that are neither required_input nor a model_map key are per-animal
-    metadata.
+    model_map declares each proteomics file's model. Every entry must name an input
+    and every model must exist in the genotype label map. Inputs that are neither
+    required_input nor a model_map key are treated as per-animal metadata.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, column_rules)
@@ -435,9 +427,8 @@ def transform_protein_de_individual(
     # An absent model_map arrives as None from a YAML key with no value beneath it.
     if not model_map:
         raise ValueError(
-            "No model_map provided. The proteomics data files carry no model column, so "
-            "each one's model has to be declared in the config under "
-            "custom_transformations. Inputs available: "
+            "No model_map provided. Each proteomics file's model has to be declared "
+            "in the config under custom_transformations. Inputs available: "
             f"{', '.join(sorted(set(datasets) - set(required_input)))}."
         )
     if unknown_files := sorted(set(model_map) - set(datasets)):
@@ -495,9 +486,8 @@ def transform_protein_de_individual(
         [df[MODEL_METADATA_REQUIRED_COLUMNS] for df in model_metadata_files.values()],
         ignore_index=True,
     )
-    # Cast before de-duplicating: two studies' metadata files can disagree on the dtype of
-    # the join key, so 51503 and "51503" have to collapse to one row rather than survive as
-    # two and fan the merge out.
+    # Cast the join key to string before de-duplicating so 51503 and "51503" collapse
+    # to one row rather than surviving as two and fanning the merge out.
     harmonized_model_metadata_df["individualid"] = harmonized_model_metadata_df[
         "individualid"
     ].astype(str)
