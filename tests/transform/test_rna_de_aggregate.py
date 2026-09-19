@@ -499,7 +499,8 @@ class TestCreateOutputEntryFromGroup:
     Test Methods:
         - test_create_output_entry_basic: Tests basic output entry creation.
         - test_create_output_entry_missing_metadata: Tests handling of missing metadata.
-        - test_create_output_entry_jax_tissue_mapping: Tests JAX tissue name mapping.
+        - test_create_output_entry_passes_tissue_through: Tissue aliases are applied
+          before grouping, so this function writes the tissue it is given.
         - test_create_output_entry_empty_model_group: Tests empty model_group conversion to None.
         - test_create_output_entry_multiple_biodomains: Tests multiple biodomain assignments.
     """
@@ -606,8 +607,8 @@ class TestCreateOutputEntryFromGroup:
         assert result["tissue"] == "Hippocampus"
         assert result["sex"] == "Female"
 
-    def test_create_output_entry_jax_tissue_mapping(self) -> None:
-        """Test that JAX tissue name 'Right Cerebral Hemisphere' is mapped to 'Hemibrain'."""
+    def test_create_output_entry_passes_tissue_through(self) -> None:
+        """Tissue aliases are applied in _process_single_data_file, not here."""
         group_key = (
             "ENSMUSG00000000003",
             "Model_C",
@@ -643,7 +644,7 @@ class TestCreateOutputEntryFromGroup:
             model_type_dict=model_type_dict,
         )
 
-        assert result["tissue"] == "Hemibrain"  # Should be mapped
+        assert result["tissue"] == "Right Cerebral Hemisphere"
 
     def test_create_output_entry_multiple_biodomains(self) -> None:
         """Test output entry with multiple biodomain assignments."""
@@ -1144,6 +1145,51 @@ class TestProcessSingleDataFile:
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result[1]["ensembl_gene_id"] == "ENSMUSG00000000002"
 
+    def test_process_single_data_file_maps_tissue_case_insensitively(self) -> None:
+        """Right Cerebral Hemisphere maps to Hemibrain regardless of source casing."""
+        data_file = pd.DataFrame(
+            {
+                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
+                "log2foldchange": [1.5, 1.6],
+                "padj": [0.01, 0.02],
+                "model": ["Model_A", "Model_A"],
+                "case": ["Tg", "Tg"],
+                "control": ["Wt", "Wt"],
+                "age": ["6 months", "6 months"],
+                "sex": ["Male", "Male"],
+                "tissue": ["right cerebral hemisphere", " Right Cerebral Hemisphere "],
+            }
+        )
+
+        result = _process_single_data_file(
+            file_name="jax_tissue.csv",
+            data_file=data_file,
+            data_file_required_columns=[
+                "ensembl_gene_id",
+                "log2foldchange",
+                "padj",
+                "model",
+                "case",
+                "control",
+                "age",
+                "sex",
+                "tissue",
+            ],
+            gene_metadata_dict={},
+            label_map_dict={
+                ("Model_A", "Tg"): "Transgenic",
+                ("Model_A", "Wt"): "Wildtype",
+            },
+            model_group_dict={},
+            biodomain_dict={},
+            model_type_dict={},
+            file_index=0,
+            total_files=1,
+        )
+
+        assert len(result) == 1
+        assert result[0]["tissue"] == "Hemibrain"
+
 
 class TestTransformRnaDeAggregate:
     """
@@ -1171,7 +1217,7 @@ class TestTransformRnaDeAggregate:
         - test_synthetic_missing_columns_data: Tests error handling for missing columns.
         - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
         - test_synthetic_multiple_biodomains: Tests genes with multiple biodomain assignments.
-        - test_synthetic_null_model_group: Tests handling of null/empty model_group values.
+        - test_check_column_rules_rejects_empty_model_group: Tests error handling for null/empty model_group values.
         - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
         - test_inconsistent_model_type_values: Tests error handling for inconsistent model_type values.
 
@@ -1684,42 +1730,20 @@ class TestTransformRnaDeAggregate:
         assert len(output_data_sorted[0]["biodomains"]) == 2
         assert set(output_data_sorted[0]["biodomains"]) == {"Metabolic", "Synaptic"}
 
-    def test_synthetic_null_model_group(self) -> None:
-        """Test that empty/null model_group is converted to None in output.
-
-        Tests the specific logic that converts empty string model_group values to None
-        to maintain JSON null representation in the output.
-        """
+    def test_check_column_rules_rejects_empty_model_group(self) -> None:
+        """Test that empty/null model_group in the genotype label map raises an error"""
         # Load synthetic test data with model having no model_group
         datasets = self._load_synthetic_test_data(
             [
-                "synthetic_null_model_group_data.csv",
+                "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map_no_group.csv",
                 "synthetic_mouse_gene_metadata.csv",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
 
-        # Load expected output
-        with open(
-            os.path.join(
-                self.data_files_path, "output", "synthetic_null_model_group_output.json"
-            )
-        ) as f:
-            expected_data = json.load(f)
-
-        # Transform data
-        output_data = transform_rna_de_aggregate(datasets=datasets)
-
-        # Sort output data by ensembl_gene_id for deterministic comparison
-        output_data_sorted = sorted(output_data, key=lambda x: x["ensembl_gene_id"])
-        expected_data_sorted = sorted(expected_data, key=lambda x: x["ensembl_gene_id"])
-
-        # Compare output with expected
-        assert output_data_sorted == expected_data_sorted
-
-        # Explicitly verify model_group is None (not empty string)
-        assert output_data_sorted[0]["model_group"] is None
+        with pytest.raises(ValueError, match="not_empty"):
+            transform_rna_de_aggregate(datasets=datasets)
 
     def test_inconsistent_model_group_values(self) -> None:
         """Test error handling for inconsistent model_group values within the same model.
@@ -1745,8 +1769,7 @@ class TestTransformRnaDeAggregate:
 
         # Verify the error message contains expected information
         error_message = str(exc_info.value)
-        assert "Each model must have a consistent model_group value" in error_message
-        assert "genotype_label_map" in error_message
+        assert "multiple model_group values" in error_message
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
@@ -1773,8 +1796,7 @@ class TestTransformRnaDeAggregate:
             transform_rna_de_aggregate(datasets=datasets)
 
         error_message = str(exc_info.value)
-        assert "Each model must have a consistent model_type value" in error_message
-        assert "genotype_label_map" in error_message
+        assert "multiple model_type values" in error_message
         assert "Model_A" in error_message
         # Model_B should not be in the error since it's consistent
         assert "Model_B" not in error_message
