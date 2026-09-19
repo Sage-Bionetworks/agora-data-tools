@@ -183,12 +183,13 @@ class TestTransformMarmoDetails:
         [
             # display_order and evidence_type are nest_fields grouping keys: unvalidated, a null
             # silently deletes that measure from every model page.
+            ("display_order", r"column 'display_order'.*rule 'not_empty'"),
             ("evidence_type", r"column 'evidence_type'.*rule 'not_empty'"),
             # A null result_column would otherwise reach standardize_column_name and raise a bare
             # TypeError naming neither file nor column.
             ("result_column", r"column 'result_column'.*rule 'not_empty'"),
         ],
-        ids=["null evidence type", "null result column"],
+        ids=["null display order", "null evidence type", "null result column"],
     )
     def test_marmo_details_rejects_none_values(self, column, expected_message):
         """A null in a measure-info column raises rather than dropping a measure silently."""
@@ -300,32 +301,31 @@ class TestTransformMarmoDetails:
         assert biomarkers["Presenilin1"]
 
 
-def _metadata_inputs():
-    """Two-frame inputs for _validate_and_prepare_model_metadata."""
-    genotype_map = pd.DataFrame(
-        {
-            "model": ["Presenilin1", "Presenilin1"],
-            "genotype": ["WT", "PSEN1-C410Y_Y410/Y410"],
-            "display_label": ["Matched Control", "Presenilin-1"],
-        }
-    )
-    metadata = pd.DataFrame(
-        {
-            "model": ["Presenilin1"],
-            "model_type": ["Familial AD"],
-            "study_synid": ["syn61849889"],
-            "modified_gene": ["PSEN1"],
-            "ensembl_gene_id": ["ENSCJAG00000021617"],
-            "allele_type": ["Endonuclease-mediated"],
-        }
-    )
-    return genotype_map, metadata
-
-
 class TestValidateAndPrepareModelMetadata:
+    def _metadata_inputs(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Two-frame inputs for _validate_and_prepare_model_metadata."""
+        genotype_map = pd.DataFrame(
+            {
+                "model": ["Presenilin1", "Presenilin1"],
+                "genotype": ["WT", "PSEN1-C410Y_Y410/Y410"],
+                "display_label": ["Matched Control", "Presenilin-1"],
+            }
+        )
+        metadata = pd.DataFrame(
+            {
+                "model": ["Presenilin1"],
+                "model_type": ["Familial AD"],
+                "study_synid": ["syn61849889"],
+                "modified_gene": ["PSEN1"],
+                "ensembl_gene_id": ["ENSCJAG00000021617"],
+                "allele_type": ["Endonuclease-mediated"],
+            }
+        )
+        return genotype_map, metadata
+
     def test_duplicate_model_genotype_raises(self):
         """A duplicate (model, genotype) pair would multiply points within a model."""
-        genotype_map, metadata = _metadata_inputs()
+        genotype_map, metadata = self._metadata_inputs()
         genotype_map = pd.concat(
             [genotype_map, genotype_map.iloc[[0]]], ignore_index=True
         )
@@ -335,9 +335,9 @@ class TestValidateAndPrepareModelMetadata:
 
     def test_label_map_model_absent_from_metadata_raises(self):
         """A label-map model with no metadata row would otherwise lose its explorer page."""
-        genotype_map, metadata = _metadata_inputs()
+        genotype_map, metadata = self._metadata_inputs()
         genotype_map = genotype_map.copy()
-        genotype_map.loc[0, "model"] = "Presenilin-1"
+        genotype_map.loc[0, "model"] = "MismatchedModel"
 
         with pytest.raises(ValueError, match="not present in marmo_model_metadata"):
             _validate_and_prepare_model_metadata(genotype_map, metadata)
@@ -353,7 +353,7 @@ class TestValidateAndPrepareModelMetadata:
     def test_inconsistent_model_fields_raise(self, column, bad_value, expected_message):
         """A model with more than one modified-gene row must still have a single model_type
         and study_synid; iloc[0] would otherwise pick an arbitrary value."""
-        genotype_map, metadata = _metadata_inputs()
+        genotype_map, metadata = self._metadata_inputs()
         extra = metadata.copy()
         extra[column] = bad_value
         extra["ensembl_gene_id"] = "ENSCJAG00000000001"
@@ -370,7 +370,7 @@ class TestValidateAndPrepareModelMetadata:
     def test_blank_model_metadata_becomes_none(self, column):
         """Blank model_type, study_synid, modified_gene, and allele_type become None rather
         than NaN."""
-        genotype_map, metadata = _metadata_inputs()
+        genotype_map, metadata = self._metadata_inputs()
         metadata = metadata.copy()
         metadata[column] = metadata[column].astype(object)
         metadata.loc[0, column] = None
@@ -412,68 +412,67 @@ class TestPrepareMeasureInfo:
         assert list(result["units"]) == ["pg/mL", "", "pg/mL"]
 
 
-def _measurement_inputs():
-    """Inputs for the two behaviors the golden files cannot cover: a measurement belonging to an
-    individual with no metadata row, and an age that sits either side of a bucket boundary."""
-    datasets = {
-        # Individual 9 has no row in marmo_individual_metadata. Individual 1 is sampled
-        # longitudinally at 6, 11.9 and 12 months so the year-bucket boundary is covered.
-        "marmo_results": pd.DataFrame(
-            {
-                "biomaterialid": ["7015_1", "7019_1", "7016_1", "7017_1"],
-                "individualid": [1, 9, 1, 1],
-                "ab40_pg_ml": [100.0, 900.0, 110.0, 120.0],
-            }
-        ),
-        "marmo_individual_metadata": pd.DataFrame(
-            {"individualid": [1], "genotype": ["WT"], "sex": ["male"]}
-        ),
-        "marmo_biomaterial_metadata": pd.DataFrame(
-            {
-                "biomaterialid": ["7015_1", "7019_1", "7016_1", "7017_1"],
-                "collectionage": [6, 9, 11.9, 12],
-                "collectionageunits": ["months"] * 4,
-            }
-        ),
-        "marmo_genotype_label_map": pd.DataFrame(
-            {
-                "model": ["Presenilin1"],
-                "genotype": ["WT"],
-                "display_label": ["Matched Control"],
-            }
-        ),
-    }
-    measure_info = pd.DataFrame(
-        {
-            "result_column_std": ["ab40_pg_ml"],
-            "evidence_type": ["A&beta;40"],
-            "units": ["pg/mL"],
-            "display_order": [1],
+class TestBuildMeasurements:
+    def _measurement_inputs(self) -> tuple[dict[str, pd.DataFrame], pd.DataFrame]:
+        """Inputs for the two behaviors the golden files cannot cover: a measurement belonging to an
+        individual with no metadata row, and an age that sits either side of a bucket boundary."""
+        datasets = {
+            # Individual 9 has no row in marmo_individual_metadata. Individual 1 is sampled
+            # longitudinally at 6, 11.9 and 12 months so the year-bucket boundary is covered.
+            "marmo_results": pd.DataFrame(
+                {
+                    "biomaterialid": ["7015_1", "7019_1", "7016_1", "7017_1"],
+                    "individualid": [1, 9, 1, 1],
+                    "ab40_pg_ml": [100.0, 900.0, 110.0, 120.0],
+                }
+            ),
+            "marmo_individual_metadata": pd.DataFrame(
+                {"individualid": [1], "genotype": ["WT"], "sex": ["male"]}
+            ),
+            "marmo_biomaterial_metadata": pd.DataFrame(
+                {
+                    "biomaterialid": ["7015_1", "7019_1", "7016_1", "7017_1"],
+                    "collectionage": [6, 9, 11.9, 12],
+                    "collectionageunits": ["months"] * 4,
+                }
+            ),
+            "marmo_genotype_label_map": pd.DataFrame(
+                {
+                    "model": ["Presenilin1"],
+                    "genotype": ["WT"],
+                    "display_label": ["Matched Control"],
+                }
+            ),
         }
-    )
-    return datasets, measure_info
+        measure_info = pd.DataFrame(
+            {
+                "result_column_std": ["ab40_pg_ml"],
+                "evidence_type": ["A&beta;40"],
+                "units": ["pg/mL"],
+                "display_order": [1],
+            }
+        )
+        return datasets, measure_info
 
+    def test_build_measurements_drops_unknown_individuals(self):
+        """A measurement whose individualid is absent from marmo_individual_metadata is dropped: the
+        left join yields a null genotype, which the inner genotype-map merge excludes."""
+        datasets, measure_info = self._measurement_inputs()
 
-def test_measurements_drop_unknown_individuals():
-    """A measurement whose individualid is absent from marmo_individual_metadata is dropped: the
-    left join yields a null genotype, which the inner genotype-map merge excludes."""
-    datasets, measure_info = _measurement_inputs()
+        measurements = _build_measurements(datasets, measure_info)
 
-    measurements = _build_measurements(datasets, measure_info)
+        assert set(measurements["individualid"]) == {1}
 
-    assert set(measurements["individualid"]) == {1}
+    def test_build_measurements_floors_ages_to_whole_years(self):
+        """Ages floor rather than round, so 11.9 months is still the first bucket and 12.0 opens the
+        second."""
+        datasets, measure_info = self._measurement_inputs()
 
+        measurements = _build_measurements(datasets, measure_info).sort_values(
+            "collectionage"
+        )
 
-def test_measurements_floor_ages_to_whole_years():
-    """Ages floor rather than round, so 11.9 months is still the first bucket and 12.0 opens the
-    second."""
-    datasets, measure_info = _measurement_inputs()
-
-    measurements = _build_measurements(datasets, measure_info).sort_values(
-        "collectionage"
-    )
-
-    assert list(measurements["age"]) == ["0-1 years", "0-1 years", "1-2 years"]
+        assert list(measurements["age"]) == ["0-1 years", "0-1 years", "1-2 years"]
 
 
 class TestBuildBiomarkers:
