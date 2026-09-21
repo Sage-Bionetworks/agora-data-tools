@@ -157,14 +157,17 @@ def _process_single_data_file(
     # nest variant location data
     data_file["variant_location"] = build_location(data_file, "variant_chr", "variant_start", "variant_end")
 
+    # TODO use real gene location data, not a copy of variant loc
+    data_file["gene_location"] = data_file["variant_location"]
+
     # add gene location data
-    data_file = data_file.merge(
-        chromosome_features_df[['gene_symbol', 'location']]
-        .drop_duplicates(subset=['gene_symbol'])
-        .rename(columns={'location': 'gene_location'}),
-        on='gene_symbol',
-        how='left'
-    )
+    # data_file = data_file.merge(
+    #     chromosome_features_df[['gene_symbol', 'location']]
+    #     .drop_duplicates(subset=['gene_symbol'])
+    #     .rename(columns={'location': 'gene_location'}),
+    #     on='gene_symbol',
+    #     how='left'
+    # )
 
     data_file = data_file.drop(columns=["variant_chr", "variant_start", "variant_end"])
 
