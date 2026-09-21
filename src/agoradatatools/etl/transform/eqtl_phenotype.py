@@ -67,8 +67,8 @@ OUTPUT_COLUMN_ORDER = [
     "gene_symbol",
     "cell_type_id",
     "expression_summaries",
-    "effect_size_cell_type_data",
-    "effect_size_cell_subtype_data"
+    "effect_size_cell_class_data",
+    "effect_size_cell_subclass_data"
 ]
 
 # TODO we can't do this in prod, we need to figure out how to "roll up" subclass-level betas for gene/var/cell to class-level
@@ -172,10 +172,12 @@ def _process_single_data_file(
     ).drop(columns=['cell_subclass_short'])
 
     # cell_class level effect size data
-    # Extract unique cell classes from label_map_df; use first cell_type_id
+    # Extract unique cell classes from label_map_df. The class-level cell_type_id is synthesized
+    # from cell_class_short (e.g. "class_astro"), not borrowed from an arbitrary subclass's
+    # cell_type_id.
     unique_classes = (
-        label_map_df[['cell_class', 'cell_class_short', 'cell_type_id']]
-        .drop_duplicates(subset=['cell_class', 'cell_class_short'], keep='first')
+        label_map_df[['cell_class', 'cell_class_short']]
+        .drop_duplicates(subset=['cell_class', 'cell_class_short'])
         .reset_index(drop=True)
     )
 
@@ -186,13 +188,13 @@ def _process_single_data_file(
             variant=variant,
             cell_class=row['cell_class'],
             cell_class_short=row['cell_class_short'],
-            cell_type_id=row['cell_type_id']
+            cell_type_id="class_" + row['cell_class_short'].lower()
         )
         for _, row in unique_classes.iterrows()
     ]
 
     # Assign list of class stats dictionaries to every output record in data_file
-    data_file["effect_size_cell_type_data"] = [class_stats_list] * len(data_file)
+    data_file["effect_size_cell_class_data"] = [class_stats_list] * len(data_file)
 
     # cell_subclass level effect size data
     # Extract unique cell subclasses from label_map_df
@@ -215,7 +217,7 @@ def _process_single_data_file(
     ]
 
     # Assign list of subclass stats dictionaries to every output record in data_file
-    data_file["effect_size_cell_subtype_data"] = [class_stats_list] * len(data_file)
+    data_file["effect_size_cell_subclass_data"] = [class_stats_list] * len(data_file)
 
 
     data_file = data_file.reindex(columns=OUTPUT_COLUMN_ORDER)
