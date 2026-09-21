@@ -41,7 +41,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
 
 logger = logging.getLogger(__name__)
 
-UNITS = "Log2 Counts per Million"
+UNITS = "Log2 Relative Abundance"
 
 AGE_BINS = [float("-inf"), 6, 10, 16, 20, float("inf")]
 AGE_LABELS = [4, 8, 12, 18, 24]

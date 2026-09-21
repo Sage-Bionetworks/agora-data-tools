@@ -9,7 +9,7 @@
     "name": "LOAD2",
     "model_group": "LOAD2",
     "matched_control": "LOAD1",
-    "units": "Log2 Counts per Million",
+    "units": "Log2 Relative Abundance",
     "age": "4 months",
     "age_numeric": 4,
     "result_order": [
@@ -41,7 +41,7 @@
     "name": "LOAD2",
     "model_group": "LOAD2",
     "matched_control": "LOAD1",
-    "units": "Log2 Counts per Million",
+    "units": "Log2 Relative Abundance",
     "age": "4 months",
     "age_numeric": 4,
     "result_order": [
@@ -73,7 +73,7 @@
     "name": "LOAD2",
     "model_group": "LOAD2",
     "matched_control": "LOAD1",
-    "units": "Log2 Counts per Million",
+    "units": "Log2 Relative Abundance",
     "age": "4 months",
     "age_numeric": 4,
     "result_order": [
