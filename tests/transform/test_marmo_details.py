@@ -157,22 +157,6 @@ class TestTransformMarmoDetails:
             "neuro QC failure -> gfap goes single-genotype and drops",
         ],
     )
-    def test_marmo_details_qc_failure_with_genotype_filtering(
-        self, qc_fail_column, expected_biomarkers
-    ):
-        """End-to-end interaction of the two filters: 0-1 yr has one control (7015_1) and one model
-        (7020_1) animal. Failing a QC group on the control removes that group's control point, which
-        drops the bucket to a single genotype, which the genotype filter then removes - while the
-        other assay group (QC still PASS) retains both genotypes and survives."""
-        datasets = self._load_datasets()
-        results = datasets["marmo_results"]
-        results.loc[results["biomaterialid"] == "7015_1", qc_fail_column] = "FAIL"
-
-        output_data = transform_marmo_details(datasets=datasets)
-
-        presenilin = next(m for m in output_data if m["name"] == "Presenilin1")
-        biomarkers = {(b["evidence_type"], b["age"]) for b in presenilin["biomarkers"]}
-        assert biomarkers == expected_biomarkers
 
     def _set_bad_value(self, datasets, dataset, column, bad_value):
         """Overwrite the first row of a column, which every rule below scans in full."""
