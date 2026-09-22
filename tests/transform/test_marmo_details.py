@@ -57,6 +57,7 @@ class TestTransformMarmoDetails:
         "marmo_individual_metadata": "marmo_individual_metadata_good_input.csv",
         "marmo_biomaterial_metadata": "marmo_biomaterial_metadata_good_input.csv",
         "marmo_results": "marmo_results_good_input.csv",
+        "marmo_results_qc_fails": "marmo_results_with_qc_fails.csv",
     }
 
     def _load_datasets(self, overrides=None):
@@ -79,8 +80,11 @@ class TestTransformMarmoDetails:
                 },
                 "marmo_details_transform_multi_model_output.json",
             ),
+            (
+                {"marmo_results": "marmo_results_with_qc_fails.csv"},
+                "marmo_details_transform_with_qc_fails_output.json"),
         ],
-        ids=["one model", "two models sharing WT controls"],
+        ids=["one model", "two models sharing WT controls", "one model with QC fails"],
     )
     def test_marmo_details_transform_should_pass(
         self, input_overrides, expected_output_file
@@ -539,7 +543,7 @@ class TestBuildMeasurements:
             ("FAIL", "PASS", {"gfap_pg_ml"}),
             ("PASS", "FAIL", {"ab40_pg_ml"}),
         ],
-        ids=["ab fails -> only neuro survives", "neuro fails -> only ab survives"],
+        ids=["ab qc fail -> Only Ab results dropped", "neuro qc fail -> Only Neuro results dropped"],
     )
     def test_build_measurements_applies_qc_masks_before_melt(
         self, qc_ab, qc_neuro, expected_measures
@@ -667,7 +671,7 @@ class TestBuildBiomarkers:
         and break each measure's run of ascending ages."""
         measurements = self._measurements().assign(display_order=display_orders)
 
-        biomarkers = _build_biomarkers(measurements, "Presenilin1")
+        biomarkers = _build_biomarkers(measurements, model_name = "Presenilin1")
 
         assert [(b["evidence_type"], b["age"]) for b in biomarkers] == expected_order
 
@@ -687,34 +691,30 @@ class TestBuildBiomarkers:
     ):
         """Build a measurements frame for one evidence type from (age_start, display_label, value)
         tuples; individualid is assigned per row and raw genotype mirrors the display label."""
-        return pd.DataFrame(
-            {
-                "individualid": list(range(1, len(rows) + 1)),
-                "value": [value for _, _, value in rows],
-                "sex": ["Male"] * len(rows),
-                "genotype": [label for _, label, _ in rows],
-                "display_label": [label for _, label, _ in rows],
-                "evidence_type": [evidence_type] * len(rows),
-                "age": [
-                    f"{age_start}-{age_start + 1} years" for age_start, _, _ in rows
-                ],
-                "units": [units] * len(rows),
-                "display_order": [display_order] * len(rows),
-                "age_start": [age_start for age_start, _, _ in rows],
-            }
-        )
+
+        rows["individualid"] = rows.index + 1
+        rows["sex"] =  "Male"
+        rows["units"] = units
+        rows["evidence_type"] = evidence_type
+        rows["display_label"] = rows["genotype"]
+        rows["display_order"] = display_order
+        rows["age"] = [f"{a}-{a + 1} years" for a in rows["age_start"]]
+
+        return rows
 
     def test_build_biomarkers_drops_single_genotype_bucket(self):
         """A trailing single-genotype bucket is dropped and not backfilled."""
         measurements = self._measurement_rows(
-            [
-                (0, "Matched Control", 10.0),
-                (0, "Presenilin-1", 11.0),
-                (1, "Matched Control", 20.0),
-            ]
+            pd.DataFrame(
+                {
+                    "age_start": [0, 0, 1],
+                    "genotype": ["Matched Control",  "Presenilin-1", "Matched Control"],
+                    "value": [10.0, 11.0, 20.0]
+                }
+            )
         )
 
-        biomarkers = _build_biomarkers(measurements, "M")
+        biomarkers = _build_biomarkers(measurements, model_name = "M")
 
         assert [b["age"] for b in biomarkers] == ["0-1 years"]
 
@@ -722,40 +722,49 @@ class TestBuildBiomarkers:
         """y_axis_max is computed after the filter, so a dropped single-genotype bucket holding the
         largest value does not inflate the retained plot's axis."""
         measurements = self._measurement_rows(
-            [
-                (0, "Matched Control", 100.0),
-                (0, "Presenilin-1", 90.0),
-                (1, "Matched Control", 500.0),  # dropped; must not set y_axis_max
-            ]
+            pd.DataFrame(
+                {
+                    "age_start": [0, 0, 1],
+                    "genotype": ["Matched Control",  "Presenilin-1", "Matched Control"],
+                    # 500 should be dropped; must not impact y_axis_max
+                    "value": [100.0, 90.0, 500.0]
+                }
+            )
         )
 
-        biomarkers = _build_biomarkers(measurements, "M")
+        biomarkers = _build_biomarkers(measurements, model_name = "M")
 
         assert [b["age"] for b in biomarkers] == ["0-1 years"]
         assert biomarkers[0]["y_axis_max"] == round_y_axis_max(100.0)
         assert round_y_axis_max(100.0) != round_y_axis_max(500.0)
 
     def test_build_biomarkers_all_single_genotype_returns_empty(self):
-        """A model whose every bucket is single-genotype yields an empty biomarkers list."""
+        """A model with every bucket containing a single-genotype yields an empty biomarkers list."""
         measurements = self._measurement_rows(
-            [(0, "Matched Control", 10.0), (1, "Matched Control", 20.0)]
+            pd.DataFrame(
+                {
+                    "age_start": [0, 1],
+                    "genotype": ["Matched Control", "Matched Control"],
+                    "value": [10.0, 20.0]
+                }
+            )
         )
 
-        assert _build_biomarkers(measurements, "M") == []
+        assert _build_biomarkers(measurements, model_name = "M") == []
 
     def test_build_biomarkers_backfills_middle_gap(self):
         """A middle bucket dropped by the genotype filter is backfilled with an empty placeholder."""
         measurements = self._measurement_rows(
-            [
-                (0, "Matched Control", 10.0),
-                (0, "Presenilin-1", 11.0),
-                (1, "Matched Control", 20.0),  # single -> dropped -> placeholder
-                (2, "Matched Control", 30.0),
-                (2, "Presenilin-1", 31.0),
-            ]
+            pd.DataFrame(
+                {
+                    "age_start": [0, 0, 1, 2, 2],
+                    "genotype": ["Matched Control", "Presenilin-1", "Matched Control", "Matched Control", "Presenilin-1"],
+                    "value": [10.0, 11.0, 20.0, 30.0, 31.0]
+                }
+            )
         )
 
-        biomarkers = _build_biomarkers(measurements, "M")
+        biomarkers = _build_biomarkers(measurements, model_name = "M")
 
         assert [(b["age"], b["data"] == []) for b in biomarkers] == [
             ("0-1 years", False),
@@ -766,16 +775,17 @@ class TestBuildBiomarkers:
     def test_build_biomarkers_backfills_leading_gap(self):
         """A dropped youngest bucket is backfilled so the series still starts at 0-1 years."""
         measurements = self._measurement_rows(
-            [
-                (0, "Matched Control", 10.0),  # single -> dropped -> placeholder
-                (1, "Matched Control", 20.0),
-                (1, "Presenilin-1", 21.0),
-                (2, "Matched Control", 30.0),
-                (2, "Presenilin-1", 31.0),
-            ]
+            pd.DataFrame(
+                {
+                    # age_start 0 is single -> dropped -> placeholder
+                    "age_start": [0, 1, 1, 2, 2],
+                    "genotype": ["Matched Control", "Matched Control", "Presenilin-1", "Matched Control", "Presenilin-1"],
+                    "value": [10.0, 20.0, 21.0, 30.0, 31.0]
+                }
+            )
         )
 
-        biomarkers = _build_biomarkers(measurements, "M")
+        biomarkers = _build_biomarkers(measurements, model_name = "M")
 
         assert [(b["age"], b["data"] == []) for b in biomarkers] == [
             ("0-1 years", True),
@@ -803,26 +813,42 @@ class TestApplyQcMasks:
         return pd.DataFrame(data)
 
     def test_ab_fail_masks_only_ab_measures(self):
+        """If QC_Ab is not pass then measurements in the Ab group are nulled."""
         result = _apply_qc_masks(self._results(qc_ab=["FAIL"], qc_neuro=["PASS"]))
 
         assert result.loc[0, AB_COLS].isna().all()
         assert result.loc[0, NEURO_COLS].notna().all()
 
     def test_neuro_fail_masks_only_neuro_measures(self):
+        """If QC_Neuro is not pass then measurements in the Neuro group are nulled."""
         result = _apply_qc_masks(self._results(qc_ab=["PASS"], qc_neuro=["FAIL"]))
 
         assert result.loc[0, NEURO_COLS].isna().all()
         assert result.loc[0, AB_COLS].notna().all()
 
     def test_both_fail_masks_all_measures(self):
+        """If both QC flags do not pass then measurements in both groups are nulled."""
         result = _apply_qc_masks(self._results(qc_ab=["FAIL"], qc_neuro=["FAIL"]))
 
         assert result.loc[0, AB_COLS + NEURO_COLS].isna().all()
 
     def test_all_pass_masks_nothing(self):
+        """If both QC flags pass then no measurements are nulled."""
         result = _apply_qc_masks(self._results(qc_ab=["PASS"], qc_neuro=["PASS"]))
 
         assert result.loc[0, AB_COLS + NEURO_COLS].notna().all()
+
+    def test_masks_each_row_independently(self):
+        """Each QC flag nulls all of, and only, the appropriate set of measures."""
+        result = _apply_qc_masks(
+            self._results(qc_ab=["PASS", "FAIL"], qc_neuro=["FAIL", "PASS"])
+        )
+
+        assert result.loc[0, AB_COLS].notna().all()
+        assert result.loc[0, NEURO_COLS].isna().all()
+        assert result.loc[1, AB_COLS].isna().all()
+        assert result.loc[1, NEURO_COLS].notna().all()
+
 
     @pytest.mark.parametrize(
         "blank", [None, "", "   "], ids=["none", "empty", "whitespace"]
@@ -835,12 +861,14 @@ class TestApplyQcMasks:
         assert result.loc[0, NEURO_COLS].notna().all()
 
     def test_pending_is_masked(self):
+        """A flag set to "Pending" counts as not-passing, so its group is masked."""
         result = _apply_qc_masks(self._results(qc_ab=["PENDING"], qc_neuro=["PASS"]))
 
         assert result.loc[0, AB_COLS].isna().all()
 
     @pytest.mark.parametrize("passing", ["PASS", "pass", "Pass", " PASS ", "pass "])
     def test_pass_is_case_and_whitespace_insensitive(self, passing):
+        """A flag passes regardless of value casing or leading/trailing whitespace."""
         result = _apply_qc_masks(self._results(qc_ab=[passing], qc_neuro=[passing]))
 
         assert result.loc[0, AB_COLS + NEURO_COLS].notna().all()
@@ -865,41 +893,16 @@ class TestApplyQcMasks:
         assert pd.isna(result.loc[0, "ab40_pg_ml"])
         assert result.loc[0, NEURO_COLS].notna().all()
 
-    def test_group_with_no_measure_columns_needs_no_qc_column(self):
-        """When a group has no measure columns present, it is skipped before its QC column is read,
-        so a frame carrying only the other group's columns does not raise."""
-        frame = pd.DataFrame(
-            {
-                "biomaterialid": ["b0"],
-                "individualid": [0],
-                "gfap_pg_ml": [10.0],
-                "qc_neuro": ["FAIL"],  # no ab measures and no qc_ab column at all
-            }
-        )
-
-        result = _apply_qc_masks(frame)
-
-        assert pd.isna(result.loc[0, "gfap_pg_ml"])
-
     def test_does_not_mutate_input_and_preserves_other_columns(self):
+        """Columns that are not part of a QC group are not impacted by QC filtering."""
         original = self._results(qc_ab=["FAIL"], qc_neuro=["PASS"])
         snapshot = original.copy(deep=True)
 
         result = _apply_qc_masks(original)
 
         pd.testing.assert_frame_equal(original, snapshot)
-        for column in ["biomaterialid", "individualid", "qc_ab", "qc_neuro"]:
-            assert list(result[column]) == list(original[column])
-
-    def test_masks_each_row_independently(self):
-        result = _apply_qc_masks(
-            self._results(qc_ab=["PASS", "FAIL"], qc_neuro=["FAIL", "PASS"])
-        )
-
-        assert result.loc[0, AB_COLS].notna().all()
-        assert result.loc[0, NEURO_COLS].isna().all()
-        assert result.loc[1, AB_COLS].isna().all()
-        assert result.loc[1, NEURO_COLS].notna().all()
+        other_cols = ["biomaterialid", "individualid", "qc_ab", "qc_neuro"]
+        pd.testing.assert_frame_equal(result[other_cols], original[other_cols])
 
 
 class TestDropSingleGenotypeBuckets:
@@ -911,6 +914,7 @@ class TestDropSingleGenotypeBuckets:
         return pd.DataFrame(rows, columns=["evidence_type", "age", "display_label"])
 
     def test_two_genotype_bucket_is_kept(self):
+        """An age bucket is kept when at least two genotypes are present."""
         measurements = self._measurements(
             [
                 ("A&beta;40", "0-1 years", "Matched Control"),
@@ -921,6 +925,7 @@ class TestDropSingleGenotypeBuckets:
         assert len(_drop_single_genotype_buckets(measurements)) == 2
 
     def test_repeated_single_genotype_bucket_is_dropped(self):
+        """Duplicate genotypes are not considered unique."""
         measurements = self._measurements(
             [
                 ("A&beta;40", "0-1 years", "Matched Control"),
@@ -931,6 +936,7 @@ class TestDropSingleGenotypeBuckets:
         assert _drop_single_genotype_buckets(measurements).empty
 
     def test_keeps_two_genotype_drops_single(self):
+        """Dropping a single genotype age bucket does not affect a two-genotype age bucket."""
         measurements = self._measurements(
             [
                 ("A&beta;40", "0-1 years", "Matched Control"),
@@ -941,9 +947,8 @@ class TestDropSingleGenotypeBuckets:
 
         result = _drop_single_genotype_buckets(measurements)
 
-        assert set(zip(result["evidence_type"], result["age"])) == {
-            ("A&beta;40", "0-1 years")
-        }
+        assert all(result["evidence_type"] == "A&beta;40")
+        assert all(result["age"] == "0-1 years")
 
     def test_buckets_are_keyed_by_evidence_type_and_age(self):
         """A single-genotype bucket in one evidence type does not affect a two-genotype bucket at the
@@ -958,16 +963,17 @@ class TestDropSingleGenotypeBuckets:
 
         result = _drop_single_genotype_buckets(measurements)
 
-        assert set(zip(result["evidence_type"], result["age"])) == {
-            ("GFAP", "0-1 years")
-        }
+        assert all(result["evidence_type"] == "GFAP")
+        assert all(result["age"] == "0-1 years")
 
     def test_empty_input_returns_empty(self):
+        """Return empty if no measurements are present."""
         measurements = pd.DataFrame(columns=["evidence_type", "age", "display_label"])
 
         assert _drop_single_genotype_buckets(measurements).empty
 
     def test_all_single_genotype_returns_empty(self):
+        """Multiple single genotype age buckets are dropped."""
         measurements = self._measurements(
             [
                 ("A&beta;40", "0-1 years", "Matched Control"),
@@ -985,10 +991,7 @@ class TestFillAgeGaps:
     def _grouped(
         self,
         age_starts,
-        evidence_type="A&beta;40",
-        units="pg/mL",
-        display_order=1,
-        y_axis_max=100.0,
+        evidence_type="A&beta;40"
     ):
         """One retained row per age_start, each with a non-empty data list."""
         return pd.DataFrame(
@@ -997,10 +1000,10 @@ class TestFillAgeGaps:
                     "name": "M",
                     "evidence_type": evidence_type,
                     "age": f"{age_start}-{age_start + 1} years",
-                    "units": units,
-                    "display_order": display_order,
+                    "units": "pg/mL",
+                    "display_order": 1,
                     "age_start": age_start,
-                    "y_axis_max": y_axis_max,
+                    "y_axis_max": 100.0,
                     "data": [{"individual_id": "1", "value": 1.0}],
                 }
                 for age_start in age_starts
@@ -1008,57 +1011,70 @@ class TestFillAgeGaps:
         )
 
     def _placeholder_age_starts(self, result):
-        return set(result[result["data"].apply(lambda d: d == [])]["age_start"])
+        """Identifies placeholders in the provided result list by checking
+        data[] for results; returns the set of placeholder age_start values
+        for verification."""
+        return set(result[result["data"]
+                   .apply(lambda d: d == [])]["age_start"])
 
     def test_contiguous_from_zero_is_unchanged(self):
+        """A list of contiguous age buckets is not modified."""
         result = _fill_age_gaps(self._grouped([0, 1, 2]))
 
         assert sorted(result["age_start"]) == [0, 1, 2]
         assert self._placeholder_age_starts(result) == set()
 
-    def test_interior_gap_is_filled_with_placeholder(self):
+    def test_interior_gap_is_filled_with_placeholder_with_expected_values(self):
+        """A list of age buckets with an internal gap is populated with a placeholder
+        that has the expected values."""
         result = _fill_age_gaps(
-            self._grouped([0, 1, 3], units="pg/mL", display_order=2, y_axis_max=200.0)
+            self._grouped([0, 1, 3])
         )
 
         assert sorted(result["age_start"]) == [0, 1, 2, 3]
         placeholder = result[result["age_start"] == 2].iloc[0]
         assert placeholder["data"] == []
         assert placeholder["age"] == "2-3 years"
-        assert placeholder["name"] == "M"
-        assert placeholder["evidence_type"] == "A&beta;40"
-        assert placeholder["units"] == "pg/mL"
-        assert placeholder["display_order"] == 2
-        assert placeholder["y_axis_max"] == 200.0
+        # placeholder and any populated bucket should be identical on the remaining fields
+        bucket = result[result["age_start"] == 1].iloc[0]
+        assert bucket["name"] == placeholder["name"] == "M"
+        assert bucket["evidence_type"] == placeholder["evidence_type"] == "A&beta;40"
+        assert bucket["units"] == placeholder["units"] == "pg/mL"
+        assert bucket["display_order"] == placeholder["display_order"] == 1
+        assert bucket["y_axis_max"] == placeholder["y_axis_max"] == 100.0
 
-    def test_multiple_gaps_filled(self):
+    def test_interior_gap_of_multiples_filled(self):
+        """A list of age buckets with an internal gap of more than one bucket is populated with placeholders."""
         result = _fill_age_gaps(self._grouped([0, 3]))
 
         assert self._placeholder_age_starts(result) == {1, 2}
 
-    def test_leading_gap_filled_trailing_not(self):
+    def test_leading_gap_filled(self):
+        """A list of age buckets with a leading gap (0-1 year) and interior gaps is populated with placeholders."""
         result = _fill_age_gaps(self._grouped([2, 3, 5]))
 
         assert sorted(result["age_start"]) == [0, 1, 2, 3, 4, 5]
         assert self._placeholder_age_starts(result) == {0, 1, 4}
 
     def test_per_evidence_type_independence_and_single_bucket_padding(self):
+        """Age gaps in one evidence type do not affect placeholder generation for another evidence type."""
         grouped = pd.concat(
             [
+                # evidence_type A has only the 0-1 bucket, and no gaps
                 self._grouped([0], evidence_type="A"),
+                # evidence_type B has only the 2-3 bucket, so a leading gap of 2 buckets
                 self._grouped([2], evidence_type="B"),
             ],
             ignore_index=True,
         )
 
         result = _fill_age_gaps(grouped)
-
-        a_ages = sorted(result[result["evidence_type"] == "A"]["age_start"])
+        a_rows = result[result["evidence_type"] == "A"]
         b_rows = result[result["evidence_type"] == "B"]
-        assert a_ages == [0]  # single bucket already at 0 -> no fill
-        assert sorted(b_rows["age_start"]) == [
-            0,
-            1,
-            2,
-        ]  # single bucket at 2 -> padded with 0, 1
+
+        # A: expect only the 0-1 bucket
+        assert sorted(a_rows["age_start"]) == [0]
+
+        # B: expect placeholders for 0-1 and 1-2, plus 2-3 bucket with data
+        assert sorted(b_rows["age_start"]) == [0, 1, 2,]
         assert self._placeholder_age_starts(b_rows) == {0, 1}

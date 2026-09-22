@@ -365,10 +365,11 @@ def _fill_age_gaps(grouped: pd.DataFrame) -> pd.DataFrame:
     """Backfill missing age buckets with empty-data placeholders so each evidence type is contiguous.
 
     For each evidence_type, every whole-year bucket from "0-1 years" up to its oldest retained bucket
-    that has no data gets a placeholder object (same name/units/display_order/y_axis_max, empty data).
-    This keeps the app's per-age plots aligned after single-genotype buckets are dropped, so a bucket
-    dropped from the start or middle of the series does not shift the ages that follow it. Trailing
-    buckets beyond the oldest retained one are not added.
+    should exist in the output whether it has data or not. Buckets that have no data get a placeholder
+    object  (same name/units/display_order/y_axis_max, empty data). This keeps the app's per-age plots
+    aligned after single-genotype buckets are dropped, so a bucket dropped from the start or middle of
+    the series does not shift the ages that follow it. Trailing buckets beyond the oldest retained one
+    are not added.
 
     Args:
         grouped (pd.DataFrame): One row per retained (evidence_type, age) bucket, with name, units,
@@ -485,7 +486,7 @@ def transform_marmo_details(
     an empty biomarkers list.
 
     Expected transformations:
-        1. Measures that did not pass QC are converted to nulls.
+        1. Measures that did not pass QC are converted to nulls, which are subsequently dropped.
         2. The wide marmo_results measure columns are melted long; all null measurements are dropped.
         3. Genotype and sex are joined per individual, then genotypes are mapped to display labels
            and models. Measurements with an unmapped genotype are excluded.
@@ -494,8 +495,11 @@ def transform_marmo_details(
            sampled longitudinally and values are deliberately not averaged per animal, so one
            animal can contribute many points to a bucket - up to 15 in current data, unlike the
            mouse pipeline where an animal is one point.
-        6. Only buckets with data are emitted. There is no _add_missing_age_entries equivalent, so
-           measures with different coverage produce different bucket sets on one model page.
+        6. Only buckets up to the oldest bucket with data are emitted, per measure. Any bucket
+           that contains data for only one genotype is dropped, then placeholder buckets are
+           created for any missing age buckets before the oldest bucket with data. There is no
+           guarantee that every measure will have the same oldest bucket with data, so each
+           measure can have a different range of contiguous buckets on the same model page.
         7. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
            computed per model via round_y_axis_max.
 
