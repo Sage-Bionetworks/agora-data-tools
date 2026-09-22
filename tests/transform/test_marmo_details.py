@@ -8,6 +8,7 @@ from agoradatatools.etl.transform.marmo_details import (
     _apply_qc_masks,
     _build_biomarkers,
     _build_measurements,
+    _compute_y_axis_max_map,
     _drop_single_genotype_buckets,
     _fill_age_gaps,
     _prepare_measure_info,
@@ -827,6 +828,97 @@ class TestBuildBiomarkers:
             ("1-2 years", False),
             ("2-3 years", False),
         ]
+
+    def test_build_biomarkers_cutoff_gates_axis_but_keeps_points(self):
+        """An above-cutoff value is excluded from y_axis_max but still emitted as a data point."""
+        measurements = self._measurement_rows(
+            [
+                (0, "Matched Control", 100.0),
+                (0, "Presenilin-1", 500.0),  # above cutoff: off the axis calc, still in data
+            ]
+        ).assign(result_column_std="ab40_pg_ml")
+
+        biomarkers = _build_biomarkers(measurements, "M", {"ab40_pg_ml": 200})
+
+        assert biomarkers[0]["y_axis_max"] == round_y_axis_max(100.0)
+        assert round_y_axis_max(100.0) != round_y_axis_max(500.0)
+        assert 500.0 in [point["value"] for point in biomarkers[0]["data"]]
+
+
+class TestComputeYAxisMaxMap:
+    """_compute_y_axis_max_map returns round_y_axis_max of each evidence_type's max value, optionally
+    excluding values above a per-measure (result_column_std) cutoff from that max."""
+
+    def _measurements(self, rows):
+        """rows: (result_column_std, evidence_type, value) tuples."""
+        return pd.DataFrame(
+            rows, columns=["result_column_std", "evidence_type", "value"]
+        )
+
+    def test_no_cutoff_uses_full_max(self):
+        measurements = self._measurements(
+            [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
+        )
+
+        assert _compute_y_axis_max_map(measurements, None) == {
+            "A&beta;40": round_y_axis_max(500.0)
+        }
+
+    def test_cutoff_excludes_above_cutoff_values(self):
+        measurements = self._measurements(
+            [
+                ("ab40_pg_ml", "A&beta;40", 100.0),
+                ("ab40_pg_ml", "A&beta;40", 90.0),
+                ("ab40_pg_ml", "A&beta;40", 500.0),  # excluded from the max
+            ]
+        )
+
+        assert _compute_y_axis_max_map(measurements, {"ab40_pg_ml": 200}) == {
+            "A&beta;40": round_y_axis_max(100.0)
+        }
+
+    def test_cutoff_boundary_is_inclusive(self):
+        """A value equal to the cutoff is kept for the max (only strictly-greater is excluded)."""
+        measurements = self._measurements(
+            [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 200.0)]
+        )
+
+        assert _compute_y_axis_max_map(measurements, {"ab40_pg_ml": 200}) == {
+            "A&beta;40": round_y_axis_max(200.0)
+        }
+
+    def test_measure_without_cutoff_key_is_uncapped(self):
+        """Capping one measure leaves another (no cutoff entry) at its full max."""
+        measurements = self._measurements(
+            [
+                ("ab40_pg_ml", "A&beta;40", 150.0),
+                ("ab40_pg_ml", "A&beta;40", 500.0),  # capped: excluded from the max
+                ("gfap_pg_ml", "GFAP", 900.0),  # no cutoff: uncapped
+            ]
+        )
+
+        assert _compute_y_axis_max_map(measurements, {"ab40_pg_ml": 200}) == {
+            "A&beta;40": round_y_axis_max(150.0),
+            "GFAP": round_y_axis_max(900.0),
+        }
+
+    def test_cutoff_keys_are_standardized_before_matching(self):
+        """A raw/mixed-case cutoff key still matches the standardized result_column_std column."""
+        measurements = self._measurements(
+            [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
+        )
+
+        assert _compute_y_axis_max_map(measurements, {"Ab40_pg.ml": 200}) == {
+            "A&beta;40": round_y_axis_max(100.0)
+        }
+
+    def test_all_values_above_cutoff_raises(self):
+        measurements = self._measurements(
+            [("ab40_pg_ml", "A&beta;40", 300.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
+        )
+
+        with pytest.raises(ValueError, match="A&beta;40"):
+            _compute_y_axis_max_map(measurements, {"ab40_pg_ml": 200})
 
 
 class TestApplyQcMasks:
