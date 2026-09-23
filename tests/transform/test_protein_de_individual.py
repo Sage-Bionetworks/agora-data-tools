@@ -21,7 +21,6 @@ import pytest
 from agoradatatools.etl.transform.protein_de_individual import (
     REQUIRED_INPUT,
     transform_protein_de_individual,
-    _build_gene_aliases,
     _build_uniprot_candidates,
     _measured_header_pairs,
     _melt_proteomics_file,
@@ -39,7 +38,7 @@ class TestBuildUniprotCandidates:
     def test_drops_human_genes_and_keeps_all_mouse_candidates(self) -> None:
         mapping = pd.DataFrame(
             {
-                "uniprotkb_accession": ["P1", "P1", "P2", "P3"],
+                "uniprot_id": ["P1", "P1", "P2", "P3"],
                 "ensembl_gene_id": [
                     "ENSMUSG00000000005",
                     "ENSMUSG00000000002",
@@ -52,34 +51,6 @@ class TestBuildUniprotCandidates:
         assert _build_uniprot_candidates(mapping) == {
             "P1": ["ENSMUSG00000000002", "ENSMUSG00000000005"],
             "P3": ["ENSMUSG00000000003"],
-        }
-
-
-class TestBuildGeneAliases:
-    """Unit tests for the Ensembl gene id to alias set lookup."""
-
-    def test_aliases_are_case_folded_and_missing_values_skipped(self) -> None:
-        """Test the shapes the alias column actually arrives in.
-
-        mouse_gene_metadata is JSON, so alias is a real list per gene, but a gene with no
-        aliases can arrive as an empty list or as a null, and a list can hold a null.
-        """
-        metadata = pd.DataFrame(
-            {
-                "ensembl_gene_id": [
-                    "ENSMUSG00000000001",
-                    "ENSMUSG00000000002",
-                    "ENSMUSG00000000003",
-                    "ENSMUSG00000000004",
-                ],
-                "alias": [["Gnai-3", "HG1A"], [], [None, "Srp54"], None],
-            }
-        )
-
-        assert _build_gene_aliases(metadata) == {
-            "ENSMUSG00000000001": {"gnai-3", "hg1a"},
-            "ENSMUSG00000000002": set(),
-            "ENSMUSG00000000003": {"srp54"},
         }
 
 
@@ -148,9 +119,9 @@ class TestMeasuredHeaderPairs:
         pairs = _measured_header_pairs(datasets, list(datasets))
 
         assert set(pairs["header_symbol"]) == {"na", "cycs"}
-        assert _resolve_gene_ids(
-            pairs, {"P00001": CANDIDATES["P1"]}, GENE_SYMBOLS, {}
-        ) == {"P00001": "ENSMUSG00000000009"}
+        assert _resolve_gene_ids(pairs, {"P00001": CANDIDATES["P1"]}, GENE_SYMBOLS) == {
+            "P00001": "ENSMUSG00000000009"
+        }
 
     def test_dead_isoform_column_cannot_steer_its_base_accession(self) -> None:
         """Test the case the empty-column filter exists for.
@@ -172,9 +143,9 @@ class TestMeasuredHeaderPairs:
         pairs = _measured_header_pairs(datasets, list(datasets))
 
         assert set(pairs["uniprotid"]) == self._melted_accessions(datasets)
-        assert _resolve_gene_ids(
-            pairs, {"P00001": CANDIDATES["P1"]}, GENE_SYMBOLS, {}
-        ) == {"P00001": "ENSMUSG00000000009"}
+        assert _resolve_gene_ids(pairs, {"P00001": CANDIDATES["P1"]}, GENE_SYMBOLS) == {
+            "P00001": "ENSMUSG00000000009"
+        }
 
 
 class TestResolveGeneIds:
@@ -211,7 +182,6 @@ class TestResolveGeneIds:
             self._header_pairs("P1", header_symbol),
             CANDIDATES,
             GENE_SYMBOLS,
-            {},
         )
 
         assert resolved == {"P1": expected}
@@ -221,7 +191,6 @@ class TestResolveGeneIds:
             self._header_pairs("P1", "Cycs;_Rps27"),
             CANDIDATES,
             GENE_SYMBOLS,
-            {},
         )
 
         assert resolved == {"P1": "ENSMUSG00000000009"}
@@ -242,25 +211,13 @@ class TestResolveGeneIds:
                 "ENSMUSG00000000004": "H4c1",
                 "ENSMUSG00000000007": "H4c2",
             },
-            {},
         )
 
         assert resolved == {"P3": "ENSMUSG00000000004"}
 
-    def test_alias_resolves_header_symbol(self) -> None:
-        """Test that a header symbol matching an alias can pick that gene."""
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P2", "Srp54"),
-            {"P2": ["ENSMUSG00000000002", "ENSMUSG00000000008"]},
-            {"ENSMUSG00000000002": "Srp54b", "ENSMUSG00000000008": "Srp54a"},
-            {"ENSMUSG00000000008": {"srp54"}},
-        )
-
-        assert resolved == {"P2": "ENSMUSG00000000008"}
-
     def test_isoform_symbol_resolves_base_accession(self) -> None:
         resolved = _resolve_gene_ids(
-            self._header_pairs("P1-2", "Cycs"), CANDIDATES, GENE_SYMBOLS, {}
+            self._header_pairs("P1-2", "Cycs"), CANDIDATES, GENE_SYMBOLS
         )
 
         assert resolved == {"P1": "ENSMUSG00000000009"}
@@ -385,7 +342,6 @@ class TestTransformProteinDeIndividual:
                     {
                         "ensembl_gene_id": ["ENSMUSG00000000001"],
                         "gene_symbol": ["Gnai3"],
-                        "alias": [[]],
                     }
                 )
             ),
@@ -404,7 +360,7 @@ class TestTransformProteinDeIndividual:
                 if mapping is not None
                 else pd.DataFrame(
                     {
-                        "uniprotkb_accession": ["P00001"],
+                        "uniprot_id": ["P00001"],
                         "ensembl_gene_id": ["ENSMUSG00000000001"],
                     }
                 )
@@ -432,8 +388,6 @@ class TestTransformProteinDeIndividual:
             "genotype_label_map": pd.read_csv(
                 os.path.join(input_path, "synthetic_genotype_label_map.csv")
             ),
-            # JSON, matching the production format, so alias arrives as a real list and the
-            # alias branch of _resolve_gene_ids is reachable.
             "mouse_gene_metadata": pd.read_json(
                 os.path.join(input_path, "synthetic_mouse_gene_metadata.json")
             ),
@@ -467,7 +421,7 @@ class TestTransformProteinDeIndividual:
             },
             mapping=pd.DataFrame(
                 {
-                    "uniprotkb_accession": ["Q8C8R3"],
+                    "uniprot_id": ["Q8C8R3"],
                     "ensembl_gene_id": ["ENSMUSG00000000001"],
                 }
             ),
@@ -492,7 +446,7 @@ class TestTransformProteinDeIndividual:
             },
             mapping=pd.DataFrame(
                 {
-                    "uniprotkb_accession": ["P00001", "HUMANP"],
+                    "uniprot_id": ["P00001", "HUMANP"],
                     "ensembl_gene_id": ["ENSMUSG00000000001", "ENSG00000000001"],
                 }
             ),
@@ -501,6 +455,135 @@ class TestTransformProteinDeIndividual:
         output = self._transform(datasets)
 
         assert {e["uniprotid"] for e in output} == {"P00001"}
+
+    def test_header_symbol_cannot_rescue_accession_absent_from_the_map(self) -> None:
+        """A header naming a known gene must not invent a mapping for an absent accession."""
+        datasets = self._build_datasets(
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": ["i1", "i2"],
+                "gene1|p00001": [1.0, 2.0],
+                "Gnai3|nomap": [3.0, 4.0],
+            }
+        )
+
+        output = self._transform(datasets)
+
+        assert {e["uniprotid"] for e in output} == {"P00001"}
+
+    def test_header_picks_among_map_candidates(self) -> None:
+        """The named candidate wins even when it is not the smallest Ensembl id."""
+        datasets = self._build_datasets(
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": ["i1", "i2"],
+                "Pms2|p54279": [1.0, 2.0],
+            },
+            mapping=pd.DataFrame(
+                {
+                    "uniprot_id": ["P54279", "P54279"],
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000001",
+                        "ENSMUSG00000000009",
+                    ],
+                }
+            ),
+            gene_metadata=pd.DataFrame(
+                {
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000001",
+                        "ENSMUSG00000000009",
+                    ],
+                    "gene_symbol": ["Rsph10b", "Pms2"],
+                }
+            ),
+        )
+
+        output = self._transform(datasets)
+
+        assert output[0]["ensembl_gene_id"] == "ENSMUSG00000000009"
+        assert output[0]["gene_symbol"] == "Pms2"
+
+    def test_unmatched_header_falls_back_to_smallest_ensembl_id(self) -> None:
+        datasets = self._build_datasets(
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": ["i1", "i2"],
+                "unknown|p54279": [1.0, 2.0],
+            },
+            mapping=pd.DataFrame(
+                {
+                    "uniprot_id": ["P54279", "P54279"],
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000009",
+                        "ENSMUSG00000000001",
+                    ],
+                }
+            ),
+            gene_metadata=pd.DataFrame(
+                {
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000001",
+                        "ENSMUSG00000000009",
+                    ],
+                    "gene_symbol": ["Rsph10b", "Pms2"],
+                }
+            ),
+        )
+
+        output = self._transform(datasets)
+
+        assert output[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+
+    def test_extra_map_column_is_ignored(self) -> None:
+        datasets = self._build_datasets(
+            mapping=pd.DataFrame(
+                {
+                    "uniprot_id": ["P00001"],
+                    "ensembl_gene_id": ["ENSMUSG00000000001"],
+                    "optional_information": [""],
+                }
+            )
+        )
+
+        output = self._transform(datasets)
+
+        assert {e["uniprotid"] for e in output} == {"P00001"}
+
+    def test_isoform_map_row_is_preferred_over_base(self) -> None:
+        """A mapping-file row for the full accession wins over the base accession."""
+        datasets = self._build_datasets(
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": ["i1", "i2"],
+                "ank2|q8c8r3": [1.0, 2.0],
+                "ank2|q8c8r3_2": [3.0, 4.0],
+            },
+            mapping=pd.DataFrame(
+                {
+                    "uniprot_id": ["Q8C8R3", "Q8C8R3-2"],
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000001",
+                        "ENSMUSG00000000002",
+                    ],
+                }
+            ),
+            gene_metadata=pd.DataFrame(
+                {
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000001",
+                        "ENSMUSG00000000002",
+                    ],
+                    "gene_symbol": ["Gnai3", "Cdc45"],
+                }
+            ),
+        )
+
+        by_uniprot = {e["uniprotid"]: e for e in self._transform(datasets)}
+
+        assert by_uniprot["Q8C8R3"]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert by_uniprot["Q8C8R3-2"]["ensembl_gene_id"] == "ENSMUSG00000000002"
+        assert by_uniprot["Q8C8R3-2"]["unique_id"] == "ENSMUSG00000000002Q8C8R3-2"
 
     def test_animals_without_metadata_or_label_map_row_dropped(self) -> None:
         """Test that unmatched or unlabeled animals are dropped, not a failed run.
