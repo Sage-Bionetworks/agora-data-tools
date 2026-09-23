@@ -51,7 +51,7 @@ files:
   - &uci_Trem2_R47H_NSS_5xFAD_ne  { name: uci_Trem2_R47H_NSS_5xFAD_ne  , format: csv  , id: syn72388499.2  }
   # Proteomics (Individual)
   - &load2_harmonized_metadata    { name: load2_harmonized_metadata    , format: csv  , id: syn75965714.2  }
-  - &uniprot_ensembl_map          { name: uniprot_ensembl_map          , format: tsv  , id: syn75830091.1  }
+  - &uniprot_ensembl_map          { name: uniprot_ensembl_map          , format: tsv  , id: syn75830091.2  }
   - &jax_load2_proteomics_ne      { name: jax_load2_proteomics_ne      , format: csv  , id: syn63886488.1  }
   - &jax_load2_proteomics_24mo_ne { name: jax_load2_proteomics_24mo_ne , format: csv  , id: syn63886489.1  }
 

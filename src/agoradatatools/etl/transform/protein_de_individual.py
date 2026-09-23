@@ -48,14 +48,14 @@ AGE_LABELS = [4, 8, 12, 18, 24]
 
 REQUIRED_INPUT = {
     "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
-    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
-    "uniprot_ensembl_map": ["uniprotkb_accession", "ensembl_gene_id"],
+    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
+    "uniprot_ensembl_map": ["uniprot_id", "ensembl_gene_id"],
 }
 
 COLUMN_RULES = {
     "genotype_label_map": GENOTYPE_LABEL_MAP_RULES,
     "uniprot_ensembl_map": {
-        "uniprotkb_accession": [NotEmptyRule()],
+        "uniprot_id": [NotEmptyRule()],
         "ensembl_gene_id": [NotEmptyRule()],
     },
 }
@@ -86,21 +86,9 @@ def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> dict[str, list[str]]:
     mouse = filter_to_mouse_genes(mapping_df)
     return {
         accession: sorted(genes)
-        for accession, genes in mouse.groupby("uniprotkb_accession")["ensembl_gene_id"]
+        for accession, genes in mouse.groupby("uniprot_id")["ensembl_gene_id"]
         .unique()
         .items()
-    }
-
-
-def _build_gene_aliases(mouse_gene_metadata_df: pd.DataFrame) -> dict[str, set[str]]:
-    """Map each Ensembl gene id to its case-folded alias set."""
-    return {
-        gene: {alias.casefold() for alias in aliases if isinstance(alias, str)}
-        for gene, aliases in zip(
-            mouse_gene_metadata_df["ensembl_gene_id"],
-            mouse_gene_metadata_df["alias"],
-        )
-        if isinstance(aliases, list)
     }
 
 
@@ -157,8 +145,9 @@ def _observed_gene_names(header_pairs: pd.DataFrame) -> dict[str, set[str]]:
     underscore is stripped before the interior ones are converted, otherwise every name
     after the first would read as -h4c2 and match no gene.
 
-    Accessions with a hyphen after the base (Q8C8R3-2) contribute names to the base
-    accession, which is the mapping-file key.
+    Accessions with a hyphen after the base (Q8C8R3-2) contribute names to both the
+    full accession and the base, so an isoform-specific mapping-file row can still be
+    steered by its header and a base-only row still sees the isoform header.
     """
     names: dict[str, set[str]] = {}
     for accession, symbol in (
@@ -170,6 +159,7 @@ def _observed_gene_names(header_pairs: pd.DataFrame) -> dict[str, set[str]]:
         for name in str(symbol).split(";"):
             name = name.strip(" _").casefold().replace("_", "-")
             if name and name != "na":
+                names.setdefault(accession, set()).add(name)
                 names.setdefault(base, set()).add(name)
     return names
 
@@ -178,14 +168,15 @@ def _resolve_gene_ids(
     header_pairs: pd.DataFrame,
     candidates: dict[str, list[str]],
     gene_symbols: dict[str, str],
-    gene_aliases: dict[str, set[str]],
 ) -> dict[str, str]:
-    """Pick one Ensembl gene per accession.
+    """Pick one Ensembl gene per accession that is present in the mapping file.
 
-    Candidates come from the UniProt mapping file. A header symbol naming a gene that
-    file does not offer for the accession cannot pull that gene in. Among the candidates,
-    the header symbol is preferred. The smallest Ensembl id is used when the header is
-    empty or matches none of them.
+    A UniProt ID with no mapping-file row has no mapping and is dropped later. The
+    header symbol is not used to find an Ensembl ID for those absent accessions.
+
+    When the mapping file lists several Ensembl IDs for one accession, the header
+    symbol may choose among those candidates only. The smallest Ensembl id is used
+    when the header is empty or matches none of them.
     """
     names = _observed_gene_names(header_pairs)
     resolved = {}
@@ -194,11 +185,22 @@ def _resolve_gene_ids(
         matches = [
             gene for gene in genes if gene_symbols.get(gene, "").casefold() in wanted
         ]
-        if not matches:
-            matches = [gene for gene in genes if wanted & gene_aliases.get(gene, set())]
         # candidates arrive sorted, so matches[0] is the smallest matching id.
-        resolved[accession] = matches[0] if matches else min(genes)
+        resolved[accession] = matches[0] if matches else genes[0]
     return resolved
+
+
+def _lookup_ensembl(
+    accessions: pd.Series, uniprot_to_ensembl: dict[str, str]
+) -> pd.Series:
+    """Map each accession to an Ensembl id, trying the full accession then the base.
+
+    Mapping-file keys may be the full accession or the accession before the hyphen.
+    The full accession stays in the output so Q8C8R3 and Q8C8R3-2 remain separate rows.
+    """
+    mapped = accessions.map(uniprot_to_ensembl)
+    base_mapped = accessions.str.split("-").str[0].map(uniprot_to_ensembl)
+    return mapped.fillna(base_mapped)
 
 
 def _melt_proteomics_file(
@@ -309,11 +311,7 @@ def _build_output(
     )
     _log_stage(model_group, "after harmonized metadata join", df)
 
-    # Mapping-file keys are the accession before the hyphen; the full accession stays
-    # in the output so Q8C8R3 and Q8C8R3-2 remain separate rows.
-    df["ensembl_gene_id"] = (
-        df["uniprotid"].str.split("-").str[0].map(uniprot_to_ensembl)
-    )
+    df["ensembl_gene_id"] = _lookup_ensembl(df["uniprotid"], uniprot_to_ensembl)
     df = df.dropna(subset=["ensembl_gene_id"])
     _log_stage(model_group, "after gene mapping", df)
     if df.empty:
@@ -497,12 +495,25 @@ def transform_protein_de_individual(
 
     # Gene resolution is the one step that needs every data file at once, and reading it
     # from the column headers keeps it off the measurements. See _measured_header_pairs.
+    header_pairs = _measured_header_pairs(datasets, datafile_list)
     uniprot_to_ensembl = _resolve_gene_ids(
-        header_pairs=_measured_header_pairs(datasets, datafile_list),
+        header_pairs=header_pairs,
         candidates=_build_uniprot_candidates(datasets["uniprot_ensembl_map"]),
         gene_symbols=gene_symbols,
-        gene_aliases=_build_gene_aliases(datasets["mouse_gene_metadata"]),
     )
+    unmapped = sorted(
+        {
+            accession
+            for accession in header_pairs["uniprotid"]
+            if accession not in uniprot_to_ensembl
+            and accession.split("-")[0] not in uniprot_to_ensembl
+        }
+    )
+    if unmapped:
+        logger.info(
+            f"Transform protein_de_individual: {len(unmapped)} UniProt IDs absent "
+            f"from the map (dropped): {unmapped[:10]}"
+        )
 
     # Files sharing a model_group have to be built together, because entries are keyed on
     # (unique_id, tissue, model_group, age) and splitting a group would emit two entries
