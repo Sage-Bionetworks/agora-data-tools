@@ -82,7 +82,8 @@ class TestTransformMarmoDetails:
             ),
             (
                 {"marmo_results": "marmo_results_with_qc_fails.csv"},
-                "marmo_details_transform_with_qc_fails_output.json"),
+                "marmo_details_transform_with_qc_fails_output.json",
+            ),
         ],
         ids=["one model", "two models sharing WT controls", "one model with QC fails"],
     )
@@ -157,7 +158,6 @@ class TestTransformMarmoDetails:
             "neuro QC failure -> gfap goes single-genotype and drops",
         ],
     )
-
     def _set_bad_value(self, datasets, dataset, column, bad_value):
         """Overwrite the first row of a column, which every rule below scans in full."""
         frame = datasets[dataset]
@@ -527,7 +527,10 @@ class TestBuildMeasurements:
             ("FAIL", "PASS", {"gfap_pg_ml"}),
             ("PASS", "FAIL", {"ab40_pg_ml"}),
         ],
-        ids=["ab qc fail -> Only Ab results dropped", "neuro qc fail -> Only Neuro results dropped"],
+        ids=[
+            "ab qc fail -> Only Ab results dropped",
+            "neuro qc fail -> Only Neuro results dropped",
+        ],
     )
     def test_build_measurements_applies_qc_masks_before_melt(
         self, qc_ab, qc_neuro, expected_measures
@@ -655,7 +658,7 @@ class TestBuildBiomarkers:
         and break each measure's run of ascending ages."""
         measurements = self._measurements().assign(display_order=display_orders)
 
-        biomarkers = _build_biomarkers(measurements, model_name = "Presenilin1")
+        biomarkers = _build_biomarkers(measurements, model_name="Presenilin1")
 
         assert [(b["evidence_type"], b["age"]) for b in biomarkers] == expected_order
 
@@ -677,7 +680,7 @@ class TestBuildBiomarkers:
         tuples; individualid is assigned per row and raw genotype mirrors the display label."""
 
         rows["individualid"] = rows.index + 1
-        rows["sex"] =  "Male"
+        rows["sex"] = "Male"
         rows["units"] = units
         rows["evidence_type"] = evidence_type
         rows["display_label"] = rows["genotype"]
@@ -692,13 +695,13 @@ class TestBuildBiomarkers:
             pd.DataFrame(
                 {
                     "age_start": [0, 0, 1],
-                    "genotype": ["Matched Control",  "Presenilin-1", "Matched Control"],
-                    "value": [10.0, 11.0, 20.0]
+                    "genotype": ["Matched Control", "Presenilin-1", "Matched Control"],
+                    "value": [10.0, 11.0, 20.0],
                 }
             )
         )
 
-        biomarkers = _build_biomarkers(measurements, model_name = "M")
+        biomarkers = _build_biomarkers(measurements, model_name="M")
 
         assert [b["age"] for b in biomarkers] == ["0-1 years"]
 
@@ -709,14 +712,14 @@ class TestBuildBiomarkers:
             pd.DataFrame(
                 {
                     "age_start": [0, 0, 1],
-                    "genotype": ["Matched Control",  "Presenilin-1", "Matched Control"],
+                    "genotype": ["Matched Control", "Presenilin-1", "Matched Control"],
                     # 500 should be dropped; must not impact y_axis_max
-                    "value": [100.0, 90.0, 500.0]
+                    "value": [100.0, 90.0, 500.0],
                 }
             )
         )
 
-        biomarkers = _build_biomarkers(measurements, model_name = "M")
+        biomarkers = _build_biomarkers(measurements, model_name="M")
 
         assert [b["age"] for b in biomarkers] == ["0-1 years"]
         assert biomarkers[0]["y_axis_max"] == round_y_axis_max(100.0)
@@ -729,12 +732,12 @@ class TestBuildBiomarkers:
                 {
                     "age_start": [0, 1],
                     "genotype": ["Matched Control", "Matched Control"],
-                    "value": [10.0, 20.0]
+                    "value": [10.0, 20.0],
                 }
             )
         )
 
-        assert _build_biomarkers(measurements, model_name = "M") == []
+        assert _build_biomarkers(measurements, model_name="M") == []
 
     def test_build_biomarkers_backfills_middle_gap(self):
         """A middle bucket dropped by the genotype filter is backfilled with an empty placeholder."""
@@ -742,13 +745,19 @@ class TestBuildBiomarkers:
             pd.DataFrame(
                 {
                     "age_start": [0, 0, 1, 2, 2],
-                    "genotype": ["Matched Control", "Presenilin-1", "Matched Control", "Matched Control", "Presenilin-1"],
-                    "value": [10.0, 11.0, 20.0, 30.0, 31.0]
+                    "genotype": [
+                        "Matched Control",
+                        "Presenilin-1",
+                        "Matched Control",
+                        "Matched Control",
+                        "Presenilin-1",
+                    ],
+                    "value": [10.0, 11.0, 20.0, 30.0, 31.0],
                 }
             )
         )
 
-        biomarkers = _build_biomarkers(measurements, model_name = "M")
+        biomarkers = _build_biomarkers(measurements, model_name="M")
 
         assert [(b["age"], b["data"] == []) for b in biomarkers] == [
             ("0-1 years", False),
@@ -763,13 +772,19 @@ class TestBuildBiomarkers:
                 {
                     # age_start 0 is single -> dropped -> placeholder
                     "age_start": [0, 1, 1, 2, 2],
-                    "genotype": ["Matched Control", "Matched Control", "Presenilin-1", "Matched Control", "Presenilin-1"],
-                    "value": [10.0, 20.0, 21.0, 30.0, 31.0]
+                    "genotype": [
+                        "Matched Control",
+                        "Matched Control",
+                        "Presenilin-1",
+                        "Matched Control",
+                        "Presenilin-1",
+                    ],
+                    "value": [10.0, 20.0, 21.0, 30.0, 31.0],
                 }
             )
         )
 
-        biomarkers = _build_biomarkers(measurements, model_name = "M")
+        biomarkers = _build_biomarkers(measurements, model_name="M")
 
         assert [(b["age"], b["data"] == []) for b in biomarkers] == [
             ("0-1 years", True),
@@ -832,7 +847,6 @@ class TestApplyQcMasks:
         assert result.loc[0, NEURO_COLS].isna().all()
         assert result.loc[1, AB_COLS].isna().all()
         assert result.loc[1, NEURO_COLS].notna().all()
-
 
     @pytest.mark.parametrize(
         "blank", [None, "", "   "], ids=["none", "empty", "whitespace"]
@@ -972,11 +986,7 @@ class TestFillAgeGaps:
     """_fill_age_gaps backfills, per evidence type, every age bucket from 0-1 years up to the oldest
     retained one with an empty-data placeholder."""
 
-    def _grouped(
-        self,
-        age_starts,
-        evidence_type="A&beta;40"
-    ):
+    def _grouped(self, age_starts, evidence_type="A&beta;40"):
         """One retained row per age_start, each with a non-empty data list."""
         return pd.DataFrame(
             [
@@ -998,8 +1008,7 @@ class TestFillAgeGaps:
         """Identifies placeholders in the provided result list by checking
         data[] for results; returns the set of placeholder age_start values
         for verification."""
-        return set(result[result["data"]
-                   .apply(lambda d: d == [])]["age_start"])
+        return set(result[result["data"].apply(lambda d: d == [])]["age_start"])
 
     def test_contiguous_from_zero_is_unchanged(self):
         """A list of contiguous age buckets is not modified."""
@@ -1011,9 +1020,7 @@ class TestFillAgeGaps:
     def test_interior_gap_is_filled_with_placeholder_with_expected_values(self):
         """A list of age buckets with an internal gap is populated with a placeholder
         that has the expected values."""
-        result = _fill_age_gaps(
-            self._grouped([0, 1, 3])
-        )
+        result = _fill_age_gaps(self._grouped([0, 1, 3]))
 
         assert sorted(result["age_start"]) == [0, 1, 2, 3]
         placeholder = result[result["age_start"] == 2].iloc[0]
@@ -1060,5 +1067,9 @@ class TestFillAgeGaps:
         assert sorted(a_rows["age_start"]) == [0]
 
         # B: expect placeholders for 0-1 and 1-2, plus 2-3 bucket with data
-        assert sorted(b_rows["age_start"]) == [0, 1, 2,]
+        assert sorted(b_rows["age_start"]) == [
+            0,
+            1,
+            2,
+        ]
         assert self._placeholder_age_starts(b_rows) == {0, 1}
