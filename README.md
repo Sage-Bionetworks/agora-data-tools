@@ -360,8 +360,8 @@ Parameters:
   custom_transformations:
     transform_protein_de_individual:
       model_map:
-        jax_load2_proteomics: LOAD2
-        jax_load2_proteomics_24mo: LOAD2
+            jax_load2_proteomics_ne: LOAD2
+            jax_load2_proteomics_24mo_ne: LOAD2
   ```
 
   Each parameter name must match a keyword argument of the transformation function, which is where its accepted values are documented.
