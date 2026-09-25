@@ -129,6 +129,7 @@ def _observed_gene_names(header_pairs: pd.DataFrame) -> dict[str, set[str]]:
     ):
         base = accession.split("-")[0]
         for name in str(symbol).split(";"):
+            # casefold, not lower, so special characters still compare equal.
             name = name.strip(" _").casefold().replace("_", "-")
             if name and name != "na":
                 names.setdefault(accession, set()).add(name)
@@ -146,6 +147,7 @@ def _resolve_gene_ids(
     resolved = {}
     for accession, genes in candidates.items():
         wanted = names.get(accession, set())
+        # casefold, not lower, so special characters still compare equal.
         matches = [
             gene for gene in genes if gene_symbols.get(gene, "").casefold() in wanted
         ]
@@ -203,11 +205,13 @@ def _melt_proteomics_file(
 
 
 def _check_metadata_coverage(
-    file_name: str, individuals: pd.Series, known_individuals: set
+    file_name: str, individuals: pd.Series, model: str, known_individuals: set
 ) -> None:
     """Log how many of a file's animals have harmonized metadata; raise if none do."""
     unique = set(individuals.unique())
-    matched = unique & known_individuals
+    matched = {
+        individual for individual in unique if (individual, model) in known_individuals
+    }
     logger.info(
         f"Transform protein_de_individual: {file_name}: {len(matched)}/{len(unique)} "
         f"animals have harmonized metadata"
@@ -242,7 +246,7 @@ def _build_output(
 
     df = long_df.merge(
         harmonized_model_metadata_df,
-        on="individualid",
+        on=["individualid", "model"],
         how="inner",
         validate="many_to_one",
     )
@@ -325,32 +329,87 @@ def _build_output(
     return entries[output_cols].to_dict(orient="records")
 
 
+def _validate_file_maps(
+    datasets: dict[str, pd.DataFrame],
+    model_map: dict[str, str],
+    metadata_map: dict[str, str],
+    required_input: dict[str, list[str]],
+    known_models: set[str],
+) -> None:
+    """Raise if model_map or metadata_map is empty, overlaps, leftover, or names unknown files or models."""
+    available = ", ".join(sorted(set(datasets) - set(required_input)))
+    for map_name, file_map, empty_detail, unknown_detail, reserved_detail in (
+        (
+            "model_map",
+            model_map,
+            "Each proteomics file's model has to be declared",
+            "which are not proteomics data files in this dataset",
+            "required inputs, not proteomics data files",
+        ),
+        (
+            "metadata_map",
+            metadata_map,
+            "Each metadata file's model has to be declared",
+            "which are not files in this dataset",
+            "required inputs, not metadata files",
+        ),
+    ):
+        if not file_map:
+            raise ValueError(
+                f"No {map_name} provided. {empty_detail} in the config under "
+                f"custom_transformations. Inputs available: {available}."
+            )
+        if unknown_files := sorted(set(file_map) - set(datasets)):
+            raise ValueError(
+                f"{map_name} names {unknown_files}, {unknown_detail}. Correct the "
+                f"name in the config or add the file to the dataset's files. "
+                f"Inputs available: {available}."
+            )
+        if reserved := sorted(set(file_map) & set(required_input)):
+            raise ValueError(
+                f"{map_name} names {reserved}, which are {reserved_detail}."
+            )
+        if unknown_models := sorted(set(file_map.values()) - known_models):
+            raise ValueError(
+                f"{map_name} refers to model(s) {unknown_models} that are absent "
+                "from the genotype label map, so none of their rows could be labeled. "
+                "Add the model to the label map or correct the config."
+            )
+    if overlap := sorted(set(model_map) & set(metadata_map)):
+        raise ValueError(
+            f"{overlap} appear in both model_map and metadata_map. Each file can "
+            "only be in one map."
+        )
+    leftover_names = sorted(
+        set(datasets) - set(required_input) - set(model_map) - set(metadata_map)
+    )
+    if leftover_names:
+        raise ValueError(
+            f"{leftover_names} are not in model_map or metadata_map. Add them to the "
+            "appropriate map or remove them from this dataset's files."
+        )
+
+
 def transform_protein_de_individual(
     datasets: dict[str, pd.DataFrame],
     model_map: dict[str, str],
+    metadata_map: dict[str, str],
     required_input: dict[str, list[str]] = REQUIRED_INPUT,
     column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
 ) -> list[dict[str, Any]]:
     """Transform Model AD individual proteomics data into nested per-protein records."""
-    # model_map is required because the proteomics files have no model column.
+    # model_map and metadata_map are required because the proteomics files have no model column.
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, column_rules)
 
     genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
-
-    if not model_map:
-        raise ValueError(
-            "No model_map provided. Each proteomics file's model has to be declared "
-            "in the config under custom_transformations. Inputs available: "
-            f"{', '.join(sorted(set(datasets) - set(required_input)))}."
-        )
-    if unknown_files := sorted(set(model_map) - set(datasets)):
-        raise ValueError(
-            f"model_map names {unknown_files}, which are not proteomics data files in "
-            "this dataset. Correct the name in the config or add the file to the "
-            "dataset's files. Inputs available: "
-            f"{', '.join(sorted(set(datasets) - set(required_input)))}."
-        )
+    _validate_file_maps(
+        datasets,
+        model_map,
+        metadata_map,
+        required_input,
+        set(genotype_label_map_df["model"]),
+    )
 
     datafile_list = [key for key in datasets if key in model_map]
     for file_name in datafile_list:
@@ -363,42 +422,23 @@ def transform_protein_de_individual(
         {name: datasets[name] for name in datafile_list},
         {name: DATAFILE_COLUMN_RULES for name in datafile_list},
     )
-    if unknown_models := sorted(
-        set(model_map.values()) - set(genotype_label_map_df["model"])
-    ):
-        raise ValueError(
-            f"model_map refers to model(s) {unknown_models} that are absent from the "
-            "genotype label map, so none of their rows could be labeled. Add the model to "
-            "the label map or correct the config."
-        )
 
-    leftover_names = [
-        key for key in datasets if key not in model_map and key not in required_input
-    ]
-    unmapped_proteomics = [
-        name
-        for name in leftover_names
-        if any("|" in str(column) for column in datasets[name].columns)
-    ]
-    if unmapped_proteomics:
-        raise ValueError(
-            f"{unmapped_proteomics} look like proteomics data files (columns named "
-            "gene_symbol|uniprotid) but are not in model_map. Add them to model_map "
-            "or remove them from this dataset's files."
-        )
-    model_metadata_files = {name: datasets[name] for name in leftover_names}
+    metadata_names = list(metadata_map)
+    model_metadata_files = {name: datasets[name] for name in metadata_names}
     check_required_datasets_and_columns(
         model_metadata_files,
-        {name: MODEL_METADATA_REQUIRED_COLUMNS for name in leftover_names},
+        {name: MODEL_METADATA_REQUIRED_COLUMNS for name in metadata_names},
     )
     check_column_rules(
         model_metadata_files,
-        {name: MODEL_METADATA_COLUMN_RULES for name in leftover_names},
+        {name: MODEL_METADATA_COLUMN_RULES for name in metadata_names},
     )
-    harmonized_model_metadata_df = pd.concat(
-        [df[MODEL_METADATA_REQUIRED_COLUMNS] for df in model_metadata_files.values()],
-        ignore_index=True,
-    )
+    stamped_metadata = []
+    for name in metadata_names:
+        frame = datasets[name][MODEL_METADATA_REQUIRED_COLUMNS].copy()
+        frame["model"] = metadata_map[name]
+        stamped_metadata.append(frame)
+    harmonized_model_metadata_df = pd.concat(stamped_metadata, ignore_index=True)
     # Cast the join key to string before de-duplicating so 51503 and "51503" collapse
     # to one row rather than surviving as two and fanning the merge out.
     harmonized_model_metadata_df["individualid"] = harmonized_model_metadata_df[
@@ -439,7 +479,12 @@ def transform_protein_de_individual(
         + ", ".join(f"{group}={files}" for group, files in files_by_model_group.items())
     )
 
-    known_individuals = set(harmonized_model_metadata_df["individualid"])
+    known_individuals = set(
+        zip(
+            harmonized_model_metadata_df["individualid"],
+            harmonized_model_metadata_df["model"],
+        )
+    )
 
     output = []
     for model_group, file_names in files_by_model_group.items():
@@ -449,7 +494,10 @@ def transform_protein_de_individual(
                 file_name, datasets[file_name], model_map[file_name]
             )
             _check_metadata_coverage(
-                file_name, long_df["individualid"], known_individuals
+                file_name,
+                long_df["individualid"],
+                model_map[file_name],
+                known_individuals,
             )
             long_frames.append(long_df)
 
