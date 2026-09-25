@@ -449,6 +449,24 @@ validator.expect_column_values_to_match_regex(
 )
 ```
 
+### Suggest `expect_table_columns_to_match_set` by default
+
+For most datasets, suggest one table-level `expect_table_columns_to_match_set` call listing every
+column in the transform's output, with `exact_match=True` — it catches a renamed/added/dropped
+column that no per-column expectation would notice. Skip the suggestion for suites with a
+legitimately variable column set (e.g. `ui_config`).
+
+```python
+validator.expect_table_columns_to_match_set(
+    column_set=["name", "matched_control", "model_type", "..."],
+    exact_match=True,
+)
+```
+
+For an Option B (hand-written JSON) suite, add it as the first entry in `expectations` instead
+(see `protein_de_individual.json`); for Option A, add it in its own cell right after the validator
+is created (see `disease_correlation.ipynb`).
+
 ---
 
 ### ⚠️ GX dedups expectations by domain (`type` + column + `row_condition`)
@@ -757,3 +775,4 @@ Check the output for GX validation results.
 | `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Keeping Related Constraints in Sync" → "Internal sync" |
 | Suite `.json` edited by hand for an Option A dataset, notebook left unchanged | Only `rna_de_aggregate`/`rna_de_individual` use Option B. For every other dataset, edit the `.ipynb` (Cell 0 import + the column's `validator.expect_...()` call) and regenerate via `nbconvert` — see Step 4 |
 | Notebook left with execution outputs after `nbconvert --execute` | Strip immediately after executing — as part of generation, not at commit time — with `pre-commit run nbstripout --files <notebook>`. All suite notebooks are kept output-free. `nbstripout` isn't a standalone command, so go through `pre-commit`; don't install a git commit hook — see Step 4 |
+| Suite missing a table-level schema-drift check | For most new or modified suites, suggest one `expect_table_columns_to_match_set(column_set=[...], exact_match=True)` listing all of the transform's output columns — unless the column set is intentionally variable (e.g. `ui_config`) — see "Suggest `expect_table_columns_to_match_set` by default" in Step 3 |
