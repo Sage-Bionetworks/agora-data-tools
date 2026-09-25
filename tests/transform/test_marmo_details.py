@@ -160,12 +160,26 @@ class TestTransformMarmoDetails:
                 -1,
                 r"column 'display_order'.*rule 'non_negative'",
             ),
+            (
+                "marmo_genotype_label_map",
+                "result_order",
+                "first",
+                r"column 'result_order'.*rule 'numeric'",
+            ),
+            (
+                "marmo_genotype_label_map",
+                "result_order",
+                -1,
+                r"column 'result_order'.*rule 'non_negative'",
+            ),
         ],
         ids=[
             "non-numeric collection age",
             "negative collection age",
             "non-numeric display order",
             "negative display order",
+            "non-numeric result order",
+            "negative result order",
         ],
     )
     def test_marmo_details_rejects_invalid_numeric_values(
@@ -512,6 +526,16 @@ class TestBuildBiomarkers:
             }
         )
 
+    def _genotype_map(self):
+        """Mirrors what marmo_genotype_label_map emits."""
+        return pd.DataFrame(
+            {
+                "model": ["Presenilin1", "Presenilin1"],
+                "display_label": ["Matched Control", "Presenilin-1"],
+                "result_order": [1, 2],
+            }
+        )
+
     @pytest.mark.parametrize(
         "display_orders,expected_order",
         [
@@ -540,7 +564,7 @@ class TestBuildBiomarkers:
         and break each measure's run of ascending ages."""
         measurements = self._measurements().assign(display_order=display_orders)
 
-        biomarkers = _build_biomarkers(measurements, "Presenilin1")
+        biomarkers = _build_biomarkers(measurements, "Presenilin1", self._genotype_map())
 
         assert [(b["evidence_type"], b["age"]) for b in biomarkers] == expected_order
 
@@ -549,8 +573,42 @@ class TestBuildBiomarkers:
         nest_fields emits keys in column order. Points are ordered by the numeric individualid,
         so animal 2 precedes animal 10 rather than sorting lexicographically as the stringified
         individual_id would."""
-        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
+        biomarkers = _build_biomarkers(
+            self._measurements(), "Presenilin1", self._genotype_map()
+        )
 
         points = biomarkers[0]["data"]
         assert list(points[0].keys()) == ["individual_id", "value", "sex", "genotype"]
         assert [point["individual_id"] for point in points] == ["2", "10"]
+
+    def test_result_order_added_for_every_biomarker(self):
+        """
+        result_order is computed once per model and added into every biomarker, ordered
+        by the genotype_map's result_order column.
+        """
+        biomarkers = _build_biomarkers(
+            self._measurements(), "Presenilin1", self._genotype_map()
+        )
+
+        assert len(biomarkers) > 1
+        for biomarker in biomarkers:
+            assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
+
+    def test_result_order_follows_genotype_map_not_row_order(self):
+        """
+        Final result_order must reflect genotype_map's 'result_order' values, not the order the
+        label appears in the data.
+        """
+        scrambled_genotype_map = pd.DataFrame(
+            {
+                "model": ["Presenilin1", "Presenilin1"],
+                "display_label": ["Presenilin-1", "Matched Control"],
+                "result_order": [2, 1],
+            }
+        )
+        biomarkers = _build_biomarkers(
+            self._measurements(), "Presenilin1", scrambled_genotype_map
+        )
+        for biomarker in biomarkers:
+            assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
+
