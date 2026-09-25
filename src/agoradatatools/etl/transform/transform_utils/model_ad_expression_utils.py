@@ -5,8 +5,6 @@ Used by rna_de_individual, protein_de_individual, and rna_de_aggregate. The geno
 label map pieces in particular are a shared contract: all three transforms use the same
 file and need to perform the same operations on that data. Changing anything here changes
 all three datasets.
-
-filter_to_mouse_genes and preprocess_data_file are still RNA-only.
 """
 
 import logging
