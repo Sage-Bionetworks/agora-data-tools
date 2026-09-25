@@ -13,6 +13,7 @@ from agoradatatools.etl.transform.protein_de_individual import (
     _measured_header_pairs,
     _melt_proteomics_file,
     _resolve_gene_ids,
+    _validate_file_maps,
 )
 
 
@@ -240,6 +241,53 @@ class TestMeltProteomicsFile:
             _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
 
 
+class TestValidateFileMaps:
+    datasets = {
+        **{name: pd.DataFrame() for name in REQUIRED_INPUT},
+        "proteomics_file": pd.DataFrame(),
+        "load2_harmonized_metadata": pd.DataFrame(),
+    }
+
+    def test_valid_maps_do_not_raise(self) -> None:
+        """Claimed files and known models pass."""
+        _validate_file_maps(
+            self.datasets,
+            {"proteomics_file": "LOAD2"},
+            {"load2_harmonized_metadata": "LOAD2"},
+            REQUIRED_INPUT,
+            {"LOAD2"},
+        )
+
+    @pytest.mark.parametrize(
+        "model_map,metadata_map",
+        [
+            (
+                {"proteomics_file": "LOAD2", "genotype_label_map": "LOAD2"},
+                {"load2_harmonized_metadata": "LOAD2"},
+            ),
+            (
+                {"proteomics_file": "LOAD2"},
+                {
+                    "load2_harmonized_metadata": "LOAD2",
+                    "genotype_label_map": "LOAD2",
+                },
+            ),
+        ],
+    )
+    def test_required_input_key_in_a_map_raises(
+        self, model_map: dict[str, str], metadata_map: dict[str, str]
+    ) -> None:
+        """A required input listed in model_map or metadata_map raises."""
+        with pytest.raises(ValueError, match="required inputs"):
+            _validate_file_maps(
+                self.datasets,
+                model_map,
+                metadata_map,
+                REQUIRED_INPUT,
+                {"LOAD2"},
+            )
+
+
 class TestTransformProteinDeIndividual:
     data_files_path = "tests/test_assets/protein_de_individual"
 
@@ -252,16 +300,24 @@ class TestTransformProteinDeIndividual:
 
     @staticmethod
     def _transform(
-        datasets: dict[str, pd.DataFrame], model_map: dict[str, str] = None
+        datasets: dict[str, pd.DataFrame],
+        model_map: dict[str, str] = None,
+        metadata_map: dict[str, str] = None,
     ) -> list[dict[str, Any]]:
-        """Run the transform, defaulting unnamed data files to LOAD2."""
+        """Run the transform, defaulting unnamed data files and metadata files to LOAD2."""
         if model_map is None:
             model_map = {
                 key: "LOAD2"
                 for key in datasets
                 if key not in REQUIRED_INPUT and not key.endswith("harmonized_metadata")
             }
-        return transform_protein_de_individual(datasets=datasets, model_map=model_map)
+        if metadata_map is None:
+            metadata_map = {
+                key: "LOAD2" for key in datasets if key.endswith("harmonized_metadata")
+            }
+        return transform_protein_de_individual(
+            datasets=datasets, model_map=model_map, metadata_map=metadata_map
+        )
 
     def _build_datasets(
         self,
@@ -759,18 +815,11 @@ class TestTransformProteinDeIndividual:
                 "result_order": [2, 1, 1, 2, 3, 4],
             },
             harmonized={
-                "individualid": ["i1", "i2", "i3", "i4", "i5", "i6"],
-                "sex": ["male"] * 6,
-                "agedeath": [4.0] * 6,
-                "genotype": [
-                    "geno_hom",
-                    "geno_wt",
-                    "fad_non",
-                    "bin1_hom",
-                    "fad_car",
-                    "fad_car_bin1",
-                ],
-                "tissue": ["right cerebral hemisphere"] * 6,
+                "individualid": ["i1", "i2"],
+                "sex": ["male"] * 2,
+                "agedeath": [4.0] * 2,
+                "genotype": ["geno_hom", "geno_wt"],
+                "tissue": ["right cerebral hemisphere"] * 2,
             },
             data_file={
                 "specimenid": ["c1", "c2"],
@@ -793,6 +842,24 @@ class TestTransformProteinDeIndividual:
                 "gene1|p00001": [5.0, 6.0],
             }
         )
+        datasets["bin1_harmonized_metadata"] = pd.DataFrame(
+            {
+                "individualid": ["i3", "i4"],
+                "sex": ["male"] * 2,
+                "agedeath": [4.0] * 2,
+                "genotype": ["fad_non", "bin1_hom"],
+                "tissue": ["right cerebral hemisphere"] * 2,
+            }
+        )
+        datasets["bin1_fad_harmonized_metadata"] = pd.DataFrame(
+            {
+                "individualid": ["i5", "i6"],
+                "sex": ["male"] * 2,
+                "agedeath": [4.0] * 2,
+                "genotype": ["fad_car", "fad_car_bin1"],
+                "tissue": ["right cerebral hemisphere"] * 2,
+            }
+        )
 
         output = self._transform(
             datasets,
@@ -800,6 +867,11 @@ class TestTransformProteinDeIndividual:
                 "load2_file": "LOAD2",
                 "bin1_file": "Bin1-K358R",
                 "bin1_fad_file": "Bin1-K358R.5xFAD",
+            },
+            metadata_map={
+                "load2_harmonized_metadata": "LOAD2",
+                "bin1_harmonized_metadata": "Bin1-K358R",
+                "bin1_fad_harmonized_metadata": "Bin1-K358R.5xFAD",
             },
         )
 
@@ -872,14 +944,61 @@ class TestTransformProteinDeIndividual:
         datasets = self._build_datasets()
 
         with pytest.raises(ValueError, match=error):
-            transform_protein_de_individual(datasets=datasets, model_map=model_map)
+            transform_protein_de_individual(
+                datasets=datasets,
+                model_map=model_map,
+                metadata_map={"load2_harmonized_metadata": "LOAD2"},
+            )
+
+    @pytest.mark.parametrize(
+        "metadata_map,error",
+        [
+            (None, "No metadata_map provided"),
+            (
+                {"typo_metadata": "LOAD2"},
+                "not files in this dataset",
+            ),
+            (
+                {"load2_harmonized_metadata": "LOAD3"},
+                "absent from the genotype label map",
+            ),
+        ],
+    )
+    def test_invalid_metadata_map_raises(
+        self, metadata_map: dict[str, str], error: str
+    ) -> None:
+        """A missing, typo'd, or unlabeled metadata_map raises."""
+        datasets = self._build_datasets()
+
+        with pytest.raises(ValueError, match=error):
+            transform_protein_de_individual(
+                datasets=datasets,
+                model_map={"proteomics_file": "LOAD2"},
+                metadata_map=metadata_map,
+            )
+
+    def test_file_in_both_maps_raises(self) -> None:
+        """A file listed in both model_map and metadata_map raises."""
+        datasets = self._build_datasets()
+
+        with pytest.raises(ValueError, match="both model_map and metadata_map"):
+            transform_protein_de_individual(
+                datasets=datasets,
+                model_map={
+                    "proteomics_file": "LOAD2",
+                    "load2_harmonized_metadata": "LOAD2",
+                },
+                metadata_map={"load2_harmonized_metadata": "LOAD2"},
+            )
 
     def test_data_file_missing_from_model_map_raises(self) -> None:
         """A proteomics file left out of model_map is not read as metadata."""
         datasets = self._build_datasets()
         datasets["second_proteomics_file"] = datasets["proteomics_file"]
 
-        with pytest.raises(ValueError, match="not in model_map") as excinfo:
+        with pytest.raises(
+            ValueError, match="not in model_map or metadata_map"
+        ) as excinfo:
             self._transform(datasets, model_map={"proteomics_file": "LOAD2"})
 
         assert "second_proteomics_file" in str(excinfo.value)
