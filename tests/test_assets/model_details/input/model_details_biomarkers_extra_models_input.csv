@@ -7,3 +7,5 @@ mouse3,3xTg-AD,Soluble beta42,15.7,pg/ml,4,Hippocampus,Female,transgenic
 mouse6,hTau,Tau,22.4,ng/ml,6,Hippocampus,Male,transgenic
 mouse7,hTau,Tau,24.8,ng/ml,6,Hippocampus,Female,transgenic
 mouse8,hTau,Phospho-tau,18.3,ng/ml,12,Cortex,Male,transgenic
+mouse9,ExtraModel1,Tau,20.1,ng/ml,6,Hippocampus,Male,transgenic
+mouse10,ExtraModel2,Tau,19.5,ng/ml,6,Hippocampus,Female,transgenic
