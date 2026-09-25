@@ -17,6 +17,10 @@
         "age": "0-1 years",
         "units": "pg/mL",
         "y_axis_max": 250.0,
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
+        ],
         "data": [
           {
             "individual_id": "1",
@@ -32,6 +36,10 @@
         "age": "1-2 years",
         "units": "pg/mL",
         "y_axis_max": 250.0,
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
+        ],
         "data": [
           {
             "individual_id": "2",
@@ -47,6 +55,10 @@
         "age": "0-1 years",
         "units": "",
         "y_axis_max": 0.25,
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
+        ],
         "data": [
           {
             "individual_id": "1",
@@ -62,6 +74,10 @@
         "age": "1-2 years",
         "units": "",
         "y_axis_max": 0.25,
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
+        ],
         "data": [
           {
             "individual_id": "2",
@@ -77,6 +93,10 @@
         "age": "0-1 years",
         "units": "pg/mL",
         "y_axis_max": 55.0,
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
+        ],
         "data": [
           {
             "individual_id": "1",
