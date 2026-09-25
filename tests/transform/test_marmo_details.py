@@ -136,28 +136,6 @@ class TestTransformMarmoDetails:
         with pytest.raises(ValueError, match="Missing required columns"):
             transform_marmo_details(datasets=datasets)
 
-    @pytest.mark.parametrize(
-        "qc_fail_column,expected_biomarkers",
-        [
-            # Failing the control's Ab QC drops its ab40/ab_ratio points, leaving those 0-1 yr
-            # buckets with only the Presenilin-1 animal - single-genotype, so the genotype filter
-            # then removes them. Only GFAP (neuro QC still PASS) keeps both genotypes.
-            ("qc_ab", {("GFAP", "0-1 years")}),
-            # Symmetric: failing neuro QC drops the control's GFAP point, so GFAP goes single-genotype
-            # and is removed, while the Ab plots keep both genotypes.
-            (
-                "qc_neuro",
-                {
-                    ("A&beta;40", "0-1 years"),
-                    ("A&beta;42/A&beta;40", "0-1 years"),
-                },
-            ),
-        ],
-        ids=[
-            "ab QC failure -> ab buckets go single-genotype and drop",
-            "neuro QC failure -> gfap goes single-genotype and drops",
-        ],
-    )
     def _set_bad_value(self, datasets, dataset, column, bad_value):
         """Overwrite the first row of a column, which every rule below scans in full."""
         frame = datasets[dataset]
