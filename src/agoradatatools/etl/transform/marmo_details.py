@@ -23,6 +23,9 @@ from agoradatatools.etl.utils import (
     validate_one_to_one_mapping,
     validate_references_exist,
 )
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    determine_result_order,
+)
 
 
 REQUIRED_INPUT = {
@@ -306,7 +309,9 @@ def _build_measurements(
 
 
 def _build_biomarkers(
-    measurements: pd.DataFrame, model_name: str
+    measurements: pd.DataFrame,
+    model_name: str,
+    genotype_map: pd.DataFrame,
 ) -> List[Dict[str, Any]]:
     """Assemble one model's biomarkers collection from its measurements.
 
@@ -314,9 +319,14 @@ def _build_biomarkers(
     the per-evidence_type maximum across all ages, applied to every one of its buckets, as in the
     mouse immunohisto pipeline.
 
+    Every biomarker also gets a result_order, which lists this model's display labels in the
+    order genotype_map assigns them.
+
     Args:
         measurements (pd.DataFrame): The per-measurement DataFrame from _build_measurements.
         model_name (str): The model name to stamp on each biomarker object.
+        genotype_map (pd.DataFrame): marmo_genotype_label_map, used to order this model's display
+            labels.
 
     Returns:
         List[Dict[str, Any]]: The sorted biomarkers collection.
@@ -359,8 +369,24 @@ def _build_biomarkers(
     grouped["name"] = model_name
     grouped["y_axis_max"] = grouped["evidence_type"].map(y_axis_max_map).astype(float)
 
+    # Assign result_order to the grouped measurements, based on the model's genotype mapping.
+    # The measurements are on the left side of the merge, so that unmatched display_label
+    # are excluded (thus satisfying determine_result_order's precondition).
+    model_genotype_map = genotype_map[genotype_map["model"] == model_name][
+        ["display_label", "result_order"]
+    ]
+    model_genotype_map["result_order"] = pd.to_numeric(
+        model_genotype_map["result_order"]
+    )
+    labeled_measurements = measurements.merge(
+        model_genotype_map,
+        on="display_label",
+        how="left",
+    )
+    grouped["result_order"] = [determine_result_order(labeled_measurements)] * len(grouped)
+
     return grouped[
-        ["name", "evidence_type", "age", "units", "y_axis_max", "data"]
+        ["name", "evidence_type", "age", "units", "y_axis_max", "data", "result_order"]
     ].to_dict(orient="records")
 
 
@@ -393,6 +419,8 @@ def transform_marmo_details(
            measures with different coverage produce different bucket sets on one model page.
         6. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
            computed per model via round_y_axis_max.
+        7. Each biomarker includes a result_order, which reflects the order of the display labels
+           present in each model's data.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
@@ -424,7 +452,11 @@ def transform_marmo_details(
         # (model_type, study_synid). We can safely take the first row to extract these fields.
         model_row = model_rows.iloc[0]
         model_measurements = measurements[measurements["model"] == model_name]
-        biomarkers = _build_biomarkers(model_measurements, model_name)
+        biomarkers = _build_biomarkers(
+            model_measurements,
+            model_name,
+            datasets["marmo_genotype_label_map"]
+        )
         genetic_info = model_rows[
             ["modified_gene", "ensembl_gene_id", "allele_type"]
         ].to_dict(orient="records")
