@@ -38,6 +38,7 @@ REQUIRED_INPUT = {
         "model",
         "genotype",
         "display_label",
+        "result_order",
     ],
     "marmo_biomarker_measure_info": [
         "result_column",
@@ -70,6 +71,7 @@ COLUMN_RULES = {
         "model": [NotEmptyRule()],
         "genotype": [NotEmptyRule()],
         "display_label": [NotEmptyRule()],
+        "result_order": [NotEmptyRule(), NumericRule(), NonNegativeRule()],
     },
     "marmo_biomarker_measure_info": {
         "result_column": [NotEmptyRule()],
