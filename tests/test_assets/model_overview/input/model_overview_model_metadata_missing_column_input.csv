@@ -1,4 +1,4 @@
-name,matched_controls,model_type,contributing_group,study_synid,rrid,jax_id,alzforum_id,genotype,aliases,url_categories_value,url_models_value,transcriptomics,disease_correlation,pathology
-3xTg-AD,B6129,Familial AD,UCI,syn22964685,MMRRC_034830-JAX,4807,3xtg,"B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",3xTg,,,True,,True
-5xFAD (UCI),C57BL6J,Familial AD,UCI,syn16798076,MMRRC_034848-JAX,8730,5xfad-c57bl6,"B6.Cg-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax","5XFAD, 5x-FAD, Tg6799",,,True,,True
-APOE4,C57BL6J,Late Onset AD,IU/JAX/PITT,syn17095980,IMSR_JAX:027894,27894,apoe4-knock-jax,B6(SJL)-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup></i>/J,"APOE4 KI, APOE*4 KI",,,True,True,
+name,matched_controls,model_type,contributing_group,study_synid,rrid,jax_id,alzforum_id,genotype,aliases,transcriptomics_url_categories_value,transcriptomics_url_models_value,transcriptomics,disease_correlation,pathology,proteomics,proteomics_url_categories_value,proteomics_url_models_value
+3xTg-AD,B6129,Familial AD,UCI,syn22964685,MMRRC_034830-JAX,4807,3xtg,"B6;129-Tg(APPSwe,tauP301L)1Lfa <i>Psen1<sup>tm1Mpm</sup></i>/Mmjax",3xTg,,,True,,True,,,
+5xFAD (UCI),C57BL6J,Familial AD,UCI,syn16798076,MMRRC_034848-JAX,8730,5xfad-c57bl6,"B6.Cg-Tg(APPSwFlLon,PSEN1*M146L*L286V)6799Vas/Mmjax","5XFAD, 5x-FAD, Tg6799",,,True,,True,,,
+APOE4,C57BL6J,Late Onset AD,IU/JAX/PITT,syn17095980,IMSR_JAX:027894,27894,apoe4-knock-jax,B6(SJL)-<i>Apoe<sup>tm1.1(APOE*4)Adiuj</sup></i>/J,"APOE4 KI, APOE*4 KI",,,True,True,,,,

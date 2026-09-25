@@ -1,0 +1,5 @@
+model,genotype,display_label
+Presenilin1,WT,Matched Control
+Presenilin1,PSEN1-C410Y_Y410/Y410,Presenilin-1
+SomeOtherModel,WT,Matched Control
+SomeOtherModel,NOTCH3-E4_wt/+1,Notch3
