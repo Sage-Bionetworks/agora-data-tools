@@ -564,7 +564,9 @@ class TestBuildBiomarkers:
         and break each measure's run of ascending ages."""
         measurements = self._measurements().assign(display_order=display_orders)
 
-        biomarkers = _build_biomarkers(measurements, "Presenilin1", self._genotype_map())
+        biomarkers = _build_biomarkers(
+            measurements, "Presenilin1", self._genotype_map()
+        )
 
         assert [(b["evidence_type"], b["age"]) for b in biomarkers] == expected_order
 
@@ -611,4 +613,3 @@ class TestBuildBiomarkers:
         )
         for biomarker in biomarkers:
             assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
-

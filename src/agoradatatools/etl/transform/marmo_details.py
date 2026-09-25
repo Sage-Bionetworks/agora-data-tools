@@ -383,10 +383,20 @@ def _build_biomarkers(
         on="display_label",
         how="left",
     )
-    grouped["result_order"] = [determine_result_order(labeled_measurements)] * len(grouped)
+    grouped["result_order"] = [determine_result_order(labeled_measurements)] * len(
+        grouped
+    )
 
     return grouped[
-        ["name", "evidence_type", "age", "units", "y_axis_max", "data", "result_order"]
+        [
+            "name",
+            "evidence_type",
+            "age",
+            "units",
+            "y_axis_max",
+            "data",
+            "result_order",
+        ]
     ].to_dict(orient="records")
 
 
@@ -455,7 +465,7 @@ def transform_marmo_details(
         biomarkers = _build_biomarkers(
             model_measurements,
             model_name,
-            datasets["marmo_genotype_label_map"]
+            datasets["marmo_genotype_label_map"],
         )
         genetic_info = model_rows[
             ["modified_gene", "ensembl_gene_id", "allele_type"]
