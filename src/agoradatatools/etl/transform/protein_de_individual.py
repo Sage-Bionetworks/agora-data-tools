@@ -37,7 +37,9 @@ logger = logging.getLogger(__name__)
 
 UNITS = "Log2 Relative Abundance"
 
-# JAX-confirmed right-closed ageDeath buckets: <=6 -> 4 months, then 8, 12, 18, 24.
+# JAX-confirmed right-closed ageDeath buckets (confirmed with Annat):
+# <=6 -> 4 months, >6 and <=10 -> 8, >10 and <=16 -> 12, >16 and <=20 -> 18, >20 -> 24.
+# 14.2 months is a 12-month animal. Jax studies use wide ranges for each age group.
 AGE_BINS = [float("-inf"), 6, 10, 16, 20, float("inf")]
 AGE_LABELS = [4, 8, 12, 18, 24]
 
