@@ -13,7 +13,7 @@ files:
   - &ui_config                    { name: ui_config                    , format: json , id: syn66527739 }
   # Marmoset source files
   - &marmo_model_metadata         { name: marmo_model_metadata         , format: csv  , id: syn76417166.1 }
-  - &marmo_genotype_label_map     { name: marmo_genotype_label_map     , format: csv  , id: syn76417167.2 }
+  - &marmo_genotype_label_map     { name: marmo_genotype_label_map     , format: csv  , id: syn76417167.4 }
   - &marmo_biomarker_measure_info { name: marmo_biomarker_measure_info , format: csv  , id: syn76417168.1 }
   - &marmo_individual_metadata    { name: marmo_individual_metadata    , format: csv  , id: syn63926850.19 }
   - &marmo_biomaterial_metadata   { name: marmo_biomaterial_metadata   , format: csv  , id: syn74444970.5 }
