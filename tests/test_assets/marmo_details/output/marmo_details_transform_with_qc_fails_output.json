@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Presenilin1",
+    "model_type": "Familial AD",
+    "study_synid": "syn61849889",
+    "genetic_info": [
+      {
+        "modified_gene": "PSEN1",
+        "ensembl_gene_id": "ENSCJAG00000021617",
+        "allele_type": "Endonuclease-mediated"
+      }
+    ],
+    "biomarkers": [
+      {
+        "name": "Presenilin1",
+        "evidence_type": "GFAP",
+        "age": "0-1 years",
+        "units": "pg/mL",
+        "y_axis_max": 60.0,
+        "data": [
+          {
+            "individual_id": "1",
+            "value": 50.0,
+            "sex": "Male",
+            "genotype": "Matched Control"
+          },
+          {
+            "individual_id": "5",
+            "value": 55.0,
+            "sex": "Female",
+            "genotype": "Presenilin-1"
+          }
+        ]
+      }
+    ]
+  }
+]
