@@ -8,7 +8,7 @@ from agoradatatools.etl.transform.marmo_details import (
     _apply_qc_masks,
     _build_biomarkers,
     _build_measurements,
-    _compute_y_axis_max_map,
+    _compute_y_axis_max,
     _drop_single_genotype_buckets,
     _fill_age_gaps,
     _prepare_measure_info,
@@ -860,7 +860,7 @@ class TestComputeYAxisMaxMap:
             [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
         )
 
-        assert _compute_y_axis_max_map(measurements, None) == {
+        assert _compute_y_axis_max(measurements, None) == {
             "A&beta;40": round_y_axis_max(500.0)
         }
 
@@ -873,7 +873,7 @@ class TestComputeYAxisMaxMap:
             ]
         )
 
-        assert _compute_y_axis_max_map(measurements, {"ab40_pg_ml": 200}) == {
+        assert _compute_y_axis_max(measurements, {"ab40_pg_ml": 200}) == {
             "A&beta;40": round_y_axis_max(100.0)
         }
 
@@ -883,7 +883,7 @@ class TestComputeYAxisMaxMap:
             [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 200.0)]
         )
 
-        assert _compute_y_axis_max_map(measurements, {"ab40_pg_ml": 200}) == {
+        assert _compute_y_axis_max(measurements, {"ab40_pg_ml": 200}) == {
             "A&beta;40": round_y_axis_max(200.0)
         }
 
@@ -897,7 +897,7 @@ class TestComputeYAxisMaxMap:
             ]
         )
 
-        assert _compute_y_axis_max_map(measurements, {"ab40_pg_ml": 200}) == {
+        assert _compute_y_axis_max(measurements, {"ab40_pg_ml": 200}) == {
             "A&beta;40": round_y_axis_max(150.0),
             "GFAP": round_y_axis_max(900.0),
         }
@@ -908,7 +908,7 @@ class TestComputeYAxisMaxMap:
             [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
         )
 
-        assert _compute_y_axis_max_map(measurements, {"Ab40_pg.ml": 200}) == {
+        assert _compute_y_axis_max(measurements, {"Ab40_pg.ml": 200}) == {
             "A&beta;40": round_y_axis_max(100.0)
         }
 
@@ -918,7 +918,7 @@ class TestComputeYAxisMaxMap:
         )
 
         with pytest.raises(ValueError, match="A&beta;40"):
-            _compute_y_axis_max_map(measurements, {"ab40_pg_ml": 200})
+            _compute_y_axis_max(measurements, {"ab40_pg_ml": 200})
 
 
 class TestApplyQcMasks:

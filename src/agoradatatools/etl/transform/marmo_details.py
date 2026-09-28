@@ -457,6 +457,53 @@ def _compute_y_axis_max_map(
     return y_axis_max_map
 
 
+def _compute_y_axis_max(
+    measurements: pd.DataFrame, y_axis_cutoff: Dict[str, float] = None
+) -> Dict[str, float]:
+    """Compute the per-evidence_type y_axis_max, optionally gating out above-cutoff values.
+
+    y_axis_max is round_y_axis_max of the maximum value in each evidence_type group. When a
+    y_axis_cutoff map is provided, values whose measure (result_column_std) has a cutoff and whose
+    value exceeds it are excluded from the max only - they still appear in the output data points.
+    This keeps a rare high outlier visible without stretching the axis to fit it.
+
+    Args:
+        measurements (pd.DataFrame): One model's retained measurements (i.e. after single-genotype
+            buckets are dropped), carrying result_column_std, evidence_type, and value.
+        y_axis_cutoff (Dict[str, float], optional): Map of result_column_std to a per-measure cutoff.
+            Keys are run through standardize_column_name so raw/mixed-case forms still match. A value
+            is included in the calculation when value <= cutoff. Measures with no entry are uncapped.
+            Defaults to None (no gating; current behavior).
+
+    Returns:
+        Dict[str, float]: evidence_type -> y_axis_max.
+
+    Raises:
+        ValueError: If a cutoff removes every value for an evidence_type, leaving nothing to base the
+            axis on (the cutoff is set too low for the data).
+    """
+    gated = measurements
+    if y_axis_cutoff:
+        normalized = {
+            standardize_column_name(measure): cutoff
+            for measure, cutoff in y_axis_cutoff.items()
+        }
+        cutoffs = measurements["result_column_std"].map(normalized)
+        over_cutoff = cutoffs.notna() & (measurements["value"] > cutoffs)
+        gated = measurements[~over_cutoff]
+
+    y_axis_max_map = {}
+    for evidence_type in measurements["evidence_type"].unique():
+        gated_group = gated[gated["evidence_type"] == evidence_type]
+        if gated_group.empty:
+            raise ValueError(
+                f"y_axis_cutoff removes every value for evidence_type '{evidence_type}'; "
+                "the cutoff is set too low. Raise it or remove it for this measure."
+            )
+        y_axis_max_map[str(evidence_type)] = round_y_axis_max(gated_group["value"].max())
+    return y_axis_max_map
+
+
 def _build_biomarkers(
     measurements: pd.DataFrame,
     model_name: str,
@@ -493,7 +540,7 @@ def _build_biomarkers(
     if measurements.empty:
         return []
 
-    y_axis_max_map = _compute_y_axis_max_map(measurements, y_axis_cutoff)
+    y_axis_max_map = _compute_y_axis_max(measurements, y_axis_cutoff)
 
     # Shape the data-point columns before nesting so nest_fields emits the output dicts directly.
     data_points = measurements.copy()
@@ -506,11 +553,6 @@ def _build_biomarkers(
     # Sort on numeric individualid, not the string individual_id copy made above: as strings, animals would
     # order 1, 10, 2.
     data_points = data_points.sort_values(["individualid", "value"])
-
-    # store the genotype for later
-    model_genotype = next(
-        label for label in data_points["genotype"].unique() if label != "Matched Control"
-    )
 
     # nest_fields emits dict keys in column order, so nest_cols order is the data-point key order.
     group_cols = ["evidence_type", "age", "units", "display_order", "age_start"]
@@ -590,6 +632,10 @@ def transform_marmo_details(
             map, supplied via the dict form of custom_transformations in the config. Values above a
             measure's cutoff are excluded from its y_axis_max but kept in the data points. Defaults to
             None (no gating; y_axis_max fits all data).
+        y_axis_cutoff (Dict[str, float], optional): Optional per-measure (result_column_std) cutoff
+            map, supplied via the dict form of custom_transformations in the config. Values above a
+            measure's cutoff are excluded from its y_axis_max calculation but kept in the data.
+            Defaults to None (no gating; y_axis_max fits all data).
 
     Returns:
         List[Dict[str, Any]]: One model detail dictionary per model in marmo_model_metadata.
