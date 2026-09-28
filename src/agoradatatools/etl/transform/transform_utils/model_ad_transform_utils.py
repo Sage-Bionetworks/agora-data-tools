@@ -9,7 +9,6 @@ Functions:
     remap_sex_labels - convert any plural sex values to singular form for consistent display
 """
 
-from typing import Union
 import pandas as pd
 
 from agoradatatools.etl.utils import normalize_null_values
@@ -80,7 +79,7 @@ def process_genetic_modifications(
 
 def build_expression_results_url(
     model_row: pd.Series, result_type: str = "transcriptomics"
-) -> Union[str, None]:
+) -> str | None:
     """
     Creates the link-url to the comparison table for a given model and result type. Currently supported result
     types are "transcriptomics" and "proteomics", where the default is "transcriptomics".
