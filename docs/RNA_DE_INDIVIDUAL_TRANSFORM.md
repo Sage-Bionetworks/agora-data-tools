@@ -58,7 +58,7 @@ The transform requires three types of input:
    - **Purpose:** Produces the label map DataFrame used for genotype enrichment
 
 2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
-   - Imported from `rna_de_individual_utils` module
+   - Imported from `model_ad_expression_utils` module
    - Maps Ensembl gene IDs to gene symbols
    - **Purpose:** Enriches output with human-readable gene names
 
@@ -79,7 +79,7 @@ Applied to each file individually before it is combined within its group:
 - **Empty file validation:** Raises error if file is empty
 - **Column validation:** Checks all required columns are present (defined by `DATA_FILE_REQUIRED_COLUMNS`)
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
-- **Tissue name mapping:** Replaces `"Right Cerebral Hemisphere"` with `"Hemibrain"` and converts all tissue names to sentence case (e.g., `"hippocampus"` → `"Hippocampus"`). To add a new multi-word mapping, add another `.str.replace()` call to the chain in `preprocess_data_file`.
+- **Tissue name mapping:** Maps `"Right Cerebral Hemisphere"` to `"Hemibrain"`, matching case-insensitively. Any other tissue passes through unchanged apart from surrounding whitespace. To add a mapping, add an entry to `TISSUE_ALIASES` in `model_ad_expression_utils.py`.
 - **Type casting:** Casts `expression` to `float` (guards against string-typed columns from some CSV readers) and casts `individualid` to `str` for consistent identifier handling
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places (runs after the `expression` cast so the round is guaranteed to apply)
 
@@ -373,7 +373,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 ## Related Transforms
 
 - **rna_de_aggregate:** Processes aggregated differential expression (log2FC, adj p-value) data
-- **Utility functions:** `rna_de_individual_utils.py` contains utility functions extracted from this transform for better code organization and potential future reuse
+- **Utility functions:** `model_ad_expression_utils.py` contains utility functions extracted from this transform for better code organization and potential future reuse
 
 ## Example Usage
 
@@ -424,7 +424,7 @@ output = transform_rna_de_individual(
 ### Issue: Unexpected tissue names
 - **Cause:** Tissue names not standardized in input data
 - **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"; all other tissues are converted to sentence case
-- **Solution:** Update input data or add additional `.str.replace()` calls to the tissue mapping chain in `preprocess_data_file` in `rna_de_individual_utils.py`
+- **Solution:** Update input data or add an entry to `TISSUE_ALIASES` in `model_ad_expression_utils.py`
 
 ### Issue: Memory errors with large files
 - **Cause:** Processing very large expression files
