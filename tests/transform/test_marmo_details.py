@@ -842,7 +842,9 @@ class TestBuildBiomarkers:
             )
         ).assign(result_column_std="ab40_pg_ml")
 
-        biomarkers = _build_biomarkers(measurements, model_name="M", y_axis_cutoff={"ab40_pg_ml": 200})
+        biomarkers = _build_biomarkers(
+            measurements, model_name="M", y_axis_cutoff={"ab40_pg_ml": 200}
+        )
 
         assert biomarkers[0]["y_axis_max"] == round_y_axis_max(100.0)
         assert round_y_axis_max(100.0) != round_y_axis_max(500.0)

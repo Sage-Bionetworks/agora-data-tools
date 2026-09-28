@@ -413,11 +413,12 @@ def _fill_age_gaps(grouped: pd.DataFrame) -> pd.DataFrame:
 def _compute_y_axis_max(
     measurements: pd.DataFrame, y_axis_cutoff_map: Dict[str, float] = None
 ) -> Dict[str, float]:
-    """Compute the per-evidence_type y_axis_max, optionally gating out above-cutoff values.
+    """Compute the per-evidence_type y_axis_max, gating out any values above the optional
+    per-evidence_type y_axis_cutoff value specified in config.
 
-    y_axis_max is round_y_axis_max of the maximum value in each evidence_type group. When
+    y_axis_max is round_y_axis_max of the maximum value in the evidence_type group. When
     y_axis_cutoff_map is provided, values whose measure (result_column_std) has a cutoff and whose
-    value exceeds it are excluded from the max only - they still appear in the output data points.
+    value exceeds it are excluded from the max calculation, but are still included in the output data points.
     This keeps a rare high outlier visible without stretching the axis to fit it.
 
     Args:
