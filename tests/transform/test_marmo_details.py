@@ -689,6 +689,37 @@ class TestBuildBiomarkers:
         assert list(points[0].keys()) == ["individual_id", "value", "sex", "genotype"]
         assert [point["individual_id"] for point in points] == ["2", "10"]
 
+    def test_result_order_added_for_every_biomarker(self):
+        """
+        result_order is computed once per model and added into every biomarker, ordered
+        by the genotype_map's result_order column.
+        """
+        biomarkers = _build_biomarkers(
+            self._measurements(), "Presenilin1", self._genotype_map()
+        )
+
+        assert len(biomarkers) > 1
+        for biomarker in biomarkers:
+            assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
+
+    def test_result_order_follows_genotype_map_not_row_order(self):
+        """
+        Final result_order must reflect genotype_map's 'result_order' values, not the order the
+        label appears in the data.
+        """
+        scrambled_genotype_map = pd.DataFrame(
+            {
+                "model": ["Presenilin1", "Presenilin1"],
+                "display_label": ["Presenilin-1", "Matched Control"],
+                "result_order": [2, 1],
+            }
+        )
+        biomarkers = _build_biomarkers(
+            self._measurements(), "Presenilin1", scrambled_genotype_map
+        )
+        for biomarker in biomarkers:
+            assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
+
     def _measurement_rows(
         self, rows, units="pg/mL", display_order=1, evidence_type="A&beta;40"
     ):
@@ -717,7 +748,9 @@ class TestBuildBiomarkers:
             )
         )
 
-        biomarkers = _build_biomarkers(measurements, model_name="M")
+        biomarkers = _build_biomarkers(
+            measurements, model_name="M", genotype_map=self._genotype_map()
+        )
 
         assert [b["age"] for b in biomarkers] == ["0-1 years"]
 
@@ -735,7 +768,9 @@ class TestBuildBiomarkers:
             )
         )
 
-        biomarkers = _build_biomarkers(measurements, model_name="M")
+        biomarkers = _build_biomarkers(
+            measurements, model_name="M", genotype_map=self._genotype_map()
+        )
 
         assert [b["age"] for b in biomarkers] == ["0-1 years"]
         assert biomarkers[0]["y_axis_max"] == round_y_axis_max(100.0)
@@ -753,7 +788,14 @@ class TestBuildBiomarkers:
             )
         )
 
-        assert _build_biomarkers(measurements, model_name="M") == []
+        assert (
+            _build_biomarkers(
+                measurements,
+                model_name="M",
+                genotype_map=self._genotype_map(),
+            )
+            == []
+        )
 
     def test_build_biomarkers_backfills_middle_gap(self):
         """A middle bucket dropped by the genotype filter is backfilled with an empty placeholder."""
@@ -773,7 +815,9 @@ class TestBuildBiomarkers:
             )
         )
 
-        biomarkers = _build_biomarkers(measurements, model_name="M")
+        biomarkers = _build_biomarkers(
+            measurements, model_name="M", genotype_map=self._genotype_map()
+        )
 
         assert [(b["age"], b["data"] == []) for b in biomarkers] == [
             ("0-1 years", False),
@@ -800,7 +844,9 @@ class TestBuildBiomarkers:
             )
         )
 
-        biomarkers = _build_biomarkers(measurements, model_name="M")
+        biomarkers = _build_biomarkers(
+            measurements, model_name="M", genotype_map=self._genotype_map()
+        )
 
         assert [(b["age"], b["data"] == []) for b in biomarkers] == [
             ("0-1 years", True),
@@ -1089,34 +1135,3 @@ class TestFillAgeGaps:
             2,
         ]
         assert self._placeholder_age_starts(b_rows) == {0, 1}
-
-    def test_result_order_added_for_every_biomarker(self):
-        """
-        result_order is computed once per model and added into every biomarker, ordered
-        by the genotype_map's result_order column.
-        """
-        biomarkers = _build_biomarkers(
-            self._measurements(), "Presenilin1", self._genotype_map()
-        )
-
-        assert len(biomarkers) > 1
-        for biomarker in biomarkers:
-            assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
-
-    def test_result_order_follows_genotype_map_not_row_order(self):
-        """
-        Final result_order must reflect genotype_map's 'result_order' values, not the order the
-        label appears in the data.
-        """
-        scrambled_genotype_map = pd.DataFrame(
-            {
-                "model": ["Presenilin1", "Presenilin1"],
-                "display_label": ["Presenilin-1", "Matched Control"],
-                "result_order": [2, 1],
-            }
-        )
-        biomarkers = _build_biomarkers(
-            self._measurements(), "Presenilin1", scrambled_genotype_map
-        )
-        for biomarker in biomarkers:
-            assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]

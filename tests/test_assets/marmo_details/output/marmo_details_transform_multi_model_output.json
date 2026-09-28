@@ -17,36 +17,23 @@
         "age": "0-1 years",
         "units": "pg/mL",
         "y_axis_max": 200.0,
-        "result_order": [
-          "Matched Control",
-          "Presenilin-1"
-        ],
         "data": [
           {
             "individual_id": "1",
             "value": 100.0,
             "sex": "Male",
             "genotype": "Matched Control"
-          }
-        ]
-      },
-      {
-        "name": "Presenilin1",
-        "evidence_type": "A&beta;40",
-        "age": "1-2 years",
-        "units": "pg/mL",
-        "y_axis_max": 250.0,
-        "result_order": [
-          "Matched Control",
-          "Presenilin-1"
-        ],
-        "data": [
+          },
           {
             "individual_id": "5",
             "value": 150.0,
             "sex": "Female",
             "genotype": "Presenilin-1"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
         ]
       },
       {
@@ -55,36 +42,23 @@
         "age": "0-1 years",
         "units": "",
         "y_axis_max": 0.2,
-        "result_order": [
-          "Matched Control",
-          "Presenilin-1"
-        ],
         "data": [
           {
             "individual_id": "1",
             "value": 0.1,
             "sex": "Male",
             "genotype": "Matched Control"
-          }
-        ]
-      },
-      {
-        "name": "Presenilin1",
-        "evidence_type": "A&beta;42/A&beta;40",
-        "age": "1-2 years",
-        "units": "",
-        "y_axis_max": 0.25,
-        "result_order": [
-          "Matched Control",
-          "Presenilin-1"
-        ],
-        "data": [
+          },
           {
             "individual_id": "5",
             "value": 0.15,
             "sex": "Female",
             "genotype": "Presenilin-1"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
         ]
       },
       {
@@ -93,10 +67,6 @@
         "age": "0-1 years",
         "units": "pg/mL",
         "y_axis_max": 60.0,
-        "result_order": [
-          "Matched Control",
-          "Presenilin-1"
-        ],
         "data": [
           {
             "individual_id": "1",
@@ -110,6 +80,10 @@
             "sex": "Female",
             "genotype": "Presenilin-1"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
         ]
       }
     ]
@@ -132,10 +106,6 @@
         "age": "0-1 years",
         "units": "pg/mL",
         "y_axis_max": 350.0,
-        "result_order": [
-          "Matched Control",
-          "Notch3"
-        ],
         "data": [
           {
             "individual_id": "1",
@@ -149,6 +119,10 @@
             "sex": "Male",
             "genotype": "Notch3"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Notch3"
         ]
       },
       {
@@ -157,10 +131,6 @@
         "age": "0-1 years",
         "units": "",
         "y_axis_max": 0.35,
-        "result_order": [
-          "Matched Control",
-          "Notch3"
-        ],
         "data": [
           {
             "individual_id": "1",
@@ -174,6 +144,10 @@
             "sex": "Male",
             "genotype": "Notch3"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Notch3"
         ]
       },
       {
@@ -182,10 +156,6 @@
         "age": "0-1 years",
         "units": "pg/mL",
         "y_axis_max": 65.0,
-        "result_order": [
-          "Matched Control",
-          "Notch3"
-        ],
         "data": [
           {
             "individual_id": "1",
@@ -199,6 +169,10 @@
             "sex": "Male",
             "genotype": "Notch3"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Notch3"
         ]
       }
     ]
