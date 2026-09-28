@@ -832,10 +832,14 @@ class TestBuildBiomarkers:
     def test_build_biomarkers_cutoff_gates_axis_but_keeps_points(self):
         """An above-cutoff value is excluded from y_axis_max but still emitted as a data point."""
         measurements = self._measurement_rows(
-            [
-                (0, "Matched Control", 100.0),
-                (0, "Presenilin-1", 500.0),  # above cutoff: off the axis calc, still in data
-            ]
+            pd.DataFrame(
+                {
+                    "age_start": [0, 0],
+                    "genotype": ["Matched Control", "Presenilin-1"],
+                    # 500 above cutoff: off the axis calc, still in data
+                    "value": [100.0, 500.0],
+                }
+            )
         ).assign(result_column_std="ab40_pg_ml")
 
         biomarkers = _build_biomarkers(measurements, "M", {"ab40_pg_ml": 200})
@@ -845,8 +849,8 @@ class TestBuildBiomarkers:
         assert 500.0 in [point["value"] for point in biomarkers[0]["data"]]
 
 
-class TestComputeYAxisMaxMap:
-    """_compute_y_axis_max_map returns round_y_axis_max of each evidence_type's max value, optionally
+class TestComputeYAxisMax:
+    """_compute_y_axis_max returns round_y_axis_max of each evidence_type's max value, optionally
     excluding values above a per-measure (result_column_std) cutoff from that max."""
 
     def _measurements(self, rows):
