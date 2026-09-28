@@ -503,6 +503,10 @@ class TestNestFields:
     )
 
     def test_nest_fields_with_dropped_column(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries but drops a single column
+        ("d") from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "b": "1", "c": "1"},
@@ -524,6 +528,10 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_with_dropped_column_list(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries and drops multiple columns
+        ("b" and "d") from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "c": "1"},
@@ -545,6 +553,10 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_no_drop_column(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries without dropping any columns
+        from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "b": "1", "c": "1", "d": "1"},
@@ -563,7 +575,62 @@ class TestNestFields:
         nested_df = utils.nest_fields(df=self.df_multirow, grouping="a", new_column="e")
         assert list(nested_df["e"]) == expected_column_e
 
+    def test_nest_fields_with_str_dropped_column_arg(self):
+        """
+        Test that nest_fields accepts a string for the drop_columns argument instead of a list.
+        """
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_singlerow, grouping="a", new_column="e", drop_columns="d"
+        )
+        assert list(nested_df["e"]) == expected_column_e
+
+    def test_nest_fields_grouping_list(self) -> None:
+        """
+        Test that nest_fields correctly handles a DataFrame when the grouping parameter is a list of columns.
+        """
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_multirow,
+            grouping=["a", "b"],
+            new_column="e",
+            drop_columns=["d"],
+        )
+
+        assert nested_df["a"].tolist() == ["group_1", "group_2", "group_3"]
+        assert nested_df["b"].tolist() == ["1", "1", "1"]
+        assert nested_df["e"].tolist() == expected_column_e
+
     def test_nest_fields_multirow_ValueError(self):
+        """
+        Test that nest_fields raises a ValueError when nested_field_is_list is set to False and the DataFrame has
+        multiple rows for the same group.
+        """
         with pytest.raises(ValueError, match="nested_field_is_list *"):
             utils.nest_fields(
                 df=self.df_multirow,
@@ -574,6 +641,10 @@ class TestNestFields:
             )
 
     def test_nest_fields_singlerow_nested_list_false(self):
+        """
+        Test that nest_fields correctly creates nested column "e" with a dictionary in each row instead of a list of
+        dictionaries, when nested_field_is_list is set to False.
+        """
         expected_column_e = [
             {"a": "group_1", "b": "1", "c": "1"},
             {"a": "group_2", "b": "1", "c": "1"},
@@ -590,6 +661,9 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_normalizes_null_values(self) -> None:
+        """
+        Test that nest_fields correctly normalizes null values in the nested dictionaries.
+        """
         df_with_nulls = pd.DataFrame(
             {
                 "a": ["group_1", "group_1", "group_2"],
@@ -620,7 +694,23 @@ class TestNestFields:
             drop_columns=["a"],
         )
 
+        # Along with checking data frame equivalence, we need to check that the lists of dictionaries in "nested" are
+        # equal because assert_frame_equal treats None and np.nan as equivalent.
         pd.testing.assert_frame_equal(nested_df, expected_df)
+        assert all(nested_df["nested"] == expected_df["nested"])
+
+    def test_nest_fields_fails_on_empty_dataframe(self) -> None:
+        """
+        Test that nest_fields raises a ValueError when the input DataFrame is empty.
+        """
+        empty_df = pd.DataFrame(columns=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Input DataFrame is empty"):
+            utils.nest_fields(
+                df=empty_df,
+                grouping="a",
+                new_column="nested",
+                drop_columns=["a"],
+            )
 
 
 class TestCalculateDistribution:
@@ -1022,6 +1112,113 @@ class TestOneOfRule:
         assert rule.count_violations(s) == 0
 
 
+class TestNumericRule:
+    """Unit tests for NumericRule.count_violations()."""
+
+    def test_no_violations_for_all_numeric(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, 2.5, 3])) == 0
+
+    def test_no_violations_for_numeric_strings(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series(["6", "9.9"])) == 0
+
+    def test_counts_non_numeric_string(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, "abc", 3])) == 1
+
+    def test_counts_all_non_numeric(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series(["a", "b"])) == 2
+
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the type of present values.
+        assert utils.NumericRule().count_violations(pd.Series([1, None, 3])) == 0
+
+    def test_skips_nan(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, np.nan, 3])) == 0
+
+    def test_empty_series(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.NumericRule().value_detail == ""
+
+
+class TestNonNegativeRule:
+    """Unit tests for NonNegativeRule.count_violations()."""
+
+    def test_no_violations_for_all_positive(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, 2.5, 3])) == 0
+
+    def test_no_violations_for_zero(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([0, 0.0])) == 0
+
+    def test_counts_negative(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, -2.5, 3])) == 1
+
+    def test_counts_all_negative(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([-1, -2])) == 2
+
+    def test_counts_negative_numeric_string(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series(["6", "-9.9"])) == 1
+
+    def test_skips_non_numeric(self) -> None:
+        # Unparseable values are NumericRule's job, so a single bad cell isn't
+        # counted as two violations.
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, "abc", -3])) == 1
+
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the sign of present values.
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, None, 3])) == 0
+
+    def test_skips_nan(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, np.nan, 3])) == 0
+
+    def test_empty_series(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.NonNegativeRule().value_detail == ""
+
+
+class TestUniqueRule:
+    """Unit tests for UniqueRule.count_violations()."""
+
+    def test_no_violations_for_distinct_values(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series(["a", "b", "c"])) == 0
+
+    def test_counts_every_row_of_a_duplicate_group(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series(["a", "a", "b"])) == 2
+
+    def test_counts_each_duplicate_group_separately(self) -> None:
+        s = pd.Series(["a", "a", "b", "b", "b", "c"])
+        assert utils.UniqueRule().count_violations(s) == 5
+
+    def test_skips_repeated_nulls(self) -> None:
+        # pandas treats null as equal to null, so skipping nulls is what keeps a second
+        # blank row from being reported as a duplicate of the first. Both nulls must be nan
+        # rather than one None and one nan: in an object column those are distinct objects,
+        # so a mixed pair is not a duplicate even without the null filter and would pass
+        # against a broken implementation. read_csv yields the matching-nan shape.
+        s = pd.Series(["a", np.nan, np.nan, "b"])
+        assert utils.UniqueRule().count_violations(s) == 0
+
+    def test_counts_duplicates_alongside_nulls(self) -> None:
+        # Only the real duplicate counts; the repeated nulls do not add to it.
+        s = pd.Series(["a", "a", np.nan, np.nan])
+        assert utils.UniqueRule().count_violations(s) == 2
+
+    def test_does_not_skip_repeated_empty_strings(self) -> None:
+        # Blanks are NotEmptyRule's job; this rule only exempts true nulls.
+        assert utils.UniqueRule().count_violations(pd.Series(["", "", "a"])) == 2
+
+    def test_counts_duplicate_numeric_values(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series([1, 2, 1])) == 2
+
+    def test_empty_series(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.UniqueRule().value_detail == ""
+
+
 class TestCheckColumnRules:
     """Tests for check_column_rules() and its supporting _check_single_rule() helper."""
 
@@ -1230,6 +1427,44 @@ class TestValidateOneToOneMapping:
         )
         with pytest.raises(ValueError, match="common_name.*multiple chembl_id values"):
             utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+
+class TestValidateReferencesExist:
+    """Tests for validate_references_exist()."""
+
+    def test_passes_when_every_reference_is_present(self) -> None:
+        utils.validate_references_exist(
+            ["Presenilin1", "WT"],
+            ["WT", "Presenilin1", "APP"],
+            source_name="marmo_genotype_label_map",
+            target_name="marmo_model_metadata",
+            item_name="models",
+        )
+
+    def test_raises_when_a_reference_is_missing(self) -> None:
+        with pytest.raises(
+            ValueError,
+            match=(
+                "marmo_genotype_label_map references models that are not present in "
+                r"marmo_model_metadata: \['APP'\]"
+            ),
+        ):
+            utils.validate_references_exist(
+                ["Presenilin1", "APP"],
+                ["Presenilin1"],
+                source_name="marmo_genotype_label_map",
+                target_name="marmo_model_metadata",
+                item_name="models",
+            )
+
+    def test_passes_when_both_sides_are_empty(self) -> None:
+        utils.validate_references_exist(
+            [],
+            [],
+            source_name="source",
+            target_name="target",
+            item_name="values",
+        )
 
 
 class TestFlattenList:

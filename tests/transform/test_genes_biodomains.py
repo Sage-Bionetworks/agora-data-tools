@@ -63,7 +63,7 @@ class TestTransformGenesBiodomains:
         (  # Fail with bad data
             {"genes_biodomains": "biodomains_test_input_bad_should_fail.csv"},
             ValueError,
-            "cannot insert ensembl_gene_id, already exists",
+            "Input DataFrame is empty",
         ),
         (  # Fail with missing dataset
             {},
