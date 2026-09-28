@@ -79,7 +79,7 @@ def get_list_of_available_data(row: pd.Series) -> list[str]:
     return available_data
 
 
-def _build_model_links(row: pd.Series) -> Dict[str, Any]:
+def _build_model_links(row: pd.Series) -> dict[str, Any]:
     """Build all link_url entries for a single model row."""
     return {
         "transcriptomics": (
