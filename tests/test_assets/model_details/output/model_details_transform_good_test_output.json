@@ -695,7 +695,20 @@
     "proteomics": "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=LOAD2",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "APP",
+        "ensembl_gene_id": "ENSG00000142192",
+        "allele": "App_Allele",
+        "allele_type": "Transgenic",
+        "mgi_allele_id": 2672831,
+        "ensembl_info": {
+          "ensembl_release": "116",
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   }
