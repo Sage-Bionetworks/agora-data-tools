@@ -182,19 +182,13 @@ def _melt_proteomics_file(
         var_name="header",
         value_name="value",
     )
-    value = pd.to_numeric(long_df["value"], errors="coerce")
-    unparseable = value.isna() & long_df["value"].notna()
-    if unparseable.any():
-        raise ValueError(
-            f"Non-numeric abundance values in proteomics data file '{file_name}': "
-            f"{long_df.loc[unparseable, 'value'].unique()[:5].tolist()}"
-        )
-    long_df["value"] = value
+    long_df["value"] = pd.to_numeric(long_df["value"], errors="coerce")
     long_df = long_df.dropna(subset=["value"])
     if long_df.empty:
         raise ValueError(
-            f"Every abundance value in proteomics data file '{file_name}' is missing, so "
-            f"it contributes nothing to the output."
+            f"Either every abundance value in proteomics data file '{file_name}' is "
+            "missing or non-numeric values were found, so it contributes nothing "
+            "to the output."
         )
 
     long_df["uniprotid"] = _canonical_accession(long_df["header"])

@@ -233,11 +233,25 @@ class TestMeltProteomicsFile:
                 "LOAD2",
             )
 
-    def test_non_numeric_value_names_its_file(self) -> None:
-        """Non-numeric abundances raise and name the file they came from."""
+    def test_non_numeric_values_are_dropped(self) -> None:
+        """Non-numeric abundances are dropped the same way missing values are."""
         data_file = self.data_file.assign(**{"gene1|p00001": ["1.0", "not_a_number"]})
 
-        with pytest.raises(ValueError, match="'proteomics_file'.*not_a_number"):
+        long_df = _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
+
+        assert len(long_df) == 3
+        assert long_df["value"].tolist() == [1.0, 2.0, 3.0]
+
+    def test_no_numeric_abundances_raises(self) -> None:
+        """A file with only missing or non-numeric abundances raises and names the file."""
+        data_file = self.data_file.assign(
+            **{"gene1|p00001": [None, "not_a_number"], "ank2|q8c8r3_2": [None, None]}
+        )
+
+        with pytest.raises(
+            ValueError,
+            match="Either every abundance value in proteomics data file 'proteomics_file'",
+        ):
             _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
 
 
