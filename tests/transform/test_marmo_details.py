@@ -842,7 +842,7 @@ class TestBuildBiomarkers:
             )
         ).assign(result_column_std="ab40_pg_ml")
 
-        biomarkers = _build_biomarkers(measurements, "M", {"ab40_pg_ml": 200})
+        biomarkers = _build_biomarkers(measurements, model_name="M", y_axis_cutoff={"ab40_pg_ml": 200})
 
         assert biomarkers[0]["y_axis_max"] == round_y_axis_max(100.0)
         assert round_y_axis_max(100.0) != round_y_axis_max(500.0)
@@ -860,6 +860,7 @@ class TestComputeYAxisMax:
         )
 
     def test_no_cutoff_uses_full_max(self):
+        """All values are included in the y_axis_max calculation when no y_axis_max_cutoff is specified."""
         measurements = self._measurements(
             [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
         )
@@ -869,6 +870,7 @@ class TestComputeYAxisMax:
         }
 
     def test_cutoff_excludes_above_cutoff_values(self):
+        """A value is excluded from the y_axis_max calculation when it exceeds the specified y_axis_max_cutoff."""
         measurements = self._measurements(
             [
                 ("ab40_pg_ml", "A&beta;40", 100.0),
@@ -882,7 +884,7 @@ class TestComputeYAxisMax:
         }
 
     def test_cutoff_boundary_is_inclusive(self):
-        """A value equal to the cutoff is kept for the max (only strictly-greater is excluded)."""
+        """A value equal to the y_axis_max_cutoff is included in the y_axis_max calculation."""
         measurements = self._measurements(
             [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 200.0)]
         )
@@ -892,7 +894,7 @@ class TestComputeYAxisMax:
         }
 
     def test_measure_without_cutoff_key_is_uncapped(self):
-        """Capping one measure leaves another (no cutoff entry) at its full max."""
+        """A y_axis_max_cutoff for one measure does not impact the y_axis_max calculation of another."""
         measurements = self._measurements(
             [
                 ("ab40_pg_ml", "A&beta;40", 150.0),
@@ -917,6 +919,7 @@ class TestComputeYAxisMax:
         }
 
     def test_all_values_above_cutoff_raises(self):
+        """A y_axis_max_cutoff that excludes all values for a measure throws a ValueError"""
         measurements = self._measurements(
             [("ab40_pg_ml", "A&beta;40", 300.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
         )
