@@ -632,16 +632,6 @@ class TestBuildBiomarkers:
             }
         )
 
-    def _genotype_map(self):
-        """Mirrors what marmo_genotype_label_map emits."""
-        return pd.DataFrame(
-            {
-                "model": ["Presenilin1", "Presenilin1"],
-                "display_label": ["Matched Control", "Presenilin-1"],
-                "result_order": [1, 2],
-            }
-        )
-
     @pytest.mark.parametrize(
         "display_orders,expected_order",
         [
