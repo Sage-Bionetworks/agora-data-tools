@@ -78,14 +78,16 @@ class TestTransformModelDetails:
             "model_details_transform_extra_column_output.json",
         ),
         (
-            # Pass with missing models in different source files
+            # Pass with extra models in model_genetic_modifications, biomarkers, and pathology source files
             {
-                "biomarkers": "model_details_biomarkers_missing_models_test.csv",
-                "model_genetic_modifications": "model_details_model_genetic_modifications_missing_models_test.csv",
-                "model_metadata": "model_details_model_metadata_missing_models_test.csv",
-                "pathology": "model_details_pathology_missing_models_test.csv",
+                "biomarkers": "model_details_biomarkers_extra_models_input.csv",
+                "model_genetic_modifications": "model_details_model_genetic_modifications_extra_models_input.csv",
+                "model_metadata": "model_details_model_metadata_good_test_input.csv",
+                "pathology": "model_details_pathology_extra_models_input.csv",
             },
-            "model_details_transform_missing_models_output.json",
+            # Extra models not present in model_metadata are dropped in the output, so the expected output is the same
+            # as the good test output
+            "model_details_transform_good_test_output.json",
         ),
     ]
     pass_test_ids = [
@@ -94,7 +96,7 @@ class TestTransformModelDetails:
         "Pass with missing data in some fields",
         "Pass with empty biomarkers and pathology",
         "Pass with extra columns",
-        "Pass with missing models in different source files",
+        "Pass with extra models in model_genetic_modifications, biomarkers, and pathology source files",
     ]
     fail_test_data = [
         (
