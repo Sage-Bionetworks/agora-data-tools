@@ -622,6 +622,8 @@ class TestNestFields:
             drop_columns=["d"],
         )
 
+        assert nested_df["a"].tolist() == ["group_1", "group_2", "group_3"]
+        assert nested_df["b"].tolist() == ["1", "1", "1"]
         assert nested_df["e"].tolist() == expected_column_e
 
     def test_nest_fields_multirow_ValueError(self):
