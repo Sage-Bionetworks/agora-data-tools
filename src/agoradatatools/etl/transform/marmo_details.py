@@ -246,9 +246,7 @@ def _build_measurements(
     genotype_map = datasets["marmo_genotype_label_map"]
 
     # Cast result_order values to numeric for proper numeric sorting (rather than letter-sorting).
-    genotype_map["result_order"] = pd.to_numeric(
-        genotype_map["result_order"]
-    )
+    genotype_map["result_order"] = pd.to_numeric(genotype_map["result_order"])
 
     if measure_info.empty:
         raise ValueError(
