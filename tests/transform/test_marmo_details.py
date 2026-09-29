@@ -684,12 +684,27 @@ class TestBuildBiomarkers:
         Final result_order must reflect the result_order column's values, not the order the
         label first appears in the data.
         """
-        # Reorder measurements so that Presenilin-1 appears first in the data, while keeping
-        # result_order unchanged.
-        reordered = self._measurements().iloc[::-1].reset_index(drop=True)
-        biomarkers = _build_biomarkers(reordered, "Presenilin1")
-        for biomarker in biomarkers:
-            assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
+        # The 'Presenilin-1' label appears first in the data, but we should expect
+        # "Matched Control" to come first in the biomarker's result_order, due to its
+        # result_order value.
+        measurements = pd.DataFrame(
+            {
+                "individualid": [1, 2],
+                "value": [150.0, 180.0],
+                "sex": ["Female", "Male"],
+                "genotype": ["PSEN1-C410Y_Y410/Y410", "WT"],
+                "display_label": ["Presenilin-1", "Matched Control"],
+                "evidence_type": ["A&beta;40", "A&beta;40"],
+                "age": ["0-1 years", "0-1 years"],
+                "units": ["pg/mL", "pg/mL"],
+                "display_order": [1, 1],
+                "age_start": [0, 0],
+                "result_order": [2, 1],
+            }
+        )
+        biomarkers = _build_biomarkers(measurements, "Presenilin1")
+
+        assert biomarkers[0]["result_order"] == ["Matched Control", "Presenilin-1"]
 
     def _measurement_rows(
         self, rows, units="pg/mL", display_order=1, evidence_type="A&beta;40"
