@@ -23,6 +23,9 @@ from agoradatatools.etl.utils import (
     validate_one_to_one_mapping,
     validate_references_exist,
 )
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    determine_result_order,
+)
 
 
 REQUIRED_INPUT = {
@@ -38,6 +41,7 @@ REQUIRED_INPUT = {
         "model",
         "genotype",
         "display_label",
+        "result_order",
     ],
     "marmo_biomarker_measure_info": [
         "result_column",
@@ -72,6 +76,7 @@ COLUMN_RULES = {
         "model": [NotEmptyRule()],
         "genotype": [NotEmptyRule()],
         "display_label": [NotEmptyRule()],
+        "result_order": [NotEmptyRule(), NumericRule(), NonNegativeRule()],
     },
     "marmo_biomarker_measure_info": {
         "result_column": [NotEmptyRule()],
@@ -219,9 +224,9 @@ def _build_measurements(
 ) -> pd.DataFrame:
     """Build the per-measurement DataFrame behind the biomarkers collection.
 
-    Melts the wide measure columns, resolves genotypes to display labels and models, joins
-    collection ages, and attaches measure metadata. Measurements that did not pass QC, have
-    no label-map genotype, or have no biomaterial record are dropped.
+    Melts the wide measure columns, resolves genotypes to display labels, models, and
+    result_order, joins collection ages, and attaches measure metadata. Measurements that did
+    not pass QC, have no label-map genotype, or have no biomaterial record are dropped.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): The input datasets.
@@ -239,6 +244,9 @@ def _build_measurements(
     individual = datasets["marmo_individual_metadata"]
     biomaterial = datasets["marmo_biomaterial_metadata"]
     genotype_map = datasets["marmo_genotype_label_map"]
+
+    # Cast result_order values to numeric for proper numeric sorting (rather than letter-sorting).
+    genotype_map["result_order"] = pd.to_numeric(genotype_map["result_order"])
 
     if measure_info.empty:
         raise ValueError(
@@ -284,7 +292,7 @@ def _build_measurements(
     # uses it, so one measurement legitimately fans out to several models. What would wrongly
     # multiply points is a repeated (model, genotype) pair, which the caller checks for.
     long = long.merge(
-        genotype_map[["model", "genotype", "display_label"]],
+        genotype_map[["model", "genotype", "display_label", "result_order"]],
         how="inner",
         on="genotype",
         validate="m:m",
@@ -403,7 +411,8 @@ def _fill_age_gaps(grouped: pd.DataFrame) -> pd.DataFrame:
 
 
 def _build_biomarkers(
-    measurements: pd.DataFrame, model_name: str
+    measurements: pd.DataFrame,
+    model_name: str,
 ) -> List[Dict[str, Any]]:
     """Assemble one model's biomarkers collection from its measurements.
 
@@ -412,6 +421,9 @@ def _build_biomarkers(
     the oldest retained bucket) is backfilled with an empty-data placeholder. y_axis_max is the
     per-evidence_type maximum across the retained ages, applied to every one of its buckets, as in the
     mouse immunohisto pipeline.
+
+    Every biomarker also gets a result_order, which lists this model's display labels in the
+    order measurements' result_order column assigns them.
 
     Args:
         measurements (pd.DataFrame): The per-measurement DataFrame from _build_measurements.
@@ -464,8 +476,20 @@ def _build_biomarkers(
     grouped = _fill_age_gaps(grouped)
     grouped = grouped.sort_values(["display_order", "evidence_type", "age_start"])
 
+    # result_order is the same for every biomarker in this model, computed from the
+    # measurements' display_label/result_order columns.
+    grouped["result_order"] = [determine_result_order(measurements)] * len(grouped)
+
     return grouped[
-        ["name", "evidence_type", "age", "units", "y_axis_max", "data"]
+        [
+            "name",
+            "evidence_type",
+            "age",
+            "units",
+            "y_axis_max",
+            "data",
+            "result_order",
+        ]
     ].to_dict(orient="records")
 
 
@@ -502,6 +526,8 @@ def transform_marmo_details(
            measure can have a different range of contiguous buckets on the same model page.
         7. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
            computed per model via round_y_axis_max.
+        7. Each biomarker includes a result_order, which reflects the order of the display labels
+           present in each model's data.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.

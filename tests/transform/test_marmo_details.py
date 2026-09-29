@@ -183,12 +183,26 @@ class TestTransformMarmoDetails:
                 -1,
                 r"column 'display_order'.*rule 'non_negative'",
             ),
+            (
+                "marmo_genotype_label_map",
+                "result_order",
+                "first",
+                r"column 'result_order'.*rule 'numeric'",
+            ),
+            (
+                "marmo_genotype_label_map",
+                "result_order",
+                -1,
+                r"column 'result_order'.*rule 'non_negative'",
+            ),
         ],
         ids=[
             "non-numeric collection age",
             "negative collection age",
             "non-numeric display order",
             "negative display order",
+            "non-numeric result order",
+            "negative result order",
         ],
     )
     def test_marmo_details_rejects_invalid_numeric_values(
@@ -466,6 +480,7 @@ class TestBuildMeasurements:
                     "model": ["Presenilin1"],
                     "genotype": ["WT"],
                     "display_label": ["Matched Control"],
+                    "result_order": [1],
                 }
             ),
         }
@@ -541,6 +556,7 @@ class TestBuildMeasurements:
                     "model": ["Presenilin1"],
                     "genotype": ["WT"],
                     "display_label": ["Matched Control"],
+                    "result_order": [1],
                 }
             ),
         }
@@ -605,6 +621,7 @@ class TestBuildBiomarkers:
                 "units": ["pg/mL", "pg/mL", "pg/mL", "pg/mL", "", ""],
                 "display_order": [1, 1, 1, 1, 2, 2],
                 "age_start": [0, 0, 1, 1, 0, 0],
+                "result_order": [1, 2, 2, 1, 1, 2],
             }
         )
 
@@ -636,7 +653,7 @@ class TestBuildBiomarkers:
         and break each measure's run of ascending ages."""
         measurements = self._measurements().assign(display_order=display_orders)
 
-        biomarkers = _build_biomarkers(measurements, model_name="Presenilin1")
+        biomarkers = _build_biomarkers(measurements, "Presenilin1")
 
         assert [(b["evidence_type"], b["age"]) for b in biomarkers] == expected_order
 
@@ -651,6 +668,44 @@ class TestBuildBiomarkers:
         assert list(points[0].keys()) == ["individual_id", "value", "sex", "genotype"]
         assert [point["individual_id"] for point in points] == ["2", "10"]
 
+    def test_result_order_added_for_every_biomarker(self):
+        """
+        result_order is computed once per model and added into every biomarker, ordered
+        by the measurements' result_order column.
+        """
+        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
+
+        assert len(biomarkers) > 1
+        for biomarker in biomarkers:
+            assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
+
+    def test_result_order_follows_result_order_column(self):
+        """
+        Final result_order must reflect the result_order column's values, not the order the
+        label first appears in the data.
+        """
+        # The 'Presenilin-1' label appears first in the data, but we should expect
+        # "Matched Control" to come first in the biomarker's result_order, due to its
+        # result_order value.
+        measurements = pd.DataFrame(
+            {
+                "individualid": [1, 2],
+                "value": [150.0, 180.0],
+                "sex": ["Female", "Male"],
+                "genotype": ["PSEN1-C410Y_Y410/Y410", "WT"],
+                "display_label": ["Presenilin-1", "Matched Control"],
+                "evidence_type": ["A&beta;40", "A&beta;40"],
+                "age": ["0-1 years", "0-1 years"],
+                "units": ["pg/mL", "pg/mL"],
+                "display_order": [1, 1],
+                "age_start": [0, 0],
+                "result_order": [2, 1],
+            }
+        )
+        biomarkers = _build_biomarkers(measurements, "Presenilin1")
+
+        assert biomarkers[0]["result_order"] == ["Matched Control", "Presenilin-1"]
+
     def _measurement_rows(
         self, rows, units="pg/mL", display_order=1, evidence_type="A&beta;40"
     ):
@@ -662,6 +717,9 @@ class TestBuildBiomarkers:
         rows["units"] = units
         rows["evidence_type"] = evidence_type
         rows["display_label"] = rows["genotype"]
+        rows["result_order"] = rows["display_label"].map(
+            {"Matched Control": 1, "Presenilin-1": 2}
+        )
         rows["display_order"] = display_order
         rows["age"] = [f"{a}-{a + 1} years" for a in rows["age_start"]]
 
