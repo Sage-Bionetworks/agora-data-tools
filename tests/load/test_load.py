@@ -16,12 +16,6 @@ def test_create_temp_location_success():
     os.rmdir("./test_staging_dir")
 
 
-def test_delete_temp_location():
-    os.mkdir("./test_staging_dir")
-    load.delete_temp_location(staging_path="./test_staging_dir")
-    assert not os.path.exists("./test_staging_dir")
-
-
 def test_remove_non_values():
     example_dict = {
         "a": {"b": "c"},  # is dictionary

@@ -35,15 +35,6 @@ def create_temp_location(staging_path: str):
         return
 
 
-def delete_temp_location(staging_path: str):
-    """Deletes the default temporary location
-
-    Args:
-        staging_path (str): path to temporary directory to be deleted
-    """
-    os.rmdir(staging_path)
-
-
 def remove_non_values(d: dict) -> dict:
     """Given a dictionary, remove all keys whose values are null.
     Values can be of a few types: a dict, a list, None/NaN, and a regular element - such as str or number;
