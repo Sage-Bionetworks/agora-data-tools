@@ -15,8 +15,11 @@ def test_create_temp_location_success():
     assert os.path.exists("./test_staging_dir")
     os.rmdir("./test_staging_dir")
 
+
 def test_create_temp_location_with_subfolder_success():
-    load.create_temp_location(staging_path="./test_staging_dir_with_subfolder/subfolder")
+    load.create_temp_location(
+        staging_path="./test_staging_dir_with_subfolder/subfolder"
+    )
     assert os.path.exists("./test_staging_dir_with_subfolder/subfolder")
     os.rmdir("./test_staging_dir_with_subfolder/subfolder")
     os.rmdir("./test_staging_dir_with_subfolder")
