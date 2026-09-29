@@ -480,6 +480,7 @@ class TestBuildMeasurements:
                     "model": ["Presenilin1"],
                     "genotype": ["WT"],
                     "display_label": ["Matched Control"],
+                    "result_order": [1],
                 }
             ),
         }
@@ -555,6 +556,7 @@ class TestBuildMeasurements:
                     "model": ["Presenilin1"],
                     "genotype": ["WT"],
                     "display_label": ["Matched Control"],
+                    "result_order": [1],
                 }
             ),
         }
@@ -677,21 +679,15 @@ class TestBuildBiomarkers:
         for biomarker in biomarkers:
             assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
 
-    def test_result_order_follows_genotype_map_not_row_order(self):
+    def test_result_order_follows_result_order_column(self):
         """
-        Final result_order must reflect genotype_map's 'result_order' values, not the order the
-        label appears in the data.
+        Final result_order must reflect the result_order column's values, not the order the
+        label first appears in the data.
         """
-        scrambled_genotype_map = pd.DataFrame(
-            {
-                "model": ["Presenilin1", "Presenilin1"],
-                "display_label": ["Presenilin-1", "Matched Control"],
-                "result_order": [2, 1],
-            }
-        )
-        biomarkers = _build_biomarkers(
-            self._measurements(), "Presenilin1", scrambled_genotype_map
-        )
+        # Reorder measurements so that Presenilin-1 appears first in the data, while keeping
+        # result_order unchanged.
+        reordered = self._measurements().iloc[::-1].reset_index(drop=True)
+        biomarkers = _build_biomarkers(reordered, "Presenilin1")
         for biomarker in biomarkers:
             assert biomarker["result_order"] == ["Matched Control", "Presenilin-1"]
 
@@ -706,6 +702,9 @@ class TestBuildBiomarkers:
         rows["units"] = units
         rows["evidence_type"] = evidence_type
         rows["display_label"] = rows["genotype"]
+        rows["result_order"] = rows["display_label"].map(
+            {"Matched Control": 1, "Presenilin-1": 2}
+        )
         rows["display_order"] = display_order
         rows["age"] = [f"{a}-{a + 1} years" for a in rows["age_start"]]
 
