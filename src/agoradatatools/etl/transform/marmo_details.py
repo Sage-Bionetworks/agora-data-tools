@@ -576,7 +576,7 @@ def transform_marmo_details(
            measure can have a different range of contiguous buckets on the same model page.
         7. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
            computed per model via round_y_axis_max.
-        8. Each biomarker includes a result_order, which reflects the order of the display labels
+        8. Each biomarker includes a result_order, which specifies the display order of the genotypes
            present in each model's data.
 
     Args:
