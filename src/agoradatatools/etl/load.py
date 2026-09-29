@@ -30,7 +30,7 @@ def create_temp_location(staging_path: str):
         staging_path (str): path to directory to be created
     """
     try:
-        os.mkdir(staging_path)
+        os.makedirs(staging_path)
     except FileExistsError:
         return
 
