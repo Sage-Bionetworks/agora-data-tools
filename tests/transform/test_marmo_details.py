@@ -619,16 +619,7 @@ class TestBuildBiomarkers:
                 "units": ["pg/mL", "pg/mL", "pg/mL", "pg/mL", "", ""],
                 "display_order": [1, 1, 1, 1, 2, 2],
                 "age_start": [0, 0, 1, 1, 0, 0],
-            }
-        )
-
-    def _genotype_map(self):
-        """Mirrors what marmo_genotype_label_map emits."""
-        return pd.DataFrame(
-            {
-                "model": ["Presenilin1", "Presenilin1"],
-                "display_label": ["Matched Control", "Presenilin-1"],
-                "result_order": [1, 2],
+                "result_order": [1, 2, 2, 1, 1, 2],
             }
         )
 
@@ -660,9 +651,7 @@ class TestBuildBiomarkers:
         and break each measure's run of ascending ages."""
         measurements = self._measurements().assign(display_order=display_orders)
 
-        biomarkers = _build_biomarkers(
-            measurements, "Presenilin1", self._genotype_map()
-        )
+        biomarkers = _build_biomarkers(measurements, "Presenilin1")
 
         assert [(b["evidence_type"], b["age"]) for b in biomarkers] == expected_order
 
@@ -671,9 +660,7 @@ class TestBuildBiomarkers:
         nest_fields emits keys in column order. Points are ordered by the numeric individualid,
         so animal 2 precedes animal 10 rather than sorting lexicographically as the stringified
         individual_id would."""
-        biomarkers = _build_biomarkers(
-            self._measurements(), "Presenilin1", self._genotype_map()
-        )
+        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
 
         points = biomarkers[0]["data"]
         assert list(points[0].keys()) == ["individual_id", "value", "sex", "genotype"]
@@ -682,11 +669,9 @@ class TestBuildBiomarkers:
     def test_result_order_added_for_every_biomarker(self):
         """
         result_order is computed once per model and added into every biomarker, ordered
-        by the genotype_map's result_order column.
+        by the measurements' result_order column.
         """
-        biomarkers = _build_biomarkers(
-            self._measurements(), "Presenilin1", self._genotype_map()
-        )
+        biomarkers = _build_biomarkers(self._measurements(), "Presenilin1")
 
         assert len(biomarkers) > 1
         for biomarker in biomarkers:
@@ -738,9 +723,7 @@ class TestBuildBiomarkers:
             )
         )
 
-        biomarkers = _build_biomarkers(
-            measurements, model_name="M", genotype_map=self._genotype_map()
-        )
+        biomarkers = _build_biomarkers(measurements, model_name="M")
 
         assert [b["age"] for b in biomarkers] == ["0-1 years"]
 
@@ -758,9 +741,7 @@ class TestBuildBiomarkers:
             )
         )
 
-        biomarkers = _build_biomarkers(
-            measurements, model_name="M", genotype_map=self._genotype_map()
-        )
+        biomarkers = _build_biomarkers(measurements, model_name="M")
 
         assert [b["age"] for b in biomarkers] == ["0-1 years"]
         assert biomarkers[0]["y_axis_max"] == round_y_axis_max(100.0)
@@ -778,14 +759,7 @@ class TestBuildBiomarkers:
             )
         )
 
-        assert (
-            _build_biomarkers(
-                measurements,
-                model_name="M",
-                genotype_map=self._genotype_map(),
-            )
-            == []
-        )
+        assert _build_biomarkers(measurements, model_name="M") == []
 
     def test_build_biomarkers_backfills_middle_gap(self):
         """A middle bucket dropped by the genotype filter is backfilled with an empty placeholder."""
@@ -805,9 +779,7 @@ class TestBuildBiomarkers:
             )
         )
 
-        biomarkers = _build_biomarkers(
-            measurements, model_name="M", genotype_map=self._genotype_map()
-        )
+        biomarkers = _build_biomarkers(measurements, model_name="M")
 
         assert [(b["age"], b["data"] == []) for b in biomarkers] == [
             ("0-1 years", False),
@@ -834,9 +806,7 @@ class TestBuildBiomarkers:
             )
         )
 
-        biomarkers = _build_biomarkers(
-            measurements, model_name="M", genotype_map=self._genotype_map()
-        )
+        biomarkers = _build_biomarkers(measurements, model_name="M")
 
         assert [(b["age"], b["data"] == []) for b in biomarkers] == [
             ("0-1 years", True),
