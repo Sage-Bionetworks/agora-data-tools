@@ -224,9 +224,9 @@ def _build_measurements(
 ) -> pd.DataFrame:
     """Build the per-measurement DataFrame behind the biomarkers collection.
 
-    Melts the wide measure columns, resolves genotypes to display labels and models, joins
-    collection ages, and attaches measure metadata. Measurements that did not pass QC, have
-    no label-map genotype, or have no biomaterial record are dropped.
+    Melts the wide measure columns, resolves genotypes to display labels, models, and
+    result_order, joins collection ages, and attaches measure metadata. Measurements that did
+    not pass QC, have no label-map genotype, or have no biomaterial record are dropped.
 
     Args:
         datasets (Dict[str, pd.DataFrame]): The input datasets.
@@ -244,6 +244,11 @@ def _build_measurements(
     individual = datasets["marmo_individual_metadata"]
     biomaterial = datasets["marmo_biomaterial_metadata"]
     genotype_map = datasets["marmo_genotype_label_map"]
+
+    # Cast result_order values to numeric for proper numeric sorting (rather than letter-sorting).
+    genotype_map["result_order"] = pd.to_numeric(
+        genotype_map["result_order"]
+    )
 
     if measure_info.empty:
         raise ValueError(
@@ -289,7 +294,7 @@ def _build_measurements(
     # uses it, so one measurement legitimately fans out to several models. What would wrongly
     # multiply points is a repeated (model, genotype) pair, which the caller checks for.
     long = long.merge(
-        genotype_map[["model", "genotype", "display_label"]],
+        genotype_map[["model", "genotype", "display_label", "result_order"]],
         how="inner",
         on="genotype",
         validate="m:m",
@@ -410,7 +415,6 @@ def _fill_age_gaps(grouped: pd.DataFrame) -> pd.DataFrame:
 def _build_biomarkers(
     measurements: pd.DataFrame,
     model_name: str,
-    genotype_map: pd.DataFrame,
 ) -> List[Dict[str, Any]]:
     """Assemble one model's biomarkers collection from its measurements.
 
@@ -421,13 +425,11 @@ def _build_biomarkers(
     mouse immunohisto pipeline.
 
     Every biomarker also gets a result_order, which lists this model's display labels in the
-    order genotype_map assigns them.
+    order measurements' result_order column assigns them.
 
     Args:
         measurements (pd.DataFrame): The per-measurement DataFrame from _build_measurements.
         model_name (str): The model name to stamp on each biomarker object.
-        genotype_map (pd.DataFrame): marmo_genotype_label_map, used to order this model's display
-            labels.
 
     Returns:
         List[Dict[str, Any]]: The sorted biomarkers collection.
@@ -476,23 +478,9 @@ def _build_biomarkers(
     grouped = _fill_age_gaps(grouped)
     grouped = grouped.sort_values(["display_order", "evidence_type", "age_start"])
 
-    # Assign result_order to the grouped measurements, based on the model's genotype mapping.
-    # The measurements are on the left side of the merge, so that unmatched display_label
-    # are excluded (thus satisfying determine_result_order's precondition).
-    model_genotype_map = genotype_map[genotype_map["model"] == model_name][
-        ["display_label", "result_order"]
-    ]
-    model_genotype_map["result_order"] = pd.to_numeric(
-        model_genotype_map["result_order"]
-    )
-    labeled_measurements = measurements.merge(
-        model_genotype_map,
-        on="display_label",
-        how="left",
-    )
-    grouped["result_order"] = [determine_result_order(labeled_measurements)] * len(
-        grouped
-    )
+    # result_order is the same for every biomarker in this model, computed from the
+    # measurements' display_label/result_order columns.
+    grouped["result_order"] = [determine_result_order(measurements)] * len(grouped)
 
     return grouped[
         [
@@ -573,11 +561,7 @@ def transform_marmo_details(
         # (model_type, study_synid). We can safely take the first row to extract these fields.
         model_row = model_rows.iloc[0]
         model_measurements = measurements[measurements["model"] == model_name]
-        biomarkers = _build_biomarkers(
-            model_measurements,
-            model_name,
-            datasets["marmo_genotype_label_map"],
-        )
+        biomarkers = _build_biomarkers(model_measurements, model_name)
         genetic_info = model_rows[
             ["modified_gene", "ensembl_gene_id", "allele_type"]
         ].to_dict(orient="records")
