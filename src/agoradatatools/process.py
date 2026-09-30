@@ -204,7 +204,7 @@ def process_dataset(
     gx_folder: str,
     syn: synapseclient.Synapse,
     upload: bool = True,
-) -> Union[DatasetReport, None]:
+) -> DatasetReport | None:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
