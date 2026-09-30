@@ -334,7 +334,7 @@ def process_dataset(
 
 
 def create_data_manifest(
-    syn: synapseclient.Synapse, parent: Folder | str = None
+    syn: synapseclient.Synapse, parent: Folder | str | None = None
 ) -> Union[DataFrame, None]:
     """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse files
 
