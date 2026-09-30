@@ -30,18 +30,9 @@ def create_temp_location(staging_path: str):
         staging_path (str): path to directory to be created
     """
     try:
-        os.mkdir(staging_path)
+        os.makedirs(staging_path, exist_ok=True)
     except FileExistsError:
         return
-
-
-def delete_temp_location(staging_path: str):
-    """Deletes the default temporary location
-
-    Args:
-        staging_path (str): path to temporary directory to be deleted
-    """
-    os.rmdir(staging_path)
 
 
 def remove_non_values(d: dict) -> dict:
