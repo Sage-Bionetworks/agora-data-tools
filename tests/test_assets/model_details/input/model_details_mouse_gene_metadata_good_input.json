@@ -1,0 +1,58 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000142192",
+    "gene_symbol": "APP",
+    "alias": ["AD1", "ALPHA-SAPP"],
+    "ensembl_release": "116",
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000142192"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000186868",
+    "gene_symbol": "MAPT",
+    "alias": ["DDPAC", "FLJ31424", "FTDP-17", "MAPTL", "MGC138549", "MSTD", "MTBT1", "MTBT2", "PPND", "PPP1R103", "TAU", "TAU-40", "TAU-PHF6"],
+    "ensembl_release": "116",
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000186868"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000080815",
+    "gene_symbol": "PSEN1",
+    "alias": ["AD3", "FAD", "PS-1", "PS1", "PSNL1", "S182"],
+    "ensembl_release": "116",
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jun2026.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000080815"
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000022892",
+    "gene_symbol": "App",
+    "alias": ["Abeta", "Adap", "appican", "betaAPP", "Cvap", "E030013M08Rik", "protease nexin II"],
+    "ensembl_release": "116",
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000018411",
+    "gene_symbol": "Mapt",
+    "alias": ["Mtapt", "Tau"],
+    "ensembl_release": "116",
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000019969",
+    "gene_symbol": "Psen1",
+    "alias": ["Ad3h", "presenilin-1", "PS-1", "PS1", "S182"],
+    "ensembl_release": "116",
+    "ensembl_possible_replacements": [],
+    "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000019969"
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000037982",
+    "gene_symbol": "",
+    "alias": [],
+    "ensembl_release": "112",
+    "ensembl_possible_replacements": ["ENSMUSG00000120076"],
+    "ensembl_permalink": "https://may2024.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000037982"
+  }
+]

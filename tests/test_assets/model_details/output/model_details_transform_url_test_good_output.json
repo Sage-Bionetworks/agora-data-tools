@@ -19,7 +19,20 @@
     "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSMUSG00000022892",
+        "allele": null,
+        "allele_type": null,
+        "mgi_allele_id": 1234,
+        "ensembl_info": {
+          "ensembl_release": "116",
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   },
@@ -42,7 +55,20 @@
     "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSMUSG00000022892",
+        "allele": null,
+        "allele_type": null,
+        "mgi_allele_id": 1234,
+        "ensembl_info": {
+          "ensembl_release": "116",
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   },
@@ -66,7 +92,20 @@
     "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "App",
+        "ensembl_gene_id": "ENSMUSG00000022892",
+        "allele": null,
+        "allele_type": null,
+        "mgi_allele_id": 1234,
+        "ensembl_info": {
+          "ensembl_release": "116",
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000022892"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   },
@@ -89,7 +128,20 @@
     "proteomics": "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=Model_url_both",
     "disease_correlation": null,
     "spatial_transcriptomics": null,
-    "genetic_info": [],
+    "genetic_info": [
+      {
+        "modified_gene": "Mapt",
+        "ensembl_gene_id": "ENSMUSG00000018411",
+        "allele": null,
+        "allele_type": null,
+        "mgi_allele_id": 5678,
+        "ensembl_info": {
+          "ensembl_release": "116",
+          "ensembl_possible_replacements": [],
+          "ensembl_permalink": "https://jun2026.archive.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=ENSMUSG00000018411"
+        }
+      }
+    ],
     "biomarkers": [],
     "pathology": []
   }
