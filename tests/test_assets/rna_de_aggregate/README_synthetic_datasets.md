@@ -16,7 +16,6 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_single_row_data.csv`**: Single row test case (also tests missing gene metadata handling)
 - **`synthetic_rounding_precision_data.csv`**: Tests numeric rounding to 5 decimal places
 - **`synthetic_multiple_biodomains_data.csv`**: Tests genes with multiple biodomain assignments
-- **`synthetic_null_model_group_data.csv`**: Tests empty model_group conversion to null
 - **`synthetic_nan_negative_zero_data.csv`**: Tests NaN adjusted p-value coercion to 0.0
 - **`synthetic_empty_data.csv`**: Empty data file for error testing
 - **`synthetic_missing_columns_data.csv`**: Missing required columns for error testing
@@ -104,11 +103,11 @@ Expected: biodomains=["Synaptic", "Metabolic"]
 Tests: Genes belonging to multiple biodomains
 ```
 
-### Scenario 9: Null Model Group (`synthetic_null_model_group_data.csv`)
+### Scenario 9: Null Model Group (`synthetic_genotype_label_map_no_group.csv`)
 ```
-Model: Model_NoGroup (has empty model_group in metadata)
-Expected: model_group=null (not empty string)
-Tests: Empty string to null conversion for model_group field
+Model: Model_NoGroup (has empty model_group in label map)
+Expected: ValueError raised with informative message identifying the violated ColumnRule
+Tests: ColumnRule NotEmpty() raises error on the model_group column
 ```
 
 ### Scenario 10: NaN Adj P-Values (`synthetic_nan_negative_zero_data.csv`)
@@ -262,7 +261,6 @@ tests/test_assets/rna_de_aggregate/
 │   │   ├── synthetic_single_row_data.csv
 │   │   ├── synthetic_rounding_precision_data.csv
 │   │   ├── synthetic_multiple_biodomains_data.csv
-│   │   ├── synthetic_null_model_group_data.csv
 │   │   ├── synthetic_nan_negative_zero_data.csv
 │   │   ├── synthetic_empty_data.csv
 │   │   └── synthetic_missing_columns_data.csv
@@ -285,6 +283,5 @@ tests/test_assets/rna_de_aggregate/
 │   ├── synthetic_single_row_output.json
 │   ├── synthetic_rounding_precision_output.json
 │   ├── synthetic_multiple_biodomains_output.json
-│   └── synthetic_null_model_group_output.json
 └── README_synthetic_datasets.md
 ```

@@ -18,6 +18,7 @@ from agoradatatools.etl.utils import (
     nest_fields,
     ColumnRule,
     NotEmptyRule,
+    validate_one_to_one_mapping,
 )
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
@@ -88,7 +89,7 @@ def prepare_genotype_label_map(genotype_label_map_df: pd.DataFrame) -> pd.DataFr
     genotype_label_map_df["result_order"] = genotype_label_map_df[
         "result_order"
     ].astype(int)
-    validate_model_group_consistency(genotype_label_map_df)
+    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
     return genotype_label_map_df
 
 
@@ -238,35 +239,6 @@ def normalize_tissue(tissue: pd.Series) -> pd.Series:
     # Any values not in TISSUE_ALIASES are assigned NaN by map(), so we fill NaN values with their
     # original value
     return normalized.str.casefold().map(TISSUE_ALIASES).fillna(normalized)
-
-
-def validate_model_group_consistency(
-    genotype_label_map_df: pd.DataFrame,
-) -> None:
-    """
-    Validate that each model has consistent model_group values.
-    Each model should map to exactly one unique model_group; having multiple
-    different model_group values for the same model indicates a data quality issue.
-
-    None/NaN values are counted as a single distinct value (i.e. "no group assigned")
-    rather than being excluded from the uniqueness check.
-
-    Args:
-        genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
-
-    Raises:
-        ValueError: If any model has inconsistent model_group values
-    """
-    inconsistent_models = (
-        genotype_label_map_df.groupby("model")["model_group"]
-        .nunique(dropna=False)
-        .pipe(lambda x: x[x > 1].index.tolist())
-    )
-    if inconsistent_models:
-        raise ValueError(
-            f"Each model must have a consistent model_group value in genotype_label_map. "
-            f"Models with inconsistent model_group values: {inconsistent_models}"
-        )
 
 
 def build_model_to_model_group_lookup(

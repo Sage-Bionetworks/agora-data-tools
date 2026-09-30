@@ -79,7 +79,7 @@ Applied to each file individually before it is combined within its group:
 - **Empty file validation:** Raises error if file is empty
 - **Column validation:** Checks all required columns are present (defined by `DATA_FILE_REQUIRED_COLUMNS`)
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
-- **Tissue name mapping:** Maps `"Right Cerebral Hemisphere"` to `"Hemibrain"`, matching case-insensitively. Any other tissue passes through unchanged apart from surrounding whitespace. To add a mapping, add an entry to `TISSUE_ALIASES` in `model_ad_expression_utils.py`.
+- **Tissue name mapping:** Maps `"Right Cerebral Hemisphere"` to `"Hemibrain"`, matching case-insensitively. Any other tissue passes through unchanged apart from surrounding whitespace. To add a mapping, add an entry to `TISSUE_ALIASES` in `model_ad_expression_utils.py`; `protein_de_individual` shares the same table.
 - **Type casting:** Casts `expression` to `float` (guards against string-typed columns from some CSV readers) and casts `individualid` to `str` for consistent identifier handling
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places (runs after the `expression` cast so the round is guaranteed to apply)
 
@@ -113,7 +113,7 @@ After preprocessing and concatenation, the individual transform applies its spec
 #### 3.1 Grouping Strategy
 - Groups data by four columns: `(ensembl_gene_id, tissue, name, age)`
   - `ensembl_gene_id`: Ensembl gene identifier
-  - `tissue`: Tissue name (post-mapping and sentence-case normalization)
+  - `tissue`: Tissue name (post-mapping)
   - `name`: Set to `model_group`
   - `age`: Age timepoint (e.g., `"4 months"`, `"12 months"`)
 - `model_group` is excluded from the groupby key to avoid issues with `None` values (pandas drops `NaN`/`None` groupby keys by default). Since `name` equals `model_group`, `model_group` is restored as a top-level output column from `name` after nesting.
@@ -129,7 +129,7 @@ For each grouped combination, this function directly creates output entries (one
 - `gene_symbol`: Gene symbol from metadata (empty string if not found)
 
 **Tissue Information:**
-- `tissue`: Tissue name, already mapped and sentence-cased by `preprocess_data_file` (Step 2.2)
+- `tissue`: Tissue name, already mapped by `preprocess_data_file`
 
 **Model Information:**
 - `name`: `model_group` value
@@ -215,9 +215,8 @@ This transform is designed to handle two distinct experimental scenarios:
 
 ### 5. Tissue Name Standardization
 - **Assumption:** JAX models use "Right Cerebral Hemisphere" which should be standardized
-- **Transformation:** "Right Cerebral Hemisphere" → "Hemibrain"
-- **Sentence case conversion:** All tissue names are converted to sentence case for consistency
-- **Purpose:** Ensures consistency across different data sources and standardizes capitalization
+- **Transformation:** "Right Cerebral Hemisphere" → "Hemibrain", matched case-insensitively so a source file that lowercases the tissue is still mapped
+- **Purpose:** Ensures the RNA and proteomics datasets, which render on the same page, agree on tissue names
 
 ### 6. Age Format
 - **Assumption:** Age values follow the format `"[N] months"` (e.g., `"3 months"`, `"6 months"`), where `N` is a non-negative integer. Every age string in the data **must** match this exact pattern.
@@ -286,7 +285,7 @@ This transform is designed to handle two distinct experimental scenarios:
 ### 4. Model to Model Group Mapping
 - **Method:** Extracts from genotype metadata (one entry per model)
 - **Assumption:** All genotypes for a model have the same model_group
-- **Validation:** Pre-validated by `validate_model_group_consistency`
+- **Validation:** Pre-validated by `validate_one_to_one_mapping` (model to model_group)
 - **Impact:** Ensures consistent model_group assignment
 
 ## Output Structure
@@ -326,7 +325,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 
 - **ensembl_gene_id**: Mouse gene Ensembl identifier (ENSMUSG*)
 - **gene_symbol**: Human-readable gene symbol (empty if not found in metadata)
-- **tissue**: Tissue name (with JAX transformation and sentence case applied)
+- **tissue**: Tissue name (with the JAX alias applied)
 - **name**: `model_group` value
 - **model_group**: Model group for display purposes (null if empty)
 - **matched_control**: Display label of the control genotype (empty if no control present in data)
@@ -423,7 +422,7 @@ output = transform_rna_de_individual(
 
 ### Issue: Unexpected tissue names
 - **Cause:** Tissue names not standardized in input data
-- **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"; all other tissues are converted to sentence case
+- **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"; all other tissues appear exactly as the source file spells them
 - **Solution:** Update input data or add an entry to `TISSUE_ALIASES` in `model_ad_expression_utils.py`
 
 ### Issue: Memory errors with large files

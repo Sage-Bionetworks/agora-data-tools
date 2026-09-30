@@ -1,15 +1,15 @@
-model,model_group,display_label,genotype,model_type
-Model_A,AD,Model_A (Tg),Tg,Familial AD
-Model_A,AD,Model_A (Wt),Wt,Familial AD
-Model_B,AD,Model_B (Tg),Tg,Familial AD
-Model_B,AD,Model_B (Wt),Wt,Familial AD
-Model_C,AD,Model_C (Tg),Tg,Late Onset AD
-Model_C,AD,Model_C (Wt),Wt,Late Onset AD
-JAX_Model,AD,JAX_Model (Tg),Tg,Familial AD
-JAX_Model,AD,JAX_Model (Wt),Wt,Familial AD
-Model_D,AD,Model_D (Tg),Tg,Late Onset AD
-Model_D,AD,Model_D (Wt),Wt,Late Onset AD
-Model_E,AD,Model_E (Tg),Tg,Late Onset AD
-Model_E,AD,Model_E (Wt),Wt,Late Onset AD
-Model_F,AD,Model_F (Tg),Tg,Late Onset AD
-Model_F,AD,Model_F (Wt),Wt,Late Onset AD
+model,model_group,display_label,genotype,model_type,result_order
+Model_A,AD,Model_A (Tg),Tg,Familial AD,1
+Model_A,AD,Model_A (Wt),Wt,Familial AD,2
+Model_B,AD,Model_B (Tg),Tg,Familial AD,3
+Model_B,AD,Model_B (Wt),Wt,Familial AD,4
+Model_C,AD,Model_C (Tg),Tg,Late Onset AD,5
+Model_C,AD,Model_C (Wt),Wt,Late Onset AD,6
+JAX_Model,AD,JAX_Model (Tg),Tg,Familial AD,7
+JAX_Model,AD,JAX_Model (Wt),Wt,Familial AD,8
+Model_D,AD,Model_D (Tg),Tg,Late Onset AD,9
+Model_D,AD,Model_D (Wt),Wt,Late Onset AD,10
+Model_E,AD,Model_E (Tg),Tg,Late Onset AD,11
+Model_E,AD,Model_E (Wt),Wt,Late Onset AD,12
+Model_F,AD,Model_F (Tg),Tg,Late Onset AD,13
+Model_F,AD,Model_F (Wt),Wt,Late Onset AD,14
