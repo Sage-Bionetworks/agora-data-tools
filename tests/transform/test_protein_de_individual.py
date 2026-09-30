@@ -797,6 +797,79 @@ class TestTransformProteinDeIndividual:
 
         assert {e["age"] for e in output} == {"4 months", "24 months"}
 
+    def test_animal_measured_in_two_files_appears_once(self) -> None:
+        """An animal measured for one protein in two files is nested once, not twice."""
+        datasets = self._build_datasets(
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": ["i1", "i2"],
+                "gene1|p00001": [1.0, 2.0],
+            },
+            data_key="proteomics_a",
+        )
+        datasets["proteomics_b"] = pd.DataFrame(
+            {
+                "specimenid": ["c1"],
+                "individualid": ["i1"],
+                "gene1|p00001": [1.0],
+            }
+        )
+
+        output = self._transform(datasets)
+
+        assert len(output) == 1
+        assert [d["individual_id"] for d in output[0]["data"]] == ["i1", "i2"]
+
+    def test_two_files_disagreeing_about_a_measurement_raise(self) -> None:
+        """Two files reporting different abundances for one animal and protein raise."""
+        datasets = self._build_datasets(
+            data_file={
+                "specimenid": ["c1", "c2"],
+                "individualid": ["i1", "i2"],
+                "gene1|p00001": [1.0, 2.0],
+            },
+            data_key="proteomics_a",
+        )
+        datasets["proteomics_b"] = pd.DataFrame(
+            {
+                "specimenid": ["c1"],
+                "individualid": ["i1"],
+                "gene1|p00001": [9.0],
+            }
+        )
+
+        with pytest.raises(ValueError, match="disagree about the abundance"):
+            self._transform(datasets)
+
+    def test_disagreement_about_an_excluded_animal_is_ignored(self) -> None:
+        """Two files disagreeing about an animal dropped for its genotype do not raise."""
+        datasets = self._build_datasets(
+            harmonized={
+                "individualid": ["i1", "i2", "i3"],
+                "sex": ["male", "female", "male"],
+                "agedeath": [4.0, 4.5, 4.2],
+                "genotype": ["geno_hom", "geno_wt", "geno_excluded"],
+                "tissue": ["right cerebral hemisphere"] * 3,
+            },
+            data_file={
+                "specimenid": ["c1", "c2", "c3"],
+                "individualid": ["i1", "i2", "i3"],
+                "gene1|p00001": [1.0, 2.0, 3.0],
+            },
+            data_key="proteomics_a",
+        )
+        datasets["proteomics_b"] = pd.DataFrame(
+            {
+                "specimenid": ["c3"],
+                "individualid": ["i3"],
+                "gene1|p00001": [9.0],
+            }
+        )
+
+        output = self._transform(datasets)
+
+        assert [d["individual_id"] for d in output[0]["data"]] == ["i1", "i2"]
+
     def test_per_model_group_fields_are_not_shared_across_groups(self) -> None:
         """name, matched_control, and result_order are resolved per model_group."""
         datasets = self._build_datasets(
@@ -1142,6 +1215,10 @@ class TestTransformProteinDeIndividual:
                 ),
                 "No rows remained",
             ),
+            (
+                lambda d: d["mouse_gene_metadata"].__setitem__("ensembl_gene_id", [""]),
+                "not_empty",
+            ),
         ],
         ids=[
             "drop_required_dataset",
@@ -1151,6 +1228,7 @@ class TestTransformProteinDeIndividual:
             "empty_data_file",
             "empty_display_label",
             "unmatched_genotypes",
+            "empty_gene_metadata_ensembl_id",
         ],
     )
     def test_invalid_input_raises(self, mutate, error: str) -> None:
