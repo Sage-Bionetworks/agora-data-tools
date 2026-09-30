@@ -51,6 +51,9 @@ REQUIRED_INPUT = {
 
 COLUMN_RULES = {
     "genotype_label_map": GENOTYPE_LABEL_MAP_RULES,
+    # create_gene_metadata_dict indexes on ensembl_gene_id, so a blank one becomes a live
+    # lookup key rather than being dropped.
+    "mouse_gene_metadata": {"ensembl_gene_id": [NotEmptyRule()]},
     "uniprot_ensembl_map": {
         "uniprot_id": [NotEmptyRule()],
         "ensembl_gene_id": [NotEmptyRule()],
@@ -206,9 +209,10 @@ def _check_metadata_coverage(
     matched = {
         individual for individual in unique if (individual, model) in known_individuals
     }
+    # Counted per file, so the same animal is counted again in every file that measures it.
     logger.info(
         f"Transform protein_de_individual: {file_name}: {len(matched)}/{len(unique)} "
-        f"animals have harmonized metadata"
+        "of this file's animals have harmonized metadata"
     )
     if not matched:
         raise ValueError(
@@ -225,6 +229,68 @@ def _log_stage(model_group: str, stage: str, df: pd.DataFrame) -> None:
         f"Transform protein_de_individual: {model_group}: {stage}: {len(df)} measurements, "
         f"{df['individualid'].nunique()} animals"
     )
+
+
+def _log_cross_file_animals(
+    model_group: str, animals_by_file: dict[str, set[str]]
+) -> None:
+    """Log animals measured in more than one of a model_group's data files.
+
+    Coverage is reported per file, so an animal in two files is counted in both. Without this
+    the per-file counts do not add up to the model_group's count.
+    """
+    seen: set[str] = set()
+    shared: set[str] = set()
+    for animals in animals_by_file.values():
+        shared |= seen & animals
+        seen |= animals
+    if shared:
+        logger.info(
+            f"Transform protein_de_individual: {model_group}: {len(shared)} of {len(seen)} "
+            f"animals are measured in more than one data file, so the per-file counts above "
+            f"sum to more than this model_group's total. Animals (first 10): "
+            f"{sorted(shared)[:10]}"
+        )
+
+
+def _collapse_duplicate_measurements(
+    model_group: str, df: pd.DataFrame
+) -> pd.DataFrame:
+    """Collapse a protein measured for one animal in more than one file, raising if they disagree.
+
+    An animal measured in two data files reaches the same output entry from both, because every
+    grouping key is derived from its metadata or the protein header. nest_individual_records does
+    not de-duplicate, so without this its individual_id would appear twice in one protein's data
+    list.
+
+    Runs on the rows that survive to the output, so repeats among animals that are dropped for
+    their genotype are not reported.
+    """
+    keys = ["individualid", "uniprotid"]
+    collapsed = df.drop_duplicates(subset=keys + ["value"])
+    conflicting = collapsed.duplicated(subset=keys, keep=False)
+    if conflicting.any():
+        offenders = sorted(
+            collapsed.loc[conflicting, keys]
+            .drop_duplicates()
+            .itertuples(index=False, name=None)
+        )
+        raise ValueError(
+            f"Model_group '{model_group}': the data files disagree about the abundance of a "
+            f"protein for {len(offenders)} animal-protein pair(s), so which value belongs on "
+            "the page cannot be decided here. (individualID, uniprotID) "
+            f"(first 10): {offenders[:10]}"
+        )
+    if len(collapsed) < len(df):
+        shared = sorted(
+            df.loc[df.duplicated(subset=keys, keep=False), "individualid"].unique()
+        )
+        logger.info(
+            f"Transform protein_de_individual: {model_group}: {len(df) - len(collapsed)} "
+            f"repeated measurements collapsed for {len(shared)} animals measured in more "
+            f"than one data file. Animals (first 10): {shared[:10]}"
+        )
+    return collapsed
 
 
 def _build_output(
@@ -257,6 +323,8 @@ def _build_output(
 
     df = label_genotypes(df, genotype_label_map_df, f"model_group '{model_group}'")
     _log_stage(model_group, "after genotype labeling", df)
+
+    df = _collapse_duplicate_measurements(model_group, df)
 
     # age is a grouping key and groupby drops null keys, so an unbucketable ageDeath
     # would delete those animals with no error.
@@ -384,6 +452,18 @@ def _validate_file_maps(
         )
 
 
+def _check_input_files(
+    datasets: dict[str, pd.DataFrame],
+    names: list[str],
+    required_columns: list[str],
+    column_rules: dict[str, list[ColumnRule]],
+) -> None:
+    """Apply one set of required columns and column rules to every file in a group."""
+    frames = {name: datasets[name] for name in names}
+    check_required_datasets_and_columns(frames, dict.fromkeys(names, required_columns))
+    check_column_rules(frames, dict.fromkeys(names, column_rules))
+
+
 def transform_protein_de_individual(
     datasets: dict[str, pd.DataFrame],
     model_map: dict[str, str],
@@ -408,25 +488,18 @@ def transform_protein_de_individual(
     datafile_list = [key for key in datasets if key in model_map]
     for file_name in datafile_list:
         validate_data_file_not_empty(file_name, datasets[file_name])
-    check_required_datasets_and_columns(
-        {name: datasets[name] for name in datafile_list},
-        {name: DATAFILE_REQUIRED_COLUMNS for name in datafile_list},
-    )
-    check_column_rules(
-        {name: datasets[name] for name in datafile_list},
-        {name: DATAFILE_COLUMN_RULES for name in datafile_list},
+    _check_input_files(
+        datasets, datafile_list, DATAFILE_REQUIRED_COLUMNS, DATAFILE_COLUMN_RULES
     )
 
     metadata_names = list(metadata_map)
-    model_metadata_files = {name: datasets[name] for name in metadata_names}
-    check_required_datasets_and_columns(
-        model_metadata_files,
-        {name: MODEL_METADATA_REQUIRED_COLUMNS for name in metadata_names},
+    _check_input_files(
+        datasets,
+        metadata_names,
+        MODEL_METADATA_REQUIRED_COLUMNS,
+        MODEL_METADATA_COLUMN_RULES,
     )
-    check_column_rules(
-        model_metadata_files,
-        {name: MODEL_METADATA_COLUMN_RULES for name in metadata_names},
-    )
+
     stamped_metadata = []
     for name in metadata_names:
         frame = datasets[name][MODEL_METADATA_REQUIRED_COLUMNS].copy()
@@ -483,6 +556,7 @@ def transform_protein_de_individual(
     output = []
     for model_group, file_names in files_by_model_group.items():
         long_frames = []
+        animals_by_file: dict[str, set[str]] = {}
         for file_name in file_names:
             long_df = _melt_proteomics_file(
                 file_name, datasets[file_name], model_map[file_name]
@@ -493,7 +567,9 @@ def transform_protein_de_individual(
                 model_map[file_name],
                 known_individuals,
             )
+            animals_by_file[file_name] = set(long_df["individualid"])
             long_frames.append(long_df)
+        _log_cross_file_animals(model_group, animals_by_file)
 
         combined = (
             pd.concat(long_frames, ignore_index=True)
