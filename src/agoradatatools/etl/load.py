@@ -3,7 +3,8 @@ import os
 
 import numpy as np
 import pandas as pd
-from synapseclient import Activity, File, Synapse
+from synapseclient.models import Activity, File, Folder
+from synapseclient import Synapse
 from typing import Any, List, Dict
 
 from agoradatatools.etl.utils import normalize_null_values
@@ -75,7 +76,9 @@ def remove_non_values(d: dict) -> dict:
     return cleaned_dict
 
 
-def load(file_path: str, provenance: list, destination: str, syn: Synapse) -> tuple:
+def load(
+    file_path: str, provenance: list[str], destination: str, syn: Synapse
+) -> tuple:
     """Reads file to be loaded into Synapse
     :param syn: synapse object
     :return: synapse id of the file loaded into Synapse.  Returns None if it
@@ -83,18 +86,18 @@ def load(file_path: str, provenance: list, destination: str, syn: Synapse) -> tu
 
     Args:
         file_path (str): Path of the file to be loaded into Synapse
-        provenance (list): Array of files that originate the one being loaded
+        provenance (list[str]): Array of files that originate the one being loaded
         destination (str): Location where the file should be loaded in Synapse
         syn (synapseclient.Synapse): synapseclient session.
 
     Returns:
-        tuple: Returns a tuple of the name fo the file and the version number.
+        tuple[str, int]: Returns a tuple of the name fo the file and the version number.
     """
 
     activity = Activity(used=provenance)
-    file = File(file_path, parent=destination)
-    file = syn.store(file, activity=activity, forceVersion=False)
-    return (file.id, file.versionNumber)
+    file = File(path=file_path, activity=activity, force_version=False)
+    file = file.store(parent=Folder(id=destination), synapse_client=syn)
+    return (file.id, file.version_number)
 
 
 def df_to_json(data_as_df: pd.DataFrame, staging_path: str, filename: str) -> str:
