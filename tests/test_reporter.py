@@ -3,6 +3,7 @@ import datetime
 
 from unittest.mock import patch, Mock
 
+import pandas as pd
 from synapseclient import Synapse
 
 import agoradatatools.reporter
@@ -80,45 +81,59 @@ class TestADTGXReporter:
     def test_update_table_when_upload_is_true_and_reports_not_empty(
         self, syn: Synapse
     ) -> None:
-        with patch.object(syn, "store") as mock_store, patch.object(
+        mock_table_instance = Mock()
+        with patch.object(
+            agoradatatools.reporter, "Table", return_value=mock_table_instance
+        ) as mock_table_class, patch.object(
             self.test_reporter, "_update_reports_before_upload"
         ) as mock_update_reports_before_upload:
             self.test_reporter.reports = [self.test_report]
             self.test_reporter.update_table()
 
-            mock_store.assert_called_once()
+            mock_table_class.assert_called_once_with(id="syn123")
+            mock_table_instance.store_rows.assert_called_once()
+            store_rows_kwargs = mock_table_instance.store_rows.call_args.kwargs
+            assert store_rows_kwargs["synapse_client"] is syn
+            assert isinstance(store_rows_kwargs["values"], pd.DataFrame)
+            assert len(store_rows_kwargs["values"]) == 1
             mock_update_reports_before_upload.assert_called_once()
 
     def test_update_table_when_upload_is_true_and_reports_empty(
         self, syn: Synapse
     ) -> None:
-        with patch.object(syn, "store") as mock_store, patch.object(
+        with patch.object(
+            agoradatatools.reporter, "Table"
+        ) as mock_table_class, patch.object(
             self.test_reporter, "_update_reports_before_upload"
         ) as mock_update_reports_before_upload:
             self.test_reporter.update_table()
 
-            mock_store.assert_not_called()
+            mock_table_class.assert_not_called()
             mock_update_reports_before_upload.assert_not_called()
 
     def test_update_table_when_upload_is_false_and_reports_not_empty(
         self, syn: Synapse
     ) -> None:
-        with patch.object(syn, "store") as mock_store, patch.object(
+        with patch.object(
+            agoradatatools.reporter, "Table"
+        ) as mock_table_class, patch.object(
             self.test_reporter_no_upload, "_update_reports_before_upload"
         ) as mock_update_reports_before_upload:
             self.test_reporter_no_upload.reports = [self.test_report]
             self.test_reporter_no_upload.update_table()
 
-            mock_store.assert_not_called()
+            mock_table_class.assert_not_called()
             mock_update_reports_before_upload.assert_not_called()
 
     def test_update_table_when_upload_is_false_and_reports_empty(
         self, syn: Synapse
     ) -> None:
-        with patch.object(syn, "store") as mock_store, patch.object(
+        with patch.object(
+            agoradatatools.reporter, "Table"
+        ) as mock_table_class, patch.object(
             self.test_reporter_no_upload, "_update_reports_before_upload"
         ) as mock_update_reports_before_upload:
             self.test_reporter_no_upload.update_table()
 
-            mock_store.assert_not_called()
+            mock_table_class.assert_not_called()
             mock_update_reports_before_upload.assert_not_called()
