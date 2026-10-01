@@ -27,9 +27,35 @@ Install required packages:
 - synapser (also requires a Synapse account with an auth token)
 - jsonlite
 ```{r}
-if (!require("synapser", quietly = TRUE)) {
-  install.packages("synapser", repos = c("http://ran.synapse.org",
-                                         "https://cloud.r-project.org"))
+# synapser 2.1.5.356 is hard-pinned to Python synapseclient==4.4.2 (see its
+# R/zzz.R), which conflicts with the newer synapseclient the ADT package itself
+# requires. Point reticulate at a venv dedicated to these R notebooks, created
+# and managed by reticulate itself, so the two never collide.
+#
+# A VIRTUAL_ENV left over from an unrelated project's activated shell silently
+# overrides reticulate's env selection. Clearing
+# VIRTUAL_ENV and exporting RETICULATE_PYTHON as a real environment variable
+# (not just an R-level call) makes this robust regardless of shell state, and
+# ensures that child process picks up the right Python too.
+Sys.unsetenv("VIRTUAL_ENV")
+
+# Pinned to Python 3.11 (matching this project's own setup.cfg)
+library(reticulate)
+reticulate::virtualenv_create("agora-data-tools-r-synapser", version = "3.11")
+Sys.setenv(RETICULATE_PYTHON = file.path(
+  reticulate::virtualenv_root(), "agora-data-tools-r-synapser", "bin", "python"
+))
+reticulate::use_virtualenv("agora-data-tools-r-synapser", required = TRUE)
+
+if (!require("remotes", quietly = TRUE)) {
+  install.packages("remotes")
+}
+
+if (!require("synapser", quietly = TRUE) ||
+    packageVersion("synapser") != "2.1.5.356") {
+  remotes::install_version("synapser", version = "2.1.5.356",
+                            repos = c("http://ran.synapse.org",
+                                      "https://cloud.r-project.org"))
 }
 if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
 if (!require("purrr")) { install.packages("purrr") }
