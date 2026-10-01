@@ -15,8 +15,10 @@ from great_expectations.data_context import FileDataContext
 from great_expectations.data_context.types.resource_identifiers import (
     ValidationResultIdentifier,
 )
-from synapseclient import Activity, File, Synapse
+from synapseclient import Synapse
+from synapseclient.models import Activity
 
+from agoradatatools import gx
 from agoradatatools.gx import GreatExpectationsRunner
 
 
@@ -147,20 +149,24 @@ class TestGreatExpectationsRunner:
             assert result == expected_path
 
     def test_upload_results_file_to_synapse(self):
+        mock_stored_file = mock.MagicMock(id="syn123", version_number=1)
+        mock_file_instance = mock.MagicMock()
+        mock_file_instance.store.return_value = mock_stored_file
         with patch.object(
-            self.good_runner.syn,
-            "store",
-            return_value=File(parent="syn456", id="syn123", versionNumber=1),
-        ) as patch_syn_store:
+            gx, "File", return_value=mock_file_instance
+        ) as patch_file_class:
             self.good_runner.upload_results_file_to_synapse("test_path")
-            patch_syn_store.assert_called_once_with(
-                File(path="test_path", parent=self.good_runner.upload_folder),
+            patch_file_class.assert_called_once_with(
+                path="test_path",
                 activity=Activity(
                     name=f"Great Expectations {self.good_runner.expectation_suite_name} results",
                     executed="https://github.com/Sage-Bionetworks/agora-data-tools",
                 ),
-                forceVersion=True,
+                force_version=True,
             )
+            store_call_kwargs = mock_file_instance.store.call_args.kwargs
+            assert store_call_kwargs["parent"].id == self.good_runner.upload_folder
+            assert store_call_kwargs["synapse_client"] is self.good_runner.syn
             assert self.good_runner.report_file == "syn123"
             assert self.good_runner.report_version == 1
             assert self.good_runner.report_link == DatasetReport.format_link(

@@ -8,7 +8,8 @@ from typing import Optional
 import great_expectations as gx
 import pandas as pd
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
-from synapseclient import Activity, File, Synapse
+from synapseclient import Synapse
+from synapseclient.models import Activity, File, Folder
 
 from agoradatatools.reporter import DatasetReport
 
@@ -158,21 +159,21 @@ class GreatExpectationsRunner:
         Args:
             results_path (str): Path to the GX report file.
         """
-        file = self.syn.store(
-            File(
-                results_path,
-                parentId=self.upload_folder,
-            ),
+        file = File(
+            path=results_path,
             activity=Activity(
                 name=f"Great Expectations {self.expectation_suite_name} results",
                 executed="https://github.com/Sage-Bionetworks/agora-data-tools",
             ),
-            forceVersion=True,
+            force_version=True,
         )
+
+        file = file.store(parent=Folder(id=self.upload_folder), synapse_client=self.syn)
+
         self.report_file = file.id
-        self.report_version = file.versionNumber
+        self.report_version = file.version_number
         self.report_link = DatasetReport.format_link(
-            syn_id=file.id, version=file.versionNumber
+            syn_id=file.id, version=file.version_number
         )
 
     @staticmethod

@@ -1,17 +1,9 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
-import synapseclient
 
 from agoradatatools.etl import extract
-
-
-class MockAsDF:
-    def asDataFrame(self):
-        example_dict = {"Database": ["centerMapping"], "Id": ["syn123"]}
-        df = pd.DataFrame(example_dict)
-        return df
 
 
 def test_read_csv_into_df_if_not_csv():
@@ -43,12 +35,14 @@ def test_read_tsv_into_df():
 
 
 def test_read_table_into_df(syn):
-    mock_df = MockAsDF()
-    with patch.object(syn, "tableQuery", return_value=mock_df) as patch_syn_tablequery:
+    mock_df = pd.DataFrame({"Database": ["centerMapping"], "Id": ["syn123"]})
+    with patch.object(extract, "query", return_value=mock_df) as patch_query:
         df = extract.read_table_into_df(table_id="syn11111111", syn=syn)
-        patch_syn_tablequery.assert_called_once_with("select * from syn11111111")
+        patch_query.assert_called_once_with(
+            query="select * from syn11111111", synapse_client=syn
+        )
         assert isinstance(df, pd.DataFrame)
-        assert df.equals(mock_df.asDataFrame())
+        assert df.equals(mock_df)
 
 
 def test_read_feather_into_df_if_not_feather():
@@ -117,28 +111,33 @@ def test_read_yaml_into_df():
     assert "Tau (HT7)" in pathology_rows["items"].values
 
 
-@pytest.mark.parametrize(
-    "syn_id, version", [("syn1111111", None), ("syn1111111.1", "1")]
-)
+@pytest.mark.parametrize("syn_id, version", [("syn1111111", None), ("syn1111111.1", 1)])
 # test if synapse entity is retrieved without and with version number
 def test_get_entity_as_df_with_version(syn, syn_id, version):
     """
     Tests handling of synapse id with and without version number
     """
     # dummy synapse entity needed to supply entity.path to read_csv_into_df for next test
-    ENTITY = synapseclient.File("fake/path.csv", parent="syn1111111")
-    with patch.object(syn, "get", return_value=ENTITY) as patch_syn_get, patch.object(
-        extract, "read_csv_into_df", return_entity=pd.DataFrame()
+    mock_entity = MagicMock(path="fake/path.csv")
+    with patch.object(
+        extract, "get", return_value=mock_entity
+    ) as patch_get, patch.object(
+        extract, "read_csv_into_df", return_value=pd.DataFrame()
     ) as patch_read_csv_into_df:
         extract.get_entity_as_df(syn_id=syn_id, source="csv", syn=syn)
-        patch_syn_get.assert_called_once_with(syn_id.split(".")[0], version=version)
+        patch_get.assert_called_once_with(
+            synapse_id=syn_id.split(".")[0],
+            version_number=version,
+            synapse_client=syn,
+        )
         patch_read_csv_into_df.assert_called_once_with(csv_path="fake/path.csv")
 
 
 # test raise if  is not supported
 def test_get_entity_as_df_not_supported(syn):
-    with pytest.raises(ValueError, match="File type not *"):
-        extract.get_entity_as_df(syn_id="syn1111111", source="abc", syn=syn)
+    with patch.object(extract, "get", return_value=MagicMock()):
+        with pytest.raises(ValueError, match="File type not *"):
+            extract.get_entity_as_df(syn_id="syn1111111", source="abc", syn=syn)
 
 
 @pytest.mark.parametrize(
@@ -155,6 +154,8 @@ def test_get_entity_as_df_not_supported(syn):
 # test handling of different formats to df
 def test_get_entity_as_df_supported_formats(syn, source, callable):
     with patch.object(
+        extract, "get", return_value=MagicMock(path="fake/path")
+    ), patch.object(
         extract, callable, return_value=pd.DataFrame()
     ) as patch_source_to_df:
         df = extract.get_entity_as_df(syn_id="syn1111111", source=source, syn=syn)

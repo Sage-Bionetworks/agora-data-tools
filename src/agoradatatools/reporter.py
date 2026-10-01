@@ -2,7 +2,9 @@ import datetime
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional
 
+import pandas as pd
 import synapseclient
+from synapseclient.models import Table
 
 from agoradatatools.constants import Platform
 
@@ -129,9 +131,8 @@ class ADTGXReporter:
         """
         if self.upload and self.reports:
             self._update_reports_before_upload()
-            self.syn.store(
-                synapseclient.Table(
-                    self.table_id,
-                    [asdict(report).values() for report in self.reports],
-                )
+            table = Table(id=self.table_id)
+            table.store_rows(
+                values=pd.DataFrame([asdict(report) for report in self.reports]),
+                synapse_client=self.syn,
             )

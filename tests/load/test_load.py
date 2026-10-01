@@ -5,7 +5,7 @@ from unittest.mock import ANY, patch
 
 import pandas as pd
 import pytest
-from synapseclient import File
+from synapseclient.models import Activity
 
 from agoradatatools.etl import load, utils
 
@@ -50,15 +50,11 @@ class TestLoad:
         self.patch_syn_login = patch.object(
             utils, "_login_to_synapse", return_value=syn
         ).start()
-        self.patch_syn_store = patch.object(
-            syn,
-            "store",
-            return_value=File(
-                "fake/path/to/fake/file",
-                parent="syn1111113",
-                id="syn1111114",
-                versionNumber=1,
-            ),
+        self.mock_stored_file = mock.MagicMock(id="syn1111114", version_number=1)
+        self.mock_file_instance = mock.MagicMock()
+        self.mock_file_instance.store.return_value = self.mock_stored_file
+        self.patch_file_class = patch.object(
+            load, "File", return_value=self.mock_file_instance
         ).start()
 
     def teardown_method(self):
@@ -72,6 +68,18 @@ class TestLoad:
             syn=syn,
         )
         self.patch_syn_login.assert_not_called()
+        # File must be constructed with `path=`, not positionally (that binds to `id`
+        # on the new models.File, which raises "Cannot store file" at store time)
+        self.patch_file_class.assert_called_once_with(
+            path="fake/path/to/fake/file",
+            activity=Activity(used=["syn1111111", "syn1111112"]),
+            force_version=False,
+        )
+        # store() must receive the caller's syn session explicitly, not rely on
+        # whatever Synapse instance happens to be cached globally
+        store_call_kwargs = self.mock_file_instance.store.call_args.kwargs
+        assert store_call_kwargs["parent"].id == "syn1111113"
+        assert store_call_kwargs["synapse_client"] is syn
         assert test_tuple == ("syn1111114", 1)
 
 

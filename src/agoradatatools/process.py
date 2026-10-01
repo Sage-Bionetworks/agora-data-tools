@@ -13,6 +13,7 @@ from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
 from agoradatatools.constants import Platform
+from synapseclient.models import Folder
 
 
 logger = logging.getLogger(__name__)
@@ -203,7 +204,7 @@ def process_dataset(
     gx_folder: str,
     syn: synapseclient.Synapse,
     upload: bool = True,
-) -> Union[DatasetReport, None]:
+) -> DatasetReport | None:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
     Args:
@@ -333,13 +334,13 @@ def process_dataset(
 
 
 def create_data_manifest(
-    syn: synapseclient.Synapse, parent: Union[synapseclient.Folder, str] = None
+    syn: synapseclient.Synapse, parent: Folder | str | None = None
 ) -> Union[DataFrame, None]:
     """Creates data manifest (dataframe) that has the IDs and version numbers of child synapse files
 
     Args:
         syn (synapseclient.Synapse): Synapse client session.
-        parent (synapseclient.Folder/str, optional): synapse folder or synapse id pointing to parent synapse folder. Defaults to None.
+        parent (Folder/str, optional): synapse folder or synapse id pointing to parent synapse folder. Defaults to None.
 
     Returns:
         Dataframe containing IDs and version numbers of folders within the parent directory, or None if parent is None
@@ -348,16 +349,23 @@ def create_data_manifest(
     if not parent:
         return None
 
-    files = syn.getChildren(parent)
+    files = []
+
+    if isinstance(parent, str):
+        parent = Folder(id=parent).get(synapse_client=syn)
+
+    for _, _, nondirs in parent.walk(recursive=False, synapse_client=syn):
+        for entity in nondirs:
+            files.append(entity)
 
     manifest_rows = [
         {
-            "id": file["id"],
+            "id": file.id,
             "version": (
-                file["versionNumber"] + 1
-                if file["name"] == DATA_MANIFEST_FILENAME
-                or file["name"] == "dataversion.json"
-                else file["versionNumber"]
+                file.version_number + 1
+                if file.name == DATA_MANIFEST_FILENAME
+                or file.name == "dataversion.json"
+                else file.version_number
             ),
         }
         for file in files
