@@ -9,21 +9,16 @@ import pytest
 from agoradatatools.etl.transform.protein_de_individual import (
     REQUIRED_INPUT,
     transform_protein_de_individual,
-    _build_uniprot_candidates,
-    _measured_header_pairs,
+    _build_uniprot_to_ensembl,
+    _measured_accessions,
     _melt_proteomics_file,
-    _resolve_gene_ids,
     _validate_file_maps,
 )
 
 
-CANDIDATES = {"P1": ["ENSMUSG00000000001", "ENSMUSG00000000009"]}
-GENE_SYMBOLS = {"ENSMUSG00000000001": "Gm10053", "ENSMUSG00000000009": "Cycs"}
-
-
-class TestBuildUniprotCandidates:
-    def test_drops_human_genes_and_keeps_all_mouse_candidates(self) -> None:
-        """Human Ensembl ids are dropped; mouse candidates are kept and sorted."""
+class TestBuildUniprotToEnsembl:
+    def test_drops_human_genes_and_takes_the_smallest_mouse_gene(self) -> None:
+        """Human Ensembl ids are dropped; an accession with several mouse genes takes the smallest."""
         mapping = pd.DataFrame(
             {
                 "uniprot_id": ["P1", "P1", "P2", "P3"],
@@ -36,13 +31,13 @@ class TestBuildUniprotCandidates:
             }
         )
 
-        assert _build_uniprot_candidates(mapping) == {
-            "P1": ["ENSMUSG00000000002", "ENSMUSG00000000005"],
-            "P3": ["ENSMUSG00000000003"],
+        assert _build_uniprot_to_ensembl(mapping) == {
+            "P1": "ENSMUSG00000000002",
+            "P3": "ENSMUSG00000000003",
         }
 
 
-class TestMeasuredHeaderPairs:
+class TestMeasuredAccessions:
     @staticmethod
     def _melted_accessions(datasets: dict[str, pd.DataFrame]) -> set:
         """Return the UniProt accessions produced by melting each data file."""
@@ -55,7 +50,7 @@ class TestMeasuredHeaderPairs:
         }
 
     @pytest.mark.parametrize(
-        "columns,accessions,symbols",
+        "columns,accessions",
         [
             (
                 {
@@ -64,44 +59,28 @@ class TestMeasuredHeaderPairs:
                     "dead|p00003": [None, None],
                 },
                 {"P00001", "P00002"},
-                {"cycs", "srp54"},
             ),
-            ({"ank2|q8c8r3_2": [1.0, 2.0]}, {"Q8C8R3-2"}, {"ank2"}),
-            ({"cycs|p00001": [1.0, 2.0]}, {"P00001"}, {"cycs"}),
+            ({"ank2|q8c8r3_2": [1.0, 2.0]}, {"Q8C8R3-2"}),
+            ({"cycs|p00001": [1.0, 2.0]}, {"P00001"}),
         ],
     )
-    def test_pairs_match_what_the_melt_yields(
-        self, columns: dict[str, list], accessions: set, symbols: set
+    def test_accessions_match_what_the_melt_yields(
+        self, columns: dict[str, list], accessions: set
     ) -> None:
-        """Header pairs match the accessions and symbols the melt would yield."""
+        """The accessions collected match the ones the melt would yield, de-duplicated."""
         datasets = {
             "file1": pd.DataFrame({"individualid": [1, 2], **columns}),
             "file2": pd.DataFrame({"individualid": [3, 4], **columns}),
         }
 
-        pairs = _measured_header_pairs(datasets, list(datasets))
+        measured = _measured_accessions(datasets, list(datasets))
 
-        assert set(pairs["uniprotid"]) == self._melted_accessions(datasets)
-        assert set(pairs["uniprotid"]) == accessions
-        assert set(pairs["header_symbol"]) == symbols
-        assert len(pairs) == len(accessions)
+        assert set(measured) == self._melted_accessions(datasets)
+        assert set(measured) == accessions
+        assert len(measured) == len(accessions)
 
-    def test_symbols_are_unioned_across_files(self) -> None:
-        """Header symbols for one accession are unioned across data files."""
-        datasets = {
-            "file1": pd.DataFrame({"individualid": [1], "na|p00001": [1.0]}),
-            "file2": pd.DataFrame({"individualid": [2], "cycs|p00001": [2.0]}),
-        }
-
-        pairs = _measured_header_pairs(datasets, list(datasets))
-
-        assert set(pairs["header_symbol"]) == {"na", "cycs"}
-        assert _resolve_gene_ids(pairs, {"P00001": CANDIDATES["P1"]}, GENE_SYMBOLS) == {
-            "P00001": "ENSMUSG00000000009"
-        }
-
-    def test_dead_isoform_column_cannot_steer_its_base_accession(self) -> None:
-        """An all-empty isoform column does not change the gene of its base accession."""
+    def test_empty_isoform_column_contributes_no_accession(self) -> None:
+        """An all-empty isoform column is not reported as a measured accession."""
         datasets = {
             "file1": pd.DataFrame(
                 {
@@ -112,83 +91,10 @@ class TestMeasuredHeaderPairs:
             )
         }
 
-        pairs = _measured_header_pairs(datasets, list(datasets))
+        measured = _measured_accessions(datasets, list(datasets))
 
-        assert set(pairs["uniprotid"]) == self._melted_accessions(datasets)
-        assert _resolve_gene_ids(pairs, {"P00001": CANDIDATES["P1"]}, GENE_SYMBOLS) == {
-            "P00001": "ENSMUSG00000000009"
-        }
-
-
-class TestResolveGeneIds:
-    @staticmethod
-    def _header_pairs(uniprotid: str, header_symbol: str) -> pd.DataFrame:
-        """Build a one-row header-pairs frame for resolve tests."""
-        return pd.DataFrame(
-            {"uniprotid": [uniprotid], "header_symbol": [header_symbol]}
-        )
-
-    @pytest.mark.parametrize(
-        "header_symbol,expected",
-        [
-            ("Cycs", "ENSMUSG00000000009"),
-            ("cycs", "ENSMUSG00000000009"),
-            ("Gm10053", "ENSMUSG00000000001"),
-            ("", "ENSMUSG00000000001"),
-            ("NA", "ENSMUSG00000000001"),
-            ("Rps27", "ENSMUSG00000000001"),
-            ("Cycs;_Gm10053", "ENSMUSG00000000001"),
-        ],
-    )
-    def test_header_symbol_picks_the_gene(
-        self, header_symbol: str, expected: str
-    ) -> None:
-        """The header symbol picks among map candidates, else the smallest Ensembl id is used."""
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P1", header_symbol),
-            CANDIDATES,
-            GENE_SYMBOLS,
-        )
-
-        assert resolved == {"P1": expected}
-
-    def test_multi_gene_header_symbol_resolves_on_one_match(self) -> None:
-        """A multi-gene header resolves when exactly one named gene is a candidate."""
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P1", "Cycs;_Rps27"),
-            CANDIDATES,
-            GENE_SYMBOLS,
-        )
-
-        assert resolved == {"P1": "ENSMUSG00000000009"}
-
-    def test_ambiguous_match_stays_within_the_named_genes(self) -> None:
-        """A tie between named genes is broken without leaving those named genes."""
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P3", "H4c1;_H4c2"),
-            {
-                "P3": [
-                    "ENSMUSG00000000001",
-                    "ENSMUSG00000000004",
-                    "ENSMUSG00000000007",
-                ]
-            },
-            {
-                "ENSMUSG00000000001": "Gm10053",
-                "ENSMUSG00000000004": "H4c1",
-                "ENSMUSG00000000007": "H4c2",
-            },
-        )
-
-        assert resolved == {"P3": "ENSMUSG00000000004"}
-
-    def test_isoform_symbol_resolves_base_accession(self) -> None:
-        """An isoform header symbol can resolve the base accession."""
-        resolved = _resolve_gene_ids(
-            self._header_pairs("P1-2", "Cycs"), CANDIDATES, GENE_SYMBOLS
-        )
-
-        assert resolved == {"P1": "ENSMUSG00000000009"}
+        assert set(measured) == self._melted_accessions(datasets)
+        assert set(measured) == {"P00001"}
 
 
 class TestMeltProteomicsFile:
@@ -470,61 +376,13 @@ class TestTransformProteinDeIndividual:
 
         assert {e["uniprotid"] for e in output} == {"P00001"}
 
-    def test_header_symbol_cannot_rescue_accession_absent_from_the_map(self) -> None:
-        """A header naming a known gene does not invent a mapping for an absent accession."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "gene1|p00001": [1.0, 2.0],
-                "Gnai3|nomap": [3.0, 4.0],
-            }
-        )
-
-        output = self._transform(datasets)
-
-        assert {e["uniprotid"] for e in output} == {"P00001"}
-
-    def test_header_picks_among_map_candidates(self) -> None:
-        """The named candidate wins even when it is not the smallest Ensembl id."""
+    def test_ambiguous_accession_takes_smallest_ensembl_id(self) -> None:
+        """An accession with several candidate genes takes the smallest, whatever the header names."""
         datasets = self._build_datasets(
             data_file={
                 "specimenid": ["c1", "c2"],
                 "individualid": ["i1", "i2"],
                 "Pms2|p54279": [1.0, 2.0],
-            },
-            mapping=pd.DataFrame(
-                {
-                    "uniprot_id": ["P54279", "P54279"],
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000009",
-                    ],
-                }
-            ),
-            gene_metadata=pd.DataFrame(
-                {
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000009",
-                    ],
-                    "gene_symbol": ["Rsph10b", "Pms2"],
-                }
-            ),
-        )
-
-        output = self._transform(datasets)
-
-        assert output[0]["ensembl_gene_id"] == "ENSMUSG00000000009"
-        assert output[0]["gene_symbol"] == "Pms2"
-
-    def test_unmatched_header_falls_back_to_smallest_ensembl_id(self) -> None:
-        """An unmatched header falls back to the smallest candidate Ensembl id."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "unknown|p54279": [1.0, 2.0],
             },
             mapping=pd.DataFrame(
                 {
@@ -549,6 +407,7 @@ class TestTransformProteinDeIndividual:
         output = self._transform(datasets)
 
         assert output[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert output[0]["gene_symbol"] == "Rsph10b"
 
     def test_extra_map_column_is_ignored(self) -> None:
         """Extra columns on the UniProt map are ignored."""
