@@ -1,0 +1,3 @@
+model,model_group,display_label,genotype,result_order
+LOAD2,LOAD2,LOAD2,geno_hom,2
+LOAD2,LOAD2,LOAD1,geno_wt,1

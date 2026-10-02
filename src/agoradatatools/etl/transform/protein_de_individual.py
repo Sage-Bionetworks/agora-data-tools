@@ -1,0 +1,547 @@
+"""
+Transforms wide Model AD proteomics files into the RNA individual nested shape,
+plus uniprotid, unique_id, and display_symbol.
+"""
+
+import gc
+import logging
+from collections import defaultdict
+from typing import Any
+
+import pandas as pd
+
+from agoradatatools.etl.utils import (
+    check_column_rules,
+    check_required_datasets_and_columns,
+    ColumnRule,
+    NotEmptyRule,
+    normalize_zero,
+)
+from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
+    remap_sex_labels,
+)
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    build_model_to_model_group_lookup,
+    create_gene_metadata_dict,
+    filter_to_mouse_genes,
+    label_genotypes,
+    nest_individual_records,
+    normalize_tissue,
+    prepare_genotype_label_map,
+    validate_data_file_not_empty,
+    GENOTYPE_LABEL_MAP_COLUMNS,
+    GENOTYPE_LABEL_MAP_RULES,
+)
+
+logger = logging.getLogger(__name__)
+
+UNITS = "Log2 Relative Abundance"
+
+# JAX-confirmed right-closed ageDeath buckets (confirmed with Annat):
+# <=6 -> 4 months, >6 and <=10 -> 8, >10 and <=16 -> 12, >16 and <=20 -> 18, >20 -> 24.
+# 14.2 months is a 12-month animal. Jax studies use wide ranges for each age group.
+AGE_BINS = [float("-inf"), 6, 10, 16, 20, float("inf")]
+AGE_LABELS = [4, 8, 12, 18, 24]
+
+REQUIRED_INPUT = {
+    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
+    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
+    "uniprot_ensembl_map": ["uniprot_id", "ensembl_gene_id"],
+}
+
+COLUMN_RULES = {
+    "genotype_label_map": GENOTYPE_LABEL_MAP_RULES,
+    # create_gene_metadata_dict indexes on ensembl_gene_id, so a blank one becomes a live
+    # lookup key rather than being dropped.
+    "mouse_gene_metadata": {"ensembl_gene_id": [NotEmptyRule()]},
+    "uniprot_ensembl_map": {
+        "uniprot_id": [NotEmptyRule()],
+        "ensembl_gene_id": [NotEmptyRule()],
+    },
+}
+
+MODEL_METADATA_REQUIRED_COLUMNS = [
+    "individualid",
+    "sex",
+    "agedeath",
+    "genotype",
+    "tissue",
+]
+MODEL_METADATA_COLUMN_RULES = {
+    "individualid": [NotEmptyRule()],
+    "genotype": [NotEmptyRule()],
+}
+
+DATAFILE_REQUIRED_COLUMNS = ["individualid"]
+DATAFILE_COLUMN_RULES = {
+    "individualid": [NotEmptyRule()],
+}
+
+
+def _build_uniprot_to_ensembl(mapping_df: pd.DataFrame) -> dict[str, str]:
+    """Map each UniProt accession to the smallest of its mouse Ensembl gene ids."""
+    return (
+        filter_to_mouse_genes(mapping_df)
+        .groupby("uniprot_id")["ensembl_gene_id"]
+        .min()
+        .to_dict()
+    )
+
+
+def _canonical_accession(headers: pd.Series) -> pd.Series:
+    """Recover the canonical UniProt accession from gene_symbol|uniprotid headers."""
+    # Extract lowercases headers and turns hyphens into underscores.
+    return (
+        headers.str.rsplit("|", n=1)
+        .str[-1]
+        .str.upper()
+        .str.replace("_", "-", regex=False)
+    )
+
+
+def _measured_accessions(
+    datasets: dict[str, pd.DataFrame], datafile_list: list[str]
+) -> pd.Series:
+    """Collect the canonical UniProt accessions of protein columns that hold data."""
+    headers = pd.Series(
+        [
+            column
+            for file_name in datafile_list
+            for column in datasets[file_name].columns
+            if "|" in column and datasets[file_name][column].notna().any()
+        ],
+        dtype="object",
+    )
+    return _canonical_accession(headers).drop_duplicates()
+
+
+def _lookup_ensembl(
+    accessions: pd.Series, uniprot_to_ensembl: dict[str, str]
+) -> pd.Series:
+    """Map each accession to an Ensembl id, trying the full accession then the base."""
+    mapped = accessions.map(uniprot_to_ensembl)
+    base_mapped = accessions.str.split("-").str[0].map(uniprot_to_ensembl)
+    return mapped.fillna(base_mapped)
+
+
+def _melt_proteomics_file(
+    file_name: str, data_file: pd.DataFrame, model: str
+) -> pd.DataFrame:
+    """Melt one wide proteomics file into individualid, model, uniprotid, value rows."""
+    protein_columns = [column for column in data_file.columns if "|" in column]
+    if not protein_columns:
+        raise ValueError(
+            f"Proteomics data file '{file_name}' has no protein columns. Protein columns "
+            "are named gene_symbol|uniprotid; columns found: "
+            f"{', '.join(map(str, data_file.columns))}."
+        )
+
+    long_df = data_file.melt(
+        id_vars=["individualid"],
+        value_vars=protein_columns,
+        var_name="header",
+        value_name="value",
+    )
+    long_df["value"] = pd.to_numeric(long_df["value"], errors="coerce")
+    long_df = long_df.dropna(subset=["value"])
+    if long_df.empty:
+        raise ValueError(
+            f"Either every abundance value in proteomics data file '{file_name}' is "
+            "missing or non-numeric values were found, so it contributes nothing "
+            "to the output."
+        )
+
+    long_df["uniprotid"] = _canonical_accession(long_df["header"])
+    # Cast the join key to string so it matches the metadata key.
+    long_df["individualid"] = long_df["individualid"].astype(str)
+    long_df["model"] = model
+    return long_df[["individualid", "model", "uniprotid", "value"]]
+
+
+def _check_metadata_coverage(
+    file_name: str, individuals: pd.Series, model: str, known_individuals: set
+) -> None:
+    """Log how many of a file's animals have harmonized metadata; raise if none do."""
+    unique = set(individuals.unique())
+    matched = {
+        individual for individual in unique if (individual, model) in known_individuals
+    }
+    # Counted per file, so the same animal is counted again in every file that measures it.
+    logger.info(
+        f"Transform protein_de_individual: {file_name}: {len(matched)}/{len(unique)} "
+        "of this file's animals have harmonized metadata"
+    )
+    if not matched:
+        raise ValueError(
+            f"None of the {len(unique)} animals in proteomics data file "
+            f"'{file_name}' were found in the harmonized metadata. The "
+            f"individualID values in the two sources are probably no longer "
+            f"comparable. Unmatched (first 10): {sorted(unique)[:10]}"
+        )
+
+
+def _log_stage(model_group: str, stage: str, df: pd.DataFrame) -> None:
+    """Log measurement and animal counts for one processing stage of a model_group."""
+    logger.info(
+        f"Transform protein_de_individual: {model_group}: {stage}: {len(df)} measurements, "
+        f"{df['individualid'].nunique()} animals"
+    )
+
+
+def _log_cross_file_animals(
+    model_group: str, animals_by_file: dict[str, set[str]]
+) -> None:
+    """Log animals measured in more than one of a model_group's data files.
+
+    Coverage is reported per file, so an animal in two files is counted in both. Without this
+    the per-file counts do not add up to the model_group's count.
+    """
+    seen: set[str] = set()
+    shared: set[str] = set()
+    for animals in animals_by_file.values():
+        shared |= seen & animals
+        seen |= animals
+    if shared:
+        logger.info(
+            f"Transform protein_de_individual: {model_group}: {len(shared)} of {len(seen)} "
+            f"animals are measured in more than one data file, so the per-file counts above "
+            f"sum to more than this model_group's total. Animals (first 10): "
+            f"{sorted(shared)[:10]}"
+        )
+
+
+def _collapse_duplicate_measurements(
+    model_group: str, df: pd.DataFrame
+) -> pd.DataFrame:
+    """Collapse a protein measured for one animal in more than one file, raising if they disagree.
+
+    An animal measured in two data files reaches the same output entry from both, because every
+    grouping key is derived from its metadata or the protein header. nest_individual_records does
+    not de-duplicate, so without this its individual_id would appear twice in one protein's data
+    list.
+
+    Runs on the rows that survive to the output, so repeats among animals that are dropped for
+    their genotype are not reported.
+    """
+    keys = ["individualid", "uniprotid"]
+    collapsed = df.drop_duplicates(subset=keys + ["value"])
+    conflicting = collapsed.duplicated(subset=keys, keep=False)
+    if conflicting.any():
+        offenders = sorted(
+            collapsed.loc[conflicting, keys]
+            .drop_duplicates()
+            .itertuples(index=False, name=None)
+        )
+        raise ValueError(
+            f"Model_group '{model_group}': the data files disagree about the abundance of a "
+            f"protein for {len(offenders)} animal-protein pair(s), so which value belongs on "
+            "the page cannot be decided here. (individualID, uniprotID) "
+            f"(first 10): {offenders[:10]}"
+        )
+    if len(collapsed) < len(df):
+        shared = sorted(
+            df.loc[df.duplicated(subset=keys, keep=False), "individualid"].unique()
+        )
+        logger.info(
+            f"Transform protein_de_individual: {model_group}: {len(df) - len(collapsed)} "
+            f"repeated measurements collapsed for {len(shared)} animals measured in more "
+            f"than one data file. Animals (first 10): {shared[:10]}"
+        )
+    return collapsed
+
+
+def _build_output(
+    model_group: str,
+    long_df: pd.DataFrame,
+    harmonized_model_metadata_df: pd.DataFrame,
+    uniprot_to_ensembl: dict[str, str],
+    gene_symbols: dict[str, str],
+    genotype_label_map_df: pd.DataFrame,
+) -> list[dict[str, Any]]:
+    """Join metadata onto long proteomics data, derive output fields, and nest records."""
+    _log_stage(model_group, "melted", long_df)
+
+    df = long_df.merge(
+        harmonized_model_metadata_df,
+        on=["individualid", "model"],
+        how="inner",
+        validate="many_to_one",
+    )
+    _log_stage(model_group, "after harmonized metadata join", df)
+
+    df["ensembl_gene_id"] = _lookup_ensembl(df["uniprotid"], uniprot_to_ensembl)
+    df = df.dropna(subset=["ensembl_gene_id"])
+    _log_stage(model_group, "after gene mapping", df)
+    if df.empty:
+        raise ValueError(
+            f"No rows remained for model_group '{model_group}' after mapping proteins to "
+            "genes — check the UniProt to Ensembl mapping file."
+        )
+
+    df = label_genotypes(df, genotype_label_map_df, f"model_group '{model_group}'")
+    _log_stage(model_group, "after genotype labeling", df)
+
+    df = _collapse_duplicate_measurements(model_group, df)
+
+    # age is a grouping key and groupby drops null keys, so an unbucketable ageDeath
+    # would delete those animals with no error.
+    age_numeric = pd.cut(df["agedeath"], bins=AGE_BINS, labels=AGE_LABELS)
+    if age_numeric.isna().any():
+        raise ValueError(
+            "Missing or unbucketable ageDeath for individualID(s): "
+            f"{sorted(df.loc[age_numeric.isna(), 'individualid'].unique())}"
+        )
+    # Cast out of the categorical pd.cut returns: grouping on a categorical would emit an
+    # entry for every unused age label. int, not Int64, so the value serializes as a plain
+    # JSON number.
+    df["age_numeric"] = age_numeric.astype(int)
+    df["age"] = df["age_numeric"].astype(str) + " months"
+
+    df["tissue"] = normalize_tissue(df["tissue"])
+    missing_tissue = df["tissue"].isna() | (df["tissue"] == "")
+    if missing_tissue.any():
+        raise ValueError(
+            "Missing tissue for individualID(s): "
+            f"{sorted(df.loc[missing_tissue, 'individualid'].unique())}"
+        )
+
+    df["sex"] = remap_sex_labels(df["sex"])
+    df["gene_symbol"] = df["ensembl_gene_id"].map(gene_symbols).fillna("")
+    df["unique_id"] = df["ensembl_gene_id"] + df["uniprotid"]
+    df["display_symbol"] = (
+        df["gene_symbol"].where(df["gene_symbol"] != "", df["ensembl_gene_id"])
+        + " ("
+        + df["uniprotid"]
+        + ")"
+    )
+    df["value"] = df["value"].round(5).map(normalize_zero)
+
+    group_cols = [
+        "unique_id",
+        "ensembl_gene_id",
+        "uniprotid",
+        "gene_symbol",
+        "display_symbol",
+        "tissue",
+        "model_group",
+        "age",
+        "age_numeric",
+    ]
+    entries = nest_individual_records(df, group_columns=group_cols, units=UNITS)
+
+    output_cols = [
+        "ensembl_gene_id",
+        "gene_symbol",
+        "uniprotid",
+        "unique_id",
+        "display_symbol",
+        "tissue",
+        "name",
+        "model_group",
+        "matched_control",
+        "units",
+        "age",
+        "age_numeric",
+        "result_order",
+        "data",
+    ]
+    return entries[output_cols].to_dict(orient="records")
+
+
+def _validate_file_maps(
+    datasets: dict[str, pd.DataFrame],
+    model_map: dict[str, str],
+    metadata_map: dict[str, str],
+    required_input: dict[str, list[str]],
+    known_models: set[str],
+) -> None:
+    """Raise if model_map or metadata_map is empty, overlaps, leftover, or names unknown files or models."""
+    available = ", ".join(sorted(set(datasets) - set(required_input)))
+    for map_name, file_map, empty_detail, unknown_detail, reserved_detail in (
+        (
+            "model_map",
+            model_map,
+            "Each proteomics file's model has to be declared",
+            "which are not proteomics data files in this dataset",
+            "required inputs, not proteomics data files",
+        ),
+        (
+            "metadata_map",
+            metadata_map,
+            "Each metadata file's model has to be declared",
+            "which are not files in this dataset",
+            "required inputs, not metadata files",
+        ),
+    ):
+        if not file_map:
+            raise ValueError(
+                f"No {map_name} provided. {empty_detail} in the config under "
+                f"custom_transformations. Inputs available: {available}."
+            )
+        if unknown_files := sorted(set(file_map) - set(datasets)):
+            raise ValueError(
+                f"{map_name} names {unknown_files}, {unknown_detail}. Correct the "
+                f"name in the config or add the file to the dataset's files. "
+                f"Inputs available: {available}."
+            )
+        if reserved := sorted(set(file_map) & set(required_input)):
+            raise ValueError(
+                f"{map_name} names {reserved}, which are {reserved_detail}."
+            )
+        if unknown_models := sorted(set(file_map.values()) - known_models):
+            raise ValueError(
+                f"{map_name} refers to model(s) {unknown_models} that are absent "
+                "from the genotype label map, so none of their rows could be labeled. "
+                "Add the model to the label map or correct the config."
+            )
+    if overlap := sorted(set(model_map) & set(metadata_map)):
+        raise ValueError(
+            f"{overlap} appear in both model_map and metadata_map. Each file can "
+            "only be in one map."
+        )
+    leftover_names = sorted(
+        set(datasets) - set(required_input) - set(model_map) - set(metadata_map)
+    )
+    if leftover_names:
+        raise ValueError(
+            f"{leftover_names} are not in model_map or metadata_map. Add them to the "
+            "appropriate map or remove them from this dataset's files."
+        )
+
+
+def _check_input_files(
+    datasets: dict[str, pd.DataFrame],
+    names: list[str],
+    required_columns: list[str],
+    column_rules: dict[str, list[ColumnRule]],
+) -> None:
+    """Apply one set of required columns and column rules to every file in a group."""
+    frames = {name: datasets[name] for name in names}
+    check_required_datasets_and_columns(frames, dict.fromkeys(names, required_columns))
+    check_column_rules(frames, dict.fromkeys(names, column_rules))
+
+
+def transform_protein_de_individual(
+    datasets: dict[str, pd.DataFrame],
+    model_map: dict[str, str],
+    metadata_map: dict[str, str],
+    required_input: dict[str, list[str]] = REQUIRED_INPUT,
+    column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
+) -> list[dict[str, Any]]:
+    """Transform Model AD individual proteomics data into nested per-protein records."""
+    # model_map and metadata_map are required because the proteomics files have no model column.
+    check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, column_rules)
+
+    genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
+    _validate_file_maps(
+        datasets,
+        model_map,
+        metadata_map,
+        required_input,
+        set(genotype_label_map_df["model"]),
+    )
+
+    datafile_list = [key for key in datasets if key in model_map]
+    for file_name in datafile_list:
+        validate_data_file_not_empty(file_name, datasets[file_name])
+    _check_input_files(
+        datasets, datafile_list, DATAFILE_REQUIRED_COLUMNS, DATAFILE_COLUMN_RULES
+    )
+
+    metadata_names = list(metadata_map)
+    _check_input_files(
+        datasets,
+        metadata_names,
+        MODEL_METADATA_REQUIRED_COLUMNS,
+        MODEL_METADATA_COLUMN_RULES,
+    )
+
+    stamped_metadata = []
+    for name in metadata_names:
+        frame = datasets[name][MODEL_METADATA_REQUIRED_COLUMNS].copy()
+        frame["model"] = metadata_map[name]
+        stamped_metadata.append(frame)
+    harmonized_model_metadata_df = pd.concat(stamped_metadata, ignore_index=True)
+    # Cast the join key to string before de-duplicating so 51503 and "51503" collapse
+    # to one row rather than surviving as two and fanning the merge out.
+    harmonized_model_metadata_df["individualid"] = harmonized_model_metadata_df[
+        "individualid"
+    ].astype(str)
+    harmonized_model_metadata_df = harmonized_model_metadata_df.drop_duplicates()
+
+    gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
+
+    uniprot_to_ensembl = _build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
+    unmapped = sorted(
+        {
+            accession
+            for accession in _measured_accessions(datasets, datafile_list)
+            if accession not in uniprot_to_ensembl
+            and accession.split("-")[0] not in uniprot_to_ensembl
+        }
+    )
+    if unmapped:
+        logger.info(
+            f"Transform protein_de_individual: {len(unmapped)} UniProt IDs absent "
+            f"from the map (dropped): {unmapped[:10]}"
+        )
+
+    model_to_model_group = build_model_to_model_group_lookup(genotype_label_map_df)
+    files_by_model_group: dict[str, list[str]] = defaultdict(list)
+    for file_name in datafile_list:
+        files_by_model_group[model_to_model_group[model_map[file_name]]].append(
+            file_name
+        )
+    logger.info(
+        "Transform protein_de_individual: data files by model_group: "
+        + ", ".join(f"{group}={files}" for group, files in files_by_model_group.items())
+    )
+
+    known_individuals = set(
+        zip(
+            harmonized_model_metadata_df["individualid"],
+            harmonized_model_metadata_df["model"],
+        )
+    )
+
+    output = []
+    for model_group, file_names in files_by_model_group.items():
+        long_frames = []
+        animals_by_file: dict[str, set[str]] = {}
+        for file_name in file_names:
+            long_df = _melt_proteomics_file(
+                file_name, datasets[file_name], model_map[file_name]
+            )
+            _check_metadata_coverage(
+                file_name,
+                long_df["individualid"],
+                model_map[file_name],
+                known_individuals,
+            )
+            animals_by_file[file_name] = set(long_df["individualid"])
+            long_frames.append(long_df)
+        _log_cross_file_animals(model_group, animals_by_file)
+
+        combined = (
+            pd.concat(long_frames, ignore_index=True)
+            if len(long_frames) > 1
+            else long_frames[0]
+        )
+        output.extend(
+            _build_output(
+                model_group,
+                combined,
+                harmonized_model_metadata_df,
+                uniprot_to_ensembl,
+                gene_symbols,
+                genotype_label_map_df,
+            )
+        )
+        del long_frames, combined
+        gc.collect()
+
+    output.sort(key=lambda entry: (entry["unique_id"], entry["age_numeric"]))
+
+    logger.info(f"Transform protein_de_individual total output entries: {len(output)}")
+    return output
