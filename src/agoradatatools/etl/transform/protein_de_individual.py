@@ -78,15 +78,14 @@ DATAFILE_COLUMN_RULES = {
 }
 
 
-def _build_uniprot_candidates(mapping_df: pd.DataFrame) -> dict[str, list[str]]:
-    """Map each UniProt accession to its mouse Ensembl gene ids, smallest first."""
-    mouse = filter_to_mouse_genes(mapping_df)
-    return {
-        accession: sorted(genes)
-        for accession, genes in mouse.groupby("uniprot_id")["ensembl_gene_id"]
-        .unique()
-        .items()
-    }
+def _build_uniprot_to_ensembl(mapping_df: pd.DataFrame) -> dict[str, str]:
+    """Map each UniProt accession to the smallest of its mouse Ensembl gene ids."""
+    return (
+        filter_to_mouse_genes(mapping_df)
+        .groupby("uniprot_id")["ensembl_gene_id"]
+        .min()
+        .to_dict()
+    )
 
 
 def _canonical_accession(headers: pd.Series) -> pd.Series:
@@ -100,10 +99,10 @@ def _canonical_accession(headers: pd.Series) -> pd.Series:
     )
 
 
-def _measured_header_pairs(
+def _measured_accessions(
     datasets: dict[str, pd.DataFrame], datafile_list: list[str]
-) -> pd.DataFrame:
-    """Collect accession and header-symbol pairs from protein columns that hold data."""
+) -> pd.Series:
+    """Collect the canonical UniProt accessions of protein columns that hold data."""
     headers = pd.Series(
         [
             column
@@ -112,50 +111,8 @@ def _measured_header_pairs(
             if "|" in column and datasets[file_name][column].notna().any()
         ],
         dtype="object",
-    ).drop_duplicates()
-    return pd.DataFrame(
-        {
-            "uniprotid": _canonical_accession(headers),
-            "header_symbol": headers.str.rsplit("|", n=1).str[0],
-        }
     )
-
-
-def _observed_gene_names(header_pairs: pd.DataFrame) -> dict[str, set[str]]:
-    """Collect the case-folded gene names each accession is labeled with in the data files."""
-    # Extract mangles "; " to ";_". Isoform headers also feed the base accession.
-    names: dict[str, set[str]] = {}
-    for accession, symbol in (
-        header_pairs[["uniprotid", "header_symbol"]]
-        .drop_duplicates()
-        .itertuples(index=False)
-    ):
-        base = accession.split("-")[0]
-        for name in str(symbol).split(";"):
-            # casefold, not lower, so special characters still compare equal.
-            name = name.strip(" _").casefold().replace("_", "-")
-            if name and name != "na":
-                names.setdefault(accession, set()).add(name)
-                names.setdefault(base, set()).add(name)
-    return names
-
-
-def _resolve_gene_ids(
-    header_pairs: pd.DataFrame,
-    candidates: dict[str, list[str]],
-    gene_symbols: dict[str, str],
-) -> dict[str, str]:
-    """Pick one Ensembl gene per mapped accession, using the header symbol when it matches."""
-    names = _observed_gene_names(header_pairs)
-    resolved = {}
-    for accession, genes in candidates.items():
-        wanted = names.get(accession, set())
-        # casefold, not lower, so special characters still compare equal.
-        matches = [
-            gene for gene in genes if gene_symbols.get(gene, "").casefold() in wanted
-        ]
-        resolved[accession] = matches[0] if matches else genes[0]
-    return resolved
+    return _canonical_accession(headers).drop_duplicates()
 
 
 def _lookup_ensembl(
@@ -515,16 +472,11 @@ def transform_protein_de_individual(
 
     gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
 
-    header_pairs = _measured_header_pairs(datasets, datafile_list)
-    uniprot_to_ensembl = _resolve_gene_ids(
-        header_pairs=header_pairs,
-        candidates=_build_uniprot_candidates(datasets["uniprot_ensembl_map"]),
-        gene_symbols=gene_symbols,
-    )
+    uniprot_to_ensembl = _build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
     unmapped = sorted(
         {
             accession
-            for accession in header_pairs["uniprotid"]
+            for accession in _measured_accessions(datasets, datafile_list)
             if accession not in uniprot_to_ensembl
             and accession.split("-")[0] not in uniprot_to_ensembl
         }
