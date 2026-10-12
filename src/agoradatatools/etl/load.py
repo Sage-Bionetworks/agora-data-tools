@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import pandas as pd
-from synapseclient.models import Activity, File, Folder
+from synapseclient.models import Activity, File, Folder, UsedEntity
 from synapseclient import Synapse
 from typing import Any, List, Dict
 
@@ -94,7 +94,16 @@ def load(
         tuple[str, int]: Returns a tuple of the name fo the file and the version number.
     """
 
-    activity = Activity(used=provenance)
+    used = []
+    for syn_id in provenance:
+        parts = syn_id.split(".")
+        used.append(
+            UsedEntity(
+                target_id=parts[0],
+                target_version_number=int(parts[1]) if len(parts) > 1 else None,
+            )
+        )
+    activity = Activity(used=used)
     file = File(path=file_path, activity=activity, force_version=False)
     file = file.store(parent=Folder(id=destination), synapse_client=syn)
     return (file.id, file.version_number)
