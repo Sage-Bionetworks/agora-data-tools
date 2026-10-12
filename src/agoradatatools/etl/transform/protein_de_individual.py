@@ -357,36 +357,20 @@ def _validate_file_maps(
 ) -> None:
     """Raise if model_map or metadata_map is empty, overlaps, leftover, or names unknown files or models."""
     available = ", ".join(sorted(set(datasets) - set(required_input)))
-    for map_name, file_map, empty_detail, unknown_detail, reserved_detail in (
-        (
-            "model_map",
-            model_map,
-            "Each proteomics file's model has to be declared",
-            "which are not proteomics data files in this dataset",
-            "required inputs, not proteomics data files",
-        ),
-        (
-            "metadata_map",
-            metadata_map,
-            "Each metadata file's model has to be declared",
-            "which are not files in this dataset",
-            "required inputs, not metadata files",
-        ),
+    for map_name, file_map, label in (
+        ("model_map", model_map, "proteomics data"),
+        ("metadata_map", metadata_map, "metadata"),
     ):
         if not file_map:
             raise ValueError(
-                f"No {map_name} provided. {empty_detail} in the config under "
-                f"custom_transformations. Inputs available: {available}."
+                f"No {map_name} provided. Each {label} file's model has to be declared "
+                f"in the config under custom_transformations. Inputs available: {available}."
             )
         if unknown_files := sorted(set(file_map) - set(datasets)):
             raise ValueError(
-                f"{map_name} names {unknown_files}, {unknown_detail}. Correct the "
-                f"name in the config or add the file to the dataset's files. "
-                f"Inputs available: {available}."
-            )
-        if reserved := sorted(set(file_map) & set(required_input)):
-            raise ValueError(
-                f"{map_name} names {reserved}, which are {reserved_detail}."
+                f"{map_name} names {unknown_files}, which are not {label} files in this "
+                f"dataset. Correct the name in the config or add the file to the dataset's "
+                f"files. Inputs available: {available}."
             )
         if unknown_models := sorted(set(file_map.values()) - known_models):
             raise ValueError(

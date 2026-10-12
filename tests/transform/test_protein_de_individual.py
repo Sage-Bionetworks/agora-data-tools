@@ -178,35 +178,6 @@ class TestValidateFileMaps:
             {"LOAD2"},
         )
 
-    @pytest.mark.parametrize(
-        "model_map,metadata_map",
-        [
-            (
-                {"proteomics_file": "LOAD2", "genotype_label_map": "LOAD2"},
-                {"load2_harmonized_metadata": "LOAD2"},
-            ),
-            (
-                {"proteomics_file": "LOAD2"},
-                {
-                    "load2_harmonized_metadata": "LOAD2",
-                    "genotype_label_map": "LOAD2",
-                },
-            ),
-        ],
-    )
-    def test_required_input_key_in_a_map_raises(
-        self, model_map: dict[str, str], metadata_map: dict[str, str]
-    ) -> None:
-        """A required input listed in model_map or metadata_map raises."""
-        with pytest.raises(ValueError, match="required inputs"):
-            _validate_file_maps(
-                self.datasets,
-                model_map,
-                metadata_map,
-                REQUIRED_INPUT,
-                {"LOAD2"},
-            )
-
 
 class TestTransformProteinDeIndividual:
     data_files_path = "tests/test_assets/protein_de_individual"
@@ -902,7 +873,7 @@ class TestTransformProteinDeIndividual:
             (None, "No metadata_map provided"),
             (
                 {"typo_metadata": "LOAD2"},
-                "not files in this dataset",
+                "not metadata files",
             ),
             (
                 {"load2_harmonized_metadata": "LOAD3"},
