@@ -39,10 +39,10 @@ Required Inputs:
 import pandas as pd
 from typing import Dict, List, Any
 import logging
-import gc
 
 from agoradatatools.etl.utils import (
     ColumnRule,
+    NotEmptyRule,
     check_column_rules,
     check_required_datasets_and_columns,
     normalize_zero,
@@ -58,15 +58,16 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     build_model_to_model_group_lookup,
     create_gene_metadata_dict,
     filter_to_mouse_genes,
-    log_file_processing_info,
     normalize_tissue,
-    validate_data_file_not_empty,
+    validate_data_file,
 )
 
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
-    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
+    # model_type is aggregate-only: the individual transforms read the same label map
+    # but never use this column.
+    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS + ["model_type"],
     "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
     "biodom_genes_mm": [
         "biodomain",
@@ -82,8 +83,20 @@ REQUIRED_INPUT = {
 }
 
 COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
-    "genotype_label_map": GENOTYPE_LABEL_MAP_RULES,
+    "genotype_label_map": GENOTYPE_LABEL_MAP_RULES | {"model_type": [NotEmptyRule()]},
 }
+
+DATA_FILE_REQUIRED_COLUMNS = [
+    "ensembl_gene_id",
+    "log2foldchange",
+    "padj",
+    "model",
+    "case",
+    "control",
+    "age",
+    "sex",
+    "tissue",
+]
 
 
 def _validate_and_sort_age_entries(
@@ -262,7 +275,7 @@ def _create_output_entry_from_group(
             - 'biodomains': List[str], List of biodomain names associated with the gene
             - 'name': dict, Object with 'link_url' and 'link_text' keys containing the model link path and display text
             - 'matched_control': str, Display label for the control genotype
-            - 'model_group': str or None, Model group name (None if empty)
+            - 'model_group': str or None, Model group (None only when the model is absent from the label map; an empty value is rejected up front)
             - 'model_type': str, Model type classification (empty string if not found)
             - 'tissue': str, Tissue name (aliases already applied by the caller)
             - 'sex': str, Sex category
@@ -370,7 +383,6 @@ def _process_single_data_file(
     8. Rounding numeric columns to 5 decimal places for consistency
     9. Grouping data by gene, model, tissue, sex, case, and control
     10. Creating enriched output entries for each group using metadata dictionaries
-    11. Cleaning up memory by deleting the processed DataFrame and running garbage collection
 
     Each output entry represents a unique combination of gene, model, tissue, and sex,
     with age-based differential expression measurements and enriched metadata.
@@ -413,17 +425,15 @@ def _process_single_data_file(
             The error message includes the file name and specific details for debugging purposes.
 
     Note:
-        This function performs memory cleanup by explicitly deleting the processed DataFrame
-        and calling garbage collection. This is important when processing multiple large
-        files sequentially to prevent memory exhaustion. The function filters out human
-        genes to ensure only mouse (Mus musculus) data is processed, as indicated by
-        Ensembl IDs starting with "ENSMUSG".
+        The function filters out human genes to ensure only mouse (Mus musculus) data
+        is processed, as indicated by Ensembl IDs starting with "ENSMUSG".
     """
-    log_file_processing_info(file_name, file_index, total_files, data_file)
-    validate_data_file_not_empty(file_name, data_file)
-
-    check_required_datasets_and_columns(
-        {file_name: data_file}, {file_name: data_file_required_columns}
+    validate_data_file(
+        file_name,
+        data_file,
+        file_index,
+        total_files,
+        data_file_required_columns,
     )
 
     data_file = filter_to_mouse_genes(data_file)
@@ -460,16 +470,13 @@ def _process_single_data_file(
         )
         output_entries.append(output_entry)
 
-    # Clean up memory by deleting the processed file
-    del data_file
-    gc.collect()
-
     return output_entries
 
 
 def transform_rna_de_aggregate(
     datasets: dict[str, pd.DataFrame],
     required_input: dict[str, list[str]] = REQUIRED_INPUT,
+    data_file_required_columns: list[str] = DATA_FILE_REQUIRED_COLUMNS,
     column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
 ) -> list[dict[str, Any]]:
     """
@@ -514,6 +521,8 @@ def transform_rna_de_aggregate(
         required_input: Dictionary mapping required dataset names to lists of required
             column names. Defaults to REQUIRED_INPUT constant. Used to validate that all
             necessary metadata datasets are present with correct structure.
+        data_file_required_columns: Column names required in each differential expression
+            data file. Defaults to DATA_FILE_REQUIRED_COLUMNS.
 
     Returns:
         List of dictionaries, where each dictionary represents a unique combination of
@@ -549,11 +558,8 @@ def transform_rna_de_aggregate(
 
     Note:
         This function processes data files sequentially (one at a time) rather than
-        loading all files into memory simultaneously. This design minimizes memory
-        usage when processing large numbers of files. Each file is processed, its
-        entries are added to the output list, and then the file is deleted from
-        memory before processing the next file. The function also filters out human
-        genes (ENSG*) to ensure only mouse (Mus musculus) data is included in the output.
+        concatenating them first. The function also filters out human genes (ENSG*)
+        to ensure only mouse (Mus musculus) data is included in the output.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, column_rules)
@@ -602,18 +608,6 @@ def transform_rna_de_aggregate(
     # Process files one at a time to reduce memory usage
     file_list = [k for k in datasets.keys() if k not in required_input]
     total_files = len(file_list)
-
-    data_file_required_columns = [
-        "ensembl_gene_id",
-        "log2foldchange",
-        "padj",
-        "model",
-        "case",
-        "control",
-        "age",
-        "sex",
-        "tissue",
-    ]
 
     logger.info(f"Transform rna_de_aggregate total data files: {total_files}")
     logger.info(f"Data files list: {file_list}")

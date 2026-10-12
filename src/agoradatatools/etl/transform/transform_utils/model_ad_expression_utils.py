@@ -322,6 +322,33 @@ def validate_data_file_not_empty(file_name: str, data_file: pd.DataFrame) -> Non
         raise ValueError(f"Data file {file_name} is empty")
 
 
+def validate_data_file(
+    file_name: str,
+    data_file: pd.DataFrame,
+    file_index: int,
+    total_files: int,
+    data_file_required_columns: list[str],
+    data_file_column_rules: dict[str, list[ColumnRule]] | None = None,
+) -> None:
+    """Shared validation preamble for an expression data file.
+
+    The empty-file check runs before the required-column check so an empty file
+    is not reported as a missing-column error. Column value rules are checked
+    only when supplied.
+
+    Raises:
+        ValueError: If the file is empty, a required column is missing, or a
+            supplied column value rule is violated.
+    """
+    log_file_processing_info(file_name, file_index, total_files, data_file)
+    validate_data_file_not_empty(file_name, data_file)
+    check_required_datasets_and_columns(
+        {file_name: data_file}, {file_name: data_file_required_columns}
+    )
+    if data_file_column_rules:
+        check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
+
+
 def preprocess_data_file(
     file_name: str,
     data_file: pd.DataFrame,
@@ -355,12 +382,14 @@ def preprocess_data_file(
         ValueError: If the file is empty, missing required columns, or any column
             value rule is violated.
     """
-    log_file_processing_info(file_name, file_index, total_files, data_file)
-    validate_data_file_not_empty(file_name, data_file)
-    check_required_datasets_and_columns(
-        {file_name: data_file}, {file_name: data_file_required_columns}
+    validate_data_file(
+        file_name,
+        data_file,
+        file_index,
+        total_files,
+        data_file_required_columns,
+        data_file_column_rules,
     )
-    check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
     data_file = filter_to_mouse_genes(data_file)
     data_file["tissue"] = normalize_tissue(data_file["tissue"])
     # Map plural source sex values to the singular display form

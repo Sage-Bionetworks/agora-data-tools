@@ -5,13 +5,6 @@ This module contains comprehensive tests for the `transform_rna_de_aggregate` fu
 and its helper functions, which aggregate mouse model RNA-seq differential expression
 data into a structured format for the Agora platform.
 
-Test Classes:
-    - TestValidateAndSortAgeEntries: Unit tests for the _validate_and_sort_age_entries helper function
-    - TestCreateAgeEntriesFromGroup: Unit tests for the _create_age_entries_from_group helper function
-    - TestCreateOutputEntryFromGroup: Unit tests for the _create_output_entry_from_group helper function
-    - TestProcessSingleDataFile: Unit tests for the _process_single_data_file helper function
-    - TestTransformRnaDeAggregate: Integration tests for the full transformation pipeline
-
 The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/` to verify:
 - Core transformation logic (data aggregation, metadata enrichment)
 - Multi-model and multi-tissue handling
@@ -19,7 +12,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 - Human gene filtering (only mouse genes with ENSMUSG* IDs should be processed)
 - Age sorting (numeric ordering of age entries)
 - Age validation (empty strings, whitespace, invalid formats)
-- NaN handling (NaN adjusted p-values are coerced to 0.0)
+- NaN handling (NaN adjusted p-values are coerced to 1.0)
 - Negative zero handling (negative zero log2foldchange values are normalized to positive zero)
 - Negative p-value validation (negative adjusted p-values raise ValueError)
 - Edge cases (single row data, missing metadata, empty biodomains)
@@ -46,12 +39,16 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.rna_de_aggregate import (
+    COLUMN_RULES,
+    REQUIRED_INPUT,
     transform_rna_de_aggregate,
     _validate_and_sort_age_entries,
     _create_age_entries_from_group,
     _create_output_entry_from_group,
     _process_single_data_file,
 )
+from agoradatatools.etl.utils import ContainsSubstringRule
+from tests.synthetic_loader import load_synthetic_test_data
 
 
 class TestValidateAndSortAgeEntries:
@@ -359,10 +356,10 @@ class TestCreateAgeEntriesFromGroup:
         assert result["12 months"] == {"log2_fc": 1.5, "adj_p_val": 0.001}
 
     def test_create_age_entries_with_nan_padj(self) -> None:
-        """Test that NaN adjusted p-values are converted to 0.0.
+        """Test that NaN adjusted p-values are converted to 1.0.
 
         This verifies that:
-        - NA padj values are converted to 0.0
+        - NA padj values are converted to 1.0
         - NA values don't trigger negative p-value validation check
         - The NA check happens before float conversion, preventing TypeError
           when pd.NA is passed to float()
@@ -495,14 +492,6 @@ class TestCreateOutputEntryFromGroup:
 
     This class contains focused unit tests for output entry creation logic,
     testing the function in isolation from the full transformation pipeline.
-
-    Test Methods:
-        - test_create_output_entry_basic: Tests basic output entry creation.
-        - test_create_output_entry_missing_metadata: Tests handling of missing metadata.
-        - test_create_output_entry_passes_tissue_through: Tissue aliases are applied
-          before grouping, so this function writes the tissue it is given.
-        - test_create_output_entry_empty_model_group: Tests empty model_group conversion to None.
-        - test_create_output_entry_multiple_biodomains: Tests multiple biodomain assignments.
     """
 
     def test_create_output_entry_basic(self) -> None:
@@ -608,7 +597,13 @@ class TestCreateOutputEntryFromGroup:
         assert result["sex"] == "Female"
 
     def test_create_output_entry_passes_tissue_through(self) -> None:
-        """Tissue aliases are applied in _process_single_data_file, not here."""
+        """Aliasing is applied once, upstream, before groups are built.
+
+        _process_single_data_file maps names such as Right Cerebral Hemisphere
+        to Hemibrain via normalize_tissue. This test feeds an unaliased tissue
+        name straight into the group key and asserts it comes back unchanged,
+        so a regression that adds aliasing here would apply the mapping twice.
+        """
         group_key = (
             "ENSMUSG00000000003",
             "Model_C",
@@ -808,14 +803,6 @@ class TestProcessSingleDataFile:
 
     This class contains focused unit tests for single file processing logic,
     testing the function in isolation from the full transformation pipeline.
-
-    Test Methods:
-        - test_process_single_data_file_basic: Tests basic file processing.
-        - test_process_single_data_file_empty_raises_error: Tests error handling for empty files.
-        - test_process_single_data_file_filters_human_genes: Tests filtering of human genes.
-        - test_process_single_data_file_filters_combined_sex_cohort: Tests filtering of combined-cohort (Females & Males) rows.
-        - test_process_single_data_file_rounding: Tests numeric rounding to 5 decimal places.
-        - test_process_single_data_file_multiple_groups: Tests processing multiple groups.
     """
 
     def test_process_single_data_file_basic(self) -> None:
@@ -871,110 +858,6 @@ class TestProcessSingleDataFile:
         assert len(result) == 1
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result[0]["gene_symbol"] == "Gene1"
-
-    def test_process_single_data_file_empty_raises_error(self) -> None:
-        """Test that processing an empty file raises ValueError with correct message.
-
-        This verifies that the empty file check happens before column validation,
-        ensuring the error message is about the file being empty, not about missing columns.
-        """
-        data_file = pd.DataFrame()
-
-        gene_metadata_dict = {}
-        label_map_dict = {}  # Empty is OK since no data will be processed
-        model_group_dict = {}
-        biodomain_dict = {}
-        model_type_dict = {}
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "log2foldchange",
-            "padj",
-            "model",
-            "case",
-            "control",
-            "age",
-            "sex",
-            "tissue",
-        ]
-
-        with pytest.raises(ValueError) as exc_info:
-            _process_single_data_file(
-                file_name="empty_file.csv",
-                data_file=data_file,
-                data_file_required_columns=data_file_required_columns,
-                gene_metadata_dict=gene_metadata_dict,
-                label_map_dict=label_map_dict,
-                model_group_dict=model_group_dict,
-                biodomain_dict=biodomain_dict,
-                model_type_dict=model_type_dict,
-                file_index=0,
-                total_files=1,
-            )
-
-        # Verify the error message is about empty file, not missing columns
-        error_message = str(exc_info.value)
-        assert "Data file empty_file.csv is empty" in error_message
-        assert "Missing required columns" not in error_message
-
-    def test_process_single_data_file_filters_human_genes(self) -> None:
-        """Test that human genes (ENSG*) are filtered out, only mouse genes (ENSMUSG*) are kept."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": [
-                    "ENSMUSG00000000001",
-                    "ENSG00000000001",
-                    "ENSMUSG00000000002",
-                ],
-                "log2foldchange": [1.5, 2.0, 0.5],
-                "padj": [0.01, 0.02, 0.03],
-                "model": ["Model_A", "Model_A", "Model_A"],
-                "case": ["Tg", "Tg", "Tg"],
-                "control": ["Wt", "Wt", "Wt"],
-                "age": ["6 months", "6 months", "6 months"],
-                "sex": ["Male", "Male", "Male"],
-                "tissue": ["Cortex", "Cortex", "Cortex"],
-            }
-        )
-
-        gene_metadata_dict = {}
-        label_map_dict = {
-            ("Model_A", "Tg"): "Transgenic",
-            ("Model_A", "Wt"): "Wildtype",
-        }
-        model_group_dict = {}
-        biodomain_dict = {}
-        model_type_dict = {}
-
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "log2foldchange",
-            "padj",
-            "model",
-            "case",
-            "control",
-            "age",
-            "sex",
-            "tissue",
-        ]
-
-        result = _process_single_data_file(
-            file_name="mixed_genes.csv",
-            data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            biodomain_dict=biodomain_dict,
-            model_type_dict=model_type_dict,
-            file_index=0,
-            total_files=1,
-        )
-
-        # Should only have 2 entries (mouse genes only)
-        assert len(result) == 2
-        assert all(entry["ensembl_gene_id"].startswith("ENSMUSG") for entry in result)
-        assert not any(entry["ensembl_gene_id"].startswith("ENSG") for entry in result)
 
     def test_process_single_data_file_filters_combined_sex_cohort(self) -> None:
         """Test that combined-cohort rows (sex == "Females & Males") are filtered out."""
@@ -1145,51 +1028,6 @@ class TestProcessSingleDataFile:
         assert result[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
         assert result[1]["ensembl_gene_id"] == "ENSMUSG00000000002"
 
-    def test_process_single_data_file_maps_tissue_case_insensitively(self) -> None:
-        """Right Cerebral Hemisphere maps to Hemibrain regardless of source casing."""
-        data_file = pd.DataFrame(
-            {
-                "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000001"],
-                "log2foldchange": [1.5, 1.6],
-                "padj": [0.01, 0.02],
-                "model": ["Model_A", "Model_A"],
-                "case": ["Tg", "Tg"],
-                "control": ["Wt", "Wt"],
-                "age": ["6 months", "6 months"],
-                "sex": ["Male", "Male"],
-                "tissue": ["right cerebral hemisphere", " Right Cerebral Hemisphere "],
-            }
-        )
-
-        result = _process_single_data_file(
-            file_name="jax_tissue.csv",
-            data_file=data_file,
-            data_file_required_columns=[
-                "ensembl_gene_id",
-                "log2foldchange",
-                "padj",
-                "model",
-                "case",
-                "control",
-                "age",
-                "sex",
-                "tissue",
-            ],
-            gene_metadata_dict={},
-            label_map_dict={
-                ("Model_A", "Tg"): "Transgenic",
-                ("Model_A", "Wt"): "Wildtype",
-            },
-            model_group_dict={},
-            biodomain_dict={},
-            model_type_dict={},
-            file_index=0,
-            total_files=1,
-        )
-
-        assert len(result) == 1
-        assert result[0]["tissue"] == "Hemibrain"
-
 
 class TestTransformRnaDeAggregate:
     """
@@ -1202,28 +1040,6 @@ class TestTransformRnaDeAggregate:
     Attributes:
         data_files_path (str): Path to the directory containing test assets
             (synthetic input files and expected output files).
-
-    Test Methods:
-        - test_transform_rna_de_aggregate_missing_required_dataset: Tests error handling
-          when required datasets are missing.
-        - test_synthetic_basic_data: Tests core transformation with simple 2-gene dataset.
-        - test_synthetic_multi_model_data: Tests handling of multiple models and tissues.
-        - test_synthetic_jax_tissue_mapping: Tests JAX-specific tissue name mapping.
-        - test_synthetic_mixed_genes_filtering: Tests filtering of human genes.
-        - test_synthetic_sex_cohort_filtering: Tests filtering of combined-cohort (Females & Males) rows.
-        - test_synthetic_age_sorting: Tests numeric sorting of age entries (integration test).
-        - test_synthetic_single_row_data: Tests minimal edge case (single row).
-        - test_synthetic_empty_data_file: Tests error handling for empty data files.
-        - test_synthetic_missing_columns_data: Tests error handling for missing columns.
-        - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
-        - test_synthetic_multiple_biodomains: Tests genes with multiple biodomain assignments.
-        - test_check_column_rules_rejects_empty_model_group: Tests error handling for null/empty model_group values.
-        - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
-        - test_inconsistent_model_type_values: Tests error handling for inconsistent model_type values.
-
-    Helper Methods:
-        - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
-          proper column name normalization and dataset key mapping.
     """
 
     data_files_path = "tests/test_assets/rna_de_aggregate"
@@ -1244,41 +1060,63 @@ class TestTransformRnaDeAggregate:
         with pytest.raises(ValueError):
             transform_rna_de_aggregate(datasets=datasets)
 
+    _FILE_TO_KEY = {
+        "synthetic_genotype_label_map.csv": "genotype_label_map",
+        "synthetic_genotype_label_map_inconsistent.csv": "genotype_label_map",
+        "synthetic_genotype_label_map_inconsistent_model_type.csv": "genotype_label_map",
+        "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
+        "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
+        "synthetic_mouse_gene_metadata_missing_symbols.csv": "mouse_gene_metadata",
+        "synthetic_biodom_genes_mm.csv": "biodom_genes_mm",
+        "synthetic_biodom_genes_mm_multiple.csv": "biodom_genes_mm",
+    }
+
     def _load_synthetic_test_data(
         self, data_files: List[str]
     ) -> Dict[str, pd.DataFrame]:
         """Load synthetic test data files as DataFrames."""
-        datasets = {}
-        input_path = os.path.join(self.data_files_path, "input")
+        return load_synthetic_test_data(
+            self.data_files_path, data_files, self._FILE_TO_KEY
+        )
 
-        # Mapping from file names to expected dataset keys
-        file_to_key_mapping = {
-            "synthetic_genotype_label_map.csv": "genotype_label_map",
-            "synthetic_genotype_label_map_no_group.csv": "genotype_label_map",
-            "synthetic_genotype_label_map_inconsistent.csv": "genotype_label_map",
-            "synthetic_genotype_label_map_inconsistent_model_type.csv": "genotype_label_map",
-            "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
-            "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
-            "synthetic_mouse_gene_metadata_missing_symbols.csv": "mouse_gene_metadata",
-            "synthetic_biodom_genes_mm.csv": "biodom_genes_mm",
-            "synthetic_biodom_genes_mm_multiple.csv": "biodom_genes_mm",
+    def _build_minimal_datasets(self) -> Dict[str, pd.DataFrame]:
+        """Build the smallest datasets that pass required-column checks."""
+        biodom = {column: ["x"] for column in REQUIRED_INPUT["biodom_genes_mm"]}
+        biodom["ensembl_id"] = ["ENSMUSG00000000001"]
+        biodom["biodomain"] = ["Synaptic"]
+        return {
+            "genotype_label_map": pd.DataFrame(
+                {
+                    "model": ["Model_A", "Model_A"],
+                    "genotype": ["Tg", "Wt"],
+                    "display_label": ["Transgenic", "Wildtype"],
+                    "model_group": ["Group_A", "Group_A"],
+                    "result_order": [2, 1],
+                    "model_type": ["Familial AD", "Familial AD"],
+                }
+            ),
+            "mouse_gene_metadata": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000000001"],
+                    "gene_symbol": ["Gene1"],
+                    "alias": [""],
+                }
+            ),
+            "biodom_genes_mm": pd.DataFrame(biodom),
+            "data_file": pd.DataFrame(
+                {
+                    "ensembl_gene_id": ["ENSMUSG00000000001"],
+                    "log2foldchange": [1.0],
+                    "padj": [0.01],
+                    "model": ["Model_A"],
+                    "case": ["Tg"],
+                    "control": ["Wt"],
+                    "age": ["6 months"],
+                    "sex": ["Male"],
+                    "tissue": ["Cortex"],
+                }
+            ),
         }
-
-        for file_name in data_files:
-            if file_name.endswith(".csv"):
-                # Load CSV files
-                file_path = os.path.join(input_path, file_name)
-                df = pd.read_csv(file_path)
-
-                # Fix column name mismatch: log2FoldChange -> log2foldchange
-                if "log2FoldChange" in df.columns:
-                    df = df.rename(columns={"log2FoldChange": "log2foldchange"})
-
-                # Use the mapped key if available, otherwise use file name without extension
-                key = file_to_key_mapping.get(file_name, file_name.replace(".csv", ""))
-                datasets[key] = df
-
-        return datasets
 
     def test_synthetic_basic_data(self) -> None:
         """Test transformation with synthetic basic data.
@@ -1730,20 +1568,51 @@ class TestTransformRnaDeAggregate:
         assert len(output_data_sorted[0]["biodomains"]) == 2
         assert set(output_data_sorted[0]["biodomains"]) == {"Metabolic", "Synaptic"}
 
-    def test_check_column_rules_rejects_empty_model_group(self) -> None:
-        """Test that empty/null model_group in the genotype label map raises an error"""
-        # Load synthetic test data with model having no model_group
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map_no_group.csv",
-                "synthetic_mouse_gene_metadata.csv",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
+    @pytest.mark.parametrize("column", sorted(COLUMN_RULES["genotype_label_map"]))
+    def test_label_map_rejects_empty_value(self, column: str) -> None:
+        """Every genotype label map column rejects an empty value.
 
+        Columns come from COLUMN_RULES, so a newly required column is covered
+        without a hand-written test.
+        """
+        datasets = self._build_minimal_datasets()
+        # result_order is int; cast before writing "" so pandas does not warn.
+        label_map = datasets["genotype_label_map"]
+        label_map[column] = label_map[column].astype(object)
+        label_map.loc[0, column] = ""
         with pytest.raises(ValueError, match="not_empty"):
             transform_rna_de_aggregate(datasets=datasets)
+
+    def test_label_map_missing_model_type_raises(self) -> None:
+        """model_type is a required label-map column for this transform."""
+        datasets = self._build_minimal_datasets()
+        datasets["genotype_label_map"] = datasets["genotype_label_map"].drop(
+            columns=["model_type"]
+        )
+        with pytest.raises(ValueError, match="Missing required columns"):
+            transform_rna_de_aggregate(datasets=datasets)
+
+    def test_column_rules_parameter_honored(self) -> None:
+        """A custom column_rules parameter overrides the module-level default."""
+        datasets = self._build_minimal_datasets()
+        custom_column_rules = {
+            "genotype_label_map": {
+                "model": [ContainsSubstringRule(value="IMPOSSIBLE")],
+            }
+        }
+        with pytest.raises(ValueError, match="contains"):
+            transform_rna_de_aggregate(
+                datasets=datasets, column_rules=custom_column_rules
+            )
+
+    def test_data_file_required_columns_parameter(self) -> None:
+        """data_file_required_columns is wired through to column validation."""
+        datasets = self._build_minimal_datasets()
+        with pytest.raises(ValueError, match="nonexistent_column"):
+            transform_rna_de_aggregate(
+                datasets=datasets,
+                data_file_required_columns=["ensembl_gene_id", "nonexistent_column"],
+            )
 
     def test_inconsistent_model_group_values(self) -> None:
         """Test error handling for inconsistent model_group values within the same model.

@@ -5,10 +5,6 @@ This module contains comprehensive tests for the `transform_rna_de_individual` f
 and its helper functions, which process individual RNA-seq expression data for mouse models
 into a structured format for the Agora platform.
 
-    Test Classes:
-    - TestProcessIndividualDataFileCore: Unit tests for the _process_individual_data_file_core helper function
-    - TestTransformRnaDeIndividual: Integration tests for the full transformation pipeline
-
 The tests use synthetic datasets stored in `tests/test_assets/rna_de_individual/` to verify:
 - Core transformation logic (data grouping, individual expression aggregation)
 - Multi-model and multi-tissue handling with model_groups
@@ -39,10 +35,12 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.rna_de_individual import (
+    COLUMN_RULES,
     transform_rna_de_individual,
     _process_individual_data_file_core,
 )
 from agoradatatools.etl.utils import ContainsSubstringRule
+from tests.synthetic_loader import load_synthetic_test_data
 
 
 class TestProcessIndividualDataFileCore:
@@ -333,43 +331,6 @@ class TestTransformRnaDeIndividual:
     Attributes:
         data_files_path (str): Path to the directory containing test assets
             (synthetic input files and expected output files).
-
-    Test Methods:
-        - test_transform_rna_de_individual_missing_required_dataset: Tests error handling
-          when required datasets are missing.
-        - test_synthetic_basic_data: Tests core transformation with simple dataset.
-        - test_synthetic_multi_model_data: Tests handling of multiple models with model_groups.
-        - test_synthetic_jax_tissue_mapping: Tests JAX-specific tissue name mapping.
-        - test_synthetic_mixed_genes_filtering: Tests filtering of human genes.
-        - test_synthetic_age_sorting: Tests numeric sorting of age entries.
-        - test_synthetic_single_row_data: Tests minimal edge case (single row).
-        - test_synthetic_empty_data_file: Tests error handling for empty data files.
-        - test_synthetic_missing_columns_data: Tests error handling for missing columns.
-        - test_data_file_required_columns_parameter: Tests that data_file_required_columns parameter is honored.
-        - test_synthetic_rounding_precision: Tests 5-decimal-place rounding.
-        - test_inconsistent_model_group_values: Tests error handling for inconsistent model_group values.
-        - test_file_with_multiple_models_raises_value_error: Tests that a file containing
-          rows from more than one model raises ValueError.
-        - test_multiple_models_error_message_names_file_and_conflicting_models: Tests that
-          the ValueError message identifies the offending file and both model names.
-        - test_multiple_models_same_model_group_raises_value_error: Tests that a
-          file containing two models that share a model_group still raises ValueError
-          (each file must have exactly one model regardless of model_group).
-        - test_check_column_rules_rejects_empty_display_label: Tests that an empty
-          display_label in genotype_label_map raises ValueError via check_column_rules.
-        - test_check_column_rules_rejects_empty_model_group: Tests that an empty
-          model_group in genotype_label_map raises ValueError via check_column_rules.
-        - test_check_column_rules_rejects_bad_age_format: Tests that an age value not
-          matching the '[N] months' format in a data file raises ValueError via check_column_rules.
-        - test_column_rules_parameter_honored: Tests that a custom column_rules parameter
-          overrides the module-level default.
-        - test_data_file_column_rules_parameter_honored: Tests that a custom
-          data_file_column_rules parameter overrides the module-level default.
-        - test_result_order_cast_to_int: Tests that string result_order values are cast to int.
-
-    Helper Methods:
-        - _load_synthetic_test_data: Loads synthetic test data files as DataFrames with
-          proper dataset key mapping.
     """
 
     data_files_path = "tests/test_assets/rna_de_individual"
@@ -389,31 +350,19 @@ class TestTransformRnaDeIndividual:
         with pytest.raises(ValueError):
             transform_rna_de_individual(datasets=datasets)
 
+    _FILE_TO_KEY = {
+        "synthetic_genotype_label_map.csv": "genotype_label_map",
+        "genotype_label_map_inconsistent.csv": "genotype_label_map",
+        "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
+    }
+
     def _load_synthetic_test_data(
         self, data_files: List[str]
     ) -> Dict[str, pd.DataFrame]:
         """Load synthetic test data files as DataFrames."""
-        datasets = {}
-        input_path = os.path.join(self.data_files_path, "input")
-
-        # Mapping from file names to expected dataset keys
-        file_to_key_mapping = {
-            "synthetic_genotype_label_map.csv": "genotype_label_map",
-            "genotype_label_map_inconsistent.csv": "genotype_label_map",
-            "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
-        }
-
-        for file_name in data_files:
-            if file_name.endswith(".csv"):
-                # Load CSV files
-                file_path = os.path.join(input_path, file_name)
-                df = pd.read_csv(file_path)
-
-                # Use the mapped key if available, otherwise use file name without extension
-                key = file_to_key_mapping.get(file_name, file_name.replace(".csv", ""))
-                datasets[key] = df
-
-        return datasets
+        return load_synthetic_test_data(
+            self.data_files_path, data_files, self._FILE_TO_KEY
+        )
 
     def test_synthetic_basic_data(self) -> None:
         """Test transformation with synthetic basic data.
@@ -953,31 +902,31 @@ class TestTransformRnaDeIndividual:
             data_file_key: pd.DataFrame(data_file),
         }
 
-    def test_check_column_rules_rejects_empty_display_label(self) -> None:
-        """Test that an empty display_label in genotype_label_map raises ValueError.
+    @pytest.mark.parametrize("column", sorted(COLUMN_RULES["genotype_label_map"]))
+    def test_label_map_rejects_empty_value(self, column: str) -> None:
+        """Every genotype label map column rejects an empty value.
 
-        check_column_rules is called on static datasets before any processing begins.
-        An empty display_label violates the not_empty rule and must be caught there.
+        Columns come from COLUMN_RULES, so a newly required column is covered
+        without a hand-written test.
         """
-        datasets = self._build_minimal_datasets(
-            label_map_overrides={"display_label": ["", "Wildtype"]}
-        )
-
+        datasets = self._build_minimal_datasets()
+        # result_order is int; cast before writing "" so pandas does not warn.
+        label_map = datasets["genotype_label_map"]
+        label_map[column] = label_map[column].astype(object)
+        label_map.loc[0, column] = ""
         with pytest.raises(ValueError, match="not_empty"):
             transform_rna_de_individual(datasets=datasets)
 
-    def test_check_column_rules_rejects_empty_model_group(self) -> None:
-        """Test that an empty model_group in genotype_label_map raises ValueError.
+    def test_missing_gene_symbol_normalized(self) -> None:
+        """A metadata row with a missing gene symbol becomes an empty string, not NaN.
 
-        model_group is a required field; an empty value violates the not_empty rule
-        enforced by check_column_rules.
+        create_gene_metadata_dict drops the missing symbol, and this transform fills
+        the resulting lookup miss with an empty string.
         """
-        datasets = self._build_minimal_datasets(
-            label_map_overrides={"model_group": ["", "Model_A"]}
-        )
-
-        with pytest.raises(ValueError, match="not_empty"):
-            transform_rna_de_individual(datasets=datasets)
+        datasets = self._build_minimal_datasets()
+        datasets["mouse_gene_metadata"].loc[0, "gene_symbol"] = pd.NA
+        output = transform_rna_de_individual(datasets=datasets)
+        assert output[0]["gene_symbol"] == ""
 
     def test_check_column_rules_rejects_bad_age_format(self) -> None:
         """Test that a data file age value not matching '[N] months' raises ValueError.
