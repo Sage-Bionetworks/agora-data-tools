@@ -862,7 +862,7 @@ class TestComputeYAxisMax:
         )
 
     def test_no_cutoff_uses_full_max(self):
-        """All values are included in the y_axis_max calculation when no y_axis_max_cutoff is specified."""
+        """All values are included in the y_axis_max calculation when no y_axis_cutoff is specified."""
         measurements = self._measurements(
             [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
         )
@@ -872,7 +872,7 @@ class TestComputeYAxisMax:
         }
 
     def test_cutoff_excludes_above_cutoff_values(self):
-        """A value is excluded from the y_axis_max calculation when it exceeds the specified y_axis_max_cutoff."""
+        """A value is excluded from the y_axis_max calculation when it exceeds the specified y_axis_cutoff."""
         measurements = self._measurements(
             [
                 ("ab40_pg_ml", "A&beta;40", 100.0),
@@ -886,7 +886,7 @@ class TestComputeYAxisMax:
         }
 
     def test_cutoff_boundary_is_inclusive(self):
-        """A value equal to the y_axis_max_cutoff is included in the y_axis_max calculation."""
+        """A value equal to the y_axis_cutoff is included in the y_axis_max calculation."""
         measurements = self._measurements(
             [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 200.0)]
         )
@@ -896,7 +896,7 @@ class TestComputeYAxisMax:
         }
 
     def test_measure_without_cutoff_key_is_uncapped(self):
-        """A y_axis_max_cutoff for one measure does not impact the y_axis_max calculation of another."""
+        """A y_axis_cutoff for one measure does not impact the y_axis_max calculation of another."""
         measurements = self._measurements(
             [
                 ("ab40_pg_ml", "A&beta;40", 150.0),
@@ -921,7 +921,7 @@ class TestComputeYAxisMax:
         }
 
     def test_all_values_above_cutoff_raises(self):
-        """A y_axis_max_cutoff that excludes all values for a measure throws a ValueError"""
+        """A y_axis_cutoff that excludes all values for a measure throws a ValueError"""
         measurements = self._measurements(
             [("ab40_pg_ml", "A&beta;40", 300.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
         )

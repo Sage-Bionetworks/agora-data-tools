@@ -414,7 +414,7 @@ def _compute_y_axis_max(
     measurements: pd.DataFrame, y_axis_cutoff_map: dict[str, float] | None = None
 ) -> dict[str, float]:
     """Compute the per-evidence_type y_axis_max, gating out any values above the optional
-    per-evidence_type y_axis_cutoff value specified in config.
+    per-measure (result_column_std) y_axis_cutoff specified in config.
 
     y_axis_max is round_y_axis_max of the maximum value in the evidence_type group. When
     y_axis_cutoff_map is provided, values whose measure (result_column_std) has a cutoff and whose
@@ -470,7 +470,7 @@ def _build_biomarkers(
     the oldest retained bucket) is backfilled with an empty-data placeholder. y_axis_max is the
     per-evidence_type maximum across the retained ages, applied to every one of its buckets, as in the
     mouse immunohisto pipeline. An optional y_axis_cutoff can gate very-high outliers out of that
-    maximum while keeping them in the data points (see _compute_y_axis_max_map).
+    maximum while keeping them in the data points (see _compute_y_axis_max).
 
     Every biomarker also gets a result_order, which lists this model's display labels in the
     order measurements' result_order column assigns them.
@@ -479,7 +479,7 @@ def _build_biomarkers(
         measurements (pd.DataFrame): The per-measurement DataFrame from _build_measurements.
         model_name (str): The model name to stamp on each biomarker object.
         y_axis_cutoff (dict[str, float] | None, optional): Per-measure (result_column_std) cutoff map passed
-            through to _compute_y_axis_max_map. Defaults to None (no gating).
+            through to _compute_y_axis_max. Defaults to None (no gating).
 
     Returns:
         list[dict[str, Any]]: The sorted biomarkers collection.
