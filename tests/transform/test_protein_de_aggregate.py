@@ -391,6 +391,14 @@ class TestTransformProteinDeAggregate:
         with pytest.raises(ValueError, match="mouse_gene_metadata"):
             transform_protein_de_aggregate(datasets)
 
+    def test_blank_mouse_ensembl_id_raises(self) -> None:
+        """A blank ensembl_gene_id would become a live key in the gene-symbol lookup."""
+        datasets = _build_datasets()
+        datasets["mouse_gene_metadata"]["ensembl_gene_id"] = ""
+
+        with pytest.raises(ValueError, match="not_empty"):
+            transform_protein_de_aggregate(datasets)
+
     def test_missing_protein_id_column_raises(self) -> None:
         datasets = _build_datasets(
             data_files={

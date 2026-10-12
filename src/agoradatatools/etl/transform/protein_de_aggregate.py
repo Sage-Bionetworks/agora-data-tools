@@ -33,16 +33,18 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     build_model_to_model_group_lookup,
     create_age_entries_from_group,
     create_gene_metadata_dict,
-    filter_to_mouse_genes,
     normalize_tissue,
     prepare_genotype_label_map,
     validate_and_sort_age_entries,
     validate_data_file_not_empty,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
+    build_uniprot_to_ensembl,
     canonical_accession,
+    lookup_ensembl,
     protein_display_symbol,
     protein_unique_id,
+    unmapped_accessions,
 )
 
 logger = logging.getLogger(__name__)
@@ -75,30 +77,14 @@ COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
         **GENOTYPE_LABEL_MAP_RULES,
         "model_type": [NotEmptyRule()],
     },
+    # create_gene_metadata_dict indexes on ensembl_gene_id, so a blank one becomes a live
+    # lookup key rather than being dropped.
+    "mouse_gene_metadata": {"ensembl_gene_id": [NotEmptyRule()]},
     "uniprot_ensembl_map": {
         "uniprot_id": [NotEmptyRule()],
         "ensembl_gene_id": [NotEmptyRule()],
     },
 }
-
-
-def _build_uniprot_to_ensembl(mapping_df: pd.DataFrame) -> dict[str, str]:
-    """Map each UniProt accession to the smallest of its mouse Ensembl gene ids."""
-    return (
-        filter_to_mouse_genes(mapping_df)
-        .groupby("uniprot_id")["ensembl_gene_id"]
-        .min()
-        .to_dict()
-    )
-
-
-def _lookup_ensembl(
-    accessions: pd.Series, uniprot_to_ensembl: dict[str, str]
-) -> pd.Series:
-    """Map each accession to an Ensembl id, trying the full accession then the base."""
-    mapped = accessions.map(uniprot_to_ensembl)
-    base_mapped = accessions.str.split("-").str[0].map(uniprot_to_ensembl)
-    return mapped.fillna(base_mapped)
 
 
 def _require_protein_id_shape(protein_ids: pd.Series) -> None:
@@ -284,7 +270,7 @@ def _process_data_file(
     data_file = data_file.round(decimals=5)
 
     data_file["uniprotid"] = canonical_accession(data_file["protein_id"].astype(str))
-    data_file["ensembl_gene_id"] = _lookup_ensembl(
+    data_file["ensembl_gene_id"] = lookup_ensembl(
         data_file["uniprotid"], uniprot_to_ensembl
     )
     data_file = data_file.dropna(subset=["ensembl_gene_id"])
@@ -412,7 +398,20 @@ def transform_protein_de_aggregate(
         .to_dict()
     )
 
-    uniprot_to_ensembl = _build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
+    uniprot_to_ensembl = build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
+    measured = pd.concat(
+        [
+            canonical_accession(datasets[name]["protein_id"].astype(str))
+            for name in file_list
+        ],
+        ignore_index=True,
+    ).drop_duplicates()
+    unmapped = unmapped_accessions(measured, uniprot_to_ensembl)
+    if unmapped:
+        logger.info(
+            f"Transform protein_de_aggregate: {len(unmapped)} UniProt IDs absent "
+            f"from the map (dropped): {unmapped[:10]}"
+        )
 
     frames = []
     for file_name in file_list:
