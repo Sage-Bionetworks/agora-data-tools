@@ -73,7 +73,7 @@ def _build_datasets(
             if mapping is not None
             else pd.DataFrame(
                 {
-                    "uniprotkb_accession": ["P27144", "Q8C8R3"],
+                    "uniprot_id": ["P27144", "Q8C8R3"],
                     "ensembl_gene_id": [
                         "ENSMUSG00000000001",
                         "ENSMUSG00000000001",
@@ -198,6 +198,90 @@ class TestTransformProteinDeAggregate:
             "ENSMUSG00000000001P27144",
             "ENSMUSG00000000001Q8C8R3",
         ]
+
+    def test_lowest_mouse_ensembl_id_ignores_header_symbol(self) -> None:
+        """An accession with several mouse genes takes the smallest id, not the header symbol."""
+        datasets = _build_datasets(
+            data_files={
+                DEFAULT_DE_FILE: {
+                    "protein_id": ["Cycs|P27144"],
+                    "diff": [0.5],
+                    "padj": [0.01],
+                    "model": ["LOAD2"],
+                    "sex": ["Female"],
+                    "age": ["4 months"],
+                    "tissue": ["Hemibrain"],
+                }
+            },
+            gene_metadata=pd.DataFrame(
+                {
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000001",
+                        "ENSMUSG00000000009",
+                    ],
+                    "gene_symbol": ["Gm10053", "Cycs"],
+                }
+            ),
+            mapping=pd.DataFrame(
+                {
+                    "uniprot_id": ["P27144", "P27144", "P27144"],
+                    "ensembl_gene_id": [
+                        "ENSG00000000001",
+                        "ENSMUSG00000000009",
+                        "ENSMUSG00000000001",
+                    ],
+                }
+            ),
+        )
+
+        entry = transform_protein_de_aggregate(datasets)[0]
+
+        assert entry["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert entry["gene_symbol"] == "Gm10053"
+        assert entry["unique_id"] == "ENSMUSG00000000001P27144"
+
+    def test_isoform_map_row_is_preferred_over_base(self) -> None:
+        """A mapping-file row for the full accession wins over the base accession."""
+        datasets = _build_datasets(
+            data_files={
+                DEFAULT_DE_FILE: {
+                    "protein_id": ["Ank2|Q8C8R3", "Ank2|Q8C8R3-2"],
+                    "diff": [0.1, 0.2],
+                    "padj": [0.01, 0.02],
+                    "model": ["LOAD2", "LOAD2"],
+                    "sex": ["Female", "Female"],
+                    "age": ["4 months", "4 months"],
+                    "tissue": ["Hemibrain", "Hemibrain"],
+                }
+            },
+            mapping=pd.DataFrame(
+                {
+                    "uniprot_id": ["Q8C8R3", "Q8C8R3-2"],
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000001",
+                        "ENSMUSG00000000002",
+                    ],
+                }
+            ),
+            gene_metadata=pd.DataFrame(
+                {
+                    "ensembl_gene_id": [
+                        "ENSMUSG00000000001",
+                        "ENSMUSG00000000002",
+                    ],
+                    "gene_symbol": ["Gnai3", "Cdc45"],
+                }
+            ),
+        )
+
+        by_uniprot = {
+            entry["uniprotid"]: entry
+            for entry in transform_protein_de_aggregate(datasets)
+        }
+
+        assert by_uniprot["Q8C8R3"]["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert by_uniprot["Q8C8R3-2"]["ensembl_gene_id"] == "ENSMUSG00000000002"
+        assert by_uniprot["Q8C8R3-2"]["unique_id"] == "ENSMUSG00000000002Q8C8R3-2"
 
     def test_display_symbol_falls_back_to_ensembl(self) -> None:
         datasets = _build_datasets(

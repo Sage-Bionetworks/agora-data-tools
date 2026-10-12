@@ -40,13 +40,9 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     validate_data_file_not_empty,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
-    build_gene_aliases,
-    build_uniprot_candidates,
     canonical_accession,
-    pairs_from_protein_ids,
     protein_display_symbol,
     protein_unique_id,
-    resolve_gene_ids,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,7 +55,7 @@ AGE_TOKEN_RE = re.compile(r"^(\d+)mo$", re.IGNORECASE)
 
 REQUIRED_INPUT = {
     "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS + ["model_type"],
-    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
+    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
     "biodom_genes_mm": [
         "biodomain",
         "abbr",
@@ -71,7 +67,7 @@ REQUIRED_INPUT = {
         "symbol",
         "ensembl_id",
     ],
-    "uniprot_ensembl_map": ["uniprotkb_accession", "ensembl_gene_id"],
+    "uniprot_ensembl_map": ["uniprot_id", "ensembl_gene_id"],
 }
 
 COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
@@ -80,10 +76,41 @@ COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
         "model_type": [NotEmptyRule()],
     },
     "uniprot_ensembl_map": {
-        "uniprotkb_accession": [NotEmptyRule()],
+        "uniprot_id": [NotEmptyRule()],
         "ensembl_gene_id": [NotEmptyRule()],
     },
 }
+
+
+def _build_uniprot_to_ensembl(mapping_df: pd.DataFrame) -> dict[str, str]:
+    """Map each UniProt accession to the smallest of its mouse Ensembl gene ids."""
+    return (
+        filter_to_mouse_genes(mapping_df)
+        .groupby("uniprot_id")["ensembl_gene_id"]
+        .min()
+        .to_dict()
+    )
+
+
+def _lookup_ensembl(
+    accessions: pd.Series, uniprot_to_ensembl: dict[str, str]
+) -> pd.Series:
+    """Map each accession to an Ensembl id, trying the full accession then the base."""
+    mapped = accessions.map(uniprot_to_ensembl)
+    base_mapped = accessions.str.split("-").str[0].map(uniprot_to_ensembl)
+    return mapped.fillna(base_mapped)
+
+
+def _require_protein_id_shape(protein_ids: pd.Series) -> None:
+    """Raise when a protein_id cannot be split into a gene symbol and an accession."""
+    ids = protein_ids.astype(str)
+    missing_pipe = ~ids.str.contains("|", regex=False)
+    if missing_pipe.any():
+        examples = ids.loc[missing_pipe].unique()[:5].tolist()
+        raise ValueError(
+            "protein_id values must be gene_symbol|uniprotid. "
+            f"Values without a pipe (first 5): {examples}"
+        )
 
 
 def _data_file_names(
@@ -257,22 +284,14 @@ def _process_data_file(
     data_file = data_file.round(decimals=5)
 
     data_file["uniprotid"] = canonical_accession(data_file["protein_id"].astype(str))
-    # Isoform accessions (Q8C8R3-2) inherit the base accession's gene mapping;
-    # the full accession stays in the output so distinct proteoforms stay distinct.
-    data_file["ensembl_gene_id"] = (
-        data_file["uniprotid"].str.split("-").str[0].map(uniprot_to_ensembl)
+    data_file["ensembl_gene_id"] = _lookup_ensembl(
+        data_file["uniprotid"], uniprot_to_ensembl
     )
     data_file = data_file.dropna(subset=["ensembl_gene_id"])
     if data_file.empty:
         raise ValueError(
             f"No rows remained in '{file_name}' after mapping proteins to "
             "genes — check the UniProt to Ensembl mapping file."
-        )
-    data_file = filter_to_mouse_genes(data_file)
-    if data_file.empty:
-        raise ValueError(
-            f"No mouse genes remained in '{file_name}' after filtering "
-            "human Ensembl ids."
         )
     data_file["gene_symbol"] = data_file["ensembl_gene_id"].map(gene_symbols).fillna("")
     data_file["unique_id"] = protein_unique_id(
@@ -362,6 +381,7 @@ def transform_protein_de_aggregate(
             {file_name: datasets[file_name]},
             {file_name: {"protein_id": [NotEmptyRule()]}},
         )
+        _require_protein_id_shape(datasets[file_name]["protein_id"])
         if not any(col in datasets[file_name].columns for col in FOLD_CHANGE_COLUMNS):
             raise ValueError(
                 f"Data file '{file_name}' is missing a fold-change column "
@@ -392,16 +412,7 @@ def transform_protein_de_aggregate(
         .to_dict()
     )
 
-    header_pairs = pd.concat(
-        [pairs_from_protein_ids(datasets[name]["protein_id"]) for name in file_list],
-        ignore_index=True,
-    ).drop_duplicates()
-    uniprot_to_ensembl = resolve_gene_ids(
-        header_pairs=header_pairs,
-        candidates=build_uniprot_candidates(datasets["uniprot_ensembl_map"]),
-        gene_symbols=gene_symbols,
-        gene_aliases=build_gene_aliases(datasets["mouse_gene_metadata"]),
-    )
+    uniprot_to_ensembl = _build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
 
     frames = []
     for file_name in file_list:
