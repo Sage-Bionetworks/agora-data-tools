@@ -9,32 +9,10 @@ import pytest
 from agoradatatools.etl.transform.protein_de_individual import (
     REQUIRED_INPUT,
     transform_protein_de_individual,
-    _build_uniprot_to_ensembl,
     _measured_accessions,
     _melt_proteomics_file,
     _validate_file_maps,
 )
-
-
-class TestBuildUniprotToEnsembl:
-    def test_drops_human_genes_and_takes_the_smallest_mouse_gene(self) -> None:
-        """Human Ensembl ids are dropped; an accession with several mouse genes takes the smallest."""
-        mapping = pd.DataFrame(
-            {
-                "uniprot_id": ["P1", "P1", "P2", "P3"],
-                "ensembl_gene_id": [
-                    "ENSMUSG00000000005",
-                    "ENSMUSG00000000002",
-                    "ENSG00000000001",
-                    "ENSMUSG00000000003",
-                ],
-            }
-        )
-
-        assert _build_uniprot_to_ensembl(mapping) == {
-            "P1": "ENSMUSG00000000002",
-            "P3": "ENSMUSG00000000003",
-        }
 
 
 class TestMeasuredAccessions:

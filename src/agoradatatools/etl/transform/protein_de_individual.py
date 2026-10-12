@@ -23,7 +23,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     build_model_to_model_group_lookup,
     create_gene_metadata_dict,
-    filter_to_mouse_genes,
     label_genotypes,
     nest_individual_records,
     normalize_tissue,
@@ -31,6 +30,14 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     validate_data_file_not_empty,
     GENOTYPE_LABEL_MAP_COLUMNS,
     GENOTYPE_LABEL_MAP_RULES,
+)
+from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
+    build_uniprot_to_ensembl,
+    canonical_accession,
+    lookup_ensembl,
+    protein_display_symbol,
+    protein_unique_id,
+    unmapped_accessions,
 )
 
 logger = logging.getLogger(__name__)
@@ -78,27 +85,6 @@ DATAFILE_COLUMN_RULES = {
 }
 
 
-def _build_uniprot_to_ensembl(mapping_df: pd.DataFrame) -> dict[str, str]:
-    """Map each UniProt accession to the smallest of its mouse Ensembl gene ids."""
-    return (
-        filter_to_mouse_genes(mapping_df)
-        .groupby("uniprot_id")["ensembl_gene_id"]
-        .min()
-        .to_dict()
-    )
-
-
-def _canonical_accession(headers: pd.Series) -> pd.Series:
-    """Recover the canonical UniProt accession from gene_symbol|uniprotid headers."""
-    # Extract lowercases headers and turns hyphens into underscores.
-    return (
-        headers.str.rsplit("|", n=1)
-        .str[-1]
-        .str.upper()
-        .str.replace("_", "-", regex=False)
-    )
-
-
 def _measured_accessions(
     datasets: dict[str, pd.DataFrame], datafile_list: list[str]
 ) -> pd.Series:
@@ -112,16 +98,7 @@ def _measured_accessions(
         ],
         dtype="object",
     )
-    return _canonical_accession(headers).drop_duplicates()
-
-
-def _lookup_ensembl(
-    accessions: pd.Series, uniprot_to_ensembl: dict[str, str]
-) -> pd.Series:
-    """Map each accession to an Ensembl id, trying the full accession then the base."""
-    mapped = accessions.map(uniprot_to_ensembl)
-    base_mapped = accessions.str.split("-").str[0].map(uniprot_to_ensembl)
-    return mapped.fillna(base_mapped)
+    return canonical_accession(headers).drop_duplicates()
 
 
 def _melt_proteomics_file(
@@ -151,7 +128,7 @@ def _melt_proteomics_file(
             "to the output."
         )
 
-    long_df["uniprotid"] = _canonical_accession(long_df["header"])
+    long_df["uniprotid"] = canonical_accession(long_df["header"])
     # Cast the join key to string so it matches the metadata key.
     long_df["individualid"] = long_df["individualid"].astype(str)
     long_df["model"] = model
@@ -269,7 +246,7 @@ def _build_output(
     )
     _log_stage(model_group, "after harmonized metadata join", df)
 
-    df["ensembl_gene_id"] = _lookup_ensembl(df["uniprotid"], uniprot_to_ensembl)
+    df["ensembl_gene_id"] = lookup_ensembl(df["uniprotid"], uniprot_to_ensembl)
     df = df.dropna(subset=["ensembl_gene_id"])
     _log_stage(model_group, "after gene mapping", df)
     if df.empty:
@@ -307,12 +284,9 @@ def _build_output(
 
     df["sex"] = remap_sex_labels(df["sex"])
     df["gene_symbol"] = df["ensembl_gene_id"].map(gene_symbols).fillna("")
-    df["unique_id"] = df["ensembl_gene_id"] + df["uniprotid"]
-    df["display_symbol"] = (
-        df["gene_symbol"].where(df["gene_symbol"] != "", df["ensembl_gene_id"])
-        + " ("
-        + df["uniprotid"]
-        + ")"
+    df["unique_id"] = protein_unique_id(df["ensembl_gene_id"], df["uniprotid"])
+    df["display_symbol"] = protein_display_symbol(
+        df["gene_symbol"], df["ensembl_gene_id"], df["uniprotid"]
     )
     df["value"] = df["value"].round(5).map(normalize_zero)
 
@@ -456,14 +430,9 @@ def transform_protein_de_individual(
 
     gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
 
-    uniprot_to_ensembl = _build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
-    unmapped = sorted(
-        {
-            accession
-            for accession in _measured_accessions(datasets, datafile_list)
-            if accession not in uniprot_to_ensembl
-            and accession.split("-")[0] not in uniprot_to_ensembl
-        }
+    uniprot_to_ensembl = build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
+    unmapped = unmapped_accessions(
+        _measured_accessions(datasets, datafile_list), uniprot_to_ensembl
     )
     if unmapped:
         logger.info(
