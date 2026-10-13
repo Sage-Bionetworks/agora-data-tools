@@ -23,7 +23,7 @@ class TestMeasuredAccessions:
                 {
                     "cycs|p00001": [1.0, 2.0],
                     "srp54|p00002": [None, 3.0],
-                    "dead|p00003": [None, None], # should get dropped
+                    "dead|p00003": [None, None],  # should get dropped
                 },
                 {"P00001", "P00002"},
             ),
@@ -106,7 +106,9 @@ class TestMeltProteomicsFile:
 
     def test_non_numeric_values_are_dropped(self) -> None:
         """Non-numeric abundances are dropped the same way missing values are."""
-        data_file = self.data_file.copy().assign(**{"gene1|p00001": ["1.0", "not_a_number"]})
+        data_file = self.data_file.copy().assign(
+            **{"gene1|p00001": ["1.0", "not_a_number"]}
+        )
 
         long_df = _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
 
