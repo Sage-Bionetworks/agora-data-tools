@@ -941,6 +941,26 @@ class TestComputeYAxisMax:
         with pytest.raises(ValueError, match="A&beta;40"):
             _compute_y_axis_max(measurements, {"ab40_pg_ml": 200})
 
+    def test_all_emptied_evidence_types_are_reported(self):
+        """When cutoffs exclude all values for several measures, the error names every one."""
+        measurements = self._measurements(
+            [
+                ("ab40_pg_ml", "A&beta;40", 300.0),
+                ("gfap_pg_ml", "GFAP", 900.0),
+                ("nfl_pg_ml", "NfL", 50.0),  # under its cutoff: not reported
+            ]
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            _compute_y_axis_max(
+                measurements, {"ab40_pg_ml": 200, "gfap_pg_ml": 500, "nfl_pg_ml": 1000}
+            )
+
+        message = str(exc_info.value)
+        assert "A&beta;40" in message
+        assert "GFAP" in message
+        assert "NfL" not in message
+
 
 class TestApplyQcMasks:
     """_apply_qc_masks nulls a group's measure values on rows whose QC flag is not PASS. qc_ab

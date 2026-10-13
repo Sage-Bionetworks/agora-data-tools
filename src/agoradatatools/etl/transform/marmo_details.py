@@ -433,8 +433,8 @@ def _compute_y_axis_max(
         dict[str, float]: evidence_type -> y_axis_max.
 
     Raises:
-        ValueError: If a cutoff removes every value for an evidence_type, leaving nothing to base the
-            axis on (the cutoff is set too low for the data).
+        ValueError: If a cutoff removes every value for one or more evidence_types, leaving nothing
+            to base the axis on (the cutoff is set too low for the data).
     """
     # measurements.value is already numeric: _build_measurements coerces it and drops non-numeric entries.
     gated = measurements
@@ -443,16 +443,16 @@ def _compute_y_axis_max(
         over_cutoff = cutoffs.notna() & (measurements["value"] > cutoffs)
         gated = measurements[~over_cutoff]
 
-    y_axis_max_map = {}
-    for evidence_type, group in measurements.groupby("evidence_type"):
-        gated_group = gated[gated["evidence_type"] == evidence_type]
-        if gated_group.empty:
-            raise ValueError(
-                f"y_axis_cutoff removes every value for evidence_type '{evidence_type}'; "
-                "the cutoff is set too low. Raise it or remove it for this measure."
-            )
-        y_axis_max_map[evidence_type] = round_y_axis_max(gated_group["value"].max())
-    return y_axis_max_map
+    maxes = gated.groupby("evidence_type")["value"].max()
+    emptied = sorted(set(measurements["evidence_type"]) - set(maxes.index))
+    if emptied:
+        raise ValueError(
+            f"y_axis_cutoff removes every value for evidence_type(s) {emptied}; "
+            "the cutoff is set too low. Raise it or remove it for these measures."
+        )
+    return {
+        evidence_type: round_y_axis_max(value) for evidence_type, value in maxes.items()
+    }
 
 
 def _build_biomarkers(
