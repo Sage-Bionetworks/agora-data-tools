@@ -413,20 +413,20 @@ def _fill_age_gaps(grouped: pd.DataFrame) -> pd.DataFrame:
 def _compute_y_axis_max(
     measurements: pd.DataFrame, y_axis_cutoff_map: dict[str, float] | None = None
 ) -> dict[str, float]:
-    """Compute the per-evidence_type y_axis_max, gating out any values above the optional
-    per-measure (result_column_std) y_axis_cutoff specified in config.
+    """Compute the per-result_column_std y_axis_max, gating out any values above the optional
+    y_axis_cutoff specified for that result_column_std in config.
 
     y_axis_max is round_y_axis_max of the maximum value in the evidence_type group. When
-    y_axis_cutoff_map is provided, values whose measure (result_column_std) has a cutoff and whose
+    y_axis_cutoff_map is provided, values whose result_column_std has a configured cutoff and whose
     value exceeds it are excluded from the max calculation, but are still included in the output data points.
     This keeps a rare high outlier visible without stretching the axis to fit it.
 
     Args:
         measurements (pd.DataFrame): One model's retained measurements (after QC filtering and
-            dropping any single-genotype buckets), carrying result_column_std, evidence_type, and value.
+            dropping any single-genotype buckets), carrying result_column_std, evidence_type, and numeric value.
         y_axis_cutoff_map (dict[str, float] | None, optional): Map of result_column_std to a per-measure cutoff.
-            Keys must be standardized result_column_std values; transform_marmo_details standardizes
-            and validates them. A value is included in the calculation when value <= cutoff. Measures with no
+            Keys have already been converted to result_column_std values and validated in transform_marmo_detailsm.
+            A value is included in the calculation when value <= cutoff. Measures with no
             entry are uncapped. Defaults to None (no gating; current behavior).
 
     Returns:
@@ -571,8 +571,10 @@ def transform_marmo_details(
            created for any missing age buckets before the oldest bucket with data. There is no
            guarantee that every measure will have the same oldest bucket with data, so each
            measure can have a different range of contiguous buckets on the same model page.
-        7. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
-           computed per model via round_y_axis_max.
+        7. Measure metadata (evidence_type, units, display_order) is attached. y_axis_max is computed
+           per model and evidence_type as round_y_axis_max of the maximum value across the retained
+           buckets, and applied to every bucket. If a y_axis_cutoff is configured for a measure, values
+           above it are excluded from that maximum but kept in the data points.
         8. Each biomarker includes a result_order, which specifies the display order of the genotypes
            present in each model's data.
 
@@ -594,8 +596,9 @@ def transform_marmo_details(
             COLUMN_RULES, if a model has inconsistent model_type or study_synid values, if
             marmo_genotype_label_map has duplicate (model, genotype) rows or names a model
             absent from marmo_model_metadata, if no measurement survives the value,
-            genotype, or collection-age filters, or if any y_axis_cutoff key does not align with
-            a measure listed in marmo_biomarker_measure_info.
+            genotype, or collection-age filters, if any y_axis_cutoff key does not align with
+            a measure listed in marmo_biomarker_measure_info, or if a y_axis_cutoff removes every
+            value for an evidence_type.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)
