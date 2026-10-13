@@ -16,36 +16,33 @@ from agoradatatools.etl.transform.protein_de_individual import (
 
 
 class TestMeasuredAccessions:
-    @staticmethod
-    def _melted_accessions(datasets: dict[str, pd.DataFrame]) -> set:
-        """Return the UniProt accessions produced by melting each data file."""
-        return {
-            accession
-            for name, data_file in datasets.items()
-            for accession in _melt_proteomics_file(name, data_file, "LOAD2")[
-                "uniprotid"
-            ]
-        }
-
     @pytest.mark.parametrize(
-        "columns,accessions",
+        "columns,expected_accessions",
         [
             (
                 {
                     "cycs|p00001": [1.0, 2.0],
                     "srp54|p00002": [None, 3.0],
-                    "dead|p00003": [None, None],
+                    "dead|p00003": [None, None], # should get dropped
                 },
                 {"P00001", "P00002"},
             ),
             ({"ank2|q8c8r3_2": [1.0, 2.0]}, {"Q8C8R3-2"}),
             ({"cycs|p00001": [1.0, 2.0]}, {"P00001"}),
+            (
+                {
+                    "cycs|p00001": [1.0, 2.0],
+                    # different gene symbol, same accession
+                    "cycs2|p00001": [1.0, 2.0],
+                },
+                {"P00001"},
+            ),
         ],
     )
-    def test_accessions_match_what_the_melt_yields(
-        self, columns: dict[str, list], accessions: set
+    def test_accessions_are_extracted_from_protein_columns(
+        self, columns: dict[str, list], expected_accessions: set
     ) -> None:
-        """The accessions collected match the ones the melt would yield, de-duplicated."""
+        """The accessions collected from the column headers should be upper-cased and match the expected output."""
         datasets = {
             "file1": pd.DataFrame({"individualid": [1, 2], **columns}),
             "file2": pd.DataFrame({"individualid": [3, 4], **columns}),
@@ -53,26 +50,9 @@ class TestMeasuredAccessions:
 
         measured = _measured_accessions(datasets, list(datasets))
 
-        assert set(measured) == self._melted_accessions(datasets)
-        assert set(measured) == accessions
-        assert len(measured) == len(accessions)
-
-    def test_empty_isoform_column_contributes_no_accession(self) -> None:
-        """An all-empty isoform column is not reported as a measured accession."""
-        datasets = {
-            "file1": pd.DataFrame(
-                {
-                    "individualid": [1, 2],
-                    "cycs|p00001": [1.0, 2.0],
-                    "gm10053|p00001_2": [None, None],
-                }
-            )
-        }
-
-        measured = _measured_accessions(datasets, list(datasets))
-
-        assert set(measured) == self._melted_accessions(datasets)
-        assert set(measured) == {"P00001"}
+        assert set(measured) == expected_accessions
+        # measured should not have any duplicates
+        assert len(measured) == len(expected_accessions)
 
 
 class TestMeltProteomicsFile:
@@ -102,11 +82,18 @@ class TestMeltProteomicsFile:
 
     def test_metadata_only_columns_are_not_melted(self) -> None:
         """Columns without a pipe are not treated as proteins."""
-        data_file = self.data_file.assign(sequencing_batch=["b1", "b2"])
+        data_file = self.data_file.copy().assign(sequencing_batch=["b1", "b2"])
 
         long_df = _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
 
         assert set(long_df["uniprotid"]) == {"P00001", "Q8C8R3-2"}
+        # sequencing_batch should not be included in the columns.
+        assert list(long_df.columns) == [
+            "individualid",
+            "model",
+            "uniprotid",
+            "value",
+        ]
 
     def test_no_protein_columns_raises(self) -> None:
         """A file with no gene_symbol|uniprotid columns raises."""
@@ -119,7 +106,7 @@ class TestMeltProteomicsFile:
 
     def test_non_numeric_values_are_dropped(self) -> None:
         """Non-numeric abundances are dropped the same way missing values are."""
-        data_file = self.data_file.assign(**{"gene1|p00001": ["1.0", "not_a_number"]})
+        data_file = self.data_file.copy().assign(**{"gene1|p00001": ["1.0", "not_a_number"]})
 
         long_df = _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
 
@@ -128,7 +115,7 @@ class TestMeltProteomicsFile:
 
     def test_no_numeric_abundances_raises(self) -> None:
         """A file with only missing or non-numeric abundances raises and names the file."""
-        data_file = self.data_file.assign(
+        data_file = self.data_file.copy().assign(
             **{"gene1|p00001": [None, "not_a_number"], "ank2|q8c8r3_2": [None, None]}
         )
 

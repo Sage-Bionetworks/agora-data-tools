@@ -33,7 +33,9 @@ class TestBuildUniprotToEnsembl:
 
 
 class TestUnmappedAccessions:
-    def test_isoform_is_unmapped_only_when_its_base_is_missing(self) -> None:
+    def test_isoform_is_mapped_to_base_id(self) -> None:
+        """Isoforms should map to their base ID ("-<number>" removed), so the only unmapped accession in this list
+        should be P00001, which doesn't exist in the lookup."""
         lookup = {"Q8C8R3": "ENSMUSG00000000001"}
         accessions = pd.Series(["Q8C8R3-2", "P00001", "Q8C8R3"])
 

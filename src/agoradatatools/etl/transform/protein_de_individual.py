@@ -88,9 +88,9 @@ DATAFILE_COLUMN_RULES = {
 def _measured_accessions(
     datasets: dict[str, pd.DataFrame], datafile_list: list[str]
 ) -> pd.Series:
-    """Collect the canonical UniProt accessions of protein columns that hold data. Column headers look like "q123|abc",
-    where everything before the "|" is the lower-cased Uniprot accession and everything after the "|" is the lower-cased
-    gene symbol. The Uniprot IDs are extracted from the headers and returned to their original upper-case values."""
+    """Collect the canonical UniProt accessions of protein columns that hold data. Column headers look like "abc|q123",
+    where everything before the "|" is the lower-cased gene symbol and everything after the "|" is the lower-cased
+    Uniprot accession. The Uniprot IDs are extracted from the headers and returned to their original upper-case values."""
     headers = pd.Series(
         [
             column

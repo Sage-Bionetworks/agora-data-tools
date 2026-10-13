@@ -34,13 +34,13 @@ def lookup_ensembl(
 def unmapped_accessions(
     accessions: pd.Series, uniprot_to_ensembl: dict[str, str]
 ) -> list[str]:
-    """Return sorted accessions missing from the map as themselves and as their base."""
+    """Return sorted accessions missing from the map. The base accession (isoform notation removed)
+    is used for lookup."""
     return sorted(
         {
             accession
             for accession in accessions
-            if accession not in uniprot_to_ensembl
-            and accession.split("-")[0] not in uniprot_to_ensembl
+            if accession.split("-")[0] not in uniprot_to_ensembl
         }
     )
 
