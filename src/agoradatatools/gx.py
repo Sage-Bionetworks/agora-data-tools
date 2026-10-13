@@ -9,10 +9,9 @@ import great_expectations as gx
 import pandas as pd
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
 from synapseclient import Synapse
-from synapseclient.models import Activity, File, Folder, UsedEntity, UsedURL
+from synapseclient.models import Activity, File, Folder, UsedURL
 
 from agoradatatools.reporter import DatasetReport
-from agoradatatools.etl.utils import parse_synapse_id_version
 
 logger = logging.getLogger(__name__)
 logging.getLogger("great_expectations").setLevel(logging.WARNING)
