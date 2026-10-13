@@ -88,7 +88,9 @@ DATAFILE_COLUMN_RULES = {
 def _measured_accessions(
     datasets: dict[str, pd.DataFrame], datafile_list: list[str]
 ) -> pd.Series:
-    """Collect the canonical UniProt accessions of protein columns that hold data."""
+    """Collect the canonical UniProt accessions of protein columns that hold data. Column headers look like "q123|abc",
+    where everything before the "|" is the lower-cased Uniprot accession and everything after the "|" is the lower-cased
+    gene symbol. The Uniprot IDs are extracted from the headers and returned to their original upper-case values."""
     headers = pd.Series(
         [
             column
@@ -145,8 +147,7 @@ def _check_metadata_coverage(
     }
     # Counted per file, so the same animal is counted again in every file that measures it.
     logger.info(
-        f"Transform protein_de_individual: {file_name}: {len(matched)}/{len(unique)} "
-        "of this file's animals have harmonized metadata"
+        f"{file_name}: {len(matched)}/{len(unique)} of this file's animals have harmonized metadata"
     )
     if not matched:
         raise ValueError(
@@ -160,8 +161,7 @@ def _check_metadata_coverage(
 def _log_stage(model_group: str, stage: str, df: pd.DataFrame) -> None:
     """Log measurement and animal counts for one processing stage of a model_group."""
     logger.info(
-        f"Transform protein_de_individual: {model_group}: {stage}: {len(df)} measurements, "
-        f"{df['individualid'].nunique()} animals"
+        f"{model_group}: {stage}: {len(df)} measurements, {df['individualid'].nunique()} animals"
     )
 
 
@@ -180,10 +180,9 @@ def _log_cross_file_animals(
         seen |= animals
     if shared:
         logger.info(
-            f"Transform protein_de_individual: {model_group}: {len(shared)} of {len(seen)} "
-            f"animals are measured in more than one data file, so the per-file counts above "
-            f"sum to more than this model_group's total. Animals (first 10): "
-            f"{sorted(shared)[:10]}"
+            f"{model_group}: {len(shared)} of {len(seen)} animals are measured in more than one "
+            f"data file, so the per-file counts above sum to more than this model_group's total. "
+            f"Animals (first 10): {sorted(shared)[:10]}"
         )
 
 
@@ -220,9 +219,9 @@ def _collapse_duplicate_measurements(
             df.loc[df.duplicated(subset=keys, keep=False), "individualid"].unique()
         )
         logger.info(
-            f"Transform protein_de_individual: {model_group}: {len(df) - len(collapsed)} "
-            f"repeated measurements collapsed for {len(shared)} animals measured in more "
-            f"than one data file. Animals (first 10): {shared[:10]}"
+            f"{model_group}: {len(df) - len(collapsed)} repeated measurements collapsed for "
+            f"{len(shared)} animals measured in more than one data file. Animals (first 10): "
+            f"{shared[:10]}"
         )
     return collapsed
 
@@ -436,8 +435,7 @@ def transform_protein_de_individual(
     )
     if unmapped:
         logger.info(
-            f"Transform protein_de_individual: {len(unmapped)} UniProt IDs absent "
-            f"from the map (dropped): {unmapped[:10]}"
+            f"{len(unmapped)} UniProt IDs absent from the map (dropped): {unmapped[:10]}"
         )
 
     model_to_model_group = build_model_to_model_group_lookup(genotype_label_map_df)
@@ -447,7 +445,7 @@ def transform_protein_de_individual(
             file_name
         )
     logger.info(
-        "Transform protein_de_individual: data files by model_group: "
+        "Data files by model_group: "
         + ", ".join(f"{group}={files}" for group, files in files_by_model_group.items())
     )
 

@@ -25,10 +25,10 @@ def build_uniprot_to_ensembl(mapping_df: pd.DataFrame) -> dict[str, str]:
 def lookup_ensembl(
     accessions: pd.Series, uniprot_to_ensembl: dict[str, str]
 ) -> pd.Series:
-    """Map each accession to an Ensembl id, trying the full accession then the base."""
-    mapped = accessions.map(uniprot_to_ensembl)
-    base_mapped = accessions.str.split("-").str[0].map(uniprot_to_ensembl)
-    return mapped.fillna(base_mapped)
+    """Map each accession to an Ensembl ID, removing isoform notation ("-<number>") from the
+    accessions before mapping."""
+    base_accessions = accessions.str.split("-").str[0]
+    return base_accessions.map(uniprot_to_ensembl)
 
 
 def unmapped_accessions(
@@ -71,7 +71,6 @@ def protein_display_symbol(
     gene_symbol: pd.Series, ensembl_gene_id: pd.Series, uniprotid: pd.Series
 ) -> pd.Series:
     """Format gene_symbol (uniprotid), falling back to the Ensembl id when the symbol is empty."""
-    # MG-985: fall back to the Ensembl gene id when no symbol is known.
     return (
         gene_symbol.where(gene_symbol != "", ensembl_gene_id) + " (" + uniprotid + ")"
     )
