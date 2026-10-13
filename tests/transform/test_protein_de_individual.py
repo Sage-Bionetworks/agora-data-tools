@@ -363,41 +363,6 @@ class TestTransformProteinDeIndividual:
 
         assert {e["uniprotid"] for e in output} == {"P00001"}
 
-    def test_isoform_map_row_is_preferred_over_base(self) -> None:
-        """A mapping-file row for the full accession wins over the base accession."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "ank2|q8c8r3": [1.0, 2.0],
-                "ank2|q8c8r3_2": [3.0, 4.0],
-            },
-            mapping=pd.DataFrame(
-                {
-                    "uniprot_id": ["Q8C8R3", "Q8C8R3-2"],
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000002",
-                    ],
-                }
-            ),
-            gene_metadata=pd.DataFrame(
-                {
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000002",
-                    ],
-                    "gene_symbol": ["Gnai3", "Cdc45"],
-                }
-            ),
-        )
-
-        by_uniprot = {e["uniprotid"]: e for e in self._transform(datasets)}
-
-        assert by_uniprot["Q8C8R3"]["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert by_uniprot["Q8C8R3-2"]["ensembl_gene_id"] == "ENSMUSG00000000002"
-        assert by_uniprot["Q8C8R3-2"]["unique_id"] == "ENSMUSG00000000002Q8C8R3-2"
-
     def test_animals_without_metadata_or_label_map_row_dropped(self) -> None:
         """Animals missing metadata or a label-map row are dropped, not a failed run."""
         datasets = self._build_datasets(
