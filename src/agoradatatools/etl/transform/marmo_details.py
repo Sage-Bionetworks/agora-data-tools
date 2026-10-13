@@ -3,7 +3,7 @@ This module contains the transformation logic for the marmo_details dataset.
 This is for the Model AD project (marmoset details pages).
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
@@ -219,7 +219,7 @@ def _apply_qc_masks(results: pd.DataFrame) -> pd.DataFrame:
 
 
 def _build_measurements(
-    datasets: Dict[str, pd.DataFrame],
+    datasets: dict[str, pd.DataFrame],
     measure_info: pd.DataFrame,
 ) -> pd.DataFrame:
     """Build the per-measurement DataFrame behind the biomarkers collection.
@@ -229,7 +229,7 @@ def _build_measurements(
     not pass QC, have no label-map genotype, or have no biomaterial record are dropped.
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): The input datasets.
+        datasets (dict[str, pd.DataFrame]): The input datasets.
         measure_info (pd.DataFrame): Measure info with a standardized "result_column_std" column.
 
     Returns:
@@ -410,17 +410,64 @@ def _fill_age_gaps(grouped: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([grouped, pd.DataFrame(placeholders)], ignore_index=True)
 
 
+def _compute_y_axis_max(
+    measurements: pd.DataFrame, y_axis_cutoff_map: dict[str, float] | None = None
+) -> dict[str, float]:
+    """Compute the per-result_column_std y_axis_max, gating out any values above the optional
+    y_axis_cutoff specified for that result_column_std in config.
+
+    y_axis_max is round_y_axis_max of the maximum value in the evidence_type group. When
+    y_axis_cutoff_map is provided, values whose result_column_std has a configured cutoff and whose
+    value exceeds it are excluded from the max calculation, but are still included in the output data points.
+    This keeps a rare high outlier visible without stretching the axis to fit it.
+
+    Args:
+        measurements (pd.DataFrame): One model's retained measurements (after QC filtering and
+            dropping any single-genotype buckets), carrying result_column_std, evidence_type, and numeric value.
+        y_axis_cutoff_map (dict[str, float] | None, optional): Map of result_column_std to a per-measure cutoff.
+            Keys have already been converted to result_column_std values and validated in transform_marmo_detailsm.
+            A value is included in the calculation when value <= cutoff. Measures with no
+            entry are uncapped. Defaults to None (no gating; current behavior).
+
+    Returns:
+        dict[str, float]: evidence_type -> y_axis_max.
+
+    Raises:
+        ValueError: If a cutoff removes every value for one or more evidence_types, leaving nothing
+            to base the axis on (the cutoff is set too low for the data).
+    """
+    # measurements.value is already numeric: _build_measurements coerces it and drops non-numeric entries.
+    gated = measurements
+    if y_axis_cutoff_map:
+        cutoffs = measurements["result_column_std"].map(y_axis_cutoff_map)
+        over_cutoff = cutoffs.notna() & (measurements["value"] > cutoffs)
+        gated = measurements[~over_cutoff]
+
+    maxes = gated.groupby("evidence_type")["value"].max()
+    emptied = sorted(set(measurements["evidence_type"]) - set(maxes.index))
+    if emptied:
+        raise ValueError(
+            f"y_axis_cutoff removes every value for evidence_type(s) {emptied}; "
+            "the cutoff is set too low. Raise it or remove it for these measures."
+        )
+    return {
+        evidence_type: round_y_axis_max(value) for evidence_type, value in maxes.items()
+    }
+
+
 def _build_biomarkers(
     measurements: pd.DataFrame,
     model_name: str,
-) -> List[Dict[str, Any]]:
+    y_axis_cutoff: dict[str, float] | None = None,
+) -> list[dict[str, Any]]:
     """Assemble one model's biomarkers collection from its measurements.
 
     One object per (evidence_type, age), sorted by display order then age ascending. Buckets that do
     not compare at least two genotypes are dropped, and any resulting age gap (from "0-1 years" up to
     the oldest retained bucket) is backfilled with an empty-data placeholder. y_axis_max is the
     per-evidence_type maximum across the retained ages, applied to every one of its buckets, as in the
-    mouse immunohisto pipeline.
+    mouse immunohisto pipeline. An optional y_axis_cutoff can gate very-high outliers out of that
+    maximum while keeping them in the data points (see _compute_y_axis_max).
 
     Every biomarker also gets a result_order, which lists this model's display labels in the
     order measurements' result_order column assigns them.
@@ -428,9 +475,11 @@ def _build_biomarkers(
     Args:
         measurements (pd.DataFrame): The per-measurement DataFrame from _build_measurements.
         model_name (str): The model name to stamp on each biomarker object.
+        y_axis_cutoff (dict[str, float] | None, optional): Per-measure (result_column_std) cutoff map passed
+            through to _compute_y_axis_max. Defaults to None (no gating).
 
     Returns:
-        List[Dict[str, Any]]: The sorted biomarkers collection.
+        list[dict[str, Any]]: The sorted biomarkers collection.
     """
     # The caller passes one model's subset of the measurements, which is legitimately empty for a
     # model whose genotypes are all absent from the label map, or if all results failed QC.
@@ -442,10 +491,7 @@ def _build_biomarkers(
     if measurements.empty:
         return []
 
-    y_axis_max_map = {
-        evidence_type: round_y_axis_max(group["value"].max())
-        for evidence_type, group in measurements.groupby("evidence_type")
-    }
+    y_axis_max_map = _compute_y_axis_max(measurements, y_axis_cutoff)
 
     # Shape the data-point columns before nesting so nest_fields emits the output dicts directly.
     data_points = measurements.copy()
@@ -494,9 +540,10 @@ def _build_biomarkers(
 
 
 def transform_marmo_details(
-    datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-) -> List[Dict[str, Any]]:
+    datasets: dict[str, pd.DataFrame],
+    required_input: dict[str, list[str]] = REQUIRED_INPUT,
+    y_axis_cutoff: dict[str, float] | None = None,
+) -> list[dict[str, Any]]:
     """
     Transforms the marmoset source files into the marmo_details structured output for Model AD.
 
@@ -524,24 +571,34 @@ def transform_marmo_details(
            created for any missing age buckets before the oldest bucket with data. There is no
            guarantee that every measure will have the same oldest bucket with data, so each
            measure can have a different range of contiguous buckets on the same model page.
-        7. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
-           computed per model via round_y_axis_max.
-        7. Each biomarker includes a result_order, which reflects the order of the display labels
+        7. Measure metadata (evidence_type, units, display_order) is attached. y_axis_max is computed
+           per model and evidence_type as round_y_axis_max of the maximum value across the retained
+           buckets, and applied to every bucket. If a y_axis_cutoff is configured for a measure, values
+           above it are excluded from that maximum but kept in the data points.
+        8. Each biomarker includes a result_order, which specifies the display order of the genotypes
            present in each model's data.
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
-        required_input (Dict[str, List[str]]): Dictionary of required input datasets and columns.
+        datasets (dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
+        required_input (dict[str, list[str]]): Dictionary of required input datasets and columns.
+        y_axis_cutoff (dict[str, float] | None, optional): The optional per-measure (result_column_std) cutoff
+            value(s) specified as transform parameters in config. Values above a measure's
+            configured y_axis_cutoff are excluded from its y_axis_max calculation but kept in the data.
+            Keys are run through standardize_column_name, so raw/mixed-case forms still match, and
+            must align with a measure in marmo_biomarker_measure_info.
+            Defaults to None, with all results included in the y_axis_max calculation.
 
     Returns:
-        List[Dict[str, Any]]: One model detail dictionary per model in marmo_model_metadata.
+        list[dict[str, Any]]: One model detail dictionary per model in marmo_model_metadata.
 
     Raises:
         ValueError: If required datasets or columns are missing, if any column violates
             COLUMN_RULES, if a model has inconsistent model_type or study_synid values, if
             marmo_genotype_label_map has duplicate (model, genotype) rows or names a model
-            absent from marmo_model_metadata, or if no measurement survives the value,
-            genotype, or collection-age filters.
+            absent from marmo_model_metadata, if no measurement survives the value,
+            genotype, or collection-age filters, if any y_axis_cutoff key does not align with
+            a measure listed in marmo_biomarker_measure_info, or if a y_axis_cutoff removes every
+            value for an evidence_type.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)
@@ -550,6 +607,18 @@ def transform_marmo_details(
         datasets["marmo_genotype_label_map"], datasets["marmo_model_metadata"]
     )
     measure_info = _prepare_measure_info(datasets["marmo_biomarker_measure_info"])
+    if y_axis_cutoff:
+        y_axis_cutoff = {
+            standardize_column_name(measure): float(cutoff)
+            for measure, cutoff in y_axis_cutoff.items()
+        }
+        validate_references_exist(
+            y_axis_cutoff,
+            measure_info["result_column_std"],
+            source_name="the y_axis_cutoff transform parameter",
+            target_name="marmo_biomarker_measure_info",
+            item_name="measures",
+        )
     measurements = _build_measurements(datasets, measure_info)
 
     result = []
@@ -559,7 +628,7 @@ def transform_marmo_details(
         # (model_type, study_synid). We can safely take the first row to extract these fields.
         model_row = model_rows.iloc[0]
         model_measurements = measurements[measurements["model"] == model_name]
-        biomarkers = _build_biomarkers(model_measurements, model_name)
+        biomarkers = _build_biomarkers(model_measurements, model_name, y_axis_cutoff)
         genetic_info = model_rows[
             ["modified_gene", "ensembl_gene_id", "allele_type"]
         ].to_dict(orient="records")

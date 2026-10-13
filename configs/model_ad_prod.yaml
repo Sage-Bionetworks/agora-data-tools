@@ -86,7 +86,15 @@ datasets:
         - <<: *marmo_results
       final_format: json
       destination: *dest
-      custom_transformations: transform_marmo_details
+      custom_transformations:
+        transform_marmo_details:
+          y_axis_cutoff:
+            ab40_pg_ml: 500
+            ab42_pg_ml: 500
+            ab_ratio: 1.0
+            gfap_pg_ml: 500
+            nfl_pg_ml: 1000
+            ttau_fg_ml: 3000
 
   - disease_correlation:
       files:
