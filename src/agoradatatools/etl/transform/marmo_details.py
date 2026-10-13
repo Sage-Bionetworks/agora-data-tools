@@ -425,9 +425,9 @@ def _compute_y_axis_max(
         measurements (pd.DataFrame): One model's retained measurements (after QC filtering and
             dropping any single-genotype buckets), carrying result_column_std, evidence_type, and value.
         y_axis_cutoff_map (dict[str, float] | None, optional): Map of result_column_std to a per-measure cutoff.
-            Keys are run through standardize_column_name so raw/mixed-case forms still match. A value
-            is included in the calculation when value <= cutoff. Measures with no entry are uncapped.
-            Defaults to None (no gating; current behavior).
+            Keys must be standardized result_column_std values; transform_marmo_details standardizes
+            and validates them. A value is included in the calculation when value <= cutoff. Measures with no
+            entry are uncapped. Defaults to None (no gating; current behavior).
 
     Returns:
         dict[str, float]: evidence_type -> y_axis_max.
@@ -436,13 +436,10 @@ def _compute_y_axis_max(
         ValueError: If a cutoff removes every value for an evidence_type, leaving nothing to base the
             axis on (the cutoff is set too low for the data).
     """
+    # measurements.value is already numeric: _build_measurements coerces it and drops non-numeric entries.
     gated = measurements
     if y_axis_cutoff_map:
-        normalized = {
-            standardize_column_name(measure): cutoff
-            for measure, cutoff in y_axis_cutoff_map.items()
-        }
-        cutoffs = measurements["result_column_std"].map(normalized)
+        cutoffs = measurements["result_column_std"].map(y_axis_cutoff_map)
         over_cutoff = cutoffs.notna() & (measurements["value"] > cutoffs)
         gated = measurements[~over_cutoff]
 
@@ -584,7 +581,9 @@ def transform_marmo_details(
         required_input (dict[str, list[str]]): Dictionary of required input datasets and columns.
         y_axis_cutoff (dict[str, float] | None, optional): The optional per-measure (result_column_std) cutoff
             value(s) specified as transform parameters in config. Values above a measure's
-            configured cutoff are excluded from its y_axis_max calculation but kept in the data.
+            configured y_axis_cutoff are excluded from its y_axis_max calculation but kept in the data.
+            Keys are run through standardize_column_name, so raw/mixed-case forms still match, and
+            must align with a measure in marmo_biomarker_measure_info.
             Defaults to None, with all results included in the y_axis_max calculation.
 
     Returns:
@@ -594,8 +593,9 @@ def transform_marmo_details(
         ValueError: If required datasets or columns are missing, if any column violates
             COLUMN_RULES, if a model has inconsistent model_type or study_synid values, if
             marmo_genotype_label_map has duplicate (model, genotype) rows or names a model
-            absent from marmo_model_metadata, or if no measurement survives the value,
-            genotype, or collection-age filters.
+            absent from marmo_model_metadata, if no measurement survives the value,
+            genotype, or collection-age filters, or if any y_axis_cutoff key does not align with
+            a measure listed in marmo_biomarker_measure_info.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)
@@ -604,6 +604,18 @@ def transform_marmo_details(
         datasets["marmo_genotype_label_map"], datasets["marmo_model_metadata"]
     )
     measure_info = _prepare_measure_info(datasets["marmo_biomarker_measure_info"])
+    if y_axis_cutoff:
+        y_axis_cutoff = {
+            standardize_column_name(measure): float(cutoff)
+            for measure, cutoff in y_axis_cutoff.items()
+        }
+        validate_references_exist(
+            y_axis_cutoff,
+            measure_info["result_column_std"],
+            source_name="the y_axis_cutoff transform parameter",
+            target_name="marmo_biomarker_measure_info",
+            item_name="measures",
+        )
     measurements = _build_measurements(datasets, measure_info)
 
     result = []

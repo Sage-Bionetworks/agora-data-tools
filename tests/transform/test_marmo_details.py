@@ -338,6 +338,28 @@ class TestTransformMarmoDetails:
         assert biomarkers["Orphan"] == []
         assert biomarkers["Presenilin1"]
 
+    def test_unknown_y_axis_cutoff_key_should_fail(self):
+        """A y_axis_cutoff key that matches no measure (e.g. a typo) fails instead of silently
+        leaving that measure ungated."""
+        datasets = self._load_datasets()
+
+        with pytest.raises(ValueError, match="y_axis_cutoff"):
+            transform_marmo_details(datasets=datasets, y_axis_cutoff={"ab40_pgml": 200})
+
+    def test_y_axis_cutoff_keys_are_standardized(self):
+        """A raw/mixed-case y_axis_cutoff key gates the same measure as its standardized form."""
+        # The fixture's retained Ab40 values are 100 and 150, so a cutoff of 120 lowers y_axis_max.
+        no_cutoff = transform_marmo_details(datasets=self._load_datasets())
+        raw_key = transform_marmo_details(
+            datasets=self._load_datasets(), y_axis_cutoff={"Ab40_pg.ml": 120}
+        )
+        standardized_key = transform_marmo_details(
+            datasets=self._load_datasets(), y_axis_cutoff={"ab40_pg_ml": 120}
+        )
+
+        assert raw_key == standardized_key
+        assert raw_key != no_cutoff
+
 
 class TestValidateAndPrepareModelMetadata:
     def _metadata_inputs(self) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -908,16 +930,6 @@ class TestComputeYAxisMax:
         assert _compute_y_axis_max(measurements, {"ab40_pg_ml": 200}) == {
             "A&beta;40": round_y_axis_max(150.0),
             "GFAP": round_y_axis_max(900.0),
-        }
-
-    def test_cutoff_keys_are_standardized_before_matching(self):
-        """A raw/mixed-case cutoff key still matches the standardized result_column_std column."""
-        measurements = self._measurements(
-            [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
-        )
-
-        assert _compute_y_axis_max(measurements, {"Ab40_pg.ml": 200}) == {
-            "A&beta;40": round_y_axis_max(100.0)
         }
 
     def test_all_values_above_cutoff_raises(self):
