@@ -356,7 +356,7 @@ def create_data_manifest(
 
     for _, _, nondirs in parent.walk(recursive=False, synapse_client=syn):
         for entity in nondirs:
-            files.append(entity)
+            files.extend(entity)
 
     manifest_rows = [
         {
