@@ -9,9 +9,10 @@ import great_expectations as gx
 import pandas as pd
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
 from synapseclient import Synapse
-from synapseclient.models import Activity, File, Folder
+from synapseclient.models import Activity, File, Folder, UsedEntity, UsedURL
 
 from agoradatatools.reporter import DatasetReport
+from agoradatatools.etl.utils import parse_synapse_id_version
 
 logger = logging.getLogger(__name__)
 logging.getLogger("great_expectations").setLevel(logging.WARNING)
@@ -163,7 +164,9 @@ class GreatExpectationsRunner:
             path=results_path,
             activity=Activity(
                 name=f"Great Expectations {self.expectation_suite_name} results",
-                executed="https://github.com/Sage-Bionetworks/agora-data-tools",
+                executed=[
+                    UsedURL(url="https://github.com/Sage-Bionetworks/agora-data-tools")
+                ],
             ),
             force_version=True,
         )

@@ -16,7 +16,7 @@ from great_expectations.data_context.types.resource_identifiers import (
     ValidationResultIdentifier,
 )
 from synapseclient import Synapse
-from synapseclient.models import Activity
+from synapseclient.models import Activity, UsedURL
 
 from agoradatatools import gx
 from agoradatatools.gx import GreatExpectationsRunner
@@ -160,7 +160,11 @@ class TestGreatExpectationsRunner:
                 path="test_path",
                 activity=Activity(
                     name=f"Great Expectations {self.good_runner.expectation_suite_name} results",
-                    executed="https://github.com/Sage-Bionetworks/agora-data-tools",
+                    executed=[
+                        UsedURL(
+                            url="https://github.com/Sage-Bionetworks/agora-data-tools"
+                        )
+                    ],
                 ),
                 force_version=True,
             )
