@@ -7,7 +7,7 @@ from synapseclient.models import Activity, File, Folder, UsedEntity
 from synapseclient import Synapse
 from typing import Any, List, Dict
 
-from agoradatatools.etl.utils import normalize_null_values
+from agoradatatools.etl.utils import normalize_null_values, parse_synapse_id_version
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -78,7 +78,7 @@ def remove_non_values(d: dict) -> dict:
 
 def load(
     file_path: str, provenance: list[str], destination: str, syn: Synapse
-) -> tuple:
+) -> tuple[str, int]:
     """Reads file to be loaded into Synapse
     :param syn: synapse object
     :return: synapse id of the file loaded into Synapse.  Returns None if it
@@ -93,16 +93,13 @@ def load(
     Returns:
         tuple[str, int]: Returns a tuple of the name fo the file and the version number.
     """
-
-    used = []
-    for syn_id in provenance:
-        parts = syn_id.split(".")
-        used.append(
-            UsedEntity(
-                target_id=parts[0],
-                target_version_number=int(parts[1]) if len(parts) > 1 else None,
-            )
+    used = [
+        UsedEntity(target_id=target_id, target_version_number=version)
+        for target_id, version in (
+            parse_synapse_id_version(syn_id) for syn_id in provenance
         )
+    ]
+
     activity = Activity(used=used)
     file = File(path=file_path, activity=activity, force_version=False)
     file = file.store(parent=Folder(id=destination), synapse_client=syn)

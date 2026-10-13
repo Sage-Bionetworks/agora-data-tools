@@ -1017,3 +1017,16 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
 
     # Ensure we always return a float, even for whole numbers
     return float(result)
+
+
+def parse_synapse_id_version(syn_id: str) -> tuple[str, int | None]:
+    """Split a Synapse ID into its base ID and optional version number.
+
+    Args:
+        syn_id: A Synapse ID, optionally with a version suffix (e.g. "syn123.4").
+
+    Returns:
+        The base ID and the version number, or None if no version was given.
+    """
+    parts = syn_id.split(".")
+    return parts[0], int(parts[1]) if len(parts) > 1 else None
