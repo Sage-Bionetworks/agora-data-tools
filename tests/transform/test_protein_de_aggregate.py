@@ -240,8 +240,8 @@ class TestTransformProteinDeAggregate:
         assert entry["gene_symbol"] == "Gm10053"
         assert entry["unique_id"] == "ENSMUSG00000000001P27144"
 
-    def test_isoform_map_row_is_preferred_over_base(self) -> None:
-        """A mapping-file row for the full accession wins over the base accession."""
+    def test_hyphenated_accession_stays_a_separate_entry(self) -> None:
+        """An isoform maps on its base accession but stays a separate output entry."""
         datasets = _build_datasets(
             data_files={
                 DEFAULT_DE_FILE: {
@@ -256,20 +256,14 @@ class TestTransformProteinDeAggregate:
             },
             mapping=pd.DataFrame(
                 {
-                    "uniprot_id": ["Q8C8R3", "Q8C8R3-2"],
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000002",
-                    ],
+                    "uniprot_id": ["Q8C8R3"],
+                    "ensembl_gene_id": ["ENSMUSG00000000001"],
                 }
             ),
             gene_metadata=pd.DataFrame(
                 {
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000002",
-                    ],
-                    "gene_symbol": ["Gnai3", "Cdc45"],
+                    "ensembl_gene_id": ["ENSMUSG00000000001"],
+                    "gene_symbol": ["Gnai3"],
                 }
             ),
         )
@@ -279,9 +273,11 @@ class TestTransformProteinDeAggregate:
             for entry in transform_protein_de_aggregate(datasets)
         }
 
-        assert by_uniprot["Q8C8R3"]["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert by_uniprot["Q8C8R3-2"]["ensembl_gene_id"] == "ENSMUSG00000000002"
-        assert by_uniprot["Q8C8R3-2"]["unique_id"] == "ENSMUSG00000000002Q8C8R3-2"
+        assert set(by_uniprot) == {"Q8C8R3", "Q8C8R3-2"}
+        isoform = by_uniprot["Q8C8R3-2"]
+        assert isoform["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert isoform["unique_id"] == "ENSMUSG00000000001Q8C8R3-2"
+        assert isoform["display_symbol"] == "Gnai3 (Q8C8R3-2)"
 
     def test_display_symbol_falls_back_to_ensembl(self) -> None:
         datasets = _build_datasets(

@@ -2,7 +2,7 @@
 
 Used by protein_de_individual and protein_de_aggregate. Gene resolution is a shared
 contract: both collections take the smallest mouse Ensembl id for a UniProt accession,
-try the full accession, then fall back to the base accession.
+looked up on the base accession with any isoform notation removed.
 """
 
 import pandas as pd

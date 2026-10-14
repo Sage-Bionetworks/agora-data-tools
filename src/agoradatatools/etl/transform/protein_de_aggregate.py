@@ -409,8 +409,7 @@ def transform_protein_de_aggregate(
     unmapped = unmapped_accessions(measured, uniprot_to_ensembl)
     if unmapped:
         logger.info(
-            f"Transform protein_de_aggregate: {len(unmapped)} UniProt IDs absent "
-            f"from the map (dropped): {unmapped[:10]}"
+            f"{len(unmapped)} UniProt IDs absent from the map (dropped): {unmapped[:10]}"
         )
 
     frames = []
