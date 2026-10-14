@@ -31,6 +31,18 @@ class TestBuildUniprotToEnsembl:
             "P3": "ENSMUSG00000000003",
         }
 
+    def test_extra_map_column_is_ignored(self) -> None:
+        """Extra columns on the UniProt map are ignored."""
+        mapping = pd.DataFrame(
+            {
+                "uniprot_id": ["P00001"],
+                "ensembl_gene_id": ["ENSMUSG00000000001"],
+                "optional_information": [""],
+            }
+        )
+
+        assert build_uniprot_to_ensembl(mapping) == {"P00001": "ENSMUSG00000000001"}
+
 
 class TestUnmappedAccessions:
     def test_isoform_is_mapped_to_base_id(self) -> None:
