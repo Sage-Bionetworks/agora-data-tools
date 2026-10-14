@@ -8,6 +8,7 @@ from agoradatatools.etl.transform.marmo_details import (
     _apply_qc_masks,
     _build_biomarkers,
     _build_measurements,
+    _compute_y_axis_max,
     _drop_single_genotype_buckets,
     _fill_age_gaps,
     _prepare_measure_info,
@@ -336,6 +337,28 @@ class TestTransformMarmoDetails:
         biomarkers = {model["name"]: model["biomarkers"] for model in output_data}
         assert biomarkers["Orphan"] == []
         assert biomarkers["Presenilin1"]
+
+    def test_unknown_y_axis_cutoff_key_should_fail(self):
+        """A y_axis_cutoff key that matches no measure (e.g. a typo) fails instead of silently
+        leaving that measure ungated."""
+        datasets = self._load_datasets()
+
+        with pytest.raises(ValueError, match="y_axis_cutoff"):
+            transform_marmo_details(datasets=datasets, y_axis_cutoff={"ab40_pgml": 200})
+
+    def test_y_axis_cutoff_keys_are_standardized(self):
+        """A raw/mixed-case y_axis_cutoff key gates the same measure as its standardized form."""
+        # The fixture's retained Ab40 values are 100 and 150, so a cutoff of 120 lowers y_axis_max.
+        no_cutoff = transform_marmo_details(datasets=self._load_datasets())
+        raw_key = transform_marmo_details(
+            datasets=self._load_datasets(), y_axis_cutoff={"Ab40_pg.ml": 120}
+        )
+        standardized_key = transform_marmo_details(
+            datasets=self._load_datasets(), y_axis_cutoff={"ab40_pg_ml": 120}
+        )
+
+        assert raw_key == standardized_key
+        assert raw_key != no_cutoff
 
 
 class TestValidateAndPrepareModelMetadata:
@@ -827,6 +850,116 @@ class TestBuildBiomarkers:
             ("1-2 years", False),
             ("2-3 years", False),
         ]
+
+    def test_build_biomarkers_cutoff_gates_axis_but_keeps_points(self):
+        """An above-cutoff value is excluded from y_axis_max but still emitted as a data point."""
+        measurements = self._measurement_rows(
+            pd.DataFrame(
+                {
+                    "age_start": [0, 0],
+                    "genotype": ["Matched Control", "Presenilin-1"],
+                    # 500 above cutoff: off the axis calc, still in data
+                    "value": [100.0, 500.0],
+                }
+            )
+        ).assign(result_column_std="ab40_pg_ml")
+
+        biomarkers = _build_biomarkers(
+            measurements, model_name="M", y_axis_cutoff={"ab40_pg_ml": 200}
+        )
+
+        assert biomarkers[0]["y_axis_max"] == round_y_axis_max(100.0)
+        assert round_y_axis_max(100.0) != round_y_axis_max(500.0)
+        assert 500.0 in [point["value"] for point in biomarkers[0]["data"]]
+
+
+class TestComputeYAxisMax:
+    """_compute_y_axis_max returns round_y_axis_max of each evidence_type's max value, optionally
+    excluding values above a per-measure (result_column_std) cutoff from that max."""
+
+    def _measurements(self, rows):
+        """rows: (result_column_std, evidence_type, value) tuples."""
+        return pd.DataFrame(
+            rows, columns=["result_column_std", "evidence_type", "value"]
+        )
+
+    def test_no_cutoff_uses_full_max(self):
+        """All values are included in the y_axis_max calculation when no y_axis_cutoff is specified."""
+        measurements = self._measurements(
+            [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
+        )
+
+        assert _compute_y_axis_max(measurements, None) == {
+            "A&beta;40": round_y_axis_max(500.0)
+        }
+
+    def test_cutoff_excludes_above_cutoff_values(self):
+        """A value is excluded from the y_axis_max calculation when it exceeds the specified y_axis_cutoff."""
+        measurements = self._measurements(
+            [
+                ("ab40_pg_ml", "A&beta;40", 100.0),
+                ("ab40_pg_ml", "A&beta;40", 90.0),
+                ("ab40_pg_ml", "A&beta;40", 500.0),  # excluded from the max
+            ]
+        )
+
+        assert _compute_y_axis_max(measurements, {"ab40_pg_ml": 200}) == {
+            "A&beta;40": round_y_axis_max(100.0)
+        }
+
+    def test_cutoff_boundary_is_inclusive(self):
+        """A value equal to the y_axis_cutoff is included in the y_axis_max calculation."""
+        measurements = self._measurements(
+            [("ab40_pg_ml", "A&beta;40", 100.0), ("ab40_pg_ml", "A&beta;40", 200.0)]
+        )
+
+        assert _compute_y_axis_max(measurements, {"ab40_pg_ml": 200}) == {
+            "A&beta;40": round_y_axis_max(200.0)
+        }
+
+    def test_measure_without_cutoff_key_is_uncapped(self):
+        """A y_axis_cutoff for one measure does not impact the y_axis_max calculation of another."""
+        measurements = self._measurements(
+            [
+                ("ab40_pg_ml", "A&beta;40", 150.0),
+                ("ab40_pg_ml", "A&beta;40", 500.0),  # capped: excluded from the max
+                ("gfap_pg_ml", "GFAP", 900.0),  # no cutoff: uncapped
+            ]
+        )
+
+        assert _compute_y_axis_max(measurements, {"ab40_pg_ml": 200}) == {
+            "A&beta;40": round_y_axis_max(150.0),
+            "GFAP": round_y_axis_max(900.0),
+        }
+
+    def test_all_values_above_cutoff_raises(self):
+        """A y_axis_cutoff that excludes all values for a measure throws a ValueError"""
+        measurements = self._measurements(
+            [("ab40_pg_ml", "A&beta;40", 300.0), ("ab40_pg_ml", "A&beta;40", 500.0)]
+        )
+
+        with pytest.raises(ValueError, match="A&beta;40"):
+            _compute_y_axis_max(measurements, {"ab40_pg_ml": 200})
+
+    def test_all_emptied_evidence_types_are_reported(self):
+        """When cutoffs exclude all values for several measures, the error names every one."""
+        measurements = self._measurements(
+            [
+                ("ab40_pg_ml", "A&beta;40", 300.0),
+                ("gfap_pg_ml", "GFAP", 900.0),
+                ("nfl_pg_ml", "NfL", 50.0),  # under its cutoff: not reported
+            ]
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            _compute_y_axis_max(
+                measurements, {"ab40_pg_ml": 200, "gfap_pg_ml": 500, "nfl_pg_ml": 1000}
+            )
+
+        message = str(exc_info.value)
+        assert "A&beta;40" in message
+        assert "GFAP" in message
+        assert "NfL" not in message
 
 
 class TestApplyQcMasks:
