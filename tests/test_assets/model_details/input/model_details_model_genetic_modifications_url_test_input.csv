@@ -1,0 +1,5 @@
+name,modified_gene,mgi_gene_id,mouse_ensembl_id,allele,allele_type,mgi_allele_id,human_gene_symbol,human_ensembl_id
+Model_url_default,App,,ENSMUSG00000022892,,,1234,,
+Model_url_categories,App,,ENSMUSG00000022892,,,1234,,
+Model_url_models,App,,ENSMUSG00000022892,,,1234,,
+Model_url_both,Mapt,,ENSMUSG00000018411,,,5678,,
