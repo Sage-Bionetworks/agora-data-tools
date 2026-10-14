@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    build_transcriptomics_url,
+    build_expression_results_url,
     process_genetic_info,
     zero_pad_jax_ids,
     validate_jax_ids,
@@ -152,90 +152,198 @@ class TestProcessGeneticInfo:
         assert output == expected_output
 
 
-class TestBuildTranscriptomicsUrl:
+class TestBuildExpressionResultsUrl:
     """
-    This class is for testing the build_transcriptomics_url function for the model_details & model_overview transforms.
-    The function takes a pd.Series object (representing a single row from the model_info file) and builds a URL if the
-    model has transcriptomics data.
+    This class is for testing the build_expression_results_url function for the model_details & model_overview
+    transforms. The function takes a pd.Series object (representing a single row from the model_info file) and builds a
+    URL if the model has transcriptomics or proteomics data.
     """
 
+    def test_build_expression_results_url_unknown_result_type(self) -> None:
+        """
+        The function should return None if the result_type is not "transcriptomics" or "proteomics".
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                "transcriptomics_url_categories_value": "category_string",
+                "transcriptomics_url_models_value": None,
+                "transcriptomics": True,
+            }
+        )
+
+        url = build_expression_results_url(model, result_type="foo")
+        assert url is None
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
     @pytest.mark.parametrize(
         "false_val",
         [False, None],
         ids=["Pass with False boolean value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_no_transcriptomics(
-        self, false_val: bool
+    def test_build_expression_results_url_no_results_data(
+        self, false_val: bool, result_type: str
     ) -> None:
         """
-        The function should treat both None and False as transcriptomics = False, and return None.
+        The function should treat both None and False as result_type = False, and return None.
         """
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": "model1,model2",
-                "transcriptomics": false_val,
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: false_val,
             }
         )
 
-        url = build_transcriptomics_url(model)
+        url = build_expression_results_url(model, result_type=result_type)
         assert url is None
 
-    def test_build_transcriptomics_url_all_default_values(self) -> None:
-        model = pd.Series(
-            {
-                "name": "Model",
-                "url_categories_value": None,
-                "url_models_value": None,
-                "transcriptomics": True,
-            }
-        )
-
-        url = build_transcriptomics_url(model)
-        assert url == "comparison/expression?models=Model"
-
+    @pytest.mark.parametrize(
+        "result_type, category_default",
+        [
+            (
+                "transcriptomics",
+                "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+            ),
+            (
+                "proteomics",
+                "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+            ),
+        ],
+    )
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_default_category(self, empty_val: str) -> None:
+    def test_build_expression_results_url_all_default_values(
+        self, empty_val: str, result_type: str, category_default: str
+    ) -> None:
         """
-        The function should treat both "" and None as empty values and not have a "categories=..." in the url
+        The function should treat both "" and None as empty values and use a default category for the URL. When
+        url_models_value is also empty, the model name should be used for the 'models' query parameter.
         """
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": empty_val,
-                "url_models_value": "model1,model2",
-                "transcriptomics": True,
+                f"{result_type}_url_categories_value": empty_val,
+                f"{result_type}_url_models_value": empty_val,
+                result_type: True,
             }
         )
 
-        url = build_transcriptomics_url(model)
-        assert url == "comparison/expression?models=model1,model2"
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url == f"comparison/expression?categories={category_default}&models=Model"
+        )
 
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_default_models(self, empty_val: str) -> None:
+    def test_build_expression_results_url_default_models(
+        self, empty_val: str, result_type: str
+    ) -> None:
         """
         The function should treat both "" and None as empty values and have just the model name in the URL
         """
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": empty_val,
-                "transcriptomics": True,
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": empty_val,
+                result_type: True,
             }
         )
 
-        url = build_transcriptomics_url(model)
+        url = build_expression_results_url(model, result_type=result_type)
         assert url == "comparison/expression?categories=category_string&models=Model"
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_expression_results_url_with_all_fields(
+        self, result_type: str
+    ) -> None:
+        """
+        This function should build the URL correctly when all relevant fields (categories and models) are
+        populated with non-missing values, using those values to set the 'categories' and 'models' query
+        parameters.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: True,
+            }
+        )
+
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_expression_results_url_strips_outer_whitespace_from_categories(
+        self, result_type: str
+    ) -> None:
+        """
+        This function should strip leading/trailing whitespace around the url_categories_value string, and set it
+        as the 'categories' query parameter.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "   category_string   ",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: True,
+            }
+        )
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_expression_results_url_strips_outer_whitespace_from_models(
+        self, result_type: str
+    ) -> None:
+        """
+        This function should strip leading/trailing whitespace around the whole url_models_value string (without
+        altering the comma-separated values inside it), and set it as the 'models' query parameter.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "   model1,model2   ",
+                result_type: True,
+            }
+        )
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
 
 
 class TestZeroPadJaxIds:
@@ -424,12 +532,16 @@ class TestRemapSexLabels:
                 pd.Series(["Male", "Females", "Aardvarks", "", None]),
                 pd.Series(["Male", "Female", "Aardvarks", "", None]),
             ),
+            (pd.Series(["male", "female"]), pd.Series(["Male", "Female"])),
+            (pd.Series([None, None]), pd.Series([None, None])),
         ],
         ids=[
             "Pass with all plural input",
             "Pass with all singular input",
             "Pass with mixed input",
             "Pass with missing & other input",
+            "Pass with lowercase input",
+            "Pass with all-null input",
         ],
     )
     def test_remap_sex_labels_should_pass(

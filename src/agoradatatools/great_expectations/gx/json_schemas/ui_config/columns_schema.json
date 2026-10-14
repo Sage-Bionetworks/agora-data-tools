@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/ui_config/columns_schema.json",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "data_key": { "type": "string", "minLength": 1 },
+      "is_exported": { "type": "boolean" },
+      "is_hidden": { "type": "boolean" },
+      "type": {
+        "type": "string",
+        "enum": ["primary", "text", "numeric", "link_internal", "link_external", "heat_map"]
+      },
+      "name": { "type": "string", "minLength": 1 },
+      "sort_tooltip": { "type": "string", "minLength": 1 },
+      "column_width": { "type": "integer" },
+      "tooltip": { "type": "string", "minLength": 1 },
+      "link_text": { "type": "string", "minLength": 1 },
+      "link_url": { "type": "string", "minLength": 1 }
+    },
+    "required": ["data_key", "is_exported", "is_hidden", "type"],
+    "additionalProperties": false
+  }
+}
