@@ -533,8 +533,8 @@ def _build_biomarkers(
             "age",
             "units",
             "y_axis_max",
-            "data",
             "result_order",
+            "data",
         ]
     ].to_dict(orient="records")
 
