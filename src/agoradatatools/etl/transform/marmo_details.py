@@ -3,7 +3,7 @@ This module contains the transformation logic for the marmo_details dataset.
 This is for the Model AD project (marmoset details pages).
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
@@ -23,6 +23,9 @@ from agoradatatools.etl.utils import (
     validate_one_to_one_mapping,
     validate_references_exist,
 )
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    determine_result_order,
+)
 
 
 REQUIRED_INPUT = {
@@ -38,6 +41,7 @@ REQUIRED_INPUT = {
         "model",
         "genotype",
         "display_label",
+        "result_order",
     ],
     "marmo_biomarker_measure_info": [
         "result_column",
@@ -58,6 +62,8 @@ REQUIRED_INPUT = {
     "marmo_results": [
         "biomaterialid",
         "individualid",
+        "qc_ab",
+        "qc_neuro",
     ],
 }
 
@@ -70,6 +76,7 @@ COLUMN_RULES = {
         "model": [NotEmptyRule()],
         "genotype": [NotEmptyRule()],
         "display_label": [NotEmptyRule()],
+        "result_order": [NotEmptyRule(), NumericRule(), NonNegativeRule()],
     },
     "marmo_biomarker_measure_info": {
         "result_column": [NotEmptyRule()],
@@ -100,6 +107,13 @@ REFERENCED_BIOMATERIAL_RULES = {
 }
 
 MONTHS_PER_YEAR = 12
+
+# Each QC flag in marmo_results gates a group of assays: a measurement is dropped when its group's QC
+# flag is not "PASS". The two QC flags are independent, so a row can pass one group and fail the other.
+QC_MEASURE_GROUPS = {
+    "qc_ab": ["ab40_pg_ml", "ab42_pg_ml", "ab_ratio"],
+    "qc_neuro": ["gfap_pg_ml", "nfl_pg_ml", "ttau_fg_ml"],
+}
 
 
 def _validate_and_prepare_model_metadata(
@@ -178,18 +192,44 @@ def _prepare_measure_info(raw_measure_info: pd.DataFrame) -> pd.DataFrame:
     return normalize_null_values(measure_info, empty_string_columns=["units"])
 
 
+def _apply_qc_masks(results: pd.DataFrame) -> pd.DataFrame:
+    """Null out measurements for an assay-group if that group's QC flag is not PASS.
+
+    For each QC flag in QC_MEASURE_GROUPS, sets that group's measure columns to NaN on rows where the
+    flag is not "PASS" (case-insensitive, ignoring leading/trailing whitespace).
+
+    Args:
+        results (pd.DataFrame): marmo_results
+
+    Returns:
+        pd.DataFrame: A copy of results with QC-failing measure values set to NaN.
+    """
+    masked = results.copy()
+    for qc_column, measure_columns in QC_MEASURE_GROUPS.items():
+        present = [column for column in measure_columns if column in masked.columns]
+        if not present:
+            continue
+        # astype(str) renders blank/NaN flags as "nan"/"none", so they compare unequal to "PASS"
+        # and are treated as not-passing; it also keeps the mask a plain boolean (a nullable-string
+        # comparison would yield pd.NA and break .loc indexing).
+        normalized = masked[qc_column].astype(str).str.strip().str.upper()
+        failing = normalized != "PASS"
+        masked.loc[failing, present] = pd.NA
+    return masked
+
+
 def _build_measurements(
-    datasets: Dict[str, pd.DataFrame],
+    datasets: dict[str, pd.DataFrame],
     measure_info: pd.DataFrame,
 ) -> pd.DataFrame:
     """Build the per-measurement DataFrame behind the biomarkers collection.
 
-    Melts the wide measure columns, resolves genotypes to display labels and models, joins
-    collection ages, and attaches measure metadata. Measurements with no label-map genotype or
-    no biomaterial record are dropped.
+    Melts the wide measure columns, resolves genotypes to display labels, models, and
+    result_order, joins collection ages, and attaches measure metadata. Measurements that did
+    not pass QC, have no label-map genotype, or have no biomaterial record are dropped.
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): The input datasets.
+        datasets (dict[str, pd.DataFrame]): The input datasets.
         measure_info (pd.DataFrame): Measure info with a standardized "result_column_std" column.
 
     Returns:
@@ -201,15 +241,21 @@ def _build_measurements(
             REFERENCED_BIOMATERIAL_RULES, or if no measurement survives the value, genotype, or
             collection-age filters.
     """
-    results = datasets["marmo_results"]
     individual = datasets["marmo_individual_metadata"]
     biomaterial = datasets["marmo_biomaterial_metadata"]
     genotype_map = datasets["marmo_genotype_label_map"]
+
+    # Cast result_order values to numeric for proper numeric sorting (rather than letter-sorting).
+    genotype_map["result_order"] = pd.to_numeric(genotype_map["result_order"])
 
     if measure_info.empty:
         raise ValueError(
             "marmo_biomarker_measure_info lists no measures, so no biomarker can be plotted."
         )
+
+    # Convert measurements whose assay-group QC flag is not PASS before melting; the null-drop below
+    # will remove them along with the genuinely missing values.
+    results = _apply_qc_masks(datasets["marmo_results"])
 
     # A typo'd result_column would otherwise drop that measure silently.
     measure_columns = list(measure_info["result_column_std"])
@@ -246,7 +292,7 @@ def _build_measurements(
     # uses it, so one measurement legitimately fans out to several models. What would wrongly
     # multiply points is a repeated (model, genotype) pair, which the caller checks for.
     long = long.merge(
-        genotype_map[["model", "genotype", "display_label"]],
+        genotype_map[["model", "genotype", "display_label", "result_order"]],
         how="inner",
         on="genotype",
         validate="m:m",
@@ -303,31 +349,149 @@ def _build_measurements(
     return long
 
 
+def _drop_single_genotype_buckets(measurements: pd.DataFrame) -> pd.DataFrame:
+    """Drop (evidence_type, age) buckets that do not compare at least two genotypes.
+
+    A biomarker plot is only meaningful with two or more distinct display-label genotypes (e.g. a
+    model and its matched control). Single-genotype buckets - common where longitudinal controls
+    outlive the model animals - are removed. Filtering here, before y_axis_max is computed, keeps the
+    axis scaled to the retained data.
+
+    Args:
+        measurements (pd.DataFrame): The per-measurement DataFrame, carrying display_label.
+
+    Returns:
+        pd.DataFrame: measurements limited to buckets with >= 2 unique display_label values.
+    """
+    genotype_counts = measurements.groupby(["evidence_type", "age"])[
+        "display_label"
+    ].transform("nunique")
+    return measurements[genotype_counts >= 2]
+
+
+def _fill_age_gaps(grouped: pd.DataFrame) -> pd.DataFrame:
+    """Backfill missing age buckets with empty-data placeholders so each evidence type is contiguous.
+
+    For each evidence_type, every whole-year bucket from "0-1 years" up to its oldest retained bucket
+    should exist in the output whether it has data or not. Buckets that have no data get a placeholder
+    object  (same name/units/display_order/y_axis_max, empty data). This keeps the app's per-age plots
+    aligned after single-genotype buckets are dropped, so a bucket dropped from the start or middle of
+    the series does not shift the ages that follow it. Trailing buckets beyond the oldest retained one
+    are not added.
+
+    Args:
+        grouped (pd.DataFrame): One row per retained (evidence_type, age) bucket, with name, units,
+            display_order, age_start, y_axis_max, and the nested data column.
+
+    Returns:
+        pd.DataFrame: grouped with placeholder rows appended for the missing buckets.
+    """
+    placeholders = []
+    for evidence_type, group in grouped.groupby("evidence_type"):
+        present = set(group["age_start"])
+        template = group.iloc[0]
+        for age_start in range(max(present) + 1):
+            if age_start in present:
+                continue
+            placeholders.append(
+                {
+                    "name": template["name"],
+                    "evidence_type": evidence_type,
+                    "age": f"{age_start}-{age_start + 1} years",
+                    "units": template["units"],
+                    "display_order": template["display_order"],
+                    "age_start": age_start,
+                    "y_axis_max": template["y_axis_max"],
+                    "data": [],
+                }
+            )
+    if not placeholders:
+        return grouped
+    return pd.concat([grouped, pd.DataFrame(placeholders)], ignore_index=True)
+
+
+def _compute_y_axis_max(
+    measurements: pd.DataFrame, y_axis_cutoff_map: dict[str, float] | None = None
+) -> dict[str, float]:
+    """Compute the per-result_column_std y_axis_max, gating out any values above the optional
+    y_axis_cutoff specified for that result_column_std in config.
+
+    y_axis_max is round_y_axis_max of the maximum value in the evidence_type group. When
+    y_axis_cutoff_map is provided, values whose result_column_std has a configured cutoff and whose
+    value exceeds it are excluded from the max calculation, but are still included in the output data points.
+    This keeps a rare high outlier visible without stretching the axis to fit it.
+
+    Args:
+        measurements (pd.DataFrame): One model's retained measurements (after QC filtering and
+            dropping any single-genotype buckets), carrying result_column_std, evidence_type, and numeric value.
+        y_axis_cutoff_map (dict[str, float] | None, optional): Map of result_column_std to a per-measure cutoff.
+            Keys have already been converted to result_column_std values and validated in transform_marmo_detailsm.
+            A value is included in the calculation when value <= cutoff. Measures with no
+            entry are uncapped. Defaults to None (no gating; current behavior).
+
+    Returns:
+        dict[str, float]: evidence_type -> y_axis_max.
+
+    Raises:
+        ValueError: If a cutoff removes every value for one or more evidence_types, leaving nothing
+            to base the axis on (the cutoff is set too low for the data).
+    """
+    # measurements.value is already numeric: _build_measurements coerces it and drops non-numeric entries.
+    gated = measurements
+    if y_axis_cutoff_map:
+        cutoffs = measurements["result_column_std"].map(y_axis_cutoff_map)
+        over_cutoff = cutoffs.notna() & (measurements["value"] > cutoffs)
+        gated = measurements[~over_cutoff]
+
+    maxes = gated.groupby("evidence_type")["value"].max()
+    emptied = sorted(set(measurements["evidence_type"]) - set(maxes.index))
+    if emptied:
+        raise ValueError(
+            f"y_axis_cutoff removes every value for evidence_type(s) {emptied}; "
+            "the cutoff is set too low. Raise it or remove it for these measures."
+        )
+    return {
+        evidence_type: round_y_axis_max(value) for evidence_type, value in maxes.items()
+    }
+
+
 def _build_biomarkers(
-    measurements: pd.DataFrame, model_name: str
-) -> List[Dict[str, Any]]:
+    measurements: pd.DataFrame,
+    model_name: str,
+    y_axis_cutoff: dict[str, float] | None = None,
+) -> list[dict[str, Any]]:
     """Assemble one model's biomarkers collection from its measurements.
 
-    One object per (evidence_type, age), sorted by display order then age ascending. y_axis_max is
-    the per-evidence_type maximum across all ages, applied to every one of its buckets, as in the
-    mouse immunohisto pipeline.
+    One object per (evidence_type, age), sorted by display order then age ascending. Buckets that do
+    not compare at least two genotypes are dropped, and any resulting age gap (from "0-1 years" up to
+    the oldest retained bucket) is backfilled with an empty-data placeholder. y_axis_max is the
+    per-evidence_type maximum across the retained ages, applied to every one of its buckets, as in the
+    mouse immunohisto pipeline. An optional y_axis_cutoff can gate very-high outliers out of that
+    maximum while keeping them in the data points (see _compute_y_axis_max).
+
+    Every biomarker also gets a result_order, which lists this model's display labels in the
+    order measurements' result_order column assigns them.
 
     Args:
         measurements (pd.DataFrame): The per-measurement DataFrame from _build_measurements.
         model_name (str): The model name to stamp on each biomarker object.
+        y_axis_cutoff (dict[str, float] | None, optional): Per-measure (result_column_std) cutoff map passed
+            through to _compute_y_axis_max. Defaults to None (no gating).
 
     Returns:
-        List[Dict[str, Any]]: The sorted biomarkers collection.
+        list[dict[str, Any]]: The sorted biomarkers collection.
     """
     # The caller passes one model's subset of the measurements, which is legitimately empty for a
-    # model whose genotypes are all absent from the label map.
+    # model whose genotypes are all absent from the label map, or if all results failed QC.
     if measurements.empty:
         return []
 
-    y_axis_max_map = {
-        evidence_type: round_y_axis_max(group["value"].max())
-        for evidence_type, group in measurements.groupby("evidence_type")
-    }
+    # Drop single-genotype buckets before computing y_axis_max so the axis fits the retained data.
+    measurements = _drop_single_genotype_buckets(measurements)
+    if measurements.empty:
+        return []
+
+    y_axis_max_map = _compute_y_axis_max(measurements, y_axis_cutoff)
 
     # Shape the data-point columns before nesting so nest_fields emits the output dicts directly.
     data_points = measurements.copy()
@@ -351,21 +515,35 @@ def _build_biomarkers(
         drop_columns=group_cols,
     )
 
-    # evidence_type is only a tiebreaker: it matters when two measures share a display_order,
-    # where sorting on age alone would interleave them.
-    grouped = grouped.sort_values(["display_order", "evidence_type", "age_start"])
     grouped["name"] = model_name
     grouped["y_axis_max"] = grouped["evidence_type"].map(y_axis_max_map).astype(float)
 
+    # Backfill missing age buckets with metadata placeholders, then sort.
+    grouped = _fill_age_gaps(grouped)
+    grouped = grouped.sort_values(["display_order", "evidence_type", "age_start"])
+
+    # result_order is the same for every biomarker in this model, computed from the
+    # measurements' display_label/result_order columns.
+    grouped["result_order"] = [determine_result_order(measurements)] * len(grouped)
+
     return grouped[
-        ["name", "evidence_type", "age", "units", "y_axis_max", "data"]
+        [
+            "name",
+            "evidence_type",
+            "age",
+            "units",
+            "y_axis_max",
+            "data",
+            "result_order",
+        ]
     ].to_dict(orient="records")
 
 
 def transform_marmo_details(
-    datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
-) -> List[Dict[str, Any]]:
+    datasets: dict[str, pd.DataFrame],
+    required_input: dict[str, list[str]] = REQUIRED_INPUT,
+    y_axis_cutoff: dict[str, float] | None = None,
+) -> list[dict[str, Any]]:
     """
     Transforms the marmoset source files into the marmo_details structured output for Model AD.
 
@@ -379,32 +557,48 @@ def transform_marmo_details(
     an empty biomarkers list.
 
     Expected transformations:
-        1. The wide marmo_results measure columns are melted long; null measurements are dropped.
-        2. Genotype and sex are joined per individual, then genotypes are mapped to display labels
+        1. Measures that did not pass QC are converted to nulls, which are subsequently dropped.
+        2. The wide marmo_results measure columns are melted long; all null measurements are dropped.
+        3. Genotype and sex are joined per individual, then genotypes are mapped to display labels
            and models. Measurements with an unmapped genotype are excluded.
-        3. Collection age is joined on biomaterialid; measurements with no record are dropped.
-        4. Ages (months) are bucketed into whole-year ranges (e.g. "0-1 years"). Marmosets are
+        4. Collection age is joined on biomaterialid; measurements with no record are dropped.
+        5. Ages (months) are bucketed into whole-year ranges (e.g. "0-1 years"). Marmosets are
            sampled longitudinally and values are deliberately not averaged per animal, so one
            animal can contribute many points to a bucket - up to 15 in current data, unlike the
            mouse pipeline where an animal is one point.
-        5. Only buckets with data are emitted. There is no _add_missing_age_entries equivalent, so
-           measures with different coverage produce different bucket sets on one model page.
-        6. Measure metadata (evidence_type, units, display_order) is attached, and y_axis_max is
-           computed per model via round_y_axis_max.
+        6. Only buckets up to the oldest bucket with data are emitted, per measure. Any bucket
+           that contains data for only one genotype is dropped, then placeholder buckets are
+           created for any missing age buckets before the oldest bucket with data. There is no
+           guarantee that every measure will have the same oldest bucket with data, so each
+           measure can have a different range of contiguous buckets on the same model page.
+        7. Measure metadata (evidence_type, units, display_order) is attached. y_axis_max is computed
+           per model and evidence_type as round_y_axis_max of the maximum value across the retained
+           buckets, and applied to every bucket. If a y_axis_cutoff is configured for a measure, values
+           above it are excluded from that maximum but kept in the data points.
+        8. Each biomarker includes a result_order, which specifies the display order of the genotypes
+           present in each model's data.
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
-        required_input (Dict[str, List[str]]): Dictionary of required input datasets and columns.
+        datasets (dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
+        required_input (dict[str, list[str]]): Dictionary of required input datasets and columns.
+        y_axis_cutoff (dict[str, float] | None, optional): The optional per-measure (result_column_std) cutoff
+            value(s) specified as transform parameters in config. Values above a measure's
+            configured y_axis_cutoff are excluded from its y_axis_max calculation but kept in the data.
+            Keys are run through standardize_column_name, so raw/mixed-case forms still match, and
+            must align with a measure in marmo_biomarker_measure_info.
+            Defaults to None, with all results included in the y_axis_max calculation.
 
     Returns:
-        List[Dict[str, Any]]: One model detail dictionary per model in marmo_model_metadata.
+        list[dict[str, Any]]: One model detail dictionary per model in marmo_model_metadata.
 
     Raises:
         ValueError: If required datasets or columns are missing, if any column violates
             COLUMN_RULES, if a model has inconsistent model_type or study_synid values, if
             marmo_genotype_label_map has duplicate (model, genotype) rows or names a model
-            absent from marmo_model_metadata, or if no measurement survives the value,
-            genotype, or collection-age filters.
+            absent from marmo_model_metadata, if no measurement survives the value,
+            genotype, or collection-age filters, if any y_axis_cutoff key does not align with
+            a measure listed in marmo_biomarker_measure_info, or if a y_axis_cutoff removes every
+            value for an evidence_type.
     """
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, COLUMN_RULES)
@@ -413,6 +607,18 @@ def transform_marmo_details(
         datasets["marmo_genotype_label_map"], datasets["marmo_model_metadata"]
     )
     measure_info = _prepare_measure_info(datasets["marmo_biomarker_measure_info"])
+    if y_axis_cutoff:
+        y_axis_cutoff = {
+            standardize_column_name(measure): float(cutoff)
+            for measure, cutoff in y_axis_cutoff.items()
+        }
+        validate_references_exist(
+            y_axis_cutoff,
+            measure_info["result_column_std"],
+            source_name="the y_axis_cutoff transform parameter",
+            target_name="marmo_biomarker_measure_info",
+            item_name="measures",
+        )
     measurements = _build_measurements(datasets, measure_info)
 
     result = []
@@ -422,7 +628,7 @@ def transform_marmo_details(
         # (model_type, study_synid). We can safely take the first row to extract these fields.
         model_row = model_rows.iloc[0]
         model_measurements = measurements[measurements["model"] == model_name]
-        biomarkers = _build_biomarkers(model_measurements, model_name)
+        biomarkers = _build_biomarkers(model_measurements, model_name, y_axis_cutoff)
         genetic_info = model_rows[
             ["modified_gene", "ensembl_gene_id", "allele_type"]
         ].to_dict(orient="records")
