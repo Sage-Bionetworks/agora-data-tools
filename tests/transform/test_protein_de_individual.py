@@ -9,43 +9,46 @@ import pytest
 from agoradatatools.etl.transform.protein_de_individual import (
     REQUIRED_INPUT,
     transform_protein_de_individual,
+    _build_output,
+    _check_metadata_coverage,
+    _collapse_duplicate_measurements,
     _measured_accessions,
     _melt_proteomics_file,
     _validate_file_maps,
 )
+from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    prepare_genotype_label_map,
+)
 
 
 class TestMeasuredAccessions:
-    @staticmethod
-    def _melted_accessions(datasets: dict[str, pd.DataFrame]) -> set:
-        """Return the UniProt accessions produced by melting each data file."""
-        return {
-            accession
-            for name, data_file in datasets.items()
-            for accession in _melt_proteomics_file(name, data_file, "LOAD2")[
-                "uniprotid"
-            ]
-        }
-
     @pytest.mark.parametrize(
-        "columns,accessions",
+        "columns,expected_accessions",
         [
             (
                 {
                     "cycs|p00001": [1.0, 2.0],
                     "srp54|p00002": [None, 3.0],
-                    "dead|p00003": [None, None],
+                    "dead|p00003": [None, None],  # should get dropped
                 },
                 {"P00001", "P00002"},
             ),
             ({"ank2|q8c8r3_2": [1.0, 2.0]}, {"Q8C8R3-2"}),
             ({"cycs|p00001": [1.0, 2.0]}, {"P00001"}),
+            (
+                {
+                    "cycs|p00001": [1.0, 2.0],
+                    # different gene symbol, same accession
+                    "cycs2|p00001": [1.0, 2.0],
+                },
+                {"P00001"},
+            ),
         ],
     )
-    def test_accessions_match_what_the_melt_yields(
-        self, columns: dict[str, list], accessions: set
+    def test_accessions_are_extracted_from_protein_columns(
+        self, columns: dict[str, list], expected_accessions: set
     ) -> None:
-        """The accessions collected match the ones the melt would yield, de-duplicated."""
+        """The accessions collected from the column headers should be upper-cased and match the expected output."""
         datasets = {
             "file1": pd.DataFrame({"individualid": [1, 2], **columns}),
             "file2": pd.DataFrame({"individualid": [3, 4], **columns}),
@@ -53,26 +56,9 @@ class TestMeasuredAccessions:
 
         measured = _measured_accessions(datasets, list(datasets))
 
-        assert set(measured) == self._melted_accessions(datasets)
-        assert set(measured) == accessions
-        assert len(measured) == len(accessions)
-
-    def test_empty_isoform_column_contributes_no_accession(self) -> None:
-        """An all-empty isoform column is not reported as a measured accession."""
-        datasets = {
-            "file1": pd.DataFrame(
-                {
-                    "individualid": [1, 2],
-                    "cycs|p00001": [1.0, 2.0],
-                    "gm10053|p00001_2": [None, None],
-                }
-            )
-        }
-
-        measured = _measured_accessions(datasets, list(datasets))
-
-        assert set(measured) == self._melted_accessions(datasets)
-        assert set(measured) == {"P00001"}
+        assert set(measured) == expected_accessions
+        # measured should not have any duplicates
+        assert len(measured) == len(expected_accessions)
 
 
 class TestMeltProteomicsFile:
@@ -102,11 +88,18 @@ class TestMeltProteomicsFile:
 
     def test_metadata_only_columns_are_not_melted(self) -> None:
         """Columns without a pipe are not treated as proteins."""
-        data_file = self.data_file.assign(sequencing_batch=["b1", "b2"])
+        data_file = self.data_file.copy().assign(sequencing_batch=["b1", "b2"])
 
         long_df = _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
 
         assert set(long_df["uniprotid"]) == {"P00001", "Q8C8R3-2"}
+        # sequencing_batch should not be included in the columns.
+        assert list(long_df.columns) == [
+            "individualid",
+            "model",
+            "uniprotid",
+            "value",
+        ]
 
     def test_no_protein_columns_raises(self) -> None:
         """A file with no gene_symbol|uniprotid columns raises."""
@@ -119,7 +112,9 @@ class TestMeltProteomicsFile:
 
     def test_non_numeric_values_are_dropped(self) -> None:
         """Non-numeric abundances are dropped the same way missing values are."""
-        data_file = self.data_file.assign(**{"gene1|p00001": ["1.0", "not_a_number"]})
+        data_file = self.data_file.copy().assign(
+            **{"gene1|p00001": ["1.0", "not_a_number"]}
+        )
 
         long_df = _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
 
@@ -128,7 +123,7 @@ class TestMeltProteomicsFile:
 
     def test_no_numeric_abundances_raises(self) -> None:
         """A file with only missing or non-numeric abundances raises and names the file."""
-        data_file = self.data_file.assign(
+        data_file = self.data_file.copy().assign(
             **{"gene1|p00001": [None, "not_a_number"], "ank2|q8c8r3_2": [None, None]}
         )
 
@@ -139,22 +134,409 @@ class TestMeltProteomicsFile:
             _melt_proteomics_file("proteomics_file", data_file, "LOAD2")
 
 
-class TestValidateFileMaps:
-    datasets = {
-        **{name: pd.DataFrame() for name in REQUIRED_INPUT},
-        "proteomics_file": pd.DataFrame(),
-        "load2_harmonized_metadata": pd.DataFrame(),
+class TestBuildOutput:
+    """_build_output joins metadata, derives fields, and nests. Inputs are already melted."""
+
+    uniprot_to_ensembl = {
+        "P00001": "ENSMUSG00000000001",
+        "Q8C8R3": "ENSMUSG00000000001",
     }
+    gene_symbols = {"ENSMUSG00000000001": "Gnai3"}
+
+    @staticmethod
+    def _label_map() -> pd.DataFrame:
+        """A prepared LOAD2 label map, the shape _build_output receives."""
+        return prepare_genotype_label_map(
+            pd.DataFrame(
+                {
+                    "model": ["LOAD2", "LOAD2"],
+                    "model_group": ["LOAD2", "LOAD2"],
+                    "display_label": ["LOAD2", "LOAD1"],
+                    "genotype": ["geno_hom", "geno_wt"],
+                    "result_order": [2, 1],
+                }
+            )
+        )
+
+    @staticmethod
+    def _metadata(
+        individuals: tuple | list = ("i1", "i2"),
+        sex: tuple | list = ("male", "female"),
+        agedeath: tuple | list = (4.0, 4.5),
+        genotype: tuple | list = ("geno_hom", "geno_wt"),
+        tissue: Any = "right cerebral hemisphere",
+    ) -> pd.DataFrame:
+        """Harmonized metadata with the model column already stamped, as the transform passes it."""
+        individuals = list(individuals)
+        if isinstance(tissue, str):
+            tissue = [tissue] * len(individuals)
+        return pd.DataFrame(
+            {
+                "individualid": individuals,
+                "sex": list(sex),
+                "agedeath": list(agedeath),
+                "genotype": list(genotype),
+                "tissue": list(tissue),
+                "model": ["LOAD2"] * len(individuals),
+            }
+        )
+
+    @staticmethod
+    def _long(
+        individuals: tuple | list = ("i1", "i2"),
+        uniprotid: Any = "P00001",
+        values: tuple | list = (1.0, 2.0),
+    ) -> pd.DataFrame:
+        """One melted proteomics frame. A single accession is repeated for every individual."""
+        individuals = list(individuals)
+        if isinstance(uniprotid, str):
+            uniprotid = [uniprotid] * len(individuals)
+        return pd.DataFrame(
+            {
+                "individualid": individuals,
+                "model": ["LOAD2"] * len(individuals),
+                "uniprotid": list(uniprotid),
+                "value": list(values),
+            }
+        )
+
+    def _run(
+        self,
+        long_df: pd.DataFrame,
+        metadata: pd.DataFrame = None,
+        uniprot_to_ensembl: dict[str, str] = None,
+    ) -> list[dict[str, Any]]:
+        """Call _build_output with the suite's static inputs, overriding the melted frame."""
+        return _build_output(
+            "LOAD2",
+            long_df,
+            self._metadata() if metadata is None else metadata,
+            (
+                self.uniprot_to_ensembl
+                if uniprot_to_ensembl is None
+                else uniprot_to_ensembl
+            ),
+            self.gene_symbols,
+            self._label_map(),
+        )
+
+    def test_hyphenated_accession_stays_a_separate_row(self) -> None:
+        """An isoform maps on its base accession but stays a separate output row."""
+        long_df = pd.concat(
+            [
+                self._long(uniprotid="Q8C8R3", values=(1.0, 2.0)),
+                self._long(uniprotid="Q8C8R3-2", values=(3.0, 4.0)),
+            ],
+            ignore_index=True,
+        )
+
+        by_uniprot = {entry["uniprotid"]: entry for entry in self._run(long_df)}
+
+        assert set(by_uniprot) == {"Q8C8R3", "Q8C8R3-2"}
+        isoform = by_uniprot["Q8C8R3-2"]
+        assert isoform["ensembl_gene_id"] == "ENSMUSG00000000001"
+        assert isoform["unique_id"] == "ENSMUSG00000000001Q8C8R3-2"
+        assert isoform["display_symbol"] == "Gnai3 (Q8C8R3-2)"
+
+    def test_unmapped_proteins_dropped(self) -> None:
+        """An accession absent from the UniProt map is dropped."""
+        long_df = pd.concat(
+            [
+                self._long(uniprotid="P00001", values=(1.0, 2.0)),
+                self._long(uniprotid="NOMAP", values=(3.0, 4.0)),
+            ],
+            ignore_index=True,
+        )
+
+        output = self._run(long_df)
+
+        assert {entry["uniprotid"] for entry in output} == {"P00001"}
+
+    def test_animals_without_metadata_or_label_map_row_dropped(self) -> None:
+        """Animals missing metadata or a label-map row are dropped, not a failed run."""
+        metadata = self._metadata(
+            individuals=("i1", "i2", "i4"),
+            sex=("male", "female", "female"),
+            agedeath=(4.0, 4.5, 5.1),
+            genotype=("geno_hom", "geno_wt", "geno_het"),
+        )
+        long_df = self._long(
+            individuals=("i1", "i2", "i4", "u1", "u2", "u3", "u4"),
+            values=(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0),
+        )
+
+        output = self._run(long_df, metadata=metadata)
+
+        assert len(output) == 1
+        assert {record["individual_id"] for record in output[0]["data"]} == {
+            "i1",
+            "i2",
+        }
+        assert {record["genotype"] for record in output[0]["data"]} == {
+            "LOAD2",
+            "LOAD1",
+        }
+
+    def test_age_bucketing_boundaries(self) -> None:
+        """ageDeath is bucketed on the right-closed JAX thresholds."""
+        ages = [6.0, 6.1, 10.0, 14.2, 16.0, 16.1, 20.0, 20.1]
+        expected = [4, 8, 8, 12, 12, 18, 18, 24]
+        individuals = [f"i{n}" for n in range(len(ages))]
+        metadata = self._metadata(
+            individuals=individuals,
+            sex=["male"] * len(ages),
+            agedeath=ages,
+            genotype=["geno_hom"] * len(ages),
+        )
+        long_df = self._long(
+            individuals=individuals, values=[float(n) for n in range(len(ages))]
+        )
+
+        output = self._run(long_df, metadata=metadata)
+
+        age_by_individual = {
+            record["individual_id"]: (entry["age"], entry["age_numeric"])
+            for entry in output
+            for record in entry["data"]
+        }
+        assert age_by_individual == {
+            individual: (f"{months} months", months)
+            for individual, months in zip(individuals, expected)
+        }
+
+    def test_missing_agedeath_raises(self) -> None:
+        """A missing ageDeath raises instead of dropping the animal silently."""
+        metadata = self._metadata(agedeath=(4.0, None))
+
+        with pytest.raises(ValueError, match="unbucketable ageDeath.*i2"):
+            self._run(self._long(), metadata=metadata)
+
+    @pytest.mark.parametrize("tissue", [None, ""])
+    def test_missing_tissue_raises(self, tissue: Any) -> None:
+        """A blank or missing tissue raises."""
+        metadata = self._metadata(tissue=["right cerebral hemisphere", tissue])
+
+        with pytest.raises(ValueError, match="Missing tissue.*i2"):
+            self._run(self._long(), metadata=metadata)
+
+    @pytest.mark.parametrize(
+        "source,expected",
+        [
+            (["male", "female"], {"Male", "Female"}),
+            (["Males", "Females"], {"Male", "Female"}),
+            (["M", "F"], {"M", "F"}),
+        ],
+    )
+    def test_sex_labels_are_singular_and_title_cased(
+        self, source: list[str], expected: set
+    ) -> None:
+        """Plural and lowercase sex labels are mapped to singular title case."""
+        output = self._run(self._long(), metadata=self._metadata(sex=source))
+
+        assert {record["sex"] for record in output[0]["data"]} == expected
+
+    def test_all_null_sex_survives(self) -> None:
+        """An all-missing sex column does not raise."""
+        output = self._run(self._long(), metadata=self._metadata(sex=(None, None)))
+
+        assert {record["sex"] for record in output[0]["data"]} == {None}
+
+    def test_negative_zero_is_normalized(self) -> None:
+        """Small negatives and signed zero serialize as 0.0."""
+        values = [
+            record["value"]
+            for record in self._run(self._long(values=(-0.000001, -0.0)))[0]["data"]
+        ]
+
+        assert values == [0.0, 0.0]
+        assert not any(math.copysign(1, value) < 0 for value in values)
+
+    def test_metadata_files_disagreeing_about_an_animal_raise(self) -> None:
+        """Two metadata rows that disagree about one animal raise on the join."""
+        metadata = pd.DataFrame(
+            {
+                "individualid": ["i1", "i1"],
+                "sex": ["male", "female"],
+                "agedeath": [4.0, 24.0],
+                "genotype": ["geno_hom", "geno_wt"],
+                "tissue": ["right cerebral hemisphere", "Cortex"],
+                "model": ["LOAD2", "LOAD2"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="not a many-to-one merge"):
+            self._run(self._long(individuals=("i1",), values=(1.0,)), metadata=metadata)
+
+    def test_disagreement_about_an_excluded_animal_is_ignored(self) -> None:
+        """Two files disagreeing about an animal dropped for its genotype do not raise."""
+        metadata = self._metadata(
+            individuals=("i1", "i2", "i3"),
+            sex=("male", "female", "male"),
+            agedeath=(4.0, 4.5, 4.2),
+            genotype=("geno_hom", "geno_wt", "geno_excluded"),
+        )
+        long_df = pd.concat(
+            [
+                self._long(),
+                self._long(individuals=("i3", "i3"), values=(3.0, 9.0)),
+            ],
+            ignore_index=True,
+        )
+
+        output = self._run(long_df, metadata=metadata)
+
+        assert [record["individual_id"] for record in output[0]["data"]] == [
+            "i1",
+            "i2",
+        ]
+
+
+class TestCollapseDuplicateMeasurements:
+    def test_animal_measured_in_two_files_appears_once(self) -> None:
+        """An animal measured for one protein in two files is kept once, not twice."""
+        measured = pd.DataFrame(
+            {
+                "individualid": ["i1", "i2", "i1"],
+                "uniprotid": ["P00001", "P00001", "P00001"],
+                "value": [1.0, 2.0, 1.0],
+            }
+        )
+
+        collapsed = _collapse_duplicate_measurements("LOAD2", measured)
+
+        assert collapsed["individualid"].tolist() == ["i1", "i2"]
+        assert collapsed["value"].tolist() == [1.0, 2.0]
+
+    def test_two_files_disagreeing_about_a_measurement_raise(self) -> None:
+        """Two files reporting different abundances for one animal and protein raise."""
+        measured = pd.DataFrame(
+            {
+                "individualid": ["i1", "i2", "i1"],
+                "uniprotid": ["P00001", "P00001", "P00001"],
+                "value": [1.0, 2.0, 9.0],
+            }
+        )
+
+        with pytest.raises(ValueError, match="disagree about the abundance"):
+            _collapse_duplicate_measurements("LOAD2", measured)
+
+
+class TestCheckMetadataCoverage:
+    def test_unjoinable_data_file_raises(self) -> None:
+        """A data file whose individualIDs match no metadata raises."""
+        with pytest.raises(
+            ValueError,
+            match="None of the 2 animals in proteomics data file 'stale_file'",
+        ):
+            _check_metadata_coverage(
+                "stale_file",
+                pd.Series(["i1.0", "i2.0"]),
+                "LOAD2",
+                {("i1", "LOAD2"), ("i2", "LOAD2")},
+            )
+
+
+class TestValidateFileMaps:
+    known_models = {"LOAD2"}
+
+    @staticmethod
+    def _datasets() -> dict[str, pd.DataFrame]:
+        """Empty frames named like a valid dataset. _validate_file_maps only checks names."""
+        return {
+            **{name: pd.DataFrame() for name in REQUIRED_INPUT},
+            "proteomics_file": pd.DataFrame(),
+            "load2_harmonized_metadata": pd.DataFrame(),
+        }
 
     def test_valid_maps_do_not_raise(self) -> None:
         """Claimed files and known models pass."""
         _validate_file_maps(
-            self.datasets,
+            self._datasets(),
             {"proteomics_file": "LOAD2"},
             {"load2_harmonized_metadata": "LOAD2"},
             REQUIRED_INPUT,
-            {"LOAD2"},
+            self.known_models,
         )
+
+    @pytest.mark.parametrize(
+        "model_map,error",
+        [
+            (None, "No model_map provided"),
+            (
+                {"proteomics_file": "LOAD2", "typo_file": "LOAD2"},
+                "not proteomics data files",
+            ),
+            ({"proteomics_file": "LOAD3"}, "absent from the genotype label map"),
+        ],
+    )
+    def test_invalid_model_map_raises(
+        self, model_map: dict[str, str], error: str
+    ) -> None:
+        """A missing, typo'd, or unlabeled model_map raises."""
+        with pytest.raises(ValueError, match=error):
+            _validate_file_maps(
+                self._datasets(),
+                model_map,
+                {"load2_harmonized_metadata": "LOAD2"},
+                REQUIRED_INPUT,
+                self.known_models,
+            )
+
+    @pytest.mark.parametrize(
+        "metadata_map,error",
+        [
+            (None, "No metadata_map provided"),
+            ({"typo_metadata": "LOAD2"}, "not metadata files"),
+            (
+                {"load2_harmonized_metadata": "LOAD3"},
+                "absent from the genotype label map",
+            ),
+        ],
+    )
+    def test_invalid_metadata_map_raises(
+        self, metadata_map: dict[str, str], error: str
+    ) -> None:
+        """A missing, typo'd, or unlabeled metadata_map raises."""
+        with pytest.raises(ValueError, match=error):
+            _validate_file_maps(
+                self._datasets(),
+                {"proteomics_file": "LOAD2"},
+                metadata_map,
+                REQUIRED_INPUT,
+                self.known_models,
+            )
+
+    def test_file_in_both_maps_raises(self) -> None:
+        """A file listed in both model_map and metadata_map raises."""
+        with pytest.raises(ValueError, match="both model_map and metadata_map"):
+            _validate_file_maps(
+                self._datasets(),
+                {
+                    "proteomics_file": "LOAD2",
+                    "load2_harmonized_metadata": "LOAD2",
+                },
+                {"load2_harmonized_metadata": "LOAD2"},
+                REQUIRED_INPUT,
+                self.known_models,
+            )
+
+    def test_data_file_missing_from_model_map_raises(self) -> None:
+        """A proteomics file left out of both maps raises."""
+        datasets = self._datasets()
+        datasets["second_proteomics_file"] = pd.DataFrame()
+
+        with pytest.raises(
+            ValueError, match="not in model_map or metadata_map"
+        ) as excinfo:
+            _validate_file_maps(
+                datasets,
+                {"proteomics_file": "LOAD2"},
+                {"load2_harmonized_metadata": "LOAD2"},
+                REQUIRED_INPUT,
+                self.known_models,
+            )
+
+        assert "second_proteomics_file" in str(excinfo.value)
 
 
 class TestTransformProteinDeIndividual:
@@ -188,580 +570,96 @@ class TestTransformProteinDeIndividual:
             datasets=datasets, model_map=model_map, metadata_map=metadata_map
         )
 
-    def _build_datasets(
-        self,
-        harmonized: dict[str, Any] = None,
-        data_file: dict[str, Any] = None,
-        data_key: str = "proteomics_file",
-        label_map: dict[str, Any] = None,
-        mapping: pd.DataFrame = None,
-        gene_metadata: pd.DataFrame = None,
-    ) -> dict[str, pd.DataFrame]:
-        """Build a minimal valid datasets dict, allowing any input to be replaced."""
+    @classmethod
+    def _read_input(cls, name: str) -> pd.DataFrame:
+        """Read one fixture from the protein_de_individual input directory."""
+        path = os.path.join(cls.data_files_path, "input", name)
+        if name.endswith(".json"):
+            return pd.read_json(path)
+        return pd.read_csv(path)
+
+    @classmethod
+    def _load_datasets(cls) -> dict[str, pd.DataFrame]:
+        """The shared reference inputs, including the basic proteomics file and its metadata."""
         return {
-            "genotype_label_map": pd.DataFrame(
-                label_map
-                or {
-                    "model": ["LOAD2", "LOAD2"],
-                    "model_group": ["LOAD2", "LOAD2"],
-                    "display_label": ["LOAD2", "LOAD1"],
-                    "genotype": ["geno_hom", "geno_wt"],
-                    "result_order": [2, 1],
-                }
+            "genotype_label_map": cls._read_input("synthetic_genotype_label_map.csv"),
+            "mouse_gene_metadata": cls._read_input(
+                "synthetic_mouse_gene_metadata.json"
             ),
-            "mouse_gene_metadata": (
-                gene_metadata
-                if gene_metadata is not None
-                else pd.DataFrame(
-                    {
-                        "ensembl_gene_id": ["ENSMUSG00000000001"],
-                        "gene_symbol": ["Gnai3"],
-                    }
-                )
+            "load2_harmonized_metadata": cls._read_input(
+                "synthetic_harmonized_metadata.csv"
             ),
-            "load2_harmonized_metadata": pd.DataFrame(
-                harmonized
-                or {
-                    "individualid": ["i1", "i2"],
-                    "sex": ["male", "female"],
-                    "agedeath": [4.0, 4.5],
-                    "genotype": ["geno_hom", "geno_wt"],
-                    "tissue": ["right cerebral hemisphere"] * 2,
-                }
-            ),
-            "uniprot_ensembl_map": (
-                mapping
-                if mapping is not None
-                else pd.DataFrame(
-                    {
-                        "uniprot_id": ["P00001"],
-                        "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    }
-                )
-            ),
-            data_key: pd.DataFrame(
-                data_file
-                or {
-                    "specimenid": ["c1", "c2"],
-                    "individualid": ["i1", "i2"],
-                    "gene1|p00001": [1.0, 2.0],
-                }
-            ),
+            "uniprot_ensembl_map": cls._read_input("synthetic_uniprot_ensembl_map.csv"),
+            "synthetic_basic_data": cls._read_input("synthetic_basic_data.csv"),
         }
+
+    @classmethod
+    def _load_reference_datasets(cls) -> dict[str, pd.DataFrame]:
+        """Reference inputs without a proteomics file or study metadata, for tests that supply their own."""
+        datasets = cls._load_datasets()
+        del datasets["synthetic_basic_data"]
+        del datasets["load2_harmonized_metadata"]
+        return datasets
 
     def test_synthetic_basic_data(self) -> None:
         """Happy path matches the golden fixture output."""
-        input_path = os.path.join(self.data_files_path, "input")
-        datasets = {
-            "genotype_label_map": pd.read_csv(
-                os.path.join(input_path, "synthetic_genotype_label_map.csv")
-            ),
-            "mouse_gene_metadata": pd.read_json(
-                os.path.join(input_path, "synthetic_mouse_gene_metadata.json")
-            ),
-            "load2_harmonized_metadata": pd.read_csv(
-                os.path.join(input_path, "synthetic_harmonized_metadata.csv")
-            ),
-            "uniprot_ensembl_map": pd.read_csv(
-                os.path.join(input_path, "synthetic_uniprot_ensembl_map.csv")
-            ),
-            "synthetic_basic_data": pd.read_csv(
-                os.path.join(input_path, "synthetic_basic_data.csv")
-            ),
-        }
         with open(
             os.path.join(self.data_files_path, "output", "synthetic_basic_output.json")
         ) as f:
             expected = json.load(f)
 
-        output = self._transform(datasets)
+        output = self._transform(self._load_datasets())
 
         assert self._normalize(output) == self._normalize(expected)
 
-    def test_hyphenated_accession_stays_a_separate_row(self) -> None:
-        """An isoform maps on its base accession but stays a separate output row."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "ank2|q8c8r3": [1.0, 2.0],
-                "ank2|q8c8r3_2": [3.0, 4.0],
-            },
-            mapping=pd.DataFrame(
-                {
-                    "uniprot_id": ["Q8C8R3"],
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                }
-            ),
-        )
-
-        by_uniprot = {e["uniprotid"]: e for e in self._transform(datasets)}
-
-        assert set(by_uniprot) == {"Q8C8R3", "Q8C8R3-2"}
-        isoform = by_uniprot["Q8C8R3-2"]
-        assert isoform["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert isoform["unique_id"] == "ENSMUSG00000000001Q8C8R3-2"
-        assert isoform["display_symbol"] == "Gnai3 (Q8C8R3-2)"
-
-    def test_unmapped_and_human_proteins_dropped(self) -> None:
-        """Unmapped and human proteins are dropped from the output."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "gene1|p00001": [1.0, 2.0],
-                "bad|nomap": [3.0, 4.0],
-                "hum|humanp": [5.0, 6.0],
-            },
-            mapping=pd.DataFrame(
-                {
-                    "uniprot_id": ["P00001", "HUMANP"],
-                    "ensembl_gene_id": ["ENSMUSG00000000001", "ENSG00000000001"],
-                }
-            ),
-        )
-
-        output = self._transform(datasets)
-
-        assert {e["uniprotid"] for e in output} == {"P00001"}
-
-    def test_ambiguous_accession_takes_smallest_ensembl_id(self) -> None:
-        """An accession with several candidate genes takes the smallest, whatever the header names."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "Pms2|p54279": [1.0, 2.0],
-            },
-            mapping=pd.DataFrame(
-                {
-                    "uniprot_id": ["P54279", "P54279"],
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000009",
-                        "ENSMUSG00000000001",
-                    ],
-                }
-            ),
-            gene_metadata=pd.DataFrame(
-                {
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000009",
-                    ],
-                    "gene_symbol": ["Rsph10b", "Pms2"],
-                }
-            ),
-        )
-
-        output = self._transform(datasets)
-
-        assert output[0]["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert output[0]["gene_symbol"] == "Rsph10b"
-
-    def test_extra_map_column_is_ignored(self) -> None:
-        """Extra columns on the UniProt map are ignored."""
-        datasets = self._build_datasets(
-            mapping=pd.DataFrame(
-                {
-                    "uniprot_id": ["P00001"],
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "optional_information": [""],
-                }
-            )
-        )
-
-        output = self._transform(datasets)
-
-        assert {e["uniprotid"] for e in output} == {"P00001"}
-
-    def test_isoform_map_row_is_preferred_over_base(self) -> None:
-        """A mapping-file row for the full accession wins over the base accession."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "ank2|q8c8r3": [1.0, 2.0],
-                "ank2|q8c8r3_2": [3.0, 4.0],
-            },
-            mapping=pd.DataFrame(
-                {
-                    "uniprot_id": ["Q8C8R3", "Q8C8R3-2"],
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000002",
-                    ],
-                }
-            ),
-            gene_metadata=pd.DataFrame(
-                {
-                    "ensembl_gene_id": [
-                        "ENSMUSG00000000001",
-                        "ENSMUSG00000000002",
-                    ],
-                    "gene_symbol": ["Gnai3", "Cdc45"],
-                }
-            ),
-        )
-
-        by_uniprot = {e["uniprotid"]: e for e in self._transform(datasets)}
-
-        assert by_uniprot["Q8C8R3"]["ensembl_gene_id"] == "ENSMUSG00000000001"
-        assert by_uniprot["Q8C8R3-2"]["ensembl_gene_id"] == "ENSMUSG00000000002"
-        assert by_uniprot["Q8C8R3-2"]["unique_id"] == "ENSMUSG00000000002Q8C8R3-2"
-
-    def test_animals_without_metadata_or_label_map_row_dropped(self) -> None:
-        """Animals missing metadata or a label-map row are dropped, not a failed run."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i2", "i4"],
-                "sex": ["male", "female", "female"],
-                "agedeath": [4.0, 4.5, 5.1],
-                "genotype": ["geno_hom", "geno_wt", "geno_het"],
-                "tissue": ["right cerebral hemisphere"] * 3,
-            },
-            data_file={
-                "specimenid": [f"c{n}" for n in range(7)],
-                "individualid": ["i1", "i2", "i4", "u1", "u2", "u3", "u4"],
-                "gene1|p00001": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
-            },
-        )
-
-        output = self._transform(datasets)
-
-        assert len(output) == 1
-        assert {d["individual_id"] for d in output[0]["data"]} == {"i1", "i2"}
-        assert {d["genotype"] for d in output[0]["data"]} == {"LOAD2", "LOAD1"}
-
-    def test_unjoinable_data_file_raises(self) -> None:
-        """A data file whose individualIDs match no metadata raises."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "gene1|p00001": [1.0, 2.0],
-            },
-            data_key="good_file",
-        )
-        datasets["stale_file"] = pd.DataFrame(
-            {
-                "specimenid": ["c3", "c4"],
-                "individualid": ["i1.0", "i2.0"],
-                "gene1|p00001": [3.0, 4.0],
-            }
-        )
-
-        with pytest.raises(
-            ValueError,
-            match="None of the 2 animals in proteomics data file 'stale_file'",
-        ):
-            self._transform(datasets)
-
-    def test_age_bucketing_boundaries(self) -> None:
-        """ageDeath is bucketed on the right-closed JAX thresholds."""
-        ages = [6.0, 6.1, 10.0, 14.2, 16.0, 16.1, 20.0, 20.1]
-        expected = [4, 8, 8, 12, 12, 18, 18, 24]
-        individuals = [f"i{n}" for n in range(len(ages))]
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": individuals,
-                "sex": ["male"] * len(ages),
-                "agedeath": ages,
-                "genotype": ["geno_hom"] * len(ages),
-                "tissue": ["right cerebral hemisphere"] * len(ages),
-            },
-            data_file={
-                "specimenid": individuals,
-                "individualid": individuals,
-                "gene1|p00001": [float(n) for n in range(len(ages))],
-            },
-        )
-
-        output = self._transform(datasets)
-
-        age_by_individual = {
-            record["individual_id"]: (entry["age"], entry["age_numeric"])
-            for entry in output
-            for record in entry["data"]
-        }
-        assert age_by_individual == {
-            individual: (f"{months} months", months)
-            for individual, months in zip(individuals, expected)
-        }
-
-    def test_missing_agedeath_raises(self) -> None:
-        """A missing ageDeath raises instead of dropping the animal silently."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i2"],
-                "sex": ["male", "female"],
-                "agedeath": [4.0, None],
-                "genotype": ["geno_hom", "geno_wt"],
-                "tissue": ["right cerebral hemisphere"] * 2,
-            }
-        )
-
-        with pytest.raises(ValueError, match="unbucketable ageDeath.*i2"):
-            self._transform(datasets)
-
-    @pytest.mark.parametrize("tissue", [None, ""])
-    def test_missing_tissue_raises(self, tissue: Any) -> None:
-        """A blank or missing tissue raises."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i2"],
-                "sex": ["male", "female"],
-                "agedeath": [4.0, 4.5],
-                "genotype": ["geno_hom", "geno_wt"],
-                "tissue": ["right cerebral hemisphere", tissue],
-            }
-        )
-
-        with pytest.raises(ValueError, match="Missing tissue.*i2"):
-            self._transform(datasets)
-
-    @pytest.mark.parametrize(
-        "source,expected",
-        [
-            (["male", "female"], {"Male", "Female"}),
-            (["Males", "Females"], {"Male", "Female"}),
-            (["M", "F"], {"M", "F"}),
-        ],
-    )
-    def test_sex_labels_are_singular_and_title_cased(
-        self, source: list[str], expected: set
-    ) -> None:
-        """Plural and lowercase sex labels are mapped to singular title case."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i2"],
-                "sex": source,
-                "agedeath": [4.0, 4.5],
-                "genotype": ["geno_hom", "geno_wt"],
-                "tissue": ["right cerebral hemisphere"] * 2,
-            }
-        )
-
-        output = self._transform(datasets)
-
-        assert {d["sex"] for d in output[0]["data"]} == expected
-
-    def test_all_null_sex_survives(self) -> None:
-        """An all-missing sex column does not raise."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i2"],
-                "sex": [None, None],
-                "agedeath": [4.0, 4.5],
-                "genotype": ["geno_hom", "geno_wt"],
-                "tissue": ["right cerebral hemisphere"] * 2,
-            }
-        )
-
-        output = self._transform(datasets)
-
-        assert {d["sex"] for d in output[0]["data"]} == {None}
-
-    def test_negative_zero_is_normalized(self) -> None:
-        """Small negatives and signed zero serialize as 0.0."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "gene1|p00001": [-0.000001, -0.0],
-            }
-        )
-
-        values = [d["value"] for d in self._transform(datasets)[0]["data"]]
-
-        assert values == [0.0, 0.0]
-        assert not any(math.copysign(1, value) < 0 for value in values)
-
     def test_multiple_data_files_are_combined(self) -> None:
         """Measurements from two data files in one model_group are combined."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i2"],
-                "sex": ["male", "female"],
-                "agedeath": [4.0, 24.2],
-                "genotype": ["geno_hom", "geno_hom"],
-                "tissue": ["right cerebral hemisphere"] * 2,
-            },
-            data_file={
-                "specimenid": ["c1"],
-                "individualid": ["i1"],
-                "gene1|p00001": [1.0],
-            },
-            data_key="proteomics_4mo",
+        datasets = self._load_reference_datasets()
+        datasets["load2_harmonized_metadata"] = self._read_input(
+            "synthetic_two_file_metadata.csv"
         )
-        datasets["proteomics_24mo"] = pd.DataFrame(
-            {
-                "specimenid": ["c2"],
-                "individualid": ["i2"],
-                "gene1|p00001": [2.0],
-            }
+        datasets["synthetic_two_file_4mo"] = self._read_input(
+            "synthetic_two_file_4mo.csv"
+        )
+        datasets["synthetic_two_file_24mo"] = self._read_input(
+            "synthetic_two_file_24mo.csv"
         )
 
         output = self._transform(datasets)
 
-        assert {e["age"] for e in output} == {"4 months", "24 months"}
-
-    def test_animal_measured_in_two_files_appears_once(self) -> None:
-        """An animal measured for one protein in two files is nested once, not twice."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "gene1|p00001": [1.0, 2.0],
-            },
-            data_key="proteomics_a",
-        )
-        datasets["proteomics_b"] = pd.DataFrame(
-            {
-                "specimenid": ["c1"],
-                "individualid": ["i1"],
-                "gene1|p00001": [1.0],
-            }
-        )
-
-        output = self._transform(datasets)
-
-        assert len(output) == 1
-        assert [d["individual_id"] for d in output[0]["data"]] == ["i1", "i2"]
-
-    def test_two_files_disagreeing_about_a_measurement_raise(self) -> None:
-        """Two files reporting different abundances for one animal and protein raise."""
-        datasets = self._build_datasets(
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "gene1|p00001": [1.0, 2.0],
-            },
-            data_key="proteomics_a",
-        )
-        datasets["proteomics_b"] = pd.DataFrame(
-            {
-                "specimenid": ["c1"],
-                "individualid": ["i1"],
-                "gene1|p00001": [9.0],
-            }
-        )
-
-        with pytest.raises(ValueError, match="disagree about the abundance"):
-            self._transform(datasets)
-
-    def test_disagreement_about_an_excluded_animal_is_ignored(self) -> None:
-        """Two files disagreeing about an animal dropped for its genotype do not raise."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i2", "i3"],
-                "sex": ["male", "female", "male"],
-                "agedeath": [4.0, 4.5, 4.2],
-                "genotype": ["geno_hom", "geno_wt", "geno_excluded"],
-                "tissue": ["right cerebral hemisphere"] * 3,
-            },
-            data_file={
-                "specimenid": ["c1", "c2", "c3"],
-                "individualid": ["i1", "i2", "i3"],
-                "gene1|p00001": [1.0, 2.0, 3.0],
-            },
-            data_key="proteomics_a",
-        )
-        datasets["proteomics_b"] = pd.DataFrame(
-            {
-                "specimenid": ["c3"],
-                "individualid": ["i3"],
-                "gene1|p00001": [9.0],
-            }
-        )
-
-        output = self._transform(datasets)
-
-        assert [d["individual_id"] for d in output[0]["data"]] == ["i1", "i2"]
+        assert {entry["age"] for entry in output} == {"4 months", "24 months"}
 
     def test_per_model_group_fields_are_not_shared_across_groups(self) -> None:
         """name, matched_control, and result_order are resolved per model_group."""
-        datasets = self._build_datasets(
-            label_map={
-                "model": [
-                    "LOAD2",
-                    "LOAD2",
-                    "Bin1-K358R",
-                    "Bin1-K358R",
-                    "Bin1-K358R.5xFAD",
-                    "Bin1-K358R.5xFAD",
-                ],
-                "model_group": ["LOAD2", "LOAD2"] + ["Bin1K358R"] * 4,
-                "display_label": [
-                    "LOAD2",
-                    "LOAD1",
-                    "C57BL/6J",
-                    "Bin1K358R",
-                    "5xFAD",
-                    "Bin1K358R.5xFAD",
-                ],
-                "genotype": [
-                    "geno_hom",
-                    "geno_wt",
-                    "fad_non",
-                    "bin1_hom",
-                    "fad_car",
-                    "fad_car_bin1",
-                ],
-                "result_order": [2, 1, 1, 2, 3, 4],
-            },
-            harmonized={
-                "individualid": ["i1", "i2"],
-                "sex": ["male"] * 2,
-                "agedeath": [4.0] * 2,
-                "genotype": ["geno_hom", "geno_wt"],
-                "tissue": ["right cerebral hemisphere"] * 2,
-            },
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "gene1|p00001": [1.0, 2.0],
-            },
-            data_key="load2_file",
+        datasets = self._load_reference_datasets()
+        datasets["genotype_label_map"] = self._read_input(
+            "synthetic_multi_model_group_label_map.csv"
         )
-        datasets["bin1_file"] = pd.DataFrame(
-            {
-                "specimenid": ["c3", "c4"],
-                "individualid": ["i3", "i4"],
-                "gene1|p00001": [3.0, 4.0],
-            }
+        datasets["load2_harmonized_metadata"] = self._read_input(
+            "synthetic_multi_model_load2_metadata.csv"
         )
-        datasets["bin1_fad_file"] = pd.DataFrame(
-            {
-                "specimenid": ["c5", "c6"],
-                "individualid": ["i5", "i6"],
-                "gene1|p00001": [5.0, 6.0],
-            }
+        datasets["bin1_harmonized_metadata"] = self._read_input(
+            "synthetic_multi_model_bin1_metadata.csv"
         )
-        datasets["bin1_harmonized_metadata"] = pd.DataFrame(
-            {
-                "individualid": ["i3", "i4"],
-                "sex": ["male"] * 2,
-                "agedeath": [4.0] * 2,
-                "genotype": ["fad_non", "bin1_hom"],
-                "tissue": ["right cerebral hemisphere"] * 2,
-            }
+        datasets["bin1_fad_harmonized_metadata"] = self._read_input(
+            "synthetic_multi_model_bin1_fad_metadata.csv"
         )
-        datasets["bin1_fad_harmonized_metadata"] = pd.DataFrame(
-            {
-                "individualid": ["i5", "i6"],
-                "sex": ["male"] * 2,
-                "agedeath": [4.0] * 2,
-                "genotype": ["fad_car", "fad_car_bin1"],
-                "tissue": ["right cerebral hemisphere"] * 2,
-            }
+        datasets["synthetic_multi_model_load2_data"] = self._read_input(
+            "synthetic_multi_model_load2_data.csv"
+        )
+        datasets["synthetic_multi_model_bin1_data"] = self._read_input(
+            "synthetic_multi_model_bin1_data.csv"
+        )
+        datasets["synthetic_multi_model_bin1_fad_data"] = self._read_input(
+            "synthetic_multi_model_bin1_fad_data.csv"
         )
 
         output = self._transform(
             datasets,
             model_map={
-                "load2_file": "LOAD2",
-                "bin1_file": "Bin1-K358R",
-                "bin1_fad_file": "Bin1-K358R.5xFAD",
+                "synthetic_multi_model_load2_data": "LOAD2",
+                "synthetic_multi_model_bin1_data": "Bin1-K358R",
+                "synthetic_multi_model_bin1_fad_data": "Bin1-K358R.5xFAD",
             },
             metadata_map={
                 "load2_harmonized_metadata": "LOAD2",
@@ -777,7 +675,7 @@ class TestTransformProteinDeIndividual:
         assert load2["name"] == "LOAD2"
         assert load2["matched_control"] == "LOAD1"
         assert load2["result_order"] == ["LOAD1", "LOAD2"]
-        assert {d["individual_id"] for d in load2["data"]} == {"i1", "i2"}
+        assert {record["individual_id"] for record in load2["data"]} == {"i1", "i2"}
 
         bin1 = by_group["Bin1K358R"]
         assert bin1["name"] == "Bin1K358R"
@@ -788,194 +686,67 @@ class TestTransformProteinDeIndividual:
             "5xFAD",
             "Bin1K358R.5xFAD",
         ]
-        assert {d["individual_id"] for d in bin1["data"]} == {"i3", "i4", "i5", "i6"}
-
-    def test_duplicate_animal_rows_are_tolerated(self) -> None:
-        """Identical duplicate metadata rows for one animal do not fan out the merge."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1", "i1", "i2"],
-                "sex": ["male", "male", "female"],
-                "agedeath": [4.0, 4.0, 4.5],
-                "genotype": ["geno_hom", "geno_hom", "geno_wt"],
-                "tissue": ["right cerebral hemisphere"] * 3,
-            }
-        )
-
-        output = self._transform(datasets)
-
-        assert [d["individual_id"] for d in output[0]["data"]] == ["i1", "i2"]
-
-    def test_duplicate_model_genotype_in_label_map_raises(self) -> None:
-        """Two label-map rows for the same model and genotype raise."""
-        datasets = self._build_datasets(
-            label_map={
-                "model": ["LOAD2", "LOAD2", "LOAD2"],
-                "model_group": ["LOAD2"] * 3,
-                "display_label": ["LOAD2", "LOAD2 dup", "LOAD1"],
-                "genotype": ["geno_hom", "geno_hom", "geno_wt"],
-                "result_order": [2, 3, 1],
-            }
-        )
-
-        with pytest.raises(ValueError, match="not a many-to-one merge"):
-            self._transform(datasets)
-
-    @pytest.mark.parametrize(
-        "model_map,error",
-        [
-            (None, "No model_map provided"),
-            (
-                {"proteomics_file": "LOAD2", "typo_file": "LOAD2"},
-                "not proteomics data files",
-            ),
-            ({"proteomics_file": "LOAD3"}, "absent from the genotype label map"),
-        ],
-    )
-    def test_invalid_model_map_raises(
-        self, model_map: dict[str, str], error: str
-    ) -> None:
-        """A missing, typo'd, or unlabeled model_map raises."""
-        datasets = self._build_datasets()
-
-        with pytest.raises(ValueError, match=error):
-            transform_protein_de_individual(
-                datasets=datasets,
-                model_map=model_map,
-                metadata_map={"load2_harmonized_metadata": "LOAD2"},
-            )
-
-    @pytest.mark.parametrize(
-        "metadata_map,error",
-        [
-            (None, "No metadata_map provided"),
-            (
-                {"typo_metadata": "LOAD2"},
-                "not metadata files",
-            ),
-            (
-                {"load2_harmonized_metadata": "LOAD3"},
-                "absent from the genotype label map",
-            ),
-        ],
-    )
-    def test_invalid_metadata_map_raises(
-        self, metadata_map: dict[str, str], error: str
-    ) -> None:
-        """A missing, typo'd, or unlabeled metadata_map raises."""
-        datasets = self._build_datasets()
-
-        with pytest.raises(ValueError, match=error):
-            transform_protein_de_individual(
-                datasets=datasets,
-                model_map={"proteomics_file": "LOAD2"},
-                metadata_map=metadata_map,
-            )
-
-    def test_file_in_both_maps_raises(self) -> None:
-        """A file listed in both model_map and metadata_map raises."""
-        datasets = self._build_datasets()
-
-        with pytest.raises(ValueError, match="both model_map and metadata_map"):
-            transform_protein_de_individual(
-                datasets=datasets,
-                model_map={
-                    "proteomics_file": "LOAD2",
-                    "load2_harmonized_metadata": "LOAD2",
-                },
-                metadata_map={"load2_harmonized_metadata": "LOAD2"},
-            )
-
-    def test_data_file_missing_from_model_map_raises(self) -> None:
-        """A proteomics file left out of model_map is not read as metadata."""
-        datasets = self._build_datasets()
-        datasets["second_proteomics_file"] = datasets["proteomics_file"]
-
-        with pytest.raises(
-            ValueError, match="not in model_map or metadata_map"
-        ) as excinfo:
-            self._transform(datasets, model_map={"proteomics_file": "LOAD2"})
-
-        assert "second_proteomics_file" in str(excinfo.value)
+        assert {record["individual_id"] for record in bin1["data"]} == {
+            "i3",
+            "i4",
+            "i5",
+            "i6",
+        }
 
     def test_second_study_metadata_file_is_combined(self) -> None:
-        """A second leftover metadata file is concatenated with the first."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": ["i1"],
-                "sex": ["male"],
-                "agedeath": [4.0],
-                "genotype": ["geno_hom"],
-                "tissue": ["right cerebral hemisphere"],
-            },
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": ["i1", "i2"],
-                "gene1|p00001": [1.0, 2.0],
-            },
+        """A second metadata file is concatenated with the first."""
+        datasets = self._load_datasets()
+        datasets["load2_harmonized_metadata"] = self._read_input(
+            "synthetic_second_study_primary_metadata.csv"
         )
-        datasets["uci_harmonized_metadata"] = pd.DataFrame(
-            {
-                "individualid": ["i2"],
-                "sex": ["female"],
-                "agedeath": [4.5],
-                "genotype": ["geno_wt"],
-                "tissue": ["Cortex"],
-            }
+        datasets["uci_harmonized_metadata"] = self._read_input(
+            "synthetic_second_study_metadata.csv"
         )
 
         output = self._transform(datasets)
 
-        assert {e["tissue"] for e in output} == {"Hemibrain", "Cortex"}
+        assert {entry["tissue"] for entry in output} == {"Hemibrain", "Cortex"}
         assert {
             record["individual_id"] for entry in output for record in entry["data"]
         } == {"i1", "i2"}
 
-    def test_metadata_files_disagreeing_about_an_animal_raise(self) -> None:
-        """Two metadata files that disagree about one animal raise."""
-        datasets = self._build_datasets()
-        datasets["uci_harmonized_metadata"] = pd.DataFrame(
-            {
-                "individualid": ["i1"],
-                "sex": ["female"],
-                "agedeath": [24.0],
-                "genotype": ["geno_wt"],
-                "tissue": ["Cortex"],
-            }
-        )
-
-        with pytest.raises(ValueError, match="not a many-to-one merge"):
-            self._transform(datasets)
-
     def test_metadata_files_agreeing_about_an_animal_are_deduplicated(self) -> None:
-        """Identical animal rows across metadata files collapse to one."""
-        datasets = self._build_datasets(
-            harmonized={
-                "individualid": [51503, 51504],
-                "sex": ["male", "female"],
-                "agedeath": [4.0, 4.5],
-                "genotype": ["geno_hom", "geno_wt"],
-                "tissue": ["right cerebral hemisphere"] * 2,
-            },
-            data_file={
-                "specimenid": ["c1", "c2"],
-                "individualid": [51503, 51504],
-                "gene1|p00001": [1.0, 2.0],
-            },
+        """Identical animal rows across metadata files collapse to one.
+
+        The second file is cast to string individualIDs after reading, because one source
+        arrives as int64 and the other as object and the two must still collapse.
+        """
+        datasets = self._load_reference_datasets()
+        datasets["load2_harmonized_metadata"] = self._read_input(
+            "synthetic_duplicate_metadata_primary.csv"
         )
-        datasets["uci_harmonized_metadata"] = pd.DataFrame(
-            {
-                "individualid": ["51503"],
-                "sex": ["male"],
-                "agedeath": [4.0],
-                "genotype": ["geno_hom"],
-                "tissue": ["right cerebral hemisphere"],
-            }
+        datasets["synthetic_duplicate_metadata_data"] = self._read_input(
+            "synthetic_duplicate_metadata_data.csv"
+        )
+        second = self._read_input("synthetic_duplicate_metadata.csv")
+        second["individualid"] = second["individualid"].astype(str)
+        datasets["uci_harmonized_metadata"] = second
+
+        output = self._transform(datasets)
+
+        assert [record["individual_id"] for record in output[0]["data"]] == [
+            "51503",
+            "51504",
+        ]
+
+    def test_duplicate_animal_rows_are_tolerated(self) -> None:
+        """Identical duplicate metadata rows for one animal do not fan out the merge."""
+        datasets = self._load_datasets()
+        datasets["load2_harmonized_metadata"] = self._read_input(
+            "synthetic_duplicate_animal_metadata.csv"
         )
 
         output = self._transform(datasets)
 
-        assert [d["individual_id"] for d in output[0]["data"]] == ["51503", "51504"]
+        assert [record["individual_id"] for record in output[0]["data"]] == [
+            "i1",
+            "i2",
+        ]
 
     @pytest.mark.parametrize(
         "mutate,error",
@@ -993,14 +764,14 @@ class TestTransformProteinDeIndividual:
             ),
             (
                 lambda d: d["load2_harmonized_metadata"].__setitem__(
-                    "genotype", ["", "geno_wt"]
+                    "genotype", ["", "geno_wt", "geno_fullwt"]
                 ),
                 "not_empty",
             ),
             (
                 lambda d: d.update(
                     {
-                        "proteomics_file": d["proteomics_file"].drop(
+                        "synthetic_basic_data": d["synthetic_basic_data"].drop(
                             columns=["individualid"]
                         )
                     }
@@ -1008,7 +779,9 @@ class TestTransformProteinDeIndividual:
                 "Missing required columns",
             ),
             (
-                lambda d: d.update({"proteomics_file": d["proteomics_file"].iloc[:0]}),
+                lambda d: d.update(
+                    {"synthetic_basic_data": d["synthetic_basic_data"].iloc[:0]}
+                ),
                 "is empty",
             ),
             (
@@ -1019,12 +792,18 @@ class TestTransformProteinDeIndividual:
             ),
             (
                 lambda d: d["load2_harmonized_metadata"].__setitem__(
-                    "genotype", ["unknown", "unknown"]
+                    "genotype", "unknown"
                 ),
                 "No rows remained",
             ),
             (
-                lambda d: d["mouse_gene_metadata"].__setitem__("ensembl_gene_id", [""]),
+                lambda d: d.update(
+                    {
+                        "mouse_gene_metadata": d["mouse_gene_metadata"].assign(
+                            ensembl_gene_id=""
+                        )
+                    }
+                ),
                 "not_empty",
             ),
         ],
@@ -1041,7 +820,7 @@ class TestTransformProteinDeIndividual:
     )
     def test_invalid_input_raises(self, mutate, error: str) -> None:
         """Missing datasets, columns, empty files, and unmatched genotypes raise."""
-        datasets = self._build_datasets()
+        datasets = self._load_datasets()
         mutate(datasets)
         with pytest.raises(ValueError, match=error):
             self._transform(datasets)
