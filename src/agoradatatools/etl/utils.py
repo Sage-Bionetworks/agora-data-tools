@@ -1029,4 +1029,10 @@ def parse_synapse_id_version(syn_id: str) -> tuple[str, int | None]:
         The base ID and the version number, or None if no version was given.
     """
     parts = syn_id.split(".")
-    return parts[0], int(parts[1]) if len(parts) > 1 else None
+    base_id = parts[0]
+    version = int(parts[1]) if len(parts) > 1 else None
+
+    if not base_id:
+        raise ValueError("Invalid Synapse ID: missing base ID")
+
+    return base_id, version
