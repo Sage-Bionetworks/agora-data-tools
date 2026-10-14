@@ -1,9 +1,11 @@
+import asyncio
+import inspect
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
-from agoradatatools.etl import extract
+from agoradatatools.etl import extract, utils
 
 
 def test_read_csv_into_df_if_not_csv():
@@ -161,3 +163,20 @@ def test_get_entity_as_df_supported_formats(syn, source, callable):
         df = extract.get_entity_as_df(syn_id="syn1111111", source=source, syn=syn)
         patch_source_to_df.assert_called_once()
         assert isinstance(df, pd.DataFrame)
+
+
+def test_get_entity_as_df_async_returns_same_result_as_sync(syn):
+    # GIVEN get_entity_as_df is patched to return a known value
+    with patch.object(
+        extract, "get_entity_as_df", return_value=pd.DataFrame({"a": [1]})
+    ) as patch_sync:
+        # WHEN I await the async wrapper built from it
+        wrapped = utils.to_async(extract.get_entity_as_df)
+        df = asyncio.run(wrapped(syn_id="syn1111111", source="csv", syn=syn))
+    # THEN the sync function was called with the same arguments and its result returned
+    patch_sync.assert_called_once_with(syn_id="syn1111111", source="csv", syn=syn)
+    pd.testing.assert_frame_equal(df, pd.DataFrame({"a": [1]}))
+
+
+def test_get_entity_as_df_async_is_a_coroutine_function():
+    assert inspect.iscoroutinefunction(extract.get_entity_as_df_async)

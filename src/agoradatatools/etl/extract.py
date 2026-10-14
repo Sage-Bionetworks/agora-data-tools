@@ -4,6 +4,8 @@ import yaml
 from synapseclient.operations import get
 from synapseclient.models import query
 
+from agoradatatools.etl.utils import to_async
+
 
 def get_entity_as_df(
     syn_id: str, source: str, syn: synapseclient.Synapse
@@ -44,6 +46,10 @@ def get_entity_as_df(
         raise ValueError("File type not supported.")
 
     return dataset
+
+
+get_entity_as_df_async = to_async(get_entity_as_df)
+"""Awaitable version of :func:`get_entity_as_df`, for use in notebooks."""
 
 
 def read_csv_into_df(csv_path: str) -> pd.DataFrame:
