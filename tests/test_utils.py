@@ -2228,3 +2228,36 @@ class TestRoundYAxisMax:
         assert utils.round_y_axis_max("invalid") == pytest.approx(10.0)
         assert utils.round_y_axis_max("abc123") == pytest.approx(10.0)
         assert utils.round_y_axis_max("") == pytest.approx(10.0)
+
+
+@pytest.mark.parametrize(
+    "syn_id, expected",
+    [
+        pytest.param("syn123", ("syn123", None), id="no_version_suffix"),
+        pytest.param("syn123.4", ("syn123", 4), id="with_version_suffix"),
+        pytest.param(
+            "syn123.4.5",
+            ("syn123", 4),
+            id="extra_dot_segments_beyond_version_are_ignored",
+        ),
+    ],
+)
+def test_parse_synapse_id_version(
+    syn_id: str, expected: tuple[str, int | None]
+) -> None:
+    assert utils.parse_synapse_id_version(syn_id) == expected
+
+
+@pytest.mark.parametrize(
+    "syn_id",
+    [
+        pytest.param(".4", id="no_syn_id_with_version_suffix"),
+        pytest.param("", id="empty_string"),
+        pytest.param(".", id="only_period"),
+        pytest.param("syn123.", id="period_with_no_version"),
+        pytest.param("syn123.bad", id="non_integer_version"),
+    ],
+)
+def test_parse_synapse_id_version_raises_on_malformed_id(syn_id: str) -> None:
+    with pytest.raises(ValueError):
+        utils.parse_synapse_id_version(syn_id)
