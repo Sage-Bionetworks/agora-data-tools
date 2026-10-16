@@ -12,6 +12,32 @@ import warnings
 # in a user's ~/.synapseConfig switches the client to the debug logger.
 SYNAPSE_CLIENT_LOGGERS = ["synapseclient_default", "synapseclient_debug"]
 
+# (warning category, message regex, why it's noise)
+_SYNAPSE_LOG_SUPPRESSIONS = [
+    (
+        "ifcollision=keep.both is being IGNORED",
+        "The download destination is Synapse's cache, so the client always "
+        "overwrites the existing cached copy — this is expected behavior, no "
+        "action needed.",
+    ),
+]
+
+_PYTHON_WARNING_SUPPRESSIONS = [
+    (
+        UserWarning,
+        r".*result_format.*configured at the Validator-level.*",
+        "Great Expectations is reminding us that a setting we're not using "
+        "(result_format on the Validator) won't be saved — doesn't apply to "
+        "how this notebook runs.",
+    ),
+    (
+        DeprecationWarning,
+        r"'parseString' deprecated",
+        "A library Great Expectations depends on (pyparsing) is using one of "
+        "its own old method names internally. That's GX's dependency to "
+        "update, not something in our code.",
+    ),
+]
 
 class SynapseCollisionFilter(logging.Filter):
     """Drops the synapseclient banner about ifcollision being ignored for downloads to the
@@ -19,7 +45,8 @@ class SynapseCollisionFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         """Returns False only for the ifcollision cache banner."""
-        return "ifcollision=keep.both is being IGNORED" not in record.getMessage()
+        # return "ifcollision=keep.both is being IGNORED" not in record.getMessage()
+        return not any(text in record.getMessage() for text, _why in _SYNAPSE_LOG_SUPPRESSIONS)
 
 
 def configure_notebook_output() -> None:
@@ -42,18 +69,13 @@ def configure_notebook_output() -> None:
         if not any(isinstance(f, SynapseCollisionFilter) for f in logger.filters):
             logger.addFilter(SynapseCollisionFilter())
 
-    # Suppress GX's internal result_format validator noise
-    warnings.filterwarnings(
-        "ignore",
-        category=UserWarning,
-        message=".*result_format.*configured at the Validator-level.*",
-    )
 
-    # Suppress pyparsing's deprecation of parseString, which GX 0.18 still calls when
-    # gx.get_context() reads the store backend id. PyparsingDeprecationWarning subclasses
-    # DeprecationWarning, so this matches it without importing pyparsing.
-    warnings.filterwarnings(
-        "ignore",
-        category=DeprecationWarning,
-        message="'parseString' deprecated",
-    )
+    for category, pattern, _why in _PYTHON_WARNING_SUPPRESSIONS:
+        warnings.filterwarnings("ignore", category=category, message=pattern)
+
+    total = len(_SYNAPSE_LOG_SUPPRESSIONS) + len(_PYTHON_WARNING_SUPPRESSIONS)
+    print(f"notebook_setup: suppressing {total} known warnings:")
+    for _text, why in _SYNAPSE_LOG_SUPPRESSIONS:
+        print(f"  - {why}")
+    for _cat, _pattern, why in _PYTHON_WARNING_SUPPRESSIONS:
+        print(f"  - {why}")
