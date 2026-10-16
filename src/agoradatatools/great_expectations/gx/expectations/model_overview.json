@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Late Onset AD",
-          "Familial AD"
+          "Familial AD",
+          "Late Onset AD"
         ]
       },
       "meta": {}
@@ -157,11 +157,11 @@
       "kwargs": {
         "column": "available_data",
         "list_members": [
-          "Pathology",
-          "Disease Correlation",
-          "Biomarkers",
           "Transcriptomics",
-          "Proteomics"
+          "Proteomics",
+          "Biomarkers",
+          "Disease Correlation",
+          "Pathology"
         ]
       },
       "meta": {}
@@ -179,6 +179,8 @@
       "kwargs": {
         "column": "transcriptomics",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_overview/transcriptomics_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "oneOf": [
             {
               "type": "null"
@@ -214,6 +216,8 @@
       "kwargs": {
         "column": "disease_correlation",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_overview/disease_correlation_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "oneOf": [
             {
               "type": "null"
@@ -249,6 +253,8 @@
       "kwargs": {
         "column": "pathology",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_overview/pathology_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "oneOf": [
             {
               "type": "null"
@@ -284,6 +290,8 @@
       "kwargs": {
         "column": "biomarkers",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_overview/biomarkers_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "oneOf": [
             {
               "type": "null"
@@ -319,6 +327,8 @@
       "kwargs": {
         "column": "study_data",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_overview/study_data_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "additionalProperties": false,
           "properties": {
             "link_url": {
@@ -347,6 +357,8 @@
       "kwargs": {
         "column": "jax_strain",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_overview/jax_strain_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "additionalProperties": false,
           "properties": {
             "link_url": {
@@ -382,8 +394,8 @@
       "kwargs": {
         "column": "center",
         "value_set": [
-          "UCI",
-          "IU/Jax/Pitt"
+          "IU/Jax/Pitt",
+          "UCI"
         ]
       },
       "meta": {}

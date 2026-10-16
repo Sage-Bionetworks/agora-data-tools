@@ -1,0 +1,3 @@
+individualid,sex,agedeath,genotype,tissue
+i1,male,4.0,geno_hom,right cerebral hemisphere
+i2,male,4.0,geno_wt,right cerebral hemisphere

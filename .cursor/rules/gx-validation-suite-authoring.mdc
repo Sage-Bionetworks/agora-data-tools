@@ -400,7 +400,7 @@ for passthrough datasets (no `custom_transformations`) too: ADT still reads the 
 DataFrame, standardizes column names and values, and serializes it back to JSON, so the input file
 is not the file GX validates at runtime.
 
-Copy an existing notebook (e.g., `gx_suite_definitions/biomarkers.ipynb`) as a starting point.
+Copy an existing notebook (e.g., `gx_suite_definitions/model_overview.ipynb`) as a starting point.
 
 ### Critical: Cell 0 import order
 
