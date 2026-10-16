@@ -376,7 +376,7 @@ The templates below cover common link-object columns; array/list columns use the
 
 > **Before starting:** Ask the user for the Synapse ID of the processed output file for this dataset (e.g. `syn73774519`). This is needed for the data-loading cell in the notebook. Do not proceed without it.
 
-Copy an existing notebook (e.g., `gx_suite_definitions/biomarkers.ipynb`) as a starting point.
+Copy an existing notebook (e.g., `gx_suite_definitions/model_overview.ipynb`) as a starting point.
 
 ### Critical: Cell 0 import order
 
