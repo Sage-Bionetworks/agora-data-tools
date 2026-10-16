@@ -32,12 +32,11 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     GENOTYPE_LABEL_MAP_RULES,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
+    add_protein_identity_columns,
     build_uniprot_to_ensembl,
     canonical_accession,
-    lookup_ensembl,
-    protein_display_symbol,
-    protein_unique_id,
-    unmapped_accessions,
+    log_unmapped_accessions,
+    map_accessions_to_genes,
 )
 
 logger = logging.getLogger(__name__)
@@ -245,14 +244,10 @@ def _build_output(
     )
     _log_stage(model_group, "after harmonized metadata join", df)
 
-    df["ensembl_gene_id"] = lookup_ensembl(df["uniprotid"], uniprot_to_ensembl)
-    df = df.dropna(subset=["ensembl_gene_id"])
+    df = map_accessions_to_genes(
+        df, uniprot_to_ensembl, f"for model_group '{model_group}'"
+    )
     _log_stage(model_group, "after gene mapping", df)
-    if df.empty:
-        raise ValueError(
-            f"No rows remained for model_group '{model_group}' after mapping proteins to "
-            "genes — check the UniProt to Ensembl mapping file."
-        )
 
     df = label_genotypes(df, genotype_label_map_df, f"model_group '{model_group}'")
     _log_stage(model_group, "after genotype labeling", df)
@@ -282,11 +277,7 @@ def _build_output(
         )
 
     df["sex"] = remap_sex_labels(df["sex"])
-    df["gene_symbol"] = df["ensembl_gene_id"].map(gene_symbols).fillna("")
-    df["unique_id"] = protein_unique_id(df["ensembl_gene_id"], df["uniprotid"])
-    df["display_symbol"] = protein_display_symbol(
-        df["gene_symbol"], df["ensembl_gene_id"], df["uniprotid"]
-    )
+    df = add_protein_identity_columns(df, gene_symbols)
     df["value"] = df["value"].round(5).map(normalize_zero)
 
     group_cols = [
@@ -430,13 +421,9 @@ def transform_protein_de_individual(
     gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
 
     uniprot_to_ensembl = build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
-    unmapped = unmapped_accessions(
+    log_unmapped_accessions(
         _measured_accessions(datasets, datafile_list), uniprot_to_ensembl
     )
-    if unmapped:
-        logger.info(
-            f"{len(unmapped)} UniProt IDs absent from the map (dropped): {unmapped[:10]}"
-        )
 
     model_to_model_group = build_model_to_model_group_lookup(genotype_label_map_df)
     files_by_model_group: dict[str, list[str]] = defaultdict(list)

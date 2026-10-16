@@ -13,7 +13,9 @@ import logging
 from typing import Any
 
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    build_biodomain_lookup,
     build_model_to_model_group_lookup,
+    build_model_type_lookup,
     determine_result_order,
     filter_to_mouse_genes,
     label_genotypes,
@@ -22,8 +24,10 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     prepare_genotype_label_map,
     validate_model_group_consistency,
     create_gene_metadata_dict,
+    create_age_entries_from_group,
     log_file_processing_info,
     validate_data_file_not_empty,
+    validate_and_sort_age_entries,
     preprocess_data_file,
 )
 from agoradatatools.etl.utils import MatchesRegexRule, NotEmptyRule
@@ -46,7 +50,8 @@ class TestNormalizeTissue:
 
     def test_all_null_column_remains_null(self) -> None:
         """pandas reads an entirely empty column as float. normalize_tissue should handle this case
-        by leaving the column with all null values but the column should have a "string" type."""
+        by leaving the column with all null values but the column should have a "string" type.
+        """
         result = normalize_tissue(pd.Series([None, None]))
         assert result.isna().all()
         assert result.dtype == "object"
@@ -751,3 +756,70 @@ class TestPreprocessDataFileColumnRules:
 
         # Should not raise
         self._preprocess(df)
+
+
+class TestAgeEntries:
+    def test_sorts_ages_numerically(self) -> None:
+        result = validate_and_sort_age_entries(
+            {
+                "12 months": {"log2_fc": 0.8, "adj_p_val": 0.005},
+                "4 months": {"log2_fc": 0.3, "adj_p_val": 0.02},
+            },
+            "ENSMUSG00000000001",
+            "Model",
+            "Cortex",
+            "Female",
+        )
+        assert list(result.keys()) == ["4 months", "12 months"]
+
+    def test_na_padj_becomes_one(self) -> None:
+        group = pd.DataFrame(
+            {
+                "age": ["4 months"],
+                "log2foldchange": [0.5],
+                "padj": [float("nan")],
+            }
+        )
+        result = create_age_entries_from_group(
+            group, "ENSMUSG00000000001", "Model", "Cortex", "Female"
+        )
+        assert result["4 months"]["adj_p_val"] == 1.0
+
+    def test_negative_padj_raises(self) -> None:
+        group = pd.DataFrame(
+            {
+                "age": ["4 months"],
+                "log2foldchange": [0.5],
+                "padj": [-0.1],
+            }
+        )
+        with pytest.raises(ValueError, match="Negative adjusted p-value"):
+            create_age_entries_from_group(
+                group, "ENSMUSG00000000001", "Model", "Cortex", "Female"
+            )
+
+
+class TestBuildModelTypeLookup:
+    def test_one_row_per_model(self) -> None:
+        label_map = pd.DataFrame(
+            {
+                "model": ["LOAD2", "LOAD2"],
+                "model_type": ["Late Onset AD", "Late Onset AD"],
+            }
+        )
+
+        assert build_model_type_lookup(label_map) == {"LOAD2": "Late Onset AD"}
+
+
+class TestBuildBiodomainLookup:
+    def test_groups_biodomains_and_drops_a_blank_ensembl_id(self) -> None:
+        biodomains = pd.DataFrame(
+            {
+                "ensembl_id": ["ENSMUSG00000000001", "ENSMUSG00000000001", None],
+                "biodomain": ["Apoptosis", "Synapse", "Lipid Metabolism"],
+            }
+        )
+
+        assert build_biodomain_lookup(biodomains) == {
+            "ENSMUSG00000000001": ["Apoptosis", "Synapse"]
+        }
