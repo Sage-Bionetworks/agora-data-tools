@@ -5,11 +5,15 @@ contract: both collections take the smallest mouse Ensembl id for a UniProt acce
 looked up on the base accession with any isoform notation removed.
 """
 
+import logging
+
 import pandas as pd
 
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     filter_to_mouse_genes,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def build_uniprot_to_ensembl(mapping_df: pd.DataFrame) -> dict[str, str]:
@@ -74,3 +78,54 @@ def protein_display_symbol(
     return (
         gene_symbol.where(gene_symbol != "", ensembl_gene_id) + " (" + uniprotid + ")"
     )
+
+
+def map_accessions_to_genes(
+    df: pd.DataFrame,
+    uniprot_to_ensembl: dict[str, str],
+    context: str,
+) -> pd.DataFrame:
+    """Attach ensembl_gene_id from the base accession and drop rows the map does not cover.
+
+    context is the phrase that follows "No rows remained" in the error, so each
+    caller can name the file or model_group that produced the empty result.
+    """
+    mapped = df.copy()
+    mapped["ensembl_gene_id"] = lookup_ensembl(mapped["uniprotid"], uniprot_to_ensembl)
+    mapped = mapped.dropna(subset=["ensembl_gene_id"])
+    if mapped.empty:
+        raise ValueError(
+            f"No rows remained {context} after mapping proteins to "
+            "genes — check the UniProt to Ensembl mapping file."
+        )
+    return mapped
+
+
+def add_protein_identity_columns(
+    df: pd.DataFrame, gene_symbols: dict[str, str]
+) -> pd.DataFrame:
+    """Attach gene_symbol, unique_id, and display_symbol from the resolved Ensembl id."""
+    identified = df.copy()
+    identified["gene_symbol"] = (
+        identified["ensembl_gene_id"].map(gene_symbols).fillna("")
+    )
+    identified["unique_id"] = protein_unique_id(
+        identified["ensembl_gene_id"], identified["uniprotid"]
+    )
+    identified["display_symbol"] = protein_display_symbol(
+        identified["gene_symbol"],
+        identified["ensembl_gene_id"],
+        identified["uniprotid"],
+    )
+    return identified
+
+
+def log_unmapped_accessions(
+    accessions: pd.Series, uniprot_to_ensembl: dict[str, str]
+) -> None:
+    """Log accessions the map does not cover. Callers drop those rows during gene lookup."""
+    unmapped = unmapped_accessions(accessions, uniprot_to_ensembl)
+    if unmapped:
+        logger.info(
+            f"{len(unmapped)} UniProt IDs absent from the map (dropped): {unmapped[:10]}"
+        )

@@ -88,10 +88,6 @@ def _build_datasets(
                 "protein_id": ["Gnai3|P27144"],
                 "diff": [0.5],
                 "padj": [0.01],
-                "model": ["LOAD2"],
-                "sex": ["Female"],
-                "age": ["4 months"],
-                "tissue": ["Hemibrain"],
             }
         }
     for name, columns in data_files.items():
@@ -124,21 +120,7 @@ def _de_only() -> dict[str, Any]:
 
 
 class TestTransformProteinDeAggregate:
-    def test_multi_study_columns_win_over_filename(self) -> None:
-        datasets = _load_shared_inputs()
-        input_path = os.path.join(ASSETS, "input")
-        datasets["jax_model_a_f_4mo"] = pd.read_csv(
-            os.path.join(input_path, "study_a.csv")
-        )
-        datasets["jax_model_b_m_4mo"] = pd.read_csv(
-            os.path.join(input_path, "study_b.csv")
-        )
-        with open(os.path.join(ASSETS, "output", "multi_study_output.json")) as handle:
-            expected = json.load(handle)
-
-        assert transform_protein_de_aggregate(datasets) == expected
-
-    def test_filename_fills_missing_biology(self) -> None:
+    def test_biology_comes_from_the_dataset_name(self) -> None:
         datasets = _load_shared_inputs()
         input_path = os.path.join(ASSETS, "input")
         datasets["jax_load2_f_4mo"] = pd.read_csv(
@@ -155,28 +137,6 @@ class TestTransformProteinDeAggregate:
         assert output == expected
         assert "12 months" not in output[1]
 
-    def test_column_wins_over_filename(self) -> None:
-        datasets = _build_datasets(
-            data_files={
-                "jax_load2_m_12mo": {
-                    "protein_id": ["Gnai3|P27144"],
-                    "diff": [0.5],
-                    "padj": [0.01],
-                    "model": ["LOAD2"],
-                    "sex": ["Female"],
-                    "age": ["4 months"],
-                    "tissue": ["Cortex"],
-                }
-            }
-        )
-
-        output = transform_protein_de_aggregate(datasets)
-
-        assert output[0]["tissue"] == "Cortex"
-        assert output[0]["sex"] == "Female"
-        assert "4 months" in output[0]
-        assert "12 months" not in output[0]
-
     def test_one_gene_many_proteins(self) -> None:
         datasets = _build_datasets(
             data_files={
@@ -184,10 +144,6 @@ class TestTransformProteinDeAggregate:
                     "protein_id": ["Gnai3|P27144", "Gnai3|Q8C8R3"],
                     "diff": [0.1, 0.2],
                     "padj": [0.01, 0.02],
-                    "model": ["LOAD2", "LOAD2"],
-                    "sex": ["Female", "Female"],
-                    "age": ["4 months", "4 months"],
-                    "tissue": ["Hemibrain", "Hemibrain"],
                 }
             }
         )
@@ -207,10 +163,6 @@ class TestTransformProteinDeAggregate:
                     "protein_id": ["Cycs|P27144"],
                     "diff": [0.5],
                     "padj": [0.01],
-                    "model": ["LOAD2"],
-                    "sex": ["Female"],
-                    "age": ["4 months"],
-                    "tissue": ["Hemibrain"],
                 }
             },
             gene_metadata=pd.DataFrame(
@@ -248,10 +200,6 @@ class TestTransformProteinDeAggregate:
                     "protein_id": ["Ank2|Q8C8R3", "Ank2|Q8C8R3-2"],
                     "diff": [0.1, 0.2],
                     "padj": [0.01, 0.02],
-                    "model": ["LOAD2", "LOAD2"],
-                    "sex": ["Female", "Female"],
-                    "age": ["4 months", "4 months"],
-                    "tissue": ["Hemibrain", "Hemibrain"],
                 }
             },
             mapping=pd.DataFrame(
@@ -301,10 +249,6 @@ class TestTransformProteinDeAggregate:
                     "protein_id": ["Gnai3|P27144"],
                     "diff": [-0.0],
                     "padj": [float("nan")],
-                    "model": ["LOAD2"],
-                    "sex": ["Female"],
-                    "age": ["4 months"],
-                    "tissue": ["Hemibrain"],
                 }
             }
         )
@@ -315,23 +259,8 @@ class TestTransformProteinDeAggregate:
         assert age["log2_fc"] == 0.0
         assert not math.copysign(1.0, age["log2_fc"]) < 0
 
-    def test_sex_remap(self) -> None:
-        datasets = _build_datasets(
-            data_files={
-                DEFAULT_DE_FILE: {
-                    "protein_id": ["Gnai3|P27144"],
-                    "diff": [0.5],
-                    "padj": [0.01],
-                    "model": ["LOAD2"],
-                    "sex": ["Females"],
-                    "age": ["4 months"],
-                    "tissue": ["Hemibrain"],
-                }
-            }
-        )
 
-        assert transform_protein_de_aggregate(datasets)[0]["sex"] == "Female"
-
+class TestFilenameTokens:
     def test_too_few_filename_tokens_raises(self) -> None:
         datasets = _build_datasets(data_files={"de_file": _de_only()})
 
@@ -362,6 +291,31 @@ class TestTransformProteinDeAggregate:
         with pytest.raises(ValueError, match="not in the genotype label map"):
             transform_protein_de_aggregate(datasets)
 
+
+class TestDuplicateAges:
+    def test_same_protein_and_age_from_two_files_raises(self) -> None:
+        """Two dataset names that resolve to the same biology cannot both supply one age."""
+        row = {
+            "protein_id": ["Gnai3|P27144"],
+            "diff": [0.1],
+            "padj": [0.01],
+        }
+        datasets = _build_datasets(
+            data_files={
+                "jax_load2_f_4mo": row,
+                "jax_LOAD2_f_4mo": {
+                    "protein_id": ["Gnai3|P27144"],
+                    "diff": [0.2],
+                    "padj": [0.02],
+                },
+            }
+        )
+
+        with pytest.raises(ValueError, match="which fold change belongs"):
+            transform_protein_de_aggregate(datasets)
+
+
+class TestInputValidation:
     def test_empty_file_raises(self) -> None:
         datasets = _build_datasets(
             data_files={
@@ -369,10 +323,6 @@ class TestTransformProteinDeAggregate:
                     "protein_id": pd.Series(dtype=str),
                     "diff": pd.Series(dtype=float),
                     "padj": pd.Series(dtype=float),
-                    "model": pd.Series(dtype=str),
-                    "sex": pd.Series(dtype=str),
-                    "age": pd.Series(dtype=str),
-                    "tissue": pd.Series(dtype=str),
                 }
             }
         )
@@ -401,10 +351,6 @@ class TestTransformProteinDeAggregate:
                 DEFAULT_DE_FILE: {
                     "diff": [0.5],
                     "padj": [0.01],
-                    "model": ["LOAD2"],
-                    "sex": ["Female"],
-                    "age": ["4 months"],
-                    "tissue": ["Hemibrain"],
                 }
             }
         )
@@ -419,10 +365,6 @@ class TestTransformProteinDeAggregate:
                     "protein_id": ["P27144"],
                     "diff": [0.5],
                     "padj": [0.01],
-                    "model": ["LOAD2"],
-                    "sex": ["Female"],
-                    "age": ["4 months"],
-                    "tissue": ["Hemibrain"],
                 }
             }
         )
@@ -437,33 +379,11 @@ class TestTransformProteinDeAggregate:
                     "protein_id": ["Gnai3|P27144"],
                     "diff": [0.5],
                     "padj": [-0.01],
-                    "model": ["LOAD2"],
-                    "sex": ["Female"],
-                    "age": ["4 months"],
-                    "tissue": ["Hemibrain"],
                 }
             }
         )
 
         with pytest.raises(ValueError, match="Negative adjusted p-value"):
-            transform_protein_de_aggregate(datasets)
-
-    def test_label_map_miss_raises(self) -> None:
-        datasets = _build_datasets(
-            data_files={
-                DEFAULT_DE_FILE: {
-                    "protein_id": ["Gnai3|P27144"],
-                    "diff": [0.5],
-                    "padj": [0.01],
-                    "model": ["UNKNOWN"],
-                    "sex": ["Female"],
-                    "age": ["4 months"],
-                    "tissue": ["Hemibrain"],
-                }
-            }
-        )
-
-        with pytest.raises(ValueError, match="UNKNOWN"):
             transform_protein_de_aggregate(datasets)
 
     def test_missing_fold_change_raises(self) -> None:
@@ -472,10 +392,6 @@ class TestTransformProteinDeAggregate:
                 DEFAULT_DE_FILE: {
                     "protein_id": ["Gnai3|P27144"],
                     "padj": [0.01],
-                    "model": ["LOAD2"],
-                    "sex": ["Female"],
-                    "age": ["4 months"],
-                    "tissue": ["Hemibrain"],
                 }
             }
         )

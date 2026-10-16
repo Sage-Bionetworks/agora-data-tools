@@ -13,7 +13,9 @@ import logging
 from typing import Any
 
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    build_biodomain_lookup,
     build_model_to_model_group_lookup,
+    build_model_type_lookup,
     determine_result_order,
     filter_to_mouse_genes,
     label_genotypes,
@@ -48,7 +50,8 @@ class TestNormalizeTissue:
 
     def test_all_null_column_remains_null(self) -> None:
         """pandas reads an entirely empty column as float. normalize_tissue should handle this case
-        by leaving the column with all null values but the column should have a "string" type."""
+        by leaving the column with all null values but the column should have a "string" type.
+        """
         result = normalize_tissue(pd.Series([None, None]))
         assert result.isna().all()
         assert result.dtype == "object"
@@ -794,3 +797,29 @@ class TestAgeEntries:
             create_age_entries_from_group(
                 group, "ENSMUSG00000000001", "Model", "Cortex", "Female"
             )
+
+
+class TestBuildModelTypeLookup:
+    def test_one_row_per_model(self) -> None:
+        label_map = pd.DataFrame(
+            {
+                "model": ["LOAD2", "LOAD2"],
+                "model_type": ["Late Onset AD", "Late Onset AD"],
+            }
+        )
+
+        assert build_model_type_lookup(label_map) == {"LOAD2": "Late Onset AD"}
+
+
+class TestBuildBiodomainLookup:
+    def test_groups_biodomains_and_drops_a_blank_ensembl_id(self) -> None:
+        biodomains = pd.DataFrame(
+            {
+                "ensembl_id": ["ENSMUSG00000000001", "ENSMUSG00000000001", None],
+                "biodomain": ["Apoptosis", "Synapse", "Lipid Metabolism"],
+            }
+        )
+
+        assert build_biodomain_lookup(biodomains) == {
+            "ENSMUSG00000000001": ["Apoptosis", "Synapse"]
+        }

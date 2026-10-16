@@ -291,6 +291,34 @@ def build_model_to_model_group_lookup(
     )
 
 
+def build_model_type_lookup(genotype_label_map_df: pd.DataFrame) -> dict[str, str]:
+    """Map each model to its model_type.
+
+    Assumes validate_one_to_one_mapping has already rejected a model with more
+    than one model_type, so one row per model is enough.
+    """
+    return (
+        genotype_label_map_df.drop_duplicates("model")
+        .set_index("model")["model_type"]
+        .to_dict()
+    )
+
+
+def build_biodomain_lookup(biodom_genes_mm_df: pd.DataFrame) -> dict[str, list[str]]:
+    """Map each ensembl id to its biodomain names.
+
+    Rows with no ensembl id are dropped: they cannot be joined to a gene.
+    """
+    present = biodom_genes_mm_df.dropna(axis="index", subset=["ensembl_id"])
+    return (
+        present[["ensembl_id", "biodomain"]]
+        .drop_duplicates()
+        .groupby("ensembl_id")["biodomain"]
+        .apply(list)
+        .to_dict()
+    )
+
+
 def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> dict[str, str]:
     """
     Create a lookup dictionary mapping Ensembl gene IDs to gene symbols.
