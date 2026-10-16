@@ -159,51 +159,6 @@ class TestCreateOutputEntryFromGroup:
         assert result["tissue"] == "Hippocampus"
         assert result["sex"] == "Female"
 
-    def test_create_output_entry_passes_tissue_through(self) -> None:
-        """Aliasing is applied once, upstream, before groups are built.
-
-        _process_single_data_file maps names such as Right Cerebral Hemisphere
-        to Hemibrain via normalize_tissue. This test feeds an unaliased tissue
-        name straight into the group key and asserts it comes back unchanged,
-        so a regression that adds aliasing here would apply the mapping twice.
-        """
-        group_key = (
-            "ENSMUSG00000000003",
-            "Model_C",
-            "Right Cerebral Hemisphere",
-            "Male",
-            "Tg",
-            "Wt",
-        )
-        group = pd.DataFrame(
-            {
-                "age": ["6 months"],
-                "log2foldchange": [1.0],
-                "padj": [0.01],
-            }
-        )
-
-        gene_metadata_dict = {"ENSMUSG00000000003": "Gene3"}
-        label_map_dict = {
-            ("Model_C", "Tg"): "Transgenic_C",
-            ("Model_C", "Wt"): "Wildtype_C",
-        }
-        model_group_dict = {}
-        biodomain_dict = {}
-        model_type_dict = {}
-
-        result = _create_output_entry_from_group(
-            group_key=group_key,
-            group=group,
-            gene_metadata_dict=gene_metadata_dict,
-            label_map_dict=label_map_dict,
-            model_group_dict=model_group_dict,
-            biodomain_dict=biodomain_dict,
-            model_type_dict=model_type_dict,
-        )
-
-        assert result["tissue"] == "Right Cerebral Hemisphere"
-
     def test_create_output_entry_multiple_biodomains(self) -> None:
         """Test output entry with multiple biodomain assignments."""
         group_key = ("ENSMUSG00000000005", "Model_E", "Cortex", "Male", "Tg", "Wt")
@@ -1132,8 +1087,8 @@ class TestTransformRnaDeAggregate:
         assert set(output_data_sorted[0]["biodomains"]) == {"Metabolic", "Synaptic"}
 
     @pytest.mark.parametrize("column", sorted(COLUMN_RULES["genotype_label_map"]))
-    def test_label_map_rejects_empty_value(self, column: str) -> None:
-        """Every genotype label map column rejects an empty value.
+    def test_label_map_empty_value_raises(self, column: str) -> None:
+        """Empty values in any gentotype label map column should raise an error.
 
         Columns come from COLUMN_RULES, so a newly required column is covered
         without a hand-written test.

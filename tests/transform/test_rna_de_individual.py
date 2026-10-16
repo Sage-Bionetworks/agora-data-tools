@@ -903,8 +903,8 @@ class TestTransformRnaDeIndividual:
         }
 
     @pytest.mark.parametrize("column", sorted(COLUMN_RULES["genotype_label_map"]))
-    def test_label_map_rejects_empty_value(self, column: str) -> None:
-        """Every genotype label map column rejects an empty value.
+    def test_label_map_empty_value_raises(self, column: str) -> None:
+        """Empty values in any gentotype label map column should raise an error.
 
         Columns come from COLUMN_RULES, so a newly required column is covered
         without a hand-written test.

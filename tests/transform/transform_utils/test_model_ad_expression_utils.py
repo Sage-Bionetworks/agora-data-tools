@@ -711,6 +711,23 @@ class TestBuildBiodomainLookup:
             "ENSMUSG00000000001": ["Apoptosis", "Synapse"]
         }
 
+    def test_biodomain_lookup_drops_duplicates(self) -> None:
+        """Test that duplicate biodomain entries for the same gene are dropped from the output list."""
+        biodomains = pd.DataFrame(
+            {
+                "ensembl_id": [
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                ],
+                "biodomain": ["Apoptosis", "Apoptosis", "Metabolic"],
+            }
+        )
+
+        assert build_biodomain_lookup(biodomains) == {
+            "ENSMUSG00000000001": ["Apoptosis", "Metabolic"]
+        }
+
 
 class TestValidateAndSortAgeEntries:
     """
@@ -1075,29 +1092,6 @@ class TestCreateAgeEntriesFromGroup:
         assert result["3 months"]["adj_p_val"] == pytest.approx(1.0)
         assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
 
-        # Group with NA and negative value should still raise error for negative
-        group_negative = pd.DataFrame(
-            {
-                "age": ["3 months", "6 months"],
-                "log2foldchange": [0.5, 1.5],
-                "padj": [pd.NA, -0.01],
-            }
-        )
-
-        with pytest.raises(ValueError) as exc_info:
-            create_age_entries_from_group(
-                group=group_negative,
-                ensembl_gene_id="ENSMUSG00000000011",
-                model="TestModel",
-                tissue="Cortex",
-                sex="Male",
-            )
-
-        # Should still catch negative p-value even when NA is present
-        error_message = str(exc_info.value)
-        assert "Negative adjusted p-value found in data" in error_message
-        assert "ENSMUSG00000000011" in error_message
-
     def test_create_age_entries_with_negative_zero(self) -> None:
         """Test that negative zero log2foldchange is normalized to positive zero."""
         group = pd.DataFrame(
@@ -1145,3 +1139,27 @@ class TestCreateAgeEntriesFromGroup:
         assert "TestModel" in error_message
         assert "Cortex" in error_message
         assert "Female" in error_message
+
+    def test_create_age_entries_mixed_na_and_invalid_padj_raises(self) -> None:
+        """Group with NA and negative value should still raise error for negative adjusted p-values."""
+        group_negative = pd.DataFrame(
+            {
+                "age": ["3 months", "6 months"],
+                "log2foldchange": [0.5, 1.5],
+                "padj": [pd.NA, -0.01],
+            }
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            create_age_entries_from_group(
+                group=group_negative,
+                ensembl_gene_id="ENSMUSG00000000011",
+                model="TestModel",
+                tissue="Cortex",
+                sex="Male",
+            )
+
+        # Should still catch negative p-value even when NA is present
+        error_message = str(exc_info.value)
+        assert "Negative adjusted p-value found in data" in error_message
+        assert "ENSMUSG00000000011" in error_message

@@ -18,9 +18,14 @@ def load_synthetic_test_data(
     datasets = {}
     input_path = os.path.join(data_files_path, "input")
     for file_name in data_files:
-        if not file_name.endswith(".csv"):
+        if file_name.endswith(".json"):
+            df = pd.read_json(os.path.join(input_path, file_name))
+        elif file_name.endswith(".csv"):
+            df = pd.read_csv(os.path.join(input_path, file_name))
+        else:
             continue
-        df = pd.read_csv(os.path.join(input_path, file_name))
-        key = file_to_key_mapping.get(file_name, file_name.replace(".csv", ""))
+
+        default_name = file_name.replace(".csv", "").replace(".json", "")
+        key = file_to_key_mapping.get(file_name, default_name)
         datasets[key] = df
     return datasets
