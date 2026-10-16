@@ -21,8 +21,6 @@ The transformation:
 
 Key Functions:
     transform_rna_de_aggregate: Main transformation function that orchestrates the data processing
-    _validate_and_sort_age_entries: Validates and sorts age entries by numeric value
-    _create_age_entries_from_group: Creates age-based entries from a grouped DataFrame with normalization and validation
     _create_output_entry_from_group: Creates a complete output entry from a grouped DataFrame by enriching it with metadata
     _process_single_data_file: Processes a single differential expression data file and transforms it into output entries
 
@@ -45,7 +43,6 @@ from agoradatatools.etl.utils import (
     NotEmptyRule,
     check_column_rules,
     check_required_datasets_and_columns,
-    normalize_zero,
     validate_one_to_one_mapping,
 )
 
@@ -55,10 +52,14 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     GENOTYPE_LABEL_MAP_COLUMNS,
     GENOTYPE_LABEL_MAP_RULES,
+    build_biodomain_lookup,
     build_model_to_model_group_lookup,
+    build_model_type_lookup,
+    create_age_entries_from_group,
     create_gene_metadata_dict,
     filter_to_mouse_genes,
     normalize_tissue,
+    validate_and_sort_age_entries,
     validate_data_file,
 )
 
@@ -97,125 +98,6 @@ DATA_FILE_REQUIRED_COLUMNS = [
     "sex",
     "tissue",
 ]
-
-
-def _validate_and_sort_age_entries(
-    age_entries: Dict[str, Dict[str, float]],
-    ensembl_gene_id: str,
-    model: str,
-    tissue: str,
-    sex: str,
-) -> Dict[str, Dict[str, float]]:
-    """
-    Validates and sorts age entries by their numeric value.
-
-    Age entries are expected to be in the format 'N months' where N is an integer.
-    This function validates that all age strings are properly formatted and not empty,
-    then sorts them numerically.
-
-    Args:
-        age_entries: Dictionary mapping age strings to their log2_fc and adj_p_val values
-        ensembl_gene_id: Gene identifier for error reporting
-        model: Model name for error reporting
-        tissue: Tissue type for error reporting
-        sex: Sex category for error reporting
-
-    Returns:
-        Dictionary of age entries sorted by numeric age value
-
-    Raises:
-        ValueError: If any age string is empty, whitespace-only, or not in 'N months' format
-    """
-    # Validate that no age strings are empty or whitespace-only
-    for age in age_entries.keys():
-        age_stripped = age.strip()
-        if not age_stripped:
-            raise ValueError(
-                f"Empty or whitespace-only age value found in data for gene '{ensembl_gene_id}', "
-                f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-                f"Expected 'N months' format but found: '{age}'"
-            )
-
-    # Sort age entries by numeric value with error handling for format validation
-    try:
-        sorted_ages = dict(
-            sorted(age_entries.items(), key=lambda x: int(x[0].split()[0]))
-        )
-    except (ValueError, IndexError) as e:
-        raise ValueError(
-            f"Invalid age format in data for gene '{ensembl_gene_id}', "
-            f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-            f"Expected 'N months' format but found: {list(age_entries.keys())}. "
-            f"Original error: {e}"
-        ) from e
-
-    return sorted_ages
-
-
-def _create_age_entries_from_group(
-    group: pd.DataFrame,
-    ensembl_gene_id: str,
-    model: str,
-    tissue: str,
-    sex: str,
-) -> Dict[str, Dict[str, float]]:
-    """
-    Creates age-based entries from a grouped DataFrame containing differential expression data.
-
-    This function processes a DataFrame group that has been grouped by gene, model, tissue, and sex.
-    It extracts age-specific differential expression measurements (log2 fold change and adjusted
-    p-values) for each age timepoint in the group. The function performs data normalization and
-    validation, including:
-    - Normalizing zero values in log2 fold change to ensure consistent representation
-    - Converting missing (NA) adjusted p-values to 1.0, because a missing p-value is
-      not evidence of significance and must not present as 0.0 (maximally significant)
-    - Validating that adjusted p-values are non-negative when present
-
-    The resulting dictionary structure allows for easy lookup of differential expression metrics
-    by age timepoint, which is used downstream to create structured output entries.
-
-    Args:
-        group: DataFrame group containing age, log2foldchange, and padj columns. Each row
-            represents a single age timepoint measurement for the grouped combination of
-            gene, model, tissue, and sex.
-        ensembl_gene_id: Gene identifier (e.g., 'ENSMUSG00000000001') used for error reporting
-            when validation fails.
-        model: Model name used for error reporting when validation fails.
-        tissue: Tissue type used for error reporting when validation fails.
-        sex: Sex category used for error reporting when validation fails.
-
-    Returns:
-        Dictionary mapping age strings (e.g., '3 months', '6 months') to nested dictionaries
-        containing:
-            - 'log2_fc': float, normalized log2 fold change value (zero values normalized)
-            - 'adj_p_val': float, adjusted p-value (NA values converted to 1.0, because
-              a missing p-value is not evidence of significance)
-
-        Example:
-            {
-                '3 months': {'log2_fc': 1.234, 'adj_p_val': 0.001},
-                '6 months': {'log2_fc': 2.456, 'adj_p_val': 1.0}  # missing padj
-            }
-
-    Raises:
-        ValueError: If any adjusted p-value (padj) is negative when not NA. This indicates
-            invalid data that should be caught during processing.
-    """
-    age_entries = {}
-    for row in group.itertuples(index=False):
-        age = str(row.age)
-        # Check for negative p-values only if padj is not NA
-        if not pd.isna(row.padj) and float(row.padj) < 0.0:
-            raise ValueError(
-                f"Negative adjusted p-value found in data for gene '{ensembl_gene_id}', "
-                f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-                f"Expected positive adjusted p-value but found: '{row.padj}'"
-            )
-        age_entries[age] = {
-            "log2_fc": normalize_zero(float(row.log2foldchange)),
-            "adj_p_val": 1.0 if pd.isna(row.padj) else float(row.padj),
-        }
-    return age_entries
 
 
 def _create_output_entry_from_group(
@@ -330,11 +212,11 @@ def _create_output_entry_from_group(
     biodomains = biodomain_dict.get(ensembl_gene_id, [])
     model_type = model_type_dict.get(model, "")
 
-    age_entries = _create_age_entries_from_group(
+    age_entries = create_age_entries_from_group(
         group, ensembl_gene_id, model, tissue, sex
     )
 
-    sorted_ages = _validate_and_sort_age_entries(
+    sorted_ages = validate_and_sort_age_entries(
         age_entries, ensembl_gene_id, model, tissue, sex
     )
 
@@ -567,9 +449,6 @@ def transform_rna_de_aggregate(
     # Pre-compute lookup dictionaries for efficient lookups
     genotype_label_map_df = datasets["genotype_label_map"]
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
-    biodom_genes_mm_df = datasets["biodom_genes_mm"].dropna(
-        axis="index", subset=["ensembl_id"]
-    )
 
     # Missing gene symbols are dropped inside create_gene_metadata_dict; lookups default
     # to an empty string when the Ensembl ID is absent.
@@ -583,25 +462,10 @@ def transform_rna_de_aggregate(
     validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
     validate_one_to_one_mapping(genotype_label_map_df, "model", "model_type")
     model_group_dict = build_model_to_model_group_lookup(genotype_label_map_df)
-
-    # Derive model_type from genotype_label_map so that split variant models
-    # (e.g., "Abca7*V1599M.5xFAD") are covered without requiring entries in model_info.
-    # Safe to take one row per model: the mapping check above rejected conflicts.
-    model_type_dict = (
-        genotype_label_map_df[["model", "model_type"]]
-        .drop_duplicates("model")
-        .set_index("model")["model_type"]
-        .to_dict()
-    )
-
-    # Create biodomain lookup dictionary
-    biodomain_dict = (
-        biodom_genes_mm_df[["ensembl_id", "biodomain"]]
-        .drop_duplicates()
-        .groupby("ensembl_id")["biodomain"]
-        .apply(list)
-        .to_dict()
-    )
+    # model_type comes from the label map so split variant models are covered
+    # without entries in model_info.
+    model_type_dict = build_model_type_lookup(genotype_label_map_df)
+    biodomain_dict = build_biodomain_lookup(datasets["biodom_genes_mm"])
 
     output = []
 
