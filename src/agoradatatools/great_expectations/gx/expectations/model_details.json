@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Familial AD",
-          "Late Onset AD"
+          "Late Onset AD",
+          "Familial AD"
         ]
       },
       "meta": {}
@@ -243,7 +243,7 @@
       "kwargs": {
         "column": "disease_correlation",
         "condition_parser": "pandas",
-        "regex": "^comparison/correlation",
+        "regex": "^comparison/correlation\\?models=",
         "row_condition": "disease_correlation.notnull()"
       },
       "meta": {}
@@ -275,6 +275,8 @@
       "kwargs": {
         "column": "genetic_info",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_details/genetic_info_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
             "additionalProperties": false,
             "properties": {
@@ -336,6 +338,8 @@
       "kwargs": {
         "column": "biomarkers",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_details/biomarkers_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
             "additionalProperties": false,
             "properties": {
@@ -450,6 +454,8 @@
       "kwargs": {
         "column": "pathology",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_details/pathology_schema.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
             "additionalProperties": false,
             "properties": {
