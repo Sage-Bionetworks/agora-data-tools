@@ -11,6 +11,13 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "uniqid"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "uniqid",
@@ -23,7 +30,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "uniqid",
-        "regex": "^[a-zA-Z0-9.]+?|[a-zA-Z0-9-]+$"
+        "regex": "^[A-Za-z0-9_.-]+\\|(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})(?:-\\d+)?$"
       },
       "meta": {}
     },
@@ -43,6 +50,13 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "hgnc_symbol"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "hgnc_symbol",
@@ -55,14 +69,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "hgnc_symbol",
-        "regex": "^[a-zA-Z0-9.-]*$"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "hgnc_symbol"
+        "regex": "^[A-Za-z0-9_.-]+$"
       },
       "meta": {}
     },
@@ -75,6 +82,13 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "uniprotid"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "uniprotid",
@@ -87,19 +101,12 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "uniprotid",
-        "regex": "^[a-zA-Z0-9.-]*$"
+        "regex": "^(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})(?:-\\d+)?$"
       },
       "meta": {}
     },
     {
       "expectation_type": "expect_column_values_to_be_unique",
-      "kwargs": {
-        "column": "uniprotid"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "uniprotid"
       },
@@ -121,18 +128,10 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_value_lengths_to_equal",
-      "kwargs": {
-        "column": "ensembl_gene_id",
-        "value": 15
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
-        "regex": "^ENSG\\d{11}$"
+        "regex": "^ENSG[0-9]{11}$"
       },
       "meta": {}
     },
@@ -145,11 +144,9 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_value_lengths_to_be_between",
+      "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
-        "column": "tissue",
-        "max_value": 15,
-        "min_value": 1
+        "column": "tissue"
       },
       "meta": {}
     },
@@ -158,10 +155,7 @@
       "kwargs": {
         "column": "tissue",
         "value_set": [
-          "AntPFC",
-          "DLPFC",
-          "MFG",
-          "TCX"
+          "DLPFC"
         ]
       },
       "meta": {}
@@ -175,6 +169,13 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "log2_fc"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_between",
       "kwargs": {
         "column": "log2_fc",
@@ -184,17 +185,17 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "log2_fc"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "ci_upr",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "ci_upr"
       },
       "meta": {}
     },
@@ -208,17 +209,17 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "ci_upr"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "ci_lwr",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "ci_lwr"
       },
       "meta": {}
     },
@@ -232,26 +233,10 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "ci_lwr"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "pval",
         "type_": "float"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_between",
-      "kwargs": {
-        "column": "pval",
-        "max_value": 1,
-        "min_value": 0
       },
       "meta": {}
     },
@@ -263,10 +248,26 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "pval",
+        "max_value": 1,
+        "min_value": 0
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "cor_pval",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "cor_pval"
       },
       "meta": {}
     },
@@ -276,13 +277,6 @@
         "column": "cor_pval",
         "max_value": 1,
         "min_value": 0
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "cor_pval"
       },
       "meta": {}
     },
@@ -299,6 +293,17 @@
       "kwargs": {
         "column_list": [
           "uniqid",
+          "tissue"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_compound_columns_to_be_unique",
+      "kwargs": {
+        "column_list": [
+          "ensembl_gene_id",
+          "uniprotid",
           "tissue"
         ]
       },

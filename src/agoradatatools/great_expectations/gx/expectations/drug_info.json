@@ -79,7 +79,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "chembl_id",
-        "regex": "^CHEMBL\\d+$"
+        "regex": "^CHEMBL[0-9]+$"
       },
       "meta": {}
     },
@@ -96,7 +96,7 @@
       "kwargs": {
         "column": "drug_bank_id",
         "condition_parser": "pandas",
-        "regex": "^DB\\d+$",
+        "regex": "^DB[0-9]+$",
         "row_condition": "drug_bank_id.notnull()"
       },
       "meta": {}
@@ -207,31 +207,17 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "linked_targets",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "linked_targets"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "linked_targets",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/drug_info/linked_targets.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
             "additionalProperties": false,
             "properties": {
               "ensembl_gene_id": {
-                "pattern": "^ENSG\\d{11}$",
+                "pattern": "^ENSG[0-9]{11}$",
                 "type": "string"
               },
               "hgnc_symbol": {
@@ -259,25 +245,11 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "drug_nominations",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "drug_nominations"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "drug_nominations",
         "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/drug_info/drug_nominations.json",
           "$schema": "https://json-schema.org/draft/2019-09/schema",
           "items": {
             "additionalProperties": false,
@@ -301,7 +273,7 @@
                   "additionalProperties": false,
                   "properties": {
                     "chembl_id": {
-                      "pattern": "^CHEMBL\\d+$",
+                      "pattern": "^CHEMBL[0-9]+$",
                       "type": "string"
                     },
                     "common_name": {
