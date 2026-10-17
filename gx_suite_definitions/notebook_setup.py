@@ -39,14 +39,16 @@ _PYTHON_WARNING_SUPPRESSIONS = [
     ),
 ]
 
+
 class SynapseCollisionFilter(logging.Filter):
     """Drops the synapseclient banner about ifcollision being ignored for downloads to the
     Synapse cache, letting every other record through."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         """Returns False only for the ifcollision cache banner."""
-        # return "ifcollision=keep.both is being IGNORED" not in record.getMessage()
-        return not any(text in record.getMessage() for text, _why in _SYNAPSE_LOG_SUPPRESSIONS)
+        return not any(
+            text in record.getMessage() for text, _why in _SYNAPSE_LOG_SUPPRESSIONS
+        )
 
 
 def configure_notebook_output() -> None:
@@ -68,7 +70,6 @@ def configure_notebook_output() -> None:
         logger = logging.getLogger(logger_name)
         if not any(isinstance(f, SynapseCollisionFilter) for f in logger.filters):
             logger.addFilter(SynapseCollisionFilter())
-
 
     for category, pattern, _why in _PYTHON_WARNING_SUPPRESSIONS:
         warnings.filterwarnings("ignore", category=category, message=pattern)
