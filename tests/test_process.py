@@ -6,7 +6,7 @@ from contextlib import nullcontext as does_not_raise
 import pandas as pd
 import pytest
 
-from synapseclient import File
+from synapseclient.api.entity_services import EntityHeader
 from typer.testing import CliRunner
 
 from agoradatatools import process
@@ -1157,9 +1157,19 @@ class TestProcessDataset:
 
 
 class TestCreateDataManifest:
-    files = [
-        File(id="syn123", name="not_a_manifest", versionNumber=1),
-        File(id="syn456", name="data_manifest.csv", versionNumber=1),
+    walk_children = [
+        EntityHeader(
+            id="syn123",
+            name="not_a_manifest",
+            type="org.sagebionetworks.repo.model.FileEntity",
+            version_number=1,
+        ),
+        EntityHeader(
+            id="syn456",
+            name="data_manifest.csv",
+            type="org.sagebionetworks.repo.model.FileEntity",
+            version_number=1,
+        ),
     ]
     manifest_rows = [
         {"id": "syn123", "version": 1},
@@ -1167,9 +1177,14 @@ class TestCreateDataManifest:
     ]
 
     @pytest.fixture(scope="function", autouse=True)
-    def setup_method(self, syn: synapseclient.Synapse):
-        self.patch_get_children = patch.object(
-            syn, "getChildren", return_value=self.files
+    def setup_method(self):
+        self.mock_folder_instance = mock.MagicMock()
+        self.mock_folder_instance.get.return_value = self.mock_folder_instance
+        self.mock_folder_instance.walk.return_value = iter(
+            [(("parent_name", "syn1111111"), [], self.walk_children)]
+        )
+        self.patch_folder_class = patch.object(
+            process, "Folder", return_value=self.mock_folder_instance
         ).start()
 
     def teardown_method(self):
@@ -1180,16 +1195,36 @@ class TestCreateDataManifest:
         result = process.create_data_manifest(syn=syn, parent=None)
         # THEN I expect the result to be None
         assert result is None
-        # AND I expect the getChildren method to not be called
-        self.patch_get_children.assert_not_called()
+        # AND I expect the Folder class to never be constructed
+        self.patch_folder_class.assert_not_called()
 
-    def test_create_data_manifest_with_parent(self, syn: synapseclient.Synapse):
-        # WHEN I call create_data_manifest with a parent
+    def test_create_data_manifest_with_string_parent(self, syn: synapseclient.Synapse):
+        # WHEN I call create_data_manifest with a synapse id string as the parent
         result_df = process.create_data_manifest(syn=syn, parent="syn1111111")
-        # THEN I expect the getChildren method to be called with the parent
-        self.patch_get_children.assert_called_once_with("syn1111111")
+        # THEN I expect a Folder to be constructed for that id and fetched with the
+        # caller's syn session
+        self.patch_folder_class.assert_called_once_with(id="syn1111111")
+        self.mock_folder_instance.get.assert_called_once_with(synapse_client=syn)
+        # AND I expect walk() to be called non-recursively, also using that session
+        self.mock_folder_instance.walk.assert_called_once_with(
+            recursive=False, synapse_client=syn
+        )
         # AND I expect the result to be a dataframe with the correct rows
         # Including incrementing the version number for the data_manifest.csv file
+        pd.testing.assert_frame_equal(result_df, pd.DataFrame(self.manifest_rows))
+
+    def test_create_data_manifest_with_folder_parent(self, syn: synapseclient.Synapse):
+        # WHEN I call create_data_manifest with an already-constructed Folder as the parent
+        folder_parent = mock.MagicMock()
+        folder_parent.walk.return_value = iter(
+            [(("parent_name", "syn1111111"), [], self.walk_children)]
+        )
+        result_df = process.create_data_manifest(syn=syn, parent=folder_parent)
+        # THEN I expect it to be walked directly, without being re-fetched via Folder(...)
+        self.patch_folder_class.assert_not_called()
+        folder_parent.get.assert_not_called()
+        folder_parent.walk.assert_called_once_with(recursive=False, synapse_client=syn)
+        # AND I expect the result to be a dataframe with the correct rows
         pd.testing.assert_frame_equal(result_df, pd.DataFrame(self.manifest_rows))
 
 

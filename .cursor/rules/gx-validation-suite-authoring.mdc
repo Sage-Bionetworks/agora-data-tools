@@ -191,6 +191,9 @@ Notebook: `data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.
 | `model_overview` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
 | `model_overview` → `available_data` | `expect_column_values_to_have_list_members` | Available Data values (the `available_data` entry in `mo_filter_values`) |
 | `model_overview` → `center` | `expect_column_values_to_be_in_set` | Contributing Center values (the `center` entry in `mo_filter_values`) |
+| `marmo_overview` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `marmo_overview` → `modified_genes` | `expect_column_values_to_have_list_members` | `marmo_mo_modified_gene_filter_vals` |
+| `marmo_overview` → `available_data` | `expect_column_values_to_have_list_members` | Available Data values (the first entry in `marmo_mo_filter_values`) |
 | `rna_de_aggregate` → `biodomains` | `expect_column_values_to_have_list_members` | `biodomain_filter_vals` |
 | `rna_de_aggregate` → `sex` | `expect_column_values_to_be_in_set` | `sex_filter_vals` |
 | `rna_de_aggregate` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
@@ -392,7 +395,28 @@ The templates below cover common link-object columns; array/list columns use the
 
 > **Before starting:** Ask the user for the Synapse ID of the processed output file for this dataset (e.g. `syn73774519`). This is needed for the data-loading cell in the notebook. Do not proceed without it.
 
-Copy an existing notebook (e.g., `gx_suite_definitions/biomarkers.ipynb`) as a starting point.
+### The notebook must load its data from the Synapse entity
+
+The notebook is the reproducible source of truth for the suite, so its data-loading cell must
+always reference the Synapse entity, never a local file:
+
+```python
+# ✅ CORRECT
+my_transform_file = syn.get("syn73774519").path
+
+# ❌ WRONG — local files are gitignored and differ per developer, so the suite can't be reproduced
+my_transform_file = "../staging/my_transform.json"
+```
+
+Do not add a local-file alternative to the cell either, not even a commented-out one. A local
+`staging/` copy may still be used to *inspect* values while authoring (see "Inspect the staging
+file before writing regex expectations"), but the notebook itself must load the Synapse entity.
+The entity must be the **processed output file emitted by ADT**, never an input file. This holds
+for passthrough datasets (no `custom_transformations`) too: ADT still reads the input into a
+DataFrame, standardizes column names and values, and serializes it back to JSON, so the input file
+is not the file GX validates at runtime.
+
+Copy an existing notebook (e.g., `gx_suite_definitions/model_overview.ipynb`) as a starting point.
 
 ### Critical: Cell 0 import order
 
@@ -1008,4 +1032,5 @@ Final suite: 53 expectations (was 52), 100% passing (runner-faithful, verified a
 | `mostly` threshold added without domain sign-off | Relaxing a check below 100% is a domain-knowledge call — always prompt the user first (name the field, check, observed rate, and proposed threshold); a sub-100% rate may be an undiagnosed data problem, not a tolerance to encode. Applies to `mostly` kwargs and nested-aggregate `non_null_threshold`/`valid_threshold` alike — see "Using `mostly` (deliberately)" in Step 3 |
 | A second nested aggregate of the same type on one column silently disappears | GX keys aggregate expectations by `(expectation_type, column)`, not `target_field`, so the later call overwrites the earlier — each column holds at most one `nested_object_not_null` / one `…_string_length` / one `…_regex_rule`. Use a different aggregate type per sub-field, or move the check into the JSON Schema; verify the generated suite's nested-aggregate count — see "Using `mostly` (deliberately)" in Step 3 |
 | Notebook left with execution outputs after `nbconvert --execute` | Strip immediately after executing — as part of generation, not at commit time — with `pre-commit run nbstripout --files <notebook>`. All suite notebooks are kept output-free. `nbstripout` isn't a standalone command, so go through `pre-commit`; don't install a git commit hook — see Step 4 |
+| Notebook loads a local `staging/` file (or has a commented-out local-file alternative) | Option A notebooks must load the Synapse entity with `syn.get("<syn_id>").path`; local copies are for inspecting values only — see "The notebook must load its data from the Synapse entity" in Step 3 |
 | Suite missing a table-level schema-drift check | For most new or modified suites, suggest one `expect_table_columns_to_match_set(column_set=[...], exact_match=True)` listing all of the transform's output columns — unless the column set is intentionally variable (e.g. `ui_config`) — see "Suggest `expect_table_columns_to_match_set` by default" in Step 3 |
