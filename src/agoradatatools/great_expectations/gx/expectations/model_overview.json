@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Familial AD",
-          "Late Onset AD"
+          "Late Onset AD",
+          "Familial AD"
         ]
       },
       "meta": {}
@@ -157,11 +157,11 @@
       "kwargs": {
         "column": "available_data",
         "list_members": [
-          "Disease Correlation",
-          "Transcriptomics",
+          "Proteomics",
           "Pathology",
+          "Disease Correlation",
           "Biomarkers",
-          "Proteomics"
+          "Transcriptomics"
         ]
       },
       "meta": {}
@@ -394,8 +394,8 @@
       "kwargs": {
         "column": "center",
         "value_set": [
-          "IU/Jax/Pitt",
-          "UCI"
+          "UCI",
+          "IU/Jax/Pitt"
         ]
       },
       "meta": {}
