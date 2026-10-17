@@ -624,9 +624,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "resource_url",
-        "condition_parser": "pandas",
-        "regex": "^https://adknowledgeportal.synapse.org/Explore/Target",
-        "row_condition": "resource_url.notnull()"
+        "regex": "^https://adknowledgeportal\\.synapse\\.org/Explore/Target%20Enabling%20Resources\\?"
       },
       "meta": {}
     },

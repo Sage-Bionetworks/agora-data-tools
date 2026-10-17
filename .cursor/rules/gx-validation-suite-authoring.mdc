@@ -536,14 +536,6 @@ validator.expect_column_values_to_have_unique_list_members(column="col")
 with open("../src/agoradatatools/great_expectations/gx/json_schemas/<transform>/my_schema.json") as f:
     schema = json.load(f)
 validator.expect_column_values_to_match_json_schema("col", json_schema=schema)
-
-# Regex on a nullable string column — use row_condition to skip null rows
-validator.expect_column_values_to_match_regex(
-    "col",
-    regex="^expected/prefix",
-    row_condition="col.notnull()",
-    condition_parser="pandas",
-)
 ```
 
 ### Suggest `expect_table_columns_to_match_set` by default
@@ -979,8 +971,7 @@ property (e.g. `` `ensembl_info.ensembl_possible_replacements` ``) keeps its che
 - **Do not add any section headers beyond the single `### Summary of changed expectations` header**
   at the top — no category groupings; a flat, sorted list only.
 - **Describe the check, not just the kwarg that changed.** "added `row_condition=…`" alone is
-  misleading; say what it guards and that behavior is unchanged if it is (GX already skips nulls, so
-  a null-guard on a map expectation is defensive, not a fix).
+  misleading; say what it guards against.
 
 ### Example (excerpt, from the gene_info suite)
 
@@ -1001,7 +992,6 @@ Final suite: 53 expectations (was 52), 100% passing (runner-faithful, verified a
 - `median_expression`: json_schema array of objects
   - list length [2,9] [added]
 - `median_expression.min`: json_schema range [-8,14] [added]
-- `resource_url`: regex — added defensive row_condition="resource_url.notnull()" (GX already skips nulls; no behavior change) [modified]
 - `target_nominations.data_synapseid`: regex "^syn[0-9]+$" @0.70 (73.7% match) [added]
 - `total_nominations`: range [1,10] [modified, was [0,1000]]
 - `uniprotkb_accessions`: unique members [added]
@@ -1020,7 +1010,6 @@ Final suite: 53 expectations (was 52), 100% passing (runner-faithful, verified a
 | A second expectation on a column silently disappears / a suite has fewer expectations than authored | GX dedups by `(expectation_type + column + row_condition/condition_parser)`; two same-type, same-column expectations with no/identical `row_condition` collide (last wins). Differentiate by type or `row_condition`, or combine into one schema. After regenerating, count expectations per column — see "GX dedups expectations by domain" in Step 3 |
 | Ad-hoc test shows a collision / wrong pass-fail the real suite doesn't have | You dropped `row_condition`/`condition_parser` when reproducing the expectation, changing its domain. Always mirror the FULL kwargs when verifying behavior or dedup |
 | Regex fails on a zero-padded string column (e.g. `jax_id`) | `pd.read_json()` converts `"004807"` → `4807` (int); validate as `int`, not `str` |
-| Regex fails on a nullable column | Use `row_condition="col.notnull()"` + `condition_parser="pandas"` to skip null rows |
 | Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
 | `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` / `expect_column_values_to_have_unique_list_members` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems`, `"items": {"type": ...}`, and `"uniqueItems": true` instead |
