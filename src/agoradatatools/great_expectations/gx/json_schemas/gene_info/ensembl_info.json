@@ -14,7 +14,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 3,
-            "pattern": "^\\d+$"
+            "pattern": "^[0-9]+$"
         },
         "ensembl_possible_replacements": {
             "type": "array",

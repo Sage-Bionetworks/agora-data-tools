@@ -653,7 +653,7 @@
             "ensembl_release": {
               "maxLength": 3,
               "minLength": 1,
-              "pattern": "^\\d+$",
+              "pattern": "^[0-9]+$",
               "type": "string"
             }
           },
