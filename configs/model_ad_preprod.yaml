@@ -18,7 +18,7 @@ files:
   - &marmo_individual_metadata    { name: marmo_individual_metadata    , format: csv  , id: syn63926850.19 }
   - &marmo_biomaterial_metadata   { name: marmo_biomaterial_metadata   , format: csv  , id: syn74444970.5 }
   - &marmo_results                { name: marmo_results                , format: csv  , id: syn64133726.18 }
-  - &marmo_overview               { name: marmo_overview               , format: json , id: syn77974246.1 } # passthrough json file
+  - &marmo_overview               { name: marmo_overview               , format: json , id: syn77974246.2 } # passthrough json file
   # Results
   - &biodom_genes_mm              { name: biodom_genes_mm              , format: csv  , id: syn66351272.1  }
   - &biomarkers                   { name: biomarkers                   , format: csv  , id: syn61250724.12 }
