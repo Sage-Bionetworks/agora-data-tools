@@ -211,8 +211,8 @@ labels <- download_file("syn77171904", labels, "csv")
 cell_class_values <- str_sort(unique(labels$cell_class))
 cell_subclass_values <- str_sort(labels$cell_subclass)
 filter_vals <- list(
-  c('rs12345', 'rs67890'), # temp placeholder
-  c('geneA', 'geneB'),     # temp placeholder
+  c(),
+  c(),
   cell_class_values,
   cell_subclass_values
   )
