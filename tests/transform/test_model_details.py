@@ -230,14 +230,11 @@ class TestTransformModelDetails:
             "biomarkers": "model_details_biomarkers_good_test_input.csv",
             "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
             "model_metadata": "model_details_model_metadata_good_test_input.csv",
+            "mouse_gene_metadata": "model_details_mouse_gene_metadata_good_input.json",
             "pathology": "model_details_pathology_good_test_input.csv",
         }
-        datasets = {}
-        for dataset_name, file_name in files.items():
-            datasets[dataset_name] = pd.read_csv(
-                os.path.join(self.data_files_path, "input", file_name)
-            )
 
+        datasets = self._load_data(files)
         datasets["immunohisto_measure_order"] = _load_test_measure_order_config()
 
         datasets[dataset] = datasets[dataset].drop(columns=[missing_column])
