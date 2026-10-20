@@ -7,6 +7,7 @@ from agoradatatools.etl.transform.disease_correlation import (
     create_lookup,
     extract_module_name,
     process_group,
+    REQUIRED_INPUT,
 )
 
 
@@ -164,26 +165,16 @@ class TestDiseaseCorrelation:
     @pytest.mark.parametrize(
         "dataset, missing_column",
         [
-            ("disease_correlation_results", "cluster"),
-            ("model_metadata", "name"),
-            ("model_genetic_modifications", "name"),
-            ("model_genetic_modifications", "mouse_gene_symbol"),
-        ],
-        ids=[
-            "Missing 'cluster' from disease_correlation_results",
-            "Missing 'name' from model_metadata",
-            "Missing 'name' from model_genetic_modifications",
-            "Missing 'mouse_gene_symbol' from model_genetic_modifications",
+            (dataset, column)
+            for dataset, columns in REQUIRED_INPUT.items()
+            for column in columns
         ],
     )
     def test_transform_disease_correlation_fails_with_missing_columns(
         self, dataset: str, missing_column: str
     ) -> None:
-        """
-        Test that the disease correlation transformation raises appropriate errors when required datasets are missing
-        a required column. This does not test every column, rather it serves to confirm that every data set is being
-        validated for required columns. Testing if one required column is missing from each dataset is sufficient.
-        """
+        """Tests that the transform raises a ValueError when any required column is missing from a dataset"""
+
         datasets = self.read_input_files(
             {
                 "disease_correlation_results": "disease_correlation_results.csv",

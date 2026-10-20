@@ -8,6 +8,7 @@ from agoradatatools.etl.transform.model_overview import (
     get_list_of_available_data,
     get_center_link_url,
     transform_model_overview,
+    REQUIRED_INPUT,
 )
 
 
@@ -80,17 +81,9 @@ class TestTransformModelOverview:
             ValueError,
         ),
         (
-            # Fail with missing required columns in model_metadata
-            {
-                "model_metadata": "model_overview_model_metadata_missing_column_input.csv",
-                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
-            },
-            ValueError,
-        ),
-        (
             # Fail with missing values in model_genetic_modifications
             {
-                "model_metadata": "model_overview_model_metadata_missing_column_input.csv",
+                "model_metadata": "model_overview_model_genetic_modifications_good_test_input.csv",
                 "model_genetic_modifications": "model_overview_model_genetic_modifications_missing_data_input.csv",
             },
             ValueError,
@@ -98,7 +91,6 @@ class TestTransformModelOverview:
     ]
     fail_test_ids = [
         "Fail with missing model_metadata dataset",
-        "Fail with missing required columns in model_metadata",
         "Fail with missing values in model_genetic_modifications",
     ]
 
@@ -445,6 +437,37 @@ class TestTransformModelOverview:
 
         # Compare output with expected
         assert output_data == expected_output
+
+    @pytest.mark.parametrize(
+        "dataset, missing_column",
+        [
+            (dataset, column)
+            for dataset, columns in REQUIRED_INPUT.items()
+            for column in columns
+        ],
+    )
+    def test_model_overview_fails_on_missing_required_columns(
+        self, dataset: str, missing_column: str
+    ) -> None:
+        """Tests that the transform raises a ValueError when any required column is missing from a dataset"""
+
+        files = {
+            "model_metadata": "model_overview_model_metadata_good_test_input.csv",
+            "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
+        }
+        datasets = {}
+        for dataset_name, file_name in files.items():
+            datasets[dataset_name] = pd.read_csv(
+                os.path.join(self.data_files_path, "input", file_name)
+            )
+
+        datasets[dataset] = datasets[dataset].drop(columns=[missing_column])
+
+        with pytest.raises(
+            ValueError,
+            match=f"Missing required columns in {dataset} dataset: {missing_column}",
+        ):
+            transform_model_overview(datasets)
 
 
 class TestGetListOfAvailableData:
