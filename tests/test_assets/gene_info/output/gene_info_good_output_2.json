@@ -218,7 +218,7 @@
     "is_tep": false,
     "resource_url": null,
     "ensembl_info": {
-      "ensembl_release": null,
+      "ensembl_release": "",
       "ensembl_possible_replacements": [],
       "ensembl_permalink": "https://jan2024.archive.ensembl.org/Homo_sapiens/Gene/Summary?db=core;g=ENSG00000000457"
     },
@@ -443,7 +443,7 @@
     "ensembl_info": {
       "ensembl_release": "111",
       "ensembl_possible_replacements": [],
-      "ensembl_permalink": null
+      "ensembl_permalink": ""
     },
     "uniprotkb_accessions": [
       "P48506"
@@ -620,9 +620,9 @@
     "is_tep": false,
     "resource_url": null,
     "ensembl_info": {
-      "ensembl_release": null,
+      "ensembl_release": "",
       "ensembl_possible_replacements": [],
-      "ensembl_permalink": null
+      "ensembl_permalink": ""
     }
   },
   {
