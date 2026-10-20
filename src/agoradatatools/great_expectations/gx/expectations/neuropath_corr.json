@@ -18,18 +18,10 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_value_lengths_to_equal",
-      "kwargs": {
-        "column": "ensg",
-        "value": 15
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensg",
-        "regex": "^ENSG\\d{11}$"
+        "regex": "^ENSG[0-9]{11}$"
       },
       "meta": {}
     },
@@ -67,6 +59,13 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "oddsratio"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_between",
       "kwargs": {
         "column": "oddsratio",
@@ -76,26 +75,10 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "oddsratio"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "ci_lower",
         "type_": "float"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_between",
-      "kwargs": {
-        "column": "ci_lower",
-        "max_value": 2,
-        "min_value": 0
       },
       "meta": {}
     },
@@ -107,10 +90,26 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "ci_lower",
+        "max_value": 2,
+        "min_value": 0
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "ci_upper",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "ci_upper"
       },
       "meta": {}
     },
@@ -124,26 +123,10 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "ci_upper"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "pval",
         "type_": "float"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_between",
-      "kwargs": {
-        "column": "pval",
-        "max_value": 1,
-        "min_value": 0
       },
       "meta": {}
     },
@@ -155,10 +138,26 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "pval",
+        "max_value": 1,
+        "min_value": 0
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "pval_adj",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "pval_adj"
       },
       "meta": {}
     },
@@ -168,13 +167,6 @@
         "column": "pval_adj",
         "max_value": 1,
         "min_value": 0
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "pval_adj"
       },
       "meta": {}
     },
