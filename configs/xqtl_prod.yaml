@@ -1,0 +1,6 @@
+destination: &dest syn74766136 # prod
+staging_path: ./staging/xqtl
+gx_folder: syn74766204         # prod
+gx_table: syn74766226          # prod
+
+# TODO populate with preprod config once we are ready to generate our first data RC
