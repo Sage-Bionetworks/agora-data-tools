@@ -18,27 +18,21 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from agoradatatools.etl.transform.transform_utils.xqtl_transform_utils import (
-    resolve_cell_labels,
-    build_location,
-    build_gene_lookup_map,
-    map_and_log_gene_ids,
-)
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
-    calculate_distribution
+    calculate_distribution,
 )
 
 logger = logging.getLogger(__name__)
 
 REQUIRED_INPUT = {
-   #  "gene_metadata": [
-   #      "ensembl_gene_id",
-   #      "gene_symbol",
-   #      "alias",
-   #  ],
-   #
+    #  "gene_metadata": [
+    #      "ensembl_gene_id",
+    #      "gene_symbol",
+    #      "alias",
+    #  ],
+    #
     "eqtl_cell_label_map": [
         "cell_type_id",
         "cell_class_short",
@@ -46,13 +40,13 @@ REQUIRED_INPUT = {
         "cell_subclass_short",
         "cell_subclass",
     ],
-   #
-   # "variant_location_info": [
-   #     "variant",
-   #     "variant_chr",
-   #     "variant_start",
-   #     "variant_end"
-   # ]
+    #
+    # "variant_location_info": [
+    #     "variant",
+    #     "variant_chr",
+    #     "variant_start",
+    #     "variant_end"
+    # ]
     # TODO gene location data
 }
 
@@ -64,11 +58,11 @@ FILE_NAME_PREFIX = "eqtl_pheno"
 
 OUTPUT_COLUMN_ORDER = [
     "variant",
-    "gene_symbol",
+    "ensembl_gene_id",
     "cell_type_id",
     "expression_summaries",
     "effect_size_cell_class_data",
-    "effect_size_cell_subclass_data"
+    "effect_size_cell_subclass_data",
 ]
 
 # TODO we can't do this in prod, we need to figure out how to "roll up" subclass-level betas for gene/var/cell to class-level
@@ -76,16 +70,35 @@ OUTPUT_COLUMN_ORDER = [
 # TODO or delete the mini versoin from the sidebar and only do the full 26 color drilldown?
 # TODO or ask GENESIS/Panos for input
 def _generate_effect_size_data(
-        gene_symbol: str,
-        variant: str,
-        cell_class: str,
-        cell_class_short: str,
-        cell_type_id: str
+    gene_symbol: str,
+    variant: str,
+    level: str,
+    label: str,
+    label_short: str,
+    cell_type_id: str,
 ) -> dict:
     """Deterministically generates value, ci_left, and ci_right bounds
-    seeded by gene, variant, and cell class.
+    seeded by gene, variant, and cell class or subclass.
+
+    Args:
+        gene_symbol (str): Gene symbol for this result.
+        variant (str): Variant for this result.
+        level (str): "class" or "subclass"; sets the label key names in the output,
+            e.g. cell_class / cell_class_short or cell_subclass / cell_subclass_short.
+        label (str): Cell class or subclass name.
+        label_short (str): Cell class or subclass short name.
+        cell_type_id (str): Cell type ID for this class or subclass.
+
+    Returns:
+        dict: cell_type_id, cell_{level}_short, cell_{level}, value, ci_left, and ci_right.
+
+    Raises:
+        ValueError: If level is not "class" or "subclass".
     """
-    seed_str = f"{gene_symbol}:{variant}:{cell_class}:{cell_class_short}"
+    if level not in ("class", "subclass"):
+        raise ValueError(f"level must be 'class' or 'subclass', got {level!r}")
+
+    seed_str = f"{gene_symbol}:{variant}:{label}:{label_short}"
     seed = zlib.crc32(seed_str.encode("utf-8"))
     rng = np.random.default_rng(seed)
 
@@ -105,21 +118,22 @@ def _generate_effect_size_data(
 
     return {
         "cell_type_id": cell_type_id,
-        "cell_class": cell_class,
-        "cell_class_short": cell_class_short,
+        f"cell_{level}_short": label_short,
+        f"cell_{level}": label,
         "value": round(value, 6),
         "ci_left": round(ci_left, 6),
         "ci_right": round(ci_right, 6),
     }
 
+
 # handle results for a given gene & variant (one pair per file)
 def _process_single_data_file(
-        file_name: str,
-        data_file: pd.DataFrame,
-        data_file_required_columns: List[str],
-        label_map_df: pd.DataFrame,
-        file_index: int,
-        total_files: int,
+    file_name: str,
+    data_file: pd.DataFrame,
+    data_file_required_columns: List[str],
+    label_map_df: pd.DataFrame,
+    file_index: int,
+    total_files: int,
 ) -> List[Dict[str, Any]]:
     """
     Processes a single eQTL phenotype data file and transforms it into output entries.
@@ -140,44 +154,45 @@ def _process_single_data_file(
 
     # calculate box plot stats for each cell type / genotype combination
     data_file = calculate_distribution(
-            df=data_file,
-            grouping=['cell', 'genotype'],
-            distribution_column='phenotype'
-        )
+        df=data_file, grouping=["cell", "genotype"], distribution_column="phenotype"
+    )
 
     # nest boxplot stats into expression_summaries
     data_file = nest_fields(
-            df=data_file,
-            grouping=['cell'],
-            new_column='expression_summaries',
-            drop_columns=["cell"]
-        )
+        df=data_file,
+        grouping=["cell"],
+        new_column="expression_summaries",
+        drop_columns=["cell"],
+    )
 
     # extract the gene and variant from the filename & assign to new columns
     stem = Path(file_name).stem
-    parts = stem.split('_')
+    parts = stem.split("_")
     gene_symbol = parts[-2]
     variant = parts[-1]
 
     data_file["gene_symbol"] = gene_symbol
     data_file["variant"] = variant
 
+    # TODO total hack for ENSG - Suppports RERE only
+    data_file["ensembl_gene_id"] = "ENSG00000142599"
+
     # Join to cell_label_map to get cell_type_id values TODO how does this work? class : subclass join?
-    cols_to_keep = ['cell_subclass_short', 'cell_type_id']
+    cols_to_keep = ["cell_subclass_short", "cell_type_id"]
     data_file = data_file.merge(
         label_map_df[cols_to_keep],
-        left_on='cell', # TODO assumption is that these will be cell_subclasss_short values
-        right_on='cell_subclass_short',
-        how='left'
-    ).drop(columns=['cell_subclass_short'])
+        left_on="cell",  # TODO assumption is that these will be cell_subclasss_short values
+        right_on="cell_subclass_short",
+        how="left",
+    ).drop(columns=["cell_subclass_short"])
 
     # cell_class level effect size data
     # Extract unique cell classes from label_map_df. The class-level cell_type_id is synthesized
     # from cell_class_short (e.g. "class_astro"), not borrowed from an arbitrary subclass's
     # cell_type_id.
     unique_classes = (
-        label_map_df[['cell_class', 'cell_class_short']]
-        .drop_duplicates(subset=['cell_class', 'cell_class_short'])
+        label_map_df[["cell_class", "cell_class_short"]]
+        .drop_duplicates(subset=["cell_class", "cell_class_short"])
         .reset_index(drop=True)
     )
 
@@ -186,9 +201,10 @@ def _process_single_data_file(
         _generate_effect_size_data(
             gene_symbol=gene_symbol,
             variant=variant,
-            cell_class=row['cell_class'],
-            cell_class_short=row['cell_class_short'],
-            cell_type_id="class_" + row['cell_class_short'].lower()
+            level="class",
+            label=row["cell_class"],
+            label_short=row["cell_class_short"],
+            cell_type_id="class_" + row["cell_class_short"].lower(),
         )
         for _, row in unique_classes.iterrows()
     ]
@@ -199,35 +215,34 @@ def _process_single_data_file(
     # cell_subclass level effect size data
     # Extract unique cell subclasses from label_map_df
     unique_subclasses = (
-        label_map_df[['cell_subclass', 'cell_subclass_short', 'cell_type_id']]
-        .drop_duplicates(subset=['cell_subclass', 'cell_subclass_short'], keep='first')
+        label_map_df[["cell_subclass", "cell_subclass_short", "cell_type_id"]]
+        .drop_duplicates(subset=["cell_subclass", "cell_subclass_short"], keep="first")
         .reset_index(drop=True)
     )
 
-    # Generate deterministic stats for each unique class for this gene/variant
-    class_stats_list = [
+    # Generate deterministic stats for each unique subclass for this gene/variant
+    subclass_stats_list = [
         _generate_effect_size_data(
             gene_symbol=gene_symbol,
             variant=variant,
-            cell_class=row['cell_subclass'],
-            cell_class_short=row['cell_subclass_short'],
-            cell_type_id=row['cell_type_id']
+            level="subclass",
+            label=row["cell_subclass"],
+            label_short=row["cell_subclass_short"],
+            cell_type_id=row["cell_type_id"],
         )
         for _, row in unique_subclasses.iterrows()
     ]
 
     # Assign list of subclass stats dictionaries to every output record in data_file
-    data_file["effect_size_cell_subclass_data"] = [class_stats_list] * len(data_file)
-
+    data_file["effect_size_cell_subclass_data"] = [subclass_stats_list] * len(data_file)
 
     data_file = data_file.reindex(columns=OUTPUT_COLUMN_ORDER)
     return data_file.to_dict(orient="records")
 
 
-
 def transform_eqtl_phenotype(
-        datasets: Dict[str, pd.DataFrame],
-        required_input: Dict[str, List[str]] = REQUIRED_INPUT,
+    datasets: Dict[str, pd.DataFrame],
+    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
     Transforms the eQTL expression source files into a structured format for xQTL.
@@ -282,5 +297,3 @@ def transform_eqtl_phenotype(
 
     logger.info(f"Transform eqtl_results total output entries: {len(output)}")
     return output
-
-
