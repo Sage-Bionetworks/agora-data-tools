@@ -460,8 +460,19 @@
             "array",
             "null"
           ]
-        },
-        "mostly": 0.95
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_in_set",
+      "kwargs": {
+        "column": "median_expression",
+        "mostly": 0.64,
+        "value_set": [
+          "null",
+          "NaN"
+        ]
       },
       "meta": {}
     },
@@ -535,11 +546,10 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "expectation_type": "expect_column_values_to_not_be_null",
       "kwargs": {
         "column": "biodomains",
-        "member_type": "str",
-        "mostly": 0.95
+        "mostly": 0.4
       },
       "meta": {}
     },
@@ -551,6 +561,13 @@
           1,
           19
         ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_unique_list_members",
+      "kwargs": {
+        "column": "biodomains"
       },
       "meta": {}
     },
@@ -672,8 +689,15 @@
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "uniprotkb_accessions",
-        "mostly": 0.95,
         "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "uniprotkb_accessions",
+        "mostly": 0.47
       },
       "meta": {}
     },
