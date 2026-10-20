@@ -30,6 +30,10 @@
             "sex": "Female",
             "genotype": "Presenilin-1"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
         ]
       },
       {
@@ -51,6 +55,10 @@
             "sex": "Female",
             "genotype": "Presenilin-1"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
         ]
       },
       {
@@ -72,6 +80,10 @@
             "sex": "Female",
             "genotype": "Presenilin-1"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
         ]
       }
     ]
@@ -107,6 +119,10 @@
             "sex": "Male",
             "genotype": "Notch3"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Notch3"
         ]
       },
       {
@@ -128,6 +144,10 @@
             "sex": "Male",
             "genotype": "Notch3"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Notch3"
         ]
       },
       {
@@ -149,6 +169,10 @@
             "sex": "Male",
             "genotype": "Notch3"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Notch3"
         ]
       }
     ]

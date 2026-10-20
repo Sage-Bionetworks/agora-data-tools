@@ -1,6 +1,10 @@
 import pandas as pd
 import synapseclient
 import yaml
+from synapseclient.operations import get
+from synapseclient.models import query
+
+from agoradatatools.etl.utils import to_async
 
 
 def get_entity_as_df(
@@ -22,12 +26,9 @@ def get_entity_as_df(
 
     syn_id_version = syn_id.split(".")
     synapse_id = syn_id_version[0]
-    if len(syn_id_version) > 1:
-        version = syn_id_version[1]
-    else:
-        version = None
+    version = int(syn_id_version[1]) if len(syn_id_version) > 1 else None
 
-    entity = syn.get(synapse_id, version=version)
+    entity = get(synapse_id=synapse_id, version_number=version, synapse_client=syn)
 
     if source == "table":
         dataset = read_table_into_df(table_id=syn_id, syn=syn)
@@ -45,6 +46,10 @@ def get_entity_as_df(
         raise ValueError("File type not supported.")
 
     return dataset
+
+
+get_entity_as_df_async = to_async(get_entity_as_df)
+"""Awaitable version of :func:`get_entity_as_df`, for use in notebooks."""
 
 
 def read_csv_into_df(csv_path: str) -> pd.DataFrame:
@@ -107,10 +112,8 @@ def read_table_into_df(table_id: str, syn: synapseclient.Synapse) -> pd.DataFram
         pd.DataFrame: data frame created from the Synaspe table query results
     """
 
-    query = str("select * from {0}".format(table_id))
-    query_result = syn.tableQuery(query)
-
-    return query_result.asDataFrame()
+    query_string = f"select * from {table_id}"
+    return query(query=query_string, synapse_client=syn)
 
 
 def read_feather_into_df(feather_path: str) -> pd.DataFrame:

@@ -5,7 +5,7 @@ from unittest.mock import ANY, patch
 
 import pandas as pd
 import pytest
-from synapseclient import File
+from synapseclient.models import Activity, UsedEntity
 
 from agoradatatools.etl import load, utils
 
@@ -16,10 +16,13 @@ def test_create_temp_location_success():
     os.rmdir("./test_staging_dir")
 
 
-def test_delete_temp_location():
-    os.mkdir("./test_staging_dir")
-    load.delete_temp_location(staging_path="./test_staging_dir")
-    assert not os.path.exists("./test_staging_dir")
+def test_create_temp_location_with_subfolder_success():
+    load.create_temp_location(
+        staging_path="./test_staging_dir_with_subfolder/subfolder"
+    )
+    assert os.path.exists("./test_staging_dir_with_subfolder/subfolder")
+    os.rmdir("./test_staging_dir_with_subfolder/subfolder")
+    os.rmdir("./test_staging_dir_with_subfolder")
 
 
 def test_remove_non_values():
@@ -47,15 +50,11 @@ class TestLoad:
         self.patch_syn_login = patch.object(
             utils, "_login_to_synapse", return_value=syn
         ).start()
-        self.patch_syn_store = patch.object(
-            syn,
-            "store",
-            return_value=File(
-                "fake/path/to/fake/file",
-                parent="syn1111113",
-                id="syn1111114",
-                versionNumber=1,
-            ),
+        self.mock_stored_file = mock.MagicMock(id="syn1111114", version_number=1)
+        self.mock_file_instance = mock.MagicMock()
+        self.mock_file_instance.store.return_value = self.mock_stored_file
+        self.patch_file_class = patch.object(
+            load, "File", return_value=self.mock_file_instance
         ).start()
 
     def teardown_method(self):
@@ -69,7 +68,47 @@ class TestLoad:
             syn=syn,
         )
         self.patch_syn_login.assert_not_called()
+        # File must be constructed with `path=`, not positionally (that binds to `id`
+        # on the new models.File, which raises "Cannot store file" at store time)
+        # Activity.used must be UsedEntity objects, not bare strings: Activity silently
+        # drops any entry in `used` that isn't a UsedEntity/UsedURL when it builds the
+        # Synapse request, so passing strings directly produces an empty provenance trail.
+        self.patch_file_class.assert_called_once_with(
+            path="fake/path/to/fake/file",
+            activity=Activity(
+                used=[
+                    UsedEntity(target_id="syn1111111", target_version_number=None),
+                    UsedEntity(target_id="syn1111112", target_version_number=None),
+                ]
+            ),
+            force_version=False,
+        )
+        # store() must receive the caller's syn session explicitly, not rely on
+        # whatever Synapse instance happens to be cached globally
+        store_call_kwargs = self.mock_file_instance.store.call_args.kwargs
+        assert store_call_kwargs["parent"].id == "syn1111113"
+        assert store_call_kwargs["synapse_client"] is syn
         assert test_tuple == ("syn1111114", 1)
+
+    def test_load_parses_version_suffix_into_used_entity(self, syn):
+        """A provenance id like "syn123.4" must split into target_id="syn123" and
+        target_version_number=4, not be passed through as a single opaque string."""
+        load.load(
+            file_path="fake/path/to/fake/file",
+            provenance=["syn1111111.4", "syn1111112"],
+            destination="syn1111113",
+            syn=syn,
+        )
+        self.patch_file_class.assert_called_once_with(
+            path="fake/path/to/fake/file",
+            activity=Activity(
+                used=[
+                    UsedEntity(target_id="syn1111111", target_version_number=4),
+                    UsedEntity(target_id="syn1111112", target_version_number=None),
+                ]
+            ),
+            force_version=False,
+        )
 
 
 class TestDFToJSON:

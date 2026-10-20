@@ -30,6 +30,10 @@
             "sex": "Female",
             "genotype": "Presenilin-1"
           }
+        ],
+        "result_order": [
+          "Matched Control",
+          "Presenilin-1"
         ]
       }
     ]
