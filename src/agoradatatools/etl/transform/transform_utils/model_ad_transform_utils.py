@@ -11,7 +11,54 @@ Functions:
 
 import pandas as pd
 
-from agoradatatools.etl.utils import normalize_null_values
+from agoradatatools.etl.utils import (
+    NotEmptyRule,
+    MatchesRegexRule,
+    normalize_null_values,
+)
+
+GENETIC_MODIFICATIONS_REQUIRED_COLUMNS = [
+    "name",
+    "mouse_gene_symbol",
+    "mouse_ensembl_id",
+    "allele",
+    "allele_type",
+    "mgi_allele_id",
+    "human_gene_symbol",
+    "human_ensembl_id",
+]
+
+GENETIC_MODIFICATIONS_COLUMN_RULES = {
+    "name": [NotEmptyRule()],
+    "mouse_gene_symbol": [NotEmptyRule()],
+    "mouse_ensembl_id": [NotEmptyRule(), MatchesRegexRule(r"^ENSMUSG[0-9]+$")],
+    "allele": [NotEmptyRule()],
+    "mgi_allele_id": [NotEmptyRule()],
+    # Can have missing values
+    "human_ensembl_id": [MatchesRegexRule(r"^ENSG[0-9]+$")],
+}
+
+MODEL_METADATA_REQUIRED_COLUMNS = [
+    "name",
+    "matched_controls",
+    "model_type",
+    "contributing_group",
+    "study_synid",
+    "rrid",
+    "jax_id",
+    "alzforum_id",
+    "genotype",
+    "aliases",
+    "transcriptomics_url_categories_value",
+    "transcriptomics_url_models_value",
+    "transcriptomics",
+    "disease_correlation",
+    "pathology",
+    "biomarkers",
+    "proteomics",
+    "proteomics_url_categories_value",
+    "proteomics_url_models_value",
+]
 
 
 def process_genetic_modifications(
@@ -26,8 +73,8 @@ def process_genetic_modifications(
     Each model's alleles are processed independently. Multiple entries are preserved for different alleles of the same
     gene.
 
-    This function assumes the input data has been pre-validated so that model_genetic_modifications
-    does not have any missing/NaN/none values in the "modified_gene" or "mouse_ensembl_id" columns.
+    This function assumes the input data has been pre-validated so that model_genetic_modifications does not have any
+    missing/NaN/none values in the "mouse_gene_symbol", "mouse_ensembl_id", "allele", and "mgi_allele_id" columns.
     Missing values in other columns of the DataFrame are allowed, and will be normalized to None.
 
     Args:
@@ -55,7 +102,7 @@ def process_genetic_modifications(
         lambda row: (
             row["human_gene_symbol"]
             if pd.notna(row["human_ensembl_id"])
-            else row["modified_gene"]
+            else row["mouse_gene_symbol"]
         ),
         axis=1,
     )

@@ -27,7 +27,7 @@ class TestProcessGeneticModifications:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["Model1", "Model1", "Model1"],
-                "modified_gene": ["App", "Mapt", "Psen1"],
+                "mouse_gene_symbol": ["App", "Mapt", "Psen1"],
                 "mouse_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000018411",
@@ -86,7 +86,7 @@ class TestProcessGeneticModifications:
         model_genetic_modifications = pd.DataFrame(
             columns=[
                 "name",
-                "modified_gene",
+                "mouse_gene_symbol",
                 "mouse_ensembl_id",
                 "allele",
                 "allele_type",
@@ -120,7 +120,7 @@ class TestProcessGeneticModifications:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["Model1", "Model1", "Model1"],
-                "modified_gene": ["App", "Mapt", "Psen1"],
+                "mouse_gene_symbol": ["App", "Mapt", "Psen1"],
                 "mouse_ensembl_id": [
                     "ENSMUSG00000011111",
                     "ENSMUSG00000022222",
@@ -185,7 +185,7 @@ class TestProcessGeneticModifications:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["Model1", "Model1"],
-                "modified_gene": ["App", "App"],
+                "mouse_gene_symbol": ["App", "App"],
                 "mouse_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000022892",
@@ -231,7 +231,7 @@ class TestProcessGeneticModifications:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["Model1", "Model2"],
-                "modified_gene": ["App", "App"],
+                "mouse_gene_symbol": ["App", "App"],
                 "mouse_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000022892",

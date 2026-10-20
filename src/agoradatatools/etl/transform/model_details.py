@@ -9,48 +9,23 @@ import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.utils import (
+    check_column_rules,
     check_required_datasets_and_columns,
     normalize_null_values,
     delim_string_to_list,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
+    GENETIC_MODIFICATIONS_COLUMN_RULES,
+    GENETIC_MODIFICATIONS_REQUIRED_COLUMNS,
+    MODEL_METADATA_REQUIRED_COLUMNS,
     build_expression_results_url,
     process_genetic_modifications,
     zero_pad_jax_ids,
 )
 
 REQUIRED_INPUT = {
-    "model_genetic_modifications": [
-        "name",
-        "modified_gene",
-        "mouse_ensembl_id",
-        "allele",
-        "allele_type",
-        "mgi_allele_id",
-        "human_gene_symbol",
-        "human_ensembl_id",
-    ],
-    "model_metadata": [
-        "name",
-        "matched_controls",
-        "model_type",
-        "contributing_group",
-        "study_synid",
-        "rrid",
-        "jax_id",
-        "alzforum_id",
-        "genotype",
-        "aliases",
-        "transcriptomics_url_categories_value",
-        "transcriptomics_url_models_value",
-        "transcriptomics",
-        "disease_correlation",
-        "pathology",
-        "biomarkers",
-        "proteomics",
-        "proteomics_url_categories_value",
-        "proteomics_url_models_value",
-    ],
+    "model_genetic_modifications": GENETIC_MODIFICATIONS_REQUIRED_COLUMNS,
+    "model_metadata": MODEL_METADATA_REQUIRED_COLUMNS,
     "immunohisto_measure_order": [
         "dataset_name",
         "evidence_type",
@@ -77,6 +52,10 @@ REQUIRED_INPUT = {
         "genotype",
         "individual_id",
     ],
+}
+
+COLUMN_RULES = {
+    "model_genetic_modifications": GENETIC_MODIFICATIONS_COLUMN_RULES,
 }
 
 
@@ -111,6 +90,7 @@ def transform_model_details(
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, COLUMN_RULES)
 
     # Load and prepare datasets
     model_metadata_df = datasets["model_metadata"]
