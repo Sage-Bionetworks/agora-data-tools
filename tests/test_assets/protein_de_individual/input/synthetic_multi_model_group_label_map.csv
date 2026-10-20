@@ -1,0 +1,7 @@
+model,model_group,display_label,genotype,result_order
+LOAD2,LOAD2,LOAD2,geno_hom,2
+LOAD2,LOAD2,LOAD1,geno_wt,1
+Bin1-K358R,Bin1K358R,C57BL/6J,fad_non,1
+Bin1-K358R,Bin1K358R,Bin1K358R,bin1_hom,2
+Bin1-K358R.5xFAD,Bin1K358R,5xFAD,fad_car,3
+Bin1-K358R.5xFAD,Bin1K358R,Bin1K358R.5xFAD,fad_car_bin1,4

@@ -24,6 +24,8 @@
     },
     "center": "UCI",
     "modified_genes": [
+      "App",
+      "Mapt",
       "Psen1"
     ],
     "available_data": [

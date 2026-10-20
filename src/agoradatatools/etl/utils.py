@@ -1,5 +1,17 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Dict, List, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Collection,
+    Dict,
+    List,
+    ParamSpec,
+    TypeVar,
+    Union,
+)
+import asyncio
+import functools
 import math
 import re
 
@@ -1079,3 +1091,49 @@ def create_ensembl_info_df(gene_metadata_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     return ensembl_info_df
+
+
+def parse_synapse_id_version(syn_id: str) -> tuple[str, int | None]:
+    """Split a Synapse ID into its base ID and optional version number.
+
+    Args:
+        syn_id: A Synapse ID, optionally with a version suffix (e.g. "syn123.4").
+
+    Returns:
+        The base ID and the version number, or None if no version was given.
+    """
+    parts = syn_id.split(".")
+    base_id = parts[0]
+    version = int(parts[1]) if len(parts) > 1 else None
+
+    if not base_id:
+        raise ValueError("Invalid Synapse ID: missing base ID")
+
+    return base_id, version
+
+
+# P stands for the wrapped function's arguments (names, types and defaults).
+P = ParamSpec("P")
+# R stands for the wrapped function's return type.
+R = TypeVar("R")
+
+
+def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
+    """Decorator that turns a blocking function into a coroutine function.
+
+    The wrapped function runs in a worker thread via `asyncio.to_thread` so it
+    does not block (or conflict with) a running event loop, such as the one in a
+    Jupyter notebook. Use `await` on the result.
+
+    Args:
+        func: The synchronous function to wrap.
+
+    Returns:
+        A coroutine function with the same arguments as `func`.
+    """
+
+    @functools.wraps(func)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        return await asyncio.to_thread(func, *args, **kwargs)
+
+    return wrapper

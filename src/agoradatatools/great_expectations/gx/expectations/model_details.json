@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Familial AD",
-          "Late Onset AD"
+          "Late Onset AD",
+          "Familial AD"
         ]
       },
       "meta": {}
