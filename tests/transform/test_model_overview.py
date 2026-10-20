@@ -8,6 +8,7 @@ from agoradatatools.etl.transform.model_overview import (
     get_list_of_available_data,
     get_center_link_url,
     transform_model_overview,
+    REQUIRED_INPUT,
 )
 
 
@@ -34,7 +35,7 @@ class TestTransformModelOverview:
             # Pass with missing data in some fields
             {
                 "model_metadata": "model_overview_model_metadata_missing_data_input.csv",
-                "model_genetic_modifications": "model_overview_model_genetic_modifications_missing_data_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             "model_overview_transform_missing_data_output.json",
         ),
@@ -80,17 +81,17 @@ class TestTransformModelOverview:
             ValueError,
         ),
         (
-            # Fail with missing required columns in model_metadata
+            # Fail with missing values in model_genetic_modifications
             {
-                "model_metadata": "model_overview_model_metadata_missing_column_input.csv",
-                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_overview_model_genetic_modifications_good_test_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_missing_data_input.csv",
             },
             ValueError,
         ),
     ]
     fail_test_ids = [
         "Fail with missing model_metadata dataset",
-        "Fail with missing required columns in model_metadata",
+        "Fail with missing values in model_genetic_modifications",
     ]
 
     @pytest.mark.parametrize(
@@ -165,7 +166,7 @@ class TestTransformModelOverview:
         empty_model_genetic_modifications = pd.DataFrame(
             columns=[
                 "name",
-                "modified_gene",
+                "mouse_gene_symbol",
                 "mouse_ensembl_id",
                 "allele",
                 "allele_type",
@@ -217,7 +218,7 @@ class TestTransformModelOverview:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "modified_gene": ["TestGene"],
+                "mouse_gene_symbol": ["TestGene"],
                 "mgi_gene_id": [12345],
                 "mouse_ensembl_id": ["ENSMUSG00000012345"],
                 "allele": ["TestAllele"],
@@ -290,14 +291,14 @@ class TestTransformModelOverview:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "modified_gene": [None],
-                "mgi_gene_id": [None],
-                "mouse_ensembl_id": [None],
-                "allele": [None],
-                "allele_type": [None],
-                "mgi_allele_id": [None],
-                "human_gene_symbol": [None],
-                "human_ensembl_id": [None],
+                "mouse_gene_symbol": ["TestGene"],
+                "mgi_gene_id": [12345],
+                "mouse_ensembl_id": ["ENSMUSG00000012345"],
+                "allele": ["TestAllele"],
+                "allele_type": None,
+                "mgi_allele_id": [67890],
+                "human_gene_symbol": None,
+                "human_ensembl_id": None,
             }
         )
 
@@ -325,7 +326,7 @@ class TestTransformModelOverview:
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": "IU/Jax/Pitt",
-                "modified_genes": [],
+                "modified_genes": ["TestGene"],
                 "available_data": [],
             }
         ]
@@ -363,7 +364,7 @@ class TestTransformModelOverview:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["model1", "model1", "model2"],
-                "modified_gene": ["Gene1", "Gene2", "Gene3"],
+                "mouse_gene_symbol": ["Gene1", "Gene2", "Gene3"],
                 "mgi_gene_id": [11111, 22222, 33333],
                 "mouse_ensembl_id": [
                     "ENSMUSG00000011111",
@@ -436,6 +437,37 @@ class TestTransformModelOverview:
 
         # Compare output with expected
         assert output_data == expected_output
+
+    @pytest.mark.parametrize(
+        "dataset, missing_column",
+        [
+            (dataset, column)
+            for dataset, columns in REQUIRED_INPUT.items()
+            for column in columns
+        ],
+    )
+    def test_model_overview_fails_on_missing_required_columns(
+        self, dataset: str, missing_column: str
+    ) -> None:
+        """Tests that the transform raises a ValueError when any required column is missing from a dataset"""
+
+        files = {
+            "model_metadata": "model_overview_model_metadata_good_test_input.csv",
+            "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
+        }
+        datasets = {}
+        for dataset_name, file_name in files.items():
+            datasets[dataset_name] = pd.read_csv(
+                os.path.join(self.data_files_path, "input", file_name)
+            )
+
+        datasets[dataset] = datasets[dataset].drop(columns=[missing_column])
+
+        with pytest.raises(
+            ValueError,
+            match=f"Missing required columns in {dataset} dataset: {missing_column}",
+        ):
+            transform_model_overview(datasets)
 
 
 class TestGetListOfAvailableData:

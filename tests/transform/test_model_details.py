@@ -4,7 +4,10 @@ import json
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform.model_details import transform_model_details
+from agoradatatools.etl.transform.model_details import (
+    REQUIRED_INPUT,
+    transform_model_details,
+)
 
 
 def _load_test_measure_order_config():
@@ -108,42 +111,9 @@ class TestTransformModelDetails:
             },
             ValueError,
         ),
-        (
-            # Fail with missing required columns in biomarkers
-            {
-                "biomarkers": "model_details_biomarkers_missing_column_input.csv",
-                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
-                "model_metadata": "model_details_model_metadata_good_test_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-            },
-            ValueError,
-        ),
-        (
-            # Fail with missing required columns in model_metadata
-            {
-                "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
-                "model_metadata": "model_details_model_metadata_missing_column_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-            },
-            ValueError,
-        ),
-        (
-            # Fail with missing required columns in model_genetic_modifications
-            {
-                "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "model_genetic_modifications": "model_details_model_genetic_modifications_missing_column_input.csv",
-                "model_metadata": "model_details_model_metadata_good_test_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-            },
-            ValueError,
-        ),
     ]
     fail_test_ids = [
         "Fail with missing biomarkers dataset",
-        "Fail with missing required columns in biomarkers",
-        "Fail with missing required columns in model_metadata",
-        "Fail with missing required columns in model_genetic_modifications",
     ]
 
     @pytest.mark.parametrize(
@@ -216,3 +186,38 @@ class TestTransformModelDetails:
         # Expect transformation to raise the specified error
         with pytest.raises(error_type):
             transform_model_details(datasets=datasets)
+
+    @pytest.mark.parametrize(
+        "dataset, missing_column",
+        [
+            (dataset, column)
+            for dataset, columns in REQUIRED_INPUT.items()
+            for column in columns
+        ],
+    )
+    def test_model_details_fails_on_missing_required_columns(
+        self, dataset: str, missing_column: str
+    ) -> None:
+        """Tests that the transform raises a ValueError when any required column is missing from a dataset"""
+
+        files = {
+            "biomarkers": "model_details_biomarkers_good_test_input.csv",
+            "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
+            "model_metadata": "model_details_model_metadata_good_test_input.csv",
+            "pathology": "model_details_pathology_good_test_input.csv",
+        }
+        datasets = {}
+        for dataset_name, file_name in files.items():
+            datasets[dataset_name] = pd.read_csv(
+                os.path.join(self.data_files_path, "input", file_name)
+            )
+
+        datasets["immunohisto_measure_order"] = _load_test_measure_order_config()
+
+        datasets[dataset] = datasets[dataset].drop(columns=[missing_column])
+
+        with pytest.raises(
+            ValueError,
+            match=f"Missing required columns in {dataset} dataset: {missing_column}",
+        ):
+            transform_model_details(datasets)
