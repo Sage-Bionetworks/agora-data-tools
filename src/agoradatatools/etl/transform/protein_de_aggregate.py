@@ -1,17 +1,11 @@
 """Protein differential-expression aggregate transform for Model AD.
 
-RNA-aggregate grouping over protein-resolved rows. Biology (model, sex, age,
-and tissue) comes only from the leftover dataset name, parsed as
-center_model_sex_age. Sex tokens f/m become Female/Male, age tokens like 4mo
-become N months, and model is resolved case-insensitively against the genotype
-label map. Tissue is Hemibrain when the contributing center is jax; any other
-center raises. name and matched_control come from the genotype label map
-(lowest and highest result_order).
+RNA-aggregate grouping over protein-resolved rows. Model, sex, age, and tissue
+come from file_metadata in the config. name and matched_control come from the
+genotype label map: the display labels with the lowest and highest result_order.
 """
 
-import gc
 import logging
-import re
 from typing import Any
 
 import pandas as pd
@@ -19,9 +13,13 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
+    raise_on_duplicate_keys,
     validate_one_to_one_mapping,
     ColumnRule,
+    ContainsSubstringRule,
+    MatchesRegexRule,
     NotEmptyRule,
+    OneOfRule,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
@@ -38,7 +36,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     normalize_tissue,
     prepare_genotype_label_map,
     validate_and_sort_age_entries,
-    validate_data_file_not_empty,
+    validate_data_file,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
     add_protein_identity_columns,
@@ -50,10 +48,8 @@ from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils impo
 
 logger = logging.getLogger(__name__)
 
-FOLD_CHANGE_COLUMNS = ("log2foldchange", "diff")
-FILENAME_PATTERN = "<center>_<model>_<sex>_<age>"
-SEX_TOKEN_MAP = {"f": "Female", "m": "Male"}
-AGE_TOKEN_RE = re.compile(r"^(\d+)mo$", re.IGNORECASE)
+METADATA_FIELDS = ("model", "sex", "age", "tissue")
+GROUP_KEY = ["model", "tissue", "sex", "age"]
 AGE_KEY = ["unique_id", "model", "tissue", "sex", "age"]
 
 REQUIRED_INPUT = {
@@ -87,134 +83,103 @@ COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
     },
 }
 
-
-def _require_protein_id_shape(protein_ids: pd.Series) -> None:
-    """Raise when a protein_id cannot be split into a gene symbol and an accession."""
-    ids = protein_ids.astype(str)
-    missing_pipe = ~ids.str.contains("|", regex=False)
-    if missing_pipe.any():
-        examples = ids.loc[missing_pipe].unique()[:5].tolist()
-        raise ValueError(
-            "protein_id values must be gene_symbol|uniprotid. "
-            f"Values without a pipe (first 5): {examples}"
-        )
+DATA_FILE_COLUMNS = ["protein_id", "log2foldchange", "padj"]
+# protein_id is gene_symbol|uniprotid; the pipe is what canonical_accession splits on.
+DATA_FILE_COLUMN_RULES = {"protein_id": [NotEmptyRule(), ContainsSubstringRule("|")]}
 
 
-def _data_file_names(
+def _validate_file_metadata(
     datasets: dict[str, pd.DataFrame],
+    file_metadata: dict[str, dict[str, str]],
     required_input: dict[str, list[str]],
-) -> list[str]:
-    """Return leftover dataset keys as DE files."""
-    file_list = [name for name in datasets if name not in required_input]
-    if not file_list:
-        raise ValueError(
-            "No differential expression files found. Add DE files under files; "
-            "they are the leftover keys after the required metadata datasets."
-        )
-    return file_list
-
-
-def _parse_filename_tokens(file_name: str) -> tuple[str, str, str, str]:
-    """Split a DE file name into center, model, sex, and age tokens.
-
-    Tokens are taken from the ends so a model name may contain underscores:
-    jax_APOE4_Trem2_R47H_f_4mo is center jax, model APOE4_Trem2_R47H, sex f,
-    age 4mo.
-    """
-    parts = file_name.split("_")
-    if len(parts) < 4:
-        raise ValueError(f"Data file '{file_name}' does not match {FILENAME_PATTERN}.")
-    center, *model_parts, sex, age = parts
-    model = "_".join(model_parts)
-    if not center or not model or not sex or not age:
-        raise ValueError(f"Data file '{file_name}' does not match {FILENAME_PATTERN}.")
-    return center, model, sex, age
-
-
-def _tissue_for_center(center: str) -> str:
-    """Map center to tissue. Only jax is recognized; it is Hemibrain."""
-    if center.casefold() == "jax":
-        return "Hemibrain"
-    raise ValueError(f"Unrecognized center '{center}', cannot resolve tissue value.")
-
-
-def _expand_sex_token(sex_token: str, file_name: str) -> str:
-    """Map filename sex tokens f/m to Female/Male."""
-    mapped = SEX_TOKEN_MAP.get(sex_token.casefold())
-    if mapped is None:
-        raise ValueError(
-            f"Data file '{file_name}' has unrecognized sex token '{sex_token}'. "
-            "Expected f or m."
-        )
-    return mapped
-
-
-def _expand_age_token(age_token: str, file_name: str) -> str:
-    """Map filename age tokens like 4mo to N months."""
-    match = AGE_TOKEN_RE.fullmatch(age_token)
-    if not match:
-        raise ValueError(
-            f"Data file '{file_name}' has unrecognized age token '{age_token}'. "
-            "Expected a token like 4mo."
-        )
-    return f"{int(match.group(1))} months"
-
-
-def _resolve_model_token(model_token: str, models: set[str], file_name: str) -> str:
-    """Resolve a filename model token against genotype label map models."""
-    matches = [model for model in models if model.casefold() == model_token.casefold()]
-    if len(matches) == 1:
-        return matches[0]
-    if not matches:
-        raise ValueError(
-            f"Data file '{file_name}' has model token '{model_token}' that is "
-            "not in the genotype label map."
-        )
-    raise ValueError(
-        f"Data file '{file_name}' has model token '{model_token}' that matches "
-        f"multiple genotype label map models: {sorted(matches)}."
-    )
-
-
-def _build_file_metadata_map(
-    file_list: list[str],
-    models: set[str],
+    known_models: set[str],
 ) -> dict[str, dict[str, str]]:
-    """Build model/sex/age/tissue from leftover DE file names."""
-    metadata: dict[str, dict[str, str]] = {}
-    for file_name in file_list:
-        center, model_token, sex_token, age_token = _parse_filename_tokens(file_name)
-        metadata[file_name] = {
-            "model": _resolve_model_token(model_token, models, file_name),
-            "sex": _expand_sex_token(sex_token, file_name),
-            "age": _expand_age_token(age_token, file_name),
-            "tissue": _tissue_for_center(center),
-        }
-    return metadata
+    """Return file metadata with sex and tissue normalized.
 
-
-def _ensure_log2foldchange(data_file: pd.DataFrame) -> pd.DataFrame:
-    """Rename diff to log2foldchange so the shared age helper can read it.
-
-    The caller has already rejected a file that has neither column. When both
-    are present, log2foldchange is kept.
+    Sex and tissue are normalized once here, not per row: the values are typed
+    into the config. Two files that resolve to the same model, tissue, sex, and
+    age raise, because both would write one age of one output entry.
     """
-    if "log2foldchange" in data_file.columns:
-        return data_file
-    return data_file.rename(columns={"diff": "log2foldchange"})
+    available = ", ".join(sorted(set(datasets) - set(required_input))) or "(none)"
+    if not file_metadata:
+        raise ValueError(
+            "No file_metadata provided. Each differential expression file's "
+            "model, sex, age, and tissue have to be declared in the config "
+            f"under custom_transformations. Data files available: {available}."
+        )
+    if unknown_files := sorted(set(file_metadata) - set(datasets)):
+        raise ValueError(
+            f"file_metadata names {unknown_files}, which are not files in this "
+            "dataset. Correct the name in the config or add the file to the "
+            f"dataset's files. Data files available: {available}."
+        )
+    if not_data_files := sorted(set(file_metadata) & set(required_input)):
+        raise ValueError(
+            f"{not_data_files} are metadata datasets, not differential expression "
+            "files. Remove them from file_metadata."
+        )
+    leftover = sorted(set(datasets) - set(required_input) - set(file_metadata))
+    if leftover:
+        raise ValueError(
+            f"{leftover} are not in file_metadata. Add them to the config or "
+            "remove them from this dataset's files."
+        )
+
+    if not_mappings := [
+        name for name, meta in file_metadata.items() if not isinstance(meta, dict)
+    ]:
+        raise ValueError(
+            f"file_metadata for {not_mappings} must be a mapping of "
+            f"{', '.join(METADATA_FIELDS)}."
+        )
+
+    # One row per file so the shared column checks report every problem at once.
+    meta_df = pd.DataFrame.from_dict(file_metadata, orient="index")
+    check_required_datasets_and_columns(
+        {"file_metadata": meta_df}, {"file_metadata": list(METADATA_FIELDS)}
+    )
+    check_column_rules(
+        {"file_metadata": meta_df},
+        {
+            "file_metadata": {
+                "model": [NotEmptyRule(), OneOfRule(known_models)],
+                "sex": [NotEmptyRule()],
+                "age": [NotEmptyRule(), MatchesRegexRule(r"^\d+ months$")],
+                "tissue": [NotEmptyRule()],
+            }
+        },
+    )
+    meta_df["sex"] = remap_sex_labels(meta_df["sex"])
+    meta_df["tissue"] = normalize_tissue(meta_df["tissue"])
+    raise_on_duplicate_keys(
+        meta_df,
+        GROUP_KEY,
+        "More than one file resolves to the same model, tissue, sex, and age, "
+        "so which fold change belongs on the page cannot be decided.",
+    )
+    return meta_df[list(METADATA_FIELDS)].to_dict(orient="index")
 
 
 def _model_display_labels(
     genotype_label_map_df: pd.DataFrame,
+    models: set[str],
 ) -> dict[str, dict[str, str]]:
-    """Map each model to name and matched_control.
+    """Map each used model to name and matched_control.
 
     matched_control is the display label with the lowest result_order and name
-    is the one with the highest.
+    is the one with the highest. There is no case or control column to
+    disambiguate a third label, so a used model must have exactly two.
     """
     labels: dict[str, dict[str, str]] = {}
-    for model, group in genotype_label_map_df.groupby("model"):
+    for model in models:
+        group = genotype_label_map_df[genotype_label_map_df["model"] == model]
         ordered = determine_result_order(group)
+        if len(ordered) != 2:
+            raise ValueError(
+                f"Model '{model}' has {len(ordered)} display labels in the "
+                "genotype label map. protein_de_aggregate needs exactly two, "
+                f"the comparison and its matched control. Found: {ordered}."
+            )
         labels[model] = {
             "matched_control": ordered[0],
             "name": ordered[-1],
@@ -229,19 +194,12 @@ def _process_data_file(
     uniprot_to_ensembl: dict[str, str],
     gene_symbols: dict[str, str],
 ) -> pd.DataFrame:
-    """Stamp biology from the dataset name, resolve proteins, and keep the grouping columns.
-
-    normalize_tissue and remap_sex_labels stay even though the overlay values are
-    already Hemibrain and Female/Male: a new center token can return a tissue
-    alias, and the sex remap covers a future token that arrives in the plural.
-    """
-    data_file = _ensure_log2foldchange(data_file).copy()
+    """Stamp biology from file_metadata, resolve proteins, and keep the grouping columns."""
+    data_file = data_file.copy()
     data_file["model"] = overlay["model"]
     data_file["sex"] = overlay["sex"]
     data_file["age"] = overlay["age"]
     data_file["tissue"] = overlay["tissue"]
-    data_file["tissue"] = normalize_tissue(data_file["tissue"])
-    data_file["sex"] = remap_sex_labels(data_file["sex"])
     data_file = data_file.round(decimals=5)
 
     data_file["uniprotid"] = canonical_accession(data_file["protein_id"].astype(str))
@@ -263,23 +221,6 @@ def _process_data_file(
         "padj",
     ]
     return data_file[keep]
-
-
-def _reject_duplicate_ages(combined: pd.DataFrame) -> None:
-    """Raise when two rows would write the same age key of one output entry."""
-    duplicated = combined.duplicated(subset=AGE_KEY, keep=False)
-    if not duplicated.any():
-        return
-    offenders = list(
-        combined.loc[duplicated, AGE_KEY]
-        .drop_duplicates()
-        .itertuples(index=False, name=None)
-    )
-    raise ValueError(
-        "More than one row shares a protein, model, tissue, sex, and age, so "
-        "which fold change belongs on the page cannot be decided. "
-        f"(first 10): {offenders[:10]}"
-    )
 
 
 def _build_output_entry(
@@ -322,6 +263,7 @@ def _build_output_entry(
 
 def transform_protein_de_aggregate(
     datasets: dict[str, pd.DataFrame],
+    file_metadata: dict[str, dict[str, str]],
     required_input: dict[str, list[str]] = REQUIRED_INPUT,
     column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
 ) -> list[dict[str, Any]]:
@@ -329,32 +271,31 @@ def transform_protein_de_aggregate(
     check_required_datasets_and_columns(datasets, required_input)
     check_column_rules(datasets, column_rules)
 
-    file_list = _data_file_names(datasets, required_input)
-    for file_name in file_list:
-        validate_data_file_not_empty(file_name, datasets[file_name])
-        check_required_datasets_and_columns(
-            {file_name: datasets[file_name]},
-            {file_name: ["protein_id", "padj"]},
-        )
-        check_column_rules(
-            {file_name: datasets[file_name]},
-            {file_name: {"protein_id": [NotEmptyRule()]}},
-        )
-        _require_protein_id_shape(datasets[file_name]["protein_id"])
-        if not any(col in datasets[file_name].columns for col in FOLD_CHANGE_COLUMNS):
-            raise ValueError(
-                f"Data file '{file_name}' is missing a fold-change column "
-                "(diff or log2foldchange)."
-            )
-
     genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
     validate_one_to_one_mapping(genotype_label_map_df, "model", "model_type")
+    overlay = _validate_file_metadata(
+        datasets,
+        file_metadata,
+        required_input,
+        set(genotype_label_map_df["model"].unique()),
+    )
     model_group_dict = build_model_to_model_group_lookup(genotype_label_map_df)
     model_type_dict = build_model_type_lookup(genotype_label_map_df)
-    model_display_labels = _model_display_labels(genotype_label_map_df)
-    overlay = _build_file_metadata_map(
-        file_list, set(genotype_label_map_df["model"].unique())
+    model_display_labels = _model_display_labels(
+        genotype_label_map_df, {meta["model"] for meta in overlay.values()}
     )
+
+    file_list = list(overlay)
+    for index, file_name in enumerate(file_list):
+        validate_data_file(
+            file_name,
+            datasets[file_name],
+            index,
+            len(file_list),
+            DATA_FILE_COLUMNS,
+            DATA_FILE_COLUMN_RULES,
+        )
+
     gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
     biodomain_dict = build_biodomain_lookup(datasets["biodom_genes_mm"])
 
@@ -368,20 +309,25 @@ def transform_protein_de_aggregate(
     ).drop_duplicates()
     log_unmapped_accessions(measured, uniprot_to_ensembl)
 
-    frames = [
-        _process_data_file(
-            file_name,
-            datasets[file_name],
-            overlay[file_name],
-            uniprot_to_ensembl,
-            gene_symbols,
-        )
-        for file_name in file_list
-    ]
-    combined = pd.concat(frames, ignore_index=True)
-    del frames
-    gc.collect()
-    _reject_duplicate_ages(combined)
+    combined = pd.concat(
+        [
+            _process_data_file(
+                file_name,
+                datasets[file_name],
+                overlay[file_name],
+                uniprot_to_ensembl,
+                gene_symbols,
+            )
+            for file_name in file_list
+        ],
+        ignore_index=True,
+    )
+    raise_on_duplicate_keys(
+        combined,
+        AGE_KEY,
+        "More than one row shares a protein, model, tissue, sex, and age, so "
+        "which fold change belongs on the page cannot be decided.",
+    )
 
     group_cols = [
         "unique_id",

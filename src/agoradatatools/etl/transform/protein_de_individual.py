@@ -13,6 +13,7 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
+    raise_on_duplicate_keys,
     ColumnRule,
     NotEmptyRule,
     normalize_zero,
@@ -89,7 +90,8 @@ def _measured_accessions(
 ) -> pd.Series:
     """Collect the canonical UniProt accessions of protein columns that hold data. Column headers look like "abc|q123",
     where everything before the "|" is the lower-cased gene symbol and everything after the "|" is the lower-cased
-    Uniprot accession. The Uniprot IDs are extracted from the headers and returned to their original upper-case values."""
+    Uniprot accession. The Uniprot IDs are extracted from the headers and returned to their original upper-case values.
+    """
     headers = pd.Series(
         [
             column
@@ -200,19 +202,12 @@ def _collapse_duplicate_measurements(
     """
     keys = ["individualid", "uniprotid"]
     collapsed = df.drop_duplicates(subset=keys + ["value"])
-    conflicting = collapsed.duplicated(subset=keys, keep=False)
-    if conflicting.any():
-        offenders = sorted(
-            collapsed.loc[conflicting, keys]
-            .drop_duplicates()
-            .itertuples(index=False, name=None)
-        )
-        raise ValueError(
-            f"Model_group '{model_group}': the data files disagree about the abundance of a "
-            f"protein for {len(offenders)} animal-protein pair(s), so which value belongs on "
-            "the page cannot be decided here. (individualID, uniprotID) "
-            f"(first 10): {offenders[:10]}"
-        )
+    raise_on_duplicate_keys(
+        collapsed,
+        keys,
+        f"Model_group '{model_group}': the data files disagree about the abundance of a "
+        "protein, so which value belongs on the page cannot be decided here.",
+    )
     if len(collapsed) < len(df):
         shared = sorted(
             df.loc[df.duplicated(subset=keys, keep=False), "individualid"].unique()

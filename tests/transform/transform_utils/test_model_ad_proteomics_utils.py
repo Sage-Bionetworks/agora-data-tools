@@ -87,6 +87,7 @@ class TestProteinIdentityFields:
 
 class TestMapAccessionsToGenes:
     def test_maps_an_isoform_on_its_base_accession_and_drops_the_unmapped(self) -> None:
+        """An isoform is looked up on its base accession, and an accession the map does not cover is dropped."""
         df = pd.DataFrame({"uniprotid": ["Q8C8R3-2", "P00001"]})
 
         result = map_accessions_to_genes(
@@ -97,6 +98,7 @@ class TestMapAccessionsToGenes:
         assert result["ensembl_gene_id"].tolist() == ["ENSMUSG00000000001"]
 
     def test_raises_when_nothing_maps(self) -> None:
+        """A file whose accessions all miss the map raises instead of emitting an empty result."""
         df = pd.DataFrame({"uniprotid": ["P00001"]})
 
         with pytest.raises(ValueError, match="No rows remained in 'file'"):
@@ -105,6 +107,7 @@ class TestMapAccessionsToGenes:
 
 class TestAddProteinIdentityColumns:
     def test_fills_symbol_unique_id_and_display_symbol(self) -> None:
+        """unique_id joins the Ensembl id and accession, and a missing symbol falls back to the Ensembl id."""
         df = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSMUSG00000000001", "ENSMUSG00000000002"],
@@ -127,6 +130,7 @@ class TestAddProteinIdentityColumns:
 
 class TestLogUnmappedAccessions:
     def test_logs_accessions_the_map_does_not_cover(self, caplog) -> None:
+        """Accessions the map does not cover are logged. An isoform whose base maps is not one of them."""
         with caplog.at_level(logging.INFO):
             log_unmapped_accessions(
                 pd.Series(["Q8C8R3-2", "P00001"]),
@@ -137,6 +141,7 @@ class TestLogUnmappedAccessions:
         assert "P00001" in caplog.text
 
     def test_silent_when_every_accession_maps(self, caplog) -> None:
+        """Nothing is logged when every accession is in the map."""
         with caplog.at_level(logging.INFO):
             log_unmapped_accessions(
                 pd.Series(["Q8C8R3"]), {"Q8C8R3": "ENSMUSG00000000001"}

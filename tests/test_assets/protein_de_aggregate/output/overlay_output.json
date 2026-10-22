@@ -2,6 +2,21 @@
   {
     "ensembl_gene_id": "ENSMUSG00000000001",
     "gene_symbol": "Gnai3",
+    "uniprotid": "P00001",
+    "unique_id": "ENSMUSG00000000001P00001",
+    "display_symbol": "Gnai3 (P00001)",
+    "biodomains": ["Apoptosis"],
+    "name": {"link_url": "models/LOAD2", "link_text": "LOAD2"},
+    "matched_control": "LOAD1",
+    "model_group": "LOAD2",
+    "model_type": "Late Onset AD",
+    "tissue": "Hemibrain",
+    "sex": "Female",
+    "4 months": {"log2_fc": 0.15, "adj_p_val": 0.05}
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
     "uniprotid": "P27144",
     "unique_id": "ENSMUSG00000000001P27144",
     "display_symbol": "Gnai3 (P27144)",
@@ -14,6 +29,21 @@
     "sex": "Female",
     "4 months": {"log2_fc": 0.01167, "adj_p_val": 0.7812},
     "12 months": {"log2_fc": 0.5, "adj_p_val": 0.01}
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "uniprotid": "P27144",
+    "unique_id": "ENSMUSG00000000001P27144",
+    "display_symbol": "Gnai3 (P27144)",
+    "biodomains": ["Apoptosis"],
+    "name": {"link_url": "models/LOAD2", "link_text": "LOAD2"},
+    "matched_control": "LOAD1",
+    "model_group": "LOAD2",
+    "model_type": "Late Onset AD",
+    "tissue": "Hemibrain",
+    "sex": "Male",
+    "4 months": {"log2_fc": 0.3, "adj_p_val": 0.04}
   },
   {
     "ensembl_gene_id": "ENSMUSG00000000002",
