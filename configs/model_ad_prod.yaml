@@ -12,12 +12,13 @@ files:
   - &genotype_label_map           { name: genotype_label_map           , format: csv  , id: syn69014401.20 }
   - &ui_config                    { name: ui_config                    , format: json , id: syn66527739.30 }
   # Marmoset source files
-  - &marmo_model_metadata         { name: marmo_model_metadata         , format: csv  , id: syn76417166.2 }
-  - &marmo_genotype_label_map     { name: marmo_genotype_label_map     , format: csv  , id: syn76417167.4 }
+  - &marmo_model_metadata         { name: marmo_model_metadata         , format: csv  , id: syn76417166.3 }
+  - &marmo_genotype_label_map     { name: marmo_genotype_label_map     , format: csv  , id: syn76417167.5 }
   - &marmo_biomarker_measure_info { name: marmo_biomarker_measure_info , format: csv  , id: syn76417168.1 }
   - &marmo_individual_metadata    { name: marmo_individual_metadata    , format: csv  , id: syn63926850.19 }
   - &marmo_biomaterial_metadata   { name: marmo_biomaterial_metadata   , format: csv  , id: syn74444970.5 }
   - &marmo_results                { name: marmo_results                , format: csv  , id: syn64133726.18 }
+  - &marmo_overview               { name: marmo_overview               , format: json , id: syn77974246.2 } # passthrough json file
   # Results
   - &biodom_genes_mm              { name: biodom_genes_mm              , format: csv  , id: syn66351272.1  }
   - &biomarkers                   { name: biomarkers                   , format: csv  , id: syn61250724.12 }
@@ -54,6 +55,15 @@ files:
   - &uniprot_ensembl_map          { name: uniprot_ensembl_map          , format: tsv  , id: syn75830091.2  }
   - &jax_load2_proteomics_ne      { name: jax_load2_proteomics_ne      , format: csv  , id: syn63886488.1  }
   - &jax_load2_proteomics_24mo_ne { name: jax_load2_proteomics_24mo_ne , format: csv  , id: syn63886489.1  }
+  # Proteomics (Aggregate DE)
+  - &jax_load2_f_4mo              { name: jax_load2_f_4mo              , format: csv  , id: syn76976066.1  }
+  - &jax_load2_f_12mo             { name: jax_load2_f_12mo             , format: csv  , id: syn76976065.1  }
+  - &jax_load2_f_18mo             { name: jax_load2_f_18mo             , format: csv  , id: syn76976068.1  }
+  - &jax_load2_f_24mo             { name: jax_load2_f_24mo             , format: csv  , id: syn76976038.2  }
+  - &jax_load2_m_4mo              { name: jax_load2_m_4mo              , format: csv  , id: syn76976064.1  }
+  - &jax_load2_m_12mo             { name: jax_load2_m_12mo             , format: csv  , id: syn76976061.1  }
+  - &jax_load2_m_18mo             { name: jax_load2_m_18mo             , format: csv  , id: syn76976062.1  }
+  - &jax_load2_m_24mo             { name: jax_load2_m_24mo             , format: csv  , id: syn76976036.2  }
 
 datasets:
   - model_details:
@@ -148,6 +158,16 @@ datasets:
         - study_data
         - jax_strain
 
+  - marmo_overview:
+      files:
+        - <<: *marmo_overview
+      final_format: json
+      destination: *dest
+      gx_enabled: true
+      gx_nested_columns:
+        - biomarkers
+        - study_data
+
   - rna_de_aggregate:
       files:
         - <<: *genotype_label_map
@@ -218,3 +238,34 @@ datasets:
             load2_harmonized_metadata: LOAD2
       column_rename:
         resource_identifier: ensembl_gene_id
+
+  - protein_de_aggregate:
+      files:
+        - <<: *genotype_label_map
+        - <<: *mouse_gene_metadata
+        - <<: *biodom_genes_mm
+        - <<: *uniprot_ensembl_map
+        - <<: *jax_load2_f_4mo
+        - <<: *jax_load2_f_12mo
+        - <<: *jax_load2_f_18mo
+        - <<: *jax_load2_f_24mo
+        - <<: *jax_load2_m_4mo
+        - <<: *jax_load2_m_12mo
+        - <<: *jax_load2_m_18mo
+        - <<: *jax_load2_m_24mo
+      final_format: json
+      destination: *dest
+      custom_transformations:
+        transform_protein_de_aggregate:
+          file_metadata:
+            jax_load2_f_4mo: { model: LOAD2, sex: Female, age: "4 months", tissue: Hemibrain }
+            jax_load2_f_12mo: { model: LOAD2, sex: Female, age: "12 months", tissue: Hemibrain }
+            jax_load2_f_18mo: { model: LOAD2, sex: Female, age: "18 months", tissue: Hemibrain }
+            jax_load2_f_24mo: { model: LOAD2, sex: Female, age: "24 months", tissue: Hemibrain }
+            jax_load2_m_4mo: { model: LOAD2, sex: Male, age: "4 months", tissue: Hemibrain }
+            jax_load2_m_12mo: { model: LOAD2, sex: Male, age: "12 months", tissue: Hemibrain }
+            jax_load2_m_18mo: { model: LOAD2, sex: Male, age: "18 months", tissue: Hemibrain }
+            jax_load2_m_24mo: { model: LOAD2, sex: Male, age: "24 months", tissue: Hemibrain }
+      column_rename:
+        resource_identifier: ensembl_gene_id
+        diff: log2foldchange

@@ -1429,6 +1429,25 @@ class TestValidateOneToOneMapping:
             utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
 
+class TestRaiseOnDuplicateKeys:
+    """Tests for raise_on_duplicate_keys()."""
+
+    def test_raises_when_keys_repeat(self) -> None:
+        """Repeated key tuples are reported, and rows that differ only outside the keys still conflict."""
+        df = pd.DataFrame({"a": [1, 1, 2], "b": ["x", "x", "y"], "c": [0, 1, 2]})
+
+        with pytest.raises(
+            ValueError, match=r"shared key \(first 10\): \[\(1, 'x'\)\]"
+        ):
+            utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_does_not_raise_when_keys_are_unique(self) -> None:
+        """Distinct keys are not an error, even when another column repeats."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "x"]})
+
+        utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+
 class TestValidateReferencesExist:
     """Tests for validate_references_exist()."""
 

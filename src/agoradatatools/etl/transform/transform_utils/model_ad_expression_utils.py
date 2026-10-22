@@ -1,10 +1,10 @@
 """
 Shared utilities for the Model AD expression transforms.
 
-Used by rna_de_individual, protein_de_individual, and rna_de_aggregate. The genotype
-label map pieces in particular are a shared contract: all three transforms use the same
-file and need to perform the same operations on that data. Changing anything here changes
-all three datasets.
+Used by rna_de_individual, protein_de_individual, rna_de_aggregate, and
+protein_de_aggregate. The genotype label map pieces in particular are a shared
+contract: these transforms use the same file and need to perform the same
+operations on that data. Changing anything here changes all of them.
 """
 
 import logging
