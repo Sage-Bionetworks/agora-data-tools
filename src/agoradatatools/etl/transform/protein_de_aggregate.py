@@ -85,7 +85,10 @@ COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
 
 DATA_FILE_COLUMNS = ["protein_id", "log2foldchange", "padj"]
 # protein_id is gene_symbol|uniprotid; the pipe is what canonical_accession splits on.
-DATA_FILE_COLUMN_RULES = {"protein_id": [NotEmptyRule(), ContainsSubstringRule("|")]}
+DATA_FILE_COLUMN_RULES = {
+    "protein_id": [NotEmptyRule(), ContainsSubstringRule("|")],
+    "log2foldchange": [NotEmptyRule()],
+}
 
 
 def _validate_file_metadata(
