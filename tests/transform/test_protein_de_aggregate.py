@@ -275,6 +275,14 @@ class TestTransformProteinDeAggregate:
         with pytest.raises(ValueError, match="protein_id.*contains_substring"):
             transform_protein_de_aggregate(datasets, FILE_METADATA)
 
+    def test_blank_log2foldchange_raises(self) -> None:
+        """A blank log2foldchange would otherwise flow into the output as NaN."""
+        datasets = _load_datasets()
+        datasets["jax_load2_f_4mo"].loc[0, "log2foldchange"] = None
+
+        with pytest.raises(ValueError, match="log2foldchange.*not_empty"):
+            transform_protein_de_aggregate(datasets, FILE_METADATA)
+
     def test_blank_mouse_ensembl_id_raises(self) -> None:
         """A blank ensembl_gene_id would become a live key in the gene-symbol lookup."""
         datasets = _load_datasets()
