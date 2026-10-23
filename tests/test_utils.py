@@ -1447,6 +1447,26 @@ class TestRaiseOnDuplicateKeys:
 
         utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
 
+    def test_raises_when_keys_are_empty(self) -> None:
+        """Empty keys are not allowed, regardless of the data in the DataFrame."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+
+        with pytest.raises(ValueError, match="not enough values to unpack"):
+            utils.raise_on_duplicate_keys(df, [], "shared key")
+
+    def test_does_not_raise_when_dataframe_is_empty(self) -> None:
+        """An empty DataFrame shouldn't raise an error as long as it has the required columns."""
+        df = pd.DataFrame(columns=["a", "b"])
+
+        utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_raises_when_dataframe_is_missing_columns_in_keys(self) -> None:
+        """A DataFrame missing columns specified in keys should raise an error."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "x"]})
+
+        with pytest.raises(KeyError, match="\\['c'\\]"):
+            utils.raise_on_duplicate_keys(df, ["a", "b", "c"], "shared key")
+
 
 class TestValidateReferencesExist:
     """Tests for validate_references_exist()."""
