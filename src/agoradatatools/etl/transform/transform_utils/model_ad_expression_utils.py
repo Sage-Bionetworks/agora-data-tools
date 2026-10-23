@@ -1,10 +1,10 @@
 """
 Shared utilities for the Model AD expression transforms.
 
-Used by rna_de_individual, protein_de_individual, and rna_de_aggregate. The genotype
-label map pieces in particular are a shared contract: all three transforms use the same
-file and need to perform the same operations on that data. Changing anything here changes
-all three datasets.
+Used by rna_de_individual, protein_de_individual, rna_de_aggregate, and
+protein_de_aggregate. The genotype label map pieces in particular are a shared
+contract: these transforms use the same file and need to perform the same
+operations on that data. Changing anything here changes all of them.
 """
 
 import logging
@@ -14,6 +14,7 @@ from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
     nest_fields,
+    normalize_zero,
     ColumnRule,
     NotEmptyRule,
 )
@@ -290,6 +291,34 @@ def build_model_to_model_group_lookup(
     )
 
 
+def build_model_type_lookup(genotype_label_map_df: pd.DataFrame) -> dict[str, str]:
+    """Map each model to its model_type.
+
+    Assumes validate_one_to_one_mapping has already rejected a model with more
+    than one model_type, so one row per model is enough.
+    """
+    return (
+        genotype_label_map_df.drop_duplicates("model")
+        .set_index("model")["model_type"]
+        .to_dict()
+    )
+
+
+def build_biodomain_lookup(biodom_genes_mm_df: pd.DataFrame) -> dict[str, list[str]]:
+    """Map each ensembl id to its biodomain names.
+
+    Rows with no ensembl id are dropped: they cannot be joined to a gene.
+    """
+    present = biodom_genes_mm_df.dropna(axis="index", subset=["ensembl_id"])
+    return (
+        present[["ensembl_id", "biodomain"]]
+        .drop_duplicates()
+        .groupby("ensembl_id")["biodomain"]
+        .apply(list)
+        .to_dict()
+    )
+
+
 def create_gene_metadata_dict(mouse_gene_metadata_df: pd.DataFrame) -> dict[str, str]:
     """
     Create a lookup dictionary mapping Ensembl gene IDs to gene symbols.
@@ -348,6 +377,33 @@ def validate_data_file_not_empty(file_name: str, data_file: pd.DataFrame) -> Non
         raise ValueError(f"Data file {file_name} is empty")
 
 
+def validate_data_file(
+    file_name: str,
+    data_file: pd.DataFrame,
+    file_index: int,
+    total_files: int,
+    data_file_required_columns: list[str],
+    data_file_column_rules: dict[str, list[ColumnRule]] | None = None,
+) -> None:
+    """Shared validation preamble for an expression data file.
+
+    The empty-file check runs before the required-column check so an empty file
+    is not reported as a missing-column error. Column value rules are checked
+    only when supplied.
+
+    Raises:
+        ValueError: If the file is empty, a required column is missing, or a
+            supplied column value rule is violated.
+    """
+    log_file_processing_info(file_name, file_index, total_files, data_file)
+    validate_data_file_not_empty(file_name, data_file)
+    check_required_datasets_and_columns(
+        {file_name: data_file}, {file_name: data_file_required_columns}
+    )
+    if data_file_column_rules:
+        check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
+
+
 def preprocess_data_file(
     file_name: str,
     data_file: pd.DataFrame,
@@ -381,12 +437,14 @@ def preprocess_data_file(
         ValueError: If the file is empty, missing required columns, or any column
             value rule is violated.
     """
-    log_file_processing_info(file_name, file_index, total_files, data_file)
-    validate_data_file_not_empty(file_name, data_file)
-    check_required_datasets_and_columns(
-        {file_name: data_file}, {file_name: data_file_required_columns}
+    validate_data_file(
+        file_name,
+        data_file,
+        file_index,
+        total_files,
+        data_file_required_columns,
+        data_file_column_rules,
     )
-    check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
     data_file = filter_to_mouse_genes(data_file)
     data_file["tissue"] = normalize_tissue(data_file["tissue"])
     # Map plural source sex values to the singular display form
@@ -395,3 +453,57 @@ def preprocess_data_file(
     data_file = data_file.round(decimals=5)
     data_file["individualid"] = data_file["individualid"].astype(str)
     return data_file
+
+
+def validate_and_sort_age_entries(
+    age_entries: dict[str, dict[str, float]],
+    ensembl_gene_id: str,
+    model: str,
+    tissue: str,
+    sex: str,
+) -> dict[str, dict[str, float]]:
+    """Sort age keys of the form N months; raise if any key is empty or not that shape."""
+    for age in age_entries:
+        if not age.strip():
+            raise ValueError(
+                f"Empty or whitespace-only age value found in data for gene "
+                f"'{ensembl_gene_id}', model '{model}', tissue '{tissue}', "
+                f"sex '{sex}'. Expected 'N months' format but found: '{age}'"
+            )
+    try:
+        return dict(sorted(age_entries.items(), key=lambda x: int(x[0].split()[0])))
+    except (ValueError, IndexError) as e:
+        raise ValueError(
+            f"Invalid age format in data for gene '{ensembl_gene_id}', "
+            f"model '{model}', tissue '{tissue}', sex '{sex}'. "
+            f"Expected 'N months' format but found: {list(age_entries.keys())}. "
+            f"Original error: {e}"
+        ) from e
+
+
+def create_age_entries_from_group(
+    group: pd.DataFrame,
+    ensembl_gene_id: str,
+    model: str,
+    tissue: str,
+    sex: str,
+) -> dict[str, dict[str, float]]:
+    """Build age -> log2_fc / adj_p_val from a group that already has log2foldchange.
+
+    Missing padj becomes 1.0: a missing p-value is not evidence of significance
+    and must not present as 0.0. Negative padj raises.
+    """
+    age_entries = {}
+    for row in group.itertuples(index=False):
+        if not pd.isna(row.padj) and float(row.padj) < 0.0:
+            raise ValueError(
+                f"Negative adjusted p-value found in data for gene "
+                f"'{ensembl_gene_id}', model '{model}', tissue '{tissue}', "
+                f"sex '{sex}'. Expected positive adjusted p-value but found: "
+                f"'{row.padj}'"
+            )
+        age_entries[str(row.age)] = {
+            "log2_fc": normalize_zero(float(row.log2foldchange)),
+            "adj_p_val": 1.0 if pd.isna(row.padj) else float(row.padj),
+        }
+    return age_entries

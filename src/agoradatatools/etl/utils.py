@@ -586,6 +586,21 @@ def check_required_datasets_and_columns(
             )
 
 
+def raise_on_duplicate_keys(df: pd.DataFrame, keys: list[str], message: str) -> None:
+    """Raise when more than one row shares the same values for keys.
+
+    message is the sentence that precedes the offending key tuples. At most ten
+    tuples are included.
+    """
+    duplicated = df.duplicated(subset=keys, keep=False)
+    if not duplicated.any():
+        return
+    offenders = sorted(
+        df.loc[duplicated, keys].drop_duplicates().itertuples(index=False, name=None)
+    )
+    raise ValueError(f"{message} (first 10): {offenders[:10]}")
+
+
 def validate_one_to_one_mapping(
     df: pd.DataFrame,
     left_col: str,

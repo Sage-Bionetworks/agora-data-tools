@@ -1429,6 +1429,45 @@ class TestValidateOneToOneMapping:
             utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
 
+class TestRaiseOnDuplicateKeys:
+    """Tests for raise_on_duplicate_keys()."""
+
+    def test_raises_when_keys_repeat(self) -> None:
+        """Repeated key tuples are reported, and rows that differ only outside the keys still conflict."""
+        df = pd.DataFrame({"a": [1, 1, 2], "b": ["x", "x", "y"], "c": [0, 1, 2]})
+
+        with pytest.raises(
+            ValueError, match=r"shared key \(first 10\): \[\(1, 'x'\)\]"
+        ):
+            utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_does_not_raise_when_keys_are_unique(self) -> None:
+        """Distinct keys are not an error, even when another column repeats."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "x"]})
+
+        utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_raises_when_keys_are_empty(self) -> None:
+        """Empty keys are not allowed, regardless of the data in the DataFrame."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+
+        with pytest.raises(ValueError, match="not enough values to unpack"):
+            utils.raise_on_duplicate_keys(df, [], "shared key")
+
+    def test_does_not_raise_when_dataframe_is_empty(self) -> None:
+        """An empty DataFrame shouldn't raise an error as long as it has the required columns."""
+        df = pd.DataFrame(columns=["a", "b"])
+
+        utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_raises_when_dataframe_is_missing_columns_in_keys(self) -> None:
+        """A DataFrame missing columns specified in keys should raise an error."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "x"]})
+
+        with pytest.raises(KeyError, match="\\['c'\\]"):
+            utils.raise_on_duplicate_keys(df, ["a", "b", "c"], "shared key")
+
+
 class TestValidateReferencesExist:
     """Tests for validate_references_exist()."""
 
