@@ -1004,6 +1004,21 @@ class TestTransformRnaDeAggregate:
         with pytest.raises(ValueError, match="Missing required columns"):
             transform_rna_de_aggregate(datasets=datasets)
 
+    def test_invalid_age_format_raises(self) -> None:
+        """An age that does not match N months fails the data file column rule before grouping."""
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+        datasets["synthetic_basic_data"].loc[0, "age"] = "6months"
+
+        with pytest.raises(ValueError, match="column 'age'.*matches_regex"):
+            transform_rna_de_aggregate(datasets=datasets)
+
     def test_synthetic_rounding_precision(self) -> None:
         """Test that log2foldchange and padj values are rounded to 5 decimal places.
 

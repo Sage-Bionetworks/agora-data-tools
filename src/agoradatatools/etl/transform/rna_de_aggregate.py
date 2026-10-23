@@ -11,7 +11,7 @@ The transformation:
 - Maps plural sex values to singular display labels
 - Groups differential expression data by gene, model, tissue, sex, case, and control
 - Creates age-based entries containing log2 fold change and adjusted p-values
-- Validates and sorts age entries by numeric value
+- Requires age to match the N months format and orders age entries numerically
 - Normalizes zero values in log2 fold change for consistent representation
 - Enriches data with gene symbols, biodomains, and model metadata
 - Maps genotypes to display labels with strict validation (raises ValueError if mappings are missing)
@@ -40,6 +40,7 @@ import logging
 
 from agoradatatools.etl.utils import (
     ColumnRule,
+    MatchesRegexRule,
     NotEmptyRule,
     check_column_rules,
     check_required_datasets_and_columns,
@@ -59,7 +60,7 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     create_gene_metadata_dict,
     filter_to_mouse_genes,
     normalize_tissue,
-    validate_and_sort_age_entries,
+    prepare_genotype_label_map,
     validate_data_file,
 )
 
@@ -99,6 +100,11 @@ DATA_FILE_REQUIRED_COLUMNS = [
     "tissue",
 ]
 
+# Age is validated here so create_age_entries_from_group can sort on the leading integer.
+DATA_FILE_COLUMN_RULES: dict[str, list[ColumnRule]] = {
+    "age": [MatchesRegexRule(value=r"\d+ months$")],
+}
+
 
 def _create_output_entry_from_group(
     group_key: tuple[str, str, str, str, str, str],
@@ -122,7 +128,7 @@ def _create_output_entry_from_group(
     The function performs several key operations:
     1. Extracts metadata from lookup dictionaries for efficient data enrichment
     2. Creates age-based entries from the grouped DataFrame using helper functions
-    3. Validates and sorts age entries by numeric age value
+    3. Orders age entries by numeric age value
     4. Constructs a comprehensive output dictionary combining all metadata and age-based data
 
     The resulting entry represents a complete record for one gene-model-tissue-sex combination
@@ -157,7 +163,8 @@ def _create_output_entry_from_group(
             - 'biodomains': List[str], List of biodomain names associated with the gene
             - 'name': dict, Object with 'link_url' and 'link_text' keys containing the model link path and display text
             - 'matched_control': str, Display label for the control genotype
-            - 'model_group': str or None, Model group (None only when the model is absent from the label map; an empty value is rejected up front)
+            - 'model_group': str or None, Model group (None only when the model is absent
+              from the label map; an empty value is rejected up front)
             - 'model_type': str, Model type classification (empty string if not found)
             - 'tissue': str, Tissue name (aliases already applied by the caller)
             - 'sex': str, Sex category
@@ -185,7 +192,8 @@ def _create_output_entry_from_group(
             to help identify which mapping is missing.
 
     Note:
-        Age entries are validated and sorted numerically before being included in the output.
+        Age entries are in numeric age order; the age format itself is validated by the
+        data file column rules before grouping.
         Missing values in gene_metadata_dict and biodomain_dict result in empty strings or empty
         lists, not errors. However, missing entries in label_map_dict for the case or control
         genotypes will raise a ValueError.
@@ -216,10 +224,6 @@ def _create_output_entry_from_group(
         group, ensembl_gene_id, model, tissue, sex
     )
 
-    sorted_ages = validate_and_sort_age_entries(
-        age_entries, ensembl_gene_id, model, tissue, sex
-    )
-
     return {
         "ensembl_gene_id": ensembl_gene_id,
         "gene_symbol": gene_symbol,
@@ -230,7 +234,7 @@ def _create_output_entry_from_group(
         "model_type": model_type,
         "tissue": tissue,
         "sex": sex,
-        **sorted_ages,
+        **age_entries,
     }
 
 
@@ -245,6 +249,7 @@ def _process_single_data_file(
     model_type_dict: Dict[str, str],
     file_index: int,
     total_files: int,
+    data_file_column_rules: Dict[str, List[ColumnRule]] | None = None,
 ) -> List[Dict[str, Any]]:
     """
     Processes a single differential expression data file and transforms it into output entries.
@@ -294,6 +299,8 @@ def _process_single_data_file(
             to indicate which file is being processed (e.g., "Processing file 3/10").
         total_files: Total number of files to process. Used in logging to show progress
             (e.g., "Processing file 3/10").
+        data_file_column_rules: Per-column content rules checked after the required-column
+            validation. None skips the rule check.
 
     Returns:
         List of output entry dictionaries. Each dictionary represents a unique combination
@@ -316,6 +323,7 @@ def _process_single_data_file(
         file_index,
         total_files,
         data_file_required_columns,
+        data_file_column_rules,
     )
 
     data_file = filter_to_mouse_genes(data_file)
@@ -360,6 +368,7 @@ def transform_rna_de_aggregate(
     required_input: dict[str, list[str]] = REQUIRED_INPUT,
     data_file_required_columns: list[str] = DATA_FILE_REQUIRED_COLUMNS,
     column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
+    data_file_column_rules: dict[str, list[ColumnRule]] = DATA_FILE_COLUMN_RULES,
 ) -> list[dict[str, Any]]:
     """
     Main transformation function that orchestrates the processing of RNA differential expression data.
@@ -405,6 +414,10 @@ def transform_rna_de_aggregate(
             necessary metadata datasets are present with correct structure.
         data_file_required_columns: Column names required in each differential expression
             data file. Defaults to DATA_FILE_REQUIRED_COLUMNS.
+        column_rules: Per-column content rules for the metadata datasets. Defaults to
+            COLUMN_RULES.
+        data_file_column_rules: Per-column content rules applied to each data file.
+            Defaults to DATA_FILE_COLUMN_RULES.
 
     Returns:
         List of dictionaries, where each dictionary represents a unique combination of
@@ -447,7 +460,7 @@ def transform_rna_de_aggregate(
     check_column_rules(datasets, column_rules)
 
     # Pre-compute lookup dictionaries for efficient lookups
-    genotype_label_map_df = datasets["genotype_label_map"]
+    genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
 
     # Missing gene symbols are dropped inside create_gene_metadata_dict; lookups default
@@ -459,7 +472,7 @@ def transform_rna_de_aggregate(
         "display_label"
     ].to_dict()
 
-    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
+    # prepare_genotype_label_map already checks model to model_group.
     validate_one_to_one_mapping(genotype_label_map_df, "model", "model_type")
     model_group_dict = build_model_to_model_group_lookup(genotype_label_map_df)
     # model_type comes from the label map so split variant models are covered
@@ -490,6 +503,7 @@ def transform_rna_de_aggregate(
             model_type_dict,
             i,
             total_files,
+            data_file_column_rules,
         )
         output.extend(file_output)
 

@@ -35,7 +35,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     determine_result_order,
     normalize_tissue,
     prepare_genotype_label_map,
-    validate_and_sort_age_entries,
     validate_data_file,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
@@ -241,9 +240,6 @@ def _build_output_entry(
     age_entries = create_age_entries_from_group(
         group, ensembl_gene_id, model, tissue, sex
     )
-    sorted_ages = validate_and_sort_age_entries(
-        age_entries, ensembl_gene_id, model, tissue, sex
-    )
     return {
         "ensembl_gene_id": ensembl_gene_id,
         "gene_symbol": row.gene_symbol,
@@ -257,7 +253,7 @@ def _build_output_entry(
         "model_type": model_type_dict[model],
         "tissue": tissue,
         "sex": sex,
-        **sorted_ages,
+        **age_entries,
     }
 
 

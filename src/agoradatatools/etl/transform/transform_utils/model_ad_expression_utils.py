@@ -13,6 +13,7 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
+    extract_age_numeric,
     nest_fields,
     normalize_zero,
     ColumnRule,
@@ -427,32 +428,6 @@ def preprocess_data_file(
     return data_file
 
 
-def validate_and_sort_age_entries(
-    age_entries: dict[str, dict[str, float]],
-    ensembl_gene_id: str,
-    model: str,
-    tissue: str,
-    sex: str,
-) -> dict[str, dict[str, float]]:
-    """Sort age keys of the form N months; raise if any key is empty or not that shape."""
-    for age in age_entries:
-        if not age.strip():
-            raise ValueError(
-                f"Empty or whitespace-only age value found in data for gene "
-                f"'{ensembl_gene_id}', model '{model}', tissue '{tissue}', "
-                f"sex '{sex}'. Expected 'N months' format but found: '{age}'"
-            )
-    try:
-        return dict(sorted(age_entries.items(), key=lambda x: int(x[0].split()[0])))
-    except (ValueError, IndexError) as e:
-        raise ValueError(
-            f"Invalid age format in data for gene '{ensembl_gene_id}', "
-            f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-            f"Expected 'N months' format but found: {list(age_entries.keys())}. "
-            f"Original error: {e}"
-        ) from e
-
-
 def create_age_entries_from_group(
     group: pd.DataFrame,
     ensembl_gene_id: str,
@@ -462,11 +437,17 @@ def create_age_entries_from_group(
 ) -> dict[str, dict[str, float]]:
     """Build age -> log2_fc / adj_p_val from a group that already has log2foldchange.
 
+    Entries are in numeric age order. The caller has already required age to match
+    N months, so extract_age_numeric always finds the integer.
+
     Missing padj becomes 1.0: a missing p-value is not evidence of significance
     and must not present as 0.0. Negative padj raises.
     """
+    ordered = sorted(
+        group.itertuples(index=False), key=lambda row: extract_age_numeric(row.age)
+    )
     age_entries = {}
-    for row in group.itertuples(index=False):
+    for row in ordered:
         if not pd.isna(row.padj) and float(row.padj) < 0.0:
             raise ValueError(
                 f"Negative adjusted p-value found in data for gene "
