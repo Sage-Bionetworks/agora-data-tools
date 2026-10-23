@@ -103,9 +103,10 @@ class TestModelDisplayLabels:
     ) -> None:
         """There is no case or control column, so a third or missing label cannot be resolved."""
         rows = [("LOAD2", f"Label_{index}", index) for index in range(1, n_labels + 1)]
+        label_map = _create_label_map(*rows)
 
         with pytest.raises(ValueError, match="exactly two"):
-            _model_display_labels(_create_label_map(*rows), {"LOAD2"})
+            _model_display_labels(label_map, {"LOAD2"})
 
     def test_a_model_that_is_not_used_is_ignored(self) -> None:
         """Normally a third genotype label for a model would raise an error. However, a third label on a model this
