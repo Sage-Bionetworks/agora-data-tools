@@ -941,6 +941,13 @@ class TestTransformRnaDeIndividual:
         with pytest.raises(ValueError, match="matches_regex"):
             transform_rna_de_individual(datasets=datasets)
 
+    def test_check_column_rules_rejects_missing_age(self) -> None:
+        """A null age fails the not_empty rule instead of reaching extract_age_numeric."""
+        datasets = self._build_minimal_datasets(data_file_overrides={"age": [None]})
+
+        with pytest.raises(ValueError, match="column 'age'.*not_empty"):
+            transform_rna_de_individual(datasets=datasets)
+
     def test_result_order_cast_to_int(self) -> None:
         """Test that string result_order values in the label map are cast to int.
 

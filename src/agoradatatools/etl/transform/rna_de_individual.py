@@ -90,7 +90,8 @@ COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
 
 DATA_FILE_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
     "model": [NotEmptyRule()],
-    "age": [MatchesRegexRule(value=r"\d+ months$")],
+    # MatchesRegexRule skips nulls, so NotEmptyRule is needed to reject a missing age.
+    "age": [NotEmptyRule(), MatchesRegexRule(value=r"\d+ months$")],
 }
 
 
@@ -133,8 +134,8 @@ def _process_individual_data_file_core(
     )
 
     # Derived after nesting, on one row per entry rather than one per animal. age values
-    # are guaranteed to match r'\d+ months$' by check_column_rules upstream, so
-    # extract_age_numeric cannot return None here.
+    # are guaranteed non-null and matching r'\d+ months$' by check_column_rules upstream,
+    # so extract_age_numeric cannot return None here.
     entries["age_numeric"] = entries["age"].map(extract_age_numeric).astype(int)
     entries["gene_symbol"] = (
         entries["ensembl_gene_id"].map(gene_metadata_dict).fillna("")

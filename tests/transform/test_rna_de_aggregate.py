@@ -1019,6 +1019,21 @@ class TestTransformRnaDeAggregate:
         with pytest.raises(ValueError, match="column 'age'.*matches_regex"):
             transform_rna_de_aggregate(datasets=datasets)
 
+    def test_missing_age_raises(self) -> None:
+        """A null age fails the data file column rule rather than reaching the age sort."""
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
+        datasets["synthetic_basic_data"].loc[0, "age"] = None
+
+        with pytest.raises(ValueError, match="column 'age'.*not_empty"):
+            transform_rna_de_aggregate(datasets=datasets)
+
     def test_synthetic_rounding_precision(self) -> None:
         """Test that log2foldchange and padj values are rounded to 5 decimal places.
 

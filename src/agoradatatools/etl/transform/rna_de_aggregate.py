@@ -101,8 +101,9 @@ DATA_FILE_REQUIRED_COLUMNS = [
 ]
 
 # Age is validated here so create_age_entries_from_group can sort on the leading integer.
+# MatchesRegexRule skips nulls, so NotEmptyRule is needed to reject a missing age.
 DATA_FILE_COLUMN_RULES: dict[str, list[ColumnRule]] = {
-    "age": [MatchesRegexRule(value=r"\d+ months$")],
+    "age": [NotEmptyRule(), MatchesRegexRule(value=r"\d+ months$")],
 }
 
 
