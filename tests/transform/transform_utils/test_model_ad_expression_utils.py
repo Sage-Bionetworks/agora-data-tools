@@ -18,18 +18,16 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     build_biodomain_lookup,
     build_model_to_model_group_lookup,
     build_model_type_lookup,
+    create_age_entries_from_group,
     determine_result_order,
     filter_to_mouse_genes,
     label_genotypes,
     nest_individual_records,
     normalize_tissue,
     prepare_genotype_label_map,
-    validate_model_group_consistency,
     create_gene_metadata_dict,
-    create_age_entries_from_group,
     log_file_processing_info,
     validate_data_file_not_empty,
-    validate_and_sort_age_entries,
     preprocess_data_file,
 )
 from agoradatatools.etl.utils import MatchesRegexRule, NotEmptyRule
@@ -86,7 +84,7 @@ class TestPrepareGenotypeLabelMap:
         """Test that an inconsistent model_group (where one model has more than one model_group) raises a ValueError."""
         label_map = self._label_map().assign(model_group=["Group_A", "Group_B"])
 
-        with pytest.raises(ValueError, match="consistent model_group"):
+        with pytest.raises(ValueError, match="multiple model_group"):
             prepare_genotype_label_map(label_map)
 
 
@@ -481,81 +479,9 @@ class TestPreprocessDataRemapsSexLabels:
         assert result["sex"].reset_index(drop=True).tolist() == ["Male", "Female"]
 
 
-class TestValidateModelGroupConsistency:
-    """Tests for validate_model_group_consistency function."""
-
-    def test_consistent_model_groups(self) -> None:
-        """Test that consistent model_group values pass validation."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A", "Model_B", "Model_B"],
-                "model_group": ["Group1", "Group1", "Group2", "Group2"],
-            }
-        )
-
-        # Should not raise
-        validate_model_group_consistency(df)
-
-    def test_inconsistent_model_groups_raises_error(self) -> None:
-        """Test that inconsistent model_group values raise ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A", "Model_B", "Model_B"],
-                "model_group": ["Group1", "Group2", "Group3", "Group3"],
-            }
-        )
-
-        with pytest.raises(ValueError, match="consistent model_group value"):
-            validate_model_group_consistency(df)
-
-    def test_none_model_groups(self) -> None:
-        """Test handling of None model_group values (models with no explicit group)."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": [None, None],
-            }
-        )
-
-        # Should not raise — all-None model_group is consistently "no group"
-        validate_model_group_consistency(df)
-
-    def test_empty_string_model_groups(self) -> None:
-        """Test that consistent empty-string model_group values do not raise an error.
-
-        Consistent "" values are considered valid because all rows agree on the same value.
-        """
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": ["", ""],
-            }
-        )
-
-        # Should not raise — both rows agree on the same value
-        validate_model_group_consistency(df)
-
-    def test_mixed_none_and_real_group_raises_error(self) -> None:
-        """Test that a model with both None and a real group name raises ValueError.
-
-        Mixing None (no group) with an actual group name for the same model is
-        inconsistent and should be caught by validation.
-        """
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": [None, "GroupX"],
-            }
-        )
-
-        with pytest.raises(ValueError, match="consistent model_group value"):
-            validate_model_group_consistency(df)
-
-
 class TestBuildModelToModelGroupLookup:
     """Tests for build_model_to_model_group_lookup function."""
 
-    # TODO come back to this
     def test_creates_correct_mapping(self) -> None:
         """Test that each model maps to its model_group."""
         df = pd.DataFrame(
@@ -803,249 +729,6 @@ class TestBuildBiodomainLookup:
         }
 
 
-class TestValidateAndSortAgeEntries:
-    """
-    Unit tests for the validate_and_sort_age_entries helper function.
-
-    This class contains focused unit tests for age validation and sorting logic,
-    testing the function in isolation from the full transformation pipeline.
-
-    Test Methods:
-        - test_valid_single_age: Tests sorting with a single valid age entry.
-        - test_valid_multiple_ages_sorted: Tests sorting multiple ages in numeric order.
-        - test_valid_multiple_ages_unsorted: Tests sorting handles unsorted input correctly.
-        - test_valid_ages_with_extra_whitespace: Tests handling of extra whitespace in age strings.
-        - test_empty_string_age: Tests error handling for empty string age values.
-        - test_whitespace_only_age: Tests error handling for whitespace-only age values.
-        - test_age_without_space: Tests error handling for age format without space (e.g., "6months").
-        - test_non_numeric_age: Tests error handling for non-numeric age values.
-        - test_negative_age: Tests error handling for negative age values.
-        - test_float_age: Tests error handling for float age values.
-        - test_age_with_wrong_unit: Tests handling of age with units other than "months".
-        - test_empty_age_entries_dict: Tests handling of empty age entries dictionary.
-    """
-
-    def test_valid_single_age(self) -> None:
-        """Test that a single valid age entry is handled correctly."""
-        age_entries = {"6 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-        result = validate_and_sort_age_entries(
-            age_entries=age_entries,
-            ensembl_gene_id="ENSMUSG00000000001",
-            model="TestModel",
-            tissue="Cortex",
-            sex="Male",
-        )
-
-        assert result == {"6 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-    def test_valid_multiple_ages_sorted(self) -> None:
-        """Test that multiple ages already in order remain sorted."""
-        age_entries = {
-            "4 months": {"log2_fc": 0.3, "adj_p_val": 0.02},
-            "6 months": {"log2_fc": 0.5, "adj_p_val": 0.01},
-            "12 months": {"log2_fc": 0.8, "adj_p_val": 0.005},
-        }
-
-        result = validate_and_sort_age_entries(
-            age_entries=age_entries,
-            ensembl_gene_id="ENSMUSG00000000001",
-            model="TestModel",
-            tissue="Cortex",
-            sex="Male",
-        )
-
-        # Verify order is preserved
-        assert list(result.keys()) == ["4 months", "6 months", "12 months"]
-
-    def test_valid_multiple_ages_unsorted(self) -> None:
-        """Test that multiple unsorted ages are sorted numerically."""
-        age_entries = {
-            "12 months": {"log2_fc": 0.8, "adj_p_val": 0.005},
-            "4 months": {"log2_fc": 0.3, "adj_p_val": 0.02},
-            "6 months": {"log2_fc": 0.5, "adj_p_val": 0.01},
-        }
-
-        result = validate_and_sort_age_entries(
-            age_entries=age_entries,
-            ensembl_gene_id="ENSMUSG00000000001",
-            model="TestModel",
-            tissue="Cortex",
-            sex="Male",
-        )
-
-        # Verify ages are sorted numerically
-        assert list(result.keys()) == ["4 months", "6 months", "12 months"]
-        assert result["4 months"] == {"log2_fc": 0.3, "adj_p_val": 0.02}
-        assert result["6 months"] == {"log2_fc": 0.5, "adj_p_val": 0.01}
-        assert result["12 months"] == {"log2_fc": 0.8, "adj_p_val": 0.005}
-
-    def test_valid_ages_with_extra_whitespace(self) -> None:
-        """Test that ages with extra whitespace are handled correctly."""
-        # Note: The function receives age after str() conversion,
-        # so extra whitespace in the middle is preserved
-        age_entries = {
-            "6  months": {"log2_fc": 0.5, "adj_p_val": 0.01},  # Two spaces
-        }
-
-        # This should work because split()[0] handles multiple spaces
-        result = validate_and_sort_age_entries(
-            age_entries=age_entries,
-            ensembl_gene_id="ENSMUSG00000000001",
-            model="TestModel",
-            tissue="Cortex",
-            sex="Male",
-        )
-
-        assert "6  months" in result
-
-    def test_empty_string_age(self) -> None:
-        """Test that empty string age raises ValueError with specific message."""
-        age_entries = {"": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-        with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
-                age_entries=age_entries,
-                ensembl_gene_id="ENSMUSG00000000001",
-                model="TestModel",
-                tissue="Cortex",
-                sex="Male",
-            )
-
-        error_message = str(exc_info.value)
-        assert "Empty or whitespace-only age value" in error_message
-        assert "ENSMUSG00000000001" in error_message
-        assert "TestModel" in error_message
-        assert "Cortex" in error_message
-        assert "Male" in error_message
-
-    def test_whitespace_only_age(self) -> None:
-        """Test that whitespace-only age raises ValueError with specific message."""
-        age_entries = {"   ": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-        with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
-                age_entries=age_entries,
-                ensembl_gene_id="ENSMUSG00000000002",
-                model="Model_X",
-                tissue="Hippocampus",
-                sex="Female",
-            )
-
-        error_message = str(exc_info.value)
-        assert "Empty or whitespace-only age value" in error_message
-        assert "ENSMUSG00000000002" in error_message
-        assert "Model_X" in error_message
-        assert "Hippocampus" in error_message
-        assert "Female" in error_message
-
-    def test_age_without_space(self) -> None:
-        """Test that age format without space raises ValueError."""
-        age_entries = {"6months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-        with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
-                age_entries=age_entries,
-                ensembl_gene_id="ENSMUSG00000000004",
-                model="Model_Z",
-                tissue="Striatum",
-                sex="Female",
-            )
-
-        error_message = str(exc_info.value)
-        assert "Invalid age format" in error_message
-        assert "ENSMUSG00000000004" in error_message
-        assert "Model_Z" in error_message
-        assert "Expected 'N months' format" in error_message
-        assert "6months" in error_message
-
-    def test_non_numeric_age(self) -> None:
-        """Test that non-numeric age value raises ValueError."""
-        age_entries = {"unknown months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-        with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
-                age_entries=age_entries,
-                ensembl_gene_id="ENSMUSG00000000005",
-                model="Model_A",
-                tissue="Thalamus",
-                sex="Male",
-            )
-
-        error_message = str(exc_info.value)
-        assert "Invalid age format" in error_message
-        assert "ENSMUSG00000000005" in error_message
-        assert "Expected 'N months' format" in error_message
-        assert "unknown months" in error_message
-
-    def test_negative_age(self) -> None:
-        """Test that negative age value raises ValueError."""
-        age_entries = {"-6 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-        # This actually won't raise an error because int("-6") works
-        # But it will sort correctly
-        result = validate_and_sort_age_entries(
-            age_entries=age_entries,
-            ensembl_gene_id="ENSMUSG00000000006",
-            model="Model_B",
-            tissue="Cortex",
-            sex="Female",
-        )
-
-        assert "-6 months" in result
-
-    def test_float_age(self) -> None:
-        """Test that float age value raises ValueError."""
-        age_entries = {"6.5 months": {"log2_fc": 0.5, "adj_p_val": 0.01}}
-
-        # This will raise because int("6.5") fails
-        with pytest.raises(ValueError) as exc_info:
-            validate_and_sort_age_entries(
-                age_entries=age_entries,
-                ensembl_gene_id="ENSMUSG00000000007",
-                model="Model_C",
-                tissue="Cortex",
-                sex="Male",
-            )
-
-        error_message = str(exc_info.value)
-        assert "Invalid age format" in error_message
-        assert "6.5 months" in error_message
-
-    def test_age_with_wrong_unit(self) -> None:
-        """Test that age with units other than 'months' still works if numeric."""
-        # The function only validates the numeric part, not the unit
-        age_entries = {
-            "6 years": {"log2_fc": 0.5, "adj_p_val": 0.01},
-            "12 days": {"log2_fc": 0.3, "adj_p_val": 0.02},
-        }
-
-        result = validate_and_sort_age_entries(
-            age_entries=age_entries,
-            ensembl_gene_id="ENSMUSG00000000008",
-            model="Model_D",
-            tissue="Cortex",
-            sex="Female",
-        )
-
-        # Should sort by numeric value
-        assert list(result.keys()) == ["6 years", "12 days"]
-
-    def test_empty_age_entries_dict(self) -> None:
-        """Test that empty age_entries dictionary is handled gracefully."""
-        age_entries = {}
-
-        result = validate_and_sort_age_entries(
-            age_entries=age_entries,
-            ensembl_gene_id="ENSMUSG00000000009",
-            model="Model_E",
-            tissue="Cortex",
-            sex="Male",
-        )
-
-        assert result == {}
-
-
 class TestCreateAgeEntriesFromGroup:
     """
     Unit tests for the create_age_entries_from_group helper function.
@@ -1080,6 +763,26 @@ class TestCreateAgeEntriesFromGroup:
         )
 
         assert result == {"6 months": {"log2_fc": 1.5, "adj_p_val": 0.01}}
+
+    def test_create_age_entries_are_in_numeric_age_order(self) -> None:
+        """Ages come back ordered by their integer, not by input order or string order."""
+        group = pd.DataFrame(
+            {
+                "age": ["12 months", "3 months", "6 months"],
+                "log2foldchange": [0.8, 0.3, 0.5],
+                "padj": [0.005, 0.02, 0.01],
+            }
+        )
+
+        result = create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000001",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert list(result) == ["3 months", "6 months", "12 months"]
 
     def test_create_age_entries_multiple_rows(self) -> None:
         """Test creating age entries from multiple rows with different ages."""

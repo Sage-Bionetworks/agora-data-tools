@@ -13,10 +13,12 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
+    extract_age_numeric,
     nest_fields,
     normalize_zero,
     ColumnRule,
     NotEmptyRule,
+    validate_one_to_one_mapping,
 )
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
@@ -87,7 +89,7 @@ def prepare_genotype_label_map(genotype_label_map_df: pd.DataFrame) -> pd.DataFr
     genotype_label_map_df["result_order"] = genotype_label_map_df[
         "result_order"
     ].astype(int)
-    validate_model_group_consistency(genotype_label_map_df)
+    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
     return genotype_label_map_df
 
 
@@ -237,35 +239,6 @@ def normalize_tissue(tissue: pd.Series) -> pd.Series:
     # Any values not in TISSUE_ALIASES are assigned NaN by map(), so we fill NaN values with their
     # original value
     return normalized.str.casefold().map(TISSUE_ALIASES).fillna(normalized)
-
-
-def validate_model_group_consistency(
-    genotype_label_map_df: pd.DataFrame,
-) -> None:
-    """
-    Validate that each model has consistent model_group values.
-    Each model should map to exactly one unique model_group; having multiple
-    different model_group values for the same model indicates a data quality issue.
-
-    None/NaN values are counted as a single distinct value (i.e. "no group assigned")
-    rather than being excluded from the uniqueness check.
-
-    Args:
-        genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
-
-    Raises:
-        ValueError: If any model has inconsistent model_group values
-    """
-    inconsistent_models = (
-        genotype_label_map_df.groupby("model")["model_group"]
-        .nunique(dropna=False)
-        .pipe(lambda x: x[x > 1].index.tolist())
-    )
-    if inconsistent_models:
-        raise ValueError(
-            f"Each model must have a consistent model_group value in genotype_label_map. "
-            f"Models with inconsistent model_group values: {inconsistent_models}"
-        )
 
 
 def build_model_to_model_group_lookup(
@@ -455,32 +428,6 @@ def preprocess_data_file(
     return data_file
 
 
-def validate_and_sort_age_entries(
-    age_entries: dict[str, dict[str, float]],
-    ensembl_gene_id: str,
-    model: str,
-    tissue: str,
-    sex: str,
-) -> dict[str, dict[str, float]]:
-    """Sort age keys of the form N months; raise if any key is empty or not that shape."""
-    for age in age_entries:
-        if not age.strip():
-            raise ValueError(
-                f"Empty or whitespace-only age value found in data for gene "
-                f"'{ensembl_gene_id}', model '{model}', tissue '{tissue}', "
-                f"sex '{sex}'. Expected 'N months' format but found: '{age}'"
-            )
-    try:
-        return dict(sorted(age_entries.items(), key=lambda x: int(x[0].split()[0])))
-    except (ValueError, IndexError) as e:
-        raise ValueError(
-            f"Invalid age format in data for gene '{ensembl_gene_id}', "
-            f"model '{model}', tissue '{tissue}', sex '{sex}'. "
-            f"Expected 'N months' format but found: {list(age_entries.keys())}. "
-            f"Original error: {e}"
-        ) from e
-
-
 def create_age_entries_from_group(
     group: pd.DataFrame,
     ensembl_gene_id: str,
@@ -490,11 +437,17 @@ def create_age_entries_from_group(
 ) -> dict[str, dict[str, float]]:
     """Build age -> log2_fc / adj_p_val from a group that already has log2foldchange.
 
+    Entries are in numeric age order. The caller has already required age to match
+    N months, so extract_age_numeric always finds the integer.
+
     Missing padj becomes 1.0: a missing p-value is not evidence of significance
     and must not present as 0.0. Negative padj raises.
     """
+    ordered = sorted(
+        group.itertuples(index=False), key=lambda row: extract_age_numeric(row.age)
+    )
     age_entries = {}
-    for row in group.itertuples(index=False):
+    for row in ordered:
         if not pd.isna(row.padj) and float(row.padj) < 0.0:
             raise ValueError(
                 f"Negative adjusted p-value found in data for gene "
