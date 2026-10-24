@@ -86,15 +86,29 @@ class TestProteinIdentityFields:
 
 
 class TestMapAccessionsToGenes:
-    def test_maps_an_isoform_on_its_base_accession_and_drops_the_unmapped(self) -> None:
-        """An isoform is looked up on its base accession, and an accession the map does not cover is dropped."""
-        df = pd.DataFrame({"uniprotid": ["Q8C8R3-2", "P00001"]})
+    def test_maps_an_isoform_on_its_base_accession(self) -> None:
+        """An isoform is looked up on its base accession but kept as a separate entry from the base"""
+        df = pd.DataFrame({"uniprotid": ["Q8C8R3-2", "Q8C8R3"]})
 
         result = map_accessions_to_genes(
             df, {"Q8C8R3": "ENSMUSG00000000001"}, "in 'file'"
         )
 
-        assert result["uniprotid"].tolist() == ["Q8C8R3-2"]
+        assert result["uniprotid"].tolist() == ["Q8C8R3-2", "Q8C8R3"]
+        assert result["ensembl_gene_id"].tolist() == [
+            "ENSMUSG00000000001",
+            "ENSMUSG00000000001",
+        ]
+
+    def test_drops_unmapped_accessions(self) -> None:
+        """Any accession the map does not cover is dropped."""
+        df = pd.DataFrame({"uniprotid": ["Q8C8R3", "P00001"]})
+
+        result = map_accessions_to_genes(
+            df, {"Q8C8R3": "ENSMUSG00000000001"}, "in 'file'"
+        )
+
+        assert result["uniprotid"].tolist() == ["Q8C8R3"]
         assert result["ensembl_gene_id"].tolist() == ["ENSMUSG00000000001"]
 
     def test_raises_when_nothing_maps(self) -> None:

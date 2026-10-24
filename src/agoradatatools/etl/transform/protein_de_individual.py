@@ -13,6 +13,7 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
+    raise_on_duplicate_keys,
     ColumnRule,
     NotEmptyRule,
     normalize_zero,
@@ -32,12 +33,11 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     GENOTYPE_LABEL_MAP_RULES,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
+    add_protein_identity_columns,
     build_uniprot_to_ensembl,
     canonical_accession,
-    lookup_ensembl,
-    protein_display_symbol,
-    protein_unique_id,
-    unmapped_accessions,
+    log_unmapped_accessions,
+    map_accessions_to_genes,
 )
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,8 @@ def _measured_accessions(
 ) -> pd.Series:
     """Collect the canonical UniProt accessions of protein columns that hold data. Column headers look like "abc|q123",
     where everything before the "|" is the lower-cased gene symbol and everything after the "|" is the lower-cased
-    Uniprot accession. The Uniprot IDs are extracted from the headers and returned to their original upper-case values."""
+    Uniprot accession. The Uniprot IDs are extracted from the headers and returned to their original upper-case values.
+    """
     headers = pd.Series(
         [
             column
@@ -201,19 +202,12 @@ def _collapse_duplicate_measurements(
     """
     keys = ["individualid", "uniprotid"]
     collapsed = df.drop_duplicates(subset=keys + ["value"])
-    conflicting = collapsed.duplicated(subset=keys, keep=False)
-    if conflicting.any():
-        offenders = sorted(
-            collapsed.loc[conflicting, keys]
-            .drop_duplicates()
-            .itertuples(index=False, name=None)
-        )
-        raise ValueError(
-            f"Model_group '{model_group}': the data files disagree about the abundance of a "
-            f"protein for {len(offenders)} animal-protein pair(s), so which value belongs on "
-            "the page cannot be decided here. (individualID, uniprotID) "
-            f"(first 10): {offenders[:10]}"
-        )
+    raise_on_duplicate_keys(
+        collapsed,
+        keys,
+        f"Model_group '{model_group}': the data files disagree about the abundance of a "
+        "protein, so which value belongs on the page cannot be decided here.",
+    )
     if len(collapsed) < len(df):
         shared = sorted(
             df.loc[df.duplicated(subset=keys, keep=False), "individualid"].unique()
@@ -245,14 +239,10 @@ def _build_output(
     )
     _log_stage(model_group, "after harmonized metadata join", df)
 
-    df["ensembl_gene_id"] = lookup_ensembl(df["uniprotid"], uniprot_to_ensembl)
-    df = df.dropna(subset=["ensembl_gene_id"])
+    df = map_accessions_to_genes(
+        df, uniprot_to_ensembl, f"for model_group '{model_group}'"
+    )
     _log_stage(model_group, "after gene mapping", df)
-    if df.empty:
-        raise ValueError(
-            f"No rows remained for model_group '{model_group}' after mapping proteins to "
-            "genes — check the UniProt to Ensembl mapping file."
-        )
 
     df = label_genotypes(df, genotype_label_map_df, f"model_group '{model_group}'")
     _log_stage(model_group, "after genotype labeling", df)
@@ -282,11 +272,7 @@ def _build_output(
         )
 
     df["sex"] = remap_sex_labels(df["sex"])
-    df["gene_symbol"] = df["ensembl_gene_id"].map(gene_symbols).fillna("")
-    df["unique_id"] = protein_unique_id(df["ensembl_gene_id"], df["uniprotid"])
-    df["display_symbol"] = protein_display_symbol(
-        df["gene_symbol"], df["ensembl_gene_id"], df["uniprotid"]
-    )
+    df = add_protein_identity_columns(df, gene_symbols)
     df["value"] = df["value"].round(5).map(normalize_zero)
 
     group_cols = [
@@ -430,13 +416,9 @@ def transform_protein_de_individual(
     gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
 
     uniprot_to_ensembl = build_uniprot_to_ensembl(datasets["uniprot_ensembl_map"])
-    unmapped = unmapped_accessions(
+    log_unmapped_accessions(
         _measured_accessions(datasets, datafile_list), uniprot_to_ensembl
     )
-    if unmapped:
-        logger.info(
-            f"{len(unmapped)} UniProt IDs absent from the map (dropped): {unmapped[:10]}"
-        )
 
     model_to_model_group = build_model_to_model_group_lookup(genotype_label_map_df)
     files_by_model_group: dict[str, list[str]] = defaultdict(list)
