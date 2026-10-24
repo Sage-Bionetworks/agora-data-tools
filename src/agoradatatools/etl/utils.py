@@ -1,5 +1,17 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Dict, List, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Collection,
+    Dict,
+    List,
+    ParamSpec,
+    TypeVar,
+    Union,
+)
+import asyncio
+import functools
 import math
 import re
 
@@ -433,9 +445,9 @@ def rename_columns(
 
 def nest_fields(
     df: pd.DataFrame,
-    grouping: Union[str, List[str]],
+    grouping: str | list[str],
     new_column: str,
-    drop_columns: list = [],
+    drop_columns: str | list[str] | None = None,
     nested_field_is_list: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame by grouping and nesting fields.
@@ -451,7 +463,8 @@ def nest_fields(
         df (pd.DataFrame): DataFrame to be collapsed
         grouping (str or list of str): The column(s) that you want to group by
         new_column (str): the new column created to contain the nested dictionaries created
-        drop_columns (list, optional): List of columns to leave out of the new nested dictionary. Defaults to [].
+        drop_columns (str or list of str, optional): List of columns to leave out of the new nested dictionary. Defaults
+                        to None.
         nested_field_is_list (bool, optional): if True (default), each nested field will be a list of dicts. This
                         applies to data sets where there may be multiple rows to collapse, e.g. multiple biodomain
                         rows for a single Ensembl ID. If False, each nested field will be a single dict. This applies
@@ -460,7 +473,17 @@ def nest_fields(
 
     Returns:
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
+
+    Raises:
+        ValueError: If the input DataFrame is empty
+        ValueError: If nested_field_is_list is False and there are multiple rows per group.
     """
+    if df.empty:
+        raise ValueError("Input DataFrame is empty")
+
+    # Initialize to empty list if not provided
+    drop_columns = drop_columns or []
+
     nested = (
         normalize_null_values(df)
         .groupby(grouping)
@@ -480,7 +503,7 @@ def nest_fields(
     else:
         raise ValueError(
             "nested_field_is_list cannot be False when there are multiple rows to nest per "
-            + grouping
+            f"group in {grouping}"
         )
 
 
@@ -561,6 +584,21 @@ def check_required_datasets_and_columns(
                 f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
                 f"Please ensure the {dataset_name} dataset contains all required columns. Columns found: {', '.join(dataset_columns)}."
             )
+
+
+def raise_on_duplicate_keys(df: pd.DataFrame, keys: list[str], message: str) -> None:
+    """Raise when more than one row shares the same values for keys.
+
+    message is the sentence that precedes the offending key tuples. At most ten
+    tuples are included.
+    """
+    duplicated = df.duplicated(subset=keys, keep=False)
+    if not duplicated.any():
+        return
+    offenders = sorted(
+        df.loc[duplicated, keys].drop_duplicates().itertuples(index=False, name=None)
+    )
+    raise ValueError(f"{message} (first 10): {offenders[:10]}")
 
 
 def validate_one_to_one_mapping(
@@ -1033,3 +1071,49 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
 
     # Ensure we always return a float, even for whole numbers
     return float(result)
+
+
+def parse_synapse_id_version(syn_id: str) -> tuple[str, int | None]:
+    """Split a Synapse ID into its base ID and optional version number.
+
+    Args:
+        syn_id: A Synapse ID, optionally with a version suffix (e.g. "syn123.4").
+
+    Returns:
+        The base ID and the version number, or None if no version was given.
+    """
+    parts = syn_id.split(".")
+    base_id = parts[0]
+    version = int(parts[1]) if len(parts) > 1 else None
+
+    if not base_id:
+        raise ValueError("Invalid Synapse ID: missing base ID")
+
+    return base_id, version
+
+
+# P stands for the wrapped function's arguments (names, types and defaults).
+P = ParamSpec("P")
+# R stands for the wrapped function's return type.
+R = TypeVar("R")
+
+
+def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
+    """Decorator that turns a blocking function into a coroutine function.
+
+    The wrapped function runs in a worker thread via `asyncio.to_thread` so it
+    does not block (or conflict with) a running event loop, such as the one in a
+    Jupyter notebook. Use `await` on the result.
+
+    Args:
+        func: The synchronous function to wrap.
+
+    Returns:
+        A coroutine function with the same arguments as `func`.
+    """
+
+    @functools.wraps(func)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        return await asyncio.to_thread(func, *args, **kwargs)
+
+    return wrapper

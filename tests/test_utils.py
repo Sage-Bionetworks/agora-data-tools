@@ -503,6 +503,10 @@ class TestNestFields:
     )
 
     def test_nest_fields_with_dropped_column(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries but drops a single column
+        ("d") from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "b": "1", "c": "1"},
@@ -524,6 +528,10 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_with_dropped_column_list(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries and drops multiple columns
+        ("b" and "d") from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "c": "1"},
@@ -545,6 +553,10 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_no_drop_column(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries without dropping any columns
+        from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "b": "1", "c": "1", "d": "1"},
@@ -563,7 +575,62 @@ class TestNestFields:
         nested_df = utils.nest_fields(df=self.df_multirow, grouping="a", new_column="e")
         assert list(nested_df["e"]) == expected_column_e
 
+    def test_nest_fields_with_str_dropped_column_arg(self):
+        """
+        Test that nest_fields accepts a string for the drop_columns argument instead of a list.
+        """
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_singlerow, grouping="a", new_column="e", drop_columns="d"
+        )
+        assert list(nested_df["e"]) == expected_column_e
+
+    def test_nest_fields_grouping_list(self) -> None:
+        """
+        Test that nest_fields correctly handles a DataFrame when the grouping parameter is a list of columns.
+        """
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_multirow,
+            grouping=["a", "b"],
+            new_column="e",
+            drop_columns=["d"],
+        )
+
+        assert nested_df["a"].tolist() == ["group_1", "group_2", "group_3"]
+        assert nested_df["b"].tolist() == ["1", "1", "1"]
+        assert nested_df["e"].tolist() == expected_column_e
+
     def test_nest_fields_multirow_ValueError(self):
+        """
+        Test that nest_fields raises a ValueError when nested_field_is_list is set to False and the DataFrame has
+        multiple rows for the same group.
+        """
         with pytest.raises(ValueError, match="nested_field_is_list *"):
             utils.nest_fields(
                 df=self.df_multirow,
@@ -574,6 +641,10 @@ class TestNestFields:
             )
 
     def test_nest_fields_singlerow_nested_list_false(self):
+        """
+        Test that nest_fields correctly creates nested column "e" with a dictionary in each row instead of a list of
+        dictionaries, when nested_field_is_list is set to False.
+        """
         expected_column_e = [
             {"a": "group_1", "b": "1", "c": "1"},
             {"a": "group_2", "b": "1", "c": "1"},
@@ -590,6 +661,9 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_normalizes_null_values(self) -> None:
+        """
+        Test that nest_fields correctly normalizes null values in the nested dictionaries.
+        """
         df_with_nulls = pd.DataFrame(
             {
                 "a": ["group_1", "group_1", "group_2"],
@@ -620,7 +694,23 @@ class TestNestFields:
             drop_columns=["a"],
         )
 
+        # Along with checking data frame equivalence, we need to check that the lists of dictionaries in "nested" are
+        # equal because assert_frame_equal treats None and np.nan as equivalent.
         pd.testing.assert_frame_equal(nested_df, expected_df)
+        assert all(nested_df["nested"] == expected_df["nested"])
+
+    def test_nest_fields_fails_on_empty_dataframe(self) -> None:
+        """
+        Test that nest_fields raises a ValueError when the input DataFrame is empty.
+        """
+        empty_df = pd.DataFrame(columns=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Input DataFrame is empty"):
+            utils.nest_fields(
+                df=empty_df,
+                grouping="a",
+                new_column="nested",
+                drop_columns=["a"],
+            )
 
 
 class TestCalculateDistribution:
@@ -1337,6 +1427,45 @@ class TestValidateOneToOneMapping:
         )
         with pytest.raises(ValueError, match="common_name.*multiple chembl_id values"):
             utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+
+class TestRaiseOnDuplicateKeys:
+    """Tests for raise_on_duplicate_keys()."""
+
+    def test_raises_when_keys_repeat(self) -> None:
+        """Repeated key tuples are reported, and rows that differ only outside the keys still conflict."""
+        df = pd.DataFrame({"a": [1, 1, 2], "b": ["x", "x", "y"], "c": [0, 1, 2]})
+
+        with pytest.raises(
+            ValueError, match=r"shared key \(first 10\): \[\(1, 'x'\)\]"
+        ):
+            utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_does_not_raise_when_keys_are_unique(self) -> None:
+        """Distinct keys are not an error, even when another column repeats."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "x"]})
+
+        utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_raises_when_keys_are_empty(self) -> None:
+        """Empty keys are not allowed, regardless of the data in the DataFrame."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+
+        with pytest.raises(ValueError, match="not enough values to unpack"):
+            utils.raise_on_duplicate_keys(df, [], "shared key")
+
+    def test_does_not_raise_when_dataframe_is_empty(self) -> None:
+        """An empty DataFrame shouldn't raise an error as long as it has the required columns."""
+        df = pd.DataFrame(columns=["a", "b"])
+
+        utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_raises_when_dataframe_is_missing_columns_in_keys(self) -> None:
+        """A DataFrame missing columns specified in keys should raise an error."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "x"]})
+
+        with pytest.raises(KeyError, match="\\['c'\\]"):
+            utils.raise_on_duplicate_keys(df, ["a", "b", "c"], "shared key")
 
 
 class TestValidateReferencesExist:
@@ -2241,3 +2370,36 @@ class TestRoundYAxisMax:
         assert utils.round_y_axis_max("invalid") == pytest.approx(10.0)
         assert utils.round_y_axis_max("abc123") == pytest.approx(10.0)
         assert utils.round_y_axis_max("") == pytest.approx(10.0)
+
+
+@pytest.mark.parametrize(
+    "syn_id, expected",
+    [
+        pytest.param("syn123", ("syn123", None), id="no_version_suffix"),
+        pytest.param("syn123.4", ("syn123", 4), id="with_version_suffix"),
+        pytest.param(
+            "syn123.4.5",
+            ("syn123", 4),
+            id="extra_dot_segments_beyond_version_are_ignored",
+        ),
+    ],
+)
+def test_parse_synapse_id_version(
+    syn_id: str, expected: tuple[str, int | None]
+) -> None:
+    assert utils.parse_synapse_id_version(syn_id) == expected
+
+
+@pytest.mark.parametrize(
+    "syn_id",
+    [
+        pytest.param(".4", id="no_syn_id_with_version_suffix"),
+        pytest.param("", id="empty_string"),
+        pytest.param(".", id="only_period"),
+        pytest.param("syn123.", id="period_with_no_version"),
+        pytest.param("syn123.bad", id="non_integer_version"),
+    ],
+)
+def test_parse_synapse_id_version_raises_on_malformed_id(syn_id: str) -> None:
+    with pytest.raises(ValueError):
+        utils.parse_synapse_id_version(syn_id)
