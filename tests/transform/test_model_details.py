@@ -130,7 +130,7 @@ class TestTransformModelDetails:
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
             ValueError,
-            "Some models in `model_metadata_df` are missing from `model_genetic_modifications_df`",
+            "model_metadata references models that are not present in model_genetic_modifications",
         ),
     ]
     fail_test_ids = [
@@ -391,6 +391,6 @@ class TestNestGeneticInfo:
         )
 
         with pytest.raises(
-            ValueError, match="`gene_metadata_df` is missing some Ensembl IDs"
+            ValueError, match="references Ensembl gene IDs that are not present"
         ):
             nest_genetic_info(genetic_mods, gene_meta)

@@ -14,6 +14,7 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     NotEmptyRule,
     MatchesRegexRule,
+    integer_column_to_string,
     normalize_null_values,
 )
 
@@ -181,7 +182,7 @@ def build_expression_results_url(
     return f"comparison/expression?{categories_param}models={models_value}"
 
 
-def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
+def zero_pad_jax_ids(jax_ids: pd.Series) -> pd.Series:
     """
     Convert Jax IDs to strings with leading zeros preserved. Jax IDs are typically a string of numbers, so pandas reads
     them as integers (int64), which results in loss of leading zeros. This function converts the values back to strings
@@ -197,7 +198,8 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
     which can all be cast to Int64.
 
     Args:
-        jax_id (pd.Series): A pandas Series containing Jax IDs, which may be integers, strings of integers, or NaN/None.
+        jax_ids (pd.Series): A pandas Series containing Jax IDs, which may be integers, strings of integers, or
+            NaN/None.
 
     Returns:
         pd.Series: A pandas Series containing the converted Jax IDs as strings with leading zeros preserved. None or NaN
@@ -207,25 +209,21 @@ def zero_pad_jax_ids(jax_id: pd.Series) -> pd.Series:
         ValueError: If any input Jax IDs can not be cast to Int64
         ValueError: If any zero-padded Jax IDs contain non-digit characters, or missing values are not empty strings.
     """
-    jax_id = (
-        jax_id.astype("Int64")
-        # Prevent .apply from casting back to float
-        .astype("object").apply(lambda x: (str(x).zfill(6) if pd.notna(x) else ""))
-    )
+    jax_ids = integer_column_to_string(jax_ids).apply(lambda x: x.zfill(6) if x else "")
 
     # Check that non-missing values contain only digits and are at least 6 characters long
-    validate_jax_ids(jax_id)
+    validate_jax_ids(jax_ids)
 
-    return jax_id
+    return jax_ids
 
 
-def validate_jax_ids(jax_id: pd.Series) -> None:
+def validate_jax_ids(jax_ids: pd.Series) -> None:
     """
     Validates all Jax IDs in a pandas Series are in the correct format. A valid Jax ID should contain only digits and be
     at least 6 characters long, or be an empty string ("") to represent missing values.
 
     Args:
-        jax_id (pd.Series): A pandas Series containing Jax ID strings to validate.
+        jax_ids (pd.Series): A pandas Series containing Jax ID strings to validate.
 
     Returns:
         None
@@ -237,9 +235,10 @@ def validate_jax_ids(jax_id: pd.Series) -> None:
     # Regex description:
     # \d{6}\d* matches strings that contain only digits and are at least 6 characters long
     # ^$ matches empty strings
-    if jax_id.isna().any() or not jax_id.str.fullmatch(r"\d{6}\d*|^$").all():
+    if jax_ids.isna().any() or not jax_ids.str.fullmatch(r"\d{6}\d*|^$").all():
         raise ValueError(
-            "Jax IDs must be strings that contain only digits and are at least 6 characters long, or must be empty strings"
+            "Jax IDs must be strings that contain only digits and are at least 6 characters long, or must be empty "
+            "strings"
         )
     return None
 

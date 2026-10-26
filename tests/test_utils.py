@@ -2372,6 +2372,83 @@ class TestRoundYAxisMax:
         assert utils.round_y_axis_max("") == pytest.approx(10.0)
 
 
+class TestIntegerColumnToString:
+    """
+    Test the integer_column_to_string utility function.
+    """
+
+    @pytest.mark.parametrize(
+        "column, expected, input_pandas_dtype",
+        [
+            # Pandas initiates this column as integers
+            (pd.Series([0, 100, 2, 33]), ["0", "100", "2", "33"], "int64"),
+            # Data types that are castable to int64
+            (pd.Series(["0", "100", "2", None]), ["0", "100", "2", ""], "object"),
+            (pd.Series([0.0, 100.0, 2.0, np.nan]), ["0", "100", "2", ""], "float64"),
+            # Pandas will cast to float
+            (pd.Series([0, 100, 2, np.nan]), ["0", "100", "2", ""], "float64"),
+            # Pandas will cast all NaN values to float
+            (pd.Series([np.nan, np.nan]), ["", ""], "float64"),
+            (pd.Series([np.nan, None, pd.NA]), ["", "", ""], "object"),
+            (pd.Series([], dtype="float64"), [], "float64"),
+            (pd.Series([], dtype="object"), [], "object"),
+            # Boolean values are castable to int64. Although this is not an intended use of the function, we include a
+            # test for it to document this behavior.
+            (pd.Series([True, False]), ["1", "0"], "bool"),
+        ],
+        ids=[
+            "all_integers_no_missing_values",
+            "strings_castable_to_integers",
+            "floats_castable_to_integers",
+            "integers_with_missing_value",
+            "all_nan_values",
+            "mixed_empty_values",
+            "empty_float_column",
+            "empty_object_column",
+            "boolean_values",
+        ],
+    )
+    def test_integer_column_to_string_passes(
+        self, column: pd.Series, expected: list[str], input_pandas_dtype: str
+    ) -> None:
+        """
+        Test conversion of different column types and mixes of values from numbers to strings. This test ensures that
+        integer, float, and missing values are correctly converted while strings of integers remain strings.
+        """
+        # Make sure the input pandas column is the dtype we expect so the test matches what we think we're testing
+        assert column.dtype.name == input_pandas_dtype
+
+        result = utils.integer_column_to_string(column)
+        assert result.tolist() == expected
+
+    @pytest.mark.parametrize(
+        "column, error_type",
+        [
+            (pd.Series([10.1, 3, 4]), TypeError),
+            (pd.Series(["0", 100, "2", 33]), TypeError),
+            (pd.Series(["123", ""]), ValueError),
+            (pd.Series(["123.4", "4"]), ValueError),
+            (pd.Series([[1, 2, 3], [4, 5, 6]]), TypeError),
+        ],
+        ids=[
+            "decimal_float_value",
+            "mixed_types_string_and_int",
+            "empty_string",
+            "decimal_string",
+            "list_values",
+        ],
+    )
+    def test_integer_column_to_string_fails_on_non_castable_data(
+        self, column: pd.Series, error_type: type
+    ) -> None:
+        """
+        Test that integer_column_to_string raises an error for float values or other data typesthat are not castable to
+        int64.
+        """
+        with pytest.raises(error_type):
+            utils.integer_column_to_string(column)
+
+
 class TestCreateEnsemblInfoDf:
     """
     Test that the create_ensembl_info_df function correctly nests Ensembl information and handles missing values

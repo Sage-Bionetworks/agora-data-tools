@@ -15,6 +15,7 @@ from agoradatatools.etl.utils import (
     nest_fields,
     normalize_null_values,
     delim_string_to_list,
+    validate_references_exist,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     GENETIC_MODIFICATIONS_COLUMN_RULES,
@@ -85,14 +86,13 @@ def nest_genetic_info(
         ValueError: If gene_metadata is missing any Ensembl IDs present in model_genetic_modifications_df.
     """
     # Check that all Ensembl gene IDs in model_genetic_modifications_df are present in gene_metadata_df
-    if not all(
-        model_genetic_modifications_df["ensembl_gene_id"].isin(
-            gene_metadata_df["ensembl_gene_id"]
-        )
-    ):
-        raise ValueError(
-            "`gene_metadata_df` is missing some Ensembl IDs present in `model_genetic_modifications_df`."
-        )
+    validate_references_exist(
+        referenced=model_genetic_modifications_df["ensembl_gene_id"],
+        available=gene_metadata_df["ensembl_gene_id"],
+        source_name="model_genetic_modifications",
+        target_name="gene_metadata",
+        item_name="Ensembl gene IDs",
+    )
 
     # Subset gene_metadata_df to only include genes present in model_genetic_modifications_df to avoid long processing
     # time in nest_fields
@@ -160,14 +160,14 @@ def transform_model_details(
         datasets["model_genetic_modifications"]
     )
 
-    # All models should be represented in the genetic modifications df, otherwise raise an error
-    if not model_metadata_df["name"].isin(model_genetic_modifications_df["name"]).all():
-        missing = set(model_metadata_df["name"]) - set(
-            model_genetic_modifications_df["name"]
-        )
-        raise ValueError(
-            f"Some models in `model_metadata_df` are missing from `model_genetic_modifications_df`: {missing}"
-        )
+    # All models should be present in the genetic modifications df, otherwise raise an error
+    validate_references_exist(
+        referenced=model_metadata_df["name"],
+        available=model_genetic_modifications_df["name"],
+        source_name="model_metadata",
+        target_name="model_genetic_modifications",
+        item_name="models",
+    )
 
     # Format genetic information
     genetic_info_df = nest_genetic_info(
