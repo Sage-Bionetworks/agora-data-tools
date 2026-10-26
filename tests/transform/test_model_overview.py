@@ -299,7 +299,7 @@ class TestTransformModelOverview:
                 "mgi_gene_id": [12345],
                 "mouse_ensembl_id": ["ENSMUSG00000012345"],
                 "allele": ["TestAllele"],
-                "allele_type": None,
+                "allele_type": ["Targeted"],
                 "mgi_allele_id": [67890],
                 "human_gene_symbol": None,
                 "human_ensembl_id": None,
