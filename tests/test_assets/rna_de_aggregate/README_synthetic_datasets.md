@@ -16,18 +16,17 @@ This directory contains human-readable synthetic datasets designed to test the `
 - **`synthetic_single_row_data.csv`**: Single row test case (also tests missing gene metadata handling)
 - **`synthetic_rounding_precision_data.csv`**: Tests numeric rounding to 5 decimal places
 - **`synthetic_multiple_biodomains_data.csv`**: Tests genes with multiple biodomain assignments
-- **`synthetic_null_model_group_data.csv`**: Tests empty model_group conversion to null
-- **`synthetic_nan_negative_zero_data.csv`**: Tests NaN adjusted p-value coercion to 0.0
+- **`synthetic_nan_negative_zero_data.csv`**: Tests NaN adjusted p-value coercion to 1.0
 - **`synthetic_empty_data.csv`**: Empty data file for error testing
 - **`synthetic_missing_columns_data.csv`**: Missing required columns for error testing
 
 #### Metadata Files
-- **`synthetic_genotype_label_map.csv`**: Model to display label mapping
+- **`synthetic_genotype_label_map.csv`**: Model to display label mapping, including model_type and result_order
 - **`synthetic_mouse_gene_metadata.csv`**: Gene ID to symbol mapping
 - **`synthetic_biodom_genes_mm.csv`**: Biodomain assignments for genes
 - **`synthetic_biodom_genes_mm_multiple.csv`**: Biodomain assignments with genes having multiple biodomains
 - **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
-- **`synthetic_genotype_label_map_no_group.csv`**: Label mapping with empty model_group
+- **`synthetic_mouse_gene_metadata_missing_symbols.csv`**: Gene metadata with a missing gene_symbol
 - **`synthetic_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
 - **`synthetic_genotype_label_map_inconsistent_model_type.csv`**: Label mapping with inconsistent model_type values for the same model (for error testing)
 
@@ -104,27 +103,20 @@ Expected: biodomains=["Synaptic", "Metabolic"]
 Tests: Genes belonging to multiple biodomains
 ```
 
-### Scenario 9: Null Model Group (`synthetic_null_model_group_data.csv`)
-```
-Model: Model_NoGroup (has empty model_group in metadata)
-Expected: model_group=null (not empty string)
-Tests: Empty string to null conversion for model_group field
-```
-
-### Scenario 10: NaN Adj P-Values (`synthetic_nan_negative_zero_data.csv`)
+### Scenario 9: NaN Adj P-Values (`synthetic_nan_negative_zero_data.csv`)
 ```
 Gene: ENSMUSG00000000003 (Gene_C)
 Model: Model_A
 Ages: 12 months (padj=NaN, log2foldchange=0.12345), 18 months (padj=0.0, log2foldchange=-0.000001)
 Expected: 
-  - 12 months: adj_p_val=0.0 (NaN coerced), log2_fc=0.12345
+  - 12 months: adj_p_val=1.0 (NaN coerced), log2_fc=0.12345
   - 18 months: adj_p_val=0.0 (positive zero verified), log2_fc=-0.000001
-Tests: NaN padj coercion to 0.0 and verification that zero padj values are positive
-Note: This dataset is used by two tests: test_nan_adj_p_values_are_coerced_to_zero (tests 12 months)
+Tests: NaN padj coercion to 1.0 and verification that zero padj values are positive
+Note: This dataset is used by two tests: test_nan_adj_p_values_are_coerced_to_one (tests 12 months)
       and test_negative_zero_log2foldchange_are_coerced_to_zero (tests 18 months, verifies adj_p_val is positive zero)
 ```
 
-### Scenario 11: Negative Adjusted P-Values (Error Testing)
+### Scenario 10: Negative Adjusted P-Values (Error Testing)
 ```
 Test: test_negative_adj_p_values_raise_error
 Input: DataFrame with padj=-0.1 (created programmatically in test)
@@ -132,7 +124,7 @@ Expected: ValueError raised with informative message identifying the negative pa
 Tests: Validation that negative adjusted p-values are rejected with clear error message
 ```
 
-### Scenario 12: Inconsistent Model Group (`synthetic_genotype_label_map_inconsistent.csv`)
+### Scenario 11: Inconsistent Model Group (`synthetic_genotype_label_map_inconsistent.csv`)
 ```
 Model: Model_A with inconsistent model_group values
   - Tg genotype → GroupX
@@ -217,13 +209,13 @@ Each output entry in the transform result has the following structure:
   - **link_url** (string): Relative URL path to the model page (format: `models/<display_label>`)
   - **link_text** (string): Display text for the link (typically the model name/label)
 - **matched_control** (string): Display label for the control genotype
-- **model_group** (string or null): Model group name (null if empty)
+- **model_group** (string or null): Model group name (null only when the model is absent from the label map; an empty value raises ValueError)
 - **model_type** (string): Model type classification (e.g., "Familial AD", "Late Onset AD")
 - **tissue** (string): Tissue name (JAX models have "Right Cerebral Hemisphere" mapped to "Hemibrain")
 - **sex** (string): Sex category ("Male" or "Female")
 - **<age>** (object): Age-based entries (keys are age strings like "3 months", "6 months", etc.)
   - **log2_fc** (number): Log2 fold change value (rounded to 5 decimal places)
-  - **adj_p_val** (number): Adjusted p-value (rounded to 5 decimal places, NaN values coerced to 0.0)
+  - **adj_p_val** (number): Adjusted p-value (rounded to 5 decimal places, NaN values coerced to 1.0)
 
 
 ## Validation Points
@@ -242,11 +234,11 @@ When testing, verify:
 10. **Numeric rounding**: log2_fc and adj_p_val rounded to exactly 5 decimal places
 11. **Multiple biodomains**: Genes can have multiple biodomain assignments in a list
 12. **Missing metadata**: Gene not in metadata → gene_symbol="" and biodomains=[]
-13. **Null model_group**: Empty model_group converted to null in output
+13. **Empty model_group**: An empty model_group in the genotype label map raises ValueError
 14. **Model group consistency**: Each model must have consistent model_group values across all genotypes (raises ValueError if inconsistent)
 15. **Negative padj validation**: Negative adjusted p-values raise ValueError with informative error message
 16. **Log2foldchange normalization**: Negative zero (-0.0) log2foldchange values are normalized to positive zero (0.0) via normalize_zero function
-17. **NaN padj coercion**: NaN adjusted p-values are coerced to 0.0 in output
+17. **NaN padj coercion**: NaN adjusted p-values are coerced to 1.0 in output
 
 ## File Structure
 ```
@@ -262,7 +254,6 @@ tests/test_assets/rna_de_aggregate/
 │   │   ├── synthetic_single_row_data.csv
 │   │   ├── synthetic_rounding_precision_data.csv
 │   │   ├── synthetic_multiple_biodomains_data.csv
-│   │   ├── synthetic_null_model_group_data.csv
 │   │   ├── synthetic_nan_negative_zero_data.csv
 │   │   ├── synthetic_empty_data.csv
 │   │   └── synthetic_missing_columns_data.csv
@@ -272,7 +263,7 @@ tests/test_assets/rna_de_aggregate/
 │       ├── synthetic_biodom_genes_mm.csv
 │       ├── synthetic_biodom_genes_mm_multiple.csv
 │       ├── synthetic_mouse_gene_metadata_multi.csv
-│       ├── synthetic_genotype_label_map_no_group.csv
+│       ├── synthetic_mouse_gene_metadata_missing_symbols.csv
 │       ├── synthetic_genotype_label_map_inconsistent.csv
 │       └── synthetic_genotype_label_map_inconsistent_model_type.csv
 ├── output/
@@ -285,6 +276,5 @@ tests/test_assets/rna_de_aggregate/
 │   ├── synthetic_single_row_output.json
 │   ├── synthetic_rounding_precision_output.json
 │   ├── synthetic_multiple_biodomains_output.json
-│   └── synthetic_null_model_group_output.json
 └── README_synthetic_datasets.md
 ```

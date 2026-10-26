@@ -586,6 +586,21 @@ def check_required_datasets_and_columns(
             )
 
 
+def raise_on_duplicate_keys(df: pd.DataFrame, keys: list[str], message: str) -> None:
+    """Raise when more than one row shares the same values for keys.
+
+    message is the sentence that precedes the offending key tuples. At most ten
+    tuples are included.
+    """
+    duplicated = df.duplicated(subset=keys, keep=False)
+    if not duplicated.any():
+        return
+    offenders = sorted(
+        df.loc[duplicated, keys].drop_duplicates().itertuples(index=False, name=None)
+    )
+    raise ValueError(f"{message} (first 10): {offenders[:10]}")
+
+
 def validate_one_to_one_mapping(
     df: pd.DataFrame,
     left_col: str,
@@ -979,6 +994,33 @@ def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
 
     # Return empty list for None or empty string input
     return []
+
+
+def y_axis_max_by_groups(
+    df: pd.DataFrame,
+    group_cols: Union[str, List[str]],
+    value_col: str = "value",
+) -> Dict[Any, float]:
+    """Max of value_col per group, then round_y_axis_max.
+
+    A group with no numeric values gets round_y_axis_max(0). One group column
+    produces scalar keys so the result can map onto a Series; several group
+    columns produce tuple keys.
+
+    Args:
+        df: DataFrame containing the value column and grouping columns.
+        group_cols: Column name, or list of column names, to group by.
+        value_col: Column whose maximum is rounded. Defaults to value.
+
+    Returns:
+        Mapping from each group key to its rounded y-axis maximum.
+    """
+    y_axis_max_map: Dict[Any, float] = {}
+    for key, group in df.groupby(group_cols):
+        numeric_values = pd.to_numeric(group[value_col], errors="coerce").dropna()
+        raw_max = numeric_values.max() if len(numeric_values) > 0 else 0
+        y_axis_max_map[key] = round_y_axis_max(raw_max)
+    return y_axis_max_map
 
 
 def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:

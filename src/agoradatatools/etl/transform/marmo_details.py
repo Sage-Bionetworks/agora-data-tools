@@ -18,8 +18,8 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
     normalize_null_values,
-    round_y_axis_max,
     standardize_column_name,
+    y_axis_max_by_groups,
     validate_one_to_one_mapping,
     validate_references_exist,
 )
@@ -443,16 +443,14 @@ def _compute_y_axis_max(
         over_cutoff = cutoffs.notna() & (measurements["value"] > cutoffs)
         gated = measurements[~over_cutoff]
 
-    maxes = gated.groupby("evidence_type")["value"].max()
-    emptied = sorted(set(measurements["evidence_type"]) - set(maxes.index))
+    y_axis_max_map = y_axis_max_by_groups(gated, "evidence_type")
+    emptied = sorted(set(measurements["evidence_type"]) - set(y_axis_max_map))
     if emptied:
         raise ValueError(
             f"y_axis_cutoff removes every value for evidence_type(s) {emptied}; "
             "the cutoff is set too low. Raise it or remove it for these measures."
         )
-    return {
-        evidence_type: round_y_axis_max(value) for evidence_type, value in maxes.items()
-    }
+    return y_axis_max_map
 
 
 def _build_biomarkers(

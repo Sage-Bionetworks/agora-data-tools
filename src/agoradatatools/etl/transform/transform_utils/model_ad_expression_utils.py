@@ -1,10 +1,10 @@
 """
 Shared utilities for the Model AD expression transforms.
 
-Used by rna_de_individual, protein_de_individual, and rna_de_aggregate. The genotype
-label map pieces in particular are a shared contract: all three transforms use the same
-file and need to perform the same operations on that data. Changing anything here changes
-all three datasets.
+Used by rna_de_individual, protein_de_individual, rna_de_aggregate, and
+protein_de_aggregate. The genotype label map pieces in particular are a shared
+contract: these transforms use the same file and need to perform the same
+operations on that data. Changing anything here changes all of them.
 """
 
 import logging
@@ -13,9 +13,12 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     check_column_rules,
     check_required_datasets_and_columns,
+    extract_age_numeric,
     nest_fields,
+    normalize_zero,
     ColumnRule,
     NotEmptyRule,
+    validate_one_to_one_mapping,
 )
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
@@ -86,7 +89,7 @@ def prepare_genotype_label_map(genotype_label_map_df: pd.DataFrame) -> pd.DataFr
     genotype_label_map_df["result_order"] = genotype_label_map_df[
         "result_order"
     ].astype(int)
-    validate_model_group_consistency(genotype_label_map_df)
+    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
     return genotype_label_map_df
 
 
@@ -238,35 +241,6 @@ def normalize_tissue(tissue: pd.Series) -> pd.Series:
     return normalized.str.casefold().map(TISSUE_ALIASES).fillna(normalized)
 
 
-def validate_model_group_consistency(
-    genotype_label_map_df: pd.DataFrame,
-) -> None:
-    """
-    Validate that each model has consistent model_group values.
-    Each model should map to exactly one unique model_group; having multiple
-    different model_group values for the same model indicates a data quality issue.
-
-    None/NaN values are counted as a single distinct value (i.e. "no group assigned")
-    rather than being excluded from the uniqueness check.
-
-    Args:
-        genotype_label_map_df: DataFrame with 'model' and 'model_group' columns
-
-    Raises:
-        ValueError: If any model has inconsistent model_group values
-    """
-    inconsistent_models = (
-        genotype_label_map_df.groupby("model")["model_group"]
-        .nunique(dropna=False)
-        .pipe(lambda x: x[x > 1].index.tolist())
-    )
-    if inconsistent_models:
-        raise ValueError(
-            f"Each model must have a consistent model_group value in genotype_label_map. "
-            f"Models with inconsistent model_group values: {inconsistent_models}"
-        )
-
-
 def build_model_to_model_group_lookup(
     genotype_label_map_df: pd.DataFrame,
 ) -> dict[str, str]:
@@ -286,6 +260,34 @@ def build_model_to_model_group_lookup(
     return (
         genotype_label_map_df.drop_duplicates("model")
         .set_index("model")["model_group"]
+        .to_dict()
+    )
+
+
+def build_model_type_lookup(genotype_label_map_df: pd.DataFrame) -> dict[str, str]:
+    """Map each model to its model_type.
+
+    Assumes validate_one_to_one_mapping has already rejected a model with more
+    than one model_type, so one row per model is enough.
+    """
+    return (
+        genotype_label_map_df.drop_duplicates("model")
+        .set_index("model")["model_type"]
+        .to_dict()
+    )
+
+
+def build_biodomain_lookup(biodom_genes_mm_df: pd.DataFrame) -> dict[str, list[str]]:
+    """Map each ensembl id to its biodomain names.
+
+    Rows with no ensembl id are dropped: they cannot be joined to a gene.
+    """
+    present = biodom_genes_mm_df.dropna(axis="index", subset=["ensembl_id"])
+    return (
+        present[["ensembl_id", "biodomain"]]
+        .drop_duplicates()
+        .groupby("ensembl_id")["biodomain"]
+        .apply(list)
         .to_dict()
     )
 
@@ -348,6 +350,33 @@ def validate_data_file_not_empty(file_name: str, data_file: pd.DataFrame) -> Non
         raise ValueError(f"Data file {file_name} is empty")
 
 
+def validate_data_file(
+    file_name: str,
+    data_file: pd.DataFrame,
+    file_index: int,
+    total_files: int,
+    data_file_required_columns: list[str],
+    data_file_column_rules: dict[str, list[ColumnRule]] | None = None,
+) -> None:
+    """Shared validation preamble for an expression data file.
+
+    The empty-file check runs before the required-column check so an empty file
+    is not reported as a missing-column error. Column value rules are checked
+    only when supplied.
+
+    Raises:
+        ValueError: If the file is empty, a required column is missing, or a
+            supplied column value rule is violated.
+    """
+    log_file_processing_info(file_name, file_index, total_files, data_file)
+    validate_data_file_not_empty(file_name, data_file)
+    check_required_datasets_and_columns(
+        {file_name: data_file}, {file_name: data_file_required_columns}
+    )
+    if data_file_column_rules:
+        check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
+
+
 def preprocess_data_file(
     file_name: str,
     data_file: pd.DataFrame,
@@ -381,12 +410,14 @@ def preprocess_data_file(
         ValueError: If the file is empty, missing required columns, or any column
             value rule is violated.
     """
-    log_file_processing_info(file_name, file_index, total_files, data_file)
-    validate_data_file_not_empty(file_name, data_file)
-    check_required_datasets_and_columns(
-        {file_name: data_file}, {file_name: data_file_required_columns}
+    validate_data_file(
+        file_name,
+        data_file,
+        file_index,
+        total_files,
+        data_file_required_columns,
+        data_file_column_rules,
     )
-    check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
     data_file = filter_to_mouse_genes(data_file)
     data_file["tissue"] = normalize_tissue(data_file["tissue"])
     # Map plural source sex values to the singular display form
@@ -395,3 +426,37 @@ def preprocess_data_file(
     data_file = data_file.round(decimals=5)
     data_file["individualid"] = data_file["individualid"].astype(str)
     return data_file
+
+
+def create_age_entries_from_group(
+    group: pd.DataFrame,
+    ensembl_gene_id: str,
+    model: str,
+    tissue: str,
+    sex: str,
+) -> dict[str, dict[str, float]]:
+    """Build age -> log2_fc / adj_p_val from a group that already has log2foldchange.
+
+    Entries are in numeric age order. The caller has already required age to match
+    N months, so extract_age_numeric always finds the integer.
+
+    Missing padj becomes 1.0: a missing p-value is not evidence of significance
+    and must not present as 0.0. Negative padj raises.
+    """
+    ordered = sorted(
+        group.itertuples(index=False), key=lambda row: extract_age_numeric(row.age)
+    )
+    age_entries = {}
+    for row in ordered:
+        if not pd.isna(row.padj) and float(row.padj) < 0.0:
+            raise ValueError(
+                f"Negative adjusted p-value found in data for gene "
+                f"'{ensembl_gene_id}', model '{model}', tissue '{tissue}', "
+                f"sex '{sex}'. Expected positive adjusted p-value but found: "
+                f"'{row.padj}'"
+            )
+        age_entries[str(row.age)] = {
+            "log2_fc": normalize_zero(float(row.log2foldchange)),
+            "adj_p_val": 1.0 if pd.isna(row.padj) else float(row.padj),
+        }
+    return age_entries

@@ -1,5 +1,5 @@
-model,model_group,display_label,genotype,model_type
-Model_A,AD,Model_A (Tg),Tg,Familial AD
-Model_A,AD,Model_A (Wt),Wt,Late Onset AD
-Model_B,AD,Model_B (Tg),Tg,Familial AD
-Model_B,AD,Model_B (Wt),Wt,Familial AD
+model,model_group,display_label,genotype,model_type,result_order
+Model_A,AD,Model_A (Tg),Tg,Familial AD,1
+Model_A,AD,Model_A (Wt),Wt,Late Onset AD,2
+Model_B,AD,Model_B (Tg),Tg,Familial AD,3
+Model_B,AD,Model_B (Wt),Wt,Familial AD,4
