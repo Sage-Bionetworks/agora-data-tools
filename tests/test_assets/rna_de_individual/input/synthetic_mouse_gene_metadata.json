@@ -1,0 +1,22 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gnai3",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000028",
+    "gene_symbol": "Cdc45",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000031",
+    "gene_symbol": "H19",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000037",
+    "gene_symbol": "Scml2",
+    "alias": []
+  }
+]
