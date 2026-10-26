@@ -14,7 +14,6 @@ import pandas as pd
 from agoradatatools.etl.utils import (
     NotEmptyRule,
     MatchesRegexRule,
-    normalize_null_values,
 )
 
 GENETIC_MODIFICATIONS_REQUIRED_COLUMNS = [
@@ -33,6 +32,7 @@ GENETIC_MODIFICATIONS_COLUMN_RULES = {
     "mouse_gene_symbol": [NotEmptyRule()],
     "mouse_ensembl_id": [NotEmptyRule(), MatchesRegexRule(r"^ENSMUSG[0-9]+$")],
     "allele": [NotEmptyRule()],
+    "allele_type": [NotEmptyRule()],
     "mgi_allele_id": [NotEmptyRule()],
     # Can have missing values
     "human_ensembl_id": [MatchesRegexRule(r"^ENSG[0-9]+$")],
@@ -74,8 +74,8 @@ def process_genetic_modifications(
     gene.
 
     This function assumes the input data has been pre-validated so that model_genetic_modifications does not have any
-    missing/NaN/none values in the "mouse_gene_symbol", "mouse_ensembl_id", "allele", and "mgi_allele_id" columns.
-    Missing values in other columns of the DataFrame are allowed, and will be normalized to None.
+    missing/NaN/none values in the "mouse_gene_symbol", "mouse_ensembl_id", "allele", "allele_type", and "mgi_allele_id"
+    columns.
 
     Args:
         model_genetic_modifications (pd.DataFrame): The DataFrame containing the allele and
@@ -84,9 +84,6 @@ def process_genetic_modifications(
     Returns:
         pd.DataFrame: The processed genetic modifications DataFrame.
     """
-    # Normalize missing values to None.
-    model_genetic_modifications = normalize_null_values(model_genetic_modifications)
-
     # Only override ensembl_id if we have a valid human_ensembl_id
     model_genetic_modifications["ensembl_gene_id"] = model_genetic_modifications.apply(
         lambda row: (
