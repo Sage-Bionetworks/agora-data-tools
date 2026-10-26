@@ -1,5 +1,4 @@
 import sys
-from collections.abc import Sequence
 from io import StringIO
 from typing import Any, Dict
 from unittest import mock
@@ -882,45 +881,34 @@ class TestColumnRuleContract:
 class TestNotEmptyRule:
     """Unit tests for NotEmptyRule.count_violations()."""
 
-    def _series(self, data: Sequence[object]) -> pd.Series:
-        return pd.Series(data)
-
     def test_no_violations_for_all_valid(self) -> None:
-        assert utils.NotEmptyRule().count_violations(self._series(["a", "b", "c"])) == 0
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", "b", "c"])) == 0
 
     def test_counts_none_as_violation(self) -> None:
-        assert (
-            utils.NotEmptyRule().count_violations(self._series(["a", None, "c"])) == 1
-        )
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", None, "c"])) == 1
 
     def test_counts_nan_as_violation(self) -> None:
-        assert (
-            utils.NotEmptyRule().count_violations(self._series(["a", np.nan, "c"])) == 1
-        )
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", np.nan, "c"])) == 1
 
     def test_counts_empty_string_as_violation(self) -> None:
-        assert utils.NotEmptyRule().count_violations(self._series(["a", "", "c"])) == 1
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", "", "c"])) == 1
 
     def test_counts_whitespace_only_as_violation(self) -> None:
-        assert (
-            utils.NotEmptyRule().count_violations(self._series(["a", "   ", "c"])) == 1
-        )
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", "   ", "c"])) == 1
 
     def test_counts_multiple_violations(self) -> None:
         assert (
             utils.NotEmptyRule().count_violations(
-                self._series(["a", None, "", "   ", "b"])
+                pd.Series(["a", None, "", "   ", "b"])
             )
             == 3
         )
 
     def test_all_violations(self) -> None:
-        assert (
-            utils.NotEmptyRule().count_violations(self._series([None, "", "   "])) == 3
-        )
+        assert utils.NotEmptyRule().count_violations(pd.Series([None, "", "   "])) == 3
 
     def test_empty_series(self) -> None:
-        assert utils.NotEmptyRule().count_violations(self._series([])) == 0
+        assert utils.NotEmptyRule().count_violations(pd.Series([])) == 0
 
     def test_value_detail_is_empty_string(self) -> None:
         assert utils.NotEmptyRule().value_detail == ""
@@ -928,9 +916,6 @@ class TestNotEmptyRule:
 
 class TestMatchesRegexRule:
     """Unit tests for MatchesRegexRule.count_violations()."""
-
-    def _series(self, data: Sequence[object]) -> pd.Series:
-        return pd.Series(data)
 
     @pytest.mark.parametrize("bad_value", [None, "", 123, np.nan])
     def test_raises_when_value_is_invalid(
@@ -945,36 +930,36 @@ class TestMatchesRegexRule:
 
     def test_no_violations_when_all_match(self) -> None:
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", "ENSMUSG002"])) == 0
+        assert rule.count_violations(pd.Series(["ENSMUSG001", "ENSMUSG002"])) == 0
 
     def test_counts_non_matching_value(self) -> None:
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", "ENSG002"])) == 1
+        assert rule.count_violations(pd.Series(["ENSMUSG001", "ENSG002"])) == 1
 
     def test_counts_all_non_matching(self) -> None:
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSG001", "ENSG002"])) == 2
+        assert rule.count_violations(pd.Series(["ENSG001", "ENSG002"])) == 2
 
     def test_skips_none(self) -> None:
         # Nulls are skipped so the rule only validates the format of present values.
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", None])) == 0
+        assert rule.count_violations(pd.Series(["ENSMUSG001", None])) == 0
 
     def test_skips_nan(self) -> None:
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", np.nan])) == 0
+        assert rule.count_violations(pd.Series(["ENSMUSG001", np.nan])) == 0
 
     def test_counts_empty_string_as_violation(self) -> None:
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", ""])) == 1
+        assert rule.count_violations(pd.Series(["ENSMUSG001", ""])) == 1
 
     def test_partial_match_is_violation(self) -> None:
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["prefix_ENSMUSG001"])) == 1
+        assert rule.count_violations(pd.Series(["prefix_ENSMUSG001"])) == 1
 
     def test_empty_series(self) -> None:
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series([])) == 0
+        assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_pattern(self) -> None:
         rule = utils.MatchesRegexRule(value="^ENSMUSG")
@@ -984,9 +969,6 @@ class TestMatchesRegexRule:
 class TestContainsSubstringRule:
     """Unit tests for ContainsSubstringRule.count_violations()."""
 
-    def _series(self, data: Sequence[object]) -> pd.Series:
-        return pd.Series(data)
-
     @pytest.mark.parametrize("bad_value", [None, np.nan, ""])
     def test_raises_when_value_is_invalid(self, bad_value: str | float | None) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
@@ -994,42 +976,42 @@ class TestContainsSubstringRule:
 
     def test_no_violations_when_all_contain_substring(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", "world cup"])) == 0
+        assert rule.count_violations(pd.Series(["hello world", "world cup"])) == 0
 
     def test_counts_missing_substring(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", "goodbye"])) == 1
+        assert rule.count_violations(pd.Series(["hello world", "goodbye"])) == 1
 
     def test_counts_all_missing(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["foo", "bar"])) == 2
+        assert rule.count_violations(pd.Series(["foo", "bar"])) == 2
 
     def test_counts_none_as_violation(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", None])) == 1
+        assert rule.count_violations(pd.Series(["hello world", None])) == 1
 
     def test_counts_nan_as_violation(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", np.nan])) == 1
+        assert rule.count_violations(pd.Series(["hello world", np.nan])) == 1
 
     def test_counts_empty_string_as_violation(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", ""])) == 1
+        assert rule.count_violations(pd.Series(["hello world", ""])) == 1
 
     def test_counts_non_string_data_as_violations(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
         assert (
-            rule.count_violations(self._series(["hello world", "goodbye", 2, 5.555555]))
+            rule.count_violations(pd.Series(["hello world", "goodbye", 2, 5.555555]))
             == 3
         )
 
     def test_value_is_treated_as_literal_not_regex(self) -> None:
         rule = utils.ContainsSubstringRule(value="-")
-        assert rule.count_violations(self._series(["hello-world", "goodbye"])) == 1
+        assert rule.count_violations(pd.Series(["hello-world", "goodbye"])) == 1
 
     def test_empty_series(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series([])) == 0
+        assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_substring(self) -> None:
         rule = utils.ContainsSubstringRule(value="world")
@@ -1039,9 +1021,6 @@ class TestContainsSubstringRule:
 class TestOneOfRule:
     """Unit tests for OneOfRule.count_violations()."""
 
-    def _series(self, data: Sequence[object]) -> pd.Series:
-        return pd.Series(data)
-
     @pytest.mark.parametrize("bad_value", [None, set(), [], {}])
     def test_raises_when_value_is_invalid(self, bad_value: object) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
@@ -1049,27 +1028,27 @@ class TestOneOfRule:
 
     def test_no_violations_when_all_in_set(self) -> None:
         rule = utils.OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series(["male", "female", "male"])) == 0
+        assert rule.count_violations(pd.Series(["male", "female", "male"])) == 0
 
     def test_counts_value_not_in_set(self) -> None:
         rule = utils.OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series(["male", "unknown"])) == 1
+        assert rule.count_violations(pd.Series(["male", "unknown"])) == 1
 
     def test_counts_all_invalid(self) -> None:
         rule = utils.OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series(["unknown", "other"])) == 2
+        assert rule.count_violations(pd.Series(["unknown", "other"])) == 2
 
     def test_counts_none_as_violation(self) -> None:
         rule = utils.OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series(["male", None])) == 1
+        assert rule.count_violations(pd.Series(["male", None])) == 1
 
     def test_works_with_list_as_allowed_values(self) -> None:
         rule = utils.OneOfRule(value=["male", "female"])
-        assert rule.count_violations(self._series(["male", "unknown"])) == 1
+        assert rule.count_violations(pd.Series(["male", "unknown"])) == 1
 
     def test_empty_series(self) -> None:
         rule = utils.OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series([])) == 0
+        assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_allowed_values(self) -> None:
         rule = utils.OneOfRule(value={"male"})
@@ -1077,38 +1056,38 @@ class TestOneOfRule:
 
     def test_no_violations_numeric_allowed_values(self) -> None:
         rule = utils.OneOfRule(value=[1, 2, 3])
-        assert rule.count_violations(self._series([1, 1, 2])) == 0
+        assert rule.count_violations(pd.Series([1, 1, 2])) == 0
 
     def test_no_violations_bool_allowed_values(self) -> None:
         rule = utils.OneOfRule(value=[True, False])
-        assert rule.count_violations(self._series([True, False, False])) == 0
+        assert rule.count_violations(pd.Series([True, False, False])) == 0
 
     def test_no_violations_sentinel_allowed_values(self) -> None:
         # Series.isin matches np.nan to np.nan in the allowed collection (pandas semantics).
         rule = utils.OneOfRule(value=["", None, [], np.nan])
-        s = self._series(["", "", None, [], np.nan])
+        s = pd.Series(["", "", None, [], np.nan])
         assert rule.count_violations(s) == 0
 
     def test_no_violations_mixed_int_and_string_allowed(self) -> None:
         rule = utils.OneOfRule(value=[2, "2"])
-        assert rule.count_violations(self._series([2, 2, "2"])) == 0
+        assert rule.count_violations(pd.Series([2, 2, "2"])) == 0
 
     def test_violations_when_numeric_allowed_but_string_in_series(self) -> None:
         rule = utils.OneOfRule(value=[1, 2])
-        assert rule.count_violations(self._series([1, 1, "2"])) == 1
+        assert rule.count_violations(pd.Series([1, 1, "2"])) == 1
 
     def test_violations_all_strings_when_numeric_allowed(self) -> None:
         rule = utils.OneOfRule(value=[1, 2])
-        assert rule.count_violations(self._series(["1", "1", "2"])) == 3
+        assert rule.count_violations(pd.Series(["1", "1", "2"])) == 3
 
     def test_bool_and_int_equivalence_with_bool_allowed(self) -> None:
         rule = utils.OneOfRule(value=[True, False])
-        s = self._series([True, 1, False, 0])
+        s = pd.Series([True, 1, False, 0])
         assert rule.count_violations(s) == 0
 
     def test_bool_and_int_equivalence_with_int_allowed(self) -> None:
         rule = utils.OneOfRule(value=[0, 1])
-        s = self._series([True, 1, False, 0])
+        s = pd.Series([True, 1, False, 0])
         assert rule.count_violations(s) == 0
 
 
