@@ -79,14 +79,16 @@ class TestTransformModelOverview:
                 "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             ValueError,
+            "Missing required datasets: model_metadata"
         ),
         (
             # Fail with missing values in model_genetic_modifications
             {
-                "model_metadata": "model_overview_model_genetic_modifications_good_test_input.csv",
+                "model_metadata": "model_overview_model_metadata_good_test_input.csv",
                 "model_genetic_modifications": "model_overview_model_genetic_modifications_missing_data_input.csv",
             },
             ValueError,
+            "violate rule 'not_empty'."
         ),
     ]
     fail_test_ids = [
@@ -122,11 +124,11 @@ class TestTransformModelOverview:
         assert output_data == expected_data
 
     @pytest.mark.parametrize(
-        "input_files, error_type",
+        "input_files, error_type, error_msg",
         fail_test_data,
         ids=fail_test_ids,
     )
-    def test_model_overview_transform_should_fail(self, input_files, error_type):
+    def test_model_overview_transform_should_fail(self, input_files, error_type, error_msg):
         # Create datasets dictionary
         datasets = {}
         for dataset_name, file_name in input_files.items():
@@ -135,7 +137,7 @@ class TestTransformModelOverview:
             )
 
         # Expect transformation to raise the specified error
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=error_msg):
             transform_model_overview(datasets=datasets)
 
     def test_model_overview_transform_with_empty_datasets(self):
