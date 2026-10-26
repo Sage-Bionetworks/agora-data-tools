@@ -665,7 +665,6 @@
                 "type": "string"
               },
               "maxItems": 5,
-              "minItems": 0,
               "type": "array"
             },
             "ensembl_release": {
