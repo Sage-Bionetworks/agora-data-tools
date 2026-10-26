@@ -13,16 +13,16 @@
         "ensembl_release": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 3
+            "maxLength": 3,
+            "pattern": "^\\d+$"
         },
         "ensembl_possible_replacements": {
             "type": "array",
+            "maxItems": 5,
             "items": {
                 "type": "string",
                 "pattern": "^ENSG[0-9]{11}$"
-            },
-            "minItems": 0,
-            "maxItems": 5
+            }
         },
         "ensembl_permalink": {
             "type": "string",

@@ -118,6 +118,7 @@ class TestTransformModelDetails:
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
             ValueError,
+            "Missing required datasets: biomarkers",
         ),
         (
             # Fail with missing model in model_genetic_modifications
@@ -129,6 +130,7 @@ class TestTransformModelDetails:
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
             ValueError,
+            "Some models in `model_metadata_df` are missing from `model_genetic_modifications_df`",
         ),
     ]
     fail_test_ids = [
@@ -198,11 +200,13 @@ class TestTransformModelDetails:
         assert output_data == expected_data
 
     @pytest.mark.parametrize(
-        "input_files, error_type",
+        "input_files, error_type, error_msg",
         fail_test_data,
         ids=fail_test_ids,
     )
-    def test_model_details_transform_should_fail(self, input_files, error_type):
+    def test_model_details_transform_should_fail(
+        self, input_files, error_type, error_msg
+    ):
         # Create datasets dictionary
         datasets = self._load_data(input_files)
 
@@ -210,7 +214,7 @@ class TestTransformModelDetails:
         datasets["immunohisto_measure_order"] = _load_test_measure_order_config()
 
         # Expect transformation to raise the specified error
-        with pytest.raises(error_type):
+        with pytest.raises(error_type, match=error_msg):
             transform_model_details(datasets=datasets)
 
     @pytest.mark.parametrize(
