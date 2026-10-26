@@ -133,35 +133,7 @@ Each output JSON file contains the expected transformed data structure:
 
 ## Test Coverage
 
-### Unit Tests (`test_rna_de_individual.py`)
-
-1. **TestDetermineResultOrder**: Tests result ordering logic
-2. **TestProcessIndividualDataFileCore**: Tests single file processing logic, including:
-   - `test_name_equals_model_for_single_model_group`: Verifies `name` is set to `model` (not `model_group`) for single-model groups where they differ
-
-### Unit Tests (`test_model_ad_expression_utils.py`)
-
-1. **TestFilterMouseGenes**: Tests mouse gene filtering logic
-2. **TestTissueNameMapping**: Tests tissue name transformation
-3. **TestPreprocessDataFileTypeCasting**: Tests numeric type casting during preprocessing
-4. **TestValidateModelGroupConsistency**: Tests model_group consistency validation
-5. **TestCreateGeneMetadataDict**: Tests gene metadata dictionary creation
-6. **TestPrepareGenotypeLabelMapDf**: Tests label map normalization (None/empty model_group handling)
-7. **TestLogFileProcessingInfo**: Tests file processing log output
-8. **TestValidateDataFileNotEmpty**: Tests empty file error handling
-
-### Integration Tests (`test_rna_de_individual.py`)
-
-1. **test_synthetic_basic_data**: Core transformation functionality
-2. **test_synthetic_jax_tissue_mapping**: JAX tissue name mapping
-3. **test_synthetic_mixed_genes_filtering**: Human gene filtering
-4. **test_synthetic_age_sorting**: Numeric age sorting
-5. **test_synthetic_single_row_data**: Edge case with minimal data
-6. **test_synthetic_empty_data_file**: Empty file error handling
-7. **test_synthetic_missing_columns_data**: Missing column error handling
-8. **test_synthetic_rounding_precision**: Numeric precision rounding
-9. **test_synthetic_multi_model_data**: Multi-model group (split-file UCI models combined into one output entry)
-10. **test_inconsistent_model_group_values**: Inconsistent model_group error handling
+Test names live in `tests/transform/test_rna_de_individual.py` and `tests/transform/transform_utils/test_model_ad_expression_utils.py`.
 
 ## Notes
 

@@ -7,20 +7,24 @@ is, but the file, tissue, genotype-label, and gene-metadata helpers are used by
 aggregate as well.
 """
 
+import math
+
 import pandas as pd
 import pytest
 import logging
 from typing import Any
 
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
+    build_biodomain_lookup,
     build_model_to_model_group_lookup,
+    build_model_type_lookup,
+    create_age_entries_from_group,
     determine_result_order,
     filter_to_mouse_genes,
     label_genotypes,
     nest_individual_records,
     normalize_tissue,
     prepare_genotype_label_map,
-    validate_model_group_consistency,
     create_gene_metadata_dict,
     log_file_processing_info,
     validate_data_file_not_empty,
@@ -46,7 +50,8 @@ class TestNormalizeTissue:
 
     def test_all_null_column_remains_null(self) -> None:
         """pandas reads an entirely empty column as float. normalize_tissue should handle this case
-        by leaving the column with all null values but the column should have a "string" type."""
+        by leaving the column with all null values but the column should have a "string" type.
+        """
         result = normalize_tissue(pd.Series([None, None]))
         assert result.isna().all()
         assert result.dtype == "object"
@@ -79,7 +84,7 @@ class TestPrepareGenotypeLabelMap:
         """Test that an inconsistent model_group (where one model has more than one model_group) raises a ValueError."""
         label_map = self._label_map().assign(model_group=["Group_A", "Group_B"])
 
-        with pytest.raises(ValueError, match="consistent model_group"):
+        with pytest.raises(ValueError, match="multiple model_group"):
             prepare_genotype_label_map(label_map)
 
 
@@ -474,81 +479,9 @@ class TestPreprocessDataRemapsSexLabels:
         assert result["sex"].reset_index(drop=True).tolist() == ["Male", "Female"]
 
 
-class TestValidateModelGroupConsistency:
-    """Tests for validate_model_group_consistency function."""
-
-    def test_consistent_model_groups(self) -> None:
-        """Test that consistent model_group values pass validation."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A", "Model_B", "Model_B"],
-                "model_group": ["Group1", "Group1", "Group2", "Group2"],
-            }
-        )
-
-        # Should not raise
-        validate_model_group_consistency(df)
-
-    def test_inconsistent_model_groups_raises_error(self) -> None:
-        """Test that inconsistent model_group values raise ValueError."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A", "Model_B", "Model_B"],
-                "model_group": ["Group1", "Group2", "Group3", "Group3"],
-            }
-        )
-
-        with pytest.raises(ValueError, match="consistent model_group value"):
-            validate_model_group_consistency(df)
-
-    def test_none_model_groups(self) -> None:
-        """Test handling of None model_group values (models with no explicit group)."""
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": [None, None],
-            }
-        )
-
-        # Should not raise — all-None model_group is consistently "no group"
-        validate_model_group_consistency(df)
-
-    def test_empty_string_model_groups(self) -> None:
-        """Test that consistent empty-string model_group values do not raise an error.
-
-        Consistent "" values are considered valid because all rows agree on the same value.
-        """
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": ["", ""],
-            }
-        )
-
-        # Should not raise — both rows agree on the same value
-        validate_model_group_consistency(df)
-
-    def test_mixed_none_and_real_group_raises_error(self) -> None:
-        """Test that a model with both None and a real group name raises ValueError.
-
-        Mixing None (no group) with an actual group name for the same model is
-        inconsistent and should be caught by validation.
-        """
-        df = pd.DataFrame(
-            {
-                "model": ["Model_A", "Model_A"],
-                "model_group": [None, "GroupX"],
-            }
-        )
-
-        with pytest.raises(ValueError, match="consistent model_group value"):
-            validate_model_group_consistency(df)
-
-
 class TestBuildModelToModelGroupLookup:
     """Tests for build_model_to_model_group_lookup function."""
 
-    # TODO come back to this
     def test_creates_correct_mapping(self) -> None:
         """Test that each model maps to its model_group."""
         df = pd.DataFrame(
@@ -751,3 +684,259 @@ class TestPreprocessDataFileColumnRules:
 
         # Should not raise
         self._preprocess(df)
+
+
+class TestBuildModelTypeLookup:
+    def test_one_row_per_model(self) -> None:
+        label_map = pd.DataFrame(
+            {
+                "model": ["LOAD2", "LOAD2"],
+                "model_type": ["Late Onset AD", "Late Onset AD"],
+            }
+        )
+
+        assert build_model_type_lookup(label_map) == {"LOAD2": "Late Onset AD"}
+
+
+class TestBuildBiodomainLookup:
+    def test_groups_biodomains_and_drops_a_blank_ensembl_id(self) -> None:
+        biodomains = pd.DataFrame(
+            {
+                "ensembl_id": ["ENSMUSG00000000001", "ENSMUSG00000000001", None],
+                "biodomain": ["Apoptosis", "Synapse", "Lipid Metabolism"],
+            }
+        )
+
+        assert build_biodomain_lookup(biodomains) == {
+            "ENSMUSG00000000001": ["Apoptosis", "Synapse"]
+        }
+
+    def test_biodomain_lookup_drops_duplicates(self) -> None:
+        """Test that duplicate biodomain entries for the same gene are dropped from the output list."""
+        biodomains = pd.DataFrame(
+            {
+                "ensembl_id": [
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                    "ENSMUSG00000000001",
+                ],
+                "biodomain": ["Apoptosis", "Apoptosis", "Metabolic"],
+            }
+        )
+
+        assert build_biodomain_lookup(biodomains) == {
+            "ENSMUSG00000000001": ["Apoptosis", "Metabolic"]
+        }
+
+
+class TestCreateAgeEntriesFromGroup:
+    """
+    Unit tests for the create_age_entries_from_group helper function.
+
+    This class contains focused unit tests for age entry creation logic,
+    testing the function in isolation from the full transformation pipeline.
+
+    Test Methods:
+        - test_create_age_entries_single_row: Tests creating age entries from a single row.
+        - test_create_age_entries_multiple_rows: Tests creating age entries from multiple rows.
+        - test_create_age_entries_with_nan_padj: Tests handling of NaN adjusted p-values.
+        - test_create_age_entries_with_negative_zero: Tests handling of negative zero log2foldchange.
+        - test_create_age_entries_negative_padj_raises_error: Tests error handling for negative p-values.
+    """
+
+    def test_create_age_entries_single_row(self) -> None:
+        """Test creating age entries from a single row DataFrame."""
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [0.01],
+            }
+        )
+
+        result = create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000001",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert result == {"6 months": {"log2_fc": 1.5, "adj_p_val": 0.01}}
+
+    def test_create_age_entries_are_in_numeric_age_order(self) -> None:
+        """Ages come back ordered by their integer, not by input order or string order."""
+        group = pd.DataFrame(
+            {
+                "age": ["12 months", "3 months", "6 months"],
+                "log2foldchange": [0.8, 0.3, 0.5],
+                "padj": [0.005, 0.02, 0.01],
+            }
+        )
+
+        result = create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000001",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        assert list(result) == ["3 months", "6 months", "12 months"]
+
+    def test_create_age_entries_multiple_rows(self) -> None:
+        """Test creating age entries from multiple rows with different ages."""
+        group = pd.DataFrame(
+            {
+                "age": ["3 months", "6 months", "12 months"],
+                "log2foldchange": [0.5, 1.0, 1.5],
+                "padj": [0.05, 0.01, 0.001],
+            }
+        )
+
+        result = create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000002",
+            model="TestModel",
+            tissue="Hippocampus",
+            sex="Female",
+        )
+
+        assert len(result) == 3
+        assert "3 months" in result
+        assert "6 months" in result
+        assert "12 months" in result
+        assert result["3 months"] == {"log2_fc": 0.5, "adj_p_val": 0.05}
+        assert result["6 months"] == {"log2_fc": 1.0, "adj_p_val": 0.01}
+        assert result["12 months"] == {"log2_fc": 1.5, "adj_p_val": 0.001}
+
+    def test_create_age_entries_with_nan_padj(self) -> None:
+        """Test that NaN adjusted p-values are converted to 1.0.
+
+        This verifies that:
+        - NA padj values are converted to 1.0
+        - NA values don't trigger negative p-value validation check
+        - The NA check happens before float conversion, preventing TypeError
+          when pd.NA is passed to float()
+        - log2_fc values are still processed correctly when padj is NA
+        """
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [pd.NA],
+            }
+        )
+
+        # Should not raise TypeError or ValueError, should handle NA gracefully
+        result = create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000003",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        # NA should be converted to 1.0 without errors
+        assert result["6 months"]["adj_p_val"] == pytest.approx(1.0)
+        assert result["6 months"]["log2_fc"] == pytest.approx(1.5)
+
+    def test_create_age_entries_mixed_na_and_valid_padj(self) -> None:
+        """Test that groups with both NA and valid padj values are handled correctly.
+
+        This verifies that NA values are skipped in negative check but valid
+        negative values still raise errors.
+        """
+        # Group with NA and valid positive values
+        group_valid = pd.DataFrame(
+            {
+                "age": ["3 months", "6 months"],
+                "log2foldchange": [0.5, 1.5],
+                "padj": [pd.NA, 0.01],
+            }
+        )
+
+        result = create_age_entries_from_group(
+            group=group_valid,
+            ensembl_gene_id="ENSMUSG00000000010",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        # Both entries should be created without errors
+        assert len(result) == 2
+        assert result["3 months"]["adj_p_val"] == pytest.approx(1.0)
+        assert result["6 months"]["adj_p_val"] == pytest.approx(0.01)
+
+    def test_create_age_entries_with_negative_zero(self) -> None:
+        """Test that negative zero log2foldchange is normalized to positive zero."""
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [-0.0],
+                "padj": [0.01],
+            }
+        )
+
+        result = create_age_entries_from_group(
+            group=group,
+            ensembl_gene_id="ENSMUSG00000000004",
+            model="TestModel",
+            tissue="Cortex",
+            sex="Male",
+        )
+
+        # normalize_zero should convert -0.0 to 0.0
+        assert math.isclose(result["6 months"]["log2_fc"], 0.0, abs_tol=1e-12)
+        assert math.copysign(1.0, result["6 months"]["log2_fc"]) > 0
+
+    def test_create_age_entries_negative_padj_raises_error(self) -> None:
+        """Test that negative adjusted p-values raise ValueError with informative message."""
+        group = pd.DataFrame(
+            {
+                "age": ["6 months"],
+                "log2foldchange": [1.5],
+                "padj": [-0.01],
+            }
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            create_age_entries_from_group(
+                group=group,
+                ensembl_gene_id="ENSMUSG00000000005",
+                model="TestModel",
+                tissue="Cortex",
+                sex="Female",
+            )
+
+        error_message = str(exc_info.value)
+        assert "Negative adjusted p-value found in data" in error_message
+        assert "ENSMUSG00000000005" in error_message
+        assert "TestModel" in error_message
+        assert "Cortex" in error_message
+        assert "Female" in error_message
+
+    def test_create_age_entries_mixed_na_and_invalid_padj_raises(self) -> None:
+        """Group with NA and negative value should still raise error for negative adjusted p-values."""
+        group_negative = pd.DataFrame(
+            {
+                "age": ["3 months", "6 months"],
+                "log2foldchange": [0.5, 1.5],
+                "padj": [pd.NA, -0.01],
+            }
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            create_age_entries_from_group(
+                group=group_negative,
+                ensembl_gene_id="ENSMUSG00000000011",
+                model="TestModel",
+                tissue="Cortex",
+                sex="Male",
+            )
+
+        # Should still catch negative p-value even when NA is present
+        error_message = str(exc_info.value)
+        assert "Negative adjusted p-value found in data" in error_message
+        assert "ENSMUSG00000000011" in error_message

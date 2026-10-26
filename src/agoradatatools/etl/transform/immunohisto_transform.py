@@ -4,13 +4,14 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
     normalize_null_values,
     round_y_axis_max,
+    y_axis_max_by_groups,
 )
 
 
@@ -67,36 +68,6 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     df["age"] = df["age"].apply(lambda x: x if x.endswith("months") else x + " months")
 
     return df
-
-
-def _calculate_y_axis_max_map(
-    dataset: pd.DataFrame,
-) -> Dict[Tuple[str, str, str], float]:
-    """
-    Calculate final y_axis_max values for each combination of (name, evidence_type, tissue) across all ages.
-
-    This function finds the raw maximum values from the dataset and applies rounding
-    to get the final y_axis_max values using round_y_axis_max().
-
-    Args:
-        dataset: The prepared dataset. It must have columns "name", "evidence_type", "tissue", and "value".
-
-    Returns:
-        Dictionary mapping (name, evidence_type, tissue) tuples to their final rounded y_axis_max values
-    """
-    key_dimensions = ["name", "evidence_type", "tissue"]
-    y_axis_max_map = {}
-
-    for key, group in dataset.groupby(key_dimensions):
-        # Convert value column to numeric, coercing errors to NaN, then drop NaN values
-        numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
-        if len(numeric_values) > 0:
-            raw_max = numeric_values.max()
-            y_axis_max_map[tuple(key)] = round_y_axis_max(raw_max)
-        else:
-            y_axis_max_map[tuple(key)] = round_y_axis_max(0)
-
-    return y_axis_max_map
 
 
 def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
@@ -250,7 +221,7 @@ def immunohisto_transform(
         return []
 
     # Calculate final y_axis_max values for all combinations
-    y_axis_max_map = _calculate_y_axis_max_map(dataset)
+    y_axis_max_map = y_axis_max_by_groups(dataset, ["name", "evidence_type", "tissue"])
 
     # Create initial data rows from groups using nest_fields
     # We need to drop columns that are not in group_columns or extra_columns
