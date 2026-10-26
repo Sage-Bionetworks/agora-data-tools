@@ -25,7 +25,7 @@ Test Data Structure:
     Input files include:
     - RNA-seq differential expression data (*.csv)
     - genotype_label_map.csv (maps genotypes to model labels, includes model_type)
-    - mouse_gene_metadata.csv (gene symbols and metadata)
+    - mouse_gene_metadata.json (gene symbols and metadata)
     - biodom_genes_mm.csv (biodomain assignments for mouse genes)
 
     Output files are JSON-formatted expected results for comparison.
@@ -570,7 +570,7 @@ class TestTransformRnaDeAggregate:
                 "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map.csv",
                 "synthetic_biodom_genes_mm.csv",
-                # Missing synthetic_mouse_gene_metadata.csv
+                # Missing synthetic_mouse_gene_metadata.json
             ]
         )
 
@@ -582,9 +582,9 @@ class TestTransformRnaDeAggregate:
         "synthetic_genotype_label_map.csv": "genotype_label_map",
         "synthetic_genotype_label_map_inconsistent.csv": "genotype_label_map",
         "synthetic_genotype_label_map_inconsistent_model_type.csv": "genotype_label_map",
-        "synthetic_mouse_gene_metadata.csv": "mouse_gene_metadata",
-        "synthetic_mouse_gene_metadata_multi.csv": "mouse_gene_metadata",
-        "synthetic_mouse_gene_metadata_missing_symbols.csv": "mouse_gene_metadata",
+        "synthetic_mouse_gene_metadata.json": "mouse_gene_metadata",
+        "synthetic_mouse_gene_metadata_multi.json": "mouse_gene_metadata",
+        "synthetic_mouse_gene_metadata_missing_symbols.json": "mouse_gene_metadata",
         "synthetic_biodom_genes_mm.csv": "biodom_genes_mm",
         "synthetic_biodom_genes_mm_multiple.csv": "biodom_genes_mm",
     }
@@ -648,7 +648,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -681,7 +681,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_multi_model_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -719,7 +719,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_jax_tissue_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -754,7 +754,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_mixed_genes_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -794,7 +794,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_sex_cohort_filter_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -830,7 +830,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_nan_negative_zero_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -849,7 +849,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_nan_negative_zero_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -869,7 +869,7 @@ class TestTransformRnaDeAggregate:
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -913,7 +913,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_age_sorting_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -942,14 +942,14 @@ class TestTransformRnaDeAggregate:
         Tests edge case handling of minimal input: a single data row representing one gene
         at one age/condition. Verifies the transform can handle the smallest valid dataset.
         Also tests missing gene metadata handling - the gene (ENSMUSG00000000008) is not in
-        mouse_gene_metadata.csv, so gene_symbol should be "" and biodomains should be [].
+        mouse_gene_metadata.json, so gene_symbol should be "" and biodomains should be [].
         """
         # Load synthetic test data
         datasets = self._load_synthetic_test_data(
             [
                 "synthetic_single_row_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -979,7 +979,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_empty_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -995,7 +995,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_missing_columns_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1010,7 +1010,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1025,7 +1025,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1045,7 +1045,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_rounding_precision_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1087,7 +1087,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_multiple_biodomains_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata_multi.csv",
+                "synthetic_mouse_gene_metadata_multi.json",
                 "synthetic_biodom_genes_mm_multiple.csv",
             ]
         )
@@ -1175,7 +1175,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map_inconsistent.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1204,7 +1204,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map_inconsistent_model_type.csv",
-                "synthetic_mouse_gene_metadata.csv",
+                "synthetic_mouse_gene_metadata.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
@@ -1228,7 +1228,7 @@ class TestTransformRnaDeAggregate:
             [
                 "synthetic_basic_data.csv",
                 "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata_missing_symbols.csv",
+                "synthetic_mouse_gene_metadata_missing_symbols.json",
                 "synthetic_biodom_genes_mm.csv",
             ]
         )
