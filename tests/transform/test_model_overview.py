@@ -79,7 +79,7 @@ class TestTransformModelOverview:
                 "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             ValueError,
-            "Missing required datasets: model_metadata"
+            "Missing required datasets: model_metadata",
         ),
         (
             # Fail with missing values in model_genetic_modifications
@@ -88,7 +88,7 @@ class TestTransformModelOverview:
                 "model_genetic_modifications": "model_overview_model_genetic_modifications_missing_data_input.csv",
             },
             ValueError,
-            "violate rule 'not_empty'."
+            "violate rule 'not_empty'.",
         ),
     ]
     fail_test_ids = [
@@ -128,7 +128,9 @@ class TestTransformModelOverview:
         fail_test_data,
         ids=fail_test_ids,
     )
-    def test_model_overview_transform_should_fail(self, input_files, error_type, error_msg):
+    def test_model_overview_transform_should_fail(
+        self, input_files, error_type, error_msg
+    ):
         # Create datasets dictionary
         datasets = {}
         for dataset_name, file_name in input_files.items():

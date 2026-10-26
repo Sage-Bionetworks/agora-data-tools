@@ -110,7 +110,7 @@ class TestTransformModelDetails:
                 "pathology": "model_details_pathology_good_test_input.csv",
             },
             ValueError,
-            "Missing required datasets: biomarkers"
+            "Missing required datasets: biomarkers",
         ),
     ]
     fail_test_ids = [
@@ -173,7 +173,9 @@ class TestTransformModelDetails:
         fail_test_data,
         ids=fail_test_ids,
     )
-    def test_model_details_transform_should_fail(self, input_files, error_type, error_msg):
+    def test_model_details_transform_should_fail(
+        self, input_files, error_type, error_msg
+    ):
         # Create datasets dictionary
         datasets = {}
         for dataset_name, file_name in input_files.items():
