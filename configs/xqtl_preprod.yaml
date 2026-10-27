@@ -9,8 +9,8 @@ files:
   - &ui_config                    { name: ui_config,                format: json,       id: syn77143753 }
   - &gene_metadata                { name: gene_metadata,            format: feather,    id: syn25953363.17 }
   - &eqtl_cell_label_map          { name: eqtl_cell_label_map,      format: csv,        id: syn77171904 }
-  - &gene_structure               { name: gene_structure,           format: json,       id: syn77351874 }
-  - &chromosome_features          { name: chromosome_features,      format: json,       id: syn77351873 }    # TODO: replace with file that aligns w/sample genes & variants
+  - &gene_structure               { name: gene_structure,           format: json,       id: syn78404150 }
+  - &chromosome_features          { name: chromosome_features,      format: json,       id: syn78404149 }
   # QTL Results (Expression)
   - &eqtl_results_astro           { name: eqtl_results_astro,           format: tsv,        id: syn77170670 } # modified version of syn75312498 w/mock rs2120461_rere row added, plus missing beta & tab fixes
   - &eqtl_results_en_l3-5_it_1    { name: eqtl_results_en_l3-5_it_1,    format: tsv,        id: syn75312504 } # _en file renamed to fake a subclass-level file
