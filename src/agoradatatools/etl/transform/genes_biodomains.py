@@ -2,7 +2,8 @@ from typing import Dict, List, Union
 
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns, nest_fields
+from agoradatatools.etl.utils import nest_fields
+from agoradatatools.etl.validation_utils import check_required_datasets_and_columns
 
 
 REQUIRED_INPUT = {
