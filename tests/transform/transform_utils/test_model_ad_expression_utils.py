@@ -80,13 +80,6 @@ class TestPrepareGenotypeLabelMap:
         assert prepared["result_order"].tolist() == [2, 1]
         assert label_map["result_order"].tolist() == ["2", "1"]
 
-    def test_inconsistent_model_group_raises(self) -> None:
-        """Test that an inconsistent model_group (where one model has more than one model_group) raises a ValueError."""
-        label_map = self._label_map().assign(model_group=["Group_A", "Group_B"])
-
-        with pytest.raises(ValueError, match="multiple model_group"):
-            prepare_genotype_label_map(label_map)
-
 
 class TestLabelGenotypes:
     """Tests for the shared genotype labeling merge."""

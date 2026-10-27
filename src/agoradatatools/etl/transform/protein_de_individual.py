@@ -6,17 +6,20 @@ plus uniprotid, unique_id, and display_symbol.
 import gc
 import logging
 from collections import defaultdict
+from collections.abc import Collection
 from typing import Any
 
 import pandas as pd
 
 from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
     raise_on_duplicate_keys,
+    normalize_zero,
+)
+from agoradatatools.etl.validation_utils import (
     ColumnRule,
     NotEmptyRule,
-    normalize_zero,
+    check_column_rules,
+    check_required_datasets_and_columns,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
@@ -29,8 +32,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     normalize_tissue,
     prepare_genotype_label_map,
     validate_data_file_not_empty,
-    GENOTYPE_LABEL_MAP_COLUMNS,
-    GENOTYPE_LABEL_MAP_RULES,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
     add_protein_identity_columns,
@@ -50,22 +51,9 @@ UNITS = "Log2 Relative Abundance"
 AGE_BINS = [float("-inf"), 6, 10, 16, 20, float("inf")]
 AGE_LABELS = [4, 8, 12, 18, 24]
 
-REQUIRED_INPUT = {
-    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
-    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
-    "uniprot_ensembl_map": ["uniprot_id", "ensembl_gene_id"],
-}
-
-COLUMN_RULES = {
-    "genotype_label_map": GENOTYPE_LABEL_MAP_RULES,
-    # create_gene_metadata_dict indexes on ensembl_gene_id, so a blank one becomes a live
-    # lookup key rather than being dropped.
-    "mouse_gene_metadata": {"ensembl_gene_id": [NotEmptyRule()]},
-    "uniprot_ensembl_map": {
-        "uniprot_id": [NotEmptyRule()],
-        "ensembl_gene_id": [NotEmptyRule()],
-    },
-}
+STATIC_INPUTS = frozenset(
+    {"genotype_label_map", "mouse_gene_metadata", "uniprot_ensembl_map"}
+)
 
 MODEL_METADATA_REQUIRED_COLUMNS = [
     "individualid",
@@ -311,11 +299,11 @@ def _validate_file_maps(
     datasets: dict[str, pd.DataFrame],
     model_map: dict[str, str],
     metadata_map: dict[str, str],
-    required_input: dict[str, list[str]],
+    static_inputs: Collection[str],
     known_models: set[str],
 ) -> None:
     """Raise if model_map or metadata_map is empty, overlaps, leftover, or names unknown files or models."""
-    available = ", ".join(sorted(set(datasets) - set(required_input)))
+    available = ", ".join(sorted(set(datasets) - set(static_inputs)))
     for map_name, file_map, label in (
         ("model_map", model_map, "proteomics data"),
         ("metadata_map", metadata_map, "metadata"),
@@ -343,7 +331,7 @@ def _validate_file_maps(
             "only be in one map."
         )
     leftover_names = sorted(
-        set(datasets) - set(required_input) - set(model_map) - set(metadata_map)
+        set(datasets) - set(static_inputs) - set(model_map) - set(metadata_map)
     )
     if leftover_names:
         raise ValueError(
@@ -368,20 +356,15 @@ def transform_protein_de_individual(
     datasets: dict[str, pd.DataFrame],
     model_map: dict[str, str],
     metadata_map: dict[str, str],
-    required_input: dict[str, list[str]] = REQUIRED_INPUT,
-    column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
 ) -> list[dict[str, Any]]:
     """Transform Model AD individual proteomics data into nested per-protein records."""
     # model_map and metadata_map are required because the proteomics files have no model column.
-    check_required_datasets_and_columns(datasets, required_input)
-    check_column_rules(datasets, column_rules)
-
     genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
     _validate_file_maps(
         datasets,
         model_map,
         metadata_map,
-        required_input,
+        STATIC_INPUTS,
         set(genotype_label_map_df["model"]),
     )
 

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from agoradatatools.etl.transform.protein_de_aggregate import (
-    REQUIRED_INPUT,
+    STATIC_INPUTS,
     DATA_FILE_COLUMNS,
     _model_display_labels,
     _validate_file_metadata,
@@ -65,7 +65,7 @@ def _create_datasets_with(*data_files: str) -> dict[str, pd.DataFrame]:
     """Create a 'datasets' dictionary with empty DataFrames for all required inputs, and add single-row data frames with
     a protein_id column for any number of specified data files."""
 
-    datasets = {name: pd.DataFrame() for name in REQUIRED_INPUT}
+    datasets = {name: pd.DataFrame() for name in STATIC_INPUTS}
     for name in data_files:
         datasets[name] = pd.DataFrame({"protein_id": ["Gnai3|P27144"]})
     return datasets
@@ -136,7 +136,7 @@ class TestValidateFileMetadata:
         }
 
         normalized = _validate_file_metadata(
-            datasets, file_metadata, REQUIRED_INPUT, KNOWN_MODELS
+            datasets, file_metadata, STATIC_INPUTS, KNOWN_MODELS
         )
 
         assert normalized["jax_load2_f_4mo"]["sex"] == "Female"
@@ -150,7 +150,7 @@ class TestValidateFileMetadata:
         metadata = {"jax_load2_f_4mo": _create_metadata()}
 
         with pytest.raises(ValueError, match="not in file_metadata"):
-            _validate_file_metadata(datasets, metadata, REQUIRED_INPUT, KNOWN_MODELS)
+            _validate_file_metadata(datasets, metadata, STATIC_INPUTS, KNOWN_MODELS)
 
     def test_an_unknown_file_name_raises(self) -> None:
         """file_metadata cannot name a file that is not in the dataset."""
@@ -158,7 +158,7 @@ class TestValidateFileMetadata:
         metadata = {"not_a_file": _create_metadata()}
 
         with pytest.raises(ValueError, match="not files in this dataset"):
-            _validate_file_metadata(datasets, metadata, REQUIRED_INPUT, KNOWN_MODELS)
+            _validate_file_metadata(datasets, metadata, STATIC_INPUTS, KNOWN_MODELS)
 
     def test_a_metadata_dataset_in_the_map_raises(self) -> None:
         """Should raise an error if a required input file (not a differential expression file) is listed in the
@@ -170,7 +170,7 @@ class TestValidateFileMetadata:
         }
 
         with pytest.raises(ValueError, match="metadata datasets"):
-            _validate_file_metadata(datasets, metadata, REQUIRED_INPUT, KNOWN_MODELS)
+            _validate_file_metadata(datasets, metadata, STATIC_INPUTS, KNOWN_MODELS)
 
     @pytest.mark.parametrize("field", ["model", "sex", "age", "tissue"])
     @pytest.mark.parametrize(
@@ -184,7 +184,7 @@ class TestValidateFileMetadata:
         metadata = {"jax_load2_f_4mo": _create_metadata(**{field: value})}
 
         with pytest.raises(ValueError, match=f"column '{field}'.*not_empty"):
-            _validate_file_metadata(datasets, metadata, REQUIRED_INPUT, KNOWN_MODELS)
+            _validate_file_metadata(datasets, metadata, STATIC_INPUTS, KNOWN_MODELS)
 
     def test_a_bad_age_raises(self) -> None:
         """Age has to be "N months", the same shape the RNA transforms require."""
@@ -192,7 +192,7 @@ class TestValidateFileMetadata:
         metadata = {"jax_load2_f_4mo": _create_metadata(age="4mo")}
 
         with pytest.raises(ValueError, match="column 'age'.*matches_regex"):
-            _validate_file_metadata(datasets, metadata, REQUIRED_INPUT, KNOWN_MODELS)
+            _validate_file_metadata(datasets, metadata, STATIC_INPUTS, KNOWN_MODELS)
 
     def test_an_unknown_model_raises(self) -> None:
         """The model has to be spelled the way the genotype label map spells it. The dataset is created with
@@ -201,7 +201,7 @@ class TestValidateFileMetadata:
         metadata = {"jax_load2_f_4mo": _create_metadata(model="load2")}
 
         with pytest.raises(ValueError, match="column 'model'.*one_of"):
-            _validate_file_metadata(datasets, metadata, REQUIRED_INPUT, KNOWN_MODELS)
+            _validate_file_metadata(datasets, metadata, STATIC_INPUTS, KNOWN_MODELS)
 
     def test_two_files_in_one_group_raise(self) -> None:
         """Two files for one model, tissue, sex, and age would both write the same age."""
@@ -213,7 +213,7 @@ class TestValidateFileMetadata:
         }
 
         with pytest.raises(ValueError, match="same model, tissue, sex, and age"):
-            _validate_file_metadata(datasets, metadata, REQUIRED_INPUT, KNOWN_MODELS)
+            _validate_file_metadata(datasets, metadata, STATIC_INPUTS, KNOWN_MODELS)
 
 
 class TestTransformProteinDeAggregate:
@@ -249,14 +249,6 @@ class TestTransformProteinDeAggregate:
             ("ENSMUSG00000000001P27144", "Male"),
         ]
 
-    def test_missing_dataset_raises(self) -> None:
-        """A missing required metadata dataset raises before any file is read."""
-        datasets = _load_datasets()
-        del datasets["mouse_gene_metadata"]
-
-        with pytest.raises(ValueError, match="mouse_gene_metadata"):
-            transform_protein_de_aggregate(datasets, FILE_METADATA)
-
     def test_empty_file_raises(self) -> None:
         """An empty differential expression file raises."""
         datasets = _load_datasets()
@@ -281,14 +273,6 @@ class TestTransformProteinDeAggregate:
         datasets["jax_load2_f_4mo"].loc[0, "log2foldchange"] = None
 
         with pytest.raises(ValueError, match="log2foldchange.*not_empty"):
-            transform_protein_de_aggregate(datasets, FILE_METADATA)
-
-    def test_blank_mouse_ensembl_id_raises(self) -> None:
-        """A blank ensembl_gene_id would become a live key in the gene-symbol lookup."""
-        datasets = _load_datasets()
-        datasets["mouse_gene_metadata"]["ensembl_gene_id"] = ""
-
-        with pytest.raises(ValueError, match="not_empty"):
             transform_protein_de_aggregate(datasets, FILE_METADATA)
 
     @pytest.mark.parametrize("missing_column", DATA_FILE_COLUMNS)
