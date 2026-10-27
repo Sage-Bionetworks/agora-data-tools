@@ -108,7 +108,7 @@ To resolve this:
     ```bash
     pipenv --rm
     ```
-  - Verify that you are using a supported Python version (**>=3.7 and <3.11**). Check this by running:
+  - Verify that you are using a supported Python version (**>=3.10 and <3.12**). Check this by running:
     ```bash
     pyenv exec python3 --version
     ```
@@ -144,7 +144,7 @@ source $(pipenv --venv)/bin/activate
 This should activate the virtual environment.
 
 #### My Python version doesn't work
-Supported Python versions for this package are **>=3.7 and <3.11**. To check the Python versions installed via `pyenv`, run:
+Supported Python versions for this package are **>=3.10 and <3.12**. To check the Python versions installed via `pyenv`, run:
 ```bash
 pyenv versions
 ```
