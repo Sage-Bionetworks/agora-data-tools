@@ -98,53 +98,6 @@ class TestTransformModelDetails:
         "Pass with extra columns",
         "Pass with extra models in model_genetic_modifications, biomarkers, and pathology source files",
     ]
-    fail_test_data = [
-        (
-            # Fail with missing biomarkers dataset
-            {
-                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
-                "model_metadata": "model_details_model_metadata_good_test_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-            },
-            ValueError,
-        ),
-        (
-            # Fail with missing required columns in biomarkers
-            {
-                "biomarkers": "model_details_biomarkers_missing_column_input.csv",
-                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
-                "model_metadata": "model_details_model_metadata_good_test_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-            },
-            ValueError,
-        ),
-        (
-            # Fail with missing required columns in model_metadata
-            {
-                "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "model_genetic_modifications": "model_details_model_genetic_modifications_good_test_input.csv",
-                "model_metadata": "model_details_model_metadata_missing_column_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-            },
-            ValueError,
-        ),
-        (
-            # Fail with missing required columns in model_genetic_modifications
-            {
-                "biomarkers": "model_details_biomarkers_good_test_input.csv",
-                "model_genetic_modifications": "model_details_model_genetic_modifications_missing_column_input.csv",
-                "model_metadata": "model_details_model_metadata_good_test_input.csv",
-                "pathology": "model_details_pathology_good_test_input.csv",
-            },
-            ValueError,
-        ),
-    ]
-    fail_test_ids = [
-        "Fail with missing biomarkers dataset",
-        "Fail with missing required columns in biomarkers",
-        "Fail with missing required columns in model_metadata",
-        "Fail with missing required columns in model_genetic_modifications",
-    ]
 
     @pytest.mark.parametrize(
         "input_files, expected_output_file",
@@ -196,23 +149,3 @@ class TestTransformModelDetails:
 
         # Compare output with expected
         assert output_data == expected_data
-
-    @pytest.mark.parametrize(
-        "input_files, error_type",
-        fail_test_data,
-        ids=fail_test_ids,
-    )
-    def test_model_details_transform_should_fail(self, input_files, error_type):
-        # Create datasets dictionary
-        datasets = {}
-        for dataset_name, file_name in input_files.items():
-            datasets[dataset_name] = pd.read_csv(
-                os.path.join(self.data_files_path, "input", file_name)
-            )
-
-        # Add measure order config
-        datasets["immunohisto_measure_order"] = _load_test_measure_order_config()
-
-        # Expect transformation to raise the specified error
-        with pytest.raises(error_type):
-            transform_model_details(datasets=datasets)

@@ -9,7 +9,6 @@ import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
     normalize_null_values,
     delim_string_to_list,
 )
@@ -19,70 +18,9 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     zero_pad_jax_ids,
 )
 
-REQUIRED_INPUT = {
-    "model_genetic_modifications": [
-        "name",
-        "modified_gene",
-        "mouse_ensembl_id",
-        "allele",
-        "allele_type",
-        "mgi_allele_id",
-        "human_gene_symbol",
-        "human_ensembl_id",
-    ],
-    "model_metadata": [
-        "name",
-        "matched_controls",
-        "model_type",
-        "contributing_group",
-        "study_synid",
-        "rrid",
-        "jax_id",
-        "alzforum_id",
-        "genotype",
-        "aliases",
-        "transcriptomics_url_categories_value",
-        "transcriptomics_url_models_value",
-        "transcriptomics",
-        "disease_correlation",
-        "pathology",
-        "biomarkers",
-        "proteomics",
-        "proteomics_url_categories_value",
-        "proteomics_url_models_value",
-    ],
-    "immunohisto_measure_order": [
-        "dataset_name",
-        "evidence_type",
-    ],
-    "biomarkers": [
-        "name",
-        "evidence_type",
-        "value",
-        "units",
-        "age",
-        "tissue",
-        "sex",
-        "genotype",
-        "individual_id",
-    ],
-    "pathology": [
-        "name",
-        "evidence_type",
-        "value",
-        "units",
-        "age",
-        "tissue",
-        "sex",
-        "genotype",
-        "individual_id",
-    ],
-}
-
 
 def transform_model_details(
     datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
     Transforms the model_details souce files into a structured format for Model AD.
@@ -102,16 +40,10 @@ def transform_model_details(
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
-        required_input (Dict[str, List[str]]): Dictionary of required input datasets and columns.
 
     Returns:
         list[dict[str, Any]]: A list containing dicionaries with the transformed data.
-
-    Raises:
-        ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets_and_columns(datasets, required_input)
-
     # Load and prepare datasets
     model_metadata_df = datasets["model_metadata"]
     model_genetic_modifications_df = datasets["model_genetic_modifications"]

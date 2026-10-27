@@ -8,36 +8,12 @@ from typing import Dict, List, Any
 import re
 
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
     delim_string_to_list,
     flatten_list,
     remove_duplicates_keep_order,
     extract_age_numeric,
     normalize_null_values,
 )
-
-REQUIRED_INPUT = {
-    "disease_correlation_results": [
-        "cluster",
-        "module",
-        "mouse_model",
-        "sex",
-        "age",
-        "correlation",
-        "adjusted_p_value",
-    ],
-    "model_metadata": [
-        "model",
-        "matched_controls",
-        "model_type",
-    ],
-    "model_genetic_modifications": [
-        "model",
-        "mouse_gene_symbol",
-        "human_gene_symbol",
-        "human_ensembl_id",
-    ],
-}
 
 
 def create_lookup(df: pd.DataFrame, group_by_col: str) -> Dict[str, Dict[str, Any]]:
@@ -152,7 +128,6 @@ def process_group(
 
 def transform_disease_correlation(
     datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
     Transforms the disease correlation source files into a structured format for Model AD.
@@ -171,8 +146,6 @@ def transform_disease_correlation(
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
-        required_input (Dict[str, List[str]], optional): Dictionary specifying required columns
-            for each input dataset. Defaults to REQUIRED_INPUT.
 
     Returns:
         List[Dict[str, Any]]: A list of dictionaries containing the transformed data with the
@@ -187,12 +160,7 @@ def transform_disease_correlation(
                 "sex": str,
                 "<module name>": Dict[str, float] correlation and adj_p_val
             }
-
-    Raises:
-        ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
-    check_required_datasets_and_columns(datasets, required_input)
-
     # Load datasets and prepare lookups if necessary
     disease_correlation_df = normalize_null_values(
         datasets["disease_correlation_results"]

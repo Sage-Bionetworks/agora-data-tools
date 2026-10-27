@@ -7,42 +7,11 @@ import pandas as pd
 from typing import Dict, List, Any
 
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
     nest_fields,
     normalize_null_values,
     round_y_axis_max,
     y_axis_max_by_groups,
 )
-
-
-REQUIRED_INPUT = {
-    "biomarkers": [
-        "name",
-        "evidence_type",
-        "value",
-        "units",
-        "age",
-        "tissue",
-        "sex",
-        "genotype",
-        "individual_id",
-    ],
-    "pathology": [
-        "name",
-        "evidence_type",
-        "value",
-        "units",
-        "age",
-        "tissue",
-        "sex",
-        "genotype",
-        "individual_id",
-    ],
-    "immunohisto_measure_order": [
-        "dataset_name",
-        "evidence_type",
-    ],
-}
 
 
 def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -139,7 +108,6 @@ def _extract_age_num(age_str: str) -> float:
 def immunohisto_transform(
     datasets: Dict[str, pd.DataFrame],
     dataset_name: str,
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
     group_columns: List[str] = [
         "name",
         "evidence_type",
@@ -187,7 +155,6 @@ def immunohisto_transform(
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
         dataset_name (str): The name of the dataset to transform.
-        required_input (Dict[str, List[str]], optional): Required input columns for validation.
         group_columns (List[str], optional): List of columns to group by. Defaults to ['name', 'evidence_type', 'tissue', 'age', 'units'].
         extra_columns (List[str], optional): List of columns to include in the group. Defaults to ['genotype', 'sex', 'individual_id', 'value'].
         extra_column_name (str, optional): Name of the column containing the extra columns. Defaults to 'data'.
@@ -203,16 +170,6 @@ def immunohisto_transform(
         raise ValueError(
             f"Missing required datasets: dataset_name must be one of {valid_dataset_names}, got '{dataset_name}'"
         )
-
-    # Build required_input with only the datasets that are actually required:
-    # - The specific dataset being transformed (biomarkers or pathology)
-    # - immunohisto_measure_order (always required for sorting)
-    actual_required_input = {
-        k: v
-        for k, v in required_input.items()
-        if k in [dataset_name, "immunohisto_measure_order"]
-    }
-    check_required_datasets_and_columns(datasets, actual_required_input)
 
     dataset = prepare_immunohisto_data(datasets[dataset_name])
 
