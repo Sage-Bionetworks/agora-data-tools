@@ -27,7 +27,7 @@ Install required packages:
 - synapser (also requires a Synapse account with an auth token)
 - jsonlite
 ```{r}
-source("../../setup_synapser.R")  # pins synapser and sets up its dedicated venv
+source(file.path("..", "..", "setup_synapser.R"))  # pins synapser and sets up its dedicated venv
 setup_synapser()
 if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
 if (!require("purrr")) { install.packages("purrr") }

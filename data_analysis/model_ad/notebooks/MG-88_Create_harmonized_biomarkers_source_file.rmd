@@ -57,7 +57,7 @@ Install required packages:
 - synapser (also requires a Synapse account with an auth token)
 - tidyverse
 ```{r}
-source("../../setup_synapser.R")  # pins synapser and sets up its dedicated venv
+source(file.path("..", "..", "setup_synapser.R"))  # pins synapser and sets up its dedicated venv
 setup_synapser()
 
 if (!require("tidyverse", quietly = TRUE)) {
