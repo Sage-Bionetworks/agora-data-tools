@@ -168,14 +168,8 @@ class TestProcessGeneticModifications:
             {
                 "name": ["Model1", "Model2"],
                 "mouse_gene_symbol": ["App", "App"],
-                "mouse_ensembl_id": [
-                    "ENSMUSG00000022892",
-                    "ENSMUSG00000022892",
-                ],
-                "allele": [
-                    "APP K670_M671delinsNL (Swedish)",
-                    "APP K670_M671delinsNL (Swedish)",
-                ],
+                "mouse_ensembl_id": ["ENSMUSG00000022892", "ENSMUSG00000022892"],
+                "allele": ["Allele1", "Allele1"],
                 "allele_type": ["Transgenic", "Transgenic"],
                 "mgi_allele_id": [2672831, 2672831],
                 "human_gene_symbol": ["APP", "APP"],
@@ -190,7 +184,7 @@ class TestProcessGeneticModifications:
                     "name": "Model1",
                     "modified_gene": "APP",
                     "ensembl_gene_id": "ENSG00000142192",
-                    "allele": "APP K670_M671delinsNL (Swedish)",
+                    "allele": "Allele1",
                     "allele_type": "Transgenic",
                     "mgi_allele_id": 2672831,
                 },
@@ -198,7 +192,7 @@ class TestProcessGeneticModifications:
                     "name": "Model2",
                     "modified_gene": "APP",
                     "ensembl_gene_id": "ENSG00000142192",
-                    "allele": "APP K670_M671delinsNL (Swedish)",
+                    "allele": "Allele1",
                     "allele_type": "Transgenic",
                     "mgi_allele_id": 2672831,
                 },
@@ -210,6 +204,30 @@ class TestProcessGeneticModifications:
 
         # Compare output with expected
         pd.testing.assert_frame_equal(output, expected_output)
+
+    def test_process_genetic_modifications_raises_when_human_ensembl_id_but_no_human_gene_symbol(
+        self,
+    ) -> None:
+        """
+        The function should raise an error if a row has a human Ensembl ID but a missing human gene symbol.
+        """
+        model_genetic_modifications = pd.DataFrame(
+            {
+                "name": ["Model1", "Model2"],
+                "mouse_gene_symbol": ["App", "App"],
+                "mouse_ensembl_id": ["ENSMUSG00000022892", "ENSMUSG00000022892"],
+                "allele": ["Allele1", "Allele1"],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [2672831, 2672831],
+                "human_gene_symbol": ["APP", None],
+                "human_ensembl_id": ["ENSG00000142192", "ENSG00000142192"],
+            }
+        )
+
+        with pytest.raises(
+            ValueError, match="Values must be either both present or both missing"
+        ):
+            process_genetic_modifications(model_genetic_modifications)
 
 
 class TestBuildExpressionResultsUrl:

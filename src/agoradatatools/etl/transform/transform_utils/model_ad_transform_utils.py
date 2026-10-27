@@ -84,6 +84,17 @@ def process_genetic_modifications(
     Returns:
         pd.DataFrame: The processed genetic modifications DataFrame.
     """
+    # Verify that all rows with a human Ensembl ID also have a human gene symbol before mapping
+    present_symbol = model_genetic_modifications["human_gene_symbol"].notna()
+    present_id = model_genetic_modifications["human_ensembl_id"].notna()
+
+    mismatched = present_symbol != present_id
+    if mismatched.any():
+        raise ValueError(
+            f"Data Integrity Error: {int(mismatched.sum())} row(s) have a value in only one of "
+            "human_ensembl_id and human_gene_symbol. Values must be either both present or both missing."
+        )
+
     # Only override ensembl_id if we have a valid human_ensembl_id
     model_genetic_modifications["ensembl_gene_id"] = model_genetic_modifications.apply(
         lambda row: (
