@@ -11,14 +11,14 @@ import logging
 import pandas as pd
 
 from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
     extract_age_numeric,
     nest_fields,
     normalize_zero,
+)
+from agoradatatools.etl.validation_utils import (
     ColumnRule,
-    NotEmptyRule,
-    validate_one_to_one_mapping,
+    check_column_rules,
+    check_required_datasets_and_columns,
 )
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
@@ -26,20 +26,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
 )
 
 logger = logging.getLogger(__name__)
-
-GENOTYPE_LABEL_MAP_COLUMNS = [
-    "model",
-    "model_group",
-    "display_label",
-    "genotype",
-    "result_order",
-]
-
-# Every column is required to be populated: a blank display_label or result_order silently
-# unlabels or reorders a genotype rather than failing.
-GENOTYPE_LABEL_MAP_RULES: dict[str, list[ColumnRule]] = {
-    column: [NotEmptyRule()] for column in GENOTYPE_LABEL_MAP_COLUMNS
-}
 
 # Key is lower-case but the matching will be case-insensitive, because tissue arrives in whateve
 # case the source study used.
@@ -70,7 +56,7 @@ def determine_result_order(data_file: pd.DataFrame) -> list[str]:
     Operates on a data_file that has already been merged with the genotype label map
     and filtered to a single model_group, so every display_label present is guaranteed
     to exist in the actual data. Empty display_label values are guaranteed not to be
-    present — check_column_rules validates the label map before processing begins.
+    present — the Input Validation stage validates the label map before the transform runs.
 
     Args:
         data_file: DataFrame already merged with the genotype label map and filtered to
@@ -84,12 +70,15 @@ def determine_result_order(data_file: pd.DataFrame) -> list[str]:
 
 
 def prepare_genotype_label_map(genotype_label_map_df: pd.DataFrame) -> pd.DataFrame:
-    """Copy the label map, make result_order sortable, and reject an inconsistent one."""
+    """Copy the label map and make result_order sortable.
+
+    The Input Validation stage already requires model to map to one model_group
+    and one model_type, so this function does not re-check that.
+    """
     genotype_label_map_df = genotype_label_map_df.copy()
     genotype_label_map_df["result_order"] = genotype_label_map_df[
         "result_order"
     ].astype(int)
-    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
     return genotype_label_map_df
 
 
@@ -267,7 +256,7 @@ def build_model_to_model_group_lookup(
 def build_model_type_lookup(genotype_label_map_df: pd.DataFrame) -> dict[str, str]:
     """Map each model to its model_type.
 
-    Assumes validate_one_to_one_mapping has already rejected a model with more
+    Assumes the Input Validation stage has already rejected a model with more
     than one model_type, so one row per model is enough.
     """
     return (

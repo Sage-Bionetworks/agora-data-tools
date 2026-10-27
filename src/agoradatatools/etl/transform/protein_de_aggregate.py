@@ -6,27 +6,24 @@ genotype label map: the display labels with the lowest and highest result_order.
 """
 
 import logging
+from collections.abc import Collection
 from typing import Any
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
-    raise_on_duplicate_keys,
-    validate_one_to_one_mapping,
-    ColumnRule,
+from agoradatatools.etl.utils import raise_on_duplicate_keys
+from agoradatatools.etl.validation_utils import (
     ContainsSubstringRule,
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,
+    check_column_rules,
+    check_required_datasets_and_columns,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
-    GENOTYPE_LABEL_MAP_COLUMNS,
-    GENOTYPE_LABEL_MAP_RULES,
     build_biodomain_lookup,
     build_model_to_model_group_lookup,
     build_model_type_lookup,
@@ -51,36 +48,16 @@ METADATA_FIELDS = ("model", "sex", "age", "tissue")
 GROUP_KEY = ["model", "tissue", "sex", "age"]
 AGE_KEY = ["unique_id", "model", "tissue", "sex", "age"]
 
-REQUIRED_INPUT = {
-    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS + ["model_type"],
-    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
-    "biodom_genes_mm": [
-        "biodomain",
-        "abbr",
-        "label",
-        "color",
-        "go_id",
-        "goterm_name",
-        "n_symbol",
-        "symbol",
-        "ensembl_id",
-    ],
-    "uniprot_ensembl_map": ["uniprot_id", "ensembl_gene_id"],
-}
-
-COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
-    "genotype_label_map": {
-        **GENOTYPE_LABEL_MAP_RULES,
-        "model_type": [NotEmptyRule()],
-    },
-    # create_gene_metadata_dict indexes on ensembl_gene_id, so a blank one becomes a live
-    # lookup key rather than being dropped.
-    "mouse_gene_metadata": {"ensembl_gene_id": [NotEmptyRule()]},
-    "uniprot_ensembl_map": {
-        "uniprot_id": [NotEmptyRule()],
-        "ensembl_gene_id": [NotEmptyRule()],
-    },
-}
+# Inputs validated by the Input Validation stage (etl/validation_configs). Every other
+# input is a data file.
+STATIC_INPUTS = frozenset(
+    {
+        "genotype_label_map",
+        "mouse_gene_metadata",
+        "biodom_genes_mm",
+        "uniprot_ensembl_map",
+    }
+)
 
 DATA_FILE_COLUMNS = ["protein_id", "log2foldchange", "padj"]
 # protein_id is gene_symbol|uniprotid; the pipe is what canonical_accession splits on.
@@ -93,7 +70,7 @@ DATA_FILE_COLUMN_RULES = {
 def _validate_file_metadata(
     datasets: dict[str, pd.DataFrame],
     file_metadata: dict[str, dict[str, str]],
-    required_input: dict[str, list[str]],
+    static_inputs: Collection[str],
     known_models: set[str],
 ) -> dict[str, dict[str, str]]:
     """Return file metadata with sex and tissue normalized.
@@ -102,7 +79,7 @@ def _validate_file_metadata(
     into the config. Two files that resolve to the same model, tissue, sex, and
     age raise, because both would write one age of one output entry.
     """
-    available = ", ".join(sorted(set(datasets) - set(required_input))) or "(none)"
+    available = ", ".join(sorted(set(datasets) - set(static_inputs))) or "(none)"
     if not file_metadata:
         raise ValueError(
             "No file_metadata provided. Each differential expression file's "
@@ -115,12 +92,12 @@ def _validate_file_metadata(
             "dataset. Correct the name in the config or add the file to the "
             f"dataset's files. Data files available: {available}."
         )
-    if not_data_files := sorted(set(file_metadata) & set(required_input)):
+    if not_data_files := sorted(set(file_metadata) & set(static_inputs)):
         raise ValueError(
             f"{not_data_files} are metadata datasets, not differential expression "
             "files. Remove them from file_metadata."
         )
-    leftover = sorted(set(datasets) - set(required_input) - set(file_metadata))
+    leftover = sorted(set(datasets) - set(static_inputs) - set(file_metadata))
     if leftover:
         raise ValueError(
             f"{leftover} are not in file_metadata. Add them to the config or "
@@ -263,19 +240,13 @@ def _build_output_entry(
 def transform_protein_de_aggregate(
     datasets: dict[str, pd.DataFrame],
     file_metadata: dict[str, dict[str, str]],
-    required_input: dict[str, list[str]] = REQUIRED_INPUT,
-    column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
 ) -> list[dict[str, Any]]:
     """Aggregate protein DE files into one Comparison Tool entry per protein x tissue x sex."""
-    check_required_datasets_and_columns(datasets, required_input)
-    check_column_rules(datasets, column_rules)
-
     genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
-    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_type")
     overlay = _validate_file_metadata(
         datasets,
         file_metadata,
-        required_input,
+        STATIC_INPUTS,
         set(genotype_label_map_df["model"].unique()),
     )
     model_group_dict = build_model_to_model_group_lookup(genotype_label_map_df)

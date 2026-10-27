@@ -8,8 +8,10 @@ The transformation includes gene metadata, genotype labels, and individual expre
 values to create a structured output format grouped by model_group.
 
 The transformation:
-- Validates column values up-front via check_column_rules (required fields non-empty,
-  age strings matching the '[N] months' format) before any processing begins
+- Validates data-file column values up-front via check_column_rules (required fields
+  non-empty, age strings matching the '[N] months' format) before any processing begins.
+  The shared genotype_label_map and mouse_gene_metadata inputs are validated by the
+  Input Validation stage before this transform runs.
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
 - Groups files by model_group so that models sharing a model_group (e.g. UCI
   models whose data is split across two input files) are combined before output creation
@@ -44,10 +46,8 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
-    extract_age_numeric,
+from agoradatatools.etl.utils import extract_age_numeric
+from agoradatatools.etl.validation_utils import (
     ColumnRule,
     MatchesRegexRule,
     NotEmptyRule,
@@ -60,18 +60,15 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     create_gene_metadata_dict,
     preprocess_data_file,
     validate_data_file_not_empty,
-    GENOTYPE_LABEL_MAP_COLUMNS,
-    GENOTYPE_LABEL_MAP_RULES,
 )
 
 logger = logging.getLogger(__name__)
 
 UNITS = "Log2 Counts per Million"
 
-REQUIRED_INPUT = {
-    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS,
-    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol"],
-}
+# Inputs validated by the Input Validation stage (etl/validation_configs). Every other
+# input is a data file.
+STATIC_INPUTS = frozenset({"genotype_label_map", "mouse_gene_metadata"})
 
 DATA_FILE_REQUIRED_COLUMNS = [
     "ensembl_gene_id",
@@ -83,10 +80,6 @@ DATA_FILE_REQUIRED_COLUMNS = [
     "tissue",
     "individualid",
 ]
-
-COLUMN_RULES: Dict[str, Dict[str, List[ColumnRule]]] = {
-    "genotype_label_map": GENOTYPE_LABEL_MAP_RULES,
-}
 
 DATA_FILE_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
     "model": [NotEmptyRule()],
@@ -134,7 +127,7 @@ def _process_individual_data_file_core(
     )
 
     # Derived after nesting, on one row per entry rather than one per animal. age values
-    # are guaranteed non-null and matching r'\d+ months$' by check_column_rules upstream,
+    # are guaranteed non-null and matching r'\d+ months$' by data-file column rules upstream,
     # so extract_age_numeric cannot return None here.
     entries["age_numeric"] = entries["age"].map(extract_age_numeric).astype(int)
     entries["gene_symbol"] = (
@@ -163,9 +156,7 @@ def _process_individual_data_file_core(
 
 def transform_rna_de_individual(
     datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
     data_file_required_columns: List[str] = DATA_FILE_REQUIRED_COLUMNS,
-    column_rules: Dict[str, Dict[str, List[ColumnRule]]] = COLUMN_RULES,
     data_file_column_rules: Dict[str, List[ColumnRule]] = DATA_FILE_COLUMN_RULES,
 ) -> List[Dict[str, Any]]:
     """
@@ -190,12 +181,8 @@ def transform_rna_de_individual(
             - One or more data files: CSV DataFrames containing individual expression
               results. Required columns are defined by DATA_FILE_REQUIRED_COLUMNS:
               ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
-        required_input: Dictionary mapping required dataset names to their required columns.
-            Defaults to REQUIRED_INPUT module constant.
         data_file_required_columns: List of required column names for data files.
             Defaults to DATA_FILE_REQUIRED_COLUMNS module constant.
-        column_rules: Per-column content rules for static datasets (genotype_label_map).
-            Defaults to COLUMN_RULES module constant.
         data_file_column_rules: Per-column content rules applied to each data file.
             Defaults to DATA_FILE_COLUMN_RULES module constant.
 
@@ -220,14 +207,10 @@ def transform_rna_de_individual(
                 - value: Expression value
 
     Raises:
-        ValueError: If required datasets or columns are missing, if data files are empty,
-            if model_group values are inconsistent for any model, or if all rows in a
-            data file are dropped because none of its genotypes matched the label map.
+        ValueError: If data files are empty or missing required columns, if a file
+            contains more than one model, or if all rows in a data file are dropped
+            because none of its genotypes matched the label map.
     """
-    # Validate inputs
-    check_required_datasets_and_columns(datasets, required_input)
-    check_column_rules(datasets, column_rules)
-
     # Prepare metadata DataFrames
     genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
@@ -244,7 +227,7 @@ def transform_rna_de_individual(
     # holding multiple files in memory simultaneously when they genuinely need to
     # be combined.  The alternative of concatenating ALL files first would hold
     # the full ~5+ GB in memory at once regardless of grouping need.
-    file_list = [k for k in datasets.keys() if k not in required_input]
+    file_list = [k for k in datasets.keys() if k not in STATIC_INPUTS]
     total_files = len(file_list)
     logger.info(
         f"Transform rna_de_individual: processing {total_files} data files: {file_list}"
