@@ -34,9 +34,9 @@ These files are required for all transformations. Both are minimal synthetic sub
    - Columns: model, model_group, display_label, genotype, result_order
    - Synthetic subset of production `genotype_label_map` data; contains only the 4 models used by the test suite (APOE4, LOAD1, Trem2-R47H_NSS, Trem2-R47H_NSS.5xFAD)
 
-2. **synthetic_mouse_gene_metadata.csv**
+2. **synthetic_mouse_gene_metadata.json**
    - Gene symbols for Ensembl IDs
-   - Columns: ensembl_gene_id, gene_symbol
+   - Columns: ensembl_gene_id, gene_symbol, alias
    - Synthetic subset of production `mouse_gene_metadata` data; contains only the entries needed by the test suite (ENSMUSG00000000001 → Gnai3, plus a few additional rows for realism)
 
 3. **genotype_label_map_inconsistent.csv**
@@ -141,7 +141,7 @@ Test names live in `tests/transform/test_rna_de_individual.py` and `tests/transf
 - **Matched Control**: Determined from actual data, not all possible genotypes
 - **Result Order**: May contain duplicate display labels when multiple models share the same control genotype
 - **Model Group**: Empty strings are converted to `null` in JSON output
-- **Gene Metadata**: Missing genes result in empty string for gene_symbol (e.g. ENSMUSG00000000008 is intentionally absent from `synthetic_mouse_gene_metadata.csv`)
+- **Gene Metadata**: Missing genes result in empty string for gene_symbol (e.g. ENSMUSG00000000008 is intentionally absent from `synthetic_mouse_gene_metadata.json`)
 - **Real Genotypes**: Tests use actual genotypes from production data (e.g., "APOE4-KI_homozygous; Trem2-R47H_WT")
 - **Real Models**: Tests use actual model names (APOE4, LOAD1, Abca7*V1599M, etc.)
 

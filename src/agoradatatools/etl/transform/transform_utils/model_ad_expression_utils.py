@@ -18,6 +18,7 @@ from agoradatatools.etl.utils import (
     normalize_zero,
     ColumnRule,
     NotEmptyRule,
+    raise_on_duplicate_keys,
     validate_one_to_one_mapping,
 )
 
@@ -90,6 +91,13 @@ def prepare_genotype_label_map(genotype_label_map_df: pd.DataFrame) -> pd.DataFr
         "result_order"
     ].astype(int)
     validate_one_to_one_mapping(genotype_label_map_df, "model", "model_group")
+    # label_genotypes merges on (model, genotype), so a repeated pair would otherwise fail
+    # as a pandas merge error in whichever transform happens to merge first.
+    raise_on_duplicate_keys(
+        genotype_label_map_df,
+        ["model", "genotype"],
+        "genotype label map has duplicate (model, genotype) rows",
+    )
     return genotype_label_map_df
 
 
