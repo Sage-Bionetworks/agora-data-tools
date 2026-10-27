@@ -748,59 +748,9 @@ class TestTransformProteinDeIndividual:
             "i2",
         ]
 
-    @pytest.mark.parametrize(
-        "mutate,error",
-        [
-            (
-                lambda d: d.update(
-                    {
-                        "load2_harmonized_metadata": d[
-                            "load2_harmonized_metadata"
-                        ].drop(columns=["agedeath"])
-                    }
-                ),
-                "Missing required columns",
-            ),
-            (
-                lambda d: d["load2_harmonized_metadata"].__setitem__(
-                    "genotype", ["", "geno_wt", "geno_fullwt"]
-                ),
-                "not_empty",
-            ),
-            (
-                lambda d: d.update(
-                    {
-                        "synthetic_basic_data": d["synthetic_basic_data"].drop(
-                            columns=["individualid"]
-                        )
-                    }
-                ),
-                "Missing required columns",
-            ),
-            (
-                lambda d: d.update(
-                    {"synthetic_basic_data": d["synthetic_basic_data"].iloc[:0]}
-                ),
-                "is empty",
-            ),
-            (
-                lambda d: d["load2_harmonized_metadata"].__setitem__(
-                    "genotype", "unknown"
-                ),
-                "No rows remained",
-            ),
-        ],
-        ids=[
-            "drop_metadata_column",
-            "empty_metadata_genotype",
-            "drop_data_file_id_column",
-            "empty_data_file",
-            "unmatched_genotypes",
-        ],
-    )
-    def test_invalid_input_raises(self, mutate, error: str) -> None:
-        """Missing datasets, columns, empty files, and unmatched genotypes raise."""
+    def test_unmatched_genotypes_raises(self) -> None:
+        """Genotypes that never appear in the label map leave no rows after the join."""
         datasets = self._load_datasets()
-        mutate(datasets)
-        with pytest.raises(ValueError, match=error):
+        datasets["load2_harmonized_metadata"]["genotype"] = "unknown"
+        with pytest.raises(ValueError, match="No rows remained"):
             self._transform(datasets)

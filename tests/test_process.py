@@ -1187,6 +1187,41 @@ class TestProcessDataset:
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_not_called()
 
+    def test_process_dataset_schema_key_selects_shared_spec(
+        self, syn: synapseclient.Synapse
+    ):
+        # A many-of-a-kind file is validated under its schema, not its name.
+        dataset_object = {
+            "rna_de_aggregate": {
+                "files": [
+                    {
+                        "name": "jax_5xFAD_de",
+                        "id": "syn1111111",
+                        "format": "csv",
+                        "schema": "rna_de_file",
+                    }
+                ],
+                "final_format": "json",
+                "destination": "syn1111113",
+                "custom_transformations": "test_transformation",
+            }
+        }
+        self.patch_standardize_values.return_value = pd.DataFrame({"model": ["m"]})
+        with pytest.raises(
+            ADTDataValidationError,
+            match="Missing required columns in jax_5xFAD_de",
+        ):
+            process.process_dataset(
+                dataset_obj=dataset_object,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+            )
+        self.patch_rename_columns.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
+
 
 class TestCreateDataManifest:
     walk_children = [

@@ -38,7 +38,6 @@ from agoradatatools.etl.transform.rna_de_individual import (
     transform_rna_de_individual,
     _process_individual_data_file_core,
 )
-from agoradatatools.etl.utils import ContainsSubstringRule
 from tests.synthetic_loader import load_synthetic_test_data
 
 
@@ -552,70 +551,6 @@ class TestTransformRnaDeIndividual:
         # Verify missing metadata handling
         assert output_data_sorted[0]["gene_symbol"] == ""
 
-    def test_synthetic_empty_data_file(self) -> None:
-        """Test handling of synthetic empty data files."""
-        # Load datasets with empty synthetic data file
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_empty_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.json",
-            ]
-        )
-
-        # Should raise ValueError for empty data file
-        with pytest.raises(ValueError, match="is empty"):
-            transform_rna_de_individual(datasets=datasets)
-
-    def test_synthetic_missing_columns_data(self) -> None:
-        """Test handling of synthetic data files with missing required columns."""
-        # Load datasets with a synthetic data file missing required columns (missing 'age')
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_missing_columns_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.json",
-            ]
-        )
-
-        # Expect transformation to raise ValueError for missing required columns
-        with pytest.raises(ValueError, match="Missing required columns"):
-            transform_rna_de_individual(datasets=datasets)
-
-    def test_data_file_required_columns_parameter(self) -> None:
-        """Test that the data_file_required_columns parameter is honored.
-
-        Verifies that the parameter is wired through to column validation rather than
-        the constant always being used. Passes a custom list containing a non-existent
-        column and confirms that ValueError is raised referencing that column, proving
-        the parameter — not the hardcoded constant — drives validation.
-        """
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.json",
-            ]
-        )
-
-        custom_columns = [
-            "ensembl_gene_id",
-            "expression",
-            "model",
-            "genotype",
-            "age",
-            "sex",
-            "tissue",
-            "individualid",
-            "nonexistent_column",
-        ]
-
-        with pytest.raises(ValueError, match="Missing required columns"):
-            transform_rna_de_individual(
-                datasets=datasets,
-                data_file_required_columns=custom_columns,
-            )
-
     def test_synthetic_rounding_precision(self) -> None:
         """Test that expression values are rounded to 5 decimal places.
 
@@ -872,26 +807,6 @@ class TestTransformRnaDeIndividual:
         output = transform_rna_de_individual(datasets=datasets)
         assert output[0]["gene_symbol"] == ""
 
-    def test_check_column_rules_rejects_bad_age_format(self) -> None:
-        """Test that a data file age value not matching '[N] months' raises ValueError.
-
-        check_column_rules validates the age column of each data file against the
-        matches_regex rule before any transformation occurs.
-        """
-        datasets = self._build_minimal_datasets(
-            data_file_overrides={"age": ["neonatal"]}
-        )
-
-        with pytest.raises(ValueError, match="matches_regex"):
-            transform_rna_de_individual(datasets=datasets)
-
-    def test_check_column_rules_rejects_missing_age(self) -> None:
-        """A null age fails the not_empty rule instead of reaching extract_age_numeric."""
-        datasets = self._build_minimal_datasets(data_file_overrides={"age": [None]})
-
-        with pytest.raises(ValueError, match="column 'age'.*not_empty"):
-            transform_rna_de_individual(datasets=datasets)
-
     def test_result_order_cast_to_int(self) -> None:
         """Test that string result_order values in the label map are cast to int.
 
@@ -915,22 +830,3 @@ class TestTransformRnaDeIndividual:
 
         assert len(output) == 1
         assert output[0]["result_order"] == ["Wildtype", "Transgenic"]
-
-    def test_data_file_column_rules_parameter_honored(self) -> None:
-        """Test that a custom data_file_column_rules parameter overrides the module-level default.
-
-        Passing a custom rule that cannot be satisfied (requiring ensembl_gene_id to
-        contain 'IMPOSSIBLE') proves that the parameter — not the hardcoded constant —
-        drives per-data-file column value validation.
-        """
-        datasets = self._build_minimal_datasets()
-
-        custom_data_file_column_rules = {
-            "ensembl_gene_id": [ContainsSubstringRule(value="IMPOSSIBLE")],
-        }
-
-        with pytest.raises(ValueError, match="contains"):
-            transform_rna_de_individual(
-                datasets=datasets,
-                data_file_column_rules=custom_data_file_column_rules,
-            )

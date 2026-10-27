@@ -25,45 +25,45 @@ files:
   - &disease_correlation_results  { name: disease_correlation_results  , format: csv  , id: syn65467849.6  }
   - &pathology                    { name: pathology                    , format: csv  , id: syn61357279.18 }
   # Differential Expression Results
-  - &jax_5xFAD_de                 { name: jax_5xFAD_de                 , format: csv  , id: syn69058660.2  }
-  - &jax_APOE4_Trem2_R47H_de      { name: jax_APOE4_Trem2_R47H_de      , format: csv  , id: syn76459470.1  } #syn69693082.4 when released to portal
-  - &jax_LOAD2_de                 { name: jax_LOAD2_de                 , format: csv  , id: syn76459572.1  }
-  - &uci_3xTG_AD_de               { name: uci_3xTG_AD_de               , format: csv  , id: syn69058661.2  }
-  - &uci_5xFAD_de                 { name: uci_5xFAD_de                 , format: csv  , id: syn69058664.1  }
-  - &uci_ABCA7_de                 { name: uci_ABCA7_de                 , format: csv  , id: syn69058663.3  }
-  - &uci_Bin1_de                  { name: uci_Bin1_de                  , format: csv  , id: syn76457207.1  }
-  - &uci_Clu_de                   { name: uci_Clu_de                   , format: csv  , id: syn76457215.2  }
-  - &uci_Trem2_R47H_NSS_de        { name: uci_Trem2_R47H_NSS_de        , format: csv  , id: syn69058662.3  }
+  - &jax_5xFAD_de                 { name: jax_5xFAD_de                 , format: csv  , id: syn69058660.2  , schema: rna_de_file }
+  - &jax_APOE4_Trem2_R47H_de      { name: jax_APOE4_Trem2_R47H_de      , format: csv  , id: syn76459470.1  , schema: rna_de_file } #syn69693082.4 when released to portal
+  - &jax_LOAD2_de                 { name: jax_LOAD2_de                 , format: csv  , id: syn76459572.1  , schema: rna_de_file }
+  - &uci_3xTG_AD_de               { name: uci_3xTG_AD_de               , format: csv  , id: syn69058661.2  , schema: rna_de_file }
+  - &uci_5xFAD_de                 { name: uci_5xFAD_de                 , format: csv  , id: syn69058664.1  , schema: rna_de_file }
+  - &uci_ABCA7_de                 { name: uci_ABCA7_de                 , format: csv  , id: syn69058663.3  , schema: rna_de_file }
+  - &uci_Bin1_de                  { name: uci_Bin1_de                  , format: csv  , id: syn76457207.1  , schema: rna_de_file }
+  - &uci_Clu_de                   { name: uci_Clu_de                   , format: csv  , id: syn76457215.2  , schema: rna_de_file }
+  - &uci_Trem2_R47H_NSS_de        { name: uci_Trem2_R47H_NSS_de        , format: csv  , id: syn69058662.3  , schema: rna_de_file }
   # Normalized Expression Results
-  - &jax_5xFAD_ne                 { name: jax_5xFAD_ne                 , format: csv  , id: syn69058674.1  }
-  - &jax_APOE4_ne                 { name: jax_APOE4_ne                 , format: csv  , id: syn72388431.3  }
-  - &jax_APOE4_Trem2_R47H_ne      { name: jax_APOE4_Trem2_R47H_ne      , format: csv  , id: syn72388432.2  }
-  - &jax_Trem2_R47H_ne            { name: jax_Trem2_R47H_ne            , format: csv  , id: syn72388430.3  }
-  - &jax_LOAD2_ne                 { name: jax_LOAD2_ne                 , format: csv  , id: syn76459553.1  }
-  - &uci_3xTG_AD_ne               { name: uci_3xTG_AD_ne               , format: csv  , id: syn69058676.1  }
-  - &uci_5xFAD_ne                 { name: uci_5xFAD_ne                 , format: csv  , id: syn69058679.1  }
-  - &uci_ABCA7_ne                 { name: uci_ABCA7_ne                 , format: csv  , id: syn72388477.1  }
-  - &uci_ABCA7_5xFAD_ne           { name: uci_ABCA7_5xFAD_ne           , format: csv  , id: syn72388476.2  }
-  - &uci_Bin1_ne                  { name: uci_Bin1_ne                  , format: csv  , id: syn76459725.1  }
-  - &uci_Bin1_5xFAD_ne            { name: uci_Bin1_5xFAD_ne            , format: csv  , id: syn76459724.1  }
-  - &uci_Clu_ne                   { name: uci_Clu_ne                   , format: csv  , id: syn76459751.1  }
-  - &uci_Clu_5xFAD_ne             { name: uci_Clu_5xFAD_ne             , format: csv  , id: syn76459744.1  }
-  - &uci_Trem2_R47H_NSS_ne        { name: uci_Trem2_R47H_NSS_ne        , format: csv  , id: syn72388498.1  }
-  - &uci_Trem2_R47H_NSS_5xFAD_ne  { name: uci_Trem2_R47H_NSS_5xFAD_ne  , format: csv  , id: syn72388499.2  }
+  - &jax_5xFAD_ne                 { name: jax_5xFAD_ne                 , format: csv  , id: syn69058674.1  , schema: rna_ne_file }
+  - &jax_APOE4_ne                 { name: jax_APOE4_ne                 , format: csv  , id: syn72388431.3  , schema: rna_ne_file }
+  - &jax_APOE4_Trem2_R47H_ne      { name: jax_APOE4_Trem2_R47H_ne      , format: csv  , id: syn72388432.2  , schema: rna_ne_file }
+  - &jax_Trem2_R47H_ne            { name: jax_Trem2_R47H_ne            , format: csv  , id: syn72388430.3  , schema: rna_ne_file }
+  - &jax_LOAD2_ne                 { name: jax_LOAD2_ne                 , format: csv  , id: syn76459553.1  , schema: rna_ne_file }
+  - &uci_3xTG_AD_ne               { name: uci_3xTG_AD_ne               , format: csv  , id: syn69058676.1  , schema: rna_ne_file }
+  - &uci_5xFAD_ne                 { name: uci_5xFAD_ne                 , format: csv  , id: syn69058679.1  , schema: rna_ne_file }
+  - &uci_ABCA7_ne                 { name: uci_ABCA7_ne                 , format: csv  , id: syn72388477.1  , schema: rna_ne_file }
+  - &uci_ABCA7_5xFAD_ne           { name: uci_ABCA7_5xFAD_ne           , format: csv  , id: syn72388476.2  , schema: rna_ne_file }
+  - &uci_Bin1_ne                  { name: uci_Bin1_ne                  , format: csv  , id: syn76459725.1  , schema: rna_ne_file }
+  - &uci_Bin1_5xFAD_ne            { name: uci_Bin1_5xFAD_ne            , format: csv  , id: syn76459724.1  , schema: rna_ne_file }
+  - &uci_Clu_ne                   { name: uci_Clu_ne                   , format: csv  , id: syn76459751.1  , schema: rna_ne_file }
+  - &uci_Clu_5xFAD_ne             { name: uci_Clu_5xFAD_ne             , format: csv  , id: syn76459744.1  , schema: rna_ne_file }
+  - &uci_Trem2_R47H_NSS_ne        { name: uci_Trem2_R47H_NSS_ne        , format: csv  , id: syn72388498.1  , schema: rna_ne_file }
+  - &uci_Trem2_R47H_NSS_5xFAD_ne  { name: uci_Trem2_R47H_NSS_5xFAD_ne  , format: csv  , id: syn72388499.2  , schema: rna_ne_file }
   # Proteomics (Individual)
   - &load2_harmonized_metadata    { name: load2_harmonized_metadata    , format: csv  , id: syn75965714.2  }
   - &uniprot_ensembl_map          { name: uniprot_ensembl_map          , format: tsv  , id: syn75830091.2  }
-  - &jax_load2_proteomics_ne      { name: jax_load2_proteomics_ne      , format: csv  , id: syn63886488.1  }
-  - &jax_load2_proteomics_24mo_ne { name: jax_load2_proteomics_24mo_ne , format: csv  , id: syn63886489.1  }
+  - &jax_load2_proteomics_ne      { name: jax_load2_proteomics_ne      , format: csv  , id: syn63886488.1  , schema: protein_ne_file }
+  - &jax_load2_proteomics_24mo_ne { name: jax_load2_proteomics_24mo_ne , format: csv  , id: syn63886489.1  , schema: protein_ne_file }
   # Proteomics (Aggregate DE)
-  - &jax_load2_f_4mo              { name: jax_load2_f_4mo              , format: csv  , id: syn76976066.1  }
-  - &jax_load2_f_12mo             { name: jax_load2_f_12mo             , format: csv  , id: syn76976065.1  }
-  - &jax_load2_f_18mo             { name: jax_load2_f_18mo             , format: csv  , id: syn76976068.1  }
-  - &jax_load2_f_24mo             { name: jax_load2_f_24mo             , format: csv  , id: syn76976038.2  }
-  - &jax_load2_m_4mo              { name: jax_load2_m_4mo              , format: csv  , id: syn76976064.1  }
-  - &jax_load2_m_12mo             { name: jax_load2_m_12mo             , format: csv  , id: syn76976061.1  }
-  - &jax_load2_m_18mo             { name: jax_load2_m_18mo             , format: csv  , id: syn76976062.1  }
-  - &jax_load2_m_24mo             { name: jax_load2_m_24mo             , format: csv  , id: syn76976036.2  }
+  - &jax_load2_f_4mo              { name: jax_load2_f_4mo              , format: csv  , id: syn76976066.1  , schema: protein_de_file }
+  - &jax_load2_f_12mo             { name: jax_load2_f_12mo             , format: csv  , id: syn76976065.1  , schema: protein_de_file }
+  - &jax_load2_f_18mo             { name: jax_load2_f_18mo             , format: csv  , id: syn76976068.1  , schema: protein_de_file }
+  - &jax_load2_f_24mo             { name: jax_load2_f_24mo             , format: csv  , id: syn76976038.2  , schema: protein_de_file }
+  - &jax_load2_m_4mo              { name: jax_load2_m_4mo              , format: csv  , id: syn76976064.1  , schema: protein_de_file }
+  - &jax_load2_m_12mo             { name: jax_load2_m_12mo             , format: csv  , id: syn76976061.1  , schema: protein_de_file }
+  - &jax_load2_m_18mo             { name: jax_load2_m_18mo             , format: csv  , id: syn76976062.1  , schema: protein_de_file }
+  - &jax_load2_m_24mo             { name: jax_load2_m_24mo             , format: csv  , id: syn76976036.2  , schema: protein_de_file }
 
 datasets:
   - model_details:

@@ -263,6 +263,16 @@ def check_required_datasets_and_columns(
             )
 
 
+def reject_empty_dataframe(df: pd.DataFrame) -> None:
+    """Raise if df has no rows.
+
+    Used by many-of-a-kind data-file specs so an empty CSV fails before the
+    transform treats leftover keys as data files.
+    """
+    if len(df) == 0:
+        raise ValueError("is empty")
+
+
 def raise_on_duplicate_keys(df: pd.DataFrame, keys: list[str], message: str) -> None:
     """Raise when more than one row shares the same values for keys.
 

@@ -38,12 +38,6 @@ import pandas as pd
 from typing import Dict, List, Any
 import logging
 
-from agoradatatools.etl.validation_utils import (
-    ColumnRule,
-    MatchesRegexRule,
-    NotEmptyRule,
-)
-
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
 )
@@ -54,9 +48,9 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     create_age_entries_from_group,
     create_gene_metadata_dict,
     filter_to_mouse_genes,
+    log_file_processing_info,
     normalize_tissue,
     prepare_genotype_label_map,
-    validate_data_file,
 )
 
 logger = logging.getLogger(__name__)
@@ -64,24 +58,6 @@ logger = logging.getLogger(__name__)
 STATIC_INPUTS = frozenset(
     {"genotype_label_map", "mouse_gene_metadata", "biodom_genes_mm"}
 )
-
-DATA_FILE_REQUIRED_COLUMNS = [
-    "ensembl_gene_id",
-    "log2foldchange",
-    "padj",
-    "model",
-    "case",
-    "control",
-    "age",
-    "sex",
-    "tissue",
-]
-
-# Age is validated here so create_age_entries_from_group can sort on the leading integer.
-# MatchesRegexRule skips nulls, so NotEmptyRule is needed to reject a missing age.
-DATA_FILE_COLUMN_RULES: dict[str, list[ColumnRule]] = {
-    "age": [NotEmptyRule(), MatchesRegexRule(value=r"\d+ months$")],
-}
 
 
 def _create_output_entry_from_group(
@@ -219,7 +195,6 @@ def _create_output_entry_from_group(
 def _process_single_data_file(
     file_name: str,
     data_file: pd.DataFrame,
-    data_file_required_columns: List[str],
     gene_metadata_dict: Dict[str, str],
     label_map_dict: Dict[tuple[str, str], str],
     model_group_dict: Dict[str, str],
@@ -227,27 +202,24 @@ def _process_single_data_file(
     model_type_dict: Dict[str, str],
     file_index: int,
     total_files: int,
-    data_file_column_rules: Dict[str, List[ColumnRule]] | None = None,
 ) -> List[Dict[str, Any]]:
     """
     Processes a single differential expression data file and transforms it into output entries.
 
     This function handles the complete processing pipeline for a single RNA differential
-    expression data file. It performs data validation, filtering, grouping, and enrichment
-    to create structured output entries. The function is designed to process files one at
-    a time to minimize memory usage when handling large datasets.
+    expression data file. It performs filtering, grouping, and enrichment to create
+    structured output entries. The function is designed to process files one at a time
+    to minimize memory usage when handling large datasets.
 
     The processing pipeline includes:
     1. Logging file processing information (row count, column count, memory usage)
-    2. Validating that the data file is not empty
-    3. Validating that all required columns are present
-    4. Filtering to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*)
-    5. Filtering out combined-cohort rows where sex is "Females & Males"
-    6. Mapping plural sex values to singular display labels
-    7. Applying the shared tissue alias mapping before grouping
-    8. Rounding numeric columns to 5 decimal places for consistency
-    9. Grouping data by gene, model, tissue, sex, case, and control
-    10. Creating enriched output entries for each group using metadata dictionaries
+    2. Filtering to keep only mouse genes (ENSMUSG*), excluding human genes (ENSG*)
+    3. Filtering out combined-cohort rows where sex is Females & Males
+    4. Mapping plural sex values to singular display labels
+    5. Applying the shared tissue alias mapping before grouping
+    6. Rounding numeric columns to 5 decimal places for consistency
+    7. Grouping data by gene, model, tissue, sex, case, and control
+    8. Creating enriched output entries for each group using metadata dictionaries
 
     Each output entry represents a unique combination of gene, model, tissue, and sex,
     with age-based differential expression measurements and enriched metadata.
@@ -258,8 +230,6 @@ def _process_single_data_file(
         data_file: DataFrame containing the differential expression data. Expected columns
             include: ensembl_gene_id, log2foldchange, padj, model, case, control, age,
             sex, tissue.
-        data_file_required_columns: List of required column names that must be present
-            in the data_file. Used for validation before processing.
         gene_metadata_dict: Dictionary mapping Ensembl gene IDs to gene symbols. Used
             to enrich output entries with human-readable gene names.
         label_map_dict: Dictionary mapping (model, genotype) tuples to display labels.
@@ -277,8 +247,6 @@ def _process_single_data_file(
             to indicate which file is being processed (e.g., "Processing file 3/10").
         total_files: Total number of files to process. Used in logging to show progress
             (e.g., "Processing file 3/10").
-        data_file_column_rules: Per-column content rules checked after the required-column
-            validation. None skips the rule check.
 
     Returns:
         List of output entry dictionaries. Each dictionary represents a unique combination
@@ -295,14 +263,7 @@ def _process_single_data_file(
         The function filters out human genes to ensure only mouse (Mus musculus) data
         is processed, as indicated by Ensembl IDs starting with "ENSMUSG".
     """
-    validate_data_file(
-        file_name,
-        data_file,
-        file_index,
-        total_files,
-        data_file_required_columns,
-        data_file_column_rules,
-    )
+    log_file_processing_info(file_name, file_index, total_files, data_file)
 
     data_file = filter_to_mouse_genes(data_file)
 
@@ -343,8 +304,6 @@ def _process_single_data_file(
 
 def transform_rna_de_aggregate(
     datasets: dict[str, pd.DataFrame],
-    data_file_required_columns: list[str] = DATA_FILE_REQUIRED_COLUMNS,
-    data_file_column_rules: dict[str, list[ColumnRule]] = DATA_FILE_COLUMN_RULES,
 ) -> list[dict[str, Any]]:
     """
     Main transformation function that orchestrates the processing of RNA differential expression data.
@@ -383,10 +342,6 @@ def transform_rna_de_aggregate(
             - One or more data files: CSV DataFrames containing differential expression
               results with columns: ensembl_gene_id, log2foldchange, padj, model, case,
               control, age, sex, tissue
-        data_file_required_columns: Column names required in each differential expression
-            data file. Defaults to DATA_FILE_REQUIRED_COLUMNS.
-        data_file_column_rules: Per-column content rules applied to each data file.
-            Defaults to DATA_FILE_COLUMN_RULES.
 
     Returns:
         List of dictionaries, where each dictionary represents a unique combination of
@@ -457,7 +412,6 @@ def transform_rna_de_aggregate(
         file_output = _process_single_data_file(
             file_name,
             data_file,
-            data_file_required_columns,
             gene_metadata_dict,
             label_map_dict,
             model_group_dict,
@@ -465,7 +419,6 @@ def transform_rna_de_aggregate(
             model_type_dict,
             i,
             total_files,
-            data_file_column_rules,
         )
         output.extend(file_output)
 
