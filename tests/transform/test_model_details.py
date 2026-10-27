@@ -275,7 +275,7 @@ class TestNestGeneticInfo:
     basic_gene_metadata_df = pd.DataFrame(
         {
             "ensembl_gene_id": ["ENSG000001", "ENSMUSG0000002"],
-            "ensembl_release": ["104", "104"],
+            "ensembl_release": [104, 104],
             "ensembl_possible_replacements": [["ENSG000004"], []],
             "ensembl_permalink": [
                 "http://example.com/geneA",
@@ -384,7 +384,7 @@ class TestNestGeneticInfo:
         gene_meta = pd.DataFrame(
             {
                 "ensembl_gene_id": ["ENSG000001"],
-                "ensembl_release": ["104"],
+                "ensembl_release": [104],
                 "ensembl_possible_replacements": [["ENSG000004"]],
                 "ensembl_permalink": ["http://example.com/geneA"],
             }

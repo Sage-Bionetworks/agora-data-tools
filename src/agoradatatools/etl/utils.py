@@ -1073,34 +1073,18 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     return float(result)
 
 
-def integer_column_to_string(column: pd.Series) -> pd.Series:
-    """
-    Convert a column of all integers to a string column, accounting for the fact that missing values in an all-integer
-    column will cause pandas to cast the column to float. This function casts the column to Int64 (nullable integer
-    type) before converting to a string column, which avoids values like "110" being converted to "110.0". Missing
-    values are also converted from NaN or None to empty strings.
-
-    This function assumes that all values in the column are castable to Int64, and will raise an error if not. Mixes of
-    different dtypes (e.g. integers and strings in the same column) will also raise an error.
-
-    Args:
-        column (pd.Series): The numeric column to convert.
-
-    Returns:
-        pd.Series: The column converted to strings.
-    """
-    # Cast to nullable integer type, then cast to object to allow filling NA with "" before string conversion.
-    column = column.copy().astype("Int64").astype("object")
-    return column.fillna("").astype(str)
-
-
 def create_ensembl_info_df(gene_metadata_df: pd.DataFrame) -> pd.DataFrame:
     """
     Create a DataFrame with Ensembl-related information nested under a new "ensembl_info" column. The function first
     removes duplicate rows and rows with NA Ensembl IDs, and then checks that the resulting DataFrame is not empty.
-    Before nesting, any empty/missing values in the "ensembl_release" and "ensembl_permalink" columns are replaced with
-    empty strings, and empty/missing values in the "ensembl_possible_replacements" column are replaced with empty lists.
-    These three columns are then nested as a dictionary under the "ensembl_info" column, one row per ensembl_gene_id.
+    Before nesting, empty/missing values in the "ensembl_possible_replacements" column are replaced with empty lists.
+
+    This function also converts missing values in "ensembl_release" and "ensembl_permalink" to empty strings, however we
+    generally expect no missing values in these columns in the real data. Non-missingness should be validated elsewhere
+    if necessary, before calling this function.
+
+    The "ensembl_release", "ensembl_possible_replacements", and "ensembl_permalink" columns are then nested as a
+    dictionary under the "ensembl_info" column, one row per ensembl_gene_id.
 
     Args:
         gene_metadata_df (pd.DataFrame): The gene metadata DataFrame. Must have columns for "ensembl_gene_id",
@@ -1132,16 +1116,19 @@ def create_ensembl_info_df(gene_metadata_df: pd.DataFrame) -> pd.DataFrame:
 
     # Normalize null values in the relevant columns before nesting
     ensembl_info_df = normalize_null_values(
-        gene_metadata_df[ensembl_fields].copy(),
+        gene_metadata_df[ensembl_fields],
         empty_string_columns=["ensembl_permalink"],
         empty_list_columns=["ensembl_possible_replacements"],
     )
 
     # Ensure that "ensembl_release" is a string, not a number -- Ensembl releases are integer values, but missing
-    # values will cause pandas to cast the column to float. Converting to strings of integers ensures consistent
-    # handling downstream.
-    ensembl_info_df["ensembl_release"] = integer_column_to_string(
+    # values will cause pandas to cast the column to float, which may cause unexpected behavior downstream. Using
+    # convert_dtypes() will convert any float columns like this to the nullable Int64 type before conversion to strings,
+    # while leaving columns that are already strings as-is.
+    ensembl_info_df["ensembl_release"] = (
         ensembl_info_df["ensembl_release"]
+        .convert_dtypes()
+        .apply(lambda x: str(x) if pd.notna(x) else "")
     )
 
     # Ensure that all "ensembl_possible_replacements" entries are lists and not ndarrays -- they are read in as ndarrays

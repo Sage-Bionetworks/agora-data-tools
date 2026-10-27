@@ -24,7 +24,7 @@
         "modified_gene": "App",
         "ensembl_gene_id": "ENSMUSG00000022892",
         "allele": "App-allele",
-        "allele_type": null,
+        "allele_type": "Targeted",
         "mgi_allele_id": 1234,
         "ensembl_info": {
           "ensembl_release": "116",
@@ -60,7 +60,7 @@
         "modified_gene": "App",
         "ensembl_gene_id": "ENSMUSG00000022892",
         "allele": "App-allele",
-        "allele_type": null,
+        "allele_type": "Targeted",
         "mgi_allele_id": 1234,
         "ensembl_info": {
           "ensembl_release": "116",
@@ -97,7 +97,7 @@
         "modified_gene": "App",
         "ensembl_gene_id": "ENSMUSG00000022892",
         "allele": "App-allele",
-        "allele_type": null,
+        "allele_type": "Targeted",
         "mgi_allele_id": 1234,
         "ensembl_info": {
           "ensembl_release": "116",
@@ -133,7 +133,7 @@
         "modified_gene": "Mapt",
         "ensembl_gene_id": "ENSMUSG00000018411",
         "allele": "Mapt-allele",
-        "allele_type": null,
+        "allele_type": "Targeted",
         "mgi_allele_id": 5678,
         "ensembl_info": {
           "ensembl_release": "116",

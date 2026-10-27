@@ -9,6 +9,8 @@ import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.utils import (
+    NotEmptyRule,
+    MatchesRegexRule,
     check_column_rules,
     check_required_datasets_and_columns,
     create_ensembl_info_df,
@@ -65,6 +67,11 @@ REQUIRED_INPUT = {
 
 COLUMN_RULES = {
     "model_genetic_modifications": GENETIC_MODIFICATIONS_COLUMN_RULES,
+    "mouse_gene_metadata": {
+        "ensembl_gene_id": [NotEmptyRule(), MatchesRegexRule(r"^ENS(MUS)?G[0-9]+$")],
+        "ensembl_release": [NotEmptyRule()],
+        "ensembl_permalink": [NotEmptyRule()],
+    },
 }
 
 

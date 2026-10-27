@@ -330,9 +330,9 @@ class TestTransformGeneInfo:
         for key, value in failure_case_files_dict.items():
             updated_files_dict[key] = value
 
-        with pytest.raises(error_type, match=error_match_string):
-            datasets = self.read_input_files_dict(updated_files_dict)
+        datasets = self.read_input_files_dict(updated_files_dict)
 
+        with pytest.raises(error_type, match=error_match_string):
             gene_info.transform_gene_info(
                 datasets=datasets,
                 adjusted_p_value_threshold=param_set["adjusted_p_value_threshold"],
