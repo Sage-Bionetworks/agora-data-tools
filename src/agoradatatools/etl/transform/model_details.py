@@ -9,10 +9,10 @@ import pandas as pd
 
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
     normalize_null_values,
     delim_string_to_list,
 )
+from agoradatatools.etl.validation_utils import check_required_datasets_and_columns
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     build_expression_results_url,
     process_genetic_info,

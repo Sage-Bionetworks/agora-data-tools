@@ -8,13 +8,13 @@ from typing import Dict, List, Any
 import re
 
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
     delim_string_to_list,
     flatten_list,
     remove_duplicates_keep_order,
     extract_age_numeric,
     normalize_null_values,
 )
+from agoradatatools.etl.validation_utils import check_required_datasets_and_columns
 
 REQUIRED_INPUT = {
     "disease_correlation_results": [

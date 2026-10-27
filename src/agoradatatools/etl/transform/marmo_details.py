@@ -8,6 +8,12 @@ from typing import Any
 import pandas as pd
 
 from agoradatatools.etl.utils import (
+    nest_fields,
+    normalize_null_values,
+    standardize_column_name,
+    y_axis_max_by_groups,
+)
+from agoradatatools.etl.validation_utils import (
     MatchesRegexRule,
     NonNegativeRule,
     NotEmptyRule,
@@ -16,10 +22,6 @@ from agoradatatools.etl.utils import (
     UniqueRule,
     check_column_rules,
     check_required_datasets_and_columns,
-    nest_fields,
-    normalize_null_values,
-    standardize_column_name,
-    y_axis_max_by_groups,
     validate_one_to_one_mapping,
     validate_references_exist,
 )
