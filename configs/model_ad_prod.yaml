@@ -10,7 +10,7 @@ files:
   - &model_metadata               { name: model_metadata               , format: csv  , id: syn76069176.8  }
   - &mouse_gene_metadata          { name: mouse_gene_metadata          , format: json , id: syn51615422.7  }
   - &genotype_label_map           { name: genotype_label_map           , format: csv  , id: syn69014401.20 }
-  - &ui_config                    { name: ui_config                    , format: json , id: syn66527739.30 }
+  - &ui_config                    { name: ui_config                    , format: json , id: syn66527739.44 }
   # Marmoset source files
   - &marmo_model_metadata         { name: marmo_model_metadata         , format: csv  , id: syn76417166.3 }
   - &marmo_genotype_label_map     { name: marmo_genotype_label_map     , format: csv  , id: syn76417167.5 }

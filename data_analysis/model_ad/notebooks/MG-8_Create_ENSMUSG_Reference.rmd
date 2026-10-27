@@ -14,10 +14,8 @@ Required packages (will automatically be installed if necessary):
 ## Library setup
 
 ```{r}
-if (!require("synapser", quietly = TRUE)) {
-  install.packages("synapser", repos = c("http://ran.synapse.org",
-                                         "https://cloud.r-project.org"))
-}
+source(file.path("..", "..", "setup_synapser.R"))  # pins synapser and sets up its dedicated venv
+setup_synapser()
 
 if (!require("BiocManager", quietly = TRUE)) {
   install.packages("BiocManager")
@@ -49,6 +47,7 @@ library(yaml)
 
 # Allows using Python chunks in the notebook
 library(reticulate)
+reticulate::py_config()
 ```
 
 ## Download the data source files
@@ -67,7 +66,7 @@ We load the following files to get coverage of all genes in the Model-AD data:
 input_dir <- file.path("..", "input")
 dir.create(input_dir, showWarnings = FALSE)
 
-cfg <- read_yaml("../../../configs/model_ad_prod.yaml", eval.expr = TRUE)
+cfg <- read_yaml(file.path("..", "..", "..", "configs", "model_ad_prod.yaml"), eval.expr = TRUE)
 
 # Extract the name and ID of all files in the config, narrow down to the subset we
 # want for this notebook.
