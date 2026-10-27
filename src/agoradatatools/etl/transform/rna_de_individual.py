@@ -66,8 +66,6 @@ logger = logging.getLogger(__name__)
 
 UNITS = "Log2 Counts per Million"
 
-# Inputs validated by the Input Validation stage (etl/validation_configs). Every other
-# input is a data file.
 STATIC_INPUTS = frozenset({"genotype_label_map", "mouse_gene_metadata"})
 
 DATA_FILE_REQUIRED_COLUMNS = [

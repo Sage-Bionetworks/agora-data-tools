@@ -61,8 +61,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
 
 logger = logging.getLogger(__name__)
 
-# Inputs validated by the Input Validation stage (etl/validation_configs). Every other
-# input is a data file.
 STATIC_INPUTS = frozenset(
     {"genotype_label_map", "mouse_gene_metadata", "biodom_genes_mm"}
 )

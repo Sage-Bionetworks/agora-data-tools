@@ -48,8 +48,6 @@ METADATA_FIELDS = ("model", "sex", "age", "tissue")
 GROUP_KEY = ["model", "tissue", "sex", "age"]
 AGE_KEY = ["unique_id", "model", "tissue", "sex", "age"]
 
-# Inputs validated by the Input Validation stage (etl/validation_configs). Every other
-# input is a data file.
 STATIC_INPUTS = frozenset(
     {
         "genotype_label_map",

@@ -51,8 +51,6 @@ UNITS = "Log2 Relative Abundance"
 AGE_BINS = [float("-inf"), 6, 10, 16, 20, float("inf")]
 AGE_LABELS = [4, 8, 12, 18, 24]
 
-# Inputs validated by the Input Validation stage (etl/validation_configs). Every other
-# input is a data file or a model-metadata file.
 STATIC_INPUTS = frozenset(
     {"genotype_label_map", "mouse_gene_metadata", "uniprot_ensembl_map"}
 )
