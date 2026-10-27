@@ -7,7 +7,13 @@ import pandas as pd
 from typing import Dict, List, Any
 import re
 
+from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
+    GENETIC_MODIFICATIONS_REQUIRED_COLUMNS,
+    GENETIC_MODIFICATIONS_COLUMN_RULES,
+    process_genetic_modifications,
+)
 from agoradatatools.etl.utils import (
+    check_column_rules,
     check_required_datasets_and_columns,
     delim_string_to_list,
     flatten_list,
@@ -27,16 +33,15 @@ REQUIRED_INPUT = {
         "adjusted_p_value",
     ],
     "model_metadata": [
-        "model",
+        "name",
         "matched_controls",
         "model_type",
     ],
-    "model_genetic_modifications": [
-        "model",
-        "mouse_gene_symbol",
-        "human_gene_symbol",
-        "human_ensembl_id",
-    ],
+    "model_genetic_modifications": GENETIC_MODIFICATIONS_REQUIRED_COLUMNS,
+}
+
+COLUMN_RULES = {
+    "model_genetic_modifications": GENETIC_MODIFICATIONS_COLUMN_RULES,
 }
 
 
@@ -115,7 +120,7 @@ def process_group(
     matched_control = next(iter(mc), "")
 
     # Ensure modified_genes is always a list
-    raw_modified_genes = allele_info.get("mouse_gene_symbol", [])
+    raw_modified_genes = allele_info.get("modified_gene", [])
     if not isinstance(raw_modified_genes, list):
         modified_genes = [raw_modified_genes]
     else:
@@ -192,31 +197,27 @@ def transform_disease_correlation(
         ValueError: If required datasets are missing or if required columns are missing from any dataset.
     """
     check_required_datasets_and_columns(datasets, required_input)
+    check_column_rules(datasets, COLUMN_RULES)
 
     # Load datasets and prepare lookups if necessary
     disease_correlation_df = normalize_null_values(
         datasets["disease_correlation_results"]
     )
     model_metadata_df = datasets["model_metadata"]
-    model_genetic_modifications_df = datasets["model_genetic_modifications"]
 
     # Need to convert 'matched_controls' from comma-separated strings to lists
     model_metadata_df["matched_controls"] = model_metadata_df["matched_controls"].apply(
         lambda x: delim_string_to_list(x, delim=",")
     )
-    model_info_lookup = create_lookup(model_metadata_df, group_by_col="model")
+    model_info_lookup = create_lookup(model_metadata_df, group_by_col="name")
 
     # Replace mouse gene symbol with human one if mapping exists. Else, preserve mouse symbol,
-    model_genetic_modifications_df[
-        "mouse_gene_symbol"
-    ] = model_genetic_modifications_df["human_gene_symbol"].fillna(
-        model_genetic_modifications_df["mouse_gene_symbol"]
+    model_genetic_modifications_df = process_genetic_modifications(
+        datasets["model_genetic_modifications"]
     )
-    model_genetic_modifications_df = model_genetic_modifications_df.drop(
-        columns=["human_gene_symbol"]
-    )
+
     model_allele_lookup = create_lookup(
-        df=model_genetic_modifications_df, group_by_col="model"
+        df=model_genetic_modifications_df, group_by_col="name"
     )
 
     # Group by all static fields

@@ -8,25 +8,26 @@ import pytest
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     build_expression_results_url,
-    process_genetic_info,
+    process_genetic_modifications,
     zero_pad_jax_ids,
     validate_jax_ids,
     remap_sex_labels,
 )
 
 
-class TestProcessGeneticInfo:
-    """Test class for the process_genetic_info function."""
+class TestProcessGeneticModifications:
+    """Test class for the process_genetic_modifications function."""
 
-    def test_process_genetic_info_should_pass(self) -> None:
+    def test_process_genetic_modifications_maps_ensembl_ids(self) -> None:
         """
-        Test that process_genetic_info correctly uses human Ensembl IDs and gene symbols
+        Test that process_genetic_modifications correctly uses human Ensembl IDs and gene symbols
         when available, and preserves mouse Ensembl IDs when no human mapping exists.
         """
         # Create test input DataFrames
         model_genetic_modifications = pd.DataFrame(
             {
-                "modified_gene": ["App", "Mapt", "Psen1"],
+                "name": ["Model1", "Model1", "Model1"],
+                "mouse_gene_symbol": ["App", "Mapt", "Psen1"],
                 "mouse_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000018411",
@@ -39,47 +40,53 @@ class TestProcessGeneticInfo:
                 ],
                 "allele_type": ["Transgenic", "Transgenic", "Targeted"],
                 "mgi_allele_id": [2672831, 2672831, 1930937],
-                "human_gene_symbol": ["App", None, "Psen1"],
+                "human_gene_symbol": ["APP", None, "PSEN1"],
                 "human_ensembl_id": ["ENSG00000142192", None, "ENSG00000080815"],
             }
         )
 
         # Expected output
-        expected_output = [
-            {
-                "modified_gene": "App",
-                "ensembl_gene_id": "ENSG00000142192",  # Human Ensembl ID
-                "allele": "APP K670_M671delinsNL (Swedish)",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Mapt",
-                "ensembl_gene_id": "ENSMUSG00000018411",  # Mouse Ensembl ID (no human match)
-                "allele": "MAPT P301L",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Psen1",
-                "ensembl_gene_id": "ENSG00000080815",  # Human Ensembl ID
-                "allele": "Psen1<sup>tm1Mpm</sup>",
-                "allele_type": "Targeted",
-                "mgi_allele_id": 1930937,
-            },
-        ]
+        expected_output = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "modified_gene": "APP",
+                    "ensembl_gene_id": "ENSG00000142192",  # Human Ensembl ID
+                    "allele": "APP K670_M671delinsNL (Swedish)",
+                    "allele_type": "Transgenic",
+                    "mgi_allele_id": 2672831,
+                },
+                {
+                    "name": "Model1",
+                    "modified_gene": "Mapt",
+                    "ensembl_gene_id": "ENSMUSG00000018411",  # Mouse Ensembl ID (no human match)
+                    "allele": "MAPT P301L",
+                    "allele_type": "Transgenic",
+                    "mgi_allele_id": 2672831,
+                },
+                {
+                    "name": "Model1",
+                    "modified_gene": "PSEN1",
+                    "ensembl_gene_id": "ENSG00000080815",  # Human Ensembl ID
+                    "allele": "Psen1<sup>tm1Mpm</sup>",
+                    "allele_type": "Targeted",
+                    "mgi_allele_id": 1930937,
+                },
+            ]
+        )
 
         # Transform data
-        output = process_genetic_info(model_genetic_modifications)
+        output = process_genetic_modifications(model_genetic_modifications)
 
         # Compare output with expected
-        assert output == expected_output
+        pd.testing.assert_frame_equal(output, expected_output)
 
-    def test_process_genetic_info_with_empty_input(self) -> None:
+    def test_process_genetic_modifications_with_empty_input(self) -> None:
         # Create empty test input DataFrames
         model_genetic_modifications = pd.DataFrame(
             columns=[
-                "modified_gene",
+                "name",
+                "mouse_gene_symbol",
                 "mouse_ensembl_id",
                 "allele",
                 "allele_type",
@@ -89,67 +96,138 @@ class TestProcessGeneticInfo:
             ]
         )
 
-        # Expected output - empty list since no alleles to process
-        expected_output = []
-
-        # Transform data
-        output = process_genetic_info(model_genetic_modifications)
-
-        # Compare output with expected
-        assert output == expected_output
-
-    def test_process_genetic_info_normalizes_missing_values(self) -> None:
-        # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele", "allele_type",
-        # and "human_ensembl_id" can have missing values and still appear in the output.
-        model_genetic_modifications = pd.DataFrame(
-            {
-                "modified_gene": ["App", "Mapt", "Psen1"],
-                "mouse_ensembl_id": [
-                    "ENSMUSG00000011111",
-                    "ENSMUSG00000022222",
-                    np.nan,
-                ],
-                "allele": [np.nan, np.nan, np.nan],  # Missing allele names
-                "allele_type": [np.nan, np.nan, np.nan],  # Missing allele type
-                "mgi_allele_id": [1234567, 2345678, 3456789],
-                "human_gene_symbol": ["APP", "MAPT", None],
-                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654", None],
-            },
-            dtype="object",
-        )
-
-        # Expected output: missing values should be normalized to None, and the first two genes should have their
-        # Ensembl IDs replaced with the human ones. The third gene should keep its missing mouse Ensembl ID, which
-        # should be normalized to None.
-        expected_output = [
-            {
-                "modified_gene": "APP",
-                "ensembl_gene_id": "ENSG00000123456",
-                "allele": None,  # Missing values should be normalized to None
-                "allele_type": None,
-                "mgi_allele_id": 1234567,
-            },
-            {
-                "modified_gene": "MAPT",
-                "ensembl_gene_id": "ENSG00000987654",
-                "allele": None,
-                "allele_type": None,
-                "mgi_allele_id": 2345678,
-            },
-            {
-                "modified_gene": "Psen1",
-                "ensembl_gene_id": None,
-                "allele": None,
-                "allele_type": None,
-                "mgi_allele_id": 3456789,
-            },
+        expected_columns = [
+            "name",
+            "modified_gene",
+            "ensembl_gene_id",
+            "allele",
+            "allele_type",
+            "mgi_allele_id",
         ]
 
         # Transform data
-        output = process_genetic_info(model_genetic_modifications)
+        output = process_genetic_modifications(model_genetic_modifications)
+
+        # Output should be an empty data frame with only the expected columns
+        assert output.empty
+        assert list(output.columns) == expected_columns
+
+    def test_process_genetic_modifications_removes_duplicates(self) -> None:
+        """
+        Test that process_genetic_modifications correctly removes duplicate entries for the same model, gene, and
+        allele combination.
+        """
+        # Create test input DataFrames
+        model_genetic_modifications = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1"],
+                "mouse_gene_symbol": ["App", "App"],
+                "mouse_ensembl_id": [
+                    "ENSMUSG00000022892",
+                    "ENSMUSG00000022892",
+                ],
+                "allele": [
+                    "APP K670_M671delinsNL (Swedish)",
+                    "APP K670_M671delinsNL (Swedish)",
+                ],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [2672831, 2672831],
+                "human_gene_symbol": ["APP", "APP"],
+                "human_ensembl_id": ["ENSG00000142192", "ENSG00000142192"],
+            }
+        )
+
+        # Expected output
+        expected_output = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "modified_gene": "APP",
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "allele": "APP K670_M671delinsNL (Swedish)",
+                    "allele_type": "Transgenic",
+                    "mgi_allele_id": 2672831,
+                },
+            ]
+        )
+
+        # Transform data
+        output = process_genetic_modifications(model_genetic_modifications)
 
         # Compare output with expected
-        assert output == expected_output
+        pd.testing.assert_frame_equal(output, expected_output)
+
+    def test_process_genetic_modifications_keeps_alleles_for_different_models(
+        self,
+    ) -> None:
+        """
+        Test that process_genetic_modifications keeps alleles for different models even if the alleles are the same.
+        """
+        # Create test input DataFrames
+        model_genetic_modifications = pd.DataFrame(
+            {
+                "name": ["Model1", "Model2"],
+                "mouse_gene_symbol": ["App", "App"],
+                "mouse_ensembl_id": ["ENSMUSG00000022892", "ENSMUSG00000022892"],
+                "allele": ["Allele1", "Allele1"],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [2672831, 2672831],
+                "human_gene_symbol": ["APP", "APP"],
+                "human_ensembl_id": ["ENSG00000142192", "ENSG00000142192"],
+            }
+        )
+
+        # Expected output
+        expected_output = pd.DataFrame(
+            [
+                {
+                    "name": "Model1",
+                    "modified_gene": "APP",
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "allele": "Allele1",
+                    "allele_type": "Transgenic",
+                    "mgi_allele_id": 2672831,
+                },
+                {
+                    "name": "Model2",
+                    "modified_gene": "APP",
+                    "ensembl_gene_id": "ENSG00000142192",
+                    "allele": "Allele1",
+                    "allele_type": "Transgenic",
+                    "mgi_allele_id": 2672831,
+                },
+            ]
+        )
+
+        # Transform data
+        output = process_genetic_modifications(model_genetic_modifications)
+
+        # Compare output with expected
+        pd.testing.assert_frame_equal(output, expected_output)
+
+    def test_process_genetic_modifications_raises_when_human_ensembl_id_but_no_human_gene_symbol(
+        self,
+    ) -> None:
+        """
+        The function should raise an error if a row has a human Ensembl ID but a missing human gene symbol.
+        """
+        model_genetic_modifications = pd.DataFrame(
+            {
+                "name": ["Model1", "Model2"],
+                "mouse_gene_symbol": ["App", "App"],
+                "mouse_ensembl_id": ["ENSMUSG00000022892", "ENSMUSG00000022892"],
+                "allele": ["Allele1", "Allele1"],
+                "allele_type": ["Transgenic", "Transgenic"],
+                "mgi_allele_id": [2672831, 2672831],
+                "human_gene_symbol": ["APP", None],
+                "human_ensembl_id": ["ENSG00000142192", "ENSG00000142192"],
+            }
+        )
+
+        with pytest.raises(
+            ValueError, match="Values must be either both present or both missing"
+        ):
+            process_genetic_modifications(model_genetic_modifications)
 
 
 class TestBuildExpressionResultsUrl:
