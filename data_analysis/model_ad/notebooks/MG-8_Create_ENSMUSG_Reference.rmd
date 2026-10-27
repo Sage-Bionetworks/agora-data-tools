@@ -1,22 +1,21 @@
 # Create ENSMUSG Reference
 
-This notebook downloads all data files listed in [data_sources.csv](https://github.com/Sage-Bionetworks/magora/blob/main/data-raw/gene_expressions/data_sources.csv), gets a list of all the Ensembl gene IDs used across all the files, and maps them to gene symbols and aliases. The file is then uploaded to Synapse here: [syn51615422](https://www.synapse.org/#!Synapse:syn51615422).
+This notebook downloads several key files in the `model_ad_prod.yaml` config file, gets a list of all the Ensembl gene IDs used in those files, and maps them to gene symbols and aliases. The file is then uploaded to Synapse here: [syn51615422](https://www.synapse.org/#!Synapse:syn51615422).
 
 Required packages (will automatically be installed if necessary):
 
 -   synapser (also requires a Synapse account with an auth token)
 -   BiocManager
 -   biomaRt
--   dplyr
+-   tidyverse libraries dplyr, stringr, purrr
 -   jsonlite
+-   yaml
 
 ## Library setup
 
 ```{r}
-if (!require("synapser", quietly = TRUE)) {
-  install.packages("synapser", repos = c("http://ran.synapse.org",
-                                         "https://cloud.r-project.org"))
-}
+source(file.path("..", "..", "setup_synapser.R"))  # pins synapser and sets up its dedicated venv
+setup_synapser()
 
 if (!require("BiocManager", quietly = TRUE)) {
   install.packages("BiocManager")
@@ -26,32 +25,86 @@ if (!require("biomaRt", quietly = TRUE)) {
   BiocManager::install("biomaRt")
 }
 
-if (!require("dplyr", quietly = TRUE)) {
-  install.packages("dplyr")
+if (!require("tidyverse", quietly = TRUE)) {
+  install.packages("tidyverse")
 }
 
 if (!require("jsonlite", quietly = TRUE)) {
   install.packages("jsonlite")
 }
 
+if (!require("yaml", quietly = TRUE)) {
+  install.packages("yaml")
+}
+
 library(synapser)
 library(biomaRt)
 library(dplyr)
-library(arrow)
+library(stringr)
+library(purrr)
 library(jsonlite)
+library(yaml)
+
+# Allows using Python chunks in the notebook
+library(reticulate)
+reticulate::py_config()
 ```
 
-## Download the data sources file
+## Download the data source files
+
+We load the following files to get coverage of all genes in the Model-AD data:
+
+-   `model_genetic_modifications`: All human transgenes across all models
+
+-   `biodom_genes_mm`: all genes we have biodomain info for
+
+-   `*_de`: all genes for differential expression results.
+
+    -   Corresponding differential expression and individual expression files have the exact same set of Ensembl IDs, so we only need to load one file from the pair to get all the genes for that study. DE files are much smaller, so we load those.
 
 ```{r}
 input_dir <- file.path("..", "input")
 dir.create(input_dir, showWarnings = FALSE)
 
-data_sources_url <- "https://raw.githubusercontent.com/Sage-Bionetworks/magora/d4f21caf94694fee7659fc7d30748b7e64e08488/data-raw/gene_expressions/data_sources.csv"
+cfg <- read_yaml(file.path("..", "..", "..", "configs", "model_ad_prod.yaml"), eval.expr = TRUE)
 
-data_sources_file <- file.path(input_dir, "data_sources.csv")
-download.file(data_sources_url, data_sources_file, method = "wget")
+# Extract the name and ID of all files in the config, narrow down to the subset we
+# want for this notebook.
+#
+# When read from the file, 'cfg$files' is an unnamed list, one item per file,
+#
+# This requires some rearrangement of cfg$datasets: When read from the file, with internal
+# named lists in a hierarchy. An example of the structure:
+# 'cfg$datasets' is an unnamed list, one item per data set, with internal named lists
+# in a hierarchy. An example of the structure:
+#  List of 34
+#   $ :List of 3
+#    ..$ name  : chr "model_genetic_modifications"
+#    ..$ format: chr "csv"
+#    ..$ id    : chr "syn76147521.5"
+#   $ :List of 3
+#    ..$ name  : chr "immunohisto_measure_order"
+#    ..$ format: chr "yaml"
+#    ..$ id    : chr "syn71305327.2"
+#   ...
 
+files <- cfg$files |>
+  # make each list item a single-row data frame with columns "name", "id", "format"
+  lapply(as.data.frame) |>
+
+  # concat into one data frame
+  list_rbind() |>
+  
+  # subset to the files we want
+  subset(name %in% c("model_genetic_modifications", "biodom_genes_mm") |
+           grepl("_de$", name))
+
+print(files)
+
+# Check: There should be at least 11 files and two of them need to have specific names
+stopifnot(nrow(files) >= 11)
+stopifnot(any(files$name == "model_genetic_modifications"))
+stopifnot(any(files$name == "biodom_genes_mm"))
 ```
 
 ## Download the data files from synapse
@@ -59,13 +112,10 @@ download.file(data_sources_url, data_sources_file, method = "wget")
 Note: if this is your first time logging into Synapse from R, you will need to change `synLogin()` to `synLogin(authToken=<your_token_string>)`.
 
 ```{r}
-synLogin()
-data_sources <- read.csv(data_sources_file)
+synLogin(silent = TRUE)
 
-files <- lapply(1:nrow(data_sources), function(row) {
-  syn_file <- synGet(entity = data_sources$id[row],
-                     version = data_sources$version[row],
-                     downloadLocation = input_dir)
+files$path <- sapply(files$id, function(id) {
+  syn_file <- synGet(entity = id, downloadLocation = input_dir)
   return(syn_file$path)
 })
 ```
@@ -73,37 +123,184 @@ files <- lapply(1:nrow(data_sources), function(row) {
 ## Get all Ensembl IDs from all files
 
 ```{r}
-ens <- lapply(files, function(F) {
-  data <- read.csv(F)
-  return(data$GeneID)
-})
+# Names of the fields containing Ensembl IDs in the files
+ensembl_fields <- c("ensembl_id", "ensembl_gene_id", "mouse_ensembl_id", "human_ensembl_id")
 
-ens <- unique(unlist(ens))
+ens <- lapply(files$path, function(file) {
+  print(str_glue("Reading {basename(file)}..."))
+  
+  data <- read.csv(file)
+  
+  # Figure out which columns exist in this data frame. The genetic modifications file will 
+  # contain 2 columns, one for mouse and one for human, so we have special handling for
+  # that before handling other files.
+  column <- intersect(ensembl_fields, colnames(data))
 
-print(length(ens))
+  if (length(column == 2) && all(c("mouse_ensembl_id", "human_ensembl_id") %in% column)) {
+    return(c(data[, column[1]], data[, column[2]]))
+  }
+
+  # All other files should have exactly one Ensembl ID column
+  stopifnot(length(column) == 1)
+  
+  return(data[, column])
+}) |>
+  unlist() |>
+  unique() |>
+  na.omit() |>
+  setdiff("")
+
+print(str_glue("Ensembl IDs found: {length(ens)}"))
 ```
 
 ## Get gene symbols and aliases from Ensembl
 
+### Mouse
+
 ```{r}
-mart <- useMart(biomart = "ensembl", dataset = "mmusculus_gene_ensembl")
+ens_mouse <- ens[grepl("ENSMUSG", ens)]
+mart_mouse <- useEnsembl(biomart = "ensembl", dataset = "mmusculus_gene_ensembl")
 
-genes <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", "external_synonym"),
-               filters = "ensembl_gene_id",
-               values = ens,
-               mart = mart)
+genes_mouse <- getBM(attributes = c("ensembl_gene_id", "external_gene_name",
+                                    "external_synonym"),
+                     filters = "ensembl_gene_id",
+                     values = ens_mouse,
+                     mart = mart_mouse)
 
-print(dim(genes))
-print(head(genes))
+print(dim(genes_mouse))
+print(str_glue("{sum(ens %in% genes_mouse$ensembl_gene_id)} of {length(ens_mouse)} ",
+               "mouse Ensembl IDs returned by BioMart."))
+print(head(genes_mouse))
+```
+
+### Human
+
+```{r}
+ens_human <- ens[grepl("ENSG", ens)]
+mart_human <- useEnsembl(biomart = "ensembl", dataset = "hsapiens_gene_ensembl")
+
+genes_human <- getBM(attributes = c("ensembl_gene_id", "external_gene_name", 
+                                    "external_synonym"),
+                     filters = "ensembl_gene_id",
+                     values = ens_human,
+                     mart = mart_human)
+
+print(dim(genes_human))
+print(str_glue("{sum(ens %in% genes_human$ensembl_gene_id)} of {length(ens_human)} ",
+               "human Ensembl IDs returned by BioMart."))
+print(head(genes_human))
+```
+
+### Add Ensembl IDs missing from BioMart back to the data frame
+
+```{r}
+genes <- rbind(genes_mouse, genes_human)
+missing_ids <- setdiff(ens, genes$ensembl_gene_id)
+
+genes <- rbind(genes,
+               data.frame(ensembl_gene_id = missing_ids, 
+                          external_gene_name = "",
+                          external_synonym = ""))
+```
+
+### Get Ensembl version for each ID and possible replacements
+
+Re-use the util function written in Python to get the version for each ID
+
+```{python}
+import sys
+sys.path.append("../../agora/notebooks/preprocessing")
+import preprocessing_utils
+
+versions = preprocessing_utils.query_ensembl_version_api(
+    ensembl_ids=r.ens
+)
+```
+
+Continue processing in R
+
+```{r}
+versions_df <- py$versions
+
+print(table(versions_df$release))
+
+# Make sure these are all the latest assembly for either mouse or human
+stopifnot(all(versions_df$assembly %in% c("GRCm39", "GRCh38")))
+
+# Make sure all IDs are covered
+stopifnot(all(versions_df$id %in% ens) && all(ens %in% versions_df$id))
+
+# Check for duplicates
+stopifnot(length(unique(versions_df$id)) == nrow(versions_df))
+```
+
+### Create permalinks based on archive version
+
+```{r}
+human_link <- "/Homo_sapiens/Gene/Summary?db=core;g="
+mouse_link <- "/Mus_musculus/Gene/Summary?db=core;g="
+
+archive_df <- listEnsemblArchives() |>
+  # Remove old human assembly from list
+  subset(version != "GRCh37")
+
+versions_df <- merge(versions_df, select(archive_df, url, version),
+                     by.x = "release", by.y = "version",
+                     all.x = TRUE) |>
+  mutate(permalink = ifelse(grepl("ENSG", id),
+                            paste0(url, human_link, id),
+                            paste0(url, mouse_link, id))) |>
+  select(id, release, possible_replacement, permalink) |>
+  dplyr::rename(ensembl_gene_id = id, ensembl_release = release)
+
+# Does every gene have an associated permalink?
+url_base_len <- min(nchar(archive_df$url)) + nchar(human_link) +
+  min(nchar(versions_df$ensembl_gene_id))
+stopifnot(all(nchar(versions_df$permalink) >= url_base_len))
 ```
 
 ## Re-format results for Model AD Explorer
 
 ```{r}
-genes_df <- genes %>% group_by(ensembl_gene_id, external_gene_name) %>%
-              summarise(alias = list(unique(external_synonym))) %>%
-              dplyr::rename(gene_symbol = external_gene_name) %>%
-              arrange(ensembl_gene_id)
+# Helper function to get rid of duplicates and empty strings in the synonyms list. Returns
+# the remaining values wrapped in a list object. The list object will be empty if there are
+# no aliases.
+clean_aliases <- function(synonyms) {
+  aliases <- unique(synonyms) |> na.omit() |> setdiff("")
+  return(list(aliases))
+}
+
+# Helper function to reformat the possible_replacement field. Each row is either an empty list
+# or a list of items with fields "stable_id" and "score". This function extracts the
+# "stable_id" value(s) and returns a new list with just those values (or empty)
+clean_possible_replacement <- function(pr_list) {
+  sapply(pr_list, "[[", "stable_id")
+}
+
+# There may be multiple rows for a single Ensembl ID, corresponding to different values for
+# `external_synonym`. This collapses down to a single row per ID, with all synonyms in a list
+genes_df <- genes |>
+  # Collapse to one row per ID/gene name
+  group_by(ensembl_gene_id, external_gene_name) |>
+  summarize(alias = clean_aliases(external_synonym), .groups = "drop") |>
+  
+  # Rename the gene symbol column
+  dplyr::rename(gene_symbol = external_gene_name) |>
+
+  # Merge with version info
+  merge(versions_df) |>
+
+  # Reformat the possible_replacement field
+  mutate(possible_replacement = sapply(possible_replacement, clean_possible_replacement)) |>
+
+  # Sort by Ensembl ID
+  arrange(ensembl_gene_id)
+
+# Make sure all IDs are still in the data frame
+stopifnot(all(genes_df$ensembl_gene_id %in% ens) && all(ens %in% genes_df$ensembl_gene_id))
+
+# Make sure all IDs are unique
+stopifnot(length(unique(genes_df$ensembl_gene_id)) == nrow(genes_df))
 
 output_dir <- file.path("..", "output")
 dir.create(output_dir, showWarnings = FALSE)
@@ -119,7 +316,7 @@ syn_file <- File(file.path(output_dir, "mouse_gene_metadata.json"),
                  description = "Ensembl IDs, gene symbols, and alias symbols for each gene used in the Model AD Explorer.",
                  parent = "syn51498054")
 res <- synStore(syn_file, forceVersion = FALSE,
-                used = paste(data_sources$id, data_sources$version, sep = "."),
+                used = files$id,
                 executed = "https://github.com/Sage-Bionetworks/agora-data-tools/blob/dev/data_analysis/model_ad/notebooks/MG-8_Create_ENSMUSG_Reference.rmd")
 
 print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))

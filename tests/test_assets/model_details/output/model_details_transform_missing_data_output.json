@@ -12,26 +12,27 @@
     "aliases": [
       "3xTg"
     ],
-    "transcriptomics": "comparison/expression?models=3xTg-AD",
+    "transcriptomics": "comparison/expression?categories=RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=3xTg-AD",
+    "proteomics": "comparison/expression?categories=PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain&models=3xTg-AD",
     "disease_correlation": "comparison/correlation?models=3xTg-AD",
     "spatial_transcriptomics": null,
     "genetic_info": [
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele1",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele2",
         "allele_type": "Transgenic",
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "App",
+        "modified_gene": "APP",
         "ensembl_gene_id": "ENSG00000142192",
         "allele": "Allele3",
         "allele_type": "Transgenic",
@@ -45,7 +46,7 @@
         "mgi_allele_id": 2672831
       },
       {
-        "modified_gene": "Psen1",
+        "modified_gene": "PSEN1",
         "ensembl_gene_id": "ENSG00000080815",
         "allele": "Psen1<sup>tm1Mpm</sup>",
         "allele_type": "Targeted",
@@ -55,15 +56,6 @@
     "biomarkers": [
       {
         "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;40",
-        "tissue": "",
-        "age": "4 months",
-        "units": "",
-        "y_axis_max": 8.5,
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
         "evidence_type": "Soluble &beta;40",
         "tissue": "Hippocampus",
         "age": "4 months",
@@ -71,7 +63,7 @@
         "y_axis_max": 15.0,
         "data": [
           {
-            "genotype": "",
+            "genotype": null,
             "sex": "Female",
             "individual_id": "mouse1",
             "value": 10.5
@@ -79,7 +71,7 @@
           {
             "genotype": "transgenic",
             "sex": "Male",
-            "individual_id": "",
+            "individual_id": null,
             "value": 12.3
           }
         ]
@@ -94,45 +86,11 @@
         "data": [
           {
             "genotype": "transgenic",
-            "sex": "",
+            "sex": null,
             "individual_id": "mouse3",
             "value": 15.7
           }
         ]
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Insoluble &beta;40",
-        "tissue": "",
-        "age": "8 months",
-        "units": "pg/ml",
-        "y_axis_max": 8.5,
-        "data": [
-          {
-            "genotype": "transgenic",
-            "sex": "Male",
-            "individual_id": "mouse4",
-            "value": 8.2
-          }
-        ]
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;40",
-        "tissue": "Hippocampus",
-        "age": "8 months",
-        "units": "",
-        "y_axis_max": 15.0,
-        "data": []
-      },
-      {
-        "name": "3xTg-AD",
-        "evidence_type": "Soluble &beta;42",
-        "tissue": "Hippocampus",
-        "age": "8 months",
-        "units": "",
-        "y_axis_max": 20.0,
-        "data": []
       }
     ],
     "pathology": [
@@ -328,6 +286,7 @@
     "genotype": "B6.Cg-Mapttm1(EGFP)Klt Tg(MAPT)8cPdav/J",
     "aliases": [],
     "transcriptomics": null,
+    "proteomics": null,
     "disease_correlation": null,
     "spatial_transcriptomics": null,
     "genetic_info": [

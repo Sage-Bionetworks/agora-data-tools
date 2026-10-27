@@ -4,13 +4,14 @@ This is for the Model AD project.
 """
 
 import pandas as pd
-import numpy as np
-import math
-from typing import Dict, List, Any, Union, Tuple
+from typing import Dict, List, Any
 
 from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
+    normalize_null_values,
+    round_y_axis_max,
+    y_axis_max_by_groups,
 )
 
 
@@ -48,16 +49,14 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     This function prepares the biomarker and pathology dataframes for the Model AD project.
     It performs the following transformations:
-    1. Fill missing values with an empty string.
-    2. Capitalize 'sex' and 'tissue' columns in the DataFrame.
-    3. Replace 'beta' with '&beta;' in the 'evidence_type' column.
-    4. Append "months" to age values
+    1. Capitalize 'sex' and 'tissue' columns in the DataFrame.
+    2. Replace 'beta' with '&beta;' in the 'evidence_type' column.
+    3. Append "months" to age values
     """
     # Create a copy to avoid modifying the original
     df = df.copy()
 
-    # Fill missing values and transform text fields
-    df = df.fillna("")
+    # Transform text fields
     df["sex"] = df["sex"].str.title()
     df["tissue"] = df["tissue"].str.title()
 
@@ -69,86 +68,6 @@ def prepare_immunohisto_data(df: pd.DataFrame) -> pd.DataFrame:
     df["age"] = df["age"].apply(lambda x: x if x.endswith("months") else x + " months")
 
     return df
-
-
-def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
-    """
-    This function rounds the y_axis_max value to the nearest sensible nice round number.
-
-    Logic:
-    - If max == 0, then y_axis_max == 10
-    - Else, round UP to the next "nice" number where the second digit is 0 or 5
-
-    Examples:
-    - 0.0021 rounds up to 0.0025
-    - 0.0004 rounds up to 0.00045
-    - 0.329486078 rounds up to 0.35
-    - 0.089 rounds up to 0.090
-    - 1094 rounds up to 1500
-    - 1322498 rounds up to 1500000
-    - 728591 rounds up to 750000
-    - 3973 rounds up to 4000
-    - 1.616 rounds up to 2.0
-    """
-    # Convert to float if it's a string or other type
-    try:
-        y_axis_max = float(y_axis_max)
-    except (ValueError, TypeError):
-        # If conversion fails, return 10 (default case)
-        return 10.0
-
-    # Handle special cases: zero or negative values
-    if y_axis_max <= 0:
-        return 10.0 if y_axis_max == 0 else 0.0
-
-    # Find the order of magnitude of the number
-    magnitude = int(math.floor(math.log10(y_axis_max)))
-
-    # Scale the number so the first digit is in the ones place
-    scaled = y_axis_max / (
-        10 ** (magnitude - 1)
-    )  # After scaling, the first significant digit is in the tens place and the second in the ones place
-    # Round UP to the next 5 or 0 (add small epsilon to ensure we always round up)
-    rounded_scaled = 5 * math.ceil((scaled + 1e-10) / 5)
-
-    # Put back to the right magnitude
-    result = rounded_scaled * (10 ** (magnitude - 1))
-
-    # Remove float precision issues
-    result = round(result, 15)
-
-    # Ensure we always return a float, even for whole numbers
-    return float(result)
-
-
-def _calculate_y_axis_max_map(
-    dataset: pd.DataFrame,
-) -> Dict[Tuple[str, str, str], float]:
-    """
-    Calculate final y_axis_max values for each combination of (name, evidence_type, tissue) across all ages.
-
-    This function finds the raw maximum values from the dataset and applies rounding
-    to get the final y_axis_max values using round_y_axis_max().
-
-    Args:
-        dataset: The prepared dataset. It must have columns "name", "evidence_type", "tissue", and "value".
-
-    Returns:
-        Dictionary mapping (name, evidence_type, tissue) tuples to their final rounded y_axis_max values
-    """
-    key_dimensions = ["name", "evidence_type", "tissue"]
-    y_axis_max_map = {}
-
-    for key, group in dataset.groupby(key_dimensions):
-        # Convert value column to numeric, coercing errors to NaN, then drop NaN values
-        numeric_values = pd.to_numeric(group["value"], errors="coerce").dropna()
-        if len(numeric_values) > 0:
-            raw_max = numeric_values.max()
-            y_axis_max_map[tuple(key)] = round_y_axis_max(raw_max)
-        else:
-            y_axis_max_map[tuple(key)] = round_y_axis_max(0)
-
-    return y_axis_max_map
 
 
 def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
@@ -189,9 +108,10 @@ def _add_missing_age_entries(data_rows: pd.DataFrame) -> pd.DataFrame:
         data_rows, how="outer", validate="one_to_one"
     )
 
-    # Fill NA values for units. Can't use fillna to make an empty list so we add an extra line
-    fill_df = fill_df.fillna({"units": ""})
-    fill_df["data"] = fill_df["data"].apply(lambda x: [] if x is np.nan else x)
+    # Fill NA values for units (empty strings) and data (empty lists)
+    fill_df = normalize_null_values(
+        fill_df, empty_string_columns=["units"], empty_list_columns=["data"]
+    )
 
     return fill_df
 
@@ -301,7 +221,7 @@ def immunohisto_transform(
         return []
 
     # Calculate final y_axis_max values for all combinations
-    y_axis_max_map = _calculate_y_axis_max_map(dataset)
+    y_axis_max_map = y_axis_max_by_groups(dataset, ["name", "evidence_type", "tissue"])
 
     # Create initial data rows from groups using nest_fields
     # We need to drop columns that are not in group_columns or extra_columns

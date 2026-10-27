@@ -18,13 +18,22 @@ from agoradatatools.etl.transform.team_info import transform_team_info
 from agoradatatools.etl.transform.proteomics import transform_proteomics
 from agoradatatools.etl.transform.immunohisto_transform import immunohisto_transform
 from agoradatatools.etl.transform.model_details import transform_model_details
+from agoradatatools.etl.transform.marmo_details import transform_marmo_details
 from agoradatatools.etl.transform.disease_correlation import (
     transform_disease_correlation,
 )
+from agoradatatools.etl.transform.drug_info import transform_drug_info
 from agoradatatools.etl.transform.nominated_drugs import transform_nominated_drugs
+from agoradatatools.etl.transform.nominated_targets import transform_nominated_targets
 from agoradatatools.etl.transform.model_overview import transform_model_overview
 from agoradatatools.etl.transform.rna_de_aggregate import transform_rna_de_aggregate
 from agoradatatools.etl.transform.rna_de_individual import transform_rna_de_individual
+from agoradatatools.etl.transform.protein_de_individual import (
+    transform_protein_de_individual,
+)
+from agoradatatools.etl.transform.protein_de_aggregate import (
+    transform_protein_de_aggregate,
+)
 
 
 __all__ = [
@@ -40,9 +49,14 @@ __all__ = [
     "transform_proteomics",
     "immunohisto_transform",
     "transform_model_details",
+    "transform_marmo_details",
     "transform_disease_correlation",
+    "transform_drug_info",
     "transform_nominated_drugs",
+    "transform_nominated_targets",
     "transform_model_overview",
     "transform_rna_de_aggregate",
     "transform_rna_de_individual",
+    "transform_protein_de_individual",
+    "transform_protein_de_aggregate",
 ]

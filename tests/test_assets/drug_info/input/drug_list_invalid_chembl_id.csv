@@ -1,0 +1,2 @@
+grant_number,contact_pi,priority_score,priority_score_criteria,common_name,chembl_id,combined_with_common_name,combined_with_chembl_id,iupac_id,evidence,data_used,ad_moa,published,reference,computational_validation_status,computational_validation_results,experimental_validation_status,experimental_validation_results,additional_evidence,contributors,initial_nomination,program
+G1,PI One,1,x,DrugA,BAD123,,,IUPAC-A,ev,d,moa,True,ref1,,,,,,team,2025,Program A

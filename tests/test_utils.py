@@ -1,5 +1,4 @@
 import sys
-from collections.abc import Sequence
 from io import StringIO
 from typing import Any, Dict
 from unittest import mock
@@ -12,16 +11,11 @@ import synapseclient
 import yaml
 
 from agoradatatools.etl import utils
-from agoradatatools.etl.utils import (
-    ColumnRule,
-    ContainsSubstringRule,
-    MatchesRegexRule,
-    NotEmptyRule,
-    OneOfRule,
-)
 
 RuleClassWithValueArg = (
-    type[MatchesRegexRule] | type[ContainsSubstringRule] | type[OneOfRule]
+    type[utils.MatchesRegexRule]
+    | type[utils.ContainsSubstringRule]
+    | type[utils.OneOfRule]
 )
 
 
@@ -81,6 +75,23 @@ def test_get_config_with_no_config_path():
 def test_get_config_with_config_path():
     config = utils._get_config(config_path="./configs/agora_preprod.yaml")
     assert config["destination"] == "syn17015333"
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        pytest.param("Ab40_pg.ml", "ab40_pg_ml", id="period_becomes_underscore"),
+        pytest.param("Ab_ratio", "ab_ratio", id="already_standardized_lowercased"),
+        pytest.param("tTAU_fg.ml", "ttau_fg_ml", id="mixed_case_lowercased"),
+        pytest.param("GFAP_pg.ml", "gfap_pg_ml", id="uppercase_prefix_lowercased"),
+        pytest.param("a#b@(c)", "abc", id="special_chars_stripped"),
+        pytest.param(
+            "Some Column-Name.x", "some_column_name_x", id="spaces_and_hyphens"
+        ),
+    ],
+)
+def test_standardize_column_name(name: str, expected: str) -> None:
+    assert utils.standardize_column_name(name) == expected
 
 
 def test_standardize_column_names():
@@ -187,6 +198,32 @@ class TestStandardizeValues:
         assert result_df.loc[7, "aliases"] == "Some text with n/A in it"
         assert result_df.loc[8, "aliases"] == "Some text with N/a in it"
         assert result_df.loc[9, "aliases"] == "Normal text"  # Should be preserved
+
+
+class TestCapitalizeFirstCharacter:
+    """Tests for capitalize_first_character on flat string columns."""
+
+    def test_capitalizes_string_column(self) -> None:
+        df = pd.DataFrame({"name": ["lowercase text"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] == "Lowercase text"
+
+    def test_preserves_mixed_case_after_first_character(self) -> None:
+        df = pd.DataFrame({"name": ["aPOE variant"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] == "APOE variant"
+
+    def test_leaves_non_string_and_empty_values_unchanged(self) -> None:
+        df = pd.DataFrame({"name": [None, "", "text"]})
+        result = utils.capitalize_first_character(df, ["name"])
+        assert result["name"].iloc[0] is None
+        assert result["name"].iloc[1] == ""
+        assert result["name"].iloc[2] == "Text"
+
+    def test_skips_missing_columns(self) -> None:
+        df = pd.DataFrame({"name": ["text"]})
+        result = utils.capitalize_first_character(df, ["absent"])
+        assert result["name"].iloc[0] == "text"
 
 
 class TestRenameColumnsDataFrame:
@@ -465,6 +502,10 @@ class TestNestFields:
     )
 
     def test_nest_fields_with_dropped_column(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries but drops a single column
+        ("d") from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "b": "1", "c": "1"},
@@ -486,6 +527,10 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_with_dropped_column_list(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries and drops multiple columns
+        ("b" and "d") from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "c": "1"},
@@ -507,6 +552,10 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_no_drop_column(self):
+        """
+        Test that nest_fields correctly creates nested column "e" as a list of dictionaries without dropping any columns
+        from the dictionaries.
+        """
         expected_column_e = [
             [
                 {"a": "group_1", "b": "1", "c": "1", "d": "1"},
@@ -525,7 +574,62 @@ class TestNestFields:
         nested_df = utils.nest_fields(df=self.df_multirow, grouping="a", new_column="e")
         assert list(nested_df["e"]) == expected_column_e
 
+    def test_nest_fields_with_str_dropped_column_arg(self):
+        """
+        Test that nest_fields accepts a string for the drop_columns argument instead of a list.
+        """
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_singlerow, grouping="a", new_column="e", drop_columns="d"
+        )
+        assert list(nested_df["e"]) == expected_column_e
+
+    def test_nest_fields_grouping_list(self) -> None:
+        """
+        Test that nest_fields correctly handles a DataFrame when the grouping parameter is a list of columns.
+        """
+        expected_column_e = [
+            [
+                {"a": "group_1", "b": "1", "c": "1"},
+                {"a": "group_1", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_2", "b": "1", "c": "1"},
+                {"a": "group_2", "b": "1", "c": "1"},
+            ],
+            [
+                {"a": "group_3", "b": "1", "c": "1"},
+                {"a": "group_3", "b": "1", "c": "1"},
+            ],
+        ]
+
+        nested_df = utils.nest_fields(
+            df=self.df_multirow,
+            grouping=["a", "b"],
+            new_column="e",
+            drop_columns=["d"],
+        )
+
+        assert nested_df["a"].tolist() == ["group_1", "group_2", "group_3"]
+        assert nested_df["b"].tolist() == ["1", "1", "1"]
+        assert nested_df["e"].tolist() == expected_column_e
+
     def test_nest_fields_multirow_ValueError(self):
+        """
+        Test that nest_fields raises a ValueError when nested_field_is_list is set to False and the DataFrame has
+        multiple rows for the same group.
+        """
         with pytest.raises(ValueError, match="nested_field_is_list *"):
             utils.nest_fields(
                 df=self.df_multirow,
@@ -536,6 +640,10 @@ class TestNestFields:
             )
 
     def test_nest_fields_singlerow_nested_list_false(self):
+        """
+        Test that nest_fields correctly creates nested column "e" with a dictionary in each row instead of a list of
+        dictionaries, when nested_field_is_list is set to False.
+        """
         expected_column_e = [
             {"a": "group_1", "b": "1", "c": "1"},
             {"a": "group_2", "b": "1", "c": "1"},
@@ -552,6 +660,9 @@ class TestNestFields:
         assert list(nested_df["e"]) == expected_column_e
 
     def test_nest_fields_normalizes_null_values(self) -> None:
+        """
+        Test that nest_fields correctly normalizes null values in the nested dictionaries.
+        """
         df_with_nulls = pd.DataFrame(
             {
                 "a": ["group_1", "group_1", "group_2"],
@@ -582,7 +693,23 @@ class TestNestFields:
             drop_columns=["a"],
         )
 
+        # Along with checking data frame equivalence, we need to check that the lists of dictionaries in "nested" are
+        # equal because assert_frame_equal treats None and np.nan as equivalent.
         pd.testing.assert_frame_equal(nested_df, expected_df)
+        assert all(nested_df["nested"] == expected_df["nested"])
+
+    def test_nest_fields_fails_on_empty_dataframe(self) -> None:
+        """
+        Test that nest_fields raises a ValueError when the input DataFrame is empty.
+        """
+        empty_df = pd.DataFrame(columns=["a", "b", "c"])
+        with pytest.raises(ValueError, match="Input DataFrame is empty"):
+            utils.nest_fields(
+                df=empty_df,
+                grouping="a",
+                new_column="nested",
+                drop_columns=["a"],
+            )
 
 
 class TestCalculateDistribution:
@@ -725,253 +852,350 @@ class TestColumnRuleContract:
     @pytest.mark.parametrize(
         "rule",
         [
-            NotEmptyRule(),
-            MatchesRegexRule(value="^ENSMUSG"),
-            ContainsSubstringRule(value="world"),
-            OneOfRule(value={"a"}),
+            utils.NotEmptyRule(),
+            utils.MatchesRegexRule(value="^ENSMUSG"),
+            utils.ContainsSubstringRule(value="world"),
+            utils.OneOfRule(value={"a"}),
         ],
     )
-    def test_count_violations_returns_int(self, rule: ColumnRule) -> None:
+    def test_count_violations_returns_int(self, rule: utils.ColumnRule) -> None:
         assert isinstance(rule.count_violations(pd.Series(["a", None])), int)
 
     @pytest.mark.parametrize(
         "rule",
         [
-            NotEmptyRule(),
-            MatchesRegexRule(value="^ENSMUSG"),
-            ContainsSubstringRule(value="world"),
-            OneOfRule(value={"a"}),
+            utils.NotEmptyRule(),
+            utils.MatchesRegexRule(value="^ENSMUSG"),
+            utils.ContainsSubstringRule(value="world"),
+            utils.OneOfRule(value={"a"}),
         ],
     )
-    def test_count_violations_is_non_negative(self, rule: ColumnRule) -> None:
+    def test_count_violations_is_non_negative(self, rule: utils.ColumnRule) -> None:
         assert rule.count_violations(pd.Series(["a", None])) >= 0
 
     def test_column_rule_cannot_be_instantiated_directly(self) -> None:
         with pytest.raises(TypeError):
-            ColumnRule()
+            utils.ColumnRule()
 
 
 class TestNotEmptyRule:
     """Unit tests for NotEmptyRule.count_violations()."""
 
-    def _series(self, data: Sequence[object]) -> pd.Series:
-        return pd.Series(data)
-
     def test_no_violations_for_all_valid(self) -> None:
-        assert NotEmptyRule().count_violations(self._series(["a", "b", "c"])) == 0
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", "b", "c"])) == 0
 
     def test_counts_none_as_violation(self) -> None:
-        assert NotEmptyRule().count_violations(self._series(["a", None, "c"])) == 1
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", None, "c"])) == 1
 
     def test_counts_nan_as_violation(self) -> None:
-        assert NotEmptyRule().count_violations(self._series(["a", np.nan, "c"])) == 1
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", np.nan, "c"])) == 1
 
     def test_counts_empty_string_as_violation(self) -> None:
-        assert NotEmptyRule().count_violations(self._series(["a", "", "c"])) == 1
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", "", "c"])) == 1
 
     def test_counts_whitespace_only_as_violation(self) -> None:
-        assert NotEmptyRule().count_violations(self._series(["a", "   ", "c"])) == 1
+        assert utils.NotEmptyRule().count_violations(pd.Series(["a", "   ", "c"])) == 1
 
     def test_counts_multiple_violations(self) -> None:
         assert (
-            NotEmptyRule().count_violations(self._series(["a", None, "", "   ", "b"]))
+            utils.NotEmptyRule().count_violations(
+                pd.Series(["a", None, "", "   ", "b"])
+            )
             == 3
         )
 
     def test_all_violations(self) -> None:
-        assert NotEmptyRule().count_violations(self._series([None, "", "   "])) == 3
+        assert utils.NotEmptyRule().count_violations(pd.Series([None, "", "   "])) == 3
 
     def test_empty_series(self) -> None:
-        assert NotEmptyRule().count_violations(self._series([])) == 0
+        assert utils.NotEmptyRule().count_violations(pd.Series([])) == 0
 
     def test_value_detail_is_empty_string(self) -> None:
-        assert NotEmptyRule().value_detail == ""
+        assert utils.NotEmptyRule().value_detail == ""
 
 
 class TestMatchesRegexRule:
     """Unit tests for MatchesRegexRule.count_violations()."""
-
-    def _series(self, data: Sequence[object]) -> pd.Series:
-        return pd.Series(data)
 
     @pytest.mark.parametrize("bad_value", [None, "", 123, np.nan])
     def test_raises_when_value_is_invalid(
         self, bad_value: int | str | float | None
     ) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
-            MatchesRegexRule(value=bad_value)
+            utils.MatchesRegexRule(value=bad_value)
 
     def test_raises_when_value_is_invalid_regex(self) -> None:
         with pytest.raises(ValueError, match="valid regex"):
-            MatchesRegexRule(value="[invalid")
+            utils.MatchesRegexRule(value="[invalid")
 
     def test_no_violations_when_all_match(self) -> None:
-        rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", "ENSMUSG002"])) == 0
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(pd.Series(["ENSMUSG001", "ENSMUSG002"])) == 0
 
     def test_counts_non_matching_value(self) -> None:
-        rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", "ENSG002"])) == 1
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(pd.Series(["ENSMUSG001", "ENSG002"])) == 1
 
     def test_counts_all_non_matching(self) -> None:
-        rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSG001", "ENSG002"])) == 2
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(pd.Series(["ENSG001", "ENSG002"])) == 2
 
     def test_skips_none(self) -> None:
         # Nulls are skipped so the rule only validates the format of present values.
-        rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", None])) == 0
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(pd.Series(["ENSMUSG001", None])) == 0
 
     def test_skips_nan(self) -> None:
-        rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", np.nan])) == 0
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(pd.Series(["ENSMUSG001", np.nan])) == 0
 
     def test_counts_empty_string_as_violation(self) -> None:
-        rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["ENSMUSG001", ""])) == 1
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(pd.Series(["ENSMUSG001", ""])) == 1
 
     def test_partial_match_is_violation(self) -> None:
-        rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series(["prefix_ENSMUSG001"])) == 1
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(pd.Series(["prefix_ENSMUSG001"])) == 1
 
     def test_empty_series(self) -> None:
-        rule = MatchesRegexRule(value="^ENSMUSG")
-        assert rule.count_violations(self._series([])) == 0
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
+        assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_pattern(self) -> None:
-        rule = MatchesRegexRule(value="^ENSMUSG")
+        rule = utils.MatchesRegexRule(value="^ENSMUSG")
         assert "^ENSMUSG" in rule.value_detail
 
 
 class TestContainsSubstringRule:
     """Unit tests for ContainsSubstringRule.count_violations()."""
 
-    def _series(self, data: Sequence[object]) -> pd.Series:
-        return pd.Series(data)
-
     @pytest.mark.parametrize("bad_value", [None, np.nan, ""])
     def test_raises_when_value_is_invalid(self, bad_value: str | float | None) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
-            ContainsSubstringRule(value=bad_value)
+            utils.ContainsSubstringRule(value=bad_value)
 
     def test_no_violations_when_all_contain_substring(self) -> None:
-        rule = ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", "world cup"])) == 0
+        rule = utils.ContainsSubstringRule(value="world")
+        assert rule.count_violations(pd.Series(["hello world", "world cup"])) == 0
 
     def test_counts_missing_substring(self) -> None:
-        rule = ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", "goodbye"])) == 1
+        rule = utils.ContainsSubstringRule(value="world")
+        assert rule.count_violations(pd.Series(["hello world", "goodbye"])) == 1
 
     def test_counts_all_missing(self) -> None:
-        rule = ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["foo", "bar"])) == 2
+        rule = utils.ContainsSubstringRule(value="world")
+        assert rule.count_violations(pd.Series(["foo", "bar"])) == 2
 
     def test_counts_none_as_violation(self) -> None:
-        rule = ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", None])) == 1
+        rule = utils.ContainsSubstringRule(value="world")
+        assert rule.count_violations(pd.Series(["hello world", None])) == 1
 
     def test_counts_nan_as_violation(self) -> None:
-        rule = ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", np.nan])) == 1
+        rule = utils.ContainsSubstringRule(value="world")
+        assert rule.count_violations(pd.Series(["hello world", np.nan])) == 1
 
     def test_counts_empty_string_as_violation(self) -> None:
-        rule = ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series(["hello world", ""])) == 1
+        rule = utils.ContainsSubstringRule(value="world")
+        assert rule.count_violations(pd.Series(["hello world", ""])) == 1
 
     def test_counts_non_string_data_as_violations(self) -> None:
-        rule = ContainsSubstringRule(value="world")
+        rule = utils.ContainsSubstringRule(value="world")
         assert (
-            rule.count_violations(self._series(["hello world", "goodbye", 2, 5.555555]))
+            rule.count_violations(pd.Series(["hello world", "goodbye", 2, 5.555555]))
             == 3
         )
 
     def test_value_is_treated_as_literal_not_regex(self) -> None:
-        rule = ContainsSubstringRule(value="-")
-        assert rule.count_violations(self._series(["hello-world", "goodbye"])) == 1
+        rule = utils.ContainsSubstringRule(value="-")
+        assert rule.count_violations(pd.Series(["hello-world", "goodbye"])) == 1
 
     def test_empty_series(self) -> None:
-        rule = ContainsSubstringRule(value="world")
-        assert rule.count_violations(self._series([])) == 0
+        rule = utils.ContainsSubstringRule(value="world")
+        assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_substring(self) -> None:
-        rule = ContainsSubstringRule(value="world")
+        rule = utils.ContainsSubstringRule(value="world")
         assert "world" in rule.value_detail
 
 
 class TestOneOfRule:
     """Unit tests for OneOfRule.count_violations()."""
 
-    def _series(self, data: Sequence[object]) -> pd.Series:
-        return pd.Series(data)
-
     @pytest.mark.parametrize("bad_value", [None, set(), [], {}])
     def test_raises_when_value_is_invalid(self, bad_value: object) -> None:
         with pytest.raises(ValueError, match="requires a non-None"):
-            OneOfRule(value=bad_value)
+            utils.OneOfRule(value=bad_value)
 
     def test_no_violations_when_all_in_set(self) -> None:
-        rule = OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series(["male", "female", "male"])) == 0
+        rule = utils.OneOfRule(value={"male", "female"})
+        assert rule.count_violations(pd.Series(["male", "female", "male"])) == 0
 
     def test_counts_value_not_in_set(self) -> None:
-        rule = OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series(["male", "unknown"])) == 1
+        rule = utils.OneOfRule(value={"male", "female"})
+        assert rule.count_violations(pd.Series(["male", "unknown"])) == 1
 
     def test_counts_all_invalid(self) -> None:
-        rule = OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series(["unknown", "other"])) == 2
+        rule = utils.OneOfRule(value={"male", "female"})
+        assert rule.count_violations(pd.Series(["unknown", "other"])) == 2
 
     def test_counts_none_as_violation(self) -> None:
-        rule = OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series(["male", None])) == 1
+        rule = utils.OneOfRule(value={"male", "female"})
+        assert rule.count_violations(pd.Series(["male", None])) == 1
 
     def test_works_with_list_as_allowed_values(self) -> None:
-        rule = OneOfRule(value=["male", "female"])
-        assert rule.count_violations(self._series(["male", "unknown"])) == 1
+        rule = utils.OneOfRule(value=["male", "female"])
+        assert rule.count_violations(pd.Series(["male", "unknown"])) == 1
 
     def test_empty_series(self) -> None:
-        rule = OneOfRule(value={"male", "female"})
-        assert rule.count_violations(self._series([])) == 0
+        rule = utils.OneOfRule(value={"male", "female"})
+        assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_allowed_values(self) -> None:
-        rule = OneOfRule(value={"male"})
+        rule = utils.OneOfRule(value={"male"})
         assert "male" in rule.value_detail
 
     def test_no_violations_numeric_allowed_values(self) -> None:
-        rule = OneOfRule(value=[1, 2, 3])
-        assert rule.count_violations(self._series([1, 1, 2])) == 0
+        rule = utils.OneOfRule(value=[1, 2, 3])
+        assert rule.count_violations(pd.Series([1, 1, 2])) == 0
 
     def test_no_violations_bool_allowed_values(self) -> None:
-        rule = OneOfRule(value=[True, False])
-        assert rule.count_violations(self._series([True, False, False])) == 0
+        rule = utils.OneOfRule(value=[True, False])
+        assert rule.count_violations(pd.Series([True, False, False])) == 0
 
     def test_no_violations_sentinel_allowed_values(self) -> None:
         # Series.isin matches np.nan to np.nan in the allowed collection (pandas semantics).
-        rule = OneOfRule(value=["", None, [], np.nan])
-        s = self._series(["", "", None, [], np.nan])
+        rule = utils.OneOfRule(value=["", None, [], np.nan])
+        s = pd.Series(["", "", None, [], np.nan])
         assert rule.count_violations(s) == 0
 
     def test_no_violations_mixed_int_and_string_allowed(self) -> None:
-        rule = OneOfRule(value=[2, "2"])
-        assert rule.count_violations(self._series([2, 2, "2"])) == 0
+        rule = utils.OneOfRule(value=[2, "2"])
+        assert rule.count_violations(pd.Series([2, 2, "2"])) == 0
 
     def test_violations_when_numeric_allowed_but_string_in_series(self) -> None:
-        rule = OneOfRule(value=[1, 2])
-        assert rule.count_violations(self._series([1, 1, "2"])) == 1
+        rule = utils.OneOfRule(value=[1, 2])
+        assert rule.count_violations(pd.Series([1, 1, "2"])) == 1
 
     def test_violations_all_strings_when_numeric_allowed(self) -> None:
-        rule = OneOfRule(value=[1, 2])
-        assert rule.count_violations(self._series(["1", "1", "2"])) == 3
+        rule = utils.OneOfRule(value=[1, 2])
+        assert rule.count_violations(pd.Series(["1", "1", "2"])) == 3
 
     def test_bool_and_int_equivalence_with_bool_allowed(self) -> None:
-        rule = OneOfRule(value=[True, False])
-        s = self._series([True, 1, False, 0])
+        rule = utils.OneOfRule(value=[True, False])
+        s = pd.Series([True, 1, False, 0])
         assert rule.count_violations(s) == 0
 
     def test_bool_and_int_equivalence_with_int_allowed(self) -> None:
-        rule = OneOfRule(value=[0, 1])
-        s = self._series([True, 1, False, 0])
+        rule = utils.OneOfRule(value=[0, 1])
+        s = pd.Series([True, 1, False, 0])
         assert rule.count_violations(s) == 0
+
+
+class TestNumericRule:
+    """Unit tests for NumericRule.count_violations()."""
+
+    def test_no_violations_for_all_numeric(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, 2.5, 3])) == 0
+
+    def test_no_violations_for_numeric_strings(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series(["6", "9.9"])) == 0
+
+    def test_counts_non_numeric_string(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, "abc", 3])) == 1
+
+    def test_counts_all_non_numeric(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series(["a", "b"])) == 2
+
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the type of present values.
+        assert utils.NumericRule().count_violations(pd.Series([1, None, 3])) == 0
+
+    def test_skips_nan(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([1, np.nan, 3])) == 0
+
+    def test_empty_series(self) -> None:
+        assert utils.NumericRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.NumericRule().value_detail == ""
+
+
+class TestNonNegativeRule:
+    """Unit tests for NonNegativeRule.count_violations()."""
+
+    def test_no_violations_for_all_positive(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, 2.5, 3])) == 0
+
+    def test_no_violations_for_zero(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([0, 0.0])) == 0
+
+    def test_counts_negative(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, -2.5, 3])) == 1
+
+    def test_counts_all_negative(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([-1, -2])) == 2
+
+    def test_counts_negative_numeric_string(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series(["6", "-9.9"])) == 1
+
+    def test_skips_non_numeric(self) -> None:
+        # Unparseable values are NumericRule's job, so a single bad cell isn't
+        # counted as two violations.
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, "abc", -3])) == 1
+
+    def test_skips_none(self) -> None:
+        # Nulls are skipped so the rule only validates the sign of present values.
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, None, 3])) == 0
+
+    def test_skips_nan(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([1, np.nan, 3])) == 0
+
+    def test_empty_series(self) -> None:
+        assert utils.NonNegativeRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.NonNegativeRule().value_detail == ""
+
+
+class TestUniqueRule:
+    """Unit tests for UniqueRule.count_violations()."""
+
+    def test_no_violations_for_distinct_values(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series(["a", "b", "c"])) == 0
+
+    def test_counts_every_row_of_a_duplicate_group(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series(["a", "a", "b"])) == 2
+
+    def test_counts_each_duplicate_group_separately(self) -> None:
+        s = pd.Series(["a", "a", "b", "b", "b", "c"])
+        assert utils.UniqueRule().count_violations(s) == 5
+
+    def test_skips_repeated_nulls(self) -> None:
+        # pandas treats null as equal to null, so skipping nulls is what keeps a second
+        # blank row from being reported as a duplicate of the first. Both nulls must be nan
+        # rather than one None and one nan: in an object column those are distinct objects,
+        # so a mixed pair is not a duplicate even without the null filter and would pass
+        # against a broken implementation. read_csv yields the matching-nan shape.
+        s = pd.Series(["a", np.nan, np.nan, "b"])
+        assert utils.UniqueRule().count_violations(s) == 0
+
+    def test_counts_duplicates_alongside_nulls(self) -> None:
+        # Only the real duplicate counts; the repeated nulls do not add to it.
+        s = pd.Series(["a", "a", np.nan, np.nan])
+        assert utils.UniqueRule().count_violations(s) == 2
+
+    def test_does_not_skip_repeated_empty_strings(self) -> None:
+        # Blanks are NotEmptyRule's job; this rule only exempts true nulls.
+        assert utils.UniqueRule().count_violations(pd.Series(["", "", "a"])) == 2
+
+    def test_counts_duplicate_numeric_values(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series([1, 2, 1])) == 2
+
+    def test_empty_series(self) -> None:
+        assert utils.UniqueRule().count_violations(pd.Series([])) == 0
+
+    def test_value_detail_is_empty_string(self) -> None:
+        assert utils.UniqueRule().value_detail == ""
 
 
 class TestCheckColumnRules:
@@ -983,23 +1207,23 @@ class TestCheckColumnRules:
     @pytest.mark.parametrize(
         "col_data, rule",
         [
-            (["a", "b", "c"], NotEmptyRule()),
+            (["a", "b", "c"], utils.NotEmptyRule()),
             (
                 ["ENSMUSG001", "ENSMUSG002"],
-                MatchesRegexRule(value="^ENSMUSG"),
+                utils.MatchesRegexRule(value="^ENSMUSG"),
             ),
             (
                 ["hello world", "world cup"],
-                ContainsSubstringRule(value="world"),
+                utils.ContainsSubstringRule(value="world"),
             ),
             (
                 ["male", "female", "male"],
-                OneOfRule(value={"male", "female"}),
+                utils.OneOfRule(value={"male", "female"}),
             ),
         ],
     )
     def test_rule_passes_for_all_valid_values(
-        self, col_data: list[Any], rule: ColumnRule
+        self, col_data: list[Any], rule: utils.ColumnRule
     ) -> None:
         datasets = self._make_datasets({"col": col_data})
         utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
@@ -1010,45 +1234,45 @@ class TestCheckColumnRules:
     ) -> None:
         datasets = self._make_datasets({"col": ["a", bad_value, "c"]})
         with pytest.raises(ValueError, match="col.*not_empty"):
-            utils.check_column_rules(datasets, {"ds": {"col": [NotEmptyRule()]}})
+            utils.check_column_rules(datasets, {"ds": {"col": [utils.NotEmptyRule()]}})
 
     @pytest.mark.parametrize(
         "col_data, rule, match_pattern",
         [
             (
                 ["ENSMUSG001", "ENSG002", "ENSG003"],
-                MatchesRegexRule(value="^ENSMUSG"),
+                utils.MatchesRegexRule(value="^ENSMUSG"),
                 r"2 row\(s\).*matches_regex.*\^ENSMUSG",
             ),
             (
                 ["hello world", "goodbye"],
-                ContainsSubstringRule(value="world"),
+                utils.ContainsSubstringRule(value="world"),
                 r"1 row\(s\).*contains_substring.*world",
             ),
             (
                 ["hello world", "goodbye", "adieu", "farewell"],
-                ContainsSubstringRule(value="world"),
+                utils.ContainsSubstringRule(value="world"),
                 r"3 row\(s\).*contains_substring.*world",
             ),
             (
                 ["male", "female", "unknown", "other"],
-                OneOfRule(value={"male", "female"}),
+                utils.OneOfRule(value={"male", "female"}),
                 r"2 row\(s\).*one_of",
             ),
             (
                 ["valid", None, ""],
-                NotEmptyRule(),
+                utils.NotEmptyRule(),
                 r"2 row\(s\).*not_empty",
             ),
             (
                 ["valid", None, "", "   ", "also valid"],
-                NotEmptyRule(),
+                utils.NotEmptyRule(),
                 r"3 row\(s\).*not_empty",
             ),
         ],
     )
     def test_rule_raises_with_correct_count(
-        self, col_data: list[Any], rule: ColumnRule, match_pattern: str
+        self, col_data: list[Any], rule: utils.ColumnRule, match_pattern: str
     ) -> None:
         datasets = self._make_datasets({"col": col_data})
         with pytest.raises(ValueError, match=match_pattern):
@@ -1057,11 +1281,11 @@ class TestCheckColumnRules:
     @pytest.mark.parametrize(
         "good_value, rule",
         [
-            ("hello world", ContainsSubstringRule(value="world")),
+            ("hello world", utils.ContainsSubstringRule(value="world")),
         ],
     )
     def test_rule_treats_null_as_violation(
-        self, good_value: str, rule: ColumnRule
+        self, good_value: str, rule: utils.ColumnRule
     ) -> None:
         datasets = self._make_datasets({"col": [good_value, None]})
         with pytest.raises(ValueError, match=rule.rule):
@@ -1071,7 +1295,7 @@ class TestCheckColumnRules:
         # MatchesRegexRule only validates present values; nulls are not violations.
         datasets = self._make_datasets({"col": ["ENSMUSG001", None]})
         utils.check_column_rules(
-            datasets, {"ds": {"col": [MatchesRegexRule(value="^ENSMUSG")]}}
+            datasets, {"ds": {"col": [utils.MatchesRegexRule(value="^ENSMUSG")]}}
         )
 
     def test_all_violations_collected_in_single_error(self) -> None:
@@ -1080,8 +1304,8 @@ class TestCheckColumnRules:
             "ds2": pd.DataFrame({"col_b": ["ENSG001", "ENSG002"]}),
         }
         column_rules = {
-            "ds1": {"col_a": [NotEmptyRule()]},
-            "ds2": {"col_b": [MatchesRegexRule(value="^ENSMUSG")]},
+            "ds1": {"col_a": [utils.NotEmptyRule()]},
+            "ds2": {"col_b": [utils.MatchesRegexRule(value="^ENSMUSG")]},
         }
         with pytest.raises(ValueError) as exc_info:
             utils.check_column_rules(datasets, column_rules)
@@ -1093,7 +1317,7 @@ class TestCheckColumnRules:
         datasets = {"ds": pd.DataFrame({"col": ["a"]})}
         utils.check_column_rules(
             datasets,
-            {"nonexistent_ds": {"col": [NotEmptyRule()]}},
+            {"nonexistent_ds": {"col": [utils.NotEmptyRule()]}},
         )
 
     def test_missing_column_in_rules_reports_violation(self) -> None:
@@ -1101,12 +1325,12 @@ class TestCheckColumnRules:
         with pytest.raises(ValueError, match="does not exist"):
             utils.check_column_rules(
                 datasets,
-                {"ds": {"missing_col": [NotEmptyRule()]}},
+                {"ds": {"missing_col": [utils.NotEmptyRule()]}},
             )
 
     @pytest.mark.parametrize(
         "rule_class",
-        [MatchesRegexRule, ContainsSubstringRule, OneOfRule],
+        [utils.MatchesRegexRule, utils.ContainsSubstringRule, utils.OneOfRule],
     )
     def test_value_required_rule_raises_when_value_is_none(
         self, rule_class: RuleClassWithValueArg
@@ -1182,6 +1406,83 @@ class TestValidateOneToOneMapping:
         )
         with pytest.raises(ValueError, match="common_name.*multiple chembl_id values"):
             utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
+
+
+class TestRaiseOnDuplicateKeys:
+    """Tests for raise_on_duplicate_keys()."""
+
+    def test_raises_when_keys_repeat(self) -> None:
+        """Repeated key tuples are reported, and rows that differ only outside the keys still conflict."""
+        df = pd.DataFrame({"a": [1, 1, 2], "b": ["x", "x", "y"], "c": [0, 1, 2]})
+
+        with pytest.raises(
+            ValueError, match=r"shared key \(first 10\): \[\(1, 'x'\)\]"
+        ):
+            utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_does_not_raise_when_keys_are_unique(self) -> None:
+        """Distinct keys are not an error, even when another column repeats."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "x"]})
+
+        utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_raises_when_keys_are_empty(self) -> None:
+        """Empty keys are not allowed, regardless of the data in the DataFrame."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "y"]})
+
+        with pytest.raises(ValueError, match="not enough values to unpack"):
+            utils.raise_on_duplicate_keys(df, [], "shared key")
+
+    def test_does_not_raise_when_dataframe_is_empty(self) -> None:
+        """An empty DataFrame shouldn't raise an error as long as it has the required columns."""
+        df = pd.DataFrame(columns=["a", "b"])
+
+        utils.raise_on_duplicate_keys(df, ["a", "b"], "shared key")
+
+    def test_raises_when_dataframe_is_missing_columns_in_keys(self) -> None:
+        """A DataFrame missing columns specified in keys should raise an error."""
+        df = pd.DataFrame({"a": [1, 2], "b": ["x", "x"]})
+
+        with pytest.raises(KeyError, match="\\['c'\\]"):
+            utils.raise_on_duplicate_keys(df, ["a", "b", "c"], "shared key")
+
+
+class TestValidateReferencesExist:
+    """Tests for validate_references_exist()."""
+
+    def test_passes_when_every_reference_is_present(self) -> None:
+        utils.validate_references_exist(
+            ["Presenilin1", "WT"],
+            ["WT", "Presenilin1", "APP"],
+            source_name="marmo_genotype_label_map",
+            target_name="marmo_model_metadata",
+            item_name="models",
+        )
+
+    def test_raises_when_a_reference_is_missing(self) -> None:
+        with pytest.raises(
+            ValueError,
+            match=(
+                "marmo_genotype_label_map references models that are not present in "
+                r"marmo_model_metadata: \['APP'\]"
+            ),
+        ):
+            utils.validate_references_exist(
+                ["Presenilin1", "APP"],
+                ["Presenilin1"],
+                source_name="marmo_genotype_label_map",
+                target_name="marmo_model_metadata",
+                item_name="models",
+            )
+
+    def test_passes_when_both_sides_are_empty(self) -> None:
+        utils.validate_references_exist(
+            [],
+            [],
+            source_name="source",
+            target_name="target",
+            item_name="values",
+        )
 
 
 class TestFlattenList:
@@ -1344,8 +1645,8 @@ class TestNormalizeNullValues:
                 "string2": [np.nan] * 5,
                 "numeric1": [123, np.nan, np.nan, np.nan, np.nan],
                 "numeric2": [np.nan] * 5,
-                "extra1": ["abc", "def", None, np.nan, pd.NA],
-                "extra2": [pd.NA] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], None, np.nan],
+                "list2": [pd.NA] * 5,
             }
         )
 
@@ -1365,15 +1666,18 @@ class TestNormalizeNullValues:
                 "string2": [None] * 5,
                 "numeric1": [123, None, None, None, None],
                 "numeric2": [None] * 5,
-                "extra1": ["abc", "def", None, None, None],
-                "extra2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], None, None],
+                "list2": [None] * 5,
             },
             dtype="O",
         )
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        # pd.testing.assert_frame_equal treats None, np.nan, and pd.NA as equivalent, so we use np.array_equal to verify
+        # that the missing values are correctly set to None in the output data frame.
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_only_boolean_columns(
+    def test_normalize_null_values_with_boolean_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
@@ -1392,21 +1696,22 @@ class TestNormalizeNullValues:
                 "string2": [None] * 5,
                 "numeric1": [123, None, None, None, None],
                 "numeric2": [None] * 5,
-                "extra1": ["abc", "def", None, None, None],
-                "extra2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], None, None],
+                "list2": [None] * 5,
             },
             dtype="O",
         )
         expected_output["bool1"] = expected_output["bool1"].astype(bool)
         expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_only_string_columns(
+    def test_normalize_null_values_with_string_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values correctly normalizes null values when only string_columns is defined.
+        Test that normalize_null_values correctly normalizes null values when only empty_string_columns is defined.
         """
         output = utils.normalize_null_values(
             test_data_frame,
@@ -1421,24 +1726,88 @@ class TestNormalizeNullValues:
                 "string2": [""] * 5,
                 "numeric1": [123, None, None, None, None],
                 "numeric2": [None] * 5,
-                "extra1": ["abc", "def", None, None, None],
-                "extra2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], None, None],
+                "list2": [None] * 5,
             },
             dtype="O",
         )
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
-    def test_normalize_null_values_with_all_column_types_defined(
+    def test_normalize_null_values_with_list_columns(
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values correctly normalizes null values when both *_columns arguments are defined.
+        Test that normalize_null_values correctly normalizes null values when only empty_list_columns is defined.
+        """
+        output = utils.normalize_null_values(
+            test_data_frame,
+            empty_list_columns=["list1", "list2"],
+        )
+
+        expected_output = pd.DataFrame(
+            {
+                "bool1": [True, False, None, None, None],
+                "bool2": [None] * 5,
+                "string1": ["abc", None, "", None, None],
+                "string2": [None] * 5,
+                "numeric1": [123, None, None, None, None],
+                "numeric2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], [], []],
+                "list2": [[], [], [], [], []],
+            },
+            dtype="O",
+        )
+
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
+
+    def test_normalize_null_values_with_ndarray(self) -> None:
+        """
+        Test that normalize_null_values correctly normalizes null values to empty lists when columns contain ndarrays.
+        Arrays are initialized with np.array() but are of type np.ndarray.
+        """
+        test_data_frame = pd.DataFrame(
+            {
+                "list1": [np.array([1, 2, 3]), np.array(["a", "b", "c"]), None],
+                "list2": [np.array([], dtype=object), pd.NA, np.nan],
+            },
+            dtype="O",
+        )
+
+        output = utils.normalize_null_values(
+            test_data_frame,
+            empty_list_columns=["list1", "list2"],
+        )
+
+        expected_output = pd.DataFrame(
+            {
+                "list1": [np.array([1, 2, 3]), np.array(["a", "b", "c"]), []],
+                "list2": [np.array([], dtype=object), [], []],
+            },
+            dtype="O",
+        )
+
+        for col in expected_output.columns:
+            # Need to check row-by-row because np.array_equal can not compare an array of ndarrays.
+            for output_row, expected_row in zip(
+                output[col].values, expected_output[col].values
+            ):
+                assert np.array_equal(output_row, expected_row)
+
+    def test_normalize_null_values_passes_with_non_overlapping_column_names(
+        self, test_data_frame: pd.DataFrame
+    ) -> None:
+        """
+        Test that normalize_null_values correctly verifies that there are no overlaps between the *_column lists when
+        all three lists are passed to the function.
         """
         output = utils.normalize_null_values(
             test_data_frame,
             boolean_columns=["bool1", "bool2"],
             empty_string_columns=["string1", "string2"],
+            empty_list_columns=["list1", "list2"],
         )
 
         expected_output = pd.DataFrame(
@@ -1449,15 +1818,16 @@ class TestNormalizeNullValues:
                 "string2": [""] * 5,
                 "numeric1": [123, None, None, None, None],
                 "numeric2": [None] * 5,
-                "extra1": ["abc", "def", None, None, None],
-                "extra2": [None] * 5,
+                "list1": [["abc", "def"], [1, 2, 3], [], [], []],
+                "list2": [[], [], [], [], []],
             },
             dtype="O",
         )
         expected_output["bool1"] = expected_output["bool1"].astype(bool)
         expected_output["bool2"] = expected_output["bool2"].astype(bool)
 
-        pd.testing.assert_frame_equal(output, expected_output)
+        for col in expected_output.columns:
+            assert np.array_equal(output[col].values, expected_output[col].values)
 
     def test_normalize_null_values_with_empty_data_frame(self) -> None:
         """
@@ -1478,17 +1848,34 @@ class TestNormalizeNullValues:
         self, test_data_frame: pd.DataFrame
     ) -> None:
         """
-        Test that normalize_null_values raises a ValueError when boolean_column or empty_string_column values don't
-        exist in the data frame.
+        Test that normalize_null_values raises a ValueError when boolean_column, empty_string_column, or
+        empty_list_column values don't exist in the data frame.
         """
         with pytest.raises(
             ValueError,
-            match="Columns \\['bool_x', 'string_x'\\] do not exist in the DataFrame",
+            match="Columns \\['bool_x', 'bool_y'\\] from 'boolean_columns' do not exist in the DataFrame",
         ):
             utils.normalize_null_values(
                 test_data_frame,
-                boolean_columns=["bool1", "bool_x"],
-                empty_string_columns=["string1", "string_x"],
+                boolean_columns=["bool1", "bool_y", "bool_x"],
+            )
+
+        with pytest.raises(
+            ValueError,
+            match="Columns \\['string_x', 'string_y'\\] from 'empty_string_columns' do not exist in the DataFrame",
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_string_columns=["string1", "string_y", "string_x"],
+            )
+
+        with pytest.raises(
+            ValueError,
+            match="Columns \\['list_x', 'list_y'\\] from 'empty_list_columns' do not exist in the DataFrame",
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_list_columns=["list1", "list_y", "list_x"],
             )
 
     def test_normalize_null_values_fails_with_overlapping_columns(
@@ -1504,6 +1891,24 @@ class TestNormalizeNullValues:
                 test_data_frame,
                 boolean_columns=["bool1", "bool2", "string2"],
                 empty_string_columns=["string1", "string2", "bool1"],
+            )
+
+        with pytest.raises(
+            ValueError, match="Columns \\['bool1', 'list2'\\] appear in both"
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                boolean_columns=["bool1", "bool2", "list2"],
+                empty_list_columns=["list1", "list2", "bool1"],
+            )
+
+        with pytest.raises(
+            ValueError, match="Columns \\['list1', 'string2'\\] appear in both"
+        ):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_string_columns=["string1", "string2", "list1"],
+                empty_list_columns=["list1", "list2", "string2"],
             )
 
     @pytest.mark.parametrize(
@@ -1523,7 +1928,7 @@ class TestNormalizeNullValues:
         """
         Test that normalize_null_values raises a TypeError when the df argument is not a DataFrame.
         """
-        with pytest.raises(TypeError, match="Input must be a pandas DataFrame"):
+        with pytest.raises(TypeError, match="'df' must be a pandas DataFrame"):
             utils.normalize_null_values(df_value)
 
     @pytest.mark.parametrize(
@@ -1543,16 +1948,22 @@ class TestNormalizeNullValues:
         """
         Test that normalize_null_values raises a TypeError when *_columns arguments are not lists.
         """
-        with pytest.raises(TypeError, match="boolean_columns must be a list"):
+        with pytest.raises(TypeError, match="'boolean_columns' must be a list"):
             utils.normalize_null_values(
                 test_data_frame,
                 boolean_columns=column_value,
             )
 
-        with pytest.raises(TypeError, match="empty_string_columns must be a list"):
+        with pytest.raises(TypeError, match="'empty_string_columns' must be a list"):
             utils.normalize_null_values(
                 test_data_frame,
                 empty_string_columns=column_value,
+            )
+
+        with pytest.raises(TypeError, match="'empty_list_columns' must be a list"):
+            utils.normalize_null_values(
+                test_data_frame,
+                empty_list_columns=column_value,
             )
 
 
@@ -1638,3 +2049,336 @@ class TestDelimStringToList:
         """
         with pytest.raises(TypeError, match="Delimiter must be a string"):
             utils.delim_string_to_list(input_string, delimiter)
+
+
+class TestYAxisMaxByGroups:
+    """Tests for y_axis_max_by_groups."""
+
+    _GROUP_COLS = ["name", "evidence_type", "tissue"]
+
+    def test_multi_column_keys(self) -> None:
+        """Several group columns produce tuple keys, as immunohisto uses."""
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1", "Model2", "Model2"],
+                "evidence_type": ["Type1", "Type1", "Type2", "Type2"],
+                "tissue": ["Tissue1", "Tissue1", "Tissue2", "Tissue2"],
+                "age": ["6 months", "12 months", "6 months", "12 months"],
+                "value": [1.0, 3.0, 2.0, 5.0],
+                "units": ["mg", "mg", "mg", "mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {
+            ("Model1", "Type1", "Tissue1"): 3.5,
+            ("Model2", "Type2", "Tissue2"): 5.5,
+        }
+
+    def test_single_column_keys(self) -> None:
+        """One group column produces scalar keys so the result can map onto a Series."""
+        dataset = pd.DataFrame(
+            {
+                "evidence_type": ["Type1", "Type1", "Type2"],
+                "value": [1.0, 3.0, 5.0],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, "evidence_type")
+
+        assert result == {"Type1": 3.5, "Type2": 5.5}
+
+    def test_single_group(self) -> None:
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1"],
+                "evidence_type": ["Type1"],
+                "tissue": ["Tissue1"],
+                "age": ["6 months"],
+                "value": [1.0],
+                "units": ["mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {("Model1", "Type1", "Tissue1"): 1.5}
+
+    def test_non_numeric_values_are_coerced(self) -> None:
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months"],
+                "value": ["1.0", "invalid"],
+                "units": ["mg", "mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {("Model1", "Type1", "Tissue1"): 1.5}
+
+    def test_all_invalid_values_default_to_ten(self) -> None:
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months"],
+                "value": ["invalid1", "invalid2"],
+                "units": ["mg", "mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {("Model1", "Type1", "Tissue1"): 10.0}
+
+    def test_mixed_data_types(self) -> None:
+        dataset = pd.DataFrame(
+            {
+                "name": ["Model1", "Model1", "Model1"],
+                "evidence_type": ["Type1", "Type1", "Type1"],
+                "tissue": ["Tissue1", "Tissue1", "Tissue1"],
+                "age": ["6 months", "12 months", "18 months"],
+                "value": [1.0, "2.5", 3.0],
+                "units": ["mg", "mg", "mg"],
+            }
+        )
+
+        result = utils.y_axis_max_by_groups(dataset, self._GROUP_COLS)
+
+        assert result == {("Model1", "Type1", "Tissue1"): 3.5}
+
+
+class TestRoundYAxisMax:
+    """Test class for the round_y_axis_max function."""
+
+    def test_round_y_axis_max_zero_case(self) -> None:
+        """
+        Test that 0 returns 10.
+
+        Zero is a special case that defaults to 10.0 for visualization purposes.
+        """
+        result = utils.round_y_axis_max(0)
+        assert result == pytest.approx(10.0)
+
+    def test_round_y_axis_max_negative_case(self) -> None:
+        """
+        Test that negative values return 0.
+
+        Negative values are not expected in the data and default to 0.0.
+        """
+        result = utils.round_y_axis_max(-5.0)
+        assert result == pytest.approx(0.0)
+
+    def test_round_y_axis_max_edge_cases(self) -> None:
+        """
+        Test edge cases and boundary conditions.
+
+        Tests very small numbers, "nice" numbers that still need rounding up,
+        and large numbers to ensure the algorithm works across all scales.
+        """
+        # Test very small numbers
+        assert abs(utils.round_y_axis_max(0.0001) - 0.00015) < 1e-6
+        assert abs(utils.round_y_axis_max(0.00001) - 0.000015) < 1e-6
+
+        # Test numbers that are already "nice"
+        assert utils.round_y_axis_max(1.0) == pytest.approx(
+            1.5
+        )  # Should round up to next nice number
+        assert utils.round_y_axis_max(1.5) == pytest.approx(
+            2.0
+        )  # According to JIRA instructions, always round UP to next 5 or 0
+        assert utils.round_y_axis_max(2.0) == pytest.approx(
+            2.5
+        )  # Should round up to next nice number
+
+        # Test large numbers
+        assert utils.round_y_axis_max(1000000) == pytest.approx(1500000)
+        assert utils.round_y_axis_max(5000000) == pytest.approx(
+            5500000
+        )  # 5.0 -> 5.5, not next magnitude
+
+    def test_round_y_axis_max_second_digit_logic(self) -> None:
+        """
+        Test the second digit rounding logic specifically.
+
+        Validates that numbers are always rounded UP to the next value where
+        the second significant digit is 0 or 5.
+        """
+        # Second digit 0-2 should round to 0 (but we round UP, so to 5)
+        assert utils.round_y_axis_max(1.0) == pytest.approx(1.5)
+        assert utils.round_y_axis_max(1.1) == pytest.approx(1.5)
+        assert utils.round_y_axis_max(1.2) == pytest.approx(1.5)
+
+        # Second digit 3-7 should round to 5
+        assert utils.round_y_axis_max(1.3) == pytest.approx(1.5)
+        assert utils.round_y_axis_max(1.4) == pytest.approx(1.5)
+        assert utils.round_y_axis_max(1.5) == pytest.approx(2.0)
+        assert utils.round_y_axis_max(1.6) == pytest.approx(2.0)
+        assert utils.round_y_axis_max(1.7) == pytest.approx(2.0)
+
+        # Second digit 8-9 should round to next first digit with 0
+        assert utils.round_y_axis_max(1.8) == pytest.approx(2.0)
+        assert utils.round_y_axis_max(1.9) == pytest.approx(2.0)
+
+    def test_round_y_axis_max_magnitude_handling(self) -> None:
+        """
+        Test that the function handles different magnitudes correctly.
+
+        Ensures consistent rounding behavior across different orders of magnitude
+        (0.1, 1, 10, 100, 1000, etc.).
+        """
+        # Test different magnitudes with same pattern
+        assert abs(utils.round_y_axis_max(0.1) - 0.15) < 1e-6
+        assert utils.round_y_axis_max(1.0) == pytest.approx(1.5)
+        assert utils.round_y_axis_max(10.0) == pytest.approx(15.0)
+        assert utils.round_y_axis_max(100.0) == pytest.approx(150.0)
+        assert utils.round_y_axis_max(1000.0) == pytest.approx(1500.0)
+
+    def test_round_y_axis_max_floating_point_precision(self) -> None:
+        """
+        Test that floating point precision issues are handled correctly.
+
+        Verifies that common floating point arithmetic issues (like 0.1 + 0.2)
+        don't cause incorrect rounding results.
+        """
+        # Test numbers that might have floating point precision issues
+        assert (
+            abs(utils.round_y_axis_max(0.1 + 0.2) - 0.35) < 1e-6
+        )  # 0.30000000000000004 -> 0.35
+        assert (
+            abs(utils.round_y_axis_max(1.0 / 3.0) - 0.35) < 1e-6
+        )  # 0.3333333333333333 -> 0.35
+        assert (
+            abs(utils.round_y_axis_max(2.0 / 3.0) - 0.7) < 1e-6
+        )  # 0.6666666666666666 -> 0.7
+
+    def test_round_y_axis_max_return_type(self) -> None:
+        """
+        Test that the function returns a float.
+
+        Ensures the return type is always float, even for integer inputs.
+        """
+        result = utils.round_y_axis_max(1.5)
+        assert isinstance(result, float)
+
+    def test_round_y_axis_max_consistency(self) -> None:
+        """
+        Test that the function is consistent across multiple calls.
+
+        Verifies that calling the function multiple times with the same input
+        always produces the same output.
+        """
+        test_values = [0.0021, 1094, 1.616, 0.0, 0.089]
+
+        for value in test_values:
+            result1 = utils.round_y_axis_max(value)
+            result2 = utils.round_y_axis_max(value)
+            assert (
+                result1 == result2
+            ), f"Inconsistent results for {value}: {result1} vs {result2}"
+
+    def test_round_y_axis_max_monotonicity(self) -> None:
+        """
+        Test that the function maintains monotonicity.
+
+        Ensures that larger inputs always produce larger or equal outputs,
+        which is critical for proper data visualization scaling.
+        """
+        test_values = [0.001, 0.002, 0.003, 0.004, 0.005]
+        results = [utils.round_y_axis_max(val) for val in test_values]
+
+        # Results should be non-decreasing
+        for i in range(1, len(results)):
+            assert (
+                results[i] >= results[i - 1]
+            ), f"Non-monotonic: {test_values[i-1]} -> {results[i-1]}, {test_values[i]} -> {results[i]}"
+
+    @pytest.mark.parametrize(
+        "input_val,expected",
+        [
+            (0, 10.0),
+            (-1, 0.0),
+            (0.0021, 0.0025),
+            (0.0004, 0.00045),
+            (0.329486078, 0.35),
+            (0.089, 0.090),
+            (1094, 1500),
+            (1322498, 1500000),
+            (728591, 750000),
+            (3973, 4000),
+            (1.616, 2.0),
+        ],
+    )
+    def test_round_y_axis_max_parametrized(
+        self, input_val: float, expected: float
+    ) -> None:
+        """
+        Parametrized test for the main examples.
+
+        Comprehensive parametrized test covering all key test cases including
+        zero, negative, and various positive values from the JIRA specification.
+
+        Args:
+            input_val: Input value to test
+            expected: Expected rounded output
+        """
+        result = utils.round_y_axis_max(input_val)
+        assert (
+            abs(result - expected) < 1e-6
+        ), f"input={input_val}, expected={expected}, got={result}"
+
+    def test_round_y_axis_max_string_inputs(self) -> None:
+        """
+        Test that string inputs are properly converted and handled.
+
+        Validates that the function accepts string inputs (per type signature)
+        and properly converts valid numeric strings or returns 10.0 for invalid ones.
+        """
+        # Valid string numbers
+        assert abs(utils.round_y_axis_max("1.5") - 2.0) < 1e-6
+        assert abs(utils.round_y_axis_max("100") - 150.0) < 1e-6
+        assert abs(utils.round_y_axis_max("0.0021") - 0.0025) < 1e-6
+
+        # Invalid string (should return 10.0)
+        assert utils.round_y_axis_max("invalid") == pytest.approx(10.0)
+        assert utils.round_y_axis_max("abc123") == pytest.approx(10.0)
+        assert utils.round_y_axis_max("") == pytest.approx(10.0)
+
+
+@pytest.mark.parametrize(
+    "syn_id, expected",
+    [
+        pytest.param("syn123", ("syn123", None), id="no_version_suffix"),
+        pytest.param("syn123.4", ("syn123", 4), id="with_version_suffix"),
+        pytest.param(
+            "syn123.4.5",
+            ("syn123", 4),
+            id="extra_dot_segments_beyond_version_are_ignored",
+        ),
+    ],
+)
+def test_parse_synapse_id_version(
+    syn_id: str, expected: tuple[str, int | None]
+) -> None:
+    assert utils.parse_synapse_id_version(syn_id) == expected
+
+
+@pytest.mark.parametrize(
+    "syn_id",
+    [
+        pytest.param(".4", id="no_syn_id_with_version_suffix"),
+        pytest.param("", id="empty_string"),
+        pytest.param(".", id="only_period"),
+        pytest.param("syn123.", id="period_with_no_version"),
+        pytest.param("syn123.bad", id="non_integer_version"),
+    ],
+)
+def test_parse_synapse_id_version_raises_on_malformed_id(syn_id: str) -> None:
+    with pytest.raises(ValueError):
+        utils.parse_synapse_id_version(syn_id)

@@ -18,7 +18,7 @@ This transform serves to:
 
 The transform requires three types of input:
 
-### 1. `rnaseq_genotype_label_map`
+### 1. `genotype_label_map`
 **Required columns:**
 - `model`: Model name (e.g., "5XFAD (UCI)", "Jax.IU.Pitt_APOE4")
 - `genotype`: Genotype identifier in the data (e.g., "5XFAD_carrier", "APOE4_carrier")
@@ -39,8 +39,8 @@ The transform requires three types of input:
 **Required columns** (defined by the `DATA_FILE_REQUIRED_COLUMNS` module constant):
 - `ensembl_gene_id`: Ensembl gene identifier
 - `expression`: Normalized expression value (Log2 Counts per Million)
-- `model`: Model name (must match values in rnaseq_genotype_label_map)
-- `genotype`: Genotype identifier (must match values in rnaseq_genotype_label_map)
+- `model`: Model name (must match values in genotype_label_map)
+- `genotype`: Genotype identifier (must match values in genotype_label_map)
 - `age`: Age timepoint as string (e.g., "3 months", "6 months")
 - `sex`: Sex identifier (e.g., "Male", "Female")
 - `tissue`: Tissue name (e.g., "Right Cerebral Hemisphere", "hippocampus")
@@ -53,12 +53,12 @@ The transform requires three types of input:
 ### Step 1: Metadata Preparation
 
 1. **Genotype Label Map Preparation**
-   - Copies `rnaseq_genotype_label_map` and casts `result_order` to `int`
+   - Copies `genotype_label_map` and casts `result_order` to `int`
    - Column value validation (non-empty required fields) is enforced by `check_column_rules` before this step
    - **Purpose:** Produces the label map DataFrame used for genotype enrichment
 
 2. **Gene Metadata Dictionary Creation** (`create_gene_metadata_dict`)
-   - Imported from `rna_de_individual_utils` module
+   - Imported from `model_ad_expression_utils` module
    - Maps Ensembl gene IDs to gene symbols
    - **Purpose:** Enriches output with human-readable gene names
 
@@ -79,7 +79,7 @@ Applied to each file individually before it is combined within its group:
 - **Empty file validation:** Raises error if file is empty
 - **Column validation:** Checks all required columns are present (defined by `DATA_FILE_REQUIRED_COLUMNS`)
 - **Gene filtering:** Filters to mouse genes only (keeps `ENSMUSG*`, removes `ENSG*`)
-- **Tissue name mapping:** Replaces `"Right Cerebral Hemisphere"` with `"Hemibrain"` and converts all tissue names to sentence case (e.g., `"hippocampus"` → `"Hippocampus"`). To add a new multi-word mapping, add another `.str.replace()` call to the chain in `preprocess_data_file`.
+- **Tissue name mapping:** Maps `"Right Cerebral Hemisphere"` to `"Hemibrain"`, matching case-insensitively. Any other tissue passes through unchanged apart from surrounding whitespace. To add a mapping, add an entry to `TISSUE_ALIASES` in `model_ad_expression_utils.py`; `protein_de_individual` shares the same table.
 - **Type casting:** Casts `expression` to `float` (guards against string-typed columns from some CSV readers) and casts `individualid` to `str` for consistent identifier handling
 - **Numeric rounding:** Rounds all numeric columns to 5 decimal places (runs after the `expression` cast so the round is guaranteed to apply)
 
@@ -106,14 +106,14 @@ After preprocessing and concatenation, the individual transform applies its spec
 - Those rows are removed with `dropna(subset=["result_order"])`
 - **Purpose:** Ensures only genotype combinations that exist in the label map are processed
 - **Example:** If model_group "5XFAD" has genotypes ["5XFAD_carrier", "5XFAD_noncarrier"], any rows with a different genotype receive NA for `result_order` and are dropped
-- **All-rows-filtered case:** If every row is dropped (i.e., no genotype in the file matched the label map at all), a `ValueError` is raised. This strongly indicates either the wrong file was provided or the label map is missing entries for the model — silently producing empty output could mask a data pipeline misconfiguration. Check that the input file's `model`/`genotype` values match those in `rnaseq_genotype_label_map`.
+- **All-rows-filtered case:** If every row is dropped (i.e., no genotype in the file matched the label map at all), a `ValueError` is raised. This strongly indicates either the wrong file was provided or the label map is missing entries for the model — silently producing empty output could mask a data pipeline misconfiguration. Check that the input file's `model`/`genotype` values match those in `genotype_label_map`.
 
 ### Step 3: Grouping and Output Entry Creation
 
 #### 3.1 Grouping Strategy
 - Groups data by four columns: `(ensembl_gene_id, tissue, name, age)`
   - `ensembl_gene_id`: Ensembl gene identifier
-  - `tissue`: Tissue name (post-mapping and sentence-case normalization)
+  - `tissue`: Tissue name (post-mapping)
   - `name`: Set to `model_group`
   - `age`: Age timepoint (e.g., `"4 months"`, `"12 months"`)
 - `model_group` is excluded from the groupby key to avoid issues with `None` values (pandas drops `NaN`/`None` groupby keys by default). Since `name` equals `model_group`, `model_group` is restored as a top-level output column from `name` after nesting.
@@ -129,7 +129,7 @@ For each grouped combination, this function directly creates output entries (one
 - `gene_symbol`: Gene symbol from metadata (empty string if not found)
 
 **Tissue Information:**
-- `tissue`: Tissue name, already mapped and sentence-cased by `preprocess_data_file` (Step 2.2)
+- `tissue`: Tissue name, already mapped by `preprocess_data_file`
 
 **Model Information:**
 - `name`: `model_group` value
@@ -185,7 +185,7 @@ For each grouped combination, this function directly creates output entries (one
 ### 2. Result Order and Control Identification
 - **Assumption:** Lower `result_order` values always represent control genotypes
 - **Assumption:** The genotype with the minimum result_order in actual data is the matched control
-- **Authoritative source:** `result_order` from `rnaseq_genotype_label_map` is the sole signal used to determine which genotype is the control. Any external model_info file is not consulted. Currently, `result_order` assignments and model_info file designations agree for all `model_group`s with only two genotypes, but `result_order` takes precedence if they ever diverge.
+- **Authoritative source:** `result_order` from `genotype_label_map` is the sole signal used to determine which genotype is the control. Any external model_info file is not consulted. Currently, `result_order` assignments and model_info file designations agree for all `model_group`s with only two genotypes, but `result_order` takes precedence if they ever diverge.
 - **Limitation for 4-genotype UCI studies:** Some DE analyses pair each case genotype with a *different* control (e.g., `Trem2-R47H_NSS.5xFAD` vs `Trem2-R47H_NSS` rather than vs `C57BL/6J`). The `matched_control` field cannot represent this per-case-genotype pairing — it always contains the single genotype with the lowest `result_order` for the group, which is a simplification for these multi-control scenarios.
 - **Implication:** If data is missing control samples, the matched_control field may be empty
 
@@ -209,15 +209,14 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Grouping Key:** Data is grouped by `(ensembl_gene_id, tissue, name, age)` to produce one consolidated output entry per group, regardless of how many input files contributed data; `model_group` (which equals `name`) is restored as a top-level output column after nesting
 
 ### 4. Genotype Mapping Completeness
-- **Assumption:** All genotypes in data files have entries in `rnaseq_genotype_label_map`
+- **Assumption:** All genotypes in data files have entries in `genotype_label_map`
 - **Behavior:** Rows whose `(model, genotype)` pair has no match in the label map receive NA for `result_order` after the left merge and are dropped by `dropna(subset=["result_order"])`. If every row in a group is dropped this way, a `ValueError` is raised.
 - **Display label safeguard:** Before the dropna, `display_label` is filled with the raw `genotype` value for any unmatched row, but since those rows are subsequently dropped this has no practical effect on output.
 
 ### 5. Tissue Name Standardization
 - **Assumption:** JAX models use "Right Cerebral Hemisphere" which should be standardized
-- **Transformation:** "Right Cerebral Hemisphere" → "Hemibrain"
-- **Sentence case conversion:** All tissue names are converted to sentence case for consistency
-- **Purpose:** Ensures consistency across different data sources and standardizes capitalization
+- **Transformation:** "Right Cerebral Hemisphere" → "Hemibrain", matched case-insensitively so a source file that lowercases the tissue is still mapped
+- **Purpose:** Ensures the RNA and proteomics datasets, which render on the same page, agree on tissue names
 
 ### 6. Age Format
 - **Assumption:** Age values follow the format `"[N] months"` (e.g., `"3 months"`, `"6 months"`), where `N` is a non-negative integer. Every age string in the data **must** match this exact pattern.
@@ -255,7 +254,7 @@ This transform is designed to handle two distinct experimental scenarios:
 - **Impact:** Fails fast to alert of upstream problems
 
 ### 4. Unmapped Genotype Handling
-- **What:** Drops rows whose `(model, genotype)` pair is not in `rnaseq_genotype_label_map` (they receive NA for `result_order` after the left merge and are removed)
+- **What:** Drops rows whose `(model, genotype)` pair is not in `genotype_label_map` (they receive NA for `result_order` after the left merge and are removed)
 - **Why:** Prevents unrecognised genotypes from producing output with missing ordering and control information
 - **Impact:** If all rows in a group are dropped, a `ValueError` is raised
 
@@ -286,7 +285,7 @@ This transform is designed to handle two distinct experimental scenarios:
 ### 4. Model to Model Group Mapping
 - **Method:** Extracts from genotype metadata (one entry per model)
 - **Assumption:** All genotypes for a model have the same model_group
-- **Validation:** Pre-validated by `validate_model_group_consistency`
+- **Validation:** Pre-validated by `validate_one_to_one_mapping` (model to model_group)
 - **Impact:** Ensures consistent model_group assignment
 
 ## Output Structure
@@ -326,7 +325,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 
 - **ensembl_gene_id**: Mouse gene Ensembl identifier (ENSMUSG*)
 - **gene_symbol**: Human-readable gene symbol (empty if not found in metadata)
-- **tissue**: Tissue name (with JAX transformation and sentence case applied)
+- **tissue**: Tissue name (with the JAX alias applied)
 - **name**: `model_group` value
 - **model_group**: Model group for display purposes (null if empty)
 - **matched_control**: Display label of the control genotype (empty if no control present in data)
@@ -373,7 +372,7 @@ Each output entry represents a unique combination of (gene, tissue, model_group,
 ## Related Transforms
 
 - **rna_de_aggregate:** Processes aggregated differential expression (log2FC, adj p-value) data
-- **Utility functions:** `rna_de_individual_utils.py` contains utility functions extracted from this transform for better code organization and potential future reuse
+- **Utility functions:** `model_ad_expression_utils.py` contains utility functions extracted from this transform for better code organization and potential future reuse
 
 ## Example Usage
 
@@ -386,7 +385,7 @@ from agoradatatools.etl.transform.rna_de_individual import (
 import pandas as pd
 
 datasets = {
-    "rnaseq_genotype_label_map": pd.read_csv("genotype_labels.csv"),
+    "genotype_label_map": pd.read_csv("genotype_labels.csv"),
     "mouse_gene_metadata": pd.read_csv("gene_metadata.csv"),
     "APOE4_expression": pd.read_csv("APOE4_normalized_expression.csv"),
     "5XFAD_expression": pd.read_csv("5XFAD_normalized_expression.csv"),
@@ -412,7 +411,7 @@ output = transform_rna_de_individual(
 - **Solution:** Update gene metadata file or accept empty values
 
 ### Issue: Unmapped genotypes
-- **Cause:** (model, genotype) combinations in data not in rnaseq_genotype_label_map
+- **Cause:** (model, genotype) combinations in data not in genotype_label_map
 - **Impact:** Rows are dropped; if all rows in a group are unmapped, a `ValueError` is raised
 - **Solution:** Add missing entries to genotype label map
 
@@ -423,8 +422,8 @@ output = transform_rna_de_individual(
 
 ### Issue: Unexpected tissue names
 - **Cause:** Tissue names not standardized in input data
-- **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"; all other tissues are converted to sentence case
-- **Solution:** Update input data or add additional `.str.replace()` calls to the tissue mapping chain in `preprocess_data_file` in `rna_de_individual_utils.py`
+- **Impact:** Only "Right Cerebral Hemisphere" is transformed to "Hemibrain"; all other tissues appear exactly as the source file spells them
+- **Solution:** Update input data or add an entry to `TISSUE_ALIASES` in `model_ad_expression_utils.py`
 
 ### Issue: Memory errors with large files
 - **Cause:** Processing very large expression files

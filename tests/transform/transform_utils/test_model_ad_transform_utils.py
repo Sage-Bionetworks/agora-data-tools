@@ -7,10 +7,11 @@ import numpy as np
 import pytest
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    build_transcriptomics_url,
+    build_expression_results_url,
     process_genetic_info,
     zero_pad_jax_ids,
     validate_jax_ids,
+    remap_sex_labels,
 )
 
 
@@ -18,19 +19,15 @@ class TestProcessGeneticInfo:
     """Test class for the process_genetic_info function."""
 
     def test_process_genetic_info_should_pass(self) -> None:
+        """
+        Test that process_genetic_info correctly uses human Ensembl IDs and gene symbols
+        when available, and preserves mouse Ensembl IDs when no human mapping exists.
+        """
         # Create test input DataFrames
-        human_transgene_allele_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": [2672831, 1930937],
-                "gene_symbol": ["App", "Psen1"],
-                "human_ensembl_id": ["ENSG00000142192", "ENSG00000080815"],
-            }
-        )
-
-        model_alleles = pd.DataFrame(
+        model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": [
+                "mouse_ensembl_id": [
                     "ENSMUSG00000022892",
                     "ENSMUSG00000018411",
                     "ENSMUSG00000019969",
@@ -42,6 +39,8 @@ class TestProcessGeneticInfo:
                 ],
                 "allele_type": ["Transgenic", "Transgenic", "Targeted"],
                 "mgi_allele_id": [2672831, 2672831, 1930937],
+                "human_gene_symbol": ["App", None, "Psen1"],
+                "human_ensembl_id": ["ENSG00000142192", None, "ENSG00000080815"],
             }
         )
 
@@ -71,82 +70,22 @@ class TestProcessGeneticInfo:
         ]
 
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
-
-        # Compare output with expected
-        assert output == expected_output
-
-    def test_process_genetic_info_with_no_human_matches(self) -> None:
-        # Create test input DataFrames with no matching human transgenes
-        human_transgene_allele_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": [9999999],  # Different MGI ID
-                "gene_symbol": ["DifferentGene"],
-                "human_ensembl_id": ["ENSG00000000000"],
-            }
-        )
-
-        model_alleles = pd.DataFrame(
-            {
-                "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": [
-                    "ENSMUSG00000022892",
-                    "ENSMUSG00000018411",
-                    "ENSMUSG00000019969",
-                ],
-                "allele": [
-                    "APP K670_M671delinsNL (Swedish)",
-                    "MAPT P301L",
-                    "Psen1<sup>tm1Mpm</sup>",
-                ],
-                "allele_type": ["Transgenic", "Transgenic", "Targeted"],
-                "mgi_allele_id": [2672831, 2672831, 1930937],
-            }
-        )
-
-        # Expected output - all should keep mouse Ensembl IDs
-        expected_output = [
-            {
-                "modified_gene": "App",
-                "ensembl_gene_id": "ENSMUSG00000022892",
-                "allele": "APP K670_M671delinsNL (Swedish)",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Mapt",
-                "ensembl_gene_id": "ENSMUSG00000018411",
-                "allele": "MAPT P301L",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 2672831,
-            },
-            {
-                "modified_gene": "Psen1",
-                "ensembl_gene_id": "ENSMUSG00000019969",
-                "allele": "Psen1<sup>tm1Mpm</sup>",
-                "allele_type": "Targeted",
-                "mgi_allele_id": 1930937,
-            },
-        ]
-
-        # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(model_genetic_modifications)
 
         # Compare output with expected
         assert output == expected_output
 
     def test_process_genetic_info_with_empty_input(self) -> None:
         # Create empty test input DataFrames
-        human_transgene_allele_map_df = pd.DataFrame(
-            columns=["mgi_allele_id", "gene_symbol", "human_ensembl_id"]
-        )
-        model_alleles = pd.DataFrame(
+        model_genetic_modifications = pd.DataFrame(
             columns=[
                 "modified_gene",
-                "gene_ensembl_id",
+                "mouse_ensembl_id",
                 "allele",
                 "allele_type",
                 "mgi_allele_id",
+                "human_gene_symbol",
+                "human_ensembl_id",
             ]
         )
 
@@ -154,81 +93,27 @@ class TestProcessGeneticInfo:
         expected_output = []
 
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
-
-        # Compare output with expected
-        assert output == expected_output
-
-    def test_process_genetic_info_case_insensitive_mapping(self) -> None:
-        # Create test input DataFrames with different gene casing
-        human_transgene_allele_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": [1234567, 1234567],
-                "gene_symbol": ["APP", "mapt"],  # Upper and lower case in mapping
-                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
-            }
-        )
-
-        model_alleles = pd.DataFrame(
-            {
-                "modified_gene": ["App", "Mapt"],  # Title case in alleles
-                "gene_ensembl_id": [
-                    "ENSMUSG00000011111",
-                    "ENSMUSG00000022222",
-                ],
-                "allele": [
-                    "APP Example Allele",
-                    "MAPT Example Allele",
-                ],
-                "allele_type": ["Transgenic", "Transgenic"],
-                "mgi_allele_id": [1234567, 1234567],
-            }
-        )
-
-        # Expected output: ENSG IDs should be mapped, gene names should keep original case
-        expected_output = [
-            {
-                "modified_gene": "APP",
-                "ensembl_gene_id": "ENSG00000123456",
-                "allele": "APP Example Allele",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 1234567,
-            },
-            {
-                "modified_gene": "mapt",
-                "ensembl_gene_id": "ENSG00000987654",
-                "allele": "MAPT Example Allele",
-                "allele_type": "Transgenic",
-                "mgi_allele_id": 1234567,
-            },
-        ]
-
-        # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(model_genetic_modifications)
 
         # Compare output with expected
         assert output == expected_output
 
     def test_process_genetic_info_normalizes_missing_values(self) -> None:
-        # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele" and "allele_type"
-        # can have missing values and still appear in the output.
-        human_transgene_allele_map_df = pd.DataFrame(
-            {
-                "mgi_allele_id": [1234567, 2345678],
-                "gene_symbol": ["APP", "MAPT"],
-                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654"],
-            }
-        )
-
-        # The third gene does not exist in the human transgene mapping, so its Ensembl ID will not get overwritten in
-        # the output and the missing value will show up.
-        model_alleles = pd.DataFrame(
+        # Create test input DataFrames with some missing values. Only "gene_ensembl_id", "allele", "allele_type",
+        # and "human_ensembl_id" can have missing values and still appear in the output.
+        model_genetic_modifications = pd.DataFrame(
             {
                 "modified_gene": ["App", "Mapt", "Psen1"],
-                "gene_ensembl_id": ["ENSMUSG00000011111", "ENSMUSG00000022222", np.nan],
+                "mouse_ensembl_id": [
+                    "ENSMUSG00000011111",
+                    "ENSMUSG00000022222",
+                    np.nan,
+                ],
                 "allele": [np.nan, np.nan, np.nan],  # Missing allele names
                 "allele_type": [np.nan, np.nan, np.nan],  # Missing allele type
                 "mgi_allele_id": [1234567, 2345678, 3456789],
+                "human_gene_symbol": ["APP", "MAPT", None],
+                "human_ensembl_id": ["ENSG00000123456", "ENSG00000987654", None],
             },
             dtype="object",
         )
@@ -261,96 +146,204 @@ class TestProcessGeneticInfo:
         ]
 
         # Transform data
-        output = process_genetic_info(human_transgene_allele_map_df, model_alleles)
+        output = process_genetic_info(model_genetic_modifications)
 
         # Compare output with expected
         assert output == expected_output
 
 
-class TestBuildTranscriptomicsUrl:
+class TestBuildExpressionResultsUrl:
     """
-    This class is for testing the build_transcriptomics_url function for the model_details & model_overview transforms.
-    The function takes a pd.Series object (representing a single row from the model_info file) and builds a URL if the
-    model has transcriptomics data.
+    This class is for testing the build_expression_results_url function for the model_details & model_overview
+    transforms. The function takes a pd.Series object (representing a single row from the model_info file) and builds a
+    URL if the model has transcriptomics or proteomics data.
     """
 
+    def test_build_expression_results_url_unknown_result_type(self) -> None:
+        """
+        The function should return None if the result_type is not "transcriptomics" or "proteomics".
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                "transcriptomics_url_categories_value": "category_string",
+                "transcriptomics_url_models_value": None,
+                "transcriptomics": True,
+            }
+        )
+
+        url = build_expression_results_url(model, result_type="foo")
+        assert url is None
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
     @pytest.mark.parametrize(
         "false_val",
         [False, None],
         ids=["Pass with False boolean value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_no_transcriptomics(
-        self, false_val: bool
+    def test_build_expression_results_url_no_results_data(
+        self, false_val: bool, result_type: str
     ) -> None:
         """
-        The function should treat both None and False as transcriptomics = False, and return None.
+        The function should treat both None and False as result_type = False, and return None.
         """
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": "model1,model2",
-                "transcriptomics": false_val,
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: false_val,
             }
         )
 
-        url = build_transcriptomics_url(model)
+        url = build_expression_results_url(model, result_type=result_type)
         assert url is None
 
-    def test_build_transcriptomics_url_all_default_values(self) -> None:
-        model = pd.Series(
-            {
-                "name": "Model",
-                "url_categories_value": None,
-                "url_models_value": None,
-                "transcriptomics": True,
-            }
-        )
-
-        url = build_transcriptomics_url(model)
-        assert url == "comparison/expression?models=Model"
-
+    @pytest.mark.parametrize(
+        "result_type, category_default",
+        [
+            (
+                "transcriptomics",
+                "RNA%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+            ),
+            (
+                "proteomics",
+                "PROTEIN%2520-%2520DIFFERENTIAL%2520EXPRESSION,Tissue%2520-%2520Hemibrain",
+            ),
+        ],
+    )
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_default_category(self, empty_val: str) -> None:
+    def test_build_expression_results_url_all_default_values(
+        self, empty_val: str, result_type: str, category_default: str
+    ) -> None:
         """
-        The function should treat both "" and None as empty values and not have a "categories=..." in the url
+        The function should treat both "" and None as empty values and use a default category for the URL. When
+        url_models_value is also empty, the model name should be used for the 'models' query parameter.
         """
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": empty_val,
-                "url_models_value": "model1,model2",
-                "transcriptomics": True,
+                f"{result_type}_url_categories_value": empty_val,
+                f"{result_type}_url_models_value": empty_val,
+                result_type: True,
             }
         )
 
-        url = build_transcriptomics_url(model)
-        assert url == "comparison/expression?models=model1,model2"
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url == f"comparison/expression?categories={category_default}&models=Model"
+        )
 
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
     @pytest.mark.parametrize(
         "empty_val",
         ["", None],
         ids=["Pass with empty string value", "Pass with None value"],
     )
-    def test_build_transcriptomics_url_default_models(self, empty_val: str) -> None:
+    def test_build_expression_results_url_default_models(
+        self, empty_val: str, result_type: str
+    ) -> None:
         """
         The function should treat both "" and None as empty values and have just the model name in the URL
         """
         model = pd.Series(
             {
                 "name": "Model",
-                "url_categories_value": "category_string",
-                "url_models_value": empty_val,
-                "transcriptomics": True,
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": empty_val,
+                result_type: True,
             }
         )
 
-        url = build_transcriptomics_url(model)
+        url = build_expression_results_url(model, result_type=result_type)
         assert url == "comparison/expression?categories=category_string&models=Model"
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_expression_results_url_with_all_fields(
+        self, result_type: str
+    ) -> None:
+        """
+        This function should build the URL correctly when all relevant fields (categories and models) are
+        populated with non-missing values, using those values to set the 'categories' and 'models' query
+        parameters.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: True,
+            }
+        )
+
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_expression_results_url_strips_outer_whitespace_from_categories(
+        self, result_type: str
+    ) -> None:
+        """
+        This function should strip leading/trailing whitespace around the url_categories_value string, and set it
+        as the 'categories' query parameter.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "   category_string   ",
+                f"{result_type}_url_models_value": "model1,model2",
+                result_type: True,
+            }
+        )
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
+
+    @pytest.mark.parametrize(
+        "result_type",
+        ["transcriptomics", "proteomics"],
+    )
+    def test_build_expression_results_url_strips_outer_whitespace_from_models(
+        self, result_type: str
+    ) -> None:
+        """
+        This function should strip leading/trailing whitespace around the whole url_models_value string (without
+        altering the comma-separated values inside it), and set it as the 'models' query parameter.
+        """
+        model = pd.Series(
+            {
+                "name": "Model",
+                f"{result_type}_url_categories_value": "category_string",
+                f"{result_type}_url_models_value": "   model1,model2   ",
+                result_type: True,
+            }
+        )
+        url = build_expression_results_url(model, result_type=result_type)
+        assert (
+            url
+            == "comparison/expression?categories=category_string&models=model1,model2"
+        )
 
 
 class TestZeroPadJaxIds:
@@ -521,3 +514,42 @@ class TestValidateJaxIds:
             ValueError, match="Jax IDs must be strings that contain only digits"
         ):
             validate_jax_ids(input_ids)
+
+
+class TestRemapSexLabels:
+    """
+    This class tests the remap_sex_labels function to ensure that it converts plural labels to singular, and does
+    not modify labels that are already singular.
+    """
+
+    @pytest.mark.parametrize(
+        "input_sex_values, expected_output",
+        [
+            (pd.Series(["Females", "Males"]), pd.Series(["Female", "Male"])),
+            (pd.Series(["Female", "Male"]), pd.Series(["Female", "Male"])),
+            (pd.Series(["Male", "Females"]), pd.Series(["Male", "Female"])),
+            (
+                pd.Series(["Male", "Females", "Aardvarks", "", None]),
+                pd.Series(["Male", "Female", "Aardvarks", "", None]),
+            ),
+            (pd.Series(["male", "female"]), pd.Series(["Male", "Female"])),
+            (pd.Series([None, None]), pd.Series([None, None])),
+        ],
+        ids=[
+            "Pass with all plural input",
+            "Pass with all singular input",
+            "Pass with mixed input",
+            "Pass with missing & other input",
+            "Pass with lowercase input",
+            "Pass with all-null input",
+        ],
+    )
+    def test_remap_sex_labels_should_pass(
+        self, input_sex_values, expected_output: pd.Series
+    ) -> None:
+        """
+        Tests that the remap_sex_labels function remaps the expected plural values without altering other values.
+        """
+        output = remap_sex_labels(input_sex_values)
+
+        pd.testing.assert_series_equal(output, expected_output)

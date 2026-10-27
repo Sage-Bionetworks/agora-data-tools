@@ -29,17 +29,17 @@ rna_de_individual/
 
 These files are required for all transformations. Both are minimal synthetic subsets containing only the entries needed by the test suite:
 
-1. **synthetic_rnaseq_genotype_label_map.csv**
+1. **synthetic_genotype_label_map.csv**
    - Maps genotypes to display labels and model groups
    - Columns: model, model_group, display_label, genotype, result_order
-   - Synthetic subset of production `rnaseq_genotype_label_map` data; contains only the 4 models used by the test suite (APOE4, LOAD1, Trem2-R47H_NSS, Trem2-R47H_NSS.5xFAD)
+   - Synthetic subset of production `genotype_label_map` data; contains only the 4 models used by the test suite (APOE4, LOAD1, Trem2-R47H_NSS, Trem2-R47H_NSS.5xFAD)
 
-2. **synthetic_mouse_gene_metadata.csv**
+2. **synthetic_mouse_gene_metadata.json**
    - Gene symbols for Ensembl IDs
-   - Columns: ensembl_gene_id, gene_symbol
+   - Columns: ensembl_gene_id, gene_symbol, alias
    - Synthetic subset of production `mouse_gene_metadata` data; contains only the entries needed by the test suite (ENSMUSG00000000001 → Gnai3, plus a few additional rows for realism)
 
-3. **rnaseq_genotype_label_map_inconsistent.csv**
+3. **genotype_label_map_inconsistent.csv**
    - Contains inconsistent model_group values to test error handling
    - Synthetic file for testing validation logic
 
@@ -133,35 +133,7 @@ Each output JSON file contains the expected transformed data structure:
 
 ## Test Coverage
 
-### Unit Tests (`test_rna_de_individual.py`)
-
-1. **TestDetermineResultOrder**: Tests result ordering logic
-2. **TestProcessIndividualDataFileCore**: Tests single file processing logic, including:
-   - `test_name_equals_model_for_single_model_group`: Verifies `name` is set to `model` (not `model_group`) for single-model groups where they differ
-
-### Unit Tests (`test_rna_de_individual_utils.py`)
-
-1. **TestFilterMouseGenes**: Tests mouse gene filtering logic
-2. **TestTissueNameMapping**: Tests tissue name transformation
-3. **TestPreprocessDataFileTypeCasting**: Tests numeric type casting during preprocessing
-4. **TestValidateModelGroupConsistency**: Tests model_group consistency validation
-5. **TestCreateGeneMetadataDict**: Tests gene metadata dictionary creation
-6. **TestPrepareGenotypeLabelMapDf**: Tests label map normalization (None/empty model_group handling)
-7. **TestLogFileProcessingInfo**: Tests file processing log output
-8. **TestValidateDataFileNotEmpty**: Tests empty file error handling
-
-### Integration Tests (`test_rna_de_individual.py`)
-
-1. **test_synthetic_basic_data**: Core transformation functionality
-2. **test_synthetic_jax_tissue_mapping**: JAX tissue name mapping
-3. **test_synthetic_mixed_genes_filtering**: Human gene filtering
-4. **test_synthetic_age_sorting**: Numeric age sorting
-5. **test_synthetic_single_row_data**: Edge case with minimal data
-6. **test_synthetic_empty_data_file**: Empty file error handling
-7. **test_synthetic_missing_columns_data**: Missing column error handling
-8. **test_synthetic_rounding_precision**: Numeric precision rounding
-9. **test_synthetic_multi_model_data**: Multi-model group (split-file UCI models combined into one output entry)
-10. **test_inconsistent_model_group_values**: Inconsistent model_group error handling
+Test names live in `tests/transform/test_rna_de_individual.py` and `tests/transform/transform_utils/test_model_ad_expression_utils.py`.
 
 ## Notes
 
@@ -169,7 +141,7 @@ Each output JSON file contains the expected transformed data structure:
 - **Matched Control**: Determined from actual data, not all possible genotypes
 - **Result Order**: May contain duplicate display labels when multiple models share the same control genotype
 - **Model Group**: Empty strings are converted to `null` in JSON output
-- **Gene Metadata**: Missing genes result in empty string for gene_symbol (e.g. ENSMUSG00000000008 is intentionally absent from `synthetic_mouse_gene_metadata.csv`)
+- **Gene Metadata**: Missing genes result in empty string for gene_symbol (e.g. ENSMUSG00000000008 is intentionally absent from `synthetic_mouse_gene_metadata.json`)
 - **Real Genotypes**: Tests use actual genotypes from production data (e.g., "APOE4-KI_homozygous; Trem2-R47H_WT")
 - **Real Models**: Tests use actual model names (APOE4, LOAD1, Abca7*V1599M, etc.)
 

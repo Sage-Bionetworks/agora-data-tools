@@ -1,39 +1,41 @@
 [
   {
-    "name": "",
-    "evidence_type": "TypeA",
-    "tissue": "Tissuea",
-    "age": "1 months",
-    "units": "A",
-    "y_axis_max": 1.5,
-    "data": [
-      {
-        "genotype": "genotype1",
-        "sex": "Male",
-        "individual_id": "individual_3",
-        "value": 1
-      }
-    ]
-  },
-  {
     "name": "ModelA",
     "evidence_type": "TypeA",
     "tissue": "Tissuea",
     "age": "1 months",
     "units": "A",
-    "y_axis_max": 1.5,
+    "y_axis_max": 6.5,
     "data": [
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_1",
-        "value": 1
+        "value": 1.0,
+        "sex": "Male",
+        "genotype": "genotype1"
       },
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_2",
-        "value": ""
+        "value": null,
+        "sex": "Male",
+        "genotype": "genotype1"
+      },
+      {
+        "individual_id": "individual_4",
+        "value": 4.0,
+        "sex": "Male",
+        "genotype": null
+      },
+      {
+        "individual_id": "individual_5",
+        "value": 5.0,
+        "sex": null,
+        "genotype": "genotype1"
+      },
+      {
+        "individual_id": null,
+        "value": 6.0,
+        "sex": "Male",
+        "genotype": "genotype1"
       }
     ]
   }

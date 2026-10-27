@@ -1,0 +1,3 @@
+ensembl_gene_id,team,study,input_data,source,initial_nomination
+ENSG00000000001,TeamA,Rush,RNA,AMP-AD,2020
+,TeamB,Mayo,Protein,AMP-AD,2018

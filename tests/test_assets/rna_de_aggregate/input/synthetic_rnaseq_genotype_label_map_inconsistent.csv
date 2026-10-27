@@ -1,5 +1,0 @@
-model,model_group,display_label,genotype,model_type
-Model_A,GroupX,Model_A (Tg),Tg,Familial AD
-Model_A,GroupY,Model_A (Wt),Wt,Familial AD
-Model_B,GroupZ,Model_B (Tg),Tg,Familial AD
-Model_B,GroupZ,Model_B (Wt),Wt,Familial AD

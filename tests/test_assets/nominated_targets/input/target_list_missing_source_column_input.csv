@@ -1,0 +1,3 @@
+ensembl_gene_id,team,study,input_data,initial_nomination
+ENSG00000000001,TeamA,Rush,RNA,2020
+ENSG00000000002,TeamA,ROSMAP,RNA,2021

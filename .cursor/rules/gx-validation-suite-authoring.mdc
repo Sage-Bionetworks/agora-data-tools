@@ -17,6 +17,253 @@ alwaysApply: false
 
 ---
 
+## Prerequisite — Environment Setup
+
+Every step in this guide runs Python, `jupyter`, or the `adt` CLI, so before anything else set up and
+activate your environment per `python-env.mdc` (package manager, `dev_config.yaml`, and an editable
+`pip install -e ".[dev]"`). That rule owns environment setup for **every** workflow here — Option A
+and Option B alike — and all commands below assume the correct environment is active.
+
+---
+
+## Core Principle — Tighten Validations to the Actual Data
+
+Always author expectations against the **latest processed output data** (downloaded from Synapse when available, or freshly generated), and tighten every validation to what is actually present in that data rather than to loose, generic bounds.
+
+- **Use current output data first.** Prefer downloading the latest processed output from Synapse; if using a local file in `staging/`, confirm it is current (or re-download) before deriving any bounds or value sets, so the suite reflects the data as it exists now.
+- **Numeric ranges:** use the observed `min` and `max` from the data (e.g. `expect_column_values_to_be_between(column, min_value=<observed_min>, max_value=<observed_max>)`). Do not invent padded or "safe" ranges.
+- **Allowed value sets:** for `expect_column_values_to_be_in_set`, enumerate the distinct values actually present in the column. Do not include speculative values that do not appear in the data.
+- **List length / item counts:** derive `minItems`/`maxItems` (or `list_length_range`) from the observed minimum and maximum lengths in the data.
+- **String patterns:** derive regex and length bounds from the actual values present (see "Inspect the staging file before writing regex expectations").
+
+The goal is a suite that fails loudly if future data drifts outside the range or value set observed today. Compute these bounds programmatically from the downloaded data — do not guess.
+
+```python
+# Derive numeric bounds from the data
+print(df["my_numeric_col"].min(), df["my_numeric_col"].max())
+
+# Derive the allowed value set from the data
+print(sorted(df["my_category_col"].dropna().unique()))
+
+# Derive list-length bounds from the data
+lengths = df["my_list_col"].dropna().map(len)
+print(lengths.min(), lengths.max())
+```
+
+---
+
+## Choosing the Validation Mechanism (native expectations vs JSON Schema)
+
+Decide the mechanism from the **shape of each field's values in the processed output** (inspect it
+per Step 0) — *not* from whether the column already appears in `gx_nested_columns`. Identifying the
+nested fields and adding them to `gx_nested_columns` is itself part of authoring the suite: it's the
+lever **you pull once you've decided** a field needs structural validation, an output of the
+decision below, not a precondition for it.
+
+Judge each field by its value shape:
+
+| Field's value shape | Mechanism | Nested? |
+|---|---|---|
+| **Scalar** (str / number / bool / null) | Native/custom: `not_null`, `be_of_type`, `be_between` (ranges), `be_in_set` (enums), `match_regex` | No |
+| **List of scalars** (e.g. `biodomains`, `programs`) | Custom list expectations: `expect_column_values_to_have_list_length_in_range`, `..._members`, `..._members_of_type` | No — keep it a real Python list |
+| **Object, list of objects, or any value whose internal structure must be validated** (keys, nested types, nullability) | `expect_column_values_to_match_json_schema` for the interior — required keys, nested types, nullability (`oneOf` null), plus interior list lengths (`minItems`/`maxItems`), value ranges (`minimum`/`maximum`), and enums | **Yes — add it to `gx_nested_columns`** |
+| **Volume / statistical / cross-row** (row counts, uniqueness, distributions, means, multi-column relationships) | Native GX **only, always** — JSON Schema validates one document at a time and cannot express anything across rows | N/A |
+
+The governing question is: *what is this field's value shape, and does it have internal structure
+that only a schema can validate?* If yes → make it a nested column (`gx_nested_columns`) and use
+JSON Schema; if no → native/custom expectations on the un-nested column.
+
+**Strict vs. `mostly` is a second, orthogonal decision — made *after* the mechanism.** Once the
+table above tells you *which* expectation to use, decide *how strictly* it must hold: 100% (the
+default — omit `mostly`) when the field is always valid, or a `mostly` threshold when a known,
+measured fraction of rows legitimately deviate (completeness floors, drift monitoring). The lever
+differs by mechanism:
+
+| Mechanism | How to relax below 100% |
+|---|---|
+| **Scalar / list-of-scalars** native & custom expectations (per-row `ColumnMapExpectation`) | Pass `mostly=<fraction>` |
+| **Nested sub-field** (inside a `gx_nested_columns` column) | `mostly` can't reach inside the JSON string — use the nested aggregate expectations (`ExpectColumnNestedObjectNotNull` / `…StringLength` / `…RegexRule`), whose own `non_null_threshold`/`valid_threshold` kwargs are the `mostly` equivalent. These floor a sub-field *across the nested objects*; they say nothing about how many rows are populated (see "Coverage floor for a nullable nested column" in Step 3) |
+| **JSON Schema** (`match_json_schema`) | **Never relax — omit `mostly`** (unless the user explicitly overrides it; see "User overrides of 'Never'" in "Missing vs. malformed: what a `mostly` tolerates", Step 3). GX accepts `mostly` here (it's a per-row `ColumnMapExpectation`), but it would let that fraction of malformed documents pass, and every document must match its schema. Missing values belong in the schema's root type (required vs. nullable — see below); a floor on how many rows are populated is a separate check (see "Coverage floor for a nullable nested column" in Step 3) |
+
+Relaxing any check below 100% (a `mostly` kwarg, or a nested aggregate's threshold) **requires
+prompting the user first** — see "Using `mostly` (deliberately)" in Step 3, which also covers how to
+derive the threshold and the one-of-each-type-per-column limit on the nested aggregates.
+
+**When auditing an existing suite, re-derive each field's mechanism from its value shape — do not
+trust the current `gx_nested_columns` list.** The existing configuration can itself be the
+deviation. Treat a field's presence in `gx_nested_columns` as a *hypothesis to verify against the
+shape judgment*, never as the answer. A classic miss: a **list of scalars** (e.g. `result_order`, a
+list of display-label strings) that was wrongly nested and validated with `match_json_schema` — its
+items have no internal structure, so it should be **un-nested** and checked with the native list
+expectations (the `biodomains` pattern). Because it sits next to a legitimately-nested list-of-objects
+column (e.g. `data`), it's tempting to treat "the nested list columns" as a unit — but "is it a
+list?" is the wrong question; "do its *items* have structure only a schema can validate?" is the
+right one. Run every field through that test independently, including the ones already nested.
+
+### Why nesting shifts interior checks into the schema
+
+Adding a field to `gx_nested_columns` runs `convert_nested_columns_to_json`, which serializes that
+column to a **JSON string** before GX runs. That is what makes `expect_column_values_to_match_json_schema`
+work — and it's also why, for a nested field, the interior list lengths / value ranges / enums must
+live in the schema: native/custom expectations can no longer see the parsed structure.
+
+Native expectations still *run* against the JSON string, but because `json.dumps` yields a non-null
+string for every cell, most become **tautological or fragile** — the schema does the real work:
+- **Effectively no-ops (do not rely on them):** `expect_column_values_to_not_be_null` and
+  `expect_column_values_to_be_of_type("<col>", "str")` always pass — `json.dumps` never yields null
+  and always yields a string (even a missing `None` becomes the string `"null"`).
+- **Runs but fragile:** `match_regex` / value-length / `be_in_set` against the raw serialized text.
+- **Do NOT work:** the custom list expectations — they check `isinstance(cell, list)`, which is now
+  `False` for every row, so they silently fail (see the Step 3 warning) — and any numeric/statistical
+  check that needs a value *inside* the object. Encode those in the JSON Schema instead.
+
+**Required / non-null for a nested field is a schema concern, not a `not_be_null` concern.** Since a
+missing value serializes to the string `"null"`, `expect_column_values_to_not_be_null` can never
+fail on a nested column (it's a no-op that gives false assurance). Enforce presence through the
+schema instead — specifically, whether the **root of the schema** (its outermost `type`) permits null:
+- **Required (never null):** the schema's root is `{"type": "object", ..., "required": [...]}` (or
+  `"array"`, etc.) with no null permitted. `match_json_schema` parses `"null"` back to `null` and
+  fails it against the schema, so the missing value is caught. (Verified: a serialized `"null"` cell
+  is reported unexpected and the expectation fails.)
+- **Nullable:** permit null at the root with the `oneOf` `[ {"type": "null"}, {...} ]` pattern —
+  only when the field is legitimately nullable. A nullable root allows any number of null rows; to
+  also floor how many rows are populated, see "Coverage floor for a nullable nested column" in Step 3.
+
+A single `expect_column_values_to_match_json_schema(<col>, json_schema=<schema>)` therefore covers
+both the field's shape and its presence; no companion `not_be_null` or `be_of_type("str")` is needed
+(on a nested column those always pass and validate nothing).
+
+### Prefer the lightest mechanism the shape allows (observability)
+
+Only nest a field when its values genuinely have internal structure a schema must check. If a
+field's values are simple enough that native/custom expectations fully cover them (a scalar, or a
+list of scalars), keep it un-nested and use those — each native expectation renders as its own
+pass/fail row in GX Data Docs, whereas a JSON Schema is a single monolithic pass/fail. Reserve JSON
+Schema for what only it can reach: the interior of genuinely nested fields.
+
+---
+
+## Keeping Related Constraints in Sync
+
+Two categories of GX constraints must stay aligned with something outside their own expectation —
+one with an external R notebook, one with another expectation on the same column. Both are sync
+problems, so both live here.
+
+### External sync — GX value/member lists vs. ui_config filter vectors
+
+Several GX value-set expectations enforce the **same controlled vocabulary** that the Agora
+Comparison Tool filter menus display. Those lists are hand-authored as
+filter-value vectors in the ui_config **R notebook**, so the vocabulary lives in two places that
+must be kept aligned.
+
+**Rule:** Whenever you add, remove, or edit a value in one of the GX lists in the tables below
+(`expect_column_values_to_be_in_set`, `expect_column_values_to_have_list_members`, or an `enum`
+inside a nested column's JSON Schema — see the note after the model_ad table), you MUST
+prompt the user to make the parallel update to the corresponding filter-value vector in the
+ui_config notebook, naming the exact variable to change. Do not change the GX side silently. The
+two lists *can* legitimately diverge — e.g. GX may allow a data-only value such as `Unknown` that
+is intentionally hidden from the UI filter — so surface the difference and let the user decide
+rather than assuming they must match.
+
+#### Parallel lists — Agora
+
+Notebook: `data_analysis/agora/notebooks/preprocessing/AG-2005_ui_config.rmd`
+
+| GX suite → column | GX expectation | ui_config filter-value vector |
+|---|---|---|
+| `nominated_targets` → `programs` | `expect_column_values_to_have_list_members` | `targets_program_filter_values` |
+| `nominated_targets` → `input_data` | `expect_column_values_to_have_list_members` | `targets_data_filter_values` |
+| `nominated_targets` → `nominating_teams` | `expect_column_values_to_have_list_members` | `targets_team_filter_values` |
+| `nominated_targets` → `pharos_class` | `expect_column_values_to_be_in_set` | `targets_pharos_filter_values` |
+| `nominated_drugs` → `modality` | `expect_column_values_to_be_in_set` | `drug_modality_filter_values` |
+| `nominated_drugs` → `maximum_clinical_trial_phase` | `expect_column_values_to_be_in_set` | `drug_max_clinical_trial_phase_filter_values` |
+
+Other Agora datasets (e.g. `gene_info`, `network`, `team_info`) have GX value-set expectations but
+are **not** produced by this ui_config notebook, so they have no parallel filter list here.
+
+#### Parallel lists — model_ad
+
+Notebook: `data_analysis/model_ad/notebooks/MG-402_Create ui_config source file.rmd`
+
+| GX suite → column | GX expectation | MG-402 filter-value list |
+|---|---|---|
+| `model_details` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `model_details` → `contributing_group` | `expect_column_values_to_be_in_set` | Contributing Center values (the `center` entry in `mo_filter_values`) |
+| `model_overview` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `model_overview` → `available_data` | `expect_column_values_to_have_list_members` | Available Data values (the `available_data` entry in `mo_filter_values`) |
+| `model_overview` → `center` | `expect_column_values_to_be_in_set` | Contributing Center values (the `center` entry in `mo_filter_values`) |
+| `marmo_overview` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `marmo_overview` → `modified_genes` | `expect_column_values_to_have_list_members` | `marmo_mo_modified_gene_filter_vals` |
+| `marmo_overview` → `available_data` | `expect_column_values_to_have_list_members` | Available Data values (the first entry in `marmo_mo_filter_values`) |
+| `rna_de_aggregate` → `biodomains` | `expect_column_values_to_have_list_members` | `biodomain_filter_vals` |
+| `rna_de_aggregate` → `sex` | `expect_column_values_to_be_in_set` | `sex_filter_vals` |
+| `rna_de_aggregate` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `rna_de_individual` → `data[].sex` (nested `enum`) | `expect_column_values_to_match_json_schema` | `sex_filter_vals` |
+| `disease_correlation` → `name` | `expect_column_values_to_be_in_set` | `dc_model_name_filter_vals` |
+| `disease_correlation` → `model_type` | `expect_column_values_to_be_in_set` | `model_type_filter_vals` |
+| `disease_correlation` → `sex` | `expect_column_values_to_be_in_set` | `sex_filter_vals` |
+| `disease_correlation` → `cluster` | `expect_column_values_to_be_in_set` | `dc_menu2` |
+| `disease_correlation` → `age` | `expect_column_values_to_be_in_set` | `dc_age_filter_vals` |
+| `disease_correlation` → `age_numeric` | `expect_column_values_to_be_in_set` | numeric part of `dc_age_filter_vals` |
+| `disease_correlation` → `modified_genes` | `expect_column_values_to_have_list_members` | `dc_modified_gene_filter_vals` |
+
+The rna_de_individual row's mechanism differs from the rest of the table: `rna_de_individual.data` is a nested
+column (see "Choosing the Validation Mechanism" above), so its `sex` field is constrained by an
+`enum` on that property inside the column's JSON Schema, not a top-level `be_in_set`/`list_members`
+expectation. It still enforces the same `sex_filter_vals` vocabulary and must stay in sync the same
+way — the enforcement mechanism doesn't change what needs to be kept aligned.
+
+Before finalizing a change to any GX list in the tables above, prompt the user, e.g.:
+> "This changes the `<column>` value set in the `<suite>` GX suite. The parallel filter list
+> `<variable>` in the ui_config notebook (`AG-2005_ui_config.rmd` for Agora,
+> `MG-402_Create ui_config source file.rmd` for model_ad) should be updated to match — do you want
+> to update it too, or should the two intentionally differ?"
+
+#### Adding a NEW value-set expectation — check for a parallel first
+
+Whenever you are about to add a **new** `expect_column_values_to_be_in_set` or
+`expect_column_values_to_have_list_members` expectation — **or a new `enum` on a property inside a
+nested column's JSON Schema** — that is not already listed in the tables above, first check the
+ui_config notebooks for an existing parallel filter-value list covering the same vocabulary
+(`AG-2005_ui_config.rmd` for Agora datasets, `MG-402_Create ui_config source file.rmd` for model_ad
+datasets). Match on the column/filter meaning, then compare the actual value sets.
+
+If you find a parallel list, prompt the user to confirm, e.g.:
+> "The new `<column>` value set in the `<suite>` GX suite looks parallel to the `<variable>`
+> filter list in `<notebook>`. Should I add this pair to the '<Agora|model_ad> — Parallel lists'
+> table in this rule and align the GX value set with the notebook list?"
+
+On confirmation: align the GX value set with the notebook list (or surface any difference for the
+user to resolve), **and add a new row to the appropriate "Parallel lists" table above** so the
+mapping stays documented. If no parallel list exists, no table update is needed.
+
+### Internal sync — `list_length_in_range` max vs. `list_members` count
+
+When a column has both an `expect_column_values_to_have_list_length_in_range` expectation and an
+`expect_column_values_to_have_list_members` expectation (i.e. the list's allowed contents are a
+fixed, enumerable set of members), the **maximum** of the length range should equal the number of
+allowed members in the `list_members` set — a list can't validly contain more distinct allowed
+values than the set defines. Only deviate from this if the user explicitly provides different
+requirements (e.g. duplicates are allowed, so the max should be higher, or some other constraint).
+
+```python
+# members set has 4 allowed values
+validator.expect_column_values_to_have_list_members(column="programs", list_members=["A", "B", "C", "D"])
+
+# ✅ CORRECT — max length equals len(list_members)
+validator.expect_column_values_to_have_list_length_in_range(column="programs", list_length_range=[1, 4])
+
+# ❌ WRONG — max of 10 has no basis when only 4 members are allowed
+validator.expect_column_values_to_have_list_length_in_range(column="programs", list_length_range=[1, 10])
+```
+
+The same reasoning applies when both constraints are expressed inside a JSON schema for a nested
+column: `maxItems` should equal the number of allowed values in the corresponding `enum`/member
+list (see the "Custom list expectations do NOT work on nested columns" warning in Step 3 for why
+nested columns use JSON schema instead of the custom expectations directly).
+
+---
+
 ## Step 0 — Research the Transform Before Planning
 
 **Do all of the following before writing any plan or authoring any expectations.** These steps give you the complete picture of the transform's inputs, logic, output schema, and edge cases.
@@ -30,7 +277,7 @@ Search all files in `configs/` for the transform name — do not assume it will 
 
 ### 0b — Read the transform source code and its imports
 
-Read `src/agoradatatools/etl/transform/<transform>.py` in full. Then follow every local import and read those files too — utility modules and helper files contain logic that directly shapes the output schema. For example, a transform that imports from `rna_de_individual_utils.py` and `etl/utils.py` requires reading both of those as well.
+Read `src/agoradatatools/etl/transform/<transform>.py` in full. Then follow every local import and read those files too — utility modules and helper files contain logic that directly shapes the output schema. For example, a transform that imports from `model_ad_expression_utils.py` and `etl/utils.py` requires reading both of those as well.
 
 ### 0c — Read the tests and test assets
 
@@ -55,8 +302,8 @@ Do not proceed to plan expectations until you have a confirmed way to inspect th
 
 For `rna_de_individual`, this means:
 1. Search all files in `configs/` for `rna_de_individual`, find the matching block (e.g. in `configs/model_ad_preprod.yaml`), note all 12 input files and the `custom_transformations: transform_rna_de_individual` entry
-2. Read `src/agoradatatools/etl/transform/rna_de_individual.py`, then follow its imports and read `src/agoradatatools/etl/transform/rna_de_individual_utils.py` and `src/agoradatatools/etl/utils.py`
-3. Read `tests/transform/test_rna_de_individual.py`, `tests/transform/test_rna_de_individual_utils.py`, and `tests/test_assets/rna_de_individual/`
+2. Read `src/agoradatatools/etl/transform/rna_de_individual.py`, then follow its imports and read `src/agoradatatools/etl/transform/transform_utils/model_ad_expression_utils.py` and `src/agoradatatools/etl/utils.py`
+3. Read `tests/transform/test_rna_de_individual.py`, `tests/transform/transform_utils/test_model_ad_expression_utils.py`, and `tests/test_assets/rna_de_individual/`
 4. Ask the user whether the input CSVs are available locally in `staging/` or need to be fetched
 5. Ask the user whether the processed output (`rna_de_individual.json`) is available locally, on Synapse, or needs to be generated by running `adt`
 
@@ -79,11 +326,31 @@ gx_nested_columns:
 
 ## Step 2 — Create JSON Schemas (if needed)
 
-For columns that are link objects, create schemas in `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/`.
+For nested columns — dict or list objects declared in `gx_nested_columns` — that need deep
+validation, create schemas in `src/agoradatatools/great_expectations/gx/json_schemas/<transform>/`.
+
+**Every GX JSON schema file MUST begin with these two keys** (keeps identifiers consistent across
+the library — the templates below already include them):
+- `"$schema": "https://json-schema.org/draft/2019-09/schema"`
+- `"$id"`: the file's GitHub repo path = `https://github.com/Sage-Bionetworks/agora-data-tools/`
+  + the file's repo-relative path, e.g.
+  `https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json`
+
+**These two keys travel with the schema even when it is embedded inline.** Whether the schema
+lives in a standalone file or is inlined into a suite's `expect_column_values_to_match_json_schema`
+kwargs, it must carry `$schema` and `$id`. Notebook-generated suites embed the full schema file
+(header included) automatically; when hand-writing a suite via Option B (Step 4), copy the same
+`$schema`/`$id` header into each inline `json_schema` so both authoring paths produce identical
+suites.
+
+The templates below cover common link-object columns; array/list columns use the same
+`$schema`/`$id` header with an `array` schema (see the array example in Step 3).
 
 **Nullable link column** (value can be `null` OR a `{link_url}` object):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "oneOf": [
     { "type": "null" },
     {
@@ -99,6 +366,8 @@ For columns that are link objects, create schemas in `src/agoradatatools/great_e
 **Required link column** (never null, must have `link_url`):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "type": "object",
   "properties": { "link_url": { "type": "string", "minLength": 1 } },
   "required": ["link_url"],
@@ -109,6 +378,8 @@ For columns that are link objects, create schemas in `src/agoradatatools/great_e
 **Center-style column** (never null, must have both `link_url` and `link_text`):
 ```json
 {
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
   "type": "object",
   "properties": {
     "link_url": { "type": "string", "minLength": 1 },
@@ -125,7 +396,62 @@ For columns that are link objects, create schemas in `src/agoradatatools/great_e
 
 > **Before starting:** Ask the user for the Synapse ID of the processed output file for this dataset (e.g. `syn73774519`). This is needed for the data-loading cell in the notebook. Do not proceed without it.
 
-Copy an existing notebook (e.g., `gx_suite_definitions/biomarkers.ipynb`) as a starting point.
+### The notebook must load its data from the Synapse entity
+
+The notebook is the reproducible source of truth for the suite, so its data-loading cell must
+always reference the Synapse entity, never a local file:
+
+```python
+# ✅ CORRECT
+my_transform_file = syn.get("syn73774519").path
+
+# ❌ WRONG — local files are gitignored and differ per developer, so the suite can't be reproduced
+my_transform_file = "../staging/my_transform.json"
+```
+
+Do not add a local-file alternative to the cell either, not even a commented-out one. A local
+`staging/` copy may still be used to *inspect* values while authoring (see "Inspect the staging
+file before writing regex expectations"), but the notebook itself must load the Synapse entity.
+The entity must be the **processed output file emitted by ADT**, never an input file. This holds
+for passthrough datasets (no `custom_transformations`) too: ADT still reads the input into a
+DataFrame, standardizes column names and values, and serializes it back to JSON, so the input file
+is not the file GX validates at runtime.
+
+Copy an existing notebook (e.g., `gx_suite_definitions/model_overview.ipynb`) as a starting point.
+
+### Always offer to review existing expectations before editing a notebook
+
+When modifying an existing notebook (or an Option B suite JSON), ask the user if you should review
+**every** expectation already in it — with or without `mostly` — against the current rules in this guide.
+
+**Even without the full review, always flag a misaligned expectation you touch or notice.** If a
+check you are editing, or one you see while working in the notebook, conflicts with these rules
+(e.g. a `mostly` on a "Never" check with no documented override), list it for the user and ask how
+to handle it, as described below. Never silently keep, fix, or reinterpret it.
+
+If the user asks for the full review, check each expectation for:
+
+- **Mechanism vs. value shape** — re-derive it per "When auditing an existing suite…" in "Choosing
+  the Validation Mechanism".
+- **Strict vs. `mostly`** (see "Missing vs. malformed: what a `mostly` tolerates"):
+  - A `mostly` on a "Never" check with no documented user override, or a `mostly` with no
+    documented reason on a "Prefer strict" check — flag it. Do not infer what it was meant to do.
+  - For coverage floors (`not_be_null`, nested `…NotNull` aggregate): is the threshold still tied
+    to the observed rate?
+  - Would the strict version now pass on the current data?
+- **Bounds, value sets, and list lengths** still match the current data (see "Core Principle —
+  Tighten Validations to the Actual Data").
+- **No-ops and redundant checks** — e.g. `not_be_null` / `be_of_type("str")` on a nested column, or
+  a check made redundant by a stronger one on the same column (`have_list_members_of_type("str")`
+  alongside `have_list_members`, which already requires every member to be one of the listed strings).
+- **Every other convention in this guide** — regex syntax, value-set sync, list-length max vs.
+  member count, and so on.
+
+Then **change nothing yet.** List each misaligned expectation for the user — field, check, the rule
+it conflicts with, what the current data shows, and a proposed fix — and ask how to handle each one
+(fix in this PR, defer, or leave as is). Change only what the user approves. Approved changes are
+part of the PR and belong in the Step 7 summary; anything left as is stays off it (see Step 7
+"Scope — only what this PR changed").
 
 ### Critical: Cell 0 import order
 
@@ -144,6 +470,7 @@ context = gx.get_context(project_root_dir='../src/agoradatatools/great_expectati
 from expectations.expect_column_values_to_have_list_members import ExpectColumnValuesToHaveListMembers
 from expectations.expect_column_values_to_have_list_members_of_type import ExpectColumnValuesToHaveListMembersOfType
 from expectations.expect_column_values_to_have_list_length_in_range import ExpectColumnValuesToHaveListLengthInRange
+from expectations.expect_column_values_to_have_unique_list_members import ExpectColumnValuesToHaveUniqueListMembers
 ```
 
 ### Custom expectation calls: always use `column=` keyword argument
@@ -157,9 +484,141 @@ validator.expect_column_values_to_have_list_members_of_type(column="my_col", mem
 validator.expect_column_values_to_have_list_length_in_range("my_col", list_length_range=[1, 10])
 ```
 
-### Do NOT use `mostly`
+### Using `mostly` (deliberately)
 
-Never add `mostly=` to any expectation. All validations should be strict (100%).
+`mostly` (a float `0 < mostly <= 1` accepted by any ColumnMapExpectation) makes an expectation pass
+when at least that fraction of the evaluated rows satisfy it. Use it for **completeness / drift
+monitoring** and for checks that hold for the vast majority of rows but not every one. Use it
+deliberately, not as a way to silence a failing check:
+
+- **ALWAYS prompt the user before adding (or loosening) a `mostly` threshold** — relaxing a check
+  below 100% is a domain-knowledge decision, not an authoring convenience. A field failing strict
+  validation may reflect a real, as-yet-undiagnosed data problem, and only someone with domain
+  knowledge can decide *whether* it's acceptable to relax that specific check on that specific field
+  and *how far*. This applies to every `mostly`-style lever — a `mostly` kwarg on a native/custom
+  expectation **and** the `non_null_threshold`/`valid_threshold` on the nested aggregate expectations.
+  Name the field, the check, the observed rate, and the threshold you propose, e.g.:
+  > "`name` is only 79.4% non-null in the current output, so a strict `not_be_null` would fail. Is it
+  > expected that ~20% of rows have no `name`, and is it OK to relax this to `mostly=0.75`? Or does
+  > that gap point to a data problem that should be investigated first?"
+  Do not add the threshold until the user confirms. If they suspect a data issue, surface it rather
+  than papering over it with a threshold.
+- **Derive the threshold from the observed rate, with a deliberate buffer** — compute it from the
+  data (per "Core Principle — Tighten Validations to the Actual Data"); do not pick round numbers. A
+  threshold far below the true rate is a blind spot; one above it causes false alarms.
+- **`mostly` excludes nulls** from its denominator — except `expect_column_values_to_not_be_null`,
+  which is specifically about nulls. So `match_regex(mostly=0.9)` means 90% of the *non-null* values
+  match; nulls are not counted against it.
+- **Prefer strict (omit `mostly`, i.e. 100%) when the field is always valid.** `mostly` is for
+  tolerating a real, known exception fraction — not for papering over a check that should pass.
+- **Nested sub-fields:** row-level `mostly` cannot see inside a JSON-stringified nested column. For a
+  "mostly"-style floor on a sub-field, use the aggregate expectations instead —
+  `ExpectColumnNestedObjectNotNull` (`non_null_threshold`), `ExpectColumnNestedObjectStringLength`
+  (`valid_threshold`), and `ExpectColumnNestedObjectRegexRule` (`valid_threshold`) — which flatten the
+  nested objects and treat a missing/null sub-field as invalid. These express a cross-document density
+  floor a per-document JSON Schema cannot. They count objects, not rows — a null row contributes no
+  objects — so for a floor on how many *rows* are populated, see "Coverage floor for a nullable nested
+  column" below.
+- **Document why** each threshold sits where it does (tie the comment to the observed rate).
+
+#### Missing vs. malformed: what a `mostly` tolerates
+
+Aim for no malformed data, but know what a `mostly` actually tolerates on each check:
+- **Missing values:** `expect_column_values_to_not_be_null(col, mostly=…)` is the only map
+  expectation that counts nulls, so a "most rows have a value" floor goes there (for a nested
+  column, see "Coverage floor for a nullable nested column" below).
+- **Malformed values:** a `mostly` on any other check does **not** make it tolerate missing values —
+  that check already skips nulls. It lets that fraction of **malformed** non-null values pass.
+
+Whether that is ever acceptable depends on the check:
+
+| Check | `mostly` allowed? |
+|---|---|
+| Coverage floors: `not_be_null`; nested `…NotNull` aggregate (`non_null_threshold`) | **Coverage floor** — set from the observed rate, with user sign-off. Does not tolerate malformed data. |
+| Type checks: `be_of_type`, `have_list_members_of_type` | **Never** — strict only |
+| Value sets: `be_in_set`, `have_list_members` | **Never** — strict only |
+| `have_unique_list_members` | **Never** — strict only |
+| `match_json_schema` | **Never** — strict only (see "Choosing the Validation Mechanism") |
+| Format, length, and range checks: `match_regex`, string-length checks (`value_lengths_between`; nested `…StringLength` / `…RegexRule` aggregates), `be_between`, `list_length_in_range` | **Prefer strict.** A `mostly` only when we deliberately choose to permit some malformed values, with user sign-off (per "ALWAYS prompt" above); the comment must say why it is tolerated. |
+
+- **Authoring:** if the data fails a "Never" check strictly, do not add a `mostly` on your own —
+  surface the failing values to the user as a possible data problem. Only the user can override
+  (next bullet).
+- **User overrides of "Never":** the user may override a "Never" rule case by case (this includes
+  `match_json_schema`). Add the `mostly` only after the user explicitly approves it, and put a
+  comment directly above the expectation recording the override and its reason, tied to the observed
+  rate, e.g.:
+  ```python
+  # User-approved override of "Never — strict only": ~2% of rows carry legacy integer IDs pending
+  # upstream fix (observed 98.1% str, version 285)
+  validator.expect_column_values_to_be_of_type("col", "str", mostly=0.97)
+  ```
+  A "Never" `mostly` without such a comment is treated as unapproved.
+- **Reviewing:** do not guess what an existing `mostly` was meant to do. Flag for user review every
+  `mostly` on a "Never" check without a documented override, and every "Prefer strict" `mostly`
+  with no documented reason (see "Always offer to review existing expectations before editing a
+  notebook").
+
+```python
+# ❌ WRONG — lets 5% of non-null values be non-lists, and says nothing about how many rows are null
+validator.expect_column_values_to_be_of_type("col", "list", mostly=0.95)
+
+# ✅ CORRECT — strict type check, plus a coverage floor if one is wanted (user sign-off)
+validator.expect_column_values_to_be_of_type("col", "list")
+validator.expect_column_values_to_not_be_null("col", mostly=<floor below the observed populated rate>)
+```
+
+#### Coverage floor for a nullable nested column
+
+`not_be_null` is a no-op on a nested column (a missing row serializes to the string `"null"`), and
+the nested aggregate expectations don't help either: they count objects *inside* each cell, so a
+row with no objects counts for nothing. To require that most rows are populated, exclude both
+serialized forms of a missing value:
+
+```python
+validator.expect_column_values_to_not_be_in_set("<col>", ["null", "NaN"], mostly=<floor below the observed populated rate>)
+```
+
+- `"null"` is a `None` cell; `"NaN"` is a float NaN cell (e.g. an all-null column read by `pd.read_json`).
+- A populated list or object can never serialize to exactly either string — a NaN *inside* a value
+  serializes as part of a longer string, e.g. `[NaN]` — so the set can't reject real data.
+- Keep the column's `match_json_schema` strict alongside it; the two checks cover shape and coverage
+  respectively.
+
+#### "Not empty" on a list column means checking both `[]` and null
+
+Nothing in ADT's serialization prevents a transform from emitting `[]`, so don't assume missing lists
+are always null. A "not empty" requirement needs both forms covered:
+- **`[]`:** strict `list_length_in_range` with a minimum of 1 (or `minItems: 1` in the schema of a
+  nested column). Map checks skip nulls, so neither catches null rows.
+- **null:** a `not_be_null` floor, or the `not_be_in_set(["null", "NaN"], …)` floor above for a
+  nested column.
+
+#### ⚠️ One nested aggregate of each type per column (they key by type + column, not `target_field`)
+
+GX identifies an aggregate expectation by `(expectation_type, column)` — the custom
+`target_field` kwarg is **not** part of that identity. So a second aggregate of the **same type** on
+the **same column** does not add a check for a different sub-field; it **silently overwrites** the
+first (last one written wins), and the earlier sub-field's floor is lost with no error. Each nested
+column therefore admits **at most one of each aggregate type**:
+
+| Column can hold, at most, one of each | keyed as |
+|---|---|
+| `expect_column_nested_object_not_null` | `(not_null, column)` |
+| `expect_column_nested_object_string_length` | `(string_length, column)` |
+| `expect_column_nested_object_regex_rule` | `(regex_rule, column)` |
+
+Practical consequences when a nested column has several sub-fields you want to floor:
+- The three **different** types coexist freely — e.g. on `target_nominations` you can hold a
+  `not_null` floor on `validation_study_details`, a `string_length` floor on
+  `data_used_to_support_target_selection`, and a `regex_rule` floor on `data_synapseid`
+  simultaneously (three types, three sub-fields).
+- But you **cannot** put a `not_null` floor on *two* sub-fields of the same column — the second
+  displaces the first. Pick the higher-value sub-field, express the other constraint via a different
+  aggregate type if one fits, or move a per-document check into the column's JSON Schema.
+- **Verify after regenerating:** count the nested aggregates in the generated
+  `<transform>.json` and confirm every `target_field` you intended is present. A collision shows up
+  as a *lower-than-expected* expectation count with a sub-field missing — not as an error.
 
 ### Common expectations by use case
 
@@ -167,8 +626,11 @@ Never add `mostly=` to any expectation. All validations should be strict (100%).
 # Never null
 validator.expect_column_values_to_not_be_null("col")
 
-# Specific allowed values
+# Specific allowed values — enumerate the distinct values actually present in the data
 validator.expect_column_values_to_be_in_set("model_type", ["Familial AD", "Late Onset AD"])
+
+# Numeric range — use the observed min and max from the data, not padded bounds
+validator.expect_column_values_to_be_between("score", min_value=<observed_min>, max_value=<observed_max>)
 
 # Non-empty list (at least 1 element) — only valid on columns NOT in gx_nested_columns
 # (see warning below)
@@ -177,30 +639,75 @@ validator.expect_column_values_to_have_list_length_in_range(column="col", list_l
 # List of strings — only valid on columns NOT in gx_nested_columns (see warning below)
 validator.expect_column_values_to_have_list_members_of_type(column="col", member_type="str")
 
+# No duplicate members within a list — only valid on columns NOT in gx_nested_columns (see warning below)
+validator.expect_column_values_to_have_unique_list_members(column="col")
+
 # JSON schema for nested column
 with open("../src/agoradatatools/great_expectations/gx/json_schemas/<transform>/my_schema.json") as f:
     schema = json.load(f)
 validator.expect_column_values_to_match_json_schema("col", json_schema=schema)
+```
 
-# Regex on a nullable string column — use row_condition to skip null rows
-validator.expect_column_values_to_match_regex(
-    "col",
-    regex="^expected/prefix",
-    row_condition="col.notnull()",
-    condition_parser="pandas",
+### Suggest `expect_table_columns_to_match_set` by default
+
+For most datasets, suggest one table-level `expect_table_columns_to_match_set` call listing every
+column in the transform's output, with `exact_match=True` — it catches a renamed/added/dropped
+column that no per-column expectation would notice. Skip the suggestion for suites with a
+legitimately variable column set (e.g. `ui_config`).
+
+```python
+validator.expect_table_columns_to_match_set(
+    column_set=["name", "matched_control", "model_type", "..."],
+    exact_match=True,
 )
 ```
 
+For an Option B (hand-written JSON) suite, add it as the first entry in `expectations` instead
+(see `protein_de_individual.json`); for Option A, add it in its own cell right after the validator
+is created (see `disease_correlation.ipynb`).
+
+---
+
+### ⚠️ GX dedups expectations by domain (`type` + column + `row_condition`)
+
+GX identifies each expectation by its **`(expectation_type + domain kwargs)`**, where *domain kwargs*
+= the **column** plus **`row_condition`/`condition_parser`** — **not** the full kwargs. Value kwargs
+(`json_schema`, `value_set`, `min_value`, a custom `target_field`, etc.) are **not** part of the
+identity. Adding a second expectation with the same `(type, column, row_condition)` **overwrites** the
+first on load/validation — silently, with no error. Consequences:
+
+- **Same column + same type + no (or identical) `row_condition` → they collide.** Two
+  `match_json_schema` (or two `be_in_set`, or two custom `nested_object_*`) on one column keep only the
+  last. Two custom nested-object expectations that differ only by `target_field` also collide —
+  `target_field` is a value kwarg, not a domain kwarg. To put several checks on one column they must
+  differ in **type** or in **`row_condition`**.
+- **Different `row_condition` → different domain → both are kept.** This is the supported way to attach
+  multiple same-type expectations to one column, each validating a disjoint row subset (e.g. one schema
+  where `cluster == "X"`, another where `cluster != "X"`). *Caveat:* a `row_condition` that hardcodes
+  data values (cluster names, categories) is brittle — if those values drift, the condition silently
+  mis-targets and the check stops doing what you think. Prefer a single condition-free expectation
+  (e.g. a `oneOf` schema covering all valid states) unless the per-subset precision is worth the
+  coupling.
+- **When verifying or testing an expectation, reproduce its FULL kwargs — never drop
+  `row_condition`/`condition_parser`.** Dropping the condition changes the domain, so an ad-hoc test
+  can falsely show a collision (or a false pass/fail) the real suite doesn't have. Mirror the exact
+  `row_condition` when checking behavior or dedup.
+- **After regenerating, count the surviving expectations per column** and confirm it matches intent — a
+  collision surfaces as a *lower-than-expected count* / a missing check, not an error.
+
+---
+
 ### ⚠️ Custom list expectations do NOT work on nested columns
 
-`expect_column_values_to_have_list_length_in_range` and `expect_column_values_to_have_list_members_of_type` both check `isinstance(cell, list)` internally. By the time GX runs, any column listed in `gx_nested_columns` has already been converted to a JSON **string** by `convert_nested_columns_to_json`, so these expectations will always fail silently (returning `False` for every row).
+`expect_column_values_to_have_list_length_in_range`, `expect_column_values_to_have_list_members_of_type`, and `expect_column_values_to_have_unique_list_members` all check `isinstance(cell, list)` internally. By the time GX runs, any column listed in `gx_nested_columns` has already been converted to a JSON **string** by `convert_nested_columns_to_json`, so these expectations will always fail silently (returning `False` for every row).
 
-**For list/array columns declared in `gx_nested_columns`, use `expect_column_values_to_match_json_schema` exclusively.** Encode length bounds with `minItems`/`maxItems` inside the schema, and type constraints with the `"type"` and `"items"` keywords:
+**For list/array columns declared in `gx_nested_columns`, use `expect_column_values_to_match_json_schema` exclusively.** Encode length bounds with `minItems`/`maxItems` inside the schema, type constraints with the `"type"` and `"items"` keywords, and uniqueness with `"uniqueItems": true` (the schema-native parallel to `expect_column_values_to_have_unique_list_members` — and unlike that custom expectation, `uniqueItems` also works on arrays of objects, not just scalars, since it does deep equality rather than a `set()`-based check):
 
 ```python
 # ❌ WRONG — list expectations fail on JSON-stringified nested columns
 validator.expect_column_values_to_have_list_length_in_range(column="result_order", list_length_range=[2, 4])
 validator.expect_column_values_to_have_list_members_of_type(column="result_order", member_type="str")
+validator.expect_column_values_to_have_unique_list_members(column="result_order")
 
 # ✅ CORRECT — JSON schema works on the string representation
 validator.expect_column_values_to_match_json_schema(
@@ -209,6 +716,7 @@ validator.expect_column_values_to_match_json_schema(
         "type": "array",
         "minItems": 2,
         "maxItems": 4,
+        "uniqueItems": True,
         "items": {"type": "string", "minLength": 1},
     },
 )
@@ -306,17 +814,44 @@ validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
 
 ## Step 4 — Generate the Expectations Suite
 
-### Option A — Run the notebook (standard, for small/medium datasets)
+**Option A is the default for every dataset.** Only `rna_de_aggregate` and `rna_de_individual`
+currently use Option B, because their processed output is too large (2+ GB) for `pd.read_json()` to
+handle interactively. Do not use Option B for any other dataset unless Option A is first
+attempted and found genuinely untenable due to file size — file size is the *only* justification
+for Option B, not convenience.
 
-Always activate the conda env and reinstall the package first:
+### Option A — Update & run the notebook (standard, for small/medium datasets)
+
+**The `.ipynb` notebook in `gx_suite_definitions/` is the source of truth for every Option A
+dataset, not just a historical artifact.** When you add, remove, or edit any expectation for an
+Option A dataset, you MUST make the edit in its notebook — both the `import` in Cell 0
+(if it's a custom expectation not already imported) and the actual `validator.expect_...()` call in
+the cell for that column — then regenerate the suite by running the notebook. **Do not hand-edit
+the generated `src/agoradatatools/great_expectations/gx/expectations/<transform>.json` directly for
+an Option A dataset.** Editing it by hand leaves the notebook out of sync with the generated suite,
+so the next person who runs the notebook will silently regenerate a suite that's missing your
+change.
+
+With your environment set up per the prerequisite above (editable `pip install -e ".[dev]"`),
+generate the suite by executing the notebook; after successful execution, immediately strip its outputs:
 
 ```bash
-conda activate adt_py310
-pip install . -q
 jupyter nbconvert --to notebook --inplace --execute gx_suite_definitions/<transform>.ipynb
+# nbconvert --execute bakes cell outputs into the .ipynb. Strip them IMMEDIATELY — as part of
+# generating the suite, right after execution — so the notebook stays output-free like every other
+# suite notebook. Scope pre-commit to just the nbstripout hook and this file:
+pre-commit run nbstripout --files gx_suite_definitions/<transform>.ipynb
 ```
 
-### Option B — Write the JSON directly (required for large datasets, 2+ GB)
+**Strip via `pre-commit`, not at commit time.** Do the strip as part of generation, immediately after
+execution — not deferred to commit, since commits could be made by someone (the user) other than whoever (AI)
+generated the suite. Go through `pre-commit`, not `nbstripout` directly: `nbstripout` isn't installed
+as a standalone command, whereas `pre-commit` provisions the pinned version (`kynan/nbstripout 0.6.1`
+in `.pre-commit-config.yaml`). Use `pre-commit run nbstripout --files <notebook>` for one notebook, or
+`pre-commit run --all-files` for the full pre-push sweep (per the README). Do not install a git commit
+hook — the README's workflow is manual invocation.
+
+### Option B — Write the JSON directly (only for `rna_de_aggregate` / `rna_de_individual` today)
 
 For transforms whose output JSON is very large (2+ GB), `pd.read_json()` in the notebook can take 30–60+ minutes and the `nbconvert` run becomes impractical. In this case, write `src/agoradatatools/great_expectations/gx/expectations/<transform>.json` directly — it has a well-defined format and produces the identical result.
 
@@ -338,12 +873,30 @@ The format mirrors existing suites (e.g. `rnaseq_differential_expression.json`):
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": { "column": "my_col", "type_": "str" },
       "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "my_nested_col",
+        "json_schema": {
+          "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/<transform>/<schema>.json",
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "type": "object",
+          "properties": { "link_url": { "type": "string", "minLength": 1 } },
+          "required": ["link_url"],
+          "additionalProperties": false
+        }
+      },
+      "meta": {}
     }
   ],
   "ge_cloud_id": null,
   "meta": { "great_expectations_version": "0.18.1" }
 }
 ```
+
+When hand-writing an inline `json_schema` here, include the `$schema`/`$id` header (as shown
+above) so the suite matches what a notebook would generate — see Step 2.
 
 After writing the file directly, **always verify the suite passes** by running GX on a small sample in a standalone script. This catches any expectation mismatches without loading the full file.
 
@@ -378,15 +931,14 @@ for r in results.results:
 
 ---
 
-## Step 5 — Reinstall After Generating the Suite
+## Step 5 — Loading the Generated Suite
 
-The `GreatExpectationsRunner` loads suites from the *installed* package, not from source. After the notebook generates `<transform>.json`, reinstall:
+The `GreatExpectationsRunner` resolves suites relative to the installed `agoradatatools` package. With
+the editable install from `python-env.mdc` (`pip install -e ".[dev]"`), the installed package points
+at your source tree, so the suite you just generated is loaded directly — **no reinstall needed**.
 
-```bash
-pip install . -q
-```
-
-If you skip this, the runner will log:
+If instead you did a non-editable `pip install .`, the runner loads suites from the copy in
+`site-packages`, so you must re-run `pip install .` after generating the suite, or it will log:
 > `Expectation suite <transform> does not exist. Data validation will not be performed.`
 
 ---
@@ -401,6 +953,164 @@ Check the output for GX validation results.
 
 ---
 
+## Step 7 — Summarize the Expectation Changes for Review
+
+Once the suite passes, **surface a bullet-point summary of every validation check this PR added,
+removed, or modified** — this is what a reviewer reads to understand the PR without diffing the
+generated JSON. Produce it whenever you finish a round of suite edits (and refresh it before
+opening/updating a PR).
+
+Derive the list by diffing the generated `<transform>.json` against the branch base (e.g.
+`git merge-base dev HEAD`), so nothing is missed and the provenance tags are exact.
+
+### Scope — only what this PR changed
+
+**Include a check only if this PR added, removed, or modified it.** Preexisting checks that are
+unchanged do NOT belong on the list — even if they carry a `mostly`/threshold or otherwise look
+noteworthy. (A `mostly` you did not touch is preexisting; leave it off.) Do not surface preexisting
+checks "for context" — that has repeatedly caused confusion about what actually changed. If the user
+explicitly asks about unchanged checks, answer separately, outside the list. Preexisting checks the
+user approved changing during "Always offer to review existing expectations before editing a notebook" (Step 3) are
+changes in this PR and do belong on the list.
+
+### One bullet per (field × validation type)
+
+**Emit the entire summary inside a fenced code block** (```` ```markdown ````) — including both the
+`### Overview` and `### Summary of changed expectations` sections — so it renders as literal text the
+user can copy-paste verbatim, rather than being rendered as live headers/bullets (which strip the raw
+markers and aren't selectable as source).
+
+### Lead with an `### Overview` section
+
+Above the changed-expectations list, emit an `### Overview` section with two short parts:
+
+1. **What you did** — one or two sentences describing the work at a high level (e.g. "Audited the
+   suite field-by-field against the authoring rules, fixed misapplied/broken expectations, and added
+   missing coverage across scalars, lists, and nested objects."). **Keep it high-level — do not
+   restate the specific per-field changes that the summary list already enumerates** (no naming
+   individual columns, regexes, or bounds); the overview frames the work, the list carries the
+   detail.
+2. **Final suite stats** — the final expectation count **and the base-branch count it grew/shrank
+   from** as `(was N)`, plus the pass result and how it was verified, e.g. "Final suite: 53
+   expectations (was 52), 100% passing (runner-faithful, verified against the installed package)."
+   `N` is the expectation count in the base version of `<transform>.json` (the `git merge-base dev
+   HEAD` revision you diffed against).
+
+   **Report the pass status truthfully — state only what you actually verified in THIS session, and
+   say how.** The pass claim must correspond to a run you performed and can point to; the wording in
+   the example above is a template for the *verified* case, not boilerplate to paste unconditionally.
+   Pick the phrasing that matches reality:
+   - You ran a runner-faithful validation this session → "100% passing (runner-faithful, verified
+     against the installed package)" (or the real pass rate, e.g. "148/150 passing").
+   - The user reported an authoritative run (e.g. their own `adt`) → attribute it: "100% passing (per
+     the user's `adt` run)".
+   - You only inspected the suite via git / static read and did **not** run it → "pass status not
+     independently verified in this session".
+
+   Never upgrade a "not verified" to "verified" — including when regenerating an overview from the
+   template or after an unrelated edit. If nothing was re-run, carry forward the prior, accurate
+   status verbatim. If you want a stronger claim, run the validation first (Steps 5–6), then update
+   the line.
+
+Begin the list with the header `### Summary of changed expectations` (followed by a blank line),
+then emit exactly one bullet for each field-and-check combination. **Prefix every bullet with a
+GitHub-markdown list marker (`- `)** so the block can be copy-pasted directly as a bulleted list.
+Structure each bullet in this fixed order:
+
+````markdown
+### Summary of changed expectations
+
+- `<column>[.<field_name>]`: <validation type> <info about the check> [added | removed | modified<, previous state>]
+````
+
+1. **Field** — the column name, plus `.<field_name>` if the check acts on a nested sub-field.
+   Format the whole identifier as inline code: `` `column` `` or `` `column.field_name` ``.
+2. **Validation type** — the kind of check: `length`, `range`, `regex`, `not-null`, `type`,
+   `string length`, `unique members`, `member check`, etc. **For anything encoded inside a JSON
+   Schema, prefix the type with `json_schema` and break each schema-encoded check into its own
+   bullet** — e.g. `json_schema list length`, `json_schema range`, `json_schema regex`,
+   `json_schema member check`. (A single `match_json_schema` expectation thus expands into several
+   bullets, one per interior check added/removed/modified.) This applies uniformly — a `pattern`
+   inside a schema is `json_schema regex` (no exceptions); reserve plain `regex` for a native
+   `expect_column_values_to_match_regex` expectation on a scalar column.
+3. **Info about the check** — whatever pins the check down:
+   - a threshold **and the data stat it was derived from** (e.g. `@0.70 (73.7% match)`,
+     `@0.75 (79.4% populated)`);
+   - a range's boundaries (e.g. `[-7,15]`) or a list-length range (e.g. `[1,4]`, `max 5`);
+   - a members list's length, or the actual members **unless the list has > 5** (then give the count
+     or a derivation, e.g. `[1,19] (max = # allowed biodomains)`).
+   - **Interpret the stat correctly for the check's null handling:** `not_be_null(mostly=…)` counts
+     nulls, so its stat is the *populated* rate; every other `mostly` and any `row_condition`-guarded
+     check excludes nulls, so the stat is "% of *non-null* rows satisfying the check"; a nested
+     aggregate's stat is the rate among flattened sub-documents.
+4. **Change type** — `[added]`, `[removed]`, or `[modified]`. For `[modified]`, state the previous
+   state unless part 3 already makes it obvious — e.g. `[modified, was @0.70]`,
+   `[modified, was "\d"]`.
+
+### Container-level JSON-schema checks — use sub-bullets
+
+For a **top-level column's** `match_json_schema` expectation, the checks that describe the
+**container itself** (rather than an individual property) — its `type`, `additionalProperties`, the
+`required` key list, and its **list length** (`minItems`/`maxItems`) — go on the column's own line as
+**indented sub-bullets** under a parent `` - `column`: json_schema <container shape> `` line. Each
+**property**-level check still gets its own top-level `` `column.field_name` `` bullet as usual
+(sorted into the flat list). This grouping applies to **top-level columns only** — a nested array
+property (e.g. `` `ensembl_info.ensembl_possible_replacements` ``) keeps its checks as ordinary flat
+`` `column.field_name` `` bullets.
+
+**Change-tag placement:**
+- If the **whole expectation is added or removed**, put the tag on the parent line; the sub-bullets
+  inherit it (leave them untagged).
+- If the expectation is **modified** (only some container-level checks changed), leave the parent
+  line untagged — it's just naming the container — and put a `[added|removed|modified]` tag on each
+  changed sub-bullet. Do not list unchanged container checks.
+
+```markdown
+# whole expectation added — tag on parent, sub-bullets inherit:
+- `columns`: json_schema array of objects [added]
+  - additionalProperties false
+  - required: data_key, is_exported, is_hidden, type
+
+# preexisting expectation, only list length added — tag on the sub-bullet:
+- `median_expression`: json_schema array of objects
+  - list length [2,9] [added]
+```
+
+### Formatting rules
+
+- **Sort the bullets by `column.field_name`** (column-level checks sort before that column's nested
+  fields). No other grouping.
+- **Do not add any section headers beyond the single `### Summary of changed expectations` header**
+  at the top — no category groupings; a flat, sorted list only.
+- **Describe the check, not just the kwarg that changed.** "added `row_condition=…`" alone is
+  misleading; say what it guards against.
+
+### Example (excerpt, from the gene_info suite)
+
+````markdown
+### Overview
+Audited the gene_info suite field-by-field against the authoring rules, fixed expectations that were
+misapplied or broken, and added missing coverage across scalars, lists, and nested objects.
+
+Final suite: 53 expectations (was 52), 100% passing (runner-faithful, verified against the installed package).
+
+### Summary of changed expectations
+
+- `biodomains`: length [1,19] (max = # allowed biodomains) [added]
+- `druggability.pharos_class`: json_schema member check removed spurious null value [modified]
+- `druggability.pharos_class`: json_schema list length [1,4] [added]
+- `ensembl_info.ensembl_release`: json_schema regex "^\d+$" [added]
+- `hgnc_symbol`: not-null @0.75 (79.4% populated) [modified, was @0.70]
+- `median_expression`: json_schema array of objects
+  - list length [2,9] [added]
+- `median_expression.min`: json_schema range [-8,14] [added]
+- `target_nominations.data_synapseid`: regex "^syn[0-9]+$" @0.70 (73.7% match) [added]
+- `total_nominations`: range [1,10] [modified, was [0,1000]]
+- `uniprotkb_accessions`: unique members [added]
+````
+
+---
+
 ## Common Pitfalls
 
 | Pitfall | Fix |
@@ -409,9 +1119,20 @@ Check the output for GX validation results.
 | `InvalidExpectationConfigurationError: Invalid positional argument` | Use `column=` keyword arg for all custom expectations |
 | Suite not found at runtime | Run `pip install .` after generating the `.json` file |
 | Pre-commit hook modifies files on commit | Re-stage modified files and commit again |
+| A second expectation on a column silently disappears / a suite has fewer expectations than authored | GX dedups by `(expectation_type + column + row_condition/condition_parser)`; two same-type, same-column expectations with no/identical `row_condition` collide (last wins). Differentiate by type or `row_condition`, or combine into one schema. After regenerating, count expectations per column — see "GX dedups expectations by domain" in Step 3 |
+| Ad-hoc test shows a collision / wrong pass-fail the real suite doesn't have | You dropped `row_condition`/`condition_parser` when reproducing the expectation, changing its domain. Always mirror the FULL kwargs when verifying behavior or dedup |
 | Regex fails on a zero-padded string column (e.g. `jax_id`) | `pd.read_json()` converts `"004807"` → `4807` (int); validate as `int`, not `str` |
-| Regex fails on a nullable column | Use `row_condition="col.notnull()"` + `condition_parser="pandas"` to skip null rows |
 | Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
-| `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems` and `"items": {"type": ...}` instead |
+| `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` / `expect_column_values_to_have_unique_list_members` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems`, `"items": {"type": ...}`, and `"uniqueItems": true` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
+| New JSON schema missing `$schema` / `$id` (in a file **or** inlined in a suite) | Every GX JSON schema must carry `$schema` (draft 2019-09) and a GitHub repo-path `$id`, whether it lives in a standalone file or is embedded inline in an `expect_column_values_to_match_json_schema` kwarg — see Step 2 |
+| GX value set silently drifts from the ui_config filter dropdown | Several GX `expect_column_values_to_be_in_set` / `expect_column_values_to_have_list_members` lists (and nested-column `enum`s) mirror filter-value vectors in the Agora (`AG-2005_ui_config.rmd`) and model_ad (`MG-402_Create ui_config source file.rmd`) ui_config notebooks (see "Keeping Related Constraints in Sync" → "External sync"). When you change one, prompt the user to update the parallel list in the R notebook |
+| `list_length_in_range` max is arbitrary/padded on a column that also has `list_members` | Set the range's max to `len(list_members)` (or the `enum` count in a JSON schema) unless the user explicitly requires otherwise — see "Keeping Related Constraints in Sync" → "Internal sync" |
+| Suite `.json` edited by hand for an Option A dataset, notebook left unchanged | Only `rna_de_aggregate`/`rna_de_individual` use Option B. For every other dataset, edit the `.ipynb` (Cell 0 import + the column's `validator.expect_...()` call) and regenerate via `nbconvert` — see Step 4 |
+| `mostly` threshold added without domain sign-off | Relaxing a check below 100% is a domain-knowledge call — always prompt the user first (name the field, check, observed rate, and proposed threshold); a sub-100% rate may be an undiagnosed data problem, not a tolerance to encode. Applies to `mostly` kwargs and nested-aggregate `non_null_threshold`/`valid_threshold` alike — see "Using `mostly` (deliberately)" in Step 3 |
+| A `mostly` on a type, value-set, or schema check | It permits malformed non-null values, which those checks never allow without an explicit user override — and it does not tolerate missing values (they're already skipped). Unless a comment documents a user-approved override, don't keep or reinterpret it: flag it for user review, whether or not a full review was requested — see "Missing vs. malformed: what a `mostly` tolerates" in Step 3 |
+| A second nested aggregate of the same type on one column silently disappears | GX keys aggregate expectations by `(expectation_type, column)`, not `target_field`, so the later call overwrites the earlier — each column holds at most one `nested_object_not_null` / one `…_string_length` / one `…_regex_rule`. Use a different aggregate type per sub-field, or move the check into the JSON Schema; verify the generated suite's nested-aggregate count — see "Using `mostly` (deliberately)" in Step 3 |
+| Notebook left with execution outputs after `nbconvert --execute` | Strip immediately after executing — as part of generation, not at commit time — with `pre-commit run nbstripout --files <notebook>`. All suite notebooks are kept output-free. `nbstripout` isn't a standalone command, so go through `pre-commit`; don't install a git commit hook — see Step 4 |
+| Notebook loads a local `staging/` file (or has a commented-out local-file alternative) | Option A notebooks must load the Synapse entity with `syn.get("<syn_id>").path`; local copies are for inspecting values only — see "The notebook must load its data from the Synapse entity" in Step 3 |
+| Suite missing a table-level schema-drift check | For most new or modified suites, suggest one `expect_table_columns_to_match_set(column_set=[...], exact_match=True)` listing all of the transform's output columns — unless the column set is intentionally variable (e.g. `ui_config`) — see "Suggest `expect_table_columns_to_match_set` by default" in Step 3 |

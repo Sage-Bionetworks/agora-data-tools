@@ -1,4 +1,4 @@
-FROM python:3.10.17-bullseye
+FROM python:3.11.15-trixie
 
 RUN  apt-get update && \
   apt-get install -y procps && \

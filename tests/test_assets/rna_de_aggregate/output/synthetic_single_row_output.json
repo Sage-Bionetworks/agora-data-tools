@@ -11,7 +11,7 @@
     "model_group": "AD",
     "model_type": "Late Onset AD",
     "tissue": "Striatum",
-    "sex_cohort": "Male",
+    "sex": "Male",
     "9 months": {
       "log2_fc": 5.0,
       "adj_p_val": 0.5

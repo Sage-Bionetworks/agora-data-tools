@@ -1,0 +1,35 @@
+[
+  {
+    "ensembl_gene_id": "ENSG00000000001",
+    "symbol": "SYM1",
+    "total_nominations": 2,
+    "initial_nomination": 2018,
+    "nominating_teams": ["TeamA", "TeamB"],
+    "cohort_studies": ["MSBB", "Mayo", "Rush"],
+    "input_data": ["Genetics", "Protein", "RNA"],
+    "programs": ["AMP-AD", "Resilience-AD"],
+    "pharos_class": "Tclin"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000002",
+    "symbol": "SYM2",
+    "total_nominations": 1,
+    "initial_nomination": 2021,
+    "nominating_teams": ["TeamA"],
+    "cohort_studies": ["ROSMAP"],
+    "input_data": ["RNA"],
+    "programs": ["AMP-AD"],
+    "pharos_class": "Tchem"
+  },
+  {
+    "ensembl_gene_id": "ENSG00000000003",
+    "symbol": "SYM3",
+    "total_nominations": 1,
+    "initial_nomination": 2019,
+    "nominating_teams": ["TeamC"],
+    "cohort_studies": ["Banner"],
+    "input_data": ["Protein"],
+    "programs": ["AMP-AD"],
+    "pharos_class": null
+  }
+]

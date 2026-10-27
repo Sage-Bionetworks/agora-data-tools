@@ -1,0 +1,5 @@
+ensembl_gene_id,team,study,input_data,source,initial_nomination
+ENSG00000000001,TeamA,"Rush, MSBB",RNA,AMP-AD,2020
+ENSG00000000001,TeamB,Mayo,"Genetics, Protein",Resilience-AD,2018
+ENSG00000000002,TeamA,ROSMAP,RNA,AMP-AD,2021
+ENSG00000000003,TeamC,Banner,Protein,AMP-AD,2019

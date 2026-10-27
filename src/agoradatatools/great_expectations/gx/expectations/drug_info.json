@@ -1,0 +1,424 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "drug_info",
+  "expectations": [
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "common_name",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "common_name"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "common_name",
+        "max_value": 250,
+        "min_value": 1
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "description",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "description",
+        "max_value": 1000,
+        "min_value": 1
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "iupac_id",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "iupac_id",
+        "max_value": 1000,
+        "min_value": 1
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "chembl_id",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "chembl_id"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "chembl_id",
+        "regex": "^CHEMBL\\d+$"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "drug_bank_id",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "drug_bank_id",
+        "condition_parser": "pandas",
+        "regex": "^DB\\d+$",
+        "row_condition": "drug_bank_id.notnull()"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "modality",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "modality",
+        "value_set": [
+          "Small molecule",
+          "Protein"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "year_of_first_approval",
+        "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "year_of_first_approval",
+        "max_value": 2050,
+        "min_value": 1938
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "maximum_clinical_trial_phase",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "maximum_clinical_trial_phase",
+        "value_set": [
+          "Phase I",
+          "Phase II",
+          "Phase III",
+          "Phase IV",
+          "Preclinical",
+          "Unknown"
+        ]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "aliases",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "aliases"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "aliases",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "mechanisms_of_action",
+        "type_": "list"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "mechanisms_of_action"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_have_list_members_of_type",
+      "kwargs": {
+        "column": "mechanisms_of_action",
+        "member_type": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "linked_targets",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "linked_targets"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "linked_targets",
+        "json_schema": {
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "ensembl_gene_id": {
+                "pattern": "^ENSG\\d{11}$",
+                "type": "string"
+              },
+              "hgnc_symbol": {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              "is_nominated_target": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "ensembl_gene_id",
+              "hgnc_symbol",
+              "is_nominated_target"
+            ],
+            "type": "object"
+          },
+          "maxItems": 100,
+          "minItems": 0,
+          "title": "Drug Info Linked Targets Schema",
+          "type": "array"
+        }
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_of_type",
+      "kwargs": {
+        "column": "drug_nominations",
+        "type_": "str"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "drug_nominations"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_match_json_schema",
+      "kwargs": {
+        "column": "drug_nominations",
+        "json_schema": {
+          "$schema": "https://json-schema.org/draft/2019-09/schema",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "ad_moa": {
+                "maxLength": 2000,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "additional_evidence": {
+                "maxLength": 2000,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "combined_with": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "chembl_id": {
+                      "pattern": "^CHEMBL\\d+$",
+                      "type": "string"
+                    },
+                    "common_name": {
+                      "maxLength": 250,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "common_name",
+                    "chembl_id"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 10,
+                "minItems": 0,
+                "type": "array"
+              },
+              "computational_validation_results": {
+                "maxLength": 2000,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "computational_validation_status": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "contact_pi": {
+                "maxLength": 250,
+                "minLength": 1,
+                "type": "string"
+              },
+              "contributors": {
+                "maxLength": 1000,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "data_used": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              "evidence": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              "experimental_validation_results": {
+                "maxLength": 2000,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "experimental_validation_status": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "grant_number": {
+                "maxLength": 250,
+                "minLength": 1,
+                "type": "string"
+              },
+              "initial_nomination": {
+                "maximum": 2050,
+                "minimum": 2025,
+                "type": "integer"
+              },
+              "program": {
+                "maxLength": 250,
+                "minLength": 1,
+                "type": "string"
+              },
+              "reference": {
+                "maxLength": 1000,
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "grant_number",
+              "contact_pi",
+              "evidence",
+              "data_used",
+              "ad_moa",
+              "reference",
+              "computational_validation_status",
+              "computational_validation_results",
+              "experimental_validation_status",
+              "experimental_validation_results",
+              "additional_evidence",
+              "contributors",
+              "initial_nomination",
+              "program",
+              "combined_with"
+            ],
+            "type": "object"
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "title": "Drug Info Drug Nominations Schema",
+          "type": "array"
+        }
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.18.1"
+  }
+}

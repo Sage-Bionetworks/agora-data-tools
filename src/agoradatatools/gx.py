@@ -8,7 +8,8 @@ from typing import Optional
 import great_expectations as gx
 import pandas as pd
 from great_expectations.checkpoint.types.checkpoint_result import CheckpointResult
-from synapseclient import Activity, File, Synapse
+from synapseclient import Synapse
+from synapseclient.models import Activity, File, Folder, UsedURL
 
 from agoradatatools.reporter import DatasetReport
 
@@ -42,6 +43,7 @@ class GreatExpectationsRunner:
         syn: Synapse,
         dataset_path: str,
         dataset_name: str,
+        staging_path: str,
         upload_folder: str = None,
         nested_columns: typing.List[str] = None,
     ):
@@ -49,6 +51,7 @@ class GreatExpectationsRunner:
         self.syn = syn
         self.dataset_path = dataset_path
         self.expectation_suite_name = dataset_name
+        self.staging_path = staging_path
         self.upload_folder = upload_folder
         self.nested_columns = nested_columns
         self.gx_project_dir = self._get_data_context_location()
@@ -68,6 +71,9 @@ class GreatExpectationsRunner:
         )
         from expectations.expect_column_values_to_have_list_members_of_type import (
             ExpectColumnValuesToHaveListMembersOfType,
+        )
+        from expectations.expect_column_values_to_have_unique_list_members import (
+            ExpectColumnValuesToHaveUniqueListMembers,
         )
         from expectations.expect_column_values_to_have_list_of_dict_with_expected_values import (
             ExpectColumnValuesToHaveListOfDictWithExpectedValues,
@@ -127,6 +133,25 @@ class GreatExpectationsRunner:
         shutil.copy(original_results_path, new_results_path)
         return new_results_path
 
+    def write_report_to_staging(self, results_path: str) -> str:
+        """Copies the GX HTML report into a `gx_reports` subdirectory of the staging
+        directory so it can be viewed locally regardless of whether results are
+        uploaded to Synapse.
+
+        Args:
+            results_path (str): Path to the GX report file.
+
+        Returns:
+            str: Path to the report copied into the staging directory.
+        """
+        gx_reports_dir = os.path.join(self.staging_path, "gx_reports")
+        os.makedirs(gx_reports_dir, exist_ok=True)
+        staging_report_path = os.path.join(
+            gx_reports_dir, os.path.basename(results_path)
+        )
+        shutil.copy(results_path, staging_report_path)
+        return staging_report_path
+
     def upload_results_file_to_synapse(self, results_path: str) -> None:
         """Uploads a results file to Synapse. Assigns class attributes associated
         with the report file.
@@ -134,21 +159,23 @@ class GreatExpectationsRunner:
         Args:
             results_path (str): Path to the GX report file.
         """
-        file = self.syn.store(
-            File(
-                results_path,
-                parentId=self.upload_folder,
-            ),
+        file = File(
+            path=results_path,
             activity=Activity(
                 name=f"Great Expectations {self.expectation_suite_name} results",
-                executed="https://github.com/Sage-Bionetworks/agora-data-tools",
+                executed=[
+                    UsedURL(url="https://github.com/Sage-Bionetworks/agora-data-tools")
+                ],
             ),
-            forceVersion=True,
+            force_version=True,
         )
+
+        file = file.store(parent=Folder(id=self.upload_folder), synapse_client=self.syn)
+
         self.report_file = file.id
-        self.report_version = file.versionNumber
+        self.report_version = file.version_number
         self.report_link = DatasetReport.format_link(
-            syn_id=file.id, version=file.versionNumber
+            syn_id=file.id, version=file.version_number
         )
 
     @staticmethod
@@ -278,8 +305,11 @@ class GreatExpectationsRunner:
         logger.info(
             f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
         )
-        latest_reults_path = self.get_results_path(checkpoint_result)
+        latest_results_path = self.get_results_path(checkpoint_result)
         self.set_warnings_and_failures(checkpoint_result)
 
+        # Always write the report locally so it can be viewed without uploading.
+        self.write_report_to_staging(latest_results_path)
+
         if self.upload_folder:
-            self.upload_results_file_to_synapse(latest_reults_path)
+            self.upload_results_file_to_synapse(latest_results_path)

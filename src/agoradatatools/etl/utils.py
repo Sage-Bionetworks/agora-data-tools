@@ -1,11 +1,25 @@
 from abc import ABC, abstractmethod
-from typing import Any, Collection, Dict, List, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Collection,
+    Dict,
+    List,
+    ParamSpec,
+    TypeVar,
+    Union,
+)
+import asyncio
+import functools
+import math
 import re
 
 import numpy as np
 import pandas as pd
 import synapseclient
 import yaml
+from itertools import combinations
 
 
 class ColumnRule(ABC):
@@ -166,6 +180,64 @@ class OneOfRule(ColumnRule):
         return f" (value={self.value!r})"
 
 
+class NumericRule(ColumnRule):
+    """Rule that every present value must be numeric (parseable as a number).
+
+    Null values are skipped so this rule only validates the type of present values;
+    use NotEmptyRule to require presence. Values are checked with pandas to_numeric,
+    so numeric strings such as "6" or "9.9" pass.
+    """
+
+    rule = "numeric"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null values in *series* that are not numeric."""
+        present = series[series.notna()]
+        return int(pd.to_numeric(present, errors="coerce").isna().sum())
+
+
+class NonNegativeRule(ColumnRule):
+    """Rule that every present numeric value must be greater than or equal to zero.
+
+    Null values are skipped so this rule only validates the sign of present values;
+    use NotEmptyRule to require presence.
+
+    Values that cannot be parsed as numbers are not counted here. Pair this rule with
+    NumericRule on the same column so those values are still reported: doing so keeps a
+    single bad cell from being counted as two separate violations.
+    """
+
+    rule = "non_negative"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null, numeric values in *series* that are negative."""
+        present = series[series.notna()]
+        return int((pd.to_numeric(present, errors="coerce") < 0).sum())
+
+
+class UniqueRule(ColumnRule):
+    """Rule that every present value in a column must appear exactly once.
+
+    Unlike the other rules, this one is a property of the column as a whole rather than of
+    each cell, so the violation count is the number of rows belonging to a duplicated group:
+    two rows sharing a value count as two violations. The reported count therefore locates how
+    much of the column is affected, but not which values repeat.
+
+    Null values are skipped, so a key column that is allowed to be blank on some rows can still
+    be checked for uniqueness. This matters because pandas treats null as equal to null, so an
+    unfiltered duplicate check would flag a second blank row as a duplicate of the first. Empty
+    and whitespace-only strings are not treated as null here; pair this rule with NotEmptyRule
+    on columns where blanks are also unacceptable.
+    """
+
+    rule = "unique"
+
+    def count_violations(self, series: pd.Series) -> int:
+        """Return the number of non-null rows in *series* whose value occurs more than once."""
+        present = series[series.notna()]
+        return int(present.duplicated(keep=False).sum())
+
+
 # TODO remove "_" - these utils functions are not only used internally
 def _login_to_synapse(token: str = None) -> synapseclient.Synapse:
     """Logs into Synapse python client, returns authenticated Synapse session.
@@ -223,6 +295,28 @@ def _get_config(
     return config
 
 
+def standardize_column_name(name: str) -> str:
+    """Standardizes a single column name by replacing problematic characters and lowercasing.
+
+    Applies two independent character transformations, then lowercases the result:
+
+    - Removed entirely: # @ & * ^ ? ( ) % $ ! /
+    - Replaced with an underscore: space, period, and hyphen
+    - Any other character (e.g. +, comma, apostrophe, colon) is left unchanged
+
+    This is the per-name logic shared by standardize_column_names.
+
+    Args:
+        name (str): The raw column name to standardize.
+
+    Returns:
+        str: The standardized column name.
+    """
+    name = re.sub("[#@&*^?()%$!/]", "", name)
+    name = re.sub("[ .-]", "_", name)
+    return name.lower()
+
+
 def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
     """Takes in a dataframe replaces problematic characters in column names
     and makes column names all lowercase characters
@@ -234,11 +328,7 @@ def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: New dataframe with cleaned column names
     """
 
-    df.columns = df.columns.str.replace(
-        "[#@&*^?()%$#!/]", "", regex=True
-    )  # the commas were unnessesary and were breaking the prelacement of '-' characters
-    df.columns = df.columns.str.replace("[ -.]", "_", regex=True)
-    df.columns = map(str.lower, df.columns)
+    df.columns = [standardize_column_name(col) for col in df.columns]
 
     return df
 
@@ -263,6 +353,29 @@ def standardize_values(df: pd.DataFrame) -> pd.DataFrame:
     except TypeError:  # I could not get this to trigger without mocking replace
         print("Error comparing types.")
 
+    return df
+
+
+def capitalize_first_character(df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
+    """Capitalize the first character of string columns without changing the rest.
+
+    Preserves acronyms and mixed-case values (e.g. APOE, DRIAD-SP). Operates on
+    flat string columns only; non-string values are returned unchanged.
+
+    Args:
+        df: DataFrame to modify in place (also returned).
+        fields: Column names to capitalize. Missing columns are skipped.
+
+    Returns:
+        The same DataFrame with first-character capitalization applied.
+    """
+
+    def capitalize(text):
+        return text[:1].upper() + text[1:] if isinstance(text, str) and text else text
+
+    for field in fields:
+        if field in df.columns:
+            df[field] = df[field].apply(capitalize)
     return df
 
 
@@ -332,9 +445,9 @@ def rename_columns(
 
 def nest_fields(
     df: pd.DataFrame,
-    grouping: Union[str, List[str]],
+    grouping: str | list[str],
     new_column: str,
-    drop_columns: list = [],
+    drop_columns: str | list[str] | None = None,
     nested_field_is_list: bool = True,
 ) -> pd.DataFrame:
     """Collapses the provided DataFrame by grouping and nesting fields.
@@ -350,7 +463,8 @@ def nest_fields(
         df (pd.DataFrame): DataFrame to be collapsed
         grouping (str or list of str): The column(s) that you want to group by
         new_column (str): the new column created to contain the nested dictionaries created
-        drop_columns (list, optional): List of columns to leave out of the new nested dictionary. Defaults to [].
+        drop_columns (str or list of str, optional): List of columns to leave out of the new nested dictionary. Defaults
+                        to None.
         nested_field_is_list (bool, optional): if True (default), each nested field will be a list of dicts. This
                         applies to data sets where there may be multiple rows to collapse, e.g. multiple biodomain
                         rows for a single Ensembl ID. If False, each nested field will be a single dict. This applies
@@ -359,7 +473,17 @@ def nest_fields(
 
     Returns:
         pd.DataFrame: New DataFrame with grouping column(s) and a column containing nested dictionaries
+
+    Raises:
+        ValueError: If the input DataFrame is empty
+        ValueError: If nested_field_is_list is False and there are multiple rows per group.
     """
+    if df.empty:
+        raise ValueError("Input DataFrame is empty")
+
+    # Initialize to empty list if not provided
+    drop_columns = drop_columns or []
+
     nested = (
         normalize_null_values(df)
         .groupby(grouping)
@@ -379,7 +503,7 @@ def nest_fields(
     else:
         raise ValueError(
             "nested_field_is_list cannot be False when there are multiple rows to nest per "
-            + grouping
+            f"group in {grouping}"
         )
 
 
@@ -462,6 +586,21 @@ def check_required_datasets_and_columns(
             )
 
 
+def raise_on_duplicate_keys(df: pd.DataFrame, keys: list[str], message: str) -> None:
+    """Raise when more than one row shares the same values for keys.
+
+    message is the sentence that precedes the offending key tuples. At most ten
+    tuples are included.
+    """
+    duplicated = df.duplicated(subset=keys, keep=False)
+    if not duplicated.any():
+        return
+    offenders = sorted(
+        df.loc[duplicated, keys].drop_duplicates().itertuples(index=False, name=None)
+    )
+    raise ValueError(f"{message} (first 10): {offenders[:10]}")
+
+
 def validate_one_to_one_mapping(
     df: pd.DataFrame,
     left_col: str,
@@ -519,6 +658,37 @@ def _validate_mapping_direction(df: pd.DataFrame, key_col: str, value_col: str) 
         )
 
 
+def validate_references_exist(
+    referenced: Collection,
+    available: Collection,
+    source_name: str,
+    target_name: str,
+    item_name: str,
+) -> None:
+    """Raise if any values in referenced are absent from available.
+
+    Used for hand-maintained cross-file keys: a typo in the referencing file
+    would otherwise drop those rows silently.
+
+    Args:
+        referenced: Values that must exist in available.
+        available: The set of allowed values.
+        source_name: Name of the dataset that holds the references.
+        target_name: Name of the dataset that should contain them.
+        item_name: What the values are called in the error message, for example
+            models or result columns.
+
+    Raises:
+        ValueError: If any referenced value is missing from available.
+    """
+    missing = sorted(set(referenced) - set(available))
+    if missing:
+        raise ValueError(
+            f"{source_name} references {item_name} that are not present in "
+            f"{target_name}: {missing}"
+        )
+
+
 def _check_single_rule(
     df: pd.DataFrame,
     dataset_name: str,
@@ -570,7 +740,7 @@ def check_column_rules(
             "mouse_gene_metadata": pd.DataFrame({
                 "ensembl_gene_id": ["ENSMUSG000000000000000000", "ENSMUSG000000000000000001"],
             }),
-            "rnaseq_genotype_label_map": pd.DataFrame({
+            "genotype_label_map": pd.DataFrame({
                 "model": ["model1", "model2"],
                 "model_group": ["model_group1", "model_group2"],
             }),
@@ -580,7 +750,7 @@ def check_column_rules(
             "mouse_gene_metadata": {
                 "ensembl_gene_id": [MatchesRegexRule(value="^ENSMUSG")],
             },
-            "rnaseq_genotype_label_map": {
+            "genotype_label_map": {
                 "model": [NotEmptyRule()],
                 "model_group": [NotEmptyRule()],
             },
@@ -652,21 +822,6 @@ def remove_duplicates_keep_order(lst: List[Any]) -> List[Any]:
     return result
 
 
-def convert_numpy_types(obj: Any) -> Any:
-    """Convert numpy types to Python native types for JSON serialization."""
-    if isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, np.floating):
-        return float(obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, dict):
-        return {key: convert_numpy_types(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [convert_numpy_types(item) for item in obj]
-    return obj
-
-
 def normalize_zero(value: float) -> float:
     """
     Convert -0.0 to 0.0 while preserving other values.
@@ -713,6 +868,7 @@ def normalize_null_values(
     df: pd.DataFrame,
     boolean_columns: list[str] | None = None,
     empty_string_columns: list[str] | None = None,
+    empty_list_columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Normalize null values in a DataFrame by replacing NaN or None values with False, empty strings, or None, depending
@@ -722,8 +878,9 @@ def normalize_null_values(
     that option too.
 
     Columns listed in `boolean_columns` will have NaN/None values replaced with False and their type set to "bool", and
-    columns listed in `empty_string_columns` will have NaN/None values replaced with "". After that, all columns left
-    over will have their NaN values replaced with None, regardless of column type.
+    columns listed in `empty_string_columns` will have NaN/None values replaced with "". Columns listed in
+    `empty_list_columns` will have NaN/None values replaced with empty lists. After that, all columns left over will
+    have their NaN values replaced with None, regardless of column type.
 
     All *_columns arguments are optional and default to empty lists. Values in these arguments must not overlap with
     each other and must contain only columns that appear in the data frame.
@@ -733,6 +890,7 @@ def normalize_null_values(
         boolean_columns (list[str]): A list of column names that should have NaN values replaced with False.
         empty_string_columns (list[str]): A list of column names that should have NaN values replaced with empty
             strings.
+        empty_list_columns (list[str]): A list of column names that should have NaN values replaced with empty lists.
 
     Returns:
         pd.DataFrame: A new DataFrame with normalized null values (NaN replaced with False, empty strings, or None as
@@ -741,48 +899,56 @@ def normalize_null_values(
     Raises:
         TypeError: If the input df is not a pandas DataFrame.
         TypeError: If any of the *_columns arguments are not lists.
-        ValueError: If there are overlaps between the boolean_columns and empty_string_columns lists.
-        ValueError: If any column specified in the boolean_columns or empty_string_columns lists does not exist in the
-        DataFrame.
+        ValueError: If there are overlaps between the *_columns lists.
+        ValueError: If any column specified in the *_columns lists does not exist in the DataFrame.
     """
     if not isinstance(df, pd.DataFrame):
-        raise TypeError(f"Input must be a pandas DataFrame, got {type(df)}")
+        raise TypeError(f"'df' must be a pandas DataFrame, got {type(df)}")
 
-    if not isinstance(boolean_columns, list) and boolean_columns is not None:
-        raise TypeError(f"boolean_columns must be a list, got {type(boolean_columns)}")
+    validation_data = {
+        "boolean_columns": boolean_columns,
+        "empty_string_columns": empty_string_columns,
+        "empty_list_columns": empty_list_columns,
+    }
 
-    if not isinstance(empty_string_columns, list) and empty_string_columns is not None:
-        raise TypeError(
-            f"empty_string_columns must be a list, got {type(empty_string_columns)}"
-        )
+    # None values don't need to be type checked, checked for presence in data frame, or checked for overlaps
+    to_check = [key for key, value in validation_data.items() if value is not None]
 
-    # Make column lists into sets for easier checking of overlaps and membership in the data frame, and
-    # initialize any None arguments to empty lists
-    all_columns = set(df.columns)
-    boolean_columns = set(boolean_columns or [])
-    empty_string_columns = set(empty_string_columns or [])
+    for arg_name in to_check:
+        arg_value = validation_data[arg_name]
 
-    # Check that all specified columns exist in the data frame
-    non_existent_columns = (boolean_columns | empty_string_columns) - all_columns
-    if non_existent_columns:
-        raise ValueError(
-            f"Columns {sorted(non_existent_columns)} do not exist in the DataFrame."
-        )
+        # All column arguments must be lists
+        if not isinstance(arg_value, list):
+            raise TypeError(f"'{arg_name}' must be a list, got {type(arg_value)}")
 
-    # Check that there are no overlaps between lists of columns
-    overlaps = boolean_columns & empty_string_columns
-    if overlaps:
-        raise ValueError(
-            f"Columns {sorted(overlaps)} appear in both the boolean_columns and empty_string_columns lists."
-        )
+        # Check that all specified columns exist in the data frame
+        non_existent_columns = set(arg_value) - set(df.columns)
+        if non_existent_columns:
+            raise ValueError(
+                f"Columns {sorted(non_existent_columns)} from '{arg_name}' do not exist in the DataFrame."
+            )
+
+    # Check that there are no overlaps between non-null lists of columns
+    for col_set1, col_set2 in combinations(to_check, 2):
+        overlaps = set(validation_data[col_set1]) & set(validation_data[col_set2])
+        if overlaps:
+            raise ValueError(
+                f"Columns {sorted(overlaps)} appear in both the {col_set1} and {col_set2} lists."
+            )
+
+    # Initialize any None arguments to empty lists
+    boolean_columns = boolean_columns or []
+    empty_string_columns = empty_string_columns or []
+    empty_list_columns = empty_list_columns or []
 
     df = df.copy()
 
-    for col in boolean_columns:
-        df[col] = df[col].fillna(False).astype(bool)
+    df[boolean_columns] = df[boolean_columns].fillna(False).astype(bool)
+    df[empty_string_columns] = df[empty_string_columns].fillna("")
 
-    for col in empty_string_columns:
-        df[col] = df[col].fillna("")
+    # .fillna() and .replace() don't work for empty lists, so we manually set NA values to empty lists
+    for col in empty_list_columns:
+        df[col] = df[col].apply(lambda x: x if isinstance(x, list | np.ndarray) else [])
 
     # Replace any remaining NaN values with None
     return df.replace({np.nan: None, pd.NA: None})
@@ -828,3 +994,126 @@ def delim_string_to_list(str_obj: str | None, delim: str = ",") -> list[str]:
 
     # Return empty list for None or empty string input
     return []
+
+
+def y_axis_max_by_groups(
+    df: pd.DataFrame,
+    group_cols: Union[str, List[str]],
+    value_col: str = "value",
+) -> Dict[Any, float]:
+    """Max of value_col per group, then round_y_axis_max.
+
+    A group with no numeric values gets round_y_axis_max(0). One group column
+    produces scalar keys so the result can map onto a Series; several group
+    columns produce tuple keys.
+
+    Args:
+        df: DataFrame containing the value column and grouping columns.
+        group_cols: Column name, or list of column names, to group by.
+        value_col: Column whose maximum is rounded. Defaults to value.
+
+    Returns:
+        Mapping from each group key to its rounded y-axis maximum.
+    """
+    y_axis_max_map: Dict[Any, float] = {}
+    for key, group in df.groupby(group_cols):
+        numeric_values = pd.to_numeric(group[value_col], errors="coerce").dropna()
+        raw_max = numeric_values.max() if len(numeric_values) > 0 else 0
+        y_axis_max_map[key] = round_y_axis_max(raw_max)
+    return y_axis_max_map
+
+
+def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
+    """
+    This function rounds the y_axis_max value to the nearest sensible nice round number.
+
+    Logic:
+    - If max == 0, then y_axis_max == 10
+    - Else, round UP to the next "nice" number where the second digit is 0 or 5
+
+    Examples:
+    - 0.0021 rounds up to 0.0025
+    - 0.0004 rounds up to 0.00045
+    - 0.329486078 rounds up to 0.35
+    - 0.089 rounds up to 0.090
+    - 1094 rounds up to 1500
+    - 1322498 rounds up to 1500000
+    - 728591 rounds up to 750000
+    - 3973 rounds up to 4000
+    - 1.616 rounds up to 2.0
+    """
+    # Convert to float if it's a string or other type
+    try:
+        y_axis_max = float(y_axis_max)
+    except (ValueError, TypeError):
+        # Non-numeric or None inputs fall back to the default
+        return 10.0
+
+    # Handle special cases: zero or negative values
+    if y_axis_max <= 0:
+        return 10.0 if y_axis_max == 0 else 0.0
+
+    # Find the order of magnitude of the number
+    magnitude = int(math.floor(math.log10(y_axis_max)))
+
+    # Scale the number so the first digit is in the ones place
+    scaled = y_axis_max / (
+        10 ** (magnitude - 1)
+    )  # After scaling, the first significant digit is in the tens place and the second in the ones place
+    # Round UP to the next 5 or 0 (add small epsilon to ensure we always round up)
+    rounded_scaled = 5 * math.ceil((scaled + 1e-10) / 5)
+
+    # Put back to the right magnitude
+    result = rounded_scaled * (10 ** (magnitude - 1))
+
+    # Remove float precision issues
+    result = round(result, 15)
+
+    # Ensure we always return a float, even for whole numbers
+    return float(result)
+
+
+def parse_synapse_id_version(syn_id: str) -> tuple[str, int | None]:
+    """Split a Synapse ID into its base ID and optional version number.
+
+    Args:
+        syn_id: A Synapse ID, optionally with a version suffix (e.g. "syn123.4").
+
+    Returns:
+        The base ID and the version number, or None if no version was given.
+    """
+    parts = syn_id.split(".")
+    base_id = parts[0]
+    version = int(parts[1]) if len(parts) > 1 else None
+
+    if not base_id:
+        raise ValueError("Invalid Synapse ID: missing base ID")
+
+    return base_id, version
+
+
+# P stands for the wrapped function's arguments (names, types and defaults).
+P = ParamSpec("P")
+# R stands for the wrapped function's return type.
+R = TypeVar("R")
+
+
+def to_async(func: Callable[P, R]) -> Callable[P, Awaitable[R]]:
+    """Decorator that turns a blocking function into a coroutine function.
+
+    The wrapped function runs in a worker thread via `asyncio.to_thread` so it
+    does not block (or conflict with) a running event loop, such as the one in a
+    Jupyter notebook. Use `await` on the result.
+
+    Args:
+        func: The synchronous function to wrap.
+
+    Returns:
+        A coroutine function with the same arguments as `func`.
+    """
+
+    @functools.wraps(func)
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        return await asyncio.to_thread(func, *args, **kwargs)
+
+    return wrapper

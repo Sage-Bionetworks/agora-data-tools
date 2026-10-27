@@ -15,8 +15,10 @@ from great_expectations.data_context import FileDataContext
 from great_expectations.data_context.types.resource_identifiers import (
     ValidationResultIdentifier,
 )
-from synapseclient import Activity, File, Synapse
+from synapseclient import Synapse
+from synapseclient.models import Activity, UsedURL
 
+from agoradatatools import gx
 from agoradatatools.gx import GreatExpectationsRunner
 
 
@@ -27,6 +29,7 @@ class TestGreatExpectationsRunner:
             syn=syn,
             dataset_path="./tests/test_assets/gx/metabolomics.json",
             dataset_name="metabolomics",
+            staging_path="./test_staging",
             upload_folder="test_folder",
             nested_columns=None,
         )
@@ -34,6 +37,7 @@ class TestGreatExpectationsRunner:
             syn=syn,
             dataset_path="./tests/test_assets/gx/not_supported_dataset.json",
             dataset_name="not_supported_dataset",
+            staging_path="./test_staging",
             upload_folder="test_folder",
             nested_columns=None,
         )
@@ -58,6 +62,7 @@ class TestGreatExpectationsRunner:
             self.good_runner.dataset_path == "./tests/test_assets/gx/metabolomics.json"
         )
         assert self.good_runner.expectation_suite_name == "metabolomics"
+        assert self.good_runner.staging_path == "./test_staging"
         assert self.good_runner.upload_folder == "test_folder"
         assert self.good_runner.nested_columns is None
         assert (
@@ -120,21 +125,52 @@ class TestGreatExpectationsRunner:
             )
             assert result == expected
 
+    def test_write_report_to_staging(self):
+        results_path = "/path/to/validations/metabolomics.html"
+        expected_dir = os.path.join(self.good_runner.staging_path, "gx_reports")
+        expected_path = os.path.join(expected_dir, "metabolomics.html")
+        with patch.object(os, "makedirs") as patch_makedirs, patch.object(
+            shutil, "copy"
+        ) as patch_copy:
+            result = self.good_runner.write_report_to_staging(results_path)
+            patch_makedirs.assert_called_once_with(expected_dir, exist_ok=True)
+            patch_copy.assert_called_once_with(results_path, expected_path)
+            assert result == expected_path
+
+    def test_write_report_to_staging_is_called_even_without_upload_folder(self):
+        self.good_runner.upload_folder = None
+        results_path = "/path/to/validations/metabolomics.html"
+        expected_path = os.path.join(
+            self.good_runner.staging_path, "gx_reports", "metabolomics.html"
+        )
+        with patch.object(os, "makedirs"), patch.object(shutil, "copy") as patch_copy:
+            result = self.good_runner.write_report_to_staging(results_path)
+            patch_copy.assert_called_once_with(results_path, expected_path)
+            assert result == expected_path
+
     def test_upload_results_file_to_synapse(self):
+        mock_stored_file = mock.MagicMock(id="syn123", version_number=1)
+        mock_file_instance = mock.MagicMock()
+        mock_file_instance.store.return_value = mock_stored_file
         with patch.object(
-            self.good_runner.syn,
-            "store",
-            return_value=File(parent="syn456", id="syn123", versionNumber=1),
-        ) as patch_syn_store:
+            gx, "File", return_value=mock_file_instance
+        ) as patch_file_class:
             self.good_runner.upload_results_file_to_synapse("test_path")
-            patch_syn_store.assert_called_once_with(
-                File(path="test_path", parent=self.good_runner.upload_folder),
+            patch_file_class.assert_called_once_with(
+                path="test_path",
                 activity=Activity(
                     name=f"Great Expectations {self.good_runner.expectation_suite_name} results",
-                    executed="https://github.com/Sage-Bionetworks/agora-data-tools",
+                    executed=[
+                        UsedURL(
+                            url="https://github.com/Sage-Bionetworks/agora-data-tools"
+                        )
+                    ],
                 ),
-                forceVersion=True,
+                force_version=True,
             )
+            store_call_kwargs = mock_file_instance.store.call_args.kwargs
+            assert store_call_kwargs["parent"].id == self.good_runner.upload_folder
+            assert store_call_kwargs["synapse_client"] is self.good_runner.syn
             assert self.good_runner.report_file == "syn123"
             assert self.good_runner.report_version == 1
             assert self.good_runner.report_link == DatasetReport.format_link(
@@ -237,6 +273,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -254,6 +292,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_called_once()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
             patch_set_warnings_and_failures.assert_called_once_with(
                 patch_checkpoint_run.return_value
@@ -273,6 +312,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -289,6 +330,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
             patch_set_warnings_and_failures.assert_called_once_with(
                 self.passed_checkpoint_result
@@ -308,6 +350,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -321,6 +365,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_not_called()
             patch_get_results_path.assert_not_called()
+            patch_write_report_to_staging.assert_not_called()
             patch_upload_results_file_to_synapse.assert_not_called()
             patch_set_warnings_and_failures.assert_not_called()
 
@@ -338,6 +383,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -354,6 +401,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
             patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
             patch_set_warnings_and_failures.assert_called_once_with(
                 patch_checkpoint_run.return_value
@@ -373,6 +421,8 @@ class TestGreatExpectationsRunner:
         ) as patch_convert_nested_columns_to_json, patch.object(
             self.good_runner, "get_results_path", return_value="test_path"
         ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
             self.good_runner, "upload_results_file_to_synapse", return_value=None
         ) as patch_upload_results_file_to_synapse, patch.object(
             Checkpoint,
@@ -390,6 +440,7 @@ class TestGreatExpectationsRunner:
             patch_convert_nested_columns_to_json.assert_not_called()
             patch_checkpoint_run.assert_called_once()
             patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
             patch_upload_results_file_to_synapse.assert_not_called()
             patch_set_warnings_and_failures.assert_called_once_with(
                 self.passed_checkpoint_result
@@ -411,6 +462,7 @@ class TestCustomJSONSchemaRulesRunner:
             syn=syn,
             dataset_path="./tests/test_assets/gx/test_nested_columns.json",
             dataset_name="test_nested_columns",
+            staging_path="./test_staging",
             upload_folder="test_folder",
             nested_columns=["columns"],
         )
@@ -418,6 +470,7 @@ class TestCustomJSONSchemaRulesRunner:
             syn=syn,
             dataset_path="./tests/test_assets/gx/test_nested_columns.json",
             dataset_name="test_nested_columns",
+            staging_path="./test_staging",
             upload_folder="test_folder",
             nested_columns=["columns"],
         )
