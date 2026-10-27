@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
     nest_fields,
     normalize_null_values,
 )
+from agoradatatools.etl.validation_utils import check_required_datasets_and_columns
 from agoradatatools.etl import transform
 
 
