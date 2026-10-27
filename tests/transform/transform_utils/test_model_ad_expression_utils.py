@@ -27,10 +27,8 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     prepare_genotype_label_map,
     create_gene_metadata_dict,
     log_file_processing_info,
-    validate_data_file_not_empty,
     preprocess_data_file,
 )
-from agoradatatools.etl.utils import MatchesRegexRule, NotEmptyRule
 
 
 class TestNormalizeTissue:
@@ -330,17 +328,6 @@ class TestFilterMouseGenes:
 class TestTissueNameMapping:
     """Tests for the tissue name mapping applied inside preprocess_data_file."""
 
-    _REQUIRED_COLUMNS = [
-        "ensembl_gene_id",
-        "expression",
-        "model",
-        "genotype",
-        "age",
-        "sex",
-        "tissue",
-        "individualid",
-    ]
-
     @staticmethod
     def _make_df(tissues: list[str]) -> pd.DataFrame:
         """Build a minimal valid DataFrame with the given tissue values."""
@@ -361,7 +348,7 @@ class TestTissueNameMapping:
     @classmethod
     def _preprocess(cls, tissues: list[str]) -> pd.Series:
         df = cls._make_df(tissues)
-        result = preprocess_data_file("test.csv", df, 0, 1, cls._REQUIRED_COLUMNS, {})
+        result = preprocess_data_file("test.csv", df, 0, 1)
         return result["tissue"].reset_index(drop=True)
 
     def test_maps_right_cerebral_hemisphere(self) -> None:
@@ -379,17 +366,6 @@ class TestTissueNameMapping:
 
 class TestPreprocessDataFileTypeCasting:
     """Tests for column type casting applied inside preprocess_data_file."""
-
-    _REQUIRED_COLUMNS = [
-        "ensembl_gene_id",
-        "expression",
-        "model",
-        "genotype",
-        "age",
-        "sex",
-        "tissue",
-        "individualid",
-    ]
 
     @staticmethod
     def _make_df(
@@ -416,7 +392,7 @@ class TestPreprocessDataFileTypeCasting:
             expression_values=["1.123456789", "2.987654321"],
             individualid_values=["ID0", "ID1"],
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
+        result = preprocess_data_file("test.csv", df, 0, 1)
         assert result["expression"].dtype == float
 
     def test_expression_string_is_rounded_to_5_decimals(self) -> None:
@@ -425,7 +401,7 @@ class TestPreprocessDataFileTypeCasting:
             expression_values=["1.123456789"],
             individualid_values=["ID0"],
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
+        result = preprocess_data_file("test.csv", df, 0, 1)
         assert result["expression"].iloc[0] == pytest.approx(1.12346)
 
     def test_individualid_numeric_is_cast_to_str(self) -> None:
@@ -434,7 +410,7 @@ class TestPreprocessDataFileTypeCasting:
             expression_values=[1.0, 2.0],
             individualid_values=[101, 202],
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
+        result = preprocess_data_file("test.csv", df, 0, 1)
         assert result["individualid"].dtype == object
         assert result["individualid"].iloc[0] == "101"
         assert result["individualid"].iloc[1] == "202"
@@ -445,7 +421,7 @@ class TestPreprocessDataFileTypeCasting:
             expression_values=[1.5, 2.5],
             individualid_values=["ID0", "ID1"],
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, self._REQUIRED_COLUMNS, {})
+        result = preprocess_data_file("test.csv", df, 0, 1)
         assert result["expression"].dtype == float
 
 
@@ -468,7 +444,7 @@ class TestPreprocessDataRemapsSexLabels:
                 "individualid": [f"ID{i}" for i in range(n)],
             }
         )
-        result = preprocess_data_file("test.csv", df, 0, 1, [], {})
+        result = preprocess_data_file("test.csv", df, 0, 1)
         assert result["sex"].reset_index(drop=True).tolist() == ["Male", "Female"]
 
 
@@ -577,106 +553,6 @@ class TestLogFileProcessingInfo:
         assert "Processing test.csv (1/5)" in caplog.text
         assert "3 rows" in caplog.text
         assert "2 columns" in caplog.text
-
-
-class TestValidateDataFileNotEmpty:
-    """Tests for validate_data_file_not_empty function."""
-
-    def test_raises_error_for_empty_file(self) -> None:
-        """Test that empty file raises ValueError."""
-        df = pd.DataFrame()
-
-        with pytest.raises(ValueError, match="Data file test.csv is empty"):
-            validate_data_file_not_empty("test.csv", df)
-
-    def test_passes_for_non_empty_file(self) -> None:
-        """Test that non-empty file passes validation."""
-        df = pd.DataFrame({"col1": [1, 2, 3]})
-
-        # Should not raise
-        validate_data_file_not_empty("test.csv", df)
-
-
-class TestPreprocessDataFileColumnRules:
-    """Tests for check_column_rules integration inside preprocess_data_file.
-
-    Verifies that data_file_column_rules are applied correctly and that violations
-    raise ValueError via check_column_rules before any transformations occur.
-
-    Test Methods:
-        - test_bad_age_format_raises_value_error: age values not matching
-          '\\d+ months' fail the matches_regex rule.
-        - test_wrong_unit_age_raises_value_error: ages with digits but the wrong
-          unit (e.g. '1 year') fail the matches_regex rule.
-        - test_empty_model_raises_value_error: an empty model value fails the
-          not_empty rule.
-        - test_valid_data_passes_column_rules: well-formed data passes without error.
-    """
-
-    _REQUIRED_COLUMNS = [
-        "ensembl_gene_id",
-        "expression",
-        "model",
-        "genotype",
-        "age",
-        "sex",
-        "tissue",
-        "individualid",
-    ]
-
-    _DEFAULT_COLUMN_RULES = {
-        "model": [NotEmptyRule()],
-        "age": [MatchesRegexRule(value=r"\d+ months$")],
-    }
-
-    @staticmethod
-    def _make_df(**overrides: Any) -> pd.DataFrame:
-        """Return a minimal valid data file DataFrame with optional column overrides."""
-        data = {
-            "ensembl_gene_id": ["ENSMUSG00000000001"],
-            "expression": [5.0],
-            "model": ["Model_A"],
-            "genotype": ["Tg"],
-            "age": ["6 months"],
-            "sex": ["Male"],
-            "tissue": ["Cortex"],
-            "individualid": ["Ind001"],
-        }
-        data.update(overrides)
-        return pd.DataFrame(data)
-
-    def _preprocess(self, df: pd.DataFrame) -> pd.DataFrame:
-        return preprocess_data_file(
-            "test.csv", df, 0, 1, self._REQUIRED_COLUMNS, self._DEFAULT_COLUMN_RULES
-        )
-
-    def test_bad_age_format_raises_value_error(self) -> None:
-        """age values not matching '\\d+ months' fail the matches_regex rule."""
-        df = self._make_df(age=["neonatal"])
-
-        with pytest.raises(ValueError, match="matches_regex"):
-            self._preprocess(df)
-
-    def test_wrong_unit_age_raises_value_error(self) -> None:
-        """An age like '1 year' contains digits but does not end in 'months'."""
-        df = self._make_df(age=["1 year"])
-
-        with pytest.raises(ValueError, match="matches_regex"):
-            self._preprocess(df)
-
-    def test_empty_model_raises_value_error(self) -> None:
-        """An empty model value fails the not_empty rule."""
-        df = self._make_df(model=[""])
-
-        with pytest.raises(ValueError, match="not_empty"):
-            self._preprocess(df)
-
-    def test_valid_data_passes_column_rules(self) -> None:
-        """Well-formed data passes column rules without raising an error."""
-        df = self._make_df()
-
-        # Should not raise
-        self._preprocess(df)
 
 
 class TestBuildModelTypeLookup:

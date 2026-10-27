@@ -345,22 +345,9 @@ class TestProcessSingleDataFile:
         biodomain_dict = {"ENSMUSG00000000001": ["Synaptic"]}
         model_type_dict = {"Model_A": "knockout"}
 
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "log2foldchange",
-            "padj",
-            "model",
-            "case",
-            "control",
-            "age",
-            "sex",
-            "tissue",
-        ]
-
         result = _process_single_data_file(
             file_name="test_file.csv",
             data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
             gene_metadata_dict=gene_metadata_dict,
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
@@ -403,22 +390,9 @@ class TestProcessSingleDataFile:
         biodomain_dict = {}
         model_type_dict = {}
 
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "log2foldchange",
-            "padj",
-            "model",
-            "case",
-            "control",
-            "age",
-            "sex",
-            "tissue",
-        ]
-
         result = _process_single_data_file(
             file_name="sex_cohort.csv",
             data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
             gene_metadata_dict=gene_metadata_dict,
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
@@ -457,22 +431,9 @@ class TestProcessSingleDataFile:
         biodomain_dict = {}
         model_type_dict = {}
 
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "log2foldchange",
-            "padj",
-            "model",
-            "case",
-            "control",
-            "age",
-            "sex",
-            "tissue",
-        ]
-
         result = _process_single_data_file(
             file_name="rounding_test.csv",
             data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
             gene_metadata_dict=gene_metadata_dict,
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
@@ -513,22 +474,9 @@ class TestProcessSingleDataFile:
         biodomain_dict = {}
         model_type_dict = {}
 
-        data_file_required_columns = [
-            "ensembl_gene_id",
-            "log2foldchange",
-            "padj",
-            "model",
-            "case",
-            "control",
-            "age",
-            "sex",
-            "tissue",
-        ]
-
         result = _process_single_data_file(
             file_name="multiple_groups.csv",
             data_file=data_file,
-            data_file_required_columns=data_file_required_columns,
             gene_metadata_dict=gene_metadata_dict,
             label_map_dict=label_map_dict,
             model_group_dict=model_group_dict,
@@ -966,68 +914,6 @@ class TestTransformRnaDeAggregate:
         # Compare output with expected
         assert output_data_sorted == expected_data_sorted
 
-    def test_synthetic_empty_data_file(self) -> None:
-        """Test handling of synthetic empty data files."""
-        # Load datasets with empty synthetic data file
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_empty_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.json",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-
-        # Should raise ValueError for empty data file
-        with pytest.raises(ValueError, match="Data file .* is empty"):
-            transform_rna_de_aggregate(datasets=datasets)
-
-    def test_synthetic_missing_columns_data(self) -> None:
-        """Test handling of synthetic data files with missing required columns."""
-        # Load datasets with a synthetic data file missing required columns
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_missing_columns_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.json",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-
-        # Expect transformation to raise ValueError for missing required columns
-        with pytest.raises(ValueError, match="Missing required columns"):
-            transform_rna_de_aggregate(datasets=datasets)
-
-    def test_invalid_age_format_raises(self) -> None:
-        """An age that does not match N months fails the data file column rule before grouping."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.json",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-        datasets["synthetic_basic_data"].loc[0, "age"] = "6months"
-
-        with pytest.raises(ValueError, match="column 'age'.*matches_regex"):
-            transform_rna_de_aggregate(datasets=datasets)
-
-    def test_missing_age_raises(self) -> None:
-        """A null age fails the data file column rule rather than reaching the age sort."""
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_mouse_gene_metadata.json",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-        datasets["synthetic_basic_data"].loc[0, "age"] = None
-
-        with pytest.raises(ValueError, match="column 'age'.*not_empty"):
-            transform_rna_de_aggregate(datasets=datasets)
-
     def test_synthetic_rounding_precision(self) -> None:
         """Test that log2foldchange and padj values are rounded to 5 decimal places.
 
@@ -1109,15 +995,6 @@ class TestTransformRnaDeAggregate:
         # Explicitly verify multiple biodomains are present
         assert len(output_data_sorted[0]["biodomains"]) == 2
         assert set(output_data_sorted[0]["biodomains"]) == {"Metabolic", "Synaptic"}
-
-    def test_data_file_required_columns_parameter(self) -> None:
-        """data_file_required_columns is wired through to column validation."""
-        datasets = self._build_minimal_datasets()
-        with pytest.raises(ValueError, match="nonexistent_column"):
-            transform_rna_de_aggregate(
-                datasets=datasets,
-                data_file_required_columns=["ensembl_gene_id", "nonexistent_column"],
-            )
 
     def test_missing_gene_symbol_normalized(self) -> None:
         """

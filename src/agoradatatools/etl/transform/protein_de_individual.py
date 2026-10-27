@@ -15,12 +15,6 @@ from agoradatatools.etl.utils import (
     raise_on_duplicate_keys,
     normalize_zero,
 )
-from agoradatatools.etl.validation_utils import (
-    ColumnRule,
-    NotEmptyRule,
-    check_column_rules,
-    check_required_datasets_and_columns,
-)
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
 )
@@ -31,7 +25,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     nest_individual_records,
     normalize_tissue,
     prepare_genotype_label_map,
-    validate_data_file_not_empty,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
     add_protein_identity_columns,
@@ -55,22 +48,14 @@ STATIC_INPUTS = frozenset(
     {"genotype_label_map", "mouse_gene_metadata", "uniprot_ensembl_map"}
 )
 
-MODEL_METADATA_REQUIRED_COLUMNS = [
+# Columns copied from each harmonized-metadata file onto the measurements.
+METADATA_COLUMNS = [
     "individualid",
     "sex",
     "agedeath",
     "genotype",
     "tissue",
 ]
-MODEL_METADATA_COLUMN_RULES = {
-    "individualid": [NotEmptyRule()],
-    "genotype": [NotEmptyRule()],
-}
-
-DATAFILE_REQUIRED_COLUMNS = ["individualid"]
-DATAFILE_COLUMN_RULES = {
-    "individualid": [NotEmptyRule()],
-}
 
 
 def _measured_accessions(
@@ -340,18 +325,6 @@ def _validate_file_maps(
         )
 
 
-def _check_input_files(
-    datasets: dict[str, pd.DataFrame],
-    names: list[str],
-    required_columns: list[str],
-    column_rules: dict[str, list[ColumnRule]],
-) -> None:
-    """Apply one set of required columns and column rules to every file in a group."""
-    frames = {name: datasets[name] for name in names}
-    check_required_datasets_and_columns(frames, dict.fromkeys(names, required_columns))
-    check_column_rules(frames, dict.fromkeys(names, column_rules))
-
-
 def transform_protein_de_individual(
     datasets: dict[str, pd.DataFrame],
     model_map: dict[str, str],
@@ -369,23 +342,12 @@ def transform_protein_de_individual(
     )
 
     datafile_list = [key for key in datasets if key in model_map]
-    for file_name in datafile_list:
-        validate_data_file_not_empty(file_name, datasets[file_name])
-    _check_input_files(
-        datasets, datafile_list, DATAFILE_REQUIRED_COLUMNS, DATAFILE_COLUMN_RULES
-    )
 
     metadata_names = list(metadata_map)
-    _check_input_files(
-        datasets,
-        metadata_names,
-        MODEL_METADATA_REQUIRED_COLUMNS,
-        MODEL_METADATA_COLUMN_RULES,
-    )
 
     stamped_metadata = []
     for name in metadata_names:
-        frame = datasets[name][MODEL_METADATA_REQUIRED_COLUMNS].copy()
+        frame = datasets[name][METADATA_COLUMNS].copy()
         frame["model"] = metadata_map[name]
         stamped_metadata.append(frame)
     harmonized_model_metadata_df = pd.concat(stamped_metadata, ignore_index=True)

@@ -15,12 +15,6 @@ from agoradatatools.etl.utils import (
     nest_fields,
     normalize_zero,
 )
-from agoradatatools.etl.validation_utils import (
-    ColumnRule,
-    check_column_rules,
-    check_required_datasets_and_columns,
-)
-
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
 )
@@ -324,58 +318,15 @@ def log_file_processing_info(
     )
 
 
-def validate_data_file_not_empty(file_name: str, data_file: pd.DataFrame) -> None:
-    """
-    Validate that a data file is not empty.
-
-    Args:
-        file_name: Name of the file being validated
-        data_file: DataFrame to validate
-
-    Raises:
-        ValueError: If the data file is empty
-    """
-    if len(data_file) == 0:
-        raise ValueError(f"Data file {file_name} is empty")
-
-
-def validate_data_file(
-    file_name: str,
-    data_file: pd.DataFrame,
-    file_index: int,
-    total_files: int,
-    data_file_required_columns: list[str],
-    data_file_column_rules: dict[str, list[ColumnRule]] | None = None,
-) -> None:
-    """Shared validation preamble for an expression data file.
-
-    The empty-file check runs before the required-column check so an empty file
-    is not reported as a missing-column error. Column value rules are checked
-    only when supplied.
-
-    Raises:
-        ValueError: If the file is empty, a required column is missing, or a
-            supplied column value rule is violated.
-    """
-    log_file_processing_info(file_name, file_index, total_files, data_file)
-    validate_data_file_not_empty(file_name, data_file)
-    check_required_datasets_and_columns(
-        {file_name: data_file}, {file_name: data_file_required_columns}
-    )
-    if data_file_column_rules:
-        check_column_rules({file_name: data_file}, {file_name: data_file_column_rules})
-
-
 def preprocess_data_file(
     file_name: str,
     data_file: pd.DataFrame,
     file_index: int,
     total_files: int,
-    data_file_required_columns: list[str],
-    data_file_column_rules: dict[str, list[ColumnRule]],
 ) -> pd.DataFrame:
     """
-    Preprocess a single data file with common validation and transformation steps.
+    Preprocess a single data file: filter mouse genes, normalize tissue and sex,
+    cast expression, and round.
 
     Returns the preprocessed DataFrame so callers can accumulate and concatenate
     results across multiple files before further processing.
@@ -385,28 +336,13 @@ def preprocess_data_file(
         data_file: DataFrame to preprocess
         file_index: Index of this file in the processing sequence (0-based)
         total_files: Total number of files being processed
-        data_file_required_columns: List of column names that must be present
-        data_file_column_rules: Per-column content rules to validate via
-            check_column_rules. Keys are column names; values are lists of ColumnRule
-            objects. Rules are checked after required-column validation.
 
     Returns:
         Preprocessed DataFrame with mouse genes only, tissue names mapped and
         plural sex values mapped to singular display labels, and
         numeric values rounded to 5 decimal places.
-
-    Raises:
-        ValueError: If the file is empty, missing required columns, or any column
-            value rule is violated.
     """
-    validate_data_file(
-        file_name,
-        data_file,
-        file_index,
-        total_files,
-        data_file_required_columns,
-        data_file_column_rules,
-    )
+    log_file_processing_info(file_name, file_index, total_files, data_file)
     data_file = filter_to_mouse_genes(data_file)
     data_file["tissue"] = normalize_tissue(data_file["tissue"])
     # Map plural source sex values to the singular display form

@@ -6,13 +6,22 @@ import pytest
 from agoradatatools.errors import ADTDataValidationError
 from agoradatatools.etl import validate, validation_configs
 from agoradatatools.etl.validate import INPUT_SPECS, load_input_specs, validate_inputs
-from agoradatatools.etl.validation_utils import InputSpec
+from agoradatatools.etl.validation_utils import InputSpec, NotEmptyRule
+
+# Columns whose rules need a value other than x so a valid_frame passes.
+_VALID_FRAME_OVERRIDES = {
+    "age": "0 months",
+    "protein_id": "x|y",
+}
 
 
 def valid_frame(name: str) -> pd.DataFrame:
     """One well-formed row for the named spec, populating every required column."""
     return pd.DataFrame(
-        {column: ["x"] for column in INPUT_SPECS[name].required_columns}
+        {
+            column: [_VALID_FRAME_OVERRIDES.get(column, "x")]
+            for column in INPUT_SPECS[name].required_columns
+        }
     )
 
 
@@ -59,16 +68,31 @@ class TestValidateInputs:
         [
             (name, column)
             for name in sorted(INPUT_SPECS)
-            for column in INPUT_SPECS[name].column_rules
+            for column, rules in INPUT_SPECS[name].column_rules.items()
+            if any(isinstance(rule, NotEmptyRule) for rule in rules)
         ],
     )
-    def test_every_column_rule_fails_a_blank_value(self, name, column):
+    def test_every_not_empty_rule_fails_a_blank_value(self, name, column):
         df = valid_frame(name)
         df[column] = [""]
         with pytest.raises(
             ADTDataValidationError, match=f"'{name}', column '{column}'.*not_empty"
         ):
             validate_inputs({name: df})
+
+    def test_schema_lookup_uses_shared_spec(self):
+        df = valid_frame("rna_de_file").drop(columns=["ensembl_gene_id"])
+        with pytest.raises(
+            ADTDataValidationError,
+            match="Missing required columns in jax_5xFAD_de.*ensembl_gene_id",
+        ):
+            validate_inputs(
+                {"jax_5xFAD_de": df},
+                schemas={"jax_5xFAD_de": "rna_de_file"},
+            )
+
+    def test_name_only_lookup_still_works_for_unique_files(self):
+        validate_inputs({"genotype_label_map": valid_frame("genotype_label_map")})
 
     def test_missing_column_is_reported_alone(self):
         # Rules and checks would KeyError on the missing column, so only the
@@ -125,3 +149,81 @@ class TestGenotypeLabelMapSpec:
         df["model"] = ["m1", "m2"]
         df["model_group"] = ["g1", "g2"]
         validate_inputs({"genotype_label_map": df})
+
+
+class TestRnaDeFileSpec:
+    def test_empty_file_with_headers_fails(self):
+        df = valid_frame("rna_de_file").iloc[:0]
+        with pytest.raises(
+            ADTDataValidationError, match="In dataset 'rna_de_file': is empty"
+        ):
+            validate_inputs({"rna_de_file": df})
+
+    def test_age_must_match_n_months(self):
+        df = valid_frame("rna_de_file")
+        df["age"] = ["6months"]
+        with pytest.raises(
+            ADTDataValidationError, match="'rna_de_file', column 'age'.*matches_regex"
+        ):
+            validate_inputs({"rna_de_file": df})
+
+
+class TestRnaNeFileSpec:
+    def test_empty_file_with_headers_fails(self):
+        df = valid_frame("rna_ne_file").iloc[:0]
+        with pytest.raises(
+            ADTDataValidationError, match="In dataset 'rna_ne_file': is empty"
+        ):
+            validate_inputs({"rna_ne_file": df})
+
+    def test_age_must_match_n_months(self):
+        df = valid_frame("rna_ne_file")
+        df["age"] = ["1 year"]
+        with pytest.raises(
+            ADTDataValidationError, match="'rna_ne_file', column 'age'.*matches_regex"
+        ):
+            validate_inputs({"rna_ne_file": df})
+
+
+class TestProteinDeFileSpec:
+    def test_empty_file_with_headers_fails(self):
+        df = valid_frame("protein_de_file").iloc[:0]
+        with pytest.raises(
+            ADTDataValidationError, match="In dataset 'protein_de_file': is empty"
+        ):
+            validate_inputs({"protein_de_file": df})
+
+    def test_protein_id_without_a_pipe_fails(self):
+        df = valid_frame("protein_de_file")
+        df["protein_id"] = ["P27144"]
+        with pytest.raises(
+            ADTDataValidationError,
+            match="'protein_de_file', column 'protein_id'.*contains_substring",
+        ):
+            validate_inputs({"protein_de_file": df})
+
+    def test_blank_log2foldchange_fails(self):
+        df = valid_frame("protein_de_file")
+        df["log2foldchange"] = [None]
+        with pytest.raises(
+            ADTDataValidationError,
+            match="'protein_de_file', column 'log2foldchange'.*not_empty",
+        ):
+            validate_inputs({"protein_de_file": df})
+
+
+class TestProteinNeFileSpec:
+    def test_empty_file_with_headers_fails(self):
+        df = valid_frame("protein_ne_file").iloc[:0]
+        with pytest.raises(
+            ADTDataValidationError, match="In dataset 'protein_ne_file': is empty"
+        ):
+            validate_inputs({"protein_ne_file": df})
+
+    def test_missing_individualid_fails(self):
+        df = valid_frame("protein_ne_file").drop(columns=["individualid"])
+        with pytest.raises(
+            ADTDataValidationError,
+            match="Missing required columns in protein_ne_file.*individualid",
+        ):
+            validate_inputs({"protein_ne_file": df})

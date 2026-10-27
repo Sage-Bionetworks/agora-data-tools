@@ -761,6 +761,16 @@ class TestRaiseOnDuplicateKeys:
             validation_utils.raise_on_duplicate_keys(df, ["a", "b", "c"], "shared key")
 
 
+class TestRejectEmptyDataframe:
+    def test_raises_when_the_frame_has_no_rows(self) -> None:
+        df = pd.DataFrame({"a": pd.Series(dtype=str)})
+        with pytest.raises(ValueError, match="^is empty$"):
+            validation_utils.reject_empty_dataframe(df)
+
+    def test_passes_when_the_frame_has_rows(self) -> None:
+        validation_utils.reject_empty_dataframe(pd.DataFrame({"a": ["x"]}))
+
+
 class TestValidateReferencesExist:
     """Tests for validate_references_exist()."""
 

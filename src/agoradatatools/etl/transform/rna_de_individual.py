@@ -8,10 +8,8 @@ The transformation includes gene metadata, genotype labels, and individual expre
 values to create a structured output format grouped by model_group.
 
 The transformation:
-- Validates data-file column values up-front via check_column_rules (required fields
-  non-empty, age strings matching the '[N] months' format) before any processing begins.
-  The shared genotype_label_map and mouse_gene_metadata inputs are validated by the
-  Input Validation stage before this transform runs.
+- Relies on the Input Validation stage for required columns and age/model rules.
+  This transform still rejects a file that contains more than one model.
 - Filters to mouse genes only (ENSMUSG*), excluding human genes (ENSG*)
 - Groups files by model_group so that models sharing a model_group (e.g. UCI
   models whose data is split across two input files) are combined before output creation
@@ -34,9 +32,8 @@ Key Functions:
 Required Inputs:
     - genotype_label_map: Maps models and genotypes to display labels and model_groups
     - mouse_gene_metadata: Gene symbols for Ensembl IDs
-    - Data files: One or more CSV files containing individual expression results; required
-      columns are defined by the DATA_FILE_REQUIRED_COLUMNS module constant, and column
-      value rules are defined by DATA_FILE_COLUMN_RULES
+    - Data files: One or more CSV files containing individual expression results
+      (ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid)
 """
 
 import gc
@@ -47,11 +44,6 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from agoradatatools.etl.utils import extract_age_numeric
-from agoradatatools.etl.validation_utils import (
-    ColumnRule,
-    MatchesRegexRule,
-    NotEmptyRule,
-)
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     build_model_to_model_group_lookup,
     label_genotypes,
@@ -59,7 +51,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     prepare_genotype_label_map,
     create_gene_metadata_dict,
     preprocess_data_file,
-    validate_data_file_not_empty,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,23 +58,6 @@ logger = logging.getLogger(__name__)
 UNITS = "Log2 Counts per Million"
 
 STATIC_INPUTS = frozenset({"genotype_label_map", "mouse_gene_metadata"})
-
-DATA_FILE_REQUIRED_COLUMNS = [
-    "ensembl_gene_id",
-    "expression",
-    "model",
-    "genotype",
-    "age",
-    "sex",
-    "tissue",
-    "individualid",
-]
-
-DATA_FILE_COLUMN_RULES: Dict[str, List[ColumnRule]] = {
-    "model": [NotEmptyRule()],
-    # MatchesRegexRule skips nulls, so NotEmptyRule is needed to reject a missing age.
-    "age": [NotEmptyRule(), MatchesRegexRule(value=r"\d+ months$")],
-}
 
 
 def _process_individual_data_file_core(
@@ -154,8 +128,6 @@ def _process_individual_data_file_core(
 
 def transform_rna_de_individual(
     datasets: Dict[str, pd.DataFrame],
-    data_file_required_columns: List[str] = DATA_FILE_REQUIRED_COLUMNS,
-    data_file_column_rules: Dict[str, List[ColumnRule]] = DATA_FILE_COLUMN_RULES,
 ) -> List[Dict[str, Any]]:
     """
     Main transformation function for RNA individual expression data.
@@ -177,12 +149,8 @@ def transform_rna_de_individual(
             - 'mouse_gene_metadata': Gene symbols for Ensembl IDs.
               Required columns: ensembl_gene_id, gene_symbol
             - One or more data files: CSV DataFrames containing individual expression
-              results. Required columns are defined by DATA_FILE_REQUIRED_COLUMNS:
-              ensembl_gene_id, expression, model, genotype, age, sex, tissue, individualid
-        data_file_required_columns: List of required column names for data files.
-            Defaults to DATA_FILE_REQUIRED_COLUMNS module constant.
-        data_file_column_rules: Per-column content rules applied to each data file.
-            Defaults to DATA_FILE_COLUMN_RULES module constant.
+              results with columns: ensembl_gene_id, expression, model, genotype, age,
+              sex, tissue, individualid
 
     Returns:
         List of dictionaries, each representing a unique combination of gene, tissue,
@@ -242,8 +210,6 @@ def transform_rna_de_individual(
     for file_name in file_list:
         df = datasets[file_name]
 
-        validate_data_file_not_empty(file_name, df)
-
         unique_models = df["model"].unique()
         if len(unique_models) > 1:
             raise ValueError(
@@ -283,8 +249,6 @@ def transform_rna_de_individual(
                 data_file=datasets[file_name],
                 file_index=global_file_idx,
                 total_files=total_files,
-                data_file_required_columns=data_file_required_columns,
-                data_file_column_rules=data_file_column_rules,
             )
             preprocessed_dfs.append(preprocessed_df)
             global_file_idx += 1
