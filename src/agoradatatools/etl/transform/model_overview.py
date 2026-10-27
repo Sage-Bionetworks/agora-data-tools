@@ -7,7 +7,6 @@ import pandas as pd
 from typing import Any, Dict, List
 
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
     normalize_null_values,
     delim_string_to_list,
     remove_duplicates_keep_order,
@@ -17,40 +16,6 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     process_genetic_info,
     zero_pad_jax_ids,
 )
-
-REQUIRED_INPUT = {
-    "model_metadata": [
-        "name",
-        "matched_controls",
-        "model_type",
-        "contributing_group",
-        "study_synid",
-        "rrid",
-        "jax_id",
-        "alzforum_id",
-        "genotype",
-        "aliases",
-        "transcriptomics_url_categories_value",
-        "transcriptomics_url_models_value",
-        "transcriptomics",
-        "disease_correlation",
-        "pathology",
-        "biomarkers",
-        "proteomics",
-        "proteomics_url_categories_value",
-        "proteomics_url_models_value",
-    ],
-    "model_genetic_modifications": [
-        "name",
-        "modified_gene",
-        "mouse_ensembl_id",
-        "allele",
-        "allele_type",
-        "mgi_allele_id",
-        "human_gene_symbol",
-        "human_ensembl_id",
-    ],
-}
 
 
 def get_list_of_available_data(row: Dict[str, Any]) -> List[str]:
@@ -143,7 +108,6 @@ def get_center_link_url(contributing_group: str) -> str:
 
 def transform_model_overview(
     datasets: Dict[str, pd.DataFrame],
-    required_input: Dict[str, List[str]] = REQUIRED_INPUT,
 ) -> List[Dict[str, Any]]:
     """
     Transforms the model_overview source files into a structured format for Model AD.
@@ -163,18 +127,10 @@ def transform_model_overview(
 
     Args:
         datasets (Dict[str, pd.DataFrame]): Dictionary mapping dataset names to their DataFrames.
-        required_input (Dict[str, List[str]], optional): Dictionary specifying required datasets and columns. Defaults
-        to REQUIRED_INPUT.
 
     Returns:
         List[Dict[str, Any]]: A list of dictionaries, each representing a transformed model overview record.
-
-    Raises:
-        ValueError: If required datasets or columns are missing.
     """
-
-    check_required_datasets_and_columns(datasets, required_input)
-
     model_metadata = datasets["model_metadata"]
     model_genetic_modifications_df = datasets["model_genetic_modifications"]
 
