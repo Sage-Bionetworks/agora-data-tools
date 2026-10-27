@@ -202,12 +202,12 @@ class TestProteinDeFileSpec:
         ):
             validate_inputs({"protein_de_file": df})
 
-    def test_blank_log2foldchange_fails(self):
+    def test_blank_diff_fails(self):
         df = valid_frame("protein_de_file")
-        df["log2foldchange"] = [None]
+        df["diff"] = [None]
         with pytest.raises(
             ADTDataValidationError,
-            match="'protein_de_file', column 'log2foldchange'.*not_empty",
+            match="'protein_de_file', column 'diff'.*not_empty",
         ):
             validate_inputs({"protein_de_file": df})
 
