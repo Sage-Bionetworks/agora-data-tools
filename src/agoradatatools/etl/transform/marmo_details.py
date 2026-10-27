@@ -8,95 +8,18 @@ from typing import Any
 import pandas as pd
 
 from agoradatatools.etl.utils import (
-    MatchesRegexRule,
-    NonNegativeRule,
-    NotEmptyRule,
-    NumericRule,
     OneOfRule,
-    UniqueRule,
     check_column_rules,
-    check_required_datasets_and_columns,
     nest_fields,
     normalize_null_values,
     standardize_column_name,
     y_axis_max_by_groups,
-    validate_one_to_one_mapping,
     validate_references_exist,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
     determine_result_order,
 )
 
-
-REQUIRED_INPUT = {
-    "marmo_model_metadata": [
-        "model",
-        "model_type",
-        "study_synid",
-        "modified_gene",
-        "ensembl_gene_id",
-        "allele_type",
-    ],
-    "marmo_genotype_label_map": [
-        "model",
-        "genotype",
-        "display_label",
-        "result_order",
-    ],
-    "marmo_biomarker_measure_info": [
-        "result_column",
-        "evidence_type",
-        "units",
-        "display_order",
-    ],
-    "marmo_individual_metadata": [
-        "individualid",
-        "genotype",
-        "sex",
-    ],
-    "marmo_biomaterial_metadata": [
-        "biomaterialid",
-        "collectionage",
-        "collectionageunits",
-    ],
-    "marmo_results": [
-        "biomaterialid",
-        "individualid",
-        "qc_ab",
-        "qc_neuro",
-    ],
-}
-
-COLUMN_RULES = {
-    "marmo_model_metadata": {
-        "model": [NotEmptyRule()],
-        "ensembl_gene_id": [NotEmptyRule(), MatchesRegexRule(r"^ENSCJAG\d+$")],
-    },
-    "marmo_genotype_label_map": {
-        "model": [NotEmptyRule()],
-        "genotype": [NotEmptyRule()],
-        "display_label": [NotEmptyRule()],
-        "result_order": [NotEmptyRule(), NumericRule(), NonNegativeRule()],
-    },
-    "marmo_biomarker_measure_info": {
-        "result_column": [NotEmptyRule()],
-        "evidence_type": [NotEmptyRule()],
-        "display_order": [NotEmptyRule(), NumericRule(), NonNegativeRule()],
-    },
-    "marmo_individual_metadata": {
-        "individualid": [NotEmptyRule()],
-        "genotype": [NotEmptyRule()],
-        "sex": [NotEmptyRule()],
-    },
-    "marmo_biomaterial_metadata": {
-        "biomaterialid": [UniqueRule()],
-        "collectionage": [NumericRule(), NonNegativeRule()],
-    },
-    "marmo_results": {
-        "biomaterialid": [NotEmptyRule()],
-        "individualid": [NotEmptyRule()],
-    },
-}
 
 # Ages are bucketed as months, so any other unit must fail. OneOfRule counts nulls as violations
 # and the no-age assays leave the unit blank, so this can only run on the consumed subset.
@@ -119,10 +42,11 @@ QC_MEASURE_GROUPS = {
 def _validate_and_prepare_model_metadata(
     genotype_map: pd.DataFrame, raw_metadata: pd.DataFrame
 ) -> pd.DataFrame:
-    """Validate the label map and model metadata together, and normalize metadata blanks.
+    """Normalize metadata blanks and confirm every label-map model has a metadata row.
 
-    Returns marmo_model_metadata with blanks normalized to None so taking iloc[0] later is
-    not an arbitrary pick of conflicting model_type or study_synid values.
+    Returns marmo_model_metadata with blanks normalized to None so taking iloc[0] later
+    yields None rather than NaN. Single-file uniqueness and one-to-one checks live in
+    the marmo_model_metadata and marmo_genotype_label_map input specs.
 
     Args:
         genotype_map (pd.DataFrame): marmo_genotype_label_map.
@@ -132,30 +56,11 @@ def _validate_and_prepare_model_metadata(
         pd.DataFrame: Normalized marmo_model_metadata.
 
     Raises:
-        ValueError: If the label map has duplicate (model, genotype) rows, a model has
-            inconsistent model_type or study_synid values, or the label map names a model
-            absent from marmo_model_metadata.
+        ValueError: If the label map names a model absent from marmo_model_metadata.
     """
-    # (model, genotype) must be unique: a duplicate pair would multiply points within a model.
-    duplicate_keys = genotype_map.duplicated(subset=["model", "genotype"], keep=False)
-    if duplicate_keys.any():
-        dupes = (
-            genotype_map.loc[duplicate_keys, ["model", "genotype"]]
-            .drop_duplicates()
-            .to_dict(orient="records")
-        )
-        raise ValueError(
-            "marmo_genotype_label_map has duplicate (model, genotype) rows, which would "
-            f"multiply measurements within a model: {dupes}"
-        )
-
     # Blanks in model_type, study_synid, modified_gene, and allele_type are allowed and become
-    # None in the JSON, matching transform_model_details. ensembl_gene_id stays NotEmptyRule.
+    # None in the JSON, matching transform_model_details.
     metadata = normalize_null_values(raw_metadata)
-    # A model has one row per modified gene. model_type and study_synid must be the same on
-    # every row so taking the first row of each model later is not an arbitrary pick.
-    validate_one_to_one_mapping(metadata, "model", "model_type")
-    validate_one_to_one_mapping(metadata, "model", "study_synid")
 
     # Hand-maintained files: all models in genotype_map must exist in marmo_model_metadata.
     # Extra or typo'd models in genotype_map would have their rows silently removed and would
@@ -289,8 +194,9 @@ def _build_measurements(
         validate="m:1",
     )
     # m:m rather than m:1 because a shared control genotype (WT) is listed once per model that
-    # uses it, so one measurement legitimately fans out to several models. What would wrongly
-    # multiply points is a repeated (model, genotype) pair, which the caller checks for.
+    # uses it, so one measurement legitimately fans out to several models. A repeated
+    # (model, genotype) pair would multiply points; the marmo_genotype_label_map spec
+    # rejects those before this transform runs.
     long = long.merge(
         genotype_map[["model", "genotype", "display_label", "result_order"]],
         how="inner",
@@ -539,7 +445,6 @@ def _build_biomarkers(
 
 def transform_marmo_details(
     datasets: dict[str, pd.DataFrame],
-    required_input: dict[str, list[str]] = REQUIRED_INPUT,
     y_axis_cutoff: dict[str, float] | None = None,
 ) -> list[dict[str, Any]]:
     """
@@ -578,7 +483,6 @@ def transform_marmo_details(
 
     Args:
         datasets (dict[str, pd.DataFrame]): Dictionary of dataset names mapped to their DataFrame.
-        required_input (dict[str, list[str]]): Dictionary of required input datasets and columns.
         y_axis_cutoff (dict[str, float] | None, optional): The optional per-measure (result_column_std) cutoff
             value(s) specified as transform parameters in config. Values above a measure's
             configured y_axis_cutoff are excluded from its y_axis_max calculation but kept in the data.
@@ -590,17 +494,12 @@ def transform_marmo_details(
         list[dict[str, Any]]: One model detail dictionary per model in marmo_model_metadata.
 
     Raises:
-        ValueError: If required datasets or columns are missing, if any column violates
-            COLUMN_RULES, if a model has inconsistent model_type or study_synid values, if
-            marmo_genotype_label_map has duplicate (model, genotype) rows or names a model
-            absent from marmo_model_metadata, if no measurement survives the value,
-            genotype, or collection-age filters, if any y_axis_cutoff key does not align with
-            a measure listed in marmo_biomarker_measure_info, or if a y_axis_cutoff removes every
-            value for an evidence_type.
+        ValueError: If the label map names a model absent from marmo_model_metadata, if no
+            measurement survives the value, genotype, or collection-age filters, if any
+            y_axis_cutoff key does not align with a measure listed in
+            marmo_biomarker_measure_info, or if a y_axis_cutoff removes every value for an
+            evidence_type.
     """
-    check_required_datasets_and_columns(datasets, required_input)
-    check_column_rules(datasets, COLUMN_RULES)
-
     metadata = _validate_and_prepare_model_metadata(
         datasets["marmo_genotype_label_map"], datasets["marmo_model_metadata"]
     )
