@@ -44,10 +44,23 @@ class TestValidateInputs:
     def test_empty_datasets_pass(self):
         validate_inputs({})
 
-    def test_unregistered_input_passes_through(self, caplog):
-        with caplog.at_level("INFO"):
+    def test_unregistered_input_fails(self):
+        with pytest.raises(
+            ADTDataValidationError,
+            match="No input validation spec registered for not_registered",
+        ):
             validate_inputs({"not_registered": pd.DataFrame({"a": [None]})})
-        assert "No input validation spec registered for not_registered" in caplog.text
+
+    def test_unknown_schema_fails(self):
+        with pytest.raises(
+            ADTDataValidationError,
+            match="No input validation spec registered for jax_5xFAD_de "
+            r"\(schema not_a_spec\)",
+        ):
+            validate_inputs(
+                {"jax_5xFAD_de": pd.DataFrame({"a": [1]})},
+                schemas={"jax_5xFAD_de": "not_a_spec"},
+            )
 
     @pytest.mark.parametrize("name", sorted(INPUT_SPECS))
     def test_every_registered_spec_passes_a_valid_frame(self, name):

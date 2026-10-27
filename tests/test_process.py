@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
-from agoradatatools.etl import load, utils, extract
+from agoradatatools.etl import load, utils, extract, validate
 from agoradatatools.reporter import DatasetReport, ADTGXReporter
 from agoradatatools.constants import Platform
 from agoradatatools.gx import GreatExpectationsRunner
@@ -328,6 +328,8 @@ class TestProcessProvenance:
             load, "dict_to_json", return_value="path/to/json"
         ).start()
         self.patch_load = patch.object(load, "load", return_value=("syn123", 1)).start()
+        self._validate_patcher = patch.object(validate, "validate_inputs")
+        self._validate_patcher.start()
 
     def teardown_method(self):
         self.patch_get_entity_as_df.stop()
@@ -336,6 +338,7 @@ class TestProcessProvenance:
         self.patch_df_to_json.stop()
         self.patch_dict_to_json.stop()
         self.patch_load.stop()
+        self._validate_patcher.stop()
         mock.patch.stopall()
 
     def test_upload_data_without_provenance(
@@ -719,6 +722,20 @@ class TestUploadManifestAndDataversion:
 
 
 class TestProcessDataset:
+    _real_validate_tests = {
+        "test_process_dataset_input_validation_runs_before_rename_and_transform",
+        "test_process_dataset_schema_key_selects_shared_spec",
+        "test_process_dataset_unregistered_input_fails",
+    }
+
+    @pytest.fixture(autouse=True)
+    def _maybe_mock_validate_inputs(self, request):
+        if request.node.name in self._real_validate_tests:
+            yield
+            return
+        with patch.object(process.validate, "validate_inputs"):
+            yield
+
     dataset_object = {
         "neuropath_corr": {
             "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
@@ -1210,6 +1227,31 @@ class TestProcessDataset:
         with pytest.raises(
             ADTDataValidationError,
             match="Missing required columns in jax_5xFAD_de",
+        ):
+            process.process_dataset(
+                dataset_obj=dataset_object,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+            )
+        self.patch_rename_columns.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
+
+    def test_process_dataset_unregistered_input_fails(self, syn: synapseclient.Synapse):
+        dataset_object = {
+            "neuropath_corr": {
+                "files": [
+                    {"name": "not_registered", "id": "syn1111111", "format": "csv"}
+                ],
+                "final_format": "json",
+                "destination": "syn1111113",
+            }
+        }
+        with pytest.raises(
+            ADTDataValidationError,
+            match="No input validation spec registered for not_registered",
         ):
             process.process_dataset(
                 dataset_obj=dataset_object,
