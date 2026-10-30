@@ -45,7 +45,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "chembl_id",
-        "regex": "^CHEMBL\\d+$"
+        "regex": "^CHEMBL[0-9]+$"
       },
       "meta": {}
     },
