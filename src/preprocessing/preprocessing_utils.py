@@ -19,7 +19,9 @@ def get_nested_dict_item(
 ) -> Any:
     """
     Recursively search for a key in a nested dictionary and return its value. This function assumes that each child
-    item is also a dictionary.
+    item is also a dictionary (lists of dictionaries are not searched). It also assumes that the key only exists once in
+    the nested structure. Duplicate keys are not handled and this function will return the first occurrence it finds.
+
     Returns the default value if the key is not found.
 
     Example:
@@ -38,8 +40,14 @@ def get_nested_dict_item(
     if key in dictionary:
         return dictionary[key]
 
+    # Use a distinct object to represent a missing value so that we can differentiate between a key
+    # not found and a key with a value equal to the default.
+    missing = object()
+
     for value in dictionary.values():
         if isinstance(value, dict):
-            return get_nested_dict_item(value, key, default)
+            result = get_nested_dict_item(value, key, missing)
+            if result is not missing:
+                return result
 
     return default
