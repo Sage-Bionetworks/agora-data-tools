@@ -10,7 +10,8 @@ DEFAULT_MODEL_AD_SOURCE_FOLDER_ID = "syn51498054"
 DEFAULT_AGORA_CONFIG_FILE = pathlib.Path("configs", "agora_prod.yaml")
 DEFAULT_MODEL_AD_CONFIG_FILE = pathlib.Path("configs", "model_ad_prod.yaml")
 
-DEFAULT_OUTPUT_PATH = pathlib.Path("staging_preprocessing")
+# Output defaults to the staging/preprocessing directory
+DEFAULT_OUTPUT_PATH = pathlib.Path("staging", "preprocessing")
 
 
 def get_nested_dict_item(
