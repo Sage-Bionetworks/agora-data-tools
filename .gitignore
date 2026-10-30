@@ -133,7 +133,9 @@ dmypy.json
 
 # local generated files
 staging/*
+data_analysis/*/input/*
 data_analysis/*/output/*
+data_analysis/model_ad/notebooks/data_mocks/output/*
 
 #test staging location
 test_staging_dir/
