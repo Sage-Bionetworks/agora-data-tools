@@ -213,7 +213,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "metabolite_full_name",
-        "regex": "^[A-Za-z0-9\\s\\-:.()+]+$"
+        "regex": "^[A-Za-z0-9\\s\\-:()+]+$"
       },
       "meta": {}
     },
