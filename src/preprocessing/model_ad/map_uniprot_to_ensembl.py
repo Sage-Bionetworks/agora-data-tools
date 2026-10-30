@@ -269,12 +269,12 @@ def map_accessions(
         for syn_id in syn_ids
     ]
 
+    # 2. Extract all UniProt IDs from the files and put them into a DataFrame
     header_ids = [extract_ids_from_file(df) for df in dfs]
 
     # flatten into one list with unique values
     header_ids = {item for sublist in header_ids for item in sublist}
 
-    # 2. Extract all UniProt IDs from the files and put them into a DataFrame
     uniprot_df = format_uniprot_ids(header_ids)
 
     # 3. Query MyGene for Uniprot -> Ensembl mapping

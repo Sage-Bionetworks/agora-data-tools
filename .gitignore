@@ -133,6 +133,7 @@ dmypy.json
 
 # local generated files
 staging/*
+staging_*/
 data_analysis/*/output/*
 
 #test staging location
