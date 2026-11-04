@@ -18,6 +18,7 @@ from agoradatatools.etl.utils import (
     check_required_datasets_and_columns,
     nest_fields,
     normalize_null_values,
+    raise_on_duplicate_keys,
     standardize_column_name,
     y_axis_max_by_groups,
     validate_one_to_one_mapping,
@@ -137,17 +138,12 @@ def _validate_and_prepare_model_metadata(
             absent from marmo_model_metadata.
     """
     # (model, genotype) must be unique: a duplicate pair would multiply points within a model.
-    duplicate_keys = genotype_map.duplicated(subset=["model", "genotype"], keep=False)
-    if duplicate_keys.any():
-        dupes = (
-            genotype_map.loc[duplicate_keys, ["model", "genotype"]]
-            .drop_duplicates()
-            .to_dict(orient="records")
-        )
-        raise ValueError(
-            "marmo_genotype_label_map has duplicate (model, genotype) rows, which would "
-            f"multiply measurements within a model: {dupes}"
-        )
+    raise_on_duplicate_keys(
+        genotype_map,
+        ["model", "genotype"],
+        "marmo_genotype_label_map has duplicate (model, genotype) rows, which would "
+        "multiply measurements within a model",
+    )
 
     # Blanks in model_type, study_synid, modified_gene, and allele_type are allowed and become
     # None in the JSON, matching transform_model_details. ensembl_gene_id stays NotEmptyRule.
