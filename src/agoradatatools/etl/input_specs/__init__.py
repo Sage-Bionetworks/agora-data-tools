@@ -1,4 +1,4 @@
-"""Input validation specs, one module per input file.
+"""Input specs, one module per input file.
 
 Each module in this package is named exactly as the input file is named in the
 pipeline config (the name field of the file entry, e.g. genotype_label_map) and

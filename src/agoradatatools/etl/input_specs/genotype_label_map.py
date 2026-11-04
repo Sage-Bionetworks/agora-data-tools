@@ -1,13 +1,18 @@
 """Input spec for genotype_label_map.
 
-Read by rna_de_aggregate, rna_de_individual, protein_de_individual, and
-protein_de_aggregate. model_type is used only by the aggregate transforms but is
-required for every consumer because the spec is the union.
+Consumers: rna_de_aggregate, rna_de_individual, protein_de_aggregate, and
+protein_de_individual.
+
+The spec requires every column that any consumer needs. Only the two aggregate
+transforms use model_type, but it is required for all four, so the individual
+transforms also reject a label map where model_type is missing or blank.
 """
 
 from agoradatatools.etl.validation_utils import (
     InputSpec,
     NotEmptyRule,
+    NumericRule,
+    raise_on_duplicate_keys,
     validate_one_to_one_mapping,
 )
 
@@ -21,10 +26,16 @@ COLUMNS = [
 ]
 
 RULES = {column: [NotEmptyRule()] for column in COLUMNS}
+RULES["result_order"] = [NotEmptyRule(), NumericRule()]
 
 CHECKS = [
     lambda df: validate_one_to_one_mapping(df, "model", "model_group"),
     lambda df: validate_one_to_one_mapping(df, "model", "model_type"),
+    lambda df: raise_on_duplicate_keys(
+        df,
+        ["model", "genotype"],
+        "genotype label map has duplicate (model, genotype) rows",
+    ),
 ]
 
 SPEC = InputSpec(
