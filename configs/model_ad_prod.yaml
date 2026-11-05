@@ -77,7 +77,6 @@ datasets:
       destination: *dest
       custom_transformations: transform_model_details
       column_rename:
-        mouse_gene_symbol: modified_gene
         agedeath: age
         age_death: age
         measurement: value
@@ -119,6 +118,8 @@ datasets:
       final_format: json
       destination: *dest
       custom_transformations: transform_disease_correlation
+      column_rename:
+        model: name
       gx_enabled: true
       gx_nested_columns:
         - IFG
@@ -147,7 +148,6 @@ datasets:
       destination: *dest
       custom_transformations: transform_model_overview
       column_rename:
-        mouse_gene_symbol: modified_gene
         model: name
       gx_enabled: true
       gx_nested_columns:
