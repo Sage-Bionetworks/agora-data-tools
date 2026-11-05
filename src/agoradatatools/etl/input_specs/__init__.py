@@ -1,4 +1,4 @@
-"""Input validation specs, one module per file name or shared schema.
+"""Input specs, one module per input file name or shared schema.
 
 Each module in this package defines a single module-level SPEC of type
 InputSpec. The module name is the file's name in the pipeline config, or the

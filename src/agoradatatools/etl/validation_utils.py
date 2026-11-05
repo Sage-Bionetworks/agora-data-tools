@@ -7,8 +7,9 @@ whole-frame integrity properties.
 
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Callable, Collection, Dict, List
+from typing import Any
 
 import pandas as pd
 
@@ -26,7 +27,6 @@ class ColumnRule(ABC):
     @abstractmethod
     def count_violations(self, series: pd.Series) -> int:
         """Return the number of values in *series* that violate this rule."""
-        ...
 
     @property
     def value_detail(self) -> str:
@@ -229,38 +229,54 @@ class UniqueRule(ColumnRule):
         return int(present.duplicated(keep=False).sum())
 
 
-def check_required_datasets_and_columns(
-    datasets: Dict[str, pd.DataFrame], required_input: Dict[str, List[str]]
+def check_required_columns(
+    df: pd.DataFrame, dataset_name: str, columns: list[str]
 ) -> None:
-    """
-    Check if all required datasets and columns are present in the input dictionary.
+    """Raise if any name in columns is missing from df.
 
     Args:
-        datasets (Dict[str, pd.DataFrame]): Dictionary containing dataset names as keys and their corresponding pandas DataFrames as values.
-        required_input (Dict[str, List[str]]): Dictionary containing dataset names as keys and their corresponding required columns as values.
+        df: The DataFrame to inspect.
+        dataset_name: Dataset name used in the error message.
+        columns: Column names that must be present.
 
     Raises:
-        ValueError: If any required columns are missing.
+        ValueError: If any required column is missing.
     """
-    # Check for missing datasets
+    missing_columns = [col for col in columns if col not in df.columns]
+    if missing_columns:
+        found = ", ".join(df.columns)
+        raise ValueError(
+            f"Missing required columns in {dataset_name} dataset: "
+            f"{', '.join(missing_columns)}. "
+            f"Please ensure the {dataset_name} dataset contains all required "
+            f"columns. Columns found: {found}."
+        )
+
+
+def check_required_datasets_and_columns(
+    datasets: dict[str, pd.DataFrame], required_input: dict[str, list[str]]
+) -> None:
+    """Check that every required dataset exists and has its required columns.
+
+    Args:
+        datasets: Dataset name -> DataFrame.
+        required_input: Dataset name -> required column names.
+
+    Raises:
+        ValueError: If any required dataset or column is missing.
+    """
     missing_datasets = [
         dataset for dataset in required_input.keys() if dataset not in datasets
     ]
     if missing_datasets:
         raise ValueError(
             f"Missing required datasets: {', '.join(missing_datasets)}. "
-            "Please ensure all required datasets are provided {required_datasets}"
+            f"Please ensure all required datasets are provided: "
+            f"{', '.join(missing_datasets)}"
         )
 
-    # Check for missing columns
     for dataset_name, columns in required_input.items():
-        dataset_columns = datasets[dataset_name].columns
-        missing_columns = [col for col in columns if col not in dataset_columns]
-        if missing_columns:
-            raise ValueError(
-                f"Missing required columns in {dataset_name} dataset: {', '.join(missing_columns)}. "
-                f"Please ensure the {dataset_name} dataset contains all required columns. Columns found: {', '.join(dataset_columns)}."
-            )
+        check_required_columns(datasets[dataset_name], dataset_name, columns)
 
 
 def reject_empty_dataframe(df: pd.DataFrame) -> None:
@@ -381,7 +397,7 @@ def _check_single_rule(
     dataset_name: str,
     col_name: str,
     rule: ColumnRule,
-) -> List[str]:
+) -> list[str]:
     """Check a single ColumnRule against one column and return any violation messages.
 
     Args:
@@ -403,8 +419,8 @@ def _check_single_rule(
 
 
 def check_column_rules(
-    datasets: Dict[str, pd.DataFrame],
-    column_rules: Dict[str, Dict[str, List[ColumnRule]]],
+    datasets: dict[str, pd.DataFrame],
+    column_rules: dict[str, dict[str, list[ColumnRule]]],
 ) -> None:
     """Validate per-column content rules across one or more datasets.
 
@@ -444,7 +460,7 @@ def check_column_rules(
         }
         check_column_rules(datasets, COLUMN_RULES)
     """
-    violations: List[str] = []
+    violations: list[str] = []
 
     for dataset_name, col_rules in column_rules.items():
         if dataset_name not in datasets:
@@ -478,4 +494,4 @@ class InputSpec:
 
     required_columns: list[str]
     column_rules: dict[str, list[ColumnRule]] = field(default_factory=dict)
-    checks: tuple[Callable[[pd.DataFrame], None], ...] = ()
+    checks: Sequence[Callable[[pd.DataFrame], None]] = ()
