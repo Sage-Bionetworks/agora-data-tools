@@ -106,12 +106,14 @@ class TestValidateOne:
 class TestValidateInputs:
     def test_empty_datasets_pass(self):
         """An empty datasets dict is a no-op."""
-        validate_inputs({}, TEST_SPECS)
+        validate_inputs({}, specs=TEST_SPECS)
 
     def test_unregistered_input_passes_through(self, caplog):
         """A name with no spec is logged and skipped."""
         with caplog.at_level("INFO"):
-            validate_inputs({"not_registered": pd.DataFrame({"a": [None]})}, TEST_SPECS)
+            validate_inputs(
+                {"not_registered": pd.DataFrame({"a": [None]})}, specs=TEST_SPECS
+            )
         assert "No input validation spec registered for not_registered" in caplog.text
 
     def test_valid_frames_pass(self):
@@ -121,7 +123,7 @@ class TestValidateInputs:
                 "data_1": pd.DataFrame({"colA": ["x"], "colB": [1]}),
                 "data_2": pd.DataFrame({"colC": ["c"], "colD": ["d"]}),
             },
-            TEST_SPECS,
+            specs=TEST_SPECS,
         )
 
     def test_violations_from_several_inputs_are_aggregated(self):
@@ -131,7 +133,7 @@ class TestValidateInputs:
             "data_2": pd.DataFrame({"colC": [1]}),
         }
         with pytest.raises(ADTDataValidationError) as excinfo:
-            validate_inputs(datasets, TEST_SPECS)
+            validate_inputs(datasets, specs=TEST_SPECS)
         message = str(excinfo.value)
         assert "'data_1', column 'colA'" in message
         assert "not_empty" in message
@@ -142,6 +144,18 @@ class TestValidateInputs:
         name = next(iter(INPUT_SPECS))
         with pytest.raises(ADTDataValidationError, match=name):
             validate_inputs({name: pd.DataFrame()})
+
+    def test_schemas_map_input_name_to_shared_spec(self):
+        """A schemas entry looks the input up under the shared spec key."""
+        with pytest.raises(
+            ADTDataValidationError,
+            match="Missing required columns in jax_5xFAD_de dataset: colD",
+        ):
+            validate_inputs(
+                {"jax_5xFAD_de": pd.DataFrame({"colC": ["c"]})},
+                schemas={"jax_5xFAD_de": "data_2"},
+                specs=TEST_SPECS,
+            )
 
     @pytest.mark.parametrize(
         "name, missing_column",

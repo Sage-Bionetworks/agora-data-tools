@@ -222,6 +222,7 @@ def process_dataset(
     file_ids = []
 
     raw_entities = {}
+    schemas = {}
     for entity in dataset_obj[dataset_name]["files"]:
         entity_id = entity["id"]
         entity_format = entity["format"]
@@ -232,10 +233,12 @@ def process_dataset(
         df = utils.standardize_column_names(df=df)
         df = utils.standardize_values(df=df)
         raw_entities[entity_name] = df
+        schemas[entity_name] = entity.get("schema", entity_name)
 
     # Input specs are written against source column names, so validation runs before
-    # the dataset's column_rename.
-    validate.validate_inputs(raw_entities)
+    # the dataset's column_rename. schema defaults to name so unique files need no
+    # extra key; many-of-a-kind files share one spec via schema.
+    validate.validate_inputs(raw_entities, schemas)
 
     entities_as_df = {}
     for entity_name, df in raw_entities.items():
