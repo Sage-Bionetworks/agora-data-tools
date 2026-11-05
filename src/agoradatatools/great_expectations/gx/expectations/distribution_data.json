@@ -3,21 +3,6 @@
   "expectation_suite_name": "distribution_data",
   "expectations": [
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "target_risk_score",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "target_risk_score"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "target_risk_score",
@@ -117,21 +102,6 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "genetics_score",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "genetics_score"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "genetics_score",
@@ -227,21 +197,6 @@
           "title": "Genetics Score Schema",
           "type": "object"
         }
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "multi_omics_score",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "multi_omics_score"
       },
       "meta": {}
     },

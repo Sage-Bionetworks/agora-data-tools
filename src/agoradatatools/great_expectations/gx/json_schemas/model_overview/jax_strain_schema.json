@@ -3,7 +3,7 @@
   "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_overview/jax_strain_schema.json",
   "type": "object",
   "properties": {
-    "link_url": { "type": "string", "pattern": "^https://jax\\.org/strain/\\d+$" }
+    "link_url": { "type": "string", "pattern": "^https://jax\\.org/strain/[0-9]+$" }
   },
   "required": ["link_url"],
   "additionalProperties": false

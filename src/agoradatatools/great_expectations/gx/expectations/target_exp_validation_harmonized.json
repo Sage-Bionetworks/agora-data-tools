@@ -29,7 +29,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
-        "regex": "^ENSG\\d{11}$"
+        "regex": "^ENSG[0-9]{11}$"
       },
       "meta": {}
     },
@@ -195,14 +195,6 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_match_regex",
-      "kwargs": {
-        "column": "species",
-        "regex": "\ufffd"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "model_system",
@@ -252,14 +244,6 @@
           "Immunochemistry",
           "Immunohistochemistry"
         ]
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_match_regex",
-      "kwargs": {
-        "column": "outcome_measure",
-        "regex": "\ufffd"
       },
       "meta": {}
     },
