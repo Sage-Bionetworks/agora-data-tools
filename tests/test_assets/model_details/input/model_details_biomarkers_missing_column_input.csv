@@ -1,4 +1,0 @@
-individual_id,name,evidence_type,units,age,tissue,sex,genotype
-mouse1,3xTg-AD,Soluble beta40,pg/ml,4,hippocampus,female,transgenic
-mouse2,3xTg-AD,Soluble beta40,pg/ml,4,hippocampus,male,transgenic
-mouse3,3xTg-AD,Soluble beta42,pg/ml,4,hippocampus,female,transgenic
