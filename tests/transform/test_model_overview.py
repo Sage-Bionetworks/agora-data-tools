@@ -477,12 +477,14 @@ class TestTransformModelOverview:
 class TestGetListOfAvailableData:
     def test_all_data_present(self):
 
-        model = {
-            "transcriptomics": {"link_url": "url1"},
-            "disease_correlation": {"link_url": "url2"},
-            "pathology": {"link_url": "url3"},
-            "biomarkers": {"link_url": "url4"},
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": {"link_url": "url1"},
+                "disease_correlation": {"link_url": "url2"},
+                "pathology": {"link_url": "url3"},
+                "biomarkers": {"link_url": "url4"},
+            }
+        )
         result = get_list_of_available_data(model)
         assert set(result) == {
             "Transcriptomics",
@@ -493,49 +495,57 @@ class TestGetListOfAvailableData:
 
     def test_some_data_missing(self):
 
-        model = {
-            "transcriptomics": {"link_url": "url1"},
-            "disease_correlation": None,
-            "pathology": {"link_url": "url3"},
-            "biomarkers": None,
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": {"link_url": "url1"},
+                "disease_correlation": None,
+                "pathology": {"link_url": "url3"},
+                "biomarkers": None,
+            }
+        )
         result = get_list_of_available_data(model)
         assert set(result) == {"Transcriptomics", "Pathology"}
 
-        model = {
-            "transcriptomics": None,
-            "disease_correlation": {"link_url": "url2"},
-            "pathology": None,
-            "biomarkers": {"link_url": "url1"},
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": None,
+                "disease_correlation": {"link_url": "url2"},
+                "pathology": None,
+                "biomarkers": {"link_url": "url1"},
+            }
+        )
         result = get_list_of_available_data(model)
         assert set(result) == {"Disease Correlation", "Biomarkers"}
 
     def test_all_data_missing(self):
 
-        model = {
-            "transcriptomics": None,
-            "disease_correlation": None,
-            "pathology": None,
-            "biomarkers": None,
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": None,
+                "disease_correlation": None,
+                "pathology": None,
+                "biomarkers": None,
+            }
+        )
         result = get_list_of_available_data(model)
         assert result == []
 
     def test_empty_model(self):
 
-        model = {}
+        model = pd.Series({})
         result = get_list_of_available_data(model)
         assert result == []
 
     def test_partial_keys(self):
 
-        model = {
-            "transcriptomics": {"link_url": "url1"},
-            # disease_correlation missing
-            "pathology": None,
-            # biomarkers missing
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": {"link_url": "url1"},
+                # disease_correlation missing
+                "pathology": None,
+                # biomarkers missing
+            }
+        )
         result = get_list_of_available_data(model)
         assert result == ["Transcriptomics"]
 
