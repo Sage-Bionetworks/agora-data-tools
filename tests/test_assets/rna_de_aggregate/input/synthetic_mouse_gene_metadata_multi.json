@@ -1,0 +1,27 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gene_A",
+    "alias": ["Alias_A"]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000002",
+    "gene_symbol": "Gene_B",
+    "alias": ["Alias_B"]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000003",
+    "gene_symbol": "Gene_C",
+    "alias": ["Alias_C"]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000004",
+    "gene_symbol": "Gene_D",
+    "alias": ["Alias_D"]
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000005",
+    "gene_symbol": "Gene_MultiDomain",
+    "alias": ["Alias_MultiDomain"]
+  }
+]

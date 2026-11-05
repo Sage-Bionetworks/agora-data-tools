@@ -1,0 +1,37 @@
+[
+  {
+    "ensembl_gene_id": "ENSMUSG00000000001",
+    "gene_symbol": "Gene_A",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000002",
+    "gene_symbol": "Gene_B",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000003",
+    "gene_symbol": "Gene_C",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000004",
+    "gene_symbol": "Gene_D",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000005",
+    "gene_symbol": "Gene_E",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000006",
+    "gene_symbol": "Gene_F",
+    "alias": []
+  },
+  {
+    "ensembl_gene_id": "ENSMUSG00000000007",
+    "gene_symbol": "Gene_G",
+    "alias": []
+  }
+]

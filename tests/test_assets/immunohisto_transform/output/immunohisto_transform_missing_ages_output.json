@@ -8,10 +8,10 @@
     "y_axis_max": 3.5,
     "data": [
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_1",
-        "value": 1
+        "value": 1,
+        "sex": "Male",
+        "genotype": "genotype1"
       }
     ]
   },
@@ -24,10 +24,10 @@
     "y_axis_max": 7.5,
     "data": [
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_6",
-        "value": 6
+        "value": 6,
+        "sex": "Male",
+        "genotype": "genotype1"
       }
     ]
   },
@@ -40,10 +40,10 @@
     "y_axis_max": 5.5,
     "data": [
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_4",
-        "value": 4
+        "value": 4,
+        "sex": "Male",
+        "genotype": "genotype1"
       }
     ]
   },
@@ -56,10 +56,10 @@
     "y_axis_max": 3.5,
     "data": [
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_2",
-        "value": 2
+        "value": 2,
+        "sex": "Male",
+        "genotype": "genotype1"
       }
     ]
   },
@@ -81,10 +81,10 @@
     "y_axis_max": 5.5,
     "data": [
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_5",
-        "value": 5
+        "value": 5,
+        "sex": "Male",
+        "genotype": "genotype1"
       }
     ]
   },
@@ -97,10 +97,10 @@
     "y_axis_max": 3.5,
     "data": [
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_3",
-        "value": 3
+        "value": 3,
+        "sex": "Male",
+        "genotype": "genotype1"
       }
     ]
   },
@@ -113,10 +113,10 @@
     "y_axis_max": 7.5,
     "data": [
       {
-        "genotype": "genotype1",
-        "sex": "Male",
         "individual_id": "individual_7",
-        "value": 7
+        "value": 7,
+        "sex": "Male",
+        "genotype": "genotype1"
       }
     ]
   },

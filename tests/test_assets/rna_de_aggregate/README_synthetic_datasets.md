@@ -22,11 +22,11 @@ This directory contains human-readable synthetic datasets designed to test the `
 
 #### Metadata Files
 - **`synthetic_genotype_label_map.csv`**: Model to display label mapping, including model_type and result_order
-- **`synthetic_mouse_gene_metadata.csv`**: Gene ID to symbol mapping
+- **`synthetic_mouse_gene_metadata.json`**: Gene ID to symbol mapping
 - **`synthetic_biodom_genes_mm.csv`**: Biodomain assignments for genes
 - **`synthetic_biodom_genes_mm_multiple.csv`**: Biodomain assignments with genes having multiple biodomains
-- **`synthetic_mouse_gene_metadata_multi.csv`**: Extended gene metadata for multi-biodomain tests
-- **`synthetic_mouse_gene_metadata_missing_symbols.csv`**: Gene metadata with a missing gene_symbol
+- **`synthetic_mouse_gene_metadata_multi.json`**: Extended gene metadata for multi-biodomain tests
+- **`synthetic_mouse_gene_metadata_missing_symbols.json`**: Gene metadata with a missing gene_symbol
 - **`synthetic_genotype_label_map_inconsistent.csv`**: Label mapping with inconsistent model_group values (for error testing)
 - **`synthetic_genotype_label_map_inconsistent_model_type.csv`**: Label mapping with inconsistent model_type values for the same model (for error testing)
 
@@ -81,7 +81,7 @@ Expected: Sorted as 3 months, 6 months, 12 months
 
 ### Scenario 6: Single Row Data (`synthetic_single_row_data.csv`)
 ```
-Gene: ENSMUSG00000000008 (not in mouse_gene_metadata.csv)
+Gene: ENSMUSG00000000008 (not in mouse_gene_metadata.json)
 Model: Model_F
 Age: 9 months
 Expected: Single output entry with gene_symbol="" and biodomains=[]
@@ -259,11 +259,11 @@ tests/test_assets/rna_de_aggregate/
 │   │   └── synthetic_missing_columns_data.csv
 │   └── Metadata Files:
 │       ├── synthetic_genotype_label_map.csv
-│       ├── synthetic_mouse_gene_metadata.csv
+│       ├── synthetic_mouse_gene_metadata.json
 │       ├── synthetic_biodom_genes_mm.csv
 │       ├── synthetic_biodom_genes_mm_multiple.csv
-│       ├── synthetic_mouse_gene_metadata_multi.csv
-│       ├── synthetic_mouse_gene_metadata_missing_symbols.csv
+│       ├── synthetic_mouse_gene_metadata_multi.json
+│       ├── synthetic_mouse_gene_metadata_missing_symbols.json
 │       ├── synthetic_genotype_label_map_inconsistent.csv
 │       └── synthetic_genotype_label_map_inconsistent_model_type.csv
 ├── output/
