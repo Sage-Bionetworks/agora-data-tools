@@ -12,10 +12,8 @@ Install required packages:
 - purrr
 - ghql
 ```{r}
-if (!require("synapser", quietly = TRUE)) {
-  install.packages("synapser", repos = c("http://ran.synapse.org",
-                                         "https://cloud.r-project.org"))
-}
+source(file.path("..", "..", "..", "setup_synapser.R"))  # pins synapser and sets up its dedicated venv
+setup_synapser()
 if (!require("jsonlite", quietly = TRUE)) { install.packages("jsonlite") }
 if (!require("purrr")) { install.packages("purrr") }
 if (!require("ghql")) { install.packages("ghql") }
