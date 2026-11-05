@@ -4,7 +4,9 @@ import json
 import pandas as pd
 import pytest
 
-from agoradatatools.etl.transform.model_details import transform_model_details
+from agoradatatools.etl.transform.model_details import (
+    transform_model_details,
+)
 
 
 def _load_test_measure_order_config():

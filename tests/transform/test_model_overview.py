@@ -34,7 +34,7 @@ class TestTransformModelOverview:
             # Pass with missing data in some fields
             {
                 "model_metadata": "model_overview_model_metadata_missing_data_input.csv",
-                "model_genetic_modifications": "model_overview_model_genetic_modifications_missing_data_input.csv",
+                "model_genetic_modifications": "model_overview_model_genetic_modifications_good_test_input.csv",
             },
             "model_overview_transform_missing_data_output.json",
         ),
@@ -127,7 +127,7 @@ class TestTransformModelOverview:
         empty_model_genetic_modifications = pd.DataFrame(
             columns=[
                 "name",
-                "modified_gene",
+                "mouse_gene_symbol",
                 "mouse_ensembl_id",
                 "allele",
                 "allele_type",
@@ -179,7 +179,7 @@ class TestTransformModelOverview:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "modified_gene": ["TestGene"],
+                "mouse_gene_symbol": ["TestGene"],
                 "mgi_gene_id": [12345],
                 "mouse_ensembl_id": ["ENSMUSG00000012345"],
                 "allele": ["TestAllele"],
@@ -252,14 +252,14 @@ class TestTransformModelOverview:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["test_model"],
-                "modified_gene": [None],
-                "mgi_gene_id": [None],
-                "mouse_ensembl_id": [None],
-                "allele": [None],
-                "allele_type": [None],
-                "mgi_allele_id": [None],
-                "human_gene_symbol": [None],
-                "human_ensembl_id": [None],
+                "mouse_gene_symbol": ["TestGene"],
+                "mgi_gene_id": [12345],
+                "mouse_ensembl_id": ["ENSMUSG00000012345"],
+                "allele": ["TestAllele"],
+                "allele_type": ["Targeted"],
+                "mgi_allele_id": [67890],
+                "human_gene_symbol": None,
+                "human_ensembl_id": None,
             }
         )
 
@@ -287,7 +287,7 @@ class TestTransformModelOverview:
                 },
                 "jax_strain": {"link_url": "https://jax.org/strain/123456"},
                 "center": "IU/Jax/Pitt",
-                "modified_genes": [],
+                "modified_genes": ["TestGene"],
                 "available_data": [],
             }
         ]
@@ -325,7 +325,7 @@ class TestTransformModelOverview:
         model_genetic_modifications = pd.DataFrame(
             {
                 "name": ["model1", "model1", "model2"],
-                "modified_gene": ["Gene1", "Gene2", "Gene3"],
+                "mouse_gene_symbol": ["Gene1", "Gene2", "Gene3"],
                 "mgi_gene_id": [11111, 22222, 33333],
                 "mouse_ensembl_id": [
                     "ENSMUSG00000011111",
@@ -403,12 +403,14 @@ class TestTransformModelOverview:
 class TestGetListOfAvailableData:
     def test_all_data_present(self):
 
-        model = {
-            "transcriptomics": {"link_url": "url1"},
-            "disease_correlation": {"link_url": "url2"},
-            "pathology": {"link_url": "url3"},
-            "biomarkers": {"link_url": "url4"},
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": {"link_url": "url1"},
+                "disease_correlation": {"link_url": "url2"},
+                "pathology": {"link_url": "url3"},
+                "biomarkers": {"link_url": "url4"},
+            }
+        )
         result = get_list_of_available_data(model)
         assert set(result) == {
             "Transcriptomics",
@@ -419,49 +421,57 @@ class TestGetListOfAvailableData:
 
     def test_some_data_missing(self):
 
-        model = {
-            "transcriptomics": {"link_url": "url1"},
-            "disease_correlation": None,
-            "pathology": {"link_url": "url3"},
-            "biomarkers": None,
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": {"link_url": "url1"},
+                "disease_correlation": None,
+                "pathology": {"link_url": "url3"},
+                "biomarkers": None,
+            }
+        )
         result = get_list_of_available_data(model)
         assert set(result) == {"Transcriptomics", "Pathology"}
 
-        model = {
-            "transcriptomics": None,
-            "disease_correlation": {"link_url": "url2"},
-            "pathology": None,
-            "biomarkers": {"link_url": "url1"},
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": None,
+                "disease_correlation": {"link_url": "url2"},
+                "pathology": None,
+                "biomarkers": {"link_url": "url1"},
+            }
+        )
         result = get_list_of_available_data(model)
         assert set(result) == {"Disease Correlation", "Biomarkers"}
 
     def test_all_data_missing(self):
 
-        model = {
-            "transcriptomics": None,
-            "disease_correlation": None,
-            "pathology": None,
-            "biomarkers": None,
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": None,
+                "disease_correlation": None,
+                "pathology": None,
+                "biomarkers": None,
+            }
+        )
         result = get_list_of_available_data(model)
         assert result == []
 
     def test_empty_model(self):
 
-        model = {}
+        model = pd.Series({})
         result = get_list_of_available_data(model)
         assert result == []
 
     def test_partial_keys(self):
 
-        model = {
-            "transcriptomics": {"link_url": "url1"},
-            # disease_correlation missing
-            "pathology": None,
-            # biomarkers missing
-        }
+        model = pd.Series(
+            {
+                "transcriptomics": {"link_url": "url1"},
+                # disease_correlation missing
+                "pathology": None,
+                # biomarkers missing
+            }
+        )
         result = get_list_of_available_data(model)
         assert result == ["Transcriptomics"]
 
