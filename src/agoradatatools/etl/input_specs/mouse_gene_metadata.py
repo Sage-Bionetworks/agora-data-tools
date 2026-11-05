@@ -4,7 +4,11 @@ Read by rna_de_aggregate, rna_de_individual, protein_de_individual, and
 protein_de_aggregate. alias is used only by rna_de_aggregate.
 """
 
-from agoradatatools.etl.validation_utils import InputSpec, NotEmptyRule
+from agoradatatools.etl.validation_utils import (
+    InputSpec,
+    MatchesRegexRule,
+    NotEmptyRule,
+)
 
 COLUMNS = [
     "ensembl_gene_id",
@@ -13,7 +17,7 @@ COLUMNS = [
 ]
 
 RULES = {
-    "ensembl_gene_id": [NotEmptyRule()],
+    "ensembl_gene_id": [NotEmptyRule(), MatchesRegexRule(value=r"^ENS(MUS)?G[0-9]+$")],
 }
 
 SPEC = InputSpec(

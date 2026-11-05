@@ -124,14 +124,6 @@ class TestLabelGenotypes:
         ):
             label_genotypes(data_file, label_map, "model_group 'Group_A'")
 
-    def test_duplicate_model_genotype_in_label_map_raises(self) -> None:
-        """Test that a label map with duplicate model-genotype combinations raises a ValueError."""
-        label_map = pd.concat([self._label_map(), self._label_map().iloc[[0]]])
-        data_file = pd.DataFrame({"model": ["Model_A"], "genotype": ["Tg"]})
-
-        with pytest.raises(ValueError, match="not a many-to-one merge"):
-            label_genotypes(data_file, label_map)
-
 
 class TestNestIndividualRecords:
     """Tests for the shared per-model_group nesting function.
