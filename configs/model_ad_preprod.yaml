@@ -52,7 +52,7 @@ files:
   - &uci_Trem2_R47H_NSS_5xFAD_ne  { name: uci_Trem2_R47H_NSS_5xFAD_ne  , format: csv  , id: syn72388499.2  }
   # Proteomics (Individual)
   - &load2_harmonized_metadata    { name: load2_harmonized_metadata    , format: csv  , id: syn75965714.2  }
-  - &uniprot_ensembl_map          { name: uniprot_ensembl_map          , format: tsv  , id: syn75830091.2  }
+  - &uniprot_ensembl_map          { name: uniprot_ensembl_map          , format: csv  , id: syn75830091.5  }
   - &jax_load2_proteomics_ne      { name: jax_load2_proteomics_ne      , format: csv  , id: syn63886488.1  }
   - &jax_load2_proteomics_24mo_ne { name: jax_load2_proteomics_24mo_ne , format: csv  , id: syn63886489.1  }
   # Proteomics (Aggregate DE)
@@ -236,8 +236,6 @@ datasets:
             jax_load2_proteomics_24mo_ne: LOAD2
           metadata_map:
             load2_harmonized_metadata: LOAD2
-      column_rename:
-        resource_identifier: ensembl_gene_id
 
   - protein_de_aggregate:
       files:
@@ -267,5 +265,4 @@ datasets:
             jax_load2_m_18mo: { model: LOAD2, sex: Male, age: "18 months", tissue: Hemibrain }
             jax_load2_m_24mo: { model: LOAD2, sex: Male, age: "24 months", tissue: Hemibrain }
       column_rename:
-        resource_identifier: ensembl_gene_id
         diff: log2foldchange

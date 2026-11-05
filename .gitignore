@@ -133,7 +133,9 @@ dmypy.json
 
 # local generated files
 staging/*
+data_analysis/*/input/*
 data_analysis/*/output/*
+data_analysis/model_ad/notebooks/data_mocks/output/*
 
 #test staging location
 test_staging_dir/
@@ -147,6 +149,3 @@ dev_config.yaml
 .Rhistory
 .Rproj.user
 *.Rproj
-
-data_analysis/model_ad/notebooks/input/*
-data_analysis/model_ad/notebooks/output/*
