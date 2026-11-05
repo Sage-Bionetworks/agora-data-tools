@@ -1,10 +1,9 @@
 """Input spec for model_metadata.
 
-Read by model_details, model_overview, and disease_correlation. Two of those rename
-model to name in their config; the spec uses the source name, model.
+Read by model_details, model_overview, and disease_correlation.
 """
 
-from agoradatatools.etl.validation_utils import InputSpec
+from agoradatatools.etl.validation_utils import InputSpec, NotEmptyRule, UniqueRule
 
 COLUMNS = [
     "model",
@@ -28,6 +27,11 @@ COLUMNS = [
     "proteomics_url_models_value",
 ]
 
+RULES = {
+    "model": [NotEmptyRule(), UniqueRule()],
+}
+
 SPEC = InputSpec(
     required_columns=COLUMNS,
+    column_rules=RULES,
 )
