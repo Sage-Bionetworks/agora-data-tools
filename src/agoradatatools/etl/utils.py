@@ -1073,6 +1073,82 @@ def round_y_axis_max(y_axis_max: Union[int, float, str]) -> float:
     return float(result)
 
 
+def create_ensembl_info_df(gene_metadata_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Create a DataFrame with Ensembl-related information nested under a new "ensembl_info" column. The function first
+    removes duplicate rows and rows with NA Ensembl IDs, and then checks that the resulting DataFrame is not empty.
+    Before nesting, empty/missing values in the "ensembl_possible_replacements" column are replaced with empty lists.
+
+    This function also converts missing values in "ensembl_release" and "ensembl_permalink" to empty strings, however we
+    generally expect no missing values in these columns in the real data. Non-missingness should be validated elsewhere
+    if necessary, before calling this function.
+
+    The "ensembl_release", "ensembl_possible_replacements", and "ensembl_permalink" columns are then nested as a
+    dictionary under the "ensembl_info" column, one row per ensembl_gene_id.
+
+    Args:
+        gene_metadata_df (pd.DataFrame): The gene metadata DataFrame. Must have columns for "ensembl_gene_id",
+            "ensembl_release", "ensembl_possible_replacements", and "ensembl_permalink".
+
+    Returns:
+        pd.DataFrame: A DataFrame with two columns: "ensembl_gene_id" and "ensembl_info", where "ensembl_info" contains
+        the nested Ensembl-related information.
+
+    Raises:
+        ValueError: If the input DataFrame is empty after dropping duplicates and NA Ensembl IDs
+    """
+    # Drop duplicate rows and rows with NA Ensembl IDs
+    gene_metadata_df = gene_metadata_df.drop_duplicates(
+        subset="ensembl_gene_id"
+    ).dropna(subset=["ensembl_gene_id"])
+
+    if gene_metadata_df.empty:
+        raise ValueError(
+            "`gene_metadata_df` is empty after dropping duplicates and NA Ensembl IDs."
+        )
+
+    ensembl_fields = [
+        "ensembl_gene_id",
+        "ensembl_release",
+        "ensembl_possible_replacements",
+        "ensembl_permalink",
+    ]
+
+    # Normalize null values in the relevant columns before nesting
+    ensembl_info_df = normalize_null_values(
+        gene_metadata_df[ensembl_fields],
+        empty_string_columns=["ensembl_permalink"],
+        empty_list_columns=["ensembl_possible_replacements"],
+    )
+
+    # Ensure that "ensembl_release" is a string, not a number -- Ensembl releases are integer values, but missing
+    # values will cause pandas to cast the column to float, which may cause unexpected behavior downstream. Using
+    # convert_dtypes() will convert any float columns like this to the nullable Int64 type before conversion to strings,
+    # while leaving columns that are already strings as-is.
+    ensembl_info_df["ensembl_release"] = (
+        ensembl_info_df["ensembl_release"]
+        .convert_dtypes()
+        .apply(lambda x: str(x) if pd.notna(x) else "")
+    )
+
+    # Ensure that all "ensembl_possible_replacements" entries are lists and not ndarrays -- they are read in as ndarrays
+    # in gene_info but as lists in model-ad transforms, due to differences in file format between the human and mouse
+    # gene metadata files.
+    ensembl_info_df["ensembl_possible_replacements"] = ensembl_info_df[
+        "ensembl_possible_replacements"
+    ].apply(lambda x: x.tolist() if isinstance(x, np.ndarray) else x)
+
+    ensembl_info_df = nest_fields(
+        ensembl_info_df,
+        grouping="ensembl_gene_id",
+        new_column="ensembl_info",
+        drop_columns=["ensembl_gene_id"],
+        nested_field_is_list=False,
+    )
+
+    return ensembl_info_df
+
+
 def parse_synapse_id_version(syn_id: str) -> tuple[str, int | None]:
     """Split a Synapse ID into its base ID and optional version number.
 

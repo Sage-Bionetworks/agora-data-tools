@@ -656,7 +656,7 @@
           "properties": {
             "ensembl_permalink": {
               "format": "uri",
-              "pattern": "^https://\\w+\\.archive\\.ensembl\\.org/Homo_sapiens/Gene/Summary\\?db=core\\;g=(ENSG[0-9]+)$",
+              "pattern": "^https://\\w+\\.archive\\.ensembl\\.org/Homo_sapiens/Gene/Summary\\?db=core;g=ENSG[0-9]{11}$",
               "type": "string"
             },
             "ensembl_possible_replacements": {
