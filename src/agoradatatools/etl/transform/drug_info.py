@@ -11,13 +11,15 @@ from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     validate_drug_list_integrity,
 )
 from agoradatatools.etl.utils import (
+    capitalize_first_character,
+    nest_fields,
+)
+from agoradatatools.etl.validation_utils import (
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,
-    capitalize_first_character,
     check_column_rules,
     check_required_datasets_and_columns,
-    nest_fields,
 )
 
 REQUIRED_INPUT = {

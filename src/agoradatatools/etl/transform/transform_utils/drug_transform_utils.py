@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from agoradatatools.etl.utils import validate_one_to_one_mapping
+from agoradatatools.etl.validation_utils import validate_one_to_one_mapping
 
 DISPLAY_CLINICAL_PHASES = {
     "Phase I",

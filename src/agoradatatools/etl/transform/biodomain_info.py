@@ -2,7 +2,7 @@ from typing import Dict, List
 
 import pandas as pd
 
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.validation_utils import check_required_datasets_and_columns
 
 
 REQUIRED_INPUT = {

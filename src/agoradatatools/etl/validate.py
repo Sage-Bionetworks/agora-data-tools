@@ -1,9 +1,9 @@
 """Input Data Validation stage.
 
 Runs in process_dataset after extraction and standardization and before the
-dataset's column_rename and transform. Each input file that has a spec in the
-input_specs package is validated against it, so the contract for that
-file is defined once rather than in every transform that reads it.
+dataset's column_rename and transform. Each input file must have a spec in the
+input_specs package, so the contract for that file is defined once rather than
+in every transform that reads it.
 
 Checks that depend on more than one file, on dataset configuration, or on an
 intermediate frame stay in the transform; this stage only validates one file at
@@ -11,7 +11,6 @@ a time.
 """
 
 import importlib
-import logging
 import pkgutil
 
 import pandas as pd
@@ -23,8 +22,6 @@ from agoradatatools.etl.validation_utils import (
     check_column_rules,
     check_required_columns,
 )
-
-logger = logging.getLogger(__name__)
 
 
 def load_input_specs() -> dict[str, InputSpec]:
@@ -75,10 +72,10 @@ def validate_inputs(
     schemas: dict[str, str] | None = None,
     specs: dict[str, InputSpec] | None = None,
 ) -> None:
-    """Validate every input that has a spec in input_specs.
+    """Validate every input against a spec in input_specs.
 
     All violations across all inputs are collected before raising so one run
-    reports every problem. Inputs with no spec are logged and passed through.
+    reports every problem. An input with no spec is a failure.
 
     Args:
         datasets: Input name -> DataFrame, as extracted and standardized, before
@@ -90,7 +87,7 @@ def validate_inputs(
             at call time.
 
     Raises:
-        ADTDataValidationError: If any input violates its spec.
+        ADTDataValidationError: If any input has no spec or violates its spec.
     """
     registry = INPUT_SPECS if specs is None else specs
     messages: list[str] = []
@@ -98,7 +95,13 @@ def validate_inputs(
         spec_key = (schemas or {}).get(name, name)
         spec = registry.get(spec_key)
         if spec is None:
-            logger.info(f"No input validation spec registered for {name}. Skipping.")
+            if spec_key != name:
+                messages.append(
+                    f"No input validation spec registered for {name} "
+                    f"(schema {spec_key})."
+                )
+            else:
+                messages.append(f"No input validation spec registered for {name}.")
             continue
         messages.extend(_validate_one(name, df, spec))
 

@@ -108,13 +108,28 @@ class TestValidateInputs:
         """An empty datasets dict is a no-op."""
         validate_inputs({}, specs=TEST_SPECS)
 
-    def test_unregistered_input_passes_through(self, caplog):
-        """A name with no spec is logged and skipped."""
-        with caplog.at_level("INFO"):
+    def test_unregistered_input_fails(self):
+        """A name with no spec is a validation failure."""
+        with pytest.raises(
+            ADTDataValidationError,
+            match="No input validation spec registered for not_registered",
+        ):
             validate_inputs(
                 {"not_registered": pd.DataFrame({"a": [None]})}, specs=TEST_SPECS
             )
-        assert "No input validation spec registered for not_registered" in caplog.text
+
+    def test_unknown_schema_fails(self):
+        """A schemas entry pointing at a missing spec names both the file and schema."""
+        with pytest.raises(
+            ADTDataValidationError,
+            match="No input validation spec registered for jax_5xFAD_de "
+            r"\(schema not_a_spec\)",
+        ):
+            validate_inputs(
+                {"jax_5xFAD_de": pd.DataFrame({"a": [1]})},
+                schemas={"jax_5xFAD_de": "not_a_spec"},
+                specs=TEST_SPECS,
+            )
 
     def test_valid_frames_pass(self):
         """Frames that satisfy TEST_SPECS raise nothing."""

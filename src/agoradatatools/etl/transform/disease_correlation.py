@@ -13,13 +13,15 @@ from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils impor
     process_genetic_modifications,
 )
 from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
     delim_string_to_list,
     flatten_list,
     remove_duplicates_keep_order,
     extract_age_numeric,
     normalize_null_values,
+)
+from agoradatatools.etl.validation_utils import (
+    check_column_rules,
+    check_required_datasets_and_columns,
 )
 
 REQUIRED_INPUT = {

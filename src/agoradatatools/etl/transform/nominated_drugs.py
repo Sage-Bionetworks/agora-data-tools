@@ -8,7 +8,7 @@ from agoradatatools.etl.transform.transform_utils.drug_transform_utils import (
     MODALITY_VALUES,
     validate_drug_list_integrity,
 )
-from agoradatatools.etl.utils import (
+from agoradatatools.etl.validation_utils import (
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,

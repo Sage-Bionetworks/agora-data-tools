@@ -7,10 +7,12 @@ import pandas as pd
 from typing import Any
 
 from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
     normalize_null_values,
     delim_string_to_list,
+)
+from agoradatatools.etl.validation_utils import (
+    check_column_rules,
+    check_required_datasets_and_columns,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     MODEL_METADATA_REQUIRED_COLUMNS,

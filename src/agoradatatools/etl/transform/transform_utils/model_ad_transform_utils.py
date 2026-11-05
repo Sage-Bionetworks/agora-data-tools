@@ -11,7 +11,7 @@ Functions:
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
+from agoradatatools.etl.validation_utils import (
     NotEmptyRule,
     MatchesRegexRule,
 )

@@ -1,7 +1,7 @@
 import pandas as pd
 
 from agoradatatools.etl import utils, transform
-from agoradatatools.etl.utils import check_required_datasets_and_columns
+from agoradatatools.etl.validation_utils import check_required_datasets_and_columns
 
 
 # Unlike most transforms that use a REQUIRED_INPUT dict keyed by a fixed set of dataset

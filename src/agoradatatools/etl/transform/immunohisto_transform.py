@@ -7,12 +7,12 @@ import pandas as pd
 from typing import Dict, List, Any
 
 from agoradatatools.etl.utils import (
-    check_required_datasets_and_columns,
     nest_fields,
     normalize_null_values,
     round_y_axis_max,
     y_axis_max_by_groups,
 )
+from agoradatatools.etl.validation_utils import check_required_datasets_and_columns
 
 
 REQUIRED_INPUT = {
