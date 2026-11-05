@@ -12,6 +12,7 @@ from typer.testing import CliRunner
 from agoradatatools import process
 from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
 from agoradatatools.etl import load, utils, extract
+from agoradatatools.etl.validation_utils import InputSpec
 from agoradatatools.reporter import DatasetReport, ADTGXReporter
 from agoradatatools.constants import Platform
 from agoradatatools.gx import GreatExpectationsRunner
@@ -1156,10 +1157,20 @@ class TestProcessDataset:
         self.patch_load.assert_not_called()
 
     def test_process_dataset_input_validation_runs_before_rename_and_transform(
-        self, syn: synapseclient.Synapse
+        self, syn: synapseclient.Synapse, monkeypatch: pytest.MonkeyPatch
     ):
-        # A registered input missing a required column must fail before the
-        # dataset's column_rename or transform runs.
+        """A registered input missing a required column fails before rename or transform.
+
+        The patched frame contains column a so the error naming column b and
+        Columns found: a proves validation saw this frame, not an empty one.
+        setup_method starts these patches and teardown_method stops them, so
+        the return_value override does not leak to other tests.
+        """
+        monkeypatch.setattr(
+            process.validate,
+            "INPUT_SPECS",
+            {"genotype_label_map": InputSpec(required_columns=["a", "b"])},
+        )
         dataset_object = {
             "rna_de_individual": {
                 "files": [
@@ -1171,10 +1182,13 @@ class TestProcessDataset:
                 "custom_transformations": "test_transformation",
             }
         }
-        self.patch_standardize_values.return_value = pd.DataFrame({"model": ["m"]})
+        self.patch_standardize_values.return_value = pd.DataFrame({"a": ["m"]})
         with pytest.raises(
             ADTDataValidationError,
-            match="Missing required columns in genotype_label_map",
+            match=(
+                "Missing required columns in genotype_label_map dataset: b.*"
+                "Columns found: a"
+            ),
         ):
             process.process_dataset(
                 dataset_obj=dataset_object,
