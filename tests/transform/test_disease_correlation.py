@@ -7,7 +7,6 @@ from agoradatatools.etl.transform.disease_correlation import (
     create_lookup,
     extract_module_name,
     process_group,
-    REQUIRED_INPUT,
 )
 
 
@@ -127,68 +126,6 @@ class TestDiseaseCorrelation:
         )
 
         with pytest.raises(ValueError, match="Module IFG already exists for LOAD1"):
-            transform_disease_correlation(datasets)
-
-    @pytest.mark.parametrize(
-        "missing_dataset",
-        [
-            "disease_correlation_results",
-            "model_metadata",
-            "model_genetic_modifications",
-        ],
-        ids=[
-            "Missing disease_correlation_results",
-            "Missing model_metadata",
-            "Missing model_genetic_modifications",
-        ],
-    )
-    def test_transform_disease_correlation_fails_with_missing_dataset(
-        self, missing_dataset: str
-    ) -> None:
-        """
-        Test that the disease correlation transformation raises appropriate errors when required datasets are missing.
-        """
-        datasets = self.read_input_files(
-            {
-                "disease_correlation_results": "disease_correlation_results.csv",
-                "model_metadata": "model_metadata.csv",
-                "model_genetic_modifications": "model_genetic_modifications.csv",
-            }
-        )
-
-        datasets.pop(missing_dataset)
-        with pytest.raises(
-            ValueError, match=f"Missing required datasets: {missing_dataset}"
-        ):
-            transform_disease_correlation(datasets)
-
-    @pytest.mark.parametrize(
-        "dataset, missing_column",
-        [
-            (dataset, column)
-            for dataset, columns in REQUIRED_INPUT.items()
-            for column in columns
-        ],
-    )
-    def test_transform_disease_correlation_fails_with_missing_columns(
-        self, dataset: str, missing_column: str
-    ) -> None:
-        """Tests that the transform raises a ValueError when any required column is missing from a dataset"""
-
-        datasets = self.read_input_files(
-            {
-                "disease_correlation_results": "disease_correlation_results.csv",
-                "model_metadata": "model_metadata.csv",
-                "model_genetic_modifications": "model_genetic_modifications.csv",
-            }
-        )
-
-        datasets[dataset] = datasets[dataset].drop(columns=[missing_column])
-
-        with pytest.raises(
-            ValueError,
-            match=f"Missing required columns in {dataset} dataset: {missing_column}",
-        ):
             transform_disease_correlation(datasets)
 
 

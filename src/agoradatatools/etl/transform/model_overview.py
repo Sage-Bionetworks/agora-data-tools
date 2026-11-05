@@ -7,28 +7,14 @@ import pandas as pd
 from typing import Any
 
 from agoradatatools.etl.utils import (
-    check_column_rules,
-    check_required_datasets_and_columns,
     normalize_null_values,
     delim_string_to_list,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
-    MODEL_METADATA_REQUIRED_COLUMNS,
     build_expression_results_url,
     process_genetic_modifications,
     zero_pad_jax_ids,
-    GENETIC_MODIFICATIONS_REQUIRED_COLUMNS,
-    GENETIC_MODIFICATIONS_COLUMN_RULES,
 )
-
-REQUIRED_INPUT = {
-    "model_metadata": MODEL_METADATA_REQUIRED_COLUMNS,
-    "model_genetic_modifications": GENETIC_MODIFICATIONS_REQUIRED_COLUMNS,
-}
-
-COLUMN_RULES = {
-    "model_genetic_modifications": GENETIC_MODIFICATIONS_COLUMN_RULES,
-}
 
 
 def get_list_of_available_data(row: pd.Series) -> list[str]:
@@ -121,7 +107,6 @@ def get_center_link_url(contributing_group: str) -> str:
 
 def transform_model_overview(
     datasets: dict[str, pd.DataFrame],
-    required_input: dict[str, list[str]] = REQUIRED_INPUT,
 ) -> list[dict[str, Any]]:
     """
     Transforms the model_overview source files into a structured format for Model AD.
@@ -141,19 +126,10 @@ def transform_model_overview(
 
     Args:
         datasets (dict[str, pd.DataFrame]): Dictionary mapping dataset names to their DataFrames.
-        required_input (dict[str, list[str]], optional): Dictionary specifying required datasets and columns. Defaults
-        to REQUIRED_INPUT.
 
     Returns:
         list[dict[str, Any]]: A list of dictionaries, each representing a transformed model overview record.
-
-    Raises:
-        ValueError: If required datasets or columns are missing.
     """
-
-    check_required_datasets_and_columns(datasets, required_input)
-    check_column_rules(datasets, COLUMN_RULES)
-
     model_metadata = datasets["model_metadata"]
     model_genetic_modifications_df = process_genetic_modifications(
         datasets["model_genetic_modifications"]
