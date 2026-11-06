@@ -1,3 +1,5 @@
+"""Tests for the column rules and frame checks in validation_utils."""
+
 from typing import Any, Dict
 
 import numpy as np
@@ -14,22 +16,25 @@ RuleClassWithValueArg = (
 
 
 class TestCheckRequiredDatasetsAndColumns:
-    required_input = {
+    """Tests for check_required_datasets_and_columns()."""
+
+    required_input: dict[str, list[str]] = {
         "foo": ["a", "b"],
         "bar": ["x", "y"],
     }
 
-    def test_check_required_datasets_and_columns_all_present(self):
+    def test_check_required_datasets_and_columns_all_present(self) -> None:
+        """Every required dataset and column is accepted."""
         datasets = {
             "foo": pd.DataFrame({"a": [1], "b": [2]}),
             "bar": pd.DataFrame({"x": [3], "y": [4]}),
         }
-        # Should not raise
         validation_utils.check_required_datasets_and_columns(
             datasets, self.required_input
         )
 
-    def test_check_required_datasets_and_columns_missing_dataset(self):
+    def test_check_required_datasets_and_columns_missing_dataset(self) -> None:
+        """A missing required dataset is named in the error."""
         datasets = {
             "foo": pd.DataFrame({"a": [1], "b": [2]}),
         }
@@ -38,7 +43,8 @@ class TestCheckRequiredDatasetsAndColumns:
                 datasets, self.required_input
             )
 
-    def test_check_required_datasets_and_columns_missing_column(self):
+    def test_check_required_datasets_and_columns_missing_column(self) -> None:
+        """A missing required column is named with its dataset."""
         datasets = {
             "foo": pd.DataFrame({"a": [1]}),
             "bar": pd.DataFrame({"x": [3], "y": [4]}),
@@ -66,6 +72,7 @@ class TestColumnRuleContract:
     def test_count_violations_returns_int(
         self, rule: validation_utils.ColumnRule
     ) -> None:
+        """count_violations returns an int for every concrete rule."""
         assert isinstance(rule.count_violations(pd.Series(["a", None])), int)
 
     @pytest.mark.parametrize(
@@ -80,9 +87,11 @@ class TestColumnRuleContract:
     def test_count_violations_is_non_negative(
         self, rule: validation_utils.ColumnRule
     ) -> None:
+        """count_violations never returns a negative count."""
         assert rule.count_violations(pd.Series(["a", None])) >= 0
 
     def test_column_rule_cannot_be_instantiated_directly(self) -> None:
+        """The ColumnRule base class cannot be constructed."""
         with pytest.raises(TypeError):
             validation_utils.ColumnRule()
 
@@ -91,12 +100,14 @@ class TestNotEmptyRule:
     """Unit tests for NotEmptyRule.count_violations()."""
 
     def test_no_violations_for_all_valid(self) -> None:
+        """Non-empty strings produce no violations."""
         assert (
             validation_utils.NotEmptyRule().count_violations(pd.Series(["a", "b", "c"]))
             == 0
         )
 
     def test_counts_none_as_violation(self) -> None:
+        """None counts as a violation."""
         assert (
             validation_utils.NotEmptyRule().count_violations(
                 pd.Series(["a", None, "c"])
@@ -105,6 +116,7 @@ class TestNotEmptyRule:
         )
 
     def test_counts_nan_as_violation(self) -> None:
+        """NaN counts as a violation."""
         assert (
             validation_utils.NotEmptyRule().count_violations(
                 pd.Series(["a", np.nan, "c"])
@@ -113,12 +125,14 @@ class TestNotEmptyRule:
         )
 
     def test_counts_empty_string_as_violation(self) -> None:
+        """An empty string counts as a violation."""
         assert (
             validation_utils.NotEmptyRule().count_violations(pd.Series(["a", "", "c"]))
             == 1
         )
 
     def test_counts_whitespace_only_as_violation(self) -> None:
+        """Whitespace-only text counts as a violation."""
         assert (
             validation_utils.NotEmptyRule().count_violations(
                 pd.Series(["a", "   ", "c"])
@@ -127,6 +141,7 @@ class TestNotEmptyRule:
         )
 
     def test_counts_multiple_violations(self) -> None:
+        """Each blank cell is counted separately."""
         assert (
             validation_utils.NotEmptyRule().count_violations(
                 pd.Series(["a", None, "", "   ", "b"])
@@ -135,6 +150,7 @@ class TestNotEmptyRule:
         )
 
     def test_all_violations(self) -> None:
+        """A column of only blanks is entirely violations."""
         assert (
             validation_utils.NotEmptyRule().count_violations(
                 pd.Series([None, "", "   "])
@@ -143,9 +159,11 @@ class TestNotEmptyRule:
         )
 
     def test_empty_series(self) -> None:
+        """An empty series has nothing to violate."""
         assert validation_utils.NotEmptyRule().count_violations(pd.Series([])) == 0
 
     def test_value_detail_is_empty_string(self) -> None:
+        """NotEmptyRule has no comparison value to describe."""
         assert validation_utils.NotEmptyRule().value_detail == ""
 
 
@@ -156,47 +174,57 @@ class TestMatchesRegexRule:
     def test_raises_when_value_is_invalid(
         self, bad_value: int | str | float | None
     ) -> None:
+        """Construction rejects a missing or non-string pattern."""
         with pytest.raises(ValueError, match="requires a non-None"):
             validation_utils.MatchesRegexRule(value=bad_value)
 
     def test_raises_when_value_is_invalid_regex(self) -> None:
+        """Construction rejects a pattern that does not compile."""
         with pytest.raises(ValueError, match="valid regex"):
             validation_utils.MatchesRegexRule(value="[invalid")
 
     def test_no_violations_when_all_match(self) -> None:
+        """Values that match the pattern produce no violations."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(pd.Series(["ENSMUSG001", "ENSMUSG002"])) == 0
 
     def test_counts_non_matching_value(self) -> None:
+        """A value that fails the pattern counts as a violation."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(pd.Series(["ENSMUSG001", "ENSG002"])) == 1
 
     def test_counts_all_non_matching(self) -> None:
+        """Every non-matching value is counted."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(pd.Series(["ENSG001", "ENSG002"])) == 2
 
     def test_skips_none(self) -> None:
-        # Nulls are skipped so the rule only validates the format of present values.
+        """Nulls are skipped so the rule only validates the format of present values."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(pd.Series(["ENSMUSG001", None])) == 0
 
     def test_skips_nan(self) -> None:
+        """NaN is skipped the same way None is."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(pd.Series(["ENSMUSG001", np.nan])) == 0
 
     def test_counts_empty_string_as_violation(self) -> None:
+        """An empty string fails the pattern."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(pd.Series(["ENSMUSG001", ""])) == 1
 
     def test_partial_match_is_violation(self) -> None:
+        """A match that is not at the start of the value fails."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(pd.Series(["prefix_ENSMUSG001"])) == 1
 
     def test_empty_series(self) -> None:
+        """An empty series has nothing to violate."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_pattern(self) -> None:
+        """The violation detail includes the pattern."""
         rule = validation_utils.MatchesRegexRule(value="^ENSMUSG")
         assert "^ENSMUSG" in rule.value_detail
 
@@ -206,34 +234,42 @@ class TestContainsSubstringRule:
 
     @pytest.mark.parametrize("bad_value", [None, np.nan, ""])
     def test_raises_when_value_is_invalid(self, bad_value: str | float | None) -> None:
+        """Construction rejects a missing or empty substring."""
         with pytest.raises(ValueError, match="requires a non-None"):
             validation_utils.ContainsSubstringRule(value=bad_value)
 
     def test_no_violations_when_all_contain_substring(self) -> None:
+        """Values that contain the substring produce no violations."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert rule.count_violations(pd.Series(["hello world", "world cup"])) == 0
 
     def test_counts_missing_substring(self) -> None:
+        """A value without the substring counts as a violation."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert rule.count_violations(pd.Series(["hello world", "goodbye"])) == 1
 
     def test_counts_all_missing(self) -> None:
+        """Every value without the substring is counted."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert rule.count_violations(pd.Series(["foo", "bar"])) == 2
 
     def test_counts_none_as_violation(self) -> None:
+        """None counts as a violation."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert rule.count_violations(pd.Series(["hello world", None])) == 1
 
     def test_counts_nan_as_violation(self) -> None:
+        """NaN counts as a violation."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert rule.count_violations(pd.Series(["hello world", np.nan])) == 1
 
     def test_counts_empty_string_as_violation(self) -> None:
+        """An empty string counts as a violation."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert rule.count_violations(pd.Series(["hello world", ""])) == 1
 
     def test_counts_non_string_data_as_violations(self) -> None:
+        """Non-string values count as violations."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert (
             rule.count_violations(pd.Series(["hello world", "goodbye", 2, 5.555555]))
@@ -241,14 +277,17 @@ class TestContainsSubstringRule:
         )
 
     def test_value_is_treated_as_literal_not_regex(self) -> None:
+        """The substring is matched literally, not as a regex."""
         rule = validation_utils.ContainsSubstringRule(value="-")
         assert rule.count_violations(pd.Series(["hello-world", "goodbye"])) == 1
 
     def test_empty_series(self) -> None:
+        """An empty series has nothing to violate."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_substring(self) -> None:
+        """The violation detail includes the substring."""
         rule = validation_utils.ContainsSubstringRule(value="world")
         assert "world" in rule.value_detail
 
@@ -258,69 +297,85 @@ class TestOneOfRule:
 
     @pytest.mark.parametrize("bad_value", [None, set(), [], {}])
     def test_raises_when_value_is_invalid(self, bad_value: object) -> None:
+        """Construction rejects a missing or empty allowed collection."""
         with pytest.raises(ValueError, match="requires a non-None"):
             validation_utils.OneOfRule(value=bad_value)
 
     def test_no_violations_when_all_in_set(self) -> None:
+        """Values in the allowed set produce no violations."""
         rule = validation_utils.OneOfRule(value={"male", "female"})
         assert rule.count_violations(pd.Series(["male", "female", "male"])) == 0
 
     def test_counts_value_not_in_set(self) -> None:
+        """A value outside the allowed set counts as a violation."""
         rule = validation_utils.OneOfRule(value={"male", "female"})
         assert rule.count_violations(pd.Series(["male", "unknown"])) == 1
 
     def test_counts_all_invalid(self) -> None:
+        """Every value outside the allowed set is counted."""
         rule = validation_utils.OneOfRule(value={"male", "female"})
         assert rule.count_violations(pd.Series(["unknown", "other"])) == 2
 
     def test_counts_none_as_violation(self) -> None:
+        """None counts as a violation when it is not allowed."""
         rule = validation_utils.OneOfRule(value={"male", "female"})
         assert rule.count_violations(pd.Series(["male", None])) == 1
 
     def test_works_with_list_as_allowed_values(self) -> None:
+        """A list of allowed values is accepted the same as a set."""
         rule = validation_utils.OneOfRule(value=["male", "female"])
         assert rule.count_violations(pd.Series(["male", "unknown"])) == 1
 
     def test_empty_series(self) -> None:
+        """An empty series has nothing to violate."""
         rule = validation_utils.OneOfRule(value={"male", "female"})
         assert rule.count_violations(pd.Series([])) == 0
 
     def test_value_detail_includes_allowed_values(self) -> None:
+        """The violation detail includes the allowed values."""
         rule = validation_utils.OneOfRule(value={"male"})
         assert "male" in rule.value_detail
 
     def test_no_violations_numeric_allowed_values(self) -> None:
+        """Numeric values in the allowed collection pass."""
         rule = validation_utils.OneOfRule(value=[1, 2, 3])
         assert rule.count_violations(pd.Series([1, 1, 2])) == 0
 
     def test_no_violations_bool_allowed_values(self) -> None:
+        """Boolean values in the allowed collection pass."""
         rule = validation_utils.OneOfRule(value=[True, False])
         assert rule.count_violations(pd.Series([True, False, False])) == 0
 
     def test_no_violations_sentinel_allowed_values(self) -> None:
+        """Empty string, None, an empty list, and NaN pass when they are allowed."""
         # Series.isin matches np.nan to np.nan in the allowed collection (pandas semantics).
         rule = validation_utils.OneOfRule(value=["", None, [], np.nan])
         s = pd.Series(["", "", None, [], np.nan])
         assert rule.count_violations(s) == 0
 
     def test_no_violations_mixed_int_and_string_allowed(self) -> None:
+        """An int and its string form are distinct allowed values."""
         rule = validation_utils.OneOfRule(value=[2, "2"])
         assert rule.count_violations(pd.Series([2, 2, "2"])) == 0
 
     def test_violations_when_numeric_allowed_but_string_in_series(self) -> None:
+        """A numeric string is not equal to the same number."""
         rule = validation_utils.OneOfRule(value=[1, 2])
         assert rule.count_violations(pd.Series([1, 1, "2"])) == 1
 
     def test_violations_all_strings_when_numeric_allowed(self) -> None:
+        """String digits fail when only numbers are allowed."""
         rule = validation_utils.OneOfRule(value=[1, 2])
         assert rule.count_violations(pd.Series(["1", "1", "2"])) == 3
 
     def test_bool_and_int_equivalence_with_bool_allowed(self) -> None:
+        """True matches 1 and False matches 0 when booleans are allowed."""
         rule = validation_utils.OneOfRule(value=[True, False])
         s = pd.Series([True, 1, False, 0])
         assert rule.count_violations(s) == 0
 
     def test_bool_and_int_equivalence_with_int_allowed(self) -> None:
+        """1 matches True and 0 matches False when those ints are allowed."""
         rule = validation_utils.OneOfRule(value=[0, 1])
         s = pd.Series([True, 1, False, 0])
         assert rule.count_violations(s) == 0
@@ -330,44 +385,51 @@ class TestNumericRule:
     """Unit tests for NumericRule.count_violations()."""
 
     def test_no_violations_for_all_numeric(self) -> None:
+        """Ints and floats produce no violations."""
         assert (
             validation_utils.NumericRule().count_violations(pd.Series([1, 2.5, 3])) == 0
         )
 
     def test_no_violations_for_numeric_strings(self) -> None:
+        """Numeric strings are accepted."""
         assert (
             validation_utils.NumericRule().count_violations(pd.Series(["6", "9.9"]))
             == 0
         )
 
     def test_counts_non_numeric_string(self) -> None:
+        """A non-numeric string counts as a violation."""
         assert (
             validation_utils.NumericRule().count_violations(pd.Series([1, "abc", 3]))
             == 1
         )
 
     def test_counts_all_non_numeric(self) -> None:
+        """Every non-numeric string is counted."""
         assert (
             validation_utils.NumericRule().count_violations(pd.Series(["a", "b"])) == 2
         )
 
     def test_skips_none(self) -> None:
-        # Nulls are skipped so the rule only validates the type of present values.
+        """Nulls are skipped so the rule only validates the type of present values."""
         assert (
             validation_utils.NumericRule().count_violations(pd.Series([1, None, 3]))
             == 0
         )
 
     def test_skips_nan(self) -> None:
+        """NaN is skipped the same way None is."""
         assert (
             validation_utils.NumericRule().count_violations(pd.Series([1, np.nan, 3]))
             == 0
         )
 
     def test_empty_series(self) -> None:
+        """An empty series has nothing to violate."""
         assert validation_utils.NumericRule().count_violations(pd.Series([])) == 0
 
     def test_value_detail_is_empty_string(self) -> None:
+        """NumericRule has no comparison value to describe."""
         assert validation_utils.NumericRule().value_detail == ""
 
 
@@ -375,30 +437,35 @@ class TestNonNegativeRule:
     """Unit tests for NonNegativeRule.count_violations()."""
 
     def test_no_violations_for_all_positive(self) -> None:
+        """Positive numbers produce no violations."""
         assert (
             validation_utils.NonNegativeRule().count_violations(pd.Series([1, 2.5, 3]))
             == 0
         )
 
     def test_no_violations_for_zero(self) -> None:
+        """Zero is allowed."""
         assert (
             validation_utils.NonNegativeRule().count_violations(pd.Series([0, 0.0]))
             == 0
         )
 
     def test_counts_negative(self) -> None:
+        """A negative number counts as a violation."""
         assert (
             validation_utils.NonNegativeRule().count_violations(pd.Series([1, -2.5, 3]))
             == 1
         )
 
     def test_counts_all_negative(self) -> None:
+        """Every negative number is counted."""
         assert (
             validation_utils.NonNegativeRule().count_violations(pd.Series([-1, -2]))
             == 2
         )
 
     def test_counts_negative_numeric_string(self) -> None:
+        """A negative numeric string counts as a violation."""
         assert (
             validation_utils.NonNegativeRule().count_violations(
                 pd.Series(["6", "-9.9"])
@@ -407,8 +474,7 @@ class TestNonNegativeRule:
         )
 
     def test_skips_non_numeric(self) -> None:
-        # Unparseable values are NumericRule's job, so a single bad cell isn't
-        # counted as two violations.
+        """Unparseable values are NumericRule's job, so one bad cell is not counted twice."""
         assert (
             validation_utils.NonNegativeRule().count_violations(
                 pd.Series([1, "abc", -3])
@@ -417,13 +483,14 @@ class TestNonNegativeRule:
         )
 
     def test_skips_none(self) -> None:
-        # Nulls are skipped so the rule only validates the sign of present values.
+        """Nulls are skipped so the rule only validates the sign of present values."""
         assert (
             validation_utils.NonNegativeRule().count_violations(pd.Series([1, None, 3]))
             == 0
         )
 
     def test_skips_nan(self) -> None:
+        """NaN is skipped the same way None is."""
         assert (
             validation_utils.NonNegativeRule().count_violations(
                 pd.Series([1, np.nan, 3])
@@ -432,9 +499,11 @@ class TestNonNegativeRule:
         )
 
     def test_empty_series(self) -> None:
+        """An empty series has nothing to violate."""
         assert validation_utils.NonNegativeRule().count_violations(pd.Series([])) == 0
 
     def test_value_detail_is_empty_string(self) -> None:
+        """NonNegativeRule has no comparison value to describe."""
         assert validation_utils.NonNegativeRule().value_detail == ""
 
 
@@ -442,22 +511,26 @@ class TestUniqueRule:
     """Unit tests for UniqueRule.count_violations()."""
 
     def test_no_violations_for_distinct_values(self) -> None:
+        """Distinct values produce no violations."""
         assert (
             validation_utils.UniqueRule().count_violations(pd.Series(["a", "b", "c"]))
             == 0
         )
 
     def test_counts_every_row_of_a_duplicate_group(self) -> None:
+        """Every row in a duplicate group is counted."""
         assert (
             validation_utils.UniqueRule().count_violations(pd.Series(["a", "a", "b"]))
             == 2
         )
 
     def test_counts_each_duplicate_group_separately(self) -> None:
+        """Each duplicate group is counted on its own."""
         s = pd.Series(["a", "a", "b", "b", "b", "c"])
         assert validation_utils.UniqueRule().count_violations(s) == 5
 
     def test_skips_repeated_nulls(self) -> None:
+        """Repeated nulls are not counted as duplicates."""
         # pandas treats null as equal to null, so skipping nulls is what keeps a second
         # blank row from being reported as a duplicate of the first. Both nulls must be nan
         # rather than one None and one nan: in an object column those are distinct objects,
@@ -467,24 +540,27 @@ class TestUniqueRule:
         assert validation_utils.UniqueRule().count_violations(s) == 0
 
     def test_counts_duplicates_alongside_nulls(self) -> None:
-        # Only the real duplicate counts; the repeated nulls do not add to it.
+        """Only the real duplicate counts; repeated nulls do not add to it."""
         s = pd.Series(["a", "a", np.nan, np.nan])
         assert validation_utils.UniqueRule().count_violations(s) == 2
 
     def test_does_not_skip_repeated_empty_strings(self) -> None:
-        # Blanks are NotEmptyRule's job; this rule only exempts true nulls.
+        """Blanks are NotEmptyRule's job; this rule only exempts true nulls."""
         assert (
             validation_utils.UniqueRule().count_violations(pd.Series(["", "", "a"]))
             == 2
         )
 
     def test_counts_duplicate_numeric_values(self) -> None:
+        """Repeated numbers count as duplicates."""
         assert validation_utils.UniqueRule().count_violations(pd.Series([1, 2, 1])) == 2
 
     def test_empty_series(self) -> None:
+        """An empty series has nothing to violate."""
         assert validation_utils.UniqueRule().count_violations(pd.Series([])) == 0
 
     def test_value_detail_is_empty_string(self) -> None:
+        """UniqueRule has no comparison value to describe."""
         assert validation_utils.UniqueRule().value_detail == ""
 
 
@@ -492,6 +568,7 @@ class TestCheckColumnRules:
     """Tests for check_column_rules() and its supporting _check_single_rule() helper."""
 
     def _make_datasets(self, col_data: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
+        """Wrap column data in the single-dataset dict check_column_rules expects."""
         return {"ds": pd.DataFrame(col_data)}
 
     @pytest.mark.parametrize(
@@ -515,6 +592,7 @@ class TestCheckColumnRules:
     def test_rule_passes_for_all_valid_values(
         self, col_data: list[Any], rule: validation_utils.ColumnRule
     ) -> None:
+        """A column of valid values does not raise."""
         datasets = self._make_datasets({"col": col_data})
         validation_utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
 
@@ -522,6 +600,7 @@ class TestCheckColumnRules:
     def test_not_empty_raises_on_invalid_value(
         self, bad_value: str | float | None
     ) -> None:
+        """NotEmptyRule raises when a cell is blank."""
         datasets = self._make_datasets({"col": ["a", bad_value, "c"]})
         with pytest.raises(ValueError, match="col.*not_empty"):
             validation_utils.check_column_rules(
@@ -566,6 +645,7 @@ class TestCheckColumnRules:
     def test_rule_raises_with_correct_count(
         self, col_data: list[Any], rule: validation_utils.ColumnRule, match_pattern: str
     ) -> None:
+        """The error names the rule and the number of failing rows."""
         datasets = self._make_datasets({"col": col_data})
         with pytest.raises(ValueError, match=match_pattern):
             validation_utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
@@ -579,12 +659,13 @@ class TestCheckColumnRules:
     def test_rule_treats_null_as_violation(
         self, good_value: str, rule: validation_utils.ColumnRule
     ) -> None:
+        """A rule that does not skip nulls raises on None."""
         datasets = self._make_datasets({"col": [good_value, None]})
         with pytest.raises(ValueError, match=rule.rule):
             validation_utils.check_column_rules(datasets, {"ds": {"col": [rule]}})
 
     def test_matches_regex_rule_ignores_null(self) -> None:
-        # MatchesRegexRule only validates present values; nulls are not violations.
+        """MatchesRegexRule only validates present values; nulls are not violations."""
         datasets = self._make_datasets({"col": ["ENSMUSG001", None]})
         validation_utils.check_column_rules(
             datasets,
@@ -592,6 +673,7 @@ class TestCheckColumnRules:
         )
 
     def test_all_violations_collected_in_single_error(self) -> None:
+        """Violations from every dataset are reported together."""
         datasets = {
             "ds1": pd.DataFrame({"col_a": ["a", None]}),
             "ds2": pd.DataFrame({"col_b": ["ENSG001", "ENSG002"]}),
@@ -607,6 +689,7 @@ class TestCheckColumnRules:
         assert "ds2" in message
 
     def test_missing_dataset_in_rules_is_skipped(self) -> None:
+        """A rule for a dataset that is not present is skipped."""
         datasets = {"ds": pd.DataFrame({"col": ["a"]})}
         validation_utils.check_column_rules(
             datasets,
@@ -614,6 +697,7 @@ class TestCheckColumnRules:
         )
 
     def test_missing_column_in_rules_reports_violation(self) -> None:
+        """A rule for a column that is not present is reported."""
         datasets = {"ds": pd.DataFrame({"other_col": ["a"]})}
         with pytest.raises(ValueError, match="does not exist"):
             validation_utils.check_column_rules(
@@ -632,6 +716,7 @@ class TestCheckColumnRules:
     def test_value_required_rule_raises_when_value_is_none(
         self, rule_class: RuleClassWithValueArg
     ) -> None:
+        """A rule that needs a comparison value rejects None."""
         with pytest.raises(ValueError, match="requires a non-None"):
             rule_class(value=None)
 
@@ -640,6 +725,7 @@ class TestValidateOneToOneMapping:
     """Tests for validate_one_to_one_mapping()."""
 
     def test_passes_one_to_one_mapping(self) -> None:
+        """One key mapping to one value passes."""
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugA", "DrugB"],
@@ -649,6 +735,7 @@ class TestValidateOneToOneMapping:
         validation_utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
     def test_raises_when_left_maps_to_multiple_right(self) -> None:
+        """One key mapping to two values raises."""
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugA"],
@@ -659,8 +746,7 @@ class TestValidateOneToOneMapping:
             validation_utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
     def test_default_does_not_check_reverse_direction(self) -> None:
-        # Two names share an ID; without bidirectional this passes because each
-        # name still maps to a single ID.
+        """Several keys may share one value when each key still maps to one value."""
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugB"],
@@ -670,6 +756,7 @@ class TestValidateOneToOneMapping:
         validation_utils.validate_one_to_one_mapping(df, "common_name", "chembl_id")
 
     def test_bidirectional_catches_reverse_violation(self) -> None:
+        """Bidirectional mode rejects several keys that share one value."""
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugB"],
@@ -682,6 +769,7 @@ class TestValidateOneToOneMapping:
             )
 
     def test_ignores_missing_keys(self) -> None:
+        """Rows with a missing key are ignored."""
         df = pd.DataFrame(
             {
                 "common_name": [None, "DrugA"],
@@ -693,8 +781,7 @@ class TestValidateOneToOneMapping:
         )
 
     def test_raises_when_value_is_null_for_one_of_duplicate_keys(self) -> None:
-        # NA keys are ignored, but a null value counts as a distinct value: DrugA
-        # maps to both None and CHEMBL1, which is not a one-to-one mapping.
+        """A null value counts as distinct, so a key mapped to null and a real value fails."""
         df = pd.DataFrame(
             {
                 "common_name": ["DrugA", "DrugA"],
@@ -748,6 +835,7 @@ class TestValidateReferencesExist:
     """Tests for validate_references_exist()."""
 
     def test_passes_when_every_reference_is_present(self) -> None:
+        """Every referenced value present in the target passes."""
         validation_utils.validate_references_exist(
             ["Presenilin1", "WT"],
             ["WT", "Presenilin1", "APP"],
@@ -757,6 +845,7 @@ class TestValidateReferencesExist:
         )
 
     def test_raises_when_a_reference_is_missing(self) -> None:
+        """A referenced value missing from the target is named in the error."""
         with pytest.raises(
             ValueError,
             match=(
@@ -773,6 +862,7 @@ class TestValidateReferencesExist:
             )
 
     def test_passes_when_both_sides_are_empty(self) -> None:
+        """Empty source and target lists pass."""
         validation_utils.validate_references_exist(
             [],
             [],
