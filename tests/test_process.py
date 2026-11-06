@@ -10,8 +10,9 @@ from synapseclient.api.entity_services import EntityHeader
 from typer.testing import CliRunner
 
 from agoradatatools import process
-from agoradatatools.errors import ADTDataProcessingError
+from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
 from agoradatatools.etl import load, utils, extract
+from agoradatatools.etl.validation_utils import InputSpec
 from agoradatatools.reporter import DatasetReport, ADTGXReporter
 from agoradatatools.constants import Platform
 from agoradatatools.gx import GreatExpectationsRunner
@@ -1154,6 +1155,51 @@ class TestProcessDataset:
         self.patch_set_attributes.assert_called()
         self.patch_format_link.assert_called()
         self.patch_load.assert_not_called()
+
+    def test_process_dataset_input_validation_runs_before_rename_and_transform(
+        self, syn: synapseclient.Synapse, monkeypatch: pytest.MonkeyPatch
+    ):
+        """A registered input missing a required column fails before rename or transform.
+
+        The patched frame contains column a so the error naming column b and
+        Columns found: a proves validation saw this frame, not an empty one.
+        setup_method starts these patches and teardown_method stops them, so
+        the return_value override does not leak to other tests.
+        """
+        monkeypatch.setattr(
+            process.validate,
+            "INPUT_SPECS",
+            {"genotype_label_map": InputSpec(required_columns=["a", "b"])},
+        )
+        dataset_object = {
+            "rna_de_individual": {
+                "files": [
+                    {"name": "genotype_label_map", "id": "syn1111111", "format": "csv"}
+                ],
+                "final_format": "json",
+                "destination": "syn1111113",
+                "column_rename": {"model": "name"},
+                "custom_transformations": "test_transformation",
+            }
+        }
+        self.patch_standardize_values.return_value = pd.DataFrame({"a": ["m"]})
+        with pytest.raises(
+            ADTDataValidationError,
+            match=(
+                "Missing required columns in genotype_label_map dataset: b.*"
+                "Columns found: a"
+            ),
+        ):
+            process.process_dataset(
+                dataset_obj=dataset_object,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+            )
+        self.patch_rename_columns.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
 
 
 class TestCreateDataManifest:
