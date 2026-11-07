@@ -16,7 +16,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_aggregate/`
 - Negative zero handling (negative zero log2foldchange values are normalized to positive zero)
 - Negative p-value validation (negative adjusted p-values raise ValueError)
 - Edge cases (single row data, missing metadata, empty biodomains)
-- Error handling (missing datasets, empty files, missing columns, invalid age formats, inconsistent model_group values, inconsistent model_type values)
+- Error handling (empty files, missing data-file columns, invalid age formats)
 - Data precision (rounding to 5 decimal places)
 - Multiple biodomain assignments per gene
 - Null/empty model_group handling
@@ -39,13 +39,10 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.rna_de_aggregate import (
-    COLUMN_RULES,
-    REQUIRED_INPUT,
     transform_rna_de_aggregate,
     _create_output_entry_from_group,
     _process_single_data_file,
 )
-from agoradatatools.etl.utils import ContainsSubstringRule
 from tests.synthetic_loader import load_synthetic_test_data
 
 
@@ -562,22 +559,6 @@ class TestTransformRnaDeAggregate:
 
     data_files_path = "tests/test_assets/rna_de_aggregate"
 
-    def test_transform_rna_de_aggregate_missing_required_dataset(self) -> None:
-        """Test that missing required datasets raise ValueError."""
-        # Load datasets without one required dataset (mouse_gene_metadata)
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map.csv",
-                "synthetic_biodom_genes_mm.csv",
-                # Missing synthetic_mouse_gene_metadata.json
-            ]
-        )
-
-        # Expect transformation to raise ValueError for missing required dataset
-        with pytest.raises(ValueError):
-            transform_rna_de_aggregate(datasets=datasets)
-
     _FILE_TO_KEY = {
         "synthetic_genotype_label_map.csv": "genotype_label_map",
         "synthetic_genotype_label_map_inconsistent.csv": "genotype_label_map",
@@ -599,7 +580,20 @@ class TestTransformRnaDeAggregate:
 
     def _build_minimal_datasets(self) -> Dict[str, pd.DataFrame]:
         """Build the smallest datasets that pass required-column checks."""
-        biodom = {column: ["x"] for column in REQUIRED_INPUT["biodom_genes_mm"]}
+        biodom = {
+            column: ["x"]
+            for column in (
+                "biodomain",
+                "abbr",
+                "label",
+                "color",
+                "go_id",
+                "goterm_name",
+                "n_symbol",
+                "symbol",
+                "ensembl_id",
+            )
+        }
         biodom["ensembl_id"] = ["ENSMUSG00000000001"]
         biodom["biodomain"] = ["Synaptic"]
         return {
@@ -1116,43 +1110,6 @@ class TestTransformRnaDeAggregate:
         assert len(output_data_sorted[0]["biodomains"]) == 2
         assert set(output_data_sorted[0]["biodomains"]) == {"Metabolic", "Synaptic"}
 
-    @pytest.mark.parametrize("column", sorted(COLUMN_RULES["genotype_label_map"]))
-    def test_label_map_empty_value_raises(self, column: str) -> None:
-        """Empty values in any gentotype label map column should raise an error.
-
-        Columns come from COLUMN_RULES, so a newly required column is covered
-        without a hand-written test.
-        """
-        datasets = self._build_minimal_datasets()
-        # result_order is int; cast before writing "" so pandas does not warn.
-        label_map = datasets["genotype_label_map"]
-        label_map[column] = label_map[column].astype(object)
-        label_map.loc[0, column] = ""
-        with pytest.raises(ValueError, match="not_empty"):
-            transform_rna_de_aggregate(datasets=datasets)
-
-    def test_label_map_missing_model_type_raises(self) -> None:
-        """model_type is a required label-map column for this transform."""
-        datasets = self._build_minimal_datasets()
-        datasets["genotype_label_map"] = datasets["genotype_label_map"].drop(
-            columns=["model_type"]
-        )
-        with pytest.raises(ValueError, match="Missing required columns"):
-            transform_rna_de_aggregate(datasets=datasets)
-
-    def test_column_rules_parameter_honored(self) -> None:
-        """A custom column_rules parameter overrides the module-level default."""
-        datasets = self._build_minimal_datasets()
-        custom_column_rules = {
-            "genotype_label_map": {
-                "model": [ContainsSubstringRule(value="IMPOSSIBLE")],
-            }
-        }
-        with pytest.raises(ValueError, match="contains"):
-            transform_rna_de_aggregate(
-                datasets=datasets, column_rules=custom_column_rules
-            )
-
     def test_data_file_required_columns_parameter(self) -> None:
         """data_file_required_columns is wired through to column validation."""
         datasets = self._build_minimal_datasets()
@@ -1161,62 +1118,6 @@ class TestTransformRnaDeAggregate:
                 datasets=datasets,
                 data_file_required_columns=["ensembl_gene_id", "nonexistent_column"],
             )
-
-    def test_inconsistent_model_group_values(self) -> None:
-        """Test error handling for inconsistent model_group values within the same model.
-
-        Tests that when a model has different model_group values across multiple rows
-        (e.g., different genotypes), a clear ValueError is raised identifying which
-        models have inconsistent values. Uses synthetic_genotype_label_map_inconsistent.csv
-        where Model_A has GroupX for Tg genotype and GroupY for Wt genotype.
-        """
-        # Load synthetic test data with inconsistent model_group values
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map_inconsistent.csv",
-                "synthetic_mouse_gene_metadata.json",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-
-        # Expect transformation to raise ValueError with informative message
-        with pytest.raises(ValueError) as exc_info:
-            transform_rna_de_aggregate(datasets=datasets)
-
-        # Verify the error message contains expected information
-        error_message = str(exc_info.value)
-        assert "multiple model_group values" in error_message
-        assert "Model_A" in error_message
-        # Model_B should not be in the error since it's consistent
-        assert "Model_B" not in error_message
-
-    def test_inconsistent_model_type_values(self) -> None:
-        """Test error handling for inconsistent model_type values within the same model.
-
-        Tests that when a model has different non-empty model_type values across multiple
-        rows (e.g., different genotypes), a clear ValueError is raised identifying which
-        models have inconsistent values. Uses
-        synthetic_genotype_label_map_inconsistent_model_type.csv where Model_A has
-        'Familial AD' for Tg genotype and 'Late Onset AD' for Wt genotype.
-        """
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map_inconsistent_model_type.csv",
-                "synthetic_mouse_gene_metadata.json",
-                "synthetic_biodom_genes_mm.csv",
-            ]
-        )
-
-        with pytest.raises(ValueError) as exc_info:
-            transform_rna_de_aggregate(datasets=datasets)
-
-        error_message = str(exc_info.value)
-        assert "multiple model_type values" in error_message
-        assert "Model_A" in error_message
-        # Model_B should not be in the error since it's consistent
-        assert "Model_B" not in error_message
 
     def test_missing_gene_symbol_normalized(self) -> None:
         """

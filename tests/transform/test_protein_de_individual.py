@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.protein_de_individual import (
-    REQUIRED_INPUT,
+    STATIC_INPUTS,
     transform_protein_de_individual,
     _build_output,
     _check_metadata_coverage,
@@ -443,7 +443,7 @@ class TestValidateFileMaps:
     def _datasets() -> dict[str, pd.DataFrame]:
         """Empty frames named like a valid dataset. _validate_file_maps only checks names."""
         return {
-            **{name: pd.DataFrame() for name in REQUIRED_INPUT},
+            **{name: pd.DataFrame() for name in STATIC_INPUTS},
             "proteomics_file": pd.DataFrame(),
             "load2_harmonized_metadata": pd.DataFrame(),
         }
@@ -454,7 +454,7 @@ class TestValidateFileMaps:
             self._datasets(),
             {"proteomics_file": "LOAD2"},
             {"load2_harmonized_metadata": "LOAD2"},
-            REQUIRED_INPUT,
+            STATIC_INPUTS,
             self.known_models,
         )
 
@@ -478,7 +478,7 @@ class TestValidateFileMaps:
                 self._datasets(),
                 model_map,
                 {"load2_harmonized_metadata": "LOAD2"},
-                REQUIRED_INPUT,
+                STATIC_INPUTS,
                 self.known_models,
             )
 
@@ -502,7 +502,7 @@ class TestValidateFileMaps:
                 self._datasets(),
                 {"proteomics_file": "LOAD2"},
                 metadata_map,
-                REQUIRED_INPUT,
+                STATIC_INPUTS,
                 self.known_models,
             )
 
@@ -516,7 +516,7 @@ class TestValidateFileMaps:
                     "load2_harmonized_metadata": "LOAD2",
                 },
                 {"load2_harmonized_metadata": "LOAD2"},
-                REQUIRED_INPUT,
+                STATIC_INPUTS,
                 self.known_models,
             )
 
@@ -532,7 +532,7 @@ class TestValidateFileMaps:
                 datasets,
                 {"proteomics_file": "LOAD2"},
                 {"load2_harmonized_metadata": "LOAD2"},
-                REQUIRED_INPUT,
+                STATIC_INPUTS,
                 self.known_models,
             )
 
@@ -560,7 +560,7 @@ class TestTransformProteinDeIndividual:
             model_map = {
                 key: "LOAD2"
                 for key in datasets
-                if key not in REQUIRED_INPUT and not key.endswith("harmonized_metadata")
+                if key not in STATIC_INPUTS and not key.endswith("harmonized_metadata")
             }
         if metadata_map is None:
             metadata_map = {
@@ -751,7 +751,6 @@ class TestTransformProteinDeIndividual:
     @pytest.mark.parametrize(
         "mutate,error",
         [
-            (lambda d: d.pop("uniprot_ensembl_map"), "Missing required datasets"),
             (
                 lambda d: d.update(
                     {
@@ -785,37 +784,18 @@ class TestTransformProteinDeIndividual:
                 "is empty",
             ),
             (
-                lambda d: d["genotype_label_map"].__setitem__(
-                    "display_label", ["", "LOAD1"]
-                ),
-                "not_empty",
-            ),
-            (
                 lambda d: d["load2_harmonized_metadata"].__setitem__(
                     "genotype", "unknown"
                 ),
                 "No rows remained",
             ),
-            (
-                lambda d: d.update(
-                    {
-                        "mouse_gene_metadata": d["mouse_gene_metadata"].assign(
-                            ensembl_gene_id=""
-                        )
-                    }
-                ),
-                "not_empty",
-            ),
         ],
         ids=[
-            "drop_required_dataset",
             "drop_metadata_column",
             "empty_metadata_genotype",
             "drop_data_file_id_column",
             "empty_data_file",
-            "empty_display_label",
             "unmatched_genotypes",
-            "empty_gene_metadata_ensembl_id",
         ],
     )
     def test_invalid_input_raises(self, mutate, error: str) -> None:

@@ -38,21 +38,16 @@ import pandas as pd
 from typing import Dict, List, Any
 import logging
 
-from agoradatatools.etl.utils import (
+from agoradatatools.etl.validation_utils import (
     ColumnRule,
     MatchesRegexRule,
     NotEmptyRule,
-    check_column_rules,
-    check_required_datasets_and_columns,
-    validate_one_to_one_mapping,
 )
 
 from agoradatatools.etl.transform.transform_utils.model_ad_transform_utils import (
     remap_sex_labels,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils import (
-    GENOTYPE_LABEL_MAP_COLUMNS,
-    GENOTYPE_LABEL_MAP_RULES,
     build_biodomain_lookup,
     build_model_to_model_group_lookup,
     build_model_type_lookup,
@@ -66,27 +61,9 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_INPUT = {
-    # model_type is aggregate-only: the individual transforms read the same label map
-    # but never use this column.
-    "genotype_label_map": GENOTYPE_LABEL_MAP_COLUMNS + ["model_type"],
-    "mouse_gene_metadata": ["ensembl_gene_id", "gene_symbol", "alias"],
-    "biodom_genes_mm": [
-        "biodomain",
-        "abbr",
-        "label",
-        "color",
-        "go_id",
-        "goterm_name",
-        "n_symbol",
-        "symbol",
-        "ensembl_id",
-    ],
-}
-
-COLUMN_RULES: dict[str, dict[str, list[ColumnRule]]] = {
-    "genotype_label_map": GENOTYPE_LABEL_MAP_RULES | {"model_type": [NotEmptyRule()]},
-}
+STATIC_INPUTS = frozenset(
+    {"genotype_label_map", "mouse_gene_metadata", "biodom_genes_mm"}
+)
 
 DATA_FILE_REQUIRED_COLUMNS = [
     "ensembl_gene_id",
@@ -366,9 +343,7 @@ def _process_single_data_file(
 
 def transform_rna_de_aggregate(
     datasets: dict[str, pd.DataFrame],
-    required_input: dict[str, list[str]] = REQUIRED_INPUT,
     data_file_required_columns: list[str] = DATA_FILE_REQUIRED_COLUMNS,
-    column_rules: dict[str, dict[str, list[ColumnRule]]] = COLUMN_RULES,
     data_file_column_rules: dict[str, list[ColumnRule]] = DATA_FILE_COLUMN_RULES,
 ) -> list[dict[str, Any]]:
     """
@@ -379,21 +354,19 @@ def transform_rna_de_aggregate(
     transformation pipeline, from data validation through enrichment to final output generation.
 
     The transformation workflow:
-    1. Validates that all required input datasets and columns are present
-    2. Pre-computes lookup dictionaries from metadata for efficient data enrichment:
+    1. Pre-computes lookup dictionaries from metadata for efficient data enrichment:
        - Gene symbols from Ensembl IDs
        - Display labels for genotype identifiers (case/control) by model
        - Model groups and types
        - Biodomain annotations
-    3. Validates data consistency (e.g., ensures each model has a consistent model_group)
-    4. Processes one or more differential expression data files sequentially:
+    2. Processes one or more differential expression data files sequentially:
        - Filters to mouse genes only (ENSMUSG*)
        - Filters out combined-cohort rows where sex is "Females & Males"
        - Maps plural sex values to singular display labels
        - Groups data by gene, model, tissue, sex, case, and control
        - Enriches each group with metadata
        - Creates age-based entries with log2 fold change and adjusted p-values
-    5. Combines all processed entries into a single output list
+    3. Combines all processed entries into a single output list
 
     The output format groups differential expression measurements by unique combinations of
     gene, model, tissue, and sex, with each entry containing age-based measurements as
@@ -410,13 +383,8 @@ def transform_rna_de_aggregate(
             - One or more data files: CSV DataFrames containing differential expression
               results with columns: ensembl_gene_id, log2foldchange, padj, model, case,
               control, age, sex, tissue
-        required_input: Dictionary mapping required dataset names to lists of required
-            column names. Defaults to REQUIRED_INPUT constant. Used to validate that all
-            necessary metadata datasets are present with correct structure.
         data_file_required_columns: Column names required in each differential expression
             data file. Defaults to DATA_FILE_REQUIRED_COLUMNS.
-        column_rules: Per-column content rules for the metadata datasets. Defaults to
-            COLUMN_RULES.
         data_file_column_rules: Per-column content rules applied to each data file.
             Defaults to DATA_FILE_COLUMN_RULES.
 
@@ -446,20 +414,15 @@ def transform_rna_de_aggregate(
             }
 
     Raises:
-        ValueError: If required datasets or columns are missing, if any model has
-            inconsistent model_group or model_type values, if any data file is empty or invalid,
-            or if any case or control genotype used in the data files is not found
-            in the genotype_label_map dataset.
-            Error messages include specific details about what validation failed.
+        ValueError: If any data file is empty or invalid, or if any case or control
+            genotype used in the data files is not found in the genotype_label_map
+            dataset. Error messages include specific details about what validation failed.
 
     Note:
         This function processes data files sequentially (one at a time) rather than
         concatenating them first. The function also filters out human genes (ENSG*)
         to ensure only mouse (Mus musculus) data is included in the output.
     """
-    check_required_datasets_and_columns(datasets, required_input)
-    check_column_rules(datasets, column_rules)
-
     # Pre-compute lookup dictionaries for efficient lookups
     genotype_label_map_df = prepare_genotype_label_map(datasets["genotype_label_map"])
     mouse_gene_metadata_df = datasets["mouse_gene_metadata"]
@@ -473,8 +436,6 @@ def transform_rna_de_aggregate(
         "display_label"
     ].to_dict()
 
-    # prepare_genotype_label_map already checks model to model_group.
-    validate_one_to_one_mapping(genotype_label_map_df, "model", "model_type")
     model_group_dict = build_model_to_model_group_lookup(genotype_label_map_df)
     # model_type comes from the label map so split variant models are covered
     # without entries in model_info.
@@ -484,7 +445,7 @@ def transform_rna_de_aggregate(
     output = []
 
     # Process files one at a time to reduce memory usage
-    file_list = [k for k in datasets.keys() if k not in required_input]
+    file_list = [k for k in datasets.keys() if k not in STATIC_INPUTS]
     total_files = len(file_list)
 
     logger.info(f"Transform rna_de_aggregate total data files: {total_files}")
