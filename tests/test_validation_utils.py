@@ -817,12 +817,16 @@ class TestRaiseOnDuplicateKeys:
 
 
 class TestRejectEmptyDataframe:
+    """Tests for reject_empty_dataframe()."""
+
     def test_raises_when_the_frame_has_no_rows(self) -> None:
+        """A header-only DataFrame is rejected as empty."""
         df = pd.DataFrame({"a": pd.Series(dtype=str)})
         with pytest.raises(ValueError, match="^is empty$"):
             validation_utils.reject_empty_dataframe(df)
 
     def test_passes_when_the_frame_has_rows(self) -> None:
+        """A DataFrame with at least one row is accepted."""
         validation_utils.reject_empty_dataframe(pd.DataFrame({"a": ["x"]}))
 
 

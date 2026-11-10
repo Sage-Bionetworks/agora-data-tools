@@ -1,3 +1,5 @@
+"""Tests for the protein_ne_file input spec."""
+
 import pandas as pd
 import pytest
 
@@ -15,18 +17,21 @@ def valid_frame() -> pd.DataFrame:
     )
 
 
-def test_valid_frame_passes():
+def test_valid_frame_passes() -> None:
+    """A well-formed row satisfies the spec."""
     validate_inputs({"protein_ne_file": valid_frame()})
 
 
-def test_empty_file_with_headers_fails():
+def test_empty_file_with_headers_fails() -> None:
+    """A header-only file is rejected as empty."""
     with pytest.raises(
         ADTDataValidationError, match="In dataset 'protein_ne_file': is empty"
     ):
         validate_inputs({"protein_ne_file": valid_frame().iloc[:0]})
 
 
-def test_blank_individualid_fails_not_empty():
+def test_blank_individualid_fails_not_empty() -> None:
+    """A blank individualid is reported as not_empty."""
     df = valid_frame()
     df["individualid"] = [""]
     with pytest.raises(
