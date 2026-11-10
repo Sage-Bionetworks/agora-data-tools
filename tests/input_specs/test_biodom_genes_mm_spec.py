@@ -1,9 +1,12 @@
+"""Tests for the biodom_genes_mm input spec."""
+
 import pandas as pd
 
 from agoradatatools.etl.validate import validate_inputs
 
 
 def valid_frame() -> pd.DataFrame:
+    """One well-formed row, including a null ensembl_id."""
     return pd.DataFrame(
         {
             "biodomain": ["Apoptosis"],
@@ -19,6 +22,6 @@ def valid_frame() -> pd.DataFrame:
     )
 
 
-def test_valid_frame_passes():
+def test_valid_frame_passes() -> None:
     """A well-formed row, including a null ensembl_id, satisfies the spec."""
     validate_inputs({"biodom_genes_mm": valid_frame()})
