@@ -1,3 +1,5 @@
+"""Tests for the model_genetic_modifications input spec."""
+
 import pandas as pd
 import pytest
 
@@ -15,6 +17,7 @@ NONEMPTY_COLUMNS = [
 
 
 def valid_frame() -> pd.DataFrame:
+    """One well-formed row with both mouse and human identifiers."""
     return pd.DataFrame(
         {
             "model": ["3xTg-AD"],
@@ -29,11 +32,13 @@ def valid_frame() -> pd.DataFrame:
     )
 
 
-def test_valid_frame_passes():
+def test_valid_frame_passes() -> None:
+    """A well-formed row satisfies the spec."""
     validate_inputs({"model_genetic_modifications": valid_frame()})
 
 
-def test_mouse_only_allele_with_null_human_id_passes():
+def test_mouse_only_allele_with_null_human_id_passes() -> None:
+    """Human identifiers may be null on a mouse-only allele."""
     df = valid_frame()
     df["human_gene_symbol"] = [None]
     df["human_ensembl_id"] = [None]
@@ -41,7 +46,8 @@ def test_mouse_only_allele_with_null_human_id_passes():
 
 
 @pytest.mark.parametrize("column", NONEMPTY_COLUMNS)
-def test_blank_value_fails_not_empty(column):
+def test_blank_value_fails_not_empty(column: str) -> None:
+    """A blank in any NotEmpty column is reported as not_empty."""
     df = valid_frame()
     df[column] = [""]
     with pytest.raises(
@@ -51,7 +57,8 @@ def test_blank_value_fails_not_empty(column):
         validate_inputs({"model_genetic_modifications": df})
 
 
-def test_human_ensembl_id_must_match_ensg():
+def test_human_ensembl_id_must_match_ensg() -> None:
+    """A mouse Ensembl id in human_ensembl_id fails the ENSG regex."""
     df = valid_frame()
     df["human_ensembl_id"] = ["ENSMUSG00000022892"]
     with pytest.raises(
@@ -61,7 +68,8 @@ def test_human_ensembl_id_must_match_ensg():
         validate_inputs({"model_genetic_modifications": df})
 
 
-def test_mouse_ensembl_id_must_match_ensmusg():
+def test_mouse_ensembl_id_must_match_ensmusg() -> None:
+    """A human Ensembl id in mouse_ensembl_id fails the ENSMUSG regex."""
     df = valid_frame()
     df["mouse_ensembl_id"] = ["ENSG00000142192"]
     with pytest.raises(

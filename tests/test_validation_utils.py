@@ -96,6 +96,20 @@ class TestColumnRuleContract:
             validation_utils.ColumnRule()
 
 
+BLANK_SERIES = [
+    pytest.param(pd.Series(["a", None]), id="none-object"),
+    pytest.param(pd.Series(["a", np.nan]), id="nan-object"),
+    pytest.param(pd.Series([1.0, np.nan]), id="nan-float"),
+    pytest.param(pd.Series(["a", pd.NA], dtype="string"), id="pd.NA-string"),
+    pytest.param(pd.Series([1, pd.NA], dtype="Int64"), id="pd.NA-Int64"),
+    pytest.param(pd.Series(pd.to_datetime(["2024-01-01", None])), id="NaT"),
+    pytest.param(pd.Series(["a", ""]), id="empty-string"),
+    pytest.param(pd.Series(["a", "   "]), id="spaces"),
+    pytest.param(pd.Series(["a", "\t\n"]), id="tab-newline"),
+    pytest.param(pd.Series(["a", "\xa0"]), id="nbsp"),
+]
+
+
 class TestNotEmptyRule:
     """Unit tests for NotEmptyRule.count_violations()."""
 
@@ -106,39 +120,10 @@ class TestNotEmptyRule:
             == 0
         )
 
-    def test_counts_none_as_violation(self) -> None:
-        """None counts as a violation."""
-        assert (
-            validation_utils.NotEmptyRule().count_violations(
-                pd.Series(["a", None, "c"])
-            )
-            == 1
-        )
-
-    def test_counts_nan_as_violation(self) -> None:
-        """NaN counts as a violation."""
-        assert (
-            validation_utils.NotEmptyRule().count_violations(
-                pd.Series(["a", np.nan, "c"])
-            )
-            == 1
-        )
-
-    def test_counts_empty_string_as_violation(self) -> None:
-        """An empty string counts as a violation."""
-        assert (
-            validation_utils.NotEmptyRule().count_violations(pd.Series(["a", "", "c"]))
-            == 1
-        )
-
-    def test_counts_whitespace_only_as_violation(self) -> None:
-        """Whitespace-only text counts as a violation."""
-        assert (
-            validation_utils.NotEmptyRule().count_violations(
-                pd.Series(["a", "   ", "c"])
-            )
-            == 1
-        )
+    @pytest.mark.parametrize("series", BLANK_SERIES)
+    def test_counts_blank_as_violation(self, series: pd.Series) -> None:
+        """Each blank representation counts as one violation."""
+        assert validation_utils.NotEmptyRule().count_violations(series) == 1
 
     def test_counts_multiple_violations(self) -> None:
         """Each blank cell is counted separately."""
