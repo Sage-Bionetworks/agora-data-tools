@@ -1,3 +1,5 @@
+"""Tests for the uniprot_ensembl_map input spec."""
+
 import pandas as pd
 import pytest
 
@@ -6,6 +8,7 @@ from agoradatatools.etl.validate import validate_inputs
 
 
 def valid_frame() -> pd.DataFrame:
+    """One well-formed UniProt-to-Ensembl row."""
     return pd.DataFrame(
         {
             "uniprot_id": ["P00001"],
@@ -14,12 +17,14 @@ def valid_frame() -> pd.DataFrame:
     )
 
 
-def test_valid_frame_passes():
+def test_valid_frame_passes() -> None:
+    """A well-formed row satisfies the spec."""
     validate_inputs({"uniprot_ensembl_map": valid_frame()})
 
 
 @pytest.mark.parametrize("column", ["uniprot_id", "ensembl_gene_id"])
-def test_blank_value_fails_not_empty(column):
+def test_blank_value_fails_not_empty(column: str) -> None:
+    """A blank in either required column is reported as not_empty."""
     df = valid_frame()
     df[column] = [""]
     with pytest.raises(
@@ -29,13 +34,15 @@ def test_blank_value_fails_not_empty(column):
         validate_inputs({"uniprot_ensembl_map": df})
 
 
-def test_human_ensembl_id_is_allowed():
+def test_human_ensembl_id_is_allowed() -> None:
+    """A human ENSG id is accepted by the ENS(MUS)?G regex."""
     df = valid_frame()
     df["ensembl_gene_id"] = ["ENSG00000142192"]
     validate_inputs({"uniprot_ensembl_map": df})
 
 
-def test_non_ensembl_id_fails_regex():
+def test_non_ensembl_id_fails_regex() -> None:
+    """A transcript id fails the gene-id regex."""
     df = valid_frame()
     df["ensembl_gene_id"] = ["ENSMUST00000000001"]
     with pytest.raises(

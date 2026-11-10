@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 def load_input_specs() -> dict[str, InputSpec]:
     """Collect the SPEC from every module in input_specs, keyed by module name.
 
-    The module name is the input file's name in the pipeline config, so a spec
-    cannot be registered under a name that differs from the file it validates.
+    The module name is the file's name in the pipeline config, or the schema
+    value when several files share one spec (e.g. rna_de_file).
     """
     specs = {}
     for module_info in pkgutil.iter_modules(input_specs.__path__):
@@ -72,6 +72,7 @@ def _validate_one(name: str, df: pd.DataFrame, spec: InputSpec) -> list[str]:
 
 def validate_inputs(
     datasets: dict[str, pd.DataFrame],
+    schemas: dict[str, str] | None = None,
     specs: dict[str, InputSpec] | None = None,
 ) -> None:
     """Validate every input that has a spec in input_specs.
@@ -82,7 +83,10 @@ def validate_inputs(
     Args:
         datasets: Input name -> DataFrame, as extracted and standardized, before
             column_rename.
-        specs: Optional name -> InputSpec registry. Defaults to INPUT_SPECS
+        schemas: Optional input name -> spec key. When omitted, the input name
+            is the spec key. process_dataset passes each file's schema field,
+            defaulting to its name.
+        specs: Optional spec key -> InputSpec registry. Defaults to INPUT_SPECS
             at call time.
 
     Raises:
@@ -91,7 +95,8 @@ def validate_inputs(
     registry = INPUT_SPECS if specs is None else specs
     messages: list[str] = []
     for name, df in datasets.items():
-        spec = registry.get(name)
+        spec_key = (schemas or {}).get(name, name)
+        spec = registry.get(spec_key)
         if spec is None:
             logger.info(f"No input validation spec registered for {name}. Skipping.")
             continue

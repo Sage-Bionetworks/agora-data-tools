@@ -13,7 +13,6 @@ import pandas as pd
 
 from agoradatatools.etl.utils import raise_on_duplicate_keys
 from agoradatatools.etl.validation_utils import (
-    ContainsSubstringRule,
     MatchesRegexRule,
     NotEmptyRule,
     OneOfRule,
@@ -31,8 +30,8 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
     create_gene_metadata_dict,
     determine_result_order,
     normalize_tissue,
+    log_file_processing_info,
     prepare_genotype_label_map,
-    validate_data_file,
 )
 from agoradatatools.etl.transform.transform_utils.model_ad_proteomics_utils import (
     add_protein_identity_columns,
@@ -56,13 +55,6 @@ STATIC_INPUTS = frozenset(
         "uniprot_ensembl_map",
     }
 )
-
-DATA_FILE_COLUMNS = ["protein_id", "log2foldchange", "padj"]
-# protein_id is gene_symbol|uniprotid; the pipe is what canonical_accession splits on.
-DATA_FILE_COLUMN_RULES = {
-    "protein_id": [NotEmptyRule(), ContainsSubstringRule("|")],
-    "log2foldchange": [NotEmptyRule()],
-}
 
 
 def _validate_file_metadata(
@@ -255,14 +247,7 @@ def transform_protein_de_aggregate(
 
     file_list = list(overlay)
     for index, file_name in enumerate(file_list):
-        validate_data_file(
-            file_name,
-            datasets[file_name],
-            index,
-            len(file_list),
-            DATA_FILE_COLUMNS,
-            DATA_FILE_COLUMN_RULES,
-        )
+        log_file_processing_info(file_name, index, len(file_list), datasets[file_name])
 
     gene_symbols = create_gene_metadata_dict(datasets["mouse_gene_metadata"])
     biodomain_dict = build_biodomain_lookup(datasets["biodom_genes_mm"])

@@ -9,7 +9,6 @@ import pytest
 
 from agoradatatools.etl.transform.protein_de_aggregate import (
     STATIC_INPUTS,
-    DATA_FILE_COLUMNS,
     _model_display_labels,
     _validate_file_metadata,
     transform_protein_de_aggregate,
@@ -248,40 +247,3 @@ class TestTransformProteinDeAggregate:
             ("ENSMUSG00000000001P27144", "Female"),
             ("ENSMUSG00000000001P27144", "Male"),
         ]
-
-    def test_empty_file_raises(self) -> None:
-        """An empty differential expression file raises."""
-        datasets = _load_datasets()
-        datasets["jax_load2_f_4mo"] = pd.DataFrame(
-            columns=["protein_id", "log2foldchange", "padj"]
-        )
-
-        with pytest.raises(ValueError, match="empty"):
-            transform_protein_de_aggregate(datasets, FILE_METADATA)
-
-    def test_protein_id_without_a_pipe_raises(self) -> None:
-        """protein_id has to be gene_symbol|uniprotid, so a bare accession raises."""
-        datasets = _load_datasets()
-        datasets["jax_load2_f_4mo"].loc[0, "protein_id"] = "P27144"
-
-        with pytest.raises(ValueError, match="protein_id.*contains_substring"):
-            transform_protein_de_aggregate(datasets, FILE_METADATA)
-
-    def test_blank_log2foldchange_raises(self) -> None:
-        """A blank log2foldchange would otherwise flow into the output as NaN."""
-        datasets = _load_datasets()
-        datasets["jax_load2_f_4mo"].loc[0, "log2foldchange"] = None
-
-        with pytest.raises(ValueError, match="log2foldchange.*not_empty"):
-            transform_protein_de_aggregate(datasets, FILE_METADATA)
-
-    @pytest.mark.parametrize("missing_column", DATA_FILE_COLUMNS)
-    def test_missing_column_in_data_file_raises(self, missing_column: str) -> None:
-        """A missing required column in the data file raises."""
-        datasets = _load_datasets()
-        datasets["jax_load2_f_4mo"] = datasets["jax_load2_f_4mo"].drop(
-            columns=[missing_column]
-        )
-
-        with pytest.raises(ValueError, match=missing_column):
-            transform_protein_de_aggregate(datasets, FILE_METADATA)
