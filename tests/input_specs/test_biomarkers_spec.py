@@ -1,9 +1,12 @@
+"""Tests for the biomarkers input spec."""
+
 import pandas as pd
 
 from agoradatatools.etl.validate import validate_inputs
 
 
 def valid_frame() -> pd.DataFrame:
+    """One well-formed biomarkers row."""
     return pd.DataFrame(
         {
             "model": ["5xFAD"],
@@ -19,6 +22,6 @@ def valid_frame() -> pd.DataFrame:
     )
 
 
-def test_valid_frame_passes():
+def test_valid_frame_passes() -> None:
     """A well-formed biomarkers row satisfies the spec."""
     validate_inputs({"biomarkers": valid_frame()})

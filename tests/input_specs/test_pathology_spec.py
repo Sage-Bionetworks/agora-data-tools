@@ -1,9 +1,12 @@
+"""Tests for the pathology input spec."""
+
 import pandas as pd
 
 from agoradatatools.etl.validate import validate_inputs
 
 
 def valid_frame() -> pd.DataFrame:
+    """One well-formed pathology row."""
     return pd.DataFrame(
         {
             "model": ["5xFAD"],
@@ -19,6 +22,6 @@ def valid_frame() -> pd.DataFrame:
     )
 
 
-def test_valid_frame_passes():
+def test_valid_frame_passes() -> None:
     """A well-formed pathology row satisfies the spec."""
     validate_inputs({"pathology": valid_frame()})
