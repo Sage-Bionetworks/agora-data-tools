@@ -127,15 +127,16 @@ build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, 
 
 # Builds a list of filter definitions
 # - filter_defs: A dataframe of filterset info:
-#   - name, data_field, short_name, query_param_key, filter_values
+#   - name, type, data_field, short_name, query_param_key, filter_values
 # - filter_vals: A list of lists specifying the filter values for each filterset
 build_filters <- function(filter_defs, filter_values) {
 
   # Construct list of filters
-  filters <- Map(function(name, data_key, short_name, query_param_key, filter_values) {
+  filters <- Map(function(name, type, data_key, short_name, query_param_key, filter_values) {
 
     filter <- list(
       name = name,
+      type = type,
       data_key = data_key,
       short_name = short_name,
       query_param_key = query_param_key,
@@ -145,7 +146,7 @@ build_filters <- function(filter_defs, filter_values) {
       # Omit keys with NA values
       filter <- discard(filter, ~ is.null(.x) | all(is.na(.x)))
 
-    }, filter_defs$name, filter_defs$data_key, filter_defs$short_name, filter_defs$query_param_key, filter_values)
+    }, filter_defs$name, filter_defs$type, filter_defs$data_key, filter_defs$short_name, filter_defs$query_param_key, filter_values)
 
   # Remove names to ensure JSON is an array, not object
   names(filters) <- NULL
@@ -210,13 +211,15 @@ labels <- download_file("syn77171904", labels, "csv")
 # extract filter values from display label mapping file
 cell_class_values <- str_sort(unique(labels$cell_class))
 cell_subclass_values <- str_sort(labels$cell_subclass)
+
+
 filter_vals <- list(
-  c(),
-  c(),
+  # TEMP INJECT FILTER VALS FOR GENES & VARIANTS
+  c("rs6560830","rs181605000","rs10904178","rs181749526","rs7909677","rs3866489","rs189357902"),
+  c("ZMYND11","DIP2C","LARP4B","GTPBP4","IDI2","IDI2-AS1","IDI1","WDR37"),
   cell_class_values,
   cell_subclass_values
   )
-
 
 json_list <- list(
   build_eqtl_object("eQTLs", columns, filters, filter_vals)
