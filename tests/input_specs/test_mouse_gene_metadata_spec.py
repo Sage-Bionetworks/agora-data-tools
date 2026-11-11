@@ -1,5 +1,6 @@
 """Tests for the mouse_gene_metadata input spec."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -23,10 +24,11 @@ def test_valid_frame_passes() -> None:
     validate_inputs({"mouse_gene_metadata": valid_frame()})
 
 
-def test_blank_ensembl_gene_id_fails_not_empty() -> None:
+@pytest.mark.parametrize("blank", ["", None, np.nan])
+def test_blank_ensembl_gene_id_fails_not_empty(blank: str | float | None) -> None:
     """A blank ensembl_gene_id is reported as not_empty."""
     df = valid_frame()
-    df["ensembl_gene_id"] = [""]
+    df["ensembl_gene_id"] = [blank]
     with pytest.raises(
         ADTDataValidationError,
         match="'mouse_gene_metadata', column 'ensembl_gene_id'.*not_empty",
@@ -35,7 +37,10 @@ def test_blank_ensembl_gene_id_fails_not_empty() -> None:
 
 
 def test_human_ensembl_id_is_allowed() -> None:
-    """A human ENSG id is accepted by the ENS(MUS)?G regex."""
+    """A human ENSG id is accepted by the ENS(MUS)?G regex.
+
+    A mouse ENSMUSG id is already covered by test_valid_frame_passes.
+    """
     df = valid_frame()
     df["ensembl_gene_id"] = ["ENSG00000142192"]
     validate_inputs({"mouse_gene_metadata": df})

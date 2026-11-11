@@ -1,5 +1,6 @@
 """Tests for the model_genetic_modifications input spec."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -46,10 +47,11 @@ def test_mouse_only_allele_with_null_human_id_passes() -> None:
 
 
 @pytest.mark.parametrize("column", NONEMPTY_COLUMNS)
-def test_blank_value_fails_not_empty(column: str) -> None:
+@pytest.mark.parametrize("blank", ["", None, np.nan])
+def test_blank_value_fails_not_empty(column: str, blank: str | float | None) -> None:
     """A blank in any NotEmpty column is reported as not_empty."""
     df = valid_frame()
-    df[column] = [""]
+    df[column] = [blank]
     with pytest.raises(
         ADTDataValidationError,
         match=f"'model_genetic_modifications', column '{column}'.*not_empty",

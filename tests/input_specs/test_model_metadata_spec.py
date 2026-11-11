@@ -1,5 +1,6 @@
 """Tests for the model_metadata input spec."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -39,10 +40,11 @@ def test_valid_frame_passes() -> None:
     validate_inputs({"model_metadata": valid_frame()})
 
 
-def test_blank_model_fails_not_empty() -> None:
+@pytest.mark.parametrize("blank", ["", None, np.nan])
+def test_blank_model_fails_not_empty(blank: str | float | None) -> None:
     """A blank model is reported as not_empty."""
     df = valid_frame()
-    df["model"] = [""]
+    df["model"] = [blank]
     with pytest.raises(
         ADTDataValidationError,
         match="'model_metadata', column 'model'.*not_empty",

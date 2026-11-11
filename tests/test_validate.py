@@ -86,7 +86,7 @@ class TestValidateOne:
     """Tests for validating one frame against one spec."""
 
     def test_missing_column_is_reported_alone(self) -> None:
-        """A missing required column is reported without also running rules or checks."""
+        """The frame is missing colA and has an empty colB; only the missing column is reported."""
         df = pd.DataFrame({"colB": [""]})
         messages = _validate_one("data_1", df, TEST_SPECS["data_1"])
         assert len(messages) == 1
@@ -139,7 +139,7 @@ class TestValidateInputs:
         )
 
     def test_violations_from_several_inputs_are_aggregated(self) -> None:
-        """One raise lists every input's violations."""
+        """One raise lists every input's violations: data_1 has a blank colA (not_empty); data_2 is missing colD."""
         datasets = {
             "data_1": pd.DataFrame({"colA": [""], "colB": [1]}),
             "data_2": pd.DataFrame({"colC": [1]}),

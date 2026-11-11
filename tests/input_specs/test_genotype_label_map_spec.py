@@ -1,5 +1,6 @@
 """Tests for the genotype_label_map input spec."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -28,10 +29,11 @@ def test_valid_frame_passes() -> None:
 
 
 @pytest.mark.parametrize("column", COLUMNS)
-def test_blank_value_fails_not_empty(column: str) -> None:
+@pytest.mark.parametrize("blank", ["", None, np.nan])
+def test_blank_value_fails_not_empty(column: str, blank: str | float | None) -> None:
     """A blank in any required column is reported as not_empty."""
     df = valid_frame()
-    df[column] = [""]
+    df[column] = [blank]
     with pytest.raises(
         ADTDataValidationError,
         match=f"'genotype_label_map', column '{column}'.*not_empty",
@@ -54,6 +56,7 @@ def test_non_numeric_result_order_fails() -> None:
 def test_model_must_map_to_one_value(column: str) -> None:
     """One model mapping to two values of model_group or model_type fails."""
     df = pd.concat([valid_frame()] * 2, ignore_index=True)
+    # Distinct genotypes so the duplicate (model, genotype) check does not fire first.
     df["genotype"] = ["g1", "g2"]
     df[column] = ["a", "b"]
     with pytest.raises(

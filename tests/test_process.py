@@ -1161,7 +1161,7 @@ class TestProcessDataset:
     ):
         """A registered input missing a required column fails before rename or transform.
 
-        The patched frame contains column a so the error naming column b and
+        The patched frame contains column "a" so the error naming column "b" and
         Columns found: a proves validation saw this frame, not an empty one.
         setup_method starts these patches and teardown_method stops them, so
         the return_value override does not leak to other tests.

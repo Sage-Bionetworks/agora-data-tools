@@ -1,5 +1,6 @@
 """Tests for the uniprot_ensembl_map input spec."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -23,10 +24,11 @@ def test_valid_frame_passes() -> None:
 
 
 @pytest.mark.parametrize("column", ["uniprot_id", "ensembl_gene_id"])
-def test_blank_value_fails_not_empty(column: str) -> None:
+@pytest.mark.parametrize("blank", ["", None, np.nan])
+def test_blank_value_fails_not_empty(column: str, blank: str | float | None) -> None:
     """A blank in either required column is reported as not_empty."""
     df = valid_frame()
-    df[column] = [""]
+    df[column] = [blank]
     with pytest.raises(
         ADTDataValidationError,
         match=f"'uniprot_ensembl_map', column '{column}'.*not_empty",
@@ -35,7 +37,10 @@ def test_blank_value_fails_not_empty(column: str) -> None:
 
 
 def test_human_ensembl_id_is_allowed() -> None:
-    """A human ENSG id is accepted by the ENS(MUS)?G regex."""
+    """A human ENSG id is accepted by the ENS(MUS)?G regex.
+
+    A mouse ENSMUSG id is already covered by test_valid_frame_passes.
+    """
     df = valid_frame()
     df["ensembl_gene_id"] = ["ENSG00000142192"]
     validate_inputs({"uniprot_ensembl_map": df})
