@@ -107,7 +107,7 @@ pending_target_list <- c(
 )
 ```
 
-# Download current version of the tep_adi_info source file
+# Download current version of the tep_adi_info source file, and gene_info for ENSG resolution
 ```{r echo=FALSE}
 tep_adi_info <- download_file("syn51942280.6", "not used", type = "csv")
 gene_info <- download_file("syn12548902", "not used", type = "json")
@@ -145,7 +145,8 @@ new_rows <- tibble(hgnc_symbol = setdiff(all_targets, tep_adi_info$hgnc_symbol))
 tep_adi_info_updated <- bind_rows(updated_existing, new_rows) %>%
   arrange(hgnc_symbol)
 
-# 5. QC checks
+# 5. QC checks - investigate failures manually and figure out how to resolve each
+# by e.g. updating alias_map, target_list, or pending_target_list
 unresolved_genes <- new_rows %>% filter(is.na(ensembl_gene_id))
 duplicate_mappings <- new_rows %>% dplyr::count(hgnc_symbol) %>% filter(n > 1)
 
