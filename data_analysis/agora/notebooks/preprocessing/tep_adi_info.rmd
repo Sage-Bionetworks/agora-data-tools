@@ -82,7 +82,7 @@ download_file <- function(synId, df_name, type, quiet = TRUE) {
 -> if no, update `pending_target_list` below to be an empty vector
 
 ```{r}
-# TODO update target_list as described above
+# UPDATE HERE: modify target_list as described above
 target_list <- c(
   "ASC", "DISC1", "INPP5D", "LYN", "HCK", "NEK7",
   "NLRP3", "PIK3C2A", "PLCG2", "PTK2B", "PTPN6", "SLC7A11",
@@ -99,7 +99,7 @@ target_list <- c(
   "TMEFF2"
 )
 
-# TODO: update pending_target_list as described above
+# UPDATE HERE: modify pending_target_list as described above
 pending_target_list <- c(
   "KAT2B", "NQO2", "PIK3C2A", "PYCARD", "AP2A2", "DLAT",
   "NRN1", "PDHA1", "PDHB", "PAK1", "FCER1G", "YWHAZ",
@@ -157,17 +157,20 @@ assert (nrow(duplicate_mappings) == 0)
 # Sanity check the updated list
 ```{r}
 
+# Helper to format each target on its own indented line:
+#   SYMBOL (ENSG...)
+format_gene_list <- function(df, id_col = "ensembl_gene_id") {
+  if (nrow(df) == 0) return("  None")
+  paste0("  ", df$hgnc_symbol, " (", df[[id_col]], ")", collapse = "\n")
+}
+
 # 1. New rows added to tep_adi_info_updated
 new_rows_added <- tep_adi_info_updated %>%
   anti_join(tep_adi_info, by = "hgnc_symbol")
 
 cat("=== 1. New Rows Added ===\n")
 cat("Total count:", nrow(new_rows_added), "\n")
-cat(
-  "HGNC symbols:",
-  ifelse(nrow(new_rows_added) > 0, paste(new_rows_added$hgnc_symbol, collapse = ", "), "None"),
-  "\n\n"
-)
+cat("Targets:\n", format_gene_list(new_rows_added), "\n\n", sep = "")
 
 # 2. Existing rows where is_tep changed (handles NA -> TRUE safely)
 changed_rows <- tep_adi_info %>%
@@ -184,11 +187,7 @@ changed_rows <- tep_adi_info %>%
 
 cat("=== 2. Existing Rows Where is_tep Changed ===\n")
 cat("Total count:", nrow(changed_rows), "\n")
-cat(
-  "HGNC symbols:",
-  ifelse(nrow(changed_rows) > 0, paste(changed_rows$hgnc_symbol, collapse = ", "), "None"),
-  "\n\n"
-)
+cat("Targets:\n", format_gene_list(changed_rows, id_col = "ensembl_gene_id_new"), "\n\n", sep = "")
 
 # 3. Pending targets that already had is_tep == TRUE in the original table
 clean_pending <- coalesce(alias_map[pending_target_list], pending_target_list) %>%
@@ -199,11 +198,7 @@ pending_already_tep <- tep_adi_info %>%
 
 cat("=== 3. Pending Targets Already Marked is_tep == TRUE ===\n")
 cat("Total count:", nrow(pending_already_tep), "\n")
-cat(
-  "HGNC symbols:",
-  ifelse(nrow(pending_already_tep) > 0, paste(pending_already_tep$hgnc_symbol, collapse = ", "), "None"),
-  "\n"
-)
+cat("Targets:\n", format_gene_list(pending_already_tep), "\n", sep = "")
 ```
 
 # Generate csv
