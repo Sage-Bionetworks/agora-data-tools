@@ -10,14 +10,14 @@ Note that there is currently no support for incorporating new ADI targets since 
 
 # Install and load packages
 ```{r message=FALSE, warning=FALSE}
-# Install missing CRAN packages
+# Install required CRAN packages
 cran_pkgs <- c("tidyverse", "testit", "jsonlite")
 missing_cran <- cran_pkgs[!vapply(cran_pkgs, requireNamespace, logical(1), quietly = TRUE)]
 if (length(missing_cran) > 0) {
   install.packages(missing_cran, repos = "[https://cloud.r-project.org](https://cloud.r-project.org)")
 }
 
-# Install synapser from Sage Bionetworks' RAN repository if missing
+# Install synapser from Sage Bionetworks' RAN repository
 if (!requireNamespace("synapser", quietly = TRUE)) {
   install.packages(
     "synapser",
@@ -31,7 +31,7 @@ library(synapser)
 library(testit)
 library(jsonlite)
 
-# Set up output directory (previously handled by utils.R / prepare())
+# Set up output directory
 output_dir <- "./output"
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 ```
