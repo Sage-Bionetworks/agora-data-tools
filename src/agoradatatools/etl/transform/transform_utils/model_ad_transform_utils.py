@@ -11,55 +11,6 @@ Functions:
 
 import pandas as pd
 
-from agoradatatools.etl.utils import (
-    NotEmptyRule,
-    MatchesRegexRule,
-)
-
-GENETIC_MODIFICATIONS_REQUIRED_COLUMNS = [
-    "name",
-    "mouse_gene_symbol",
-    "mouse_ensembl_id",
-    "allele",
-    "allele_type",
-    "mgi_allele_id",
-    "human_gene_symbol",
-    "human_ensembl_id",
-]
-
-GENETIC_MODIFICATIONS_COLUMN_RULES = {
-    "name": [NotEmptyRule()],
-    "mouse_gene_symbol": [NotEmptyRule()],
-    "mouse_ensembl_id": [NotEmptyRule(), MatchesRegexRule(r"^ENSMUSG[0-9]+$")],
-    "allele": [NotEmptyRule()],
-    "allele_type": [NotEmptyRule()],
-    "mgi_allele_id": [NotEmptyRule()],
-    # Can have missing values
-    "human_ensembl_id": [MatchesRegexRule(r"^ENSG[0-9]+$")],
-}
-
-MODEL_METADATA_REQUIRED_COLUMNS = [
-    "name",
-    "matched_controls",
-    "model_type",
-    "contributing_group",
-    "study_synid",
-    "rrid",
-    "jax_id",
-    "alzforum_id",
-    "genotype",
-    "aliases",
-    "transcriptomics_url_categories_value",
-    "transcriptomics_url_models_value",
-    "transcriptomics",
-    "disease_correlation",
-    "pathology",
-    "biomarkers",
-    "proteomics",
-    "proteomics_url_categories_value",
-    "proteomics_url_models_value",
-]
-
 
 def process_genetic_modifications(
     model_genetic_modifications: pd.DataFrame,
