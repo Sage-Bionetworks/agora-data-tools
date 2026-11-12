@@ -1,0 +1,182 @@
+---
+title: "Agora: tep_adi_info.csv"
+---
+
+Related JIRA issues: EX-258
+
+This notebook supports updating Agora's tep_adi_info.csv file to incorporate new TEP targets based on the TREAT-AD Target Portfolio smartsheet and optional direct input from the TREAT-AD PM.
+
+Note that there is currently no support for incorporating new ADI targets since there are no known plans to update that set.
+
+# Install packages
+```{r eval=FALSE, echo=FALSE}
+source("../utils.R")
+prepare()
+```
+
+# Prerequisites
+1. Copy the target list from column 1 of the tracking Smartsheet: https://app.smartsheet.com/sheets/pC2Mp7vW6v5768RhMfhqQxrWRW7Jq7cxgHXwFGc1?view=grid&newview=true
+
+2. Ask your AI friend to reformat the copied values into a valid R vector of strings, then replace the current `target_list` below with that formatted list
+
+3. Ask the TREAT-AD PM If there are pending targets we should include.
+-> if yes, replace `pending_target_list` below with that list
+-> if no, update `pending_target_list` below to be an empty vector
+
+```{r}
+# TODO update target_list as described above
+target_list <- c(
+  "ASC", "DISC1", "INPP5D", "LYN", "HCK", "NEK7",
+  "NLRP3", "PIK3C2A", "PLCG2", "PTK2B", "PTPN6", "SLC7A11",
+  "AP2A2", "APOE", "APP", "ARHGEF2", "BDH2", "BIN1",
+  "C4A", "CAPN2", "CD44", "CNN3", "COL11A1", "COL25A1",
+  "CTHRC1", "CTSH", "DAG1", "DDX1", "DHX58", "DLAT",
+  "ECE1", "EPHX2", "FCER1G", "FLT1", "FRZB", "GPC5",
+  "GPNMB", "HTRA1", "IFIH1", "LRP1", "MDK", "MSN",
+  "NDUFS2", "NRN1", "NTN1", "NTN3", "NXPH1", "OLFML3",
+  "PAK1", "PDHA1", "PDHB", "PLEC", "PRDX1", "PRDX6",
+  "PSMC3", "PTN", "QPRT", "RABEP1", "RENBP", "SDC4",
+  "SFRP1", "SLIT1", "SLIT2", "SMOC1", "SNX32", "SPOCK1",
+  "SPOCK2", "SPOCK3", "SPON1", "STX4", "SYK", "TICAM1",
+  "TMEFF2"
+)
+
+# TODO: update pending_target_list as described above
+pending_target_list <- c(
+  "KAT2B", "NQO2", "PIK3C2A", "PYCARD", "AP2A2", "DLAT",
+  "NRN1", "PDHA1", "PDHB", "PAK1", "FCER1G", "YWHAZ",
+  "BIN1", "QPRT", "IFIH1", "SFRP1", "TICAM1", "EPHX2"
+)
+```
+
+# Download current version of the tep_adi_info source file
+```{r echo=FALSE}
+tep_adi_info <- download_file("syn51942280", "not used", type = "csv")
+gene_info <- download_file("syn12548902", "not used", type = "json")
+```
+
+# Generate the updated target list
+
+```{r}
+# 1. Combine lists, normalize aliases to official HGNC symbols, and deduplicate
+raw_targets <- c(target_list, pending_target_list)
+alias_map <- c("ASC" = "PYCARD", "MDA5" = "IFIH1")
+
+all_targets <- coalesce(alias_map[raw_targets], raw_targets) %>%
+  unique()
+
+# 2. Update existing rows in tep_adi_info (preserves existing is_adi values)
+updated_existing <- tep_adi_info %>%
+  mutate(
+    is_tep = if_else(hgnc_symbol %in% all_targets, TRUE, is_tep)
+  )
+
+# 3. Build rows for genes not yet in tep_adi_info and resolve ENSG IDs
+new_rows <- tibble(hgnc_symbol = setdiff(all_targets, tep_adi_info$hgnc_symbol)) %>%
+  left_join(
+    gene_info %>% distinct(hgnc_symbol, ensembl_gene_id),
+    by = "hgnc_symbol"
+  ) %>%
+  mutate(
+    is_adi = NA,
+    is_tep = TRUE
+  ) %>%
+  select(all_of(names(tep_adi_info)))
+
+# 4. Combine into the final updated table and sort alphabetically by symbol
+tep_adi_info_updated <- bind_rows(updated_existing, new_rows) %>%
+  arrange(hgnc_symbol)
+
+# 5. QC checks
+unresolved_genes <- new_rows %>% filter(is.na(ensembl_gene_id))
+duplicate_mappings <- new_rows %>% dplyr::count(hgnc_symbol) %>% filter(n > 1)
+
+tep_adi_info_updated
+assert (nrow(unresolved_genes) == 0)
+assert (nrow(duplicate_mappings) == 0)
+```
+
+# Sanity check the updated list
+```{r}
+
+# 1. New rows added to tep_adi_info_updated
+new_rows_added <- tep_adi_info_updated %>%
+  anti_join(tep_adi_info, by = "hgnc_symbol")
+
+cat("=== 1. New Rows Added ===\n")
+cat("Total count:", nrow(new_rows_added), "\n")
+cat(
+  "HGNC symbols:",
+  ifelse(nrow(new_rows_added) > 0, paste(new_rows_added$hgnc_symbol, collapse = ", "), "None"),
+  "\n\n"
+)
+
+# 2. Existing rows where is_tep changed (handles NA -> TRUE safely)
+changed_rows <- tep_adi_info %>%
+  inner_join(
+    tep_adi_info_updated,
+    by = "hgnc_symbol",
+    suffix = c("_old", "_new")
+  ) %>%
+  filter(
+    (is.na(is_tep_old) & !is.na(is_tep_new)) |
+    (!is.na(is_tep_old) & is.na(is_tep_new)) |
+    (is_tep_old != is_tep_new)
+  )
+
+cat("=== 2. Existing Rows Where is_tep Changed ===\n")
+cat("Total count:", nrow(changed_rows), "\n")
+cat(
+  "HGNC symbols:",
+  ifelse(nrow(changed_rows) > 0, paste(changed_rows$hgnc_symbol, collapse = ", "), "None"),
+  "\n\n"
+)
+
+# 3. Pending targets that already had is_tep == TRUE in the original table
+clean_pending <- coalesce(alias_map[pending_target_list], pending_target_list) %>%
+  unique()
+
+pending_already_tep <- tep_adi_info %>%
+  filter(hgnc_symbol %in% clean_pending, is_tep)
+
+cat("=== 3. Pending Targets Already Marked is_tep == TRUE ===\n")
+cat("Total count:", nrow(pending_already_tep), "\n")
+cat(
+  "HGNC symbols:",
+  ifelse(nrow(pending_already_tep) > 0, paste(pending_already_tep$hgnc_symbol, collapse = ", "), "None"),
+  "\n"
+)
+```
+
+# Generate csv
+
+```{r}
+write_csv(tep_adi_info_updated, file.path(output_dir, "tep_adi_info.csv"))
+```
+
+
+
+# Upload to synapse
+*********************************************************
+Validate file in ./output directory before upload
+*********************************************************
+```{r}
+synLogin()
+syn_file <- File(
+              file.path(output_dir, "tep_adi_info.csv"),
+              description = "Agora: TEP and ADI target list",
+              parent = "syn7525089"
+            )
+
+data_sources <- c("https://treatad.org/data-tools/target-dashboard/")
+
+res <- synStore(
+          syn_file,
+          forceVersion = FALSE,
+          used = data_sources
+        )
+# print synapse_id and new version number
+print(paste0("ID: ", res$id, " v", res$versionNumber, ", Name: ", res$name))
+
+```
+
