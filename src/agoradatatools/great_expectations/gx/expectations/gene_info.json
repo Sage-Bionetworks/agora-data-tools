@@ -251,7 +251,7 @@
               "data_synapseid": {
                 "maxLength": 25,
                 "minLength": 4,
-                "pattern": "^syn\\d+$",
+                "pattern": "^syn[0-9]+$",
                 "type": [
                   "string",
                   "null"
@@ -670,7 +670,7 @@
             "ensembl_release": {
               "maxLength": 3,
               "minLength": 1,
-              "pattern": "^\\d+$",
+              "pattern": "^[0-9]+$",
               "type": "string"
             }
           },

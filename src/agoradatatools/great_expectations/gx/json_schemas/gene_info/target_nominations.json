@@ -63,7 +63,7 @@
                 "type": ["string", "null"],
                 "minLength": 4,
                 "maxLength": 25,
-                "pattern": "^syn\\d+$"
+                "pattern": "^syn[0-9]+$"
             },
             "study": {
                 "type": ["string", "null"],

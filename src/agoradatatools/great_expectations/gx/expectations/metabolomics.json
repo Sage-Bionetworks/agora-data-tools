@@ -117,8 +117,8 @@
       "kwargs": {
         "column": "boxplot_group_names",
         "list_members": [
-          "CN",
-          "AD"
+          "AD",
+          "CN"
         ]
       },
       "meta": {}
@@ -147,18 +147,10 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_value_lengths_to_equal",
-      "kwargs": {
-        "column": "ensembl_gene_id",
-        "value": 15
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
-        "regex": "^ENSG\\d{11}$"
+        "regex": "^ENSG[0-9]{11}$"
       },
       "meta": {}
     },
@@ -221,7 +213,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "metabolite_full_name",
-        "regex": "^[A-Za-z0-9\\s\\-:.()+]+$"
+        "regex": "^[A-Za-z0-9\\s\\-:()+]+$"
       },
       "meta": {}
     },

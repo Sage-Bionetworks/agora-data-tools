@@ -3,7 +3,7 @@
   "$id": "https://github.com/Sage-Bionetworks/agora-data-tools/src/agoradatatools/great_expectations/gx/json_schemas/model_overview/study_data_schema.json",
   "type": "object",
   "properties": {
-    "link_url": { "type": "string", "pattern": "^https://adknowledgeportal\\.synapse\\.org/Explore/Studies/DetailsPage/StudyDetails\\?Study=syn\\d+$" }
+    "link_url": { "type": "string", "pattern": "^https://adknowledgeportal\\.synapse\\.org/Explore/Studies/DetailsPage/StudyDetails\\?Study=syn[0-9]+$" }
   },
   "required": ["link_url"],
   "additionalProperties": false
