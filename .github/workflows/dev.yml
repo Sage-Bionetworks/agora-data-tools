@@ -65,7 +65,9 @@ jobs:
           python-version: "3.11"
       - run: pip install -U setuptools
       - run: pip install .
-      - run: adt process configs/agora_preprod.yaml --upload --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
+      # Skip Synapse uploads on PR runs: concurrent PR runs writing to the same
+      # Synapse entities cause intermittent 412 conflicts (AG-2131).
+      - run: adt process configs/agora_preprod.yaml ${{ github.event_name != 'pull_request' && '--upload' || '' }} --platform GITHUB --run_id ${{ github.run_id }} --token ${{secrets.SYNAPSE_PAT}}
 
   ghcr-publish:
     needs: [build, test]
