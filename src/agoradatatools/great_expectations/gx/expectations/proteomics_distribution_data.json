@@ -39,6 +39,13 @@
       "meta": {}
     },
     {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "min"
+      },
+      "meta": {}
+    },
+    {
       "expectation_type": "expect_column_values_to_be_between",
       "kwargs": {
         "column": "min",
@@ -48,17 +55,17 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "min"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "max",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "max"
       },
       "meta": {}
     },
@@ -72,17 +79,17 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "max"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "first_quartile",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "first_quartile"
       },
       "meta": {}
     },
@@ -96,17 +103,17 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "first_quartile"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "median",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "median"
       },
       "meta": {}
     },
@@ -120,17 +127,17 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "median"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_be_of_type",
       "kwargs": {
         "column": "third_quartile",
         "type_": "float"
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "third_quartile"
       },
       "meta": {}
     },
@@ -140,13 +147,6 @@
         "column": "third_quartile",
         "max_value": 0.1,
         "min_value": 0
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "third_quartile"
       },
       "meta": {}
     },

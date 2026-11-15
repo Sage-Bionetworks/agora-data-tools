@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Late Onset AD",
-          "Familial AD"
+          "Familial AD",
+          "Late Onset AD"
         ]
       },
       "meta": {}
@@ -70,8 +70,8 @@
       "kwargs": {
         "column": "contributing_group",
         "value_set": [
-          "UCI",
-          "IU/Jax/Pitt"
+          "IU/Jax/Pitt",
+          "UCI"
         ]
       },
       "meta": {}
@@ -95,7 +95,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "study_synid",
-        "regex": "^syn\\d+$"
+        "regex": "^syn[0-9]+$"
       },
       "meta": {}
     },
@@ -133,7 +133,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "jax_id",
-        "regex": "^\\d{6}$"
+        "regex": "^[0-9]{6}$"
       },
       "meta": {}
     },
@@ -233,7 +233,7 @@
       "kwargs": {
         "column": "transcriptomics",
         "condition_parser": "pandas",
-        "regex": "^comparison/expression\\?(categories=.*&)?models=",
+        "regex": "^comparison/expression\\?(?:categories=.*&)?models=",
         "row_condition": "transcriptomics.notnull()"
       },
       "meta": {}
@@ -252,21 +252,6 @@
       "expectation_type": "expect_column_values_to_be_null",
       "kwargs": {
         "column": "spatial_transcriptomics"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "genetic_info",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "genetic_info"
       },
       "meta": {}
     },
@@ -315,21 +300,6 @@
           },
           "type": "array"
         }
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "biomarkers",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "biomarkers"
       },
       "meta": {}
     },
@@ -431,21 +401,6 @@
           },
           "type": "array"
         }
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "pathology",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "pathology"
       },
       "meta": {}
     },

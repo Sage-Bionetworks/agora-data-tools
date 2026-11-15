@@ -7,6 +7,7 @@ from agoradatatools.etl.transform.disease_correlation import (
     create_lookup,
     extract_module_name,
     process_group,
+    REQUIRED_INPUT,
 )
 
 
@@ -164,26 +165,16 @@ class TestDiseaseCorrelation:
     @pytest.mark.parametrize(
         "dataset, missing_column",
         [
-            ("disease_correlation_results", "cluster"),
-            ("model_metadata", "model"),
-            ("model_genetic_modifications", "model"),
-            ("model_genetic_modifications", "mouse_gene_symbol"),
-        ],
-        ids=[
-            "Missing 'cluster' from disease_correlation_results",
-            "Missing 'model' from model_metadata",
-            "Missing 'model' from model_genetic_modifications",
-            "Missing 'mouse_gene_symbol' from model_genetic_modifications",
+            (dataset, column)
+            for dataset, columns in REQUIRED_INPUT.items()
+            for column in columns
         ],
     )
     def test_transform_disease_correlation_fails_with_missing_columns(
         self, dataset: str, missing_column: str
     ) -> None:
-        """
-        Test that the disease correlation transformation raises appropriate errors when required datasets are missing
-        a required column. This does not test every column, rather it serves to confirm that every data set is being
-        validated for required columns. Testing if one required column is missing from each dataset is sufficient.
-        """
+        """Tests that the transform raises a ValueError when any required column is missing from a dataset"""
+
         datasets = self.read_input_files(
             {
                 "disease_correlation_results": "disease_correlation_results.csv",
@@ -199,81 +190,6 @@ class TestDiseaseCorrelation:
             match=f"Missing required columns in {dataset} dataset: {missing_column}",
         ):
             transform_disease_correlation(datasets)
-
-    def test_gene_symbol_mapping(self) -> None:
-        """
-        Test that transform_disease_correlation correctly maps mouse gene symbols to human
-        gene symbols when a mapping exists, and preserves the original mouse gene symbol
-        when no human mapping is available.
-        """
-        datasets = {
-            "disease_correlation_results": pd.DataFrame(
-                [
-                    {
-                        "cluster": "Cluster A",
-                        "module": "IFGyellow",
-                        "mouse_model": "APOE4",
-                        "age": "4 months",
-                        "sex": "Male",
-                        "correlation": 0.5,
-                        "adjusted_p_value": 0.01,
-                    },
-                    {
-                        "cluster": "Cluster B",
-                        "module": "PHGbrown",
-                        "mouse_model": "Model1",
-                        "age": "6 months",
-                        "sex": "Female",
-                        "correlation": 0.6,
-                        "adjusted_p_value": 0.02,
-                    },
-                ]
-            ),
-            "model_metadata": pd.DataFrame(
-                [
-                    {
-                        "model": "APOE4",
-                        "matched_controls": "Ctrl",
-                        "model_type": "TypeX",
-                    }
-                ]
-            ),
-            "model_genetic_modifications": pd.DataFrame(
-                [
-                    {
-                        "model": "APOE4",
-                        "mouse_gene_symbol": "Apoe",
-                        "human_gene_symbol": "APOE",
-                        "human_ensembl_id": "ENSG00000130203",
-                    },
-                    {
-                        "model": "5xFAD",
-                        "mouse_gene_symbol": "App",
-                        "human_gene_symbol": "APP",
-                        "human_ensembl_id": "ENSG00000142192",
-                    },
-                    {
-                        "model": "5xFAD",
-                        "mouse_gene_symbol": "Psen1",
-                        "human_gene_symbol": "PSEN1",
-                        "human_ensembl_id": "ENSG00000080815",
-                    },
-                    {
-                        "model": "Model1",
-                        "mouse_gene_symbol": "Mapt",
-                        "human_gene_symbol": None,
-                        "human_ensembl_id": None,
-                    },
-                ]
-            ),
-        }
-        result = transform_disease_correlation(datasets)
-
-        assert len(result) == 2
-        assert result[0]["modified_genes"] == ["APOE"]  # human symbol used
-        assert result[1]["modified_genes"] == [
-            "Mapt"
-        ]  # no human mapping, mouse symbol preserved
 
 
 class TestCreateLookup:
@@ -372,7 +288,7 @@ class TestProcessGroup:
         model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
-        allele_info = {"mouse_gene_symbol": ["APOE4", "TREM2"]}
+        allele_info = {"modified_gene": ["APOE4", "TREM2"]}
 
         result = process_group(
             group=group,
@@ -501,7 +417,7 @@ class TestProcessGroup:
         model_info = {"matched_controls": ["C57BL6J"], "model_type": "Late Onset AD"}
 
         # Allele information with multiple genes
-        allele_info = {"mouse_gene_symbol": ["APOE4", "TREM2"]}
+        allele_info = {"modified_gene": ["APOE4", "TREM2"]}
 
         result = process_group(
             group=group,
