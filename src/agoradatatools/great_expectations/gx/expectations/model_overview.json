@@ -44,8 +44,8 @@
       "kwargs": {
         "column": "model_type",
         "value_set": [
-          "Late Onset AD",
-          "Familial AD"
+          "Familial AD",
+          "Late Onset AD"
         ]
       },
       "meta": {}
@@ -157,20 +157,12 @@
       "kwargs": {
         "column": "available_data",
         "list_members": [
+          "Transcriptomics",
           "Proteomics",
-          "Pathology",
           "Disease Correlation",
-          "Biomarkers",
-          "Transcriptomics"
+          "Pathology",
+          "Biomarkers"
         ]
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "transcriptomics",
-        "type_": "str"
       },
       "meta": {}
     },
@@ -204,14 +196,6 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "disease_correlation",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "disease_correlation",
@@ -237,14 +221,6 @@
             }
           ]
         }
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "pathology",
-        "type_": "str"
       },
       "meta": {}
     },
@@ -278,14 +254,6 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "biomarkers",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "biomarkers",
@@ -315,14 +283,6 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "study_data",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_json_schema",
       "kwargs": {
         "column": "study_data",
@@ -332,7 +292,7 @@
           "additionalProperties": false,
           "properties": {
             "link_url": {
-              "pattern": "^https://adknowledgeportal\\.synapse\\.org/Explore/Studies/DetailsPage/StudyDetails\\?Study=syn\\d+$",
+              "pattern": "^https://adknowledgeportal\\.synapse\\.org/Explore/Studies/DetailsPage/StudyDetails\\?Study=syn[0-9]+$",
               "type": "string"
             }
           },
@@ -341,14 +301,6 @@
           ],
           "type": "object"
         }
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "jax_strain",
-        "type_": "str"
       },
       "meta": {}
     },
@@ -362,7 +314,7 @@
           "additionalProperties": false,
           "properties": {
             "link_url": {
-              "pattern": "^https://jax\\.org/strain/\\d+$",
+              "pattern": "^https://jax\\.org/strain/[0-9]+$",
               "type": "string"
             }
           },
