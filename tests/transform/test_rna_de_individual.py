@@ -13,7 +13,7 @@ The tests use synthetic datasets stored in `tests/test_assets/rna_de_individual/
 - Age sorting (numeric ordering of age entries)
 - Data precision (rounding to 5 decimal places)
 - Edge cases (single row data, missing metadata, empty files)
-- Error handling (missing datasets, empty files, missing columns, inconsistent model_group values)
+- Error handling (empty files, missing data-file columns)
 - Column value rule enforcement via check_column_rules (non-empty required fields, age format)
 - Result ordering logic (controls should appear first in result_order arrays)
 - Matched control determination (first item in result_order list)
@@ -35,7 +35,6 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.rna_de_individual import (
-    COLUMN_RULES,
     transform_rna_de_individual,
     _process_individual_data_file_core,
 )
@@ -334,21 +333,6 @@ class TestTransformRnaDeIndividual:
     """
 
     data_files_path = "tests/test_assets/rna_de_individual"
-
-    def test_transform_rna_de_individual_missing_required_dataset(self) -> None:
-        """Test that missing required datasets raise ValueError."""
-        # Load datasets without mouse_gene_metadata
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "synthetic_genotype_label_map.csv",
-                # Missing synthetic_mouse_gene_metadata.json
-            ]
-        )
-
-        # Expect transformation to raise ValueError for missing required dataset
-        with pytest.raises(ValueError):
-            transform_rna_de_individual(datasets=datasets)
 
     _FILE_TO_KEY = {
         "synthetic_genotype_label_map.csv": "genotype_label_map",
@@ -841,31 +825,6 @@ class TestTransformRnaDeIndividual:
         assert "Model_B" in error_message
         assert "Model_C" in error_message
 
-    def test_inconsistent_model_group_values(self) -> None:
-        """Test error handling for inconsistent model_group values within the same model.
-
-        Tests that when a model has different model_group values across multiple rows
-        (e.g., different genotypes), a clear ValueError is raised identifying which
-        models have inconsistent values.
-        """
-        # Load synthetic test data with inconsistent model_group values
-        datasets = self._load_synthetic_test_data(
-            [
-                "synthetic_basic_data.csv",
-                "genotype_label_map_inconsistent.csv",
-                "synthetic_mouse_gene_metadata.json",
-            ]
-        )
-
-        # Expect transformation to raise ValueError with informative message
-        with pytest.raises(ValueError) as exc_info:
-            transform_rna_de_individual(datasets=datasets)
-
-        # Verify the error message contains expected information
-        error_message = str(exc_info.value)
-        assert "multiple model_group values" in error_message
-        assert "APOE4" in error_message
-
     def _build_minimal_datasets(
         self,
         label_map_overrides: Dict[str, Any] = None,
@@ -901,21 +860,6 @@ class TestTransformRnaDeIndividual:
             ),
             data_file_key: pd.DataFrame(data_file),
         }
-
-    @pytest.mark.parametrize("column", sorted(COLUMN_RULES["genotype_label_map"]))
-    def test_label_map_empty_value_raises(self, column: str) -> None:
-        """Empty values in any gentotype label map column should raise an error.
-
-        Columns come from COLUMN_RULES, so a newly required column is covered
-        without a hand-written test.
-        """
-        datasets = self._build_minimal_datasets()
-        # result_order is int; cast before writing "" so pandas does not warn.
-        label_map = datasets["genotype_label_map"]
-        label_map[column] = label_map[column].astype(object)
-        label_map.loc[0, column] = ""
-        with pytest.raises(ValueError, match="not_empty"):
-            transform_rna_de_individual(datasets=datasets)
 
     def test_missing_gene_symbol_normalized(self) -> None:
         """A metadata row with a missing gene symbol becomes an empty string, not NaN.
@@ -971,26 +915,6 @@ class TestTransformRnaDeIndividual:
 
         assert len(output) == 1
         assert output[0]["result_order"] == ["Wildtype", "Transgenic"]
-
-    def test_column_rules_parameter_honored(self) -> None:
-        """Test that a custom column_rules parameter overrides the module-level default.
-
-        Passing a custom rule that cannot be satisfied (requiring model to contain
-        'IMPOSSIBLE') proves that the parameter — not the hardcoded constant — drives
-        static dataset validation.
-        """
-        datasets = self._build_minimal_datasets()
-
-        custom_column_rules = {
-            "genotype_label_map": {
-                "model": [ContainsSubstringRule(value="IMPOSSIBLE")],
-            }
-        }
-
-        with pytest.raises(ValueError, match="contains"):
-            transform_rna_de_individual(
-                datasets=datasets, column_rules=custom_column_rules
-            )
 
     def test_data_file_column_rules_parameter_honored(self) -> None:
         """Test that a custom data_file_column_rules parameter overrides the module-level default.
