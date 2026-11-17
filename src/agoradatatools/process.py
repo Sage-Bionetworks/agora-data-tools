@@ -8,7 +8,7 @@ from pandas import DataFrame
 from typer import Argument, Option, Typer
 
 from agoradatatools.errors import ADTDataProcessingError, ADTDataValidationError
-from agoradatatools.etl import extract, load, transform, utils
+from agoradatatools.etl import extract, load, transform, utils, validate
 from agoradatatools.gx import GreatExpectationsRunner
 from agoradatatools.logs import log_time
 from agoradatatools.reporter import ADTGXReporter, DatasetReport
@@ -221,7 +221,7 @@ def process_dataset(
     dataset_report = DatasetReport(data_set=dataset_name)
     file_ids = []
 
-    entities_as_df = {}
+    raw_entities = {}
     for entity in dataset_obj[dataset_name]["files"]:
         entity_id = entity["id"]
         entity_format = entity["format"]
@@ -231,12 +231,18 @@ def process_dataset(
         df = extract.get_entity_as_df(syn_id=entity_id, source=entity_format, syn=syn)
         df = utils.standardize_column_names(df=df)
         df = utils.standardize_values(df=df)
+        raw_entities[entity_name] = df
 
+    # Input specs are written against source column names, so validation runs before
+    # the dataset's column_rename.
+    validate.validate_inputs(raw_entities)
+
+    entities_as_df = {}
+    for entity_name, df in raw_entities.items():
         if "column_rename" in dataset_obj[dataset_name].keys():
             df = utils.rename_columns(
                 data=df, column_map=dataset_obj[dataset_name]["column_rename"]
             )
-
         entities_as_df[entity_name] = df
 
     # get provenance if any
