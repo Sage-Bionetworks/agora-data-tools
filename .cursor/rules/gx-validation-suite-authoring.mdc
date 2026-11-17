@@ -747,19 +747,49 @@ Use the correct regex flavor depending on where the regex is written:
 
 | Context | Flavor | Notes |
 |---------|--------|-------|
-| Python `.py` files (e.g. `expect_column_values_to_match_regex`) | **Python `re` / RE2** | Raw strings (`r"..."`) preferred; no lookbehind of variable length |
+| Python `.py` files (e.g. `expect_column_values_to_match_regex`) | **Python `re` / RE2** | Raw string (`r"..."`) whenever the pattern contains a backslash; no lookbehind of variable length |
 | JSON schema files (`json_schemas/**/*.json`) via `"pattern"` key | **ECMAScript / JavaScript** | No named groups `(?P<name>...)`, no `\A`/`\Z` anchors — use `^`/`$` instead |
 
 ```python
 # ✅ Python (re/RE2) — in .py or .ipynb
-validator.expect_column_values_to_match_regex("col", regex=r"^\d{6}$")
-validator.expect_column_values_to_match_regex("url", regex=r"^https://")
+validator.expect_column_values_to_match_regex("col", regex=r"^[0-9]{6}$")
+validator.expect_column_values_to_match_regex("url", regex=r"^https://example\.org/")
 ```
 
 ```json
 // ✅ ECMAScript — in json_schemas/**/*.json
-{ "pattern": "^\\d{6}$" }
-{ "pattern": "^https://" }
+{ "pattern": "^[0-9]{6}$" }
+{ "pattern": "^https://example\\.org/" }
+```
+
+### Do not use deprecated or warning-producing regex syntax
+
+Every new or edited regex — native `match_regex` patterns and JSON-schema `"pattern"`s alike — must
+follow these conventions:
+
+- **Digits: use `[0-9]`, never `\d`.** This is the project convention across all suites and schemas.
+  (In Python, `\d` also matches non-ASCII Unicode digits, so `[0-9]` is the exact intent.)
+- **Use a raw string (`r"..."`) whenever a Python regex contains a backslash.** In a regular
+  string, escapes such as `"\d"`, `"\."`, `"\s"` or `"\-"` are invalid string escapes: Python emits
+  a `DeprecationWarning` (`SyntaxWarning` from Python 3.12), and they will become errors. A raw
+  string passes the pattern through unchanged, so the regex is identical. Don't double the
+  backslashes (`"\\."`) either — use `r"\."`. A pattern with no backslash (e.g. `"^[0-9]{6}$"`)
+  behaves the same in a regular string; using raw strings for every regex is fine too.
+- **Use non-capturing groups `(?:...)` in `expect_column_values_to_match_regex`.** GX evaluates the
+  pattern with pandas `str.contains`, which emits `UserWarning: This pattern … has match groups` for
+  any capture group `(...)`. A non-capturing group matches exactly the same strings without the
+  warning.
+- **Escape literal dots** (`\.`) in hostnames, file extensions and similar literals — an unescaped
+  `.` matches any character.
+
+```python
+# ❌ deprecated / warning-producing
+validator.expect_column_values_to_match_regex("id", "^ENSG\d{11}$")                     # invalid escape, \d
+validator.expect_column_values_to_match_regex("url", r"^https://(www\.)?example.org/")  # capture group, unescaped dot
+
+# ✅
+validator.expect_column_values_to_match_regex("id", r"^ENSG[0-9]{11}$")
+validator.expect_column_values_to_match_regex("url", r"^https://(?:www\.)?example\.org/")
 ```
 
 ```json
@@ -807,7 +837,7 @@ validator.expect_column_values_to_not_be_null("jax_id")
 
 # ✅ CORRECT — after loading with dtype={"jax_id": str}
 validator.expect_column_values_to_be_of_type("jax_id", "str")
-validator.expect_column_values_to_match_regex("jax_id", regex=r"^\d{6}$")
+validator.expect_column_values_to_match_regex("jax_id", regex=r"^[0-9]{6}$")
 ```
 
 ---
@@ -1124,6 +1154,9 @@ Final suite: 53 expectations (was 52), 100% passing (runner-faithful, verified a
 | Regex fails on a zero-padded string column (e.g. `jax_id`) | `pd.read_json()` converts `"004807"` → `4807` (int); validate as `int`, not `str` |
 | Regex pattern doesn't match actual data | Always inspect the staging file directly — don't rely on the transform source code alone |
 | Wrong regex flavor used | Use Python `re`/RE2 syntax in `.py`/`.ipynb` files; use ECMAScript syntax in `json_schemas/**/*.json` `"pattern"` fields |
+| `DeprecationWarning: invalid escape sequence '\.'` (or `'\d'`, `'\s'`, …) when a cell runs | The regex is in a regular string. Make it a raw string (`r"..."`); the pattern itself is unchanged — see "Do not use deprecated or warning-producing regex syntax" in Step 3 |
+| `UserWarning: This pattern is interpreted as a regular expression, and has match groups` | A `match_regex` pattern contains a capture group `(...)`. Use a non-capturing group `(?:...)` — same matches, no warning |
+| A regex uses `\d` | Use `[0-9]` (project convention, in both Python and JSON-schema patterns) |
 | `expect_column_values_to_have_list_length_in_range` / `expect_column_values_to_have_list_members_of_type` / `expect_column_values_to_have_unique_list_members` always fail on nested columns | These expectations check `isinstance(cell, list)` and fail after `convert_nested_columns_to_json` converts the column to a JSON string. Use `expect_column_values_to_match_json_schema` with `minItems`/`maxItems`, `"items": {"type": ...}`, and `"uniqueItems": true` instead |
 | `nbconvert` execution hangs or takes 60+ minutes | The staging file is too large for `pd.read_json()` to process interactively. Switch to Option B in Step 4: write the JSON directly, then ask the user for a confirmed data source (local file or Synapse ID) to verify the suite on a 500-record sample — do not assume `staging/` is available or up-to-date |
 | New JSON schema missing `$schema` / `$id` (in a file **or** inlined in a suite) | Every GX JSON schema must carry `$schema` (draft 2019-09) and a GitHub repo-path `$id`, whether it lives in a standalone file or is embedded inline in an `expect_column_values_to_match_json_schema` kwarg — see Step 2 |

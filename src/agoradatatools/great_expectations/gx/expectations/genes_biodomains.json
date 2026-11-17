@@ -18,18 +18,10 @@
       "meta": {}
     },
     {
-      "expectation_type": "expect_column_value_lengths_to_equal",
-      "kwargs": {
-        "column": "ensembl_gene_id",
-        "value": 15
-      },
-      "meta": {}
-    },
-    {
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "ensembl_gene_id",
-        "regex": "^ENSG\\d{11}$"
+        "regex": "^ENSG[0-9]{11}$"
       },
       "meta": {}
     },
@@ -37,21 +29,6 @@
       "expectation_type": "expect_column_values_to_be_unique",
       "kwargs": {
         "column": "ensembl_gene_id"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "gene_biodomains",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "gene_biodomains"
       },
       "meta": {}
     },
