@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from agoradatatools.etl.transform.protein_de_individual import (
-    STATIC_INPUTS,
+    SHARED_INPUTS,
     transform_protein_de_individual,
     _build_output,
     _check_metadata_coverage,
@@ -443,7 +443,7 @@ class TestValidateFileMaps:
     def _datasets() -> dict[str, pd.DataFrame]:
         """Empty frames named like a valid dataset. _validate_file_maps only checks names."""
         return {
-            **{name: pd.DataFrame() for name in STATIC_INPUTS},
+            **{name: pd.DataFrame() for name in SHARED_INPUTS},
             "proteomics_file": pd.DataFrame(),
             "load2_harmonized_metadata": pd.DataFrame(),
         }
@@ -454,7 +454,7 @@ class TestValidateFileMaps:
             self._datasets(),
             {"proteomics_file": "LOAD2"},
             {"load2_harmonized_metadata": "LOAD2"},
-            STATIC_INPUTS,
+            SHARED_INPUTS,
             self.known_models,
         )
 
@@ -478,7 +478,7 @@ class TestValidateFileMaps:
                 self._datasets(),
                 model_map,
                 {"load2_harmonized_metadata": "LOAD2"},
-                STATIC_INPUTS,
+                SHARED_INPUTS,
                 self.known_models,
             )
 
@@ -502,7 +502,7 @@ class TestValidateFileMaps:
                 self._datasets(),
                 {"proteomics_file": "LOAD2"},
                 metadata_map,
-                STATIC_INPUTS,
+                SHARED_INPUTS,
                 self.known_models,
             )
 
@@ -516,7 +516,7 @@ class TestValidateFileMaps:
                     "load2_harmonized_metadata": "LOAD2",
                 },
                 {"load2_harmonized_metadata": "LOAD2"},
-                STATIC_INPUTS,
+                SHARED_INPUTS,
                 self.known_models,
             )
 
@@ -532,7 +532,7 @@ class TestValidateFileMaps:
                 datasets,
                 {"proteomics_file": "LOAD2"},
                 {"load2_harmonized_metadata": "LOAD2"},
-                STATIC_INPUTS,
+                SHARED_INPUTS,
                 self.known_models,
             )
 
@@ -560,7 +560,7 @@ class TestTransformProteinDeIndividual:
             model_map = {
                 key: "LOAD2"
                 for key in datasets
-                if key not in STATIC_INPUTS and not key.endswith("harmonized_metadata")
+                if key not in SHARED_INPUTS and not key.endswith("harmonized_metadata")
             }
         if metadata_map is None:
             metadata_map = {

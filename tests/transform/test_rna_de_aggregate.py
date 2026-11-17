@@ -578,58 +578,6 @@ class TestTransformRnaDeAggregate:
             self.data_files_path, data_files, self._FILE_TO_KEY
         )
 
-    def _build_minimal_datasets(self) -> Dict[str, pd.DataFrame]:
-        """Build the smallest datasets that pass required-column checks."""
-        biodom = {
-            column: ["x"]
-            for column in (
-                "biodomain",
-                "abbr",
-                "label",
-                "color",
-                "go_id",
-                "goterm_name",
-                "n_symbol",
-                "symbol",
-                "ensembl_id",
-            )
-        }
-        biodom["ensembl_id"] = ["ENSMUSG00000000001"]
-        biodom["biodomain"] = ["Synaptic"]
-        return {
-            "genotype_label_map": pd.DataFrame(
-                {
-                    "model": ["Model_A", "Model_A"],
-                    "genotype": ["Tg", "Wt"],
-                    "display_label": ["Transgenic", "Wildtype"],
-                    "model_group": ["Group_A", "Group_A"],
-                    "result_order": [2, 1],
-                    "model_type": ["Familial AD", "Familial AD"],
-                }
-            ),
-            "mouse_gene_metadata": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "gene_symbol": ["Gene1"],
-                    "alias": [""],
-                }
-            ),
-            "biodom_genes_mm": pd.DataFrame(biodom),
-            "data_file": pd.DataFrame(
-                {
-                    "ensembl_gene_id": ["ENSMUSG00000000001"],
-                    "log2foldchange": [1.0],
-                    "padj": [0.01],
-                    "model": ["Model_A"],
-                    "case": ["Tg"],
-                    "control": ["Wt"],
-                    "age": ["6 months"],
-                    "sex": ["Male"],
-                    "tissue": ["Cortex"],
-                }
-            ),
-        }
-
     def test_synthetic_basic_data(self) -> None:
         """Test transformation with synthetic basic data.
 
@@ -1112,7 +1060,14 @@ class TestTransformRnaDeAggregate:
 
     def test_data_file_required_columns_parameter(self) -> None:
         """data_file_required_columns is wired through to column validation."""
-        datasets = self._build_minimal_datasets()
+        datasets = self._load_synthetic_test_data(
+            [
+                "synthetic_basic_data.csv",
+                "synthetic_genotype_label_map.csv",
+                "synthetic_mouse_gene_metadata.json",
+                "synthetic_biodom_genes_mm.csv",
+            ]
+        )
         with pytest.raises(ValueError, match="nonexistent_column"):
             transform_rna_de_aggregate(
                 datasets=datasets,

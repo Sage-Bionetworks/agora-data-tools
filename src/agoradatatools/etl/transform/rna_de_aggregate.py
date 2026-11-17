@@ -61,7 +61,9 @@ from agoradatatools.etl.transform.transform_utils.model_ad_expression_utils impo
 
 logger = logging.getLogger(__name__)
 
-STATIC_INPUTS = frozenset(
+# Reference files shared by every data file in the dataset. The Input Validation
+# stage checks them; this set only separates them from the per-comparison data files.
+SHARED_INPUTS = frozenset(
     {"genotype_label_map", "mouse_gene_metadata", "biodom_genes_mm"}
 )
 
@@ -445,7 +447,7 @@ def transform_rna_de_aggregate(
     output = []
 
     # Process files one at a time to reduce memory usage
-    file_list = [k for k in datasets.keys() if k not in STATIC_INPUTS]
+    file_list = [k for k in datasets.keys() if k not in SHARED_INPUTS]
     total_files = len(file_list)
 
     logger.info(f"Transform rna_de_aggregate total data files: {total_files}")

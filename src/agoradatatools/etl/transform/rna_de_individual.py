@@ -66,7 +66,9 @@ logger = logging.getLogger(__name__)
 
 UNITS = "Log2 Counts per Million"
 
-STATIC_INPUTS = frozenset({"genotype_label_map", "mouse_gene_metadata"})
+# Reference files shared by every data file in the dataset. The Input Validation
+# stage checks them; this set only separates them from the per-comparison data files.
+SHARED_INPUTS = frozenset({"genotype_label_map", "mouse_gene_metadata"})
 
 DATA_FILE_REQUIRED_COLUMNS = [
     "ensembl_gene_id",
@@ -225,7 +227,7 @@ def transform_rna_de_individual(
     # holding multiple files in memory simultaneously when they genuinely need to
     # be combined.  The alternative of concatenating ALL files first would hold
     # the full ~5+ GB in memory at once regardless of grouping need.
-    file_list = [k for k in datasets.keys() if k not in STATIC_INPUTS]
+    file_list = [k for k in datasets.keys() if k not in SHARED_INPUTS]
     total_files = len(file_list)
     logger.info(
         f"Transform rna_de_individual: processing {total_files} data files: {file_list}"

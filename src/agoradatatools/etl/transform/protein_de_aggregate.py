@@ -48,7 +48,9 @@ METADATA_FIELDS = ("model", "sex", "age", "tissue")
 GROUP_KEY = ["model", "tissue", "sex", "age"]
 AGE_KEY = ["unique_id", "model", "tissue", "sex", "age"]
 
-STATIC_INPUTS = frozenset(
+# Reference files shared by every data file in the dataset. The Input Validation
+# stage checks them; this set only separates them from the per-comparison data files.
+SHARED_INPUTS = frozenset(
     {
         "genotype_label_map",
         "mouse_gene_metadata",
@@ -244,7 +246,7 @@ def transform_protein_de_aggregate(
     overlay = _validate_file_metadata(
         datasets,
         file_metadata,
-        STATIC_INPUTS,
+        SHARED_INPUTS,
         set(genotype_label_map_df["model"].unique()),
     )
     model_group_dict = build_model_to_model_group_lookup(genotype_label_map_df)

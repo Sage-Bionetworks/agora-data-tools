@@ -81,6 +81,24 @@ class TestLoadInputSpecs:
             path = spec_test_dir / f"test_{name}_spec.py"
             assert path.is_file(), path
 
+    def test_expression_shared_inputs_are_registered(self) -> None:
+        """Every SHARED_INPUTS name on an expression transform has an input spec."""
+        from agoradatatools.etl.transform import (
+            protein_de_aggregate,
+            protein_de_individual,
+            rna_de_aggregate,
+            rna_de_individual,
+        )
+
+        for module in (
+            protein_de_aggregate,
+            protein_de_individual,
+            rna_de_aggregate,
+            rna_de_individual,
+        ):
+            missing = module.SHARED_INPUTS - INPUT_SPECS.keys()
+            assert not missing, (module.__name__, missing)
+
 
 class TestValidateOne:
     """Tests for validating one frame against one spec."""

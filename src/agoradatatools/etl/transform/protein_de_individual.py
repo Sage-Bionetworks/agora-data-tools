@@ -51,7 +51,9 @@ UNITS = "Log2 Relative Abundance"
 AGE_BINS = [float("-inf"), 6, 10, 16, 20, float("inf")]
 AGE_LABELS = [4, 8, 12, 18, 24]
 
-STATIC_INPUTS = frozenset(
+# Reference files shared by every data file in the dataset. The Input Validation
+# stage checks them; this set only separates them from the per-comparison data files.
+SHARED_INPUTS = frozenset(
     {"genotype_label_map", "mouse_gene_metadata", "uniprot_ensembl_map"}
 )
 
@@ -364,7 +366,7 @@ def transform_protein_de_individual(
         datasets,
         model_map,
         metadata_map,
-        STATIC_INPUTS,
+        SHARED_INPUTS,
         set(genotype_label_map_df["model"]),
     )
 
