@@ -1,3 +1,6 @@
+"""Tests for the model_metadata input spec."""
+
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -6,6 +9,7 @@ from agoradatatools.etl.validate import validate_inputs
 
 
 def valid_frame() -> pd.DataFrame:
+    """One well-formed model metadata row."""
     return pd.DataFrame(
         {
             "model": ["3xTg-AD"],
@@ -31,13 +35,16 @@ def valid_frame() -> pd.DataFrame:
     )
 
 
-def test_valid_frame_passes():
+def test_valid_frame_passes() -> None:
+    """A well-formed row satisfies the spec."""
     validate_inputs({"model_metadata": valid_frame()})
 
 
-def test_blank_model_fails_not_empty():
+@pytest.mark.parametrize("blank", ["", None, np.nan])
+def test_blank_model_fails_not_empty(blank: str | float | None) -> None:
+    """A blank model is reported as not_empty."""
     df = valid_frame()
-    df["model"] = [""]
+    df["model"] = [blank]
     with pytest.raises(
         ADTDataValidationError,
         match="'model_metadata', column 'model'.*not_empty",
@@ -45,7 +52,8 @@ def test_blank_model_fails_not_empty():
         validate_inputs({"model_metadata": df})
 
 
-def test_duplicate_model_fails_unique():
+def test_duplicate_model_fails_unique() -> None:
+    """A repeated model name is reported as unique."""
     df = pd.concat([valid_frame()] * 2, ignore_index=True)
     with pytest.raises(
         ADTDataValidationError,
