@@ -302,18 +302,14 @@ utrs <- subset(gtf, type %in% c(five_prime, three_prime))
 utrs_by_gene <- split(utrs, utrs$gene_id)
 stopifnot(lengths(utrs_by_gene) == lengths(reduce(utrs_by_gene)))
 
-# Although the UTRs are labeled in the GTF as 5' or 3', they are labeled
-# relative to the positive strand. The labels need to be swapped for negative
-# strand genes.
+# Rename the UTR type labels
 utrs_df <- as.data.frame(utrs) |>
   select(all_of(gtf_cols), type) |>
   mutate(
-    utr_type = case_when(
-      type == five_prime & strand == "+" ~ "5'",
-      type == five_prime & strand == "-" ~ "3'",
-      type == three_prime & strand == "+" ~ "3'",
-      type == three_prime & strand == "-" ~ "5'",
-      .default = NULL
+    utr_type = recode_values(
+      type,
+      five_prime ~ "5'",
+      three_prime ~ "3'"
     ),
     type = "utr"
   )
