@@ -167,8 +167,8 @@ canonical_transcripts <- merge(gene_info, transcript_info,
 # Check: There should be 1 canonical transcript per gene, and no duplicates
 # across genes
 stopifnot(nrow(distinct(canonical_transcripts)) == nrow(canonical_transcripts))
-stopifnot(all(!duplicated(canonical_transcripts$gene_id)))
-stopifnot(all(!duplicated(canonical_transcripts$transcript_id)))
+stopifnot(!duplicated(canonical_transcripts$gene_id))
+stopifnot(!duplicated(canonical_transcripts$transcript_id))
 
 # GTF for Ensembl release 104
 gtf <- rtracklayer::import(gtf_file, format = "gtf") |>
@@ -186,10 +186,10 @@ gtf$hgnc_symbol <- gtf$gene_name
 gtf$chromosome <- as.character(seqnames(gtf))
 
 # Check: all genes we care about should be in canonical_transcripts
-stopifnot(all(gtf$gene_id %in% canonical_transcripts$gene_id))
+stopifnot(gtf$gene_id %in% canonical_transcripts$gene_id)
 
 # Check: all gene symbols in "variants" should exist in the GTF
-stopifnot(all(unique(variants$hgnc_symbol) %in% unique(gtf$hgnc_symbol)))
+stopifnot(unique(variants$hgnc_symbol) %in% unique(gtf$hgnc_symbol))
 
 gtf_cols <- c(
   "chromosome", "ensembl_gene_id", "hgnc_symbol", "strand", "start", "end"
@@ -271,7 +271,7 @@ tss_df <- as.data.frame(transcripts) |>
   )
 
 # Check: There shouldn't be any NULL types
-stopifnot(all(!is.null(tss_df$type)))
+stopifnot(!is.null(tss_df$type))
 
 
 ## 5c. Exons -------------------------------------------------------------------
@@ -280,7 +280,7 @@ exons <- subset(gtf, type == "exon")
 
 # Check: there shouldn't be any overlapping exon regions in a given gene
 exons_by_gene <- split(exons, exons$gene_id)
-stopifnot(all(lengths(exons_by_gene) == lengths(reduce(exons_by_gene))))
+stopifnot(lengths(exons_by_gene) == lengths(reduce(exons_by_gene)))
 
 exons_df <- as.data.frame(exons) |>
   select(all_of(gtf_cols), type)
@@ -288,11 +288,14 @@ exons_df <- as.data.frame(exons) |>
 
 ## 5d. UTRs --------------------------------------------------------------------
 
-utrs <- subset(gtf, type %in% c("five_prime_utr", "three_prime_utr"))
+three_prime <- "three_prime_utr"
+five_prime <- "five_prime_utr"
+
+utrs <- subset(gtf, type %in% c(five_prime, three_prime))
 
 # Check: there shouldn't be any overlapping UTR regions
 utrs_by_gene <- split(utrs, utrs$gene_id)
-stopifnot(all(lengths(utrs_by_gene) == lengths(reduce(utrs_by_gene))))
+stopifnot(lengths(utrs_by_gene) == lengths(reduce(utrs_by_gene)))
 
 # Although the UTRs are labeled in the GTF as 5' or 3', they are labeled
 # relative to the positive strand. The labels need to be swapped for negative
@@ -301,17 +304,17 @@ utrs_df <- as.data.frame(utrs) |>
   select(all_of(gtf_cols), type) |>
   mutate(
     utr_type = case_when(
-      type == "five_prime_utr" & strand == "+" ~ "5'",
-      type == "five_prime_utr" & strand == "-" ~ "3'",
-      type == "three_prime_utr" & strand == "+" ~ "3'",
-      type == "three_prime_utr" & strand == "-" ~ "5'",
+      type == five_prime & strand == "+" ~ "5'",
+      type == five_prime & strand == "-" ~ "3'",
+      type == three_prime & strand == "+" ~ "3'",
+      type == three_prime & strand == "-" ~ "5'",
       .default = NULL
     ),
     type = "utr"
   )
 
 # Check: there shouldn't be any NULL utr_types
-stopifnot(all(!is.null(utrs_df$utr_type)))
+stopifnot(!is.null(utrs_df$utr_type))
 
 
 ## 5e. Write to JSON -----------------------------------------------------------
@@ -324,7 +327,8 @@ gene_struct <- purrr::list_rbind(list(tss_df, exons_df, utrs_df)) |>
 # Pull Ensembl gene IDs into the variants df -- will also remove any variants
 # whose gene symbol does not match what is in the GTF
 var_struct <- merge(variants,
-                    select(genes_df, ensembl_gene_id, hgnc_symbol))
+                    select(genes_df, ensembl_gene_id, hgnc_symbol),
+                    by = "hgnc_symbol")
 
 # Create the "item" structure as a column of data frames so it is written as
 # a nested structure
