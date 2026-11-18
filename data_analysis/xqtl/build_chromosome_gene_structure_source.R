@@ -122,7 +122,7 @@ chromosomes <- str_extract(file_paths, "chr[0-9]+") |> unique()
 variants <- lapply(chromosomes, function(chr) {
   print(str_glue("Extracting variants for {chr}"))
 
-  chrom_files <- file_paths[grepl(chr, file_paths)]
+  chrom_files <- file_paths[grepl(str_glue("_{chr}_"), file_paths)]
   chr_data <- lapply(chrom_files, function(file) {
     # Files are g-zipped tsv files with no column header
     data <- read.table(gzfile(file), sep = "\t") |>
@@ -173,8 +173,8 @@ stopifnot(all(!duplicated(canonical_transcripts$transcript_id)))
 # GTF for Ensembl release 104
 gtf <- rtracklayer::import(gtf_file, format = "gtf") |>
   # Remove pseudogenes and mitochondrial rRNA and tRNA
-  subset(!grepl("pseudogene", gene_biotype)) |>
-  subset(!grepl("^Mt_", gene_biotype)) |>
+  #subset(!grepl("pseudogene", gene_biotype)) |>
+  #subset(!grepl("^Mt_", gene_biotype)) |>
 
   # Subset to genes, or transcript-related items from canonical transcripts only
   subset(type == "gene" |
@@ -187,6 +187,9 @@ gtf$chromosome <- as.character(seqnames(gtf))
 
 # Check: all genes we care about should be in canonical_transcripts
 stopifnot(all(gtf$gene_id %in% canonical_transcripts$gene_id))
+
+# Check: all gene symbols in "variants" should exist in the GTF
+stopifnot(all(unique(variants$hgnc_symbol) %in% unique(gtf$hgnc_symbol)))
 
 gtf_cols <- c(
   "chromosome", "ensembl_gene_id", "hgnc_symbol", "strand", "start", "end"
