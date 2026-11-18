@@ -30,7 +30,7 @@
 #   {
 #     "type": "gene",
 #     "ensembl_gene_id": "ENSG00000000419",
-#     "hgnc_symbol": "DPM1",
+#     "gene_symbol": "DPM1",
 #     "strand": "negative", # "positive" or "negative"
 #     "location": { "chromosome": "20", "start": 50934867, "end": 50959140 }
 #   }
@@ -66,6 +66,11 @@ library(jsonlite)
 
 dir_input <- file.path("data_analysis", "xqtl", "input")
 dir_output <- file.path("data_analysis", "xqtl", "output")
+
+# Make directories if they don't exist
+dir.create(dir_input, recursive = TRUE, showWarnings = FALSE)
+dir.create(dir_output, recursive = TRUE, showWarnings = FALSE)
+
 
 # 1. Download Ensembl source files ---------------------------------------------
 
@@ -127,7 +132,7 @@ variants <- lapply(chromosomes, function(chr) {
     # Files are g-zipped tsv files with no column header
     data <- read.table(gzfile(file), sep = "\t") |>
       select(V1:V4, V7)
-    colnames(data) <- c("chromosome", "start", "end", "variant_id", "hgnc_symbol")
+    colnames(data) <- c("chromosome", "start", "end", "variant_id", "gene_symbol")
     return(data)
   })
 
@@ -182,17 +187,17 @@ gtf <- rtracklayer::import(gtf_file, format = "gtf") |>
 
 # Rename some fields
 gtf$ensembl_gene_id <- gtf$gene_id
-gtf$hgnc_symbol <- gtf$gene_name
+gtf$gene_symbol <- gtf$gene_name
 gtf$chromosome <- as.character(seqnames(gtf))
 
 # Check: all genes we care about should be in canonical_transcripts
 stopifnot(gtf$gene_id %in% canonical_transcripts$gene_id)
 
 # Check: all gene symbols in "variants" should exist in the GTF
-stopifnot(unique(variants$hgnc_symbol) %in% unique(gtf$hgnc_symbol))
+stopifnot(unique(variants$gene_symbol) %in% unique(gtf$gene_symbol))
 
 gtf_cols <- c(
-  "chromosome", "ensembl_gene_id", "hgnc_symbol", "strand", "start", "end"
+  "chromosome", "ensembl_gene_id", "gene_symbol", "strand", "start", "end"
 )
 
 
@@ -206,7 +211,7 @@ genes_df <- subset(gtf, type == "gene") |>
 
 # Unique variants, ignoring potential duplicates associated with multiple genes
 var_df <- variants |>
-  select(-hgnc_symbol) |>
+  select(-gene_symbol) |>
   distinct()
 
 # Concatenate genes and variants -- list_rbind will add all columns from both
@@ -235,7 +240,7 @@ write_json(chr_final,
 # 5a: The gene structure file will contain info from canonical transcripts only,
 # from only the genes that have associated variants
 # WARNING: the variants df has ~700 symbols that aren't present in the GTF
-gtf <- subset(gtf, hgnc_symbol %in% variants$hgnc_symbol)
+gtf <- subset(gtf, gene_symbol %in% variants$gene_symbol)
 
 
 ## 5b. TSS and TES -------------------------------------------------------------
@@ -327,8 +332,8 @@ gene_struct <- purrr::list_rbind(list(tss_df, exons_df, utrs_df)) |>
 # Pull Ensembl gene IDs into the variants df -- will also remove any variants
 # whose gene symbol does not match what is in the GTF
 var_struct <- merge(variants,
-                    select(genes_df, ensembl_gene_id, hgnc_symbol),
-                    by = "hgnc_symbol")
+                    select(genes_df, ensembl_gene_id, gene_symbol),
+                    by = "gene_symbol")
 
 # Create the "item" structure as a column of data frames so it is written as
 # a nested structure
@@ -339,8 +344,8 @@ gene_struct_final$item <- select(
 
 # Combine into one entry per gene
 gene_struct_final <- gene_struct_final |>
-  select(ensembl_gene_id, hgnc_symbol, strand, item) |>
-  group_by(ensembl_gene_id, hgnc_symbol) |>
+  select(ensembl_gene_id, gene_symbol, strand, item) |>
+  group_by(ensembl_gene_id, gene_symbol) |>
   summarize(
     strand = unique(na.omit(strand)),
     items = list(item),
