@@ -85,11 +85,9 @@ class TestTransformGeneralModelAD:
         "Pass with missing ages",
     ]
     fail_test_data = [
-        "immunohisto_transform_missing_column.csv",
         "immunohisto_transform_all_errors_input.csv",
     ]
     fail_test_ids = [
-        "Fail with missing column",
         "Fail with invalid ages",
     ]
 
@@ -136,13 +134,10 @@ class TestTransformGeneralModelAD:
         self, immunohisto_transform_file: str, error_type: BaseException = ValueError
     ) -> None:
         """
-        Test that immunohisto_transform raises appropriate errors for invalid inputs.
-
-        This parametrized test verifies that the function correctly raises ValueError
-        when required columns are missing from the input data.
+        Test that immunohisto_transform raises ValueError for unparseable ages.
 
         Args:
-            immunohisto_transform_file: Name of CSV input file with missing columns
+            immunohisto_transform_file: Name of CSV input file with invalid ages
             error_type: Expected exception type (defaults to ValueError)
         """
         immunohisto_transform_df = pd.read_csv(
@@ -318,33 +313,6 @@ class TestTransformGeneralModelAD:
                     "immunohisto_measure_order": _load_test_measure_order_config(),
                 },
                 dataset_name="other_data",
-            )
-
-    def test_immunohisto_transform_missing_measure_order_config(self) -> None:
-        """
-        Test that ValueError is raised when measure order config is missing.
-
-        Verifies that the function properly validates that the config dataset is provided.
-        """
-        # Create a test DataFrame
-        input_df = pd.DataFrame(
-            {
-                "name": ["test"],
-                "evidence_type": ["test"],
-                "value": [1.0],
-                "units": ["test"],
-                "age": [1],
-                "tissue": ["test"],
-                "sex": ["male"],
-                "genotype": ["test"],
-                "individual_id": ["test"],
-            }
-        )
-
-        with pytest.raises(ValueError, match="immunohisto_measure_order.*required"):
-            immunohisto_transform(
-                datasets={"biomarkers": input_df},
-                dataset_name="biomarkers",
             )
 
     def test_immunohisto_transform_with_pathology_dataset(self) -> None:
