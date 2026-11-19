@@ -347,7 +347,7 @@ Dataset parameters:
 - `datasets/<dataset>`: Each generated json file is named `<dataset>.<final_format>`
 - `datasets/<dataset>/files`: A list of source files for the dataset. Reference the entries of the top-level `files` list with the YAML merge key (`- <<: *genes_biodomains`), or spell out `name`, `id` and `format` inline.
 - `datasets/<dataset>/final_format`: The format of the generated output file.
-- `datasets/<dataset>/gx_enabled`: Whether or not GX validation should be run on the dataset. `true` will run GX validation, `false` or the absence of this key will skip GX validation.
+- `datasets/<dataset>/gx_enabled`: Whether or not GX validation should be run on the dataset. `true` will run GX validation, `false` or the absence of this key will skip GX validation. To skip GX for every dataset in a single run without editing the config, pass `--no-gx` to `adt process` (it cannot be combined with `--upload`).
 - `datasets/<dataset>/gx_nested_columns`: A list of nested columns that should be validated using GX nested validation. Failure to include this key and a valid list of columns will result in an error because the nested fields will not be converted to a JSON-parseable string prior to validation. This key is not needed if `gx_enabled` is not set to `true` or if the dataset does not have nested fields.
 - `datasets/<dataset>/provenance`: The Synapse id of each entity that the dataset is derived from, used to populate the generated file's Synapse provenance. (The Synapse API calls this "Activity")
 - `datasets/<dataset>/destination`: Required. The Synapse ID of the folder the dataset is written to. Use `*dest` to use the top-level default, or specify a different synID to override it for this dataset.
