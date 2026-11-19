@@ -1156,6 +1156,32 @@ class TestProcessDataset:
         self.patch_format_link.assert_called()
         self.patch_load.assert_not_called()
 
+    def test_process_dataset_skip_gx_overrides_gx_enabled(
+        self, syn: synapseclient.Synapse
+    ):
+        # GIVEN a dataset with gx_enabled: true in the config
+        # WHEN process_dataset is called with skip_gx=True
+        result = process.process_dataset(
+            dataset_obj=self.dataset_object_gx_enabled,
+            staging_path=STAGING_PATH,
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=False,
+            skip_gx=True,
+        )
+
+        # THEN the dataset is still transformed and written to staging
+        self.patch_df_to_json.assert_called_once_with(
+            data_as_df=pd.DataFrame,
+            staging_path=STAGING_PATH,
+            filename="neuropath_corr.json",
+        )
+        # AND GX does not run, no report is produced, and nothing is uploaded
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_set_attributes.assert_not_called()
+        self.patch_load.assert_not_called()
+        assert result is None
+
     def test_process_dataset_input_validation_runs_before_rename_and_transform(
         self, syn: synapseclient.Synapse, monkeypatch: pytest.MonkeyPatch
     ):
@@ -1356,6 +1382,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=False,
+            skip_gx=False,
         )
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"d": {"e": "f"}},
@@ -1363,6 +1390,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=False,
+            skip_gx=False,
         )
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"g": {"h": "i"}},
@@ -1370,6 +1398,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=False,
+            skip_gx=False,
         )
         self.patch_add_report.assert_any_call(self.patch_process_dataset.return_value)
         # AND the manifest is not created or uploaded
@@ -1399,6 +1428,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=True,
+            skip_gx=False,
         )
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"d": {"e": "f"}},
@@ -1406,6 +1436,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=True,
+            skip_gx=False,
         )
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"g": {"h": "i"}},
@@ -1413,6 +1444,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=True,
+            skip_gx=False,
         )
         self.patch_add_report.assert_any_call(self.patch_process_dataset.return_value)
         # AND the manifest CSV is created locally
@@ -1436,6 +1468,49 @@ class TestProcessAllFiles:
 
         self.patch_format_link.assert_called_once_with(syn_id="syn123", version=1)
         self.patch_update_table.assert_called_once()
+
+    def test_process_all_files_skip_gx(self, syn: synapseclient.Synapse):
+        # WHEN process_all_files is called with skip_gx=True and upload=False
+        process.process_all_files(
+            syn=syn,
+            config_path=self.config_path,
+            platform=Platform.LOCAL,
+            run_id="123",
+            upload=False,
+            skip_gx=True,
+        )
+
+        # THEN every dataset is processed with skip_gx=True
+        assert self.patch_process_dataset.call_count == 3
+        for dataset_obj in [{"a": {"b": "c"}}, {"d": {"e": "f"}}, {"g": {"h": "i"}}]:
+            self.patch_process_dataset.assert_any_call(
+                dataset_obj=dataset_obj,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+                skip_gx=True,
+            )
+
+    def test_process_all_files_skip_gx_with_upload_raises(
+        self, syn: synapseclient.Synapse
+    ):
+        # WHEN process_all_files is called with both skip_gx=True and upload=True
+        # THEN it refuses to run, so unvalidated data cannot be uploaded
+        with pytest.raises(ValueError, match="--no-gx"):
+            process.process_all_files(
+                syn=syn,
+                config_path=self.config_path,
+                platform=Platform.LOCAL,
+                run_id="123",
+                upload=True,
+                skip_gx=True,
+            )
+
+        # AND no datasets are processed and nothing is written to Synapse
+        self.patch_process_dataset.assert_not_called()
+        self.patch_upload_manifest_and_dataversion.assert_not_called()
+        self.patch_update_table.assert_not_called()
 
     def test_process_all_files_upload_true_skip_manifest(
         self, syn: synapseclient.Synapse
@@ -1485,6 +1560,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=False,
+            skip_gx=False,
         )
 
     def test_process_all_files_upload_false_gx_failure(
@@ -1512,6 +1588,7 @@ class TestProcessAllFiles:
                 gx_folder=GX_FOLDER,
                 syn=syn,
                 upload=False,
+                skip_gx=False,
             )
             self.patch_process_dataset.assert_any_call(
                 dataset_obj={"d": {"e": "f"}},
@@ -1519,6 +1596,7 @@ class TestProcessAllFiles:
                 gx_folder=GX_FOLDER,
                 syn=syn,
                 upload=False,
+                skip_gx=False,
             )
             self.patch_process_dataset.assert_any_call(
                 dataset_obj={"g": {"h": "i"}},
@@ -1526,6 +1604,7 @@ class TestProcessAllFiles:
                 gx_folder=GX_FOLDER,
                 syn=syn,
                 upload=False,
+                skip_gx=False,
             )
             self.patch_add_report.assert_any_call(
                 self.patch_process_dataset.return_value
@@ -1558,6 +1637,7 @@ class TestProcessAllFiles:
                 gx_folder=GX_FOLDER,
                 syn=syn,
                 upload=False,
+                skip_gx=False,
             )
             self.patch_process_dataset.assert_any_call(
                 dataset_obj={"d": {"e": "f"}},
@@ -1565,6 +1645,7 @@ class TestProcessAllFiles:
                 gx_folder=GX_FOLDER,
                 syn=syn,
                 upload=False,
+                skip_gx=False,
             )
             self.patch_process_dataset.assert_any_call(
                 dataset_obj={"g": {"h": "i"}},
@@ -1572,6 +1653,7 @@ class TestProcessAllFiles:
                 gx_folder=GX_FOLDER,
                 syn=syn,
                 upload=False,
+                skip_gx=False,
             )
             self.patch_add_report.assert_any_call(
                 self.patch_process_dataset.return_value
@@ -1616,6 +1698,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=True,
+            skip_gx=False,
         )
 
     def test_process_all_files_filter_datasets_no_match(
@@ -1669,6 +1752,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=True,
+            skip_gx=False,
         )
         self.patch_process_dataset.assert_any_call(
             dataset_obj={"d": {"e": "f"}},
@@ -1676,6 +1760,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=True,
+            skip_gx=False,
         )
 
     def test_process_duplicated_dataset_names_filter_datasets(
@@ -1712,6 +1797,7 @@ class TestProcessAllFiles:
             gx_folder=GX_FOLDER,
             syn=syn,
             upload=True,
+            skip_gx=False,
         )
 
 
@@ -1723,9 +1809,10 @@ class TestProcessCLI:
     @pytest.fixture(autouse=True)
     def patch_dependencies(self):
         with (
-            patch.object(utils, "_login_to_synapse", return_value=None),
+            patch.object(utils, "_login_to_synapse", return_value=None) as mock_login,
             patch.object(process, "process_all_files") as mock_process_all_files,
         ):
+            self.mock_login = mock_login
             self.mock_process_all_files = mock_process_all_files
             yield
 
@@ -1803,3 +1890,35 @@ class TestProcessCLI:
             "gene_info",
             "team_info",
         ]
+
+    def test_process_cli_no_gx_flag_omitted(self) -> None:
+        """Without --no-gx, GX runs as configured for each dataset."""
+        # WHEN the CLI is invoked without --no-gx
+        result = self.runner.invoke(process.app, ["process", "path/to/config"])
+
+        # THEN skip_gx is False
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["skip_gx"] is False
+
+    def test_process_cli_no_gx(self) -> None:
+        """--no-gx passes skip_gx=True to process_all_files."""
+        # WHEN the CLI is invoked with --no-gx
+        result = self.runner.invoke(
+            process.app, ["process", "path/to/config", "--no-gx"]
+        )
+
+        # THEN the command succeeds and skip_gx is True
+        assert result.exit_code == 0
+        assert self.mock_process_all_files.call_args.kwargs["skip_gx"] is True
+
+    def test_process_cli_no_gx_with_upload_is_rejected(self) -> None:
+        """--no-gx and --upload together are rejected before logging in."""
+        # WHEN the CLI is invoked with both --no-gx and --upload
+        result = self.runner.invoke(
+            process.app, ["process", "path/to/config", "--no-gx", "--upload"]
+        )
+
+        # THEN the command fails with a value error and does no work
+        assert result.exit_code != 0
+        self.mock_login.assert_not_called()
+        self.mock_process_all_files.assert_not_called()
