@@ -1803,3 +1803,40 @@ class TestProcessCLI:
             "gene_info",
             "team_info",
         ]
+
+
+def test_process_dataset_reads_gzipped_tsv(syn: synapseclient.Synapse, tmp_path):
+    """A .tsv.gz source file is extracted, standardized, and written as JSON."""
+    source = pd.DataFrame({"gene": ["A", "B"], "value": [1, 2]})
+    gzipped_path = tmp_path / "test_file.tsv.gz"
+    source.to_csv(gzipped_path, sep="\t", index=False)
+    staging = tmp_path / "staging"
+    staging.mkdir()
+
+    # Input validation is patched out because the test file has no input spec.
+    with patch.object(
+        extract, "get", return_value=mock.MagicMock(path=str(gzipped_path))
+    ), patch.object(process.validate, "validate_inputs"):
+        process.process_dataset(
+            dataset_obj={
+                "test_dataset": {
+                    "files": [
+                        {
+                            "name": "test_file_1",
+                            "id": "syn1111111",
+                            "format": "tsv",
+                        }
+                    ],
+                    "final_format": "json",
+                    "destination": "syn1111113",
+                    "gx_enabled": False,
+                }
+            },
+            staging_path=str(staging),
+            gx_folder=GX_FOLDER,
+            syn=syn,
+            upload=False,
+        )
+
+    output = pd.read_json(staging / "test_dataset.json", orient="records")
+    pd.testing.assert_frame_equal(output, source)

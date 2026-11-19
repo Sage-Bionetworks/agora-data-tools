@@ -52,51 +52,70 @@ get_entity_as_df_async = to_async(get_entity_as_df)
 """Awaitable version of :func:`get_entity_as_df`, for use in notebooks."""
 
 
+# Compression suffixes that a csv, tsv or json file name may carry after its file type.
+# The readers do not decompress anything themselves: pandas picks the compression from
+# the end of the file name. A suffix added here must be one that pandas infers.
+COMPRESSION_SUFFIXES = (".gz",)
+
+
+def _assert_path_matches_format(path: str, file_format: str) -> None:
+    """Raise if path does not end in the format, optionally followed by a suffix
+    in COMPRESSION_SUFFIXES.
+
+    name.tsv and name.tsv.gz match format tsv. name.gz does not.
+    """
+    accepted_endings = tuple(
+        f".{file_format}{suffix}" for suffix in ("", *COMPRESSION_SUFFIXES)
+    )
+    if path.endswith(accepted_endings):
+        return
+    raise ValueError(
+        "Please make sure the source parameter in the configuration for "
+        + f"{str(path)} matches the file extension."
+    )
+
+
 def read_csv_into_df(csv_path: str) -> pd.DataFrame:
     """
-    Reads provided csv file into dataframe using file path
+    Reads provided csv file into dataframe using file path.
+
+    The path must end in .csv, optionally followed by a suffix in
+    COMPRESSION_SUFFIXES (for example .csv.gz).
 
     Args:
         csv_path (str): path to input csv file
 
     Raises:
-        ValueError: If file source is not .csv, raise error indicating that the
-        configuration does not match the extension of the file provided
+        ValueError: If the path does not end that way, raise error indicating
+        that the configuration does not match the extension of the file provided
 
     Returns:
         pd.DataFrame: data frame created from csv file path
     """
 
-    if csv_path.split(".")[-1] != "csv":
-        raise ValueError(
-            "Please make sure the source parameter in the configuration for "
-            + f"{str(csv_path)} matches the file extension."
-        )
-
+    _assert_path_matches_format(csv_path, "csv")
     return pd.read_csv(csv_path, float_precision="round_trip")
 
 
 def read_tsv_into_df(tsv_path: str) -> pd.DataFrame:
     """
-    Reads provided tsv file into dataframe using file path
+    Reads provided tsv file into dataframe using file path.
+
+    The path must end in .tsv, optionally followed by a suffix in
+    COMPRESSION_SUFFIXES (for example .tsv.gz).
 
     Args:
         tsv_path (str): path to input tsv file
 
     Raises:
-        ValueError: If file source is not .tsv, raise error indicating that the
-        configuration does not match the extension of the file provided
+        ValueError: If the path does not end that way, raise error indicating
+        that the configuration does not match the extension of the file provided
 
     Returns:
         pd.DataFrame: data frame created from tsv file path
     """
 
-    if tsv_path.split(".")[-1] != "tsv":
-        raise ValueError(
-            "Please make sure the source parameter in the configuration for "
-            + f"{str(tsv_path)} matches the file extension."
-        )
-
+    _assert_path_matches_format(tsv_path, "tsv")
     return pd.read_csv(tsv_path, sep="\t")
 
 
@@ -142,25 +161,23 @@ def read_feather_into_df(feather_path: str) -> pd.DataFrame:
 
 def read_json_into_df(json_path: str) -> pd.DataFrame:
     """
-    Reads provided json file into dataframe using file path
+    Reads provided json file into dataframe using file path.
+
+    The path must end in .json, optionally followed by a suffix in
+    COMPRESSION_SUFFIXES (for example .json.gz).
 
     Args:
         json_path (str): path to input json file
 
     Raises:
-        ValueError: If file source is not .json, raise error indicating that the
-        configuration does not match the extension of the file provided
+        ValueError: If the path does not end that way, raise error indicating
+        that the configuration does not match the extension of the file provided
 
     Returns:
         pd.DataFrame: data frame created from json file path
     """
 
-    if json_path.split(".")[-1] != "json":
-        raise ValueError(
-            "Please make sure the source parameter in the configuration for "
-            + f"{str(json_path)} matches the file extension."
-        )
-
+    _assert_path_matches_format(json_path, "json")
     return pd.read_json(json_path, orient="records")
 
 

@@ -180,3 +180,62 @@ def test_get_entity_as_df_async_returns_same_result_as_sync(syn):
 
 def test_get_entity_as_df_async_is_a_coroutine_function():
     assert inspect.iscoroutinefunction(extract.get_entity_as_df_async)
+
+
+READERS = {
+    "csv": extract.read_csv_into_df,
+    "tsv": extract.read_tsv_into_df,
+    "json": extract.read_json_into_df,
+}
+
+MISMATCHED_FORMAT = {"csv": "tsv", "tsv": "csv", "json": "csv"}
+
+# Every reader is tested with every suffix in COMPRESSION_SUFFIXES, so a suffix added
+# there is covered here without editing these tests.
+compressed_reader_cases = pytest.mark.parametrize(
+    "file_format, suffix",
+    [(fmt, suffix) for fmt in READERS for suffix in extract.COMPRESSION_SUFFIXES],
+)
+
+
+def _write_uncompressed_and_compressed(tmp_path, file_format, suffix):
+    # pandas picks the compression from the file name when writing, as it does when reading
+    df = pd.DataFrame({"gene": ["A", "B"], "value": [1, 2]})
+    uncompressed = tmp_path / f"sample.{file_format}"
+    compressed = tmp_path / f"sample.{file_format}{suffix}"
+    for path in (uncompressed, compressed):
+        if file_format == "json":
+            df.to_json(path, orient="records")
+        else:
+            df.to_csv(path, sep="\t" if file_format == "tsv" else ",", index=False)
+    return str(uncompressed), str(compressed)
+
+
+def test_gzip_is_a_supported_compression():
+    assert ".gz" in extract.COMPRESSION_SUFFIXES
+
+
+@compressed_reader_cases
+def test_read_compressed_file_matches_uncompressed(tmp_path, file_format, suffix):
+    uncompressed_path, compressed_path = _write_uncompressed_and_compressed(
+        tmp_path, file_format, suffix
+    )
+    # the compressed file must differ on disk, or this test would prove nothing
+    with open(uncompressed_path, "rb") as plain, open(compressed_path, "rb") as packed:
+        assert plain.read() != packed.read()
+    reader = READERS[file_format]
+    pd.testing.assert_frame_equal(reader(uncompressed_path), reader(compressed_path))
+
+
+@compressed_reader_cases
+def test_read_rejects_compressed_file_without_file_type(file_format, suffix):
+    reader = READERS[file_format]
+    with pytest.raises(ValueError, match="Please make sure *"):
+        reader(f"sample{suffix}")
+
+
+@compressed_reader_cases
+def test_read_rejects_compressed_file_with_mismatched_file_type(file_format, suffix):
+    reader = READERS[file_format]
+    with pytest.raises(ValueError, match="Please make sure *"):
+        reader(f"sample.{MISMATCHED_FORMAT[file_format]}{suffix}")
