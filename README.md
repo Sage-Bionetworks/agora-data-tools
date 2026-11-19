@@ -334,7 +334,7 @@ Top-level parameters:
 - `files`: A list of reusable source file references. Each item is a YAML anchor (`&<name>`) on a mapping with these keys:
     - `name`: The name of the source file (this name is the reference the code will use to retrieve a file from the configuration)
     - `id`: The Synapse ID of the source file. Dot notation is supported to indicate the version of the file to use.
-    - `format`: The format of the source file (e.g. `csv`, `tsv`, `json`, `yaml`, `feather`, `table`).
+    - `format`: The format of the source file (e.g. `csv`, `tsv`, `json`, `yaml`, `feather`, `table`). A `csv`, `tsv` or `json` file may be gzipped, with `.gz` after the file type in its name (e.g. `name.tsv.gz` with `format: tsv`). A gzipped file with no file type in its name, such as `name.gz`, is not accepted.
 
   ```yaml
   files:
