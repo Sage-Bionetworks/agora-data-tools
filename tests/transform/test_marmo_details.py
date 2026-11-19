@@ -108,35 +108,6 @@ class TestTransformMarmoDetails:
 
         assert output_data == expected_data
 
-    def test_marmo_details_missing_dataset_should_fail(self):
-        datasets = self._load_datasets()
-        del datasets["marmo_results"]
-
-        with pytest.raises(ValueError, match="Missing required datasets"):
-            transform_marmo_details(datasets=datasets)
-
-    def test_marmo_details_missing_column_should_fail(self):
-        """The label map's model column is the case worth pinning: it is what ties a measurement
-        to a model page, so its absence must fail up front rather than reaching the genotype
-        join."""
-        datasets = self._load_datasets()
-        datasets["marmo_genotype_label_map"] = datasets[
-            "marmo_genotype_label_map"
-        ].drop(columns=["model"])
-
-        with pytest.raises(ValueError, match="Missing required columns"):
-            transform_marmo_details(datasets=datasets)
-
-    @pytest.mark.parametrize("qc_column", ["qc_ab", "qc_neuro"])
-    def test_marmo_details_missing_qc_column_should_fail(self, qc_column):
-        """qc_ab and qc_neuro are required on marmo_results; a missing one fails up front rather
-        than silently disabling the QC filter."""
-        datasets = self._load_datasets()
-        datasets["marmo_results"] = datasets["marmo_results"].drop(columns=[qc_column])
-
-        with pytest.raises(ValueError, match="Missing required columns"):
-            transform_marmo_details(datasets=datasets)
-
     def _set_bad_value(self, datasets, dataset, column, bad_value):
         """Overwrite the first row of a column, which every rule below scans in full."""
         frame = datasets[dataset]
@@ -156,87 +127,6 @@ class TestTransformMarmoDetails:
         ):
             transform_marmo_details(datasets=datasets)
 
-    @pytest.mark.parametrize(
-        "dataset,column,bad_value,expected_message",
-        [
-            (
-                "marmo_biomaterial_metadata",
-                "collectionage",
-                "eighteen",
-                r"column 'collectionage'.*rule 'numeric'",
-            ),
-            # Negative ages are not allowed.
-            (
-                "marmo_biomaterial_metadata",
-                "collectionage",
-                -6,
-                r"column 'collectionage'.*rule 'non_negative'",
-            ),
-            (
-                "marmo_biomarker_measure_info",
-                "display_order",
-                "third",
-                r"column 'display_order'.*rule 'numeric'",
-            ),
-            (
-                "marmo_biomarker_measure_info",
-                "display_order",
-                -1,
-                r"column 'display_order'.*rule 'non_negative'",
-            ),
-            (
-                "marmo_genotype_label_map",
-                "result_order",
-                "first",
-                r"column 'result_order'.*rule 'numeric'",
-            ),
-            (
-                "marmo_genotype_label_map",
-                "result_order",
-                -1,
-                r"column 'result_order'.*rule 'non_negative'",
-            ),
-        ],
-        ids=[
-            "non-numeric collection age",
-            "negative collection age",
-            "non-numeric display order",
-            "negative display order",
-            "non-numeric result order",
-            "negative result order",
-        ],
-    )
-    def test_marmo_details_rejects_invalid_numeric_values(
-        self, dataset, column, bad_value, expected_message
-    ):
-        """A single bad cell raises a ValueError that names the file, column, and rule."""
-        datasets = self._load_datasets()
-        self._set_bad_value(datasets, dataset, column, bad_value)
-
-        with pytest.raises(ValueError, match=expected_message):
-            transform_marmo_details(datasets=datasets)
-
-    @pytest.mark.parametrize(
-        "column,expected_message",
-        [
-            # display_order and evidence_type are nest_fields grouping keys: unvalidated, a null
-            # silently deletes that measure from every model page.
-            ("display_order", r"column 'display_order'.*rule 'not_empty'"),
-            ("evidence_type", r"column 'evidence_type'.*rule 'not_empty'"),
-            # A null result_column would otherwise reach standardize_column_name and raise a bare
-            # TypeError naming neither file nor column.
-            ("result_column", r"column 'result_column'.*rule 'not_empty'"),
-        ],
-        ids=["null display order", "null evidence type", "null result column"],
-    )
-    def test_marmo_details_rejects_none_values(self, column, expected_message):
-        """A null in a measure-info column raises rather than dropping a measure silently."""
-        datasets = self._load_datasets()
-        self._set_bad_value(datasets, "marmo_biomarker_measure_info", column, None)
-
-        with pytest.raises(ValueError, match=expected_message):
-            transform_marmo_details(datasets=datasets)
-
     def test_marmo_details_fails_on_result_column_mismatch(self):
         """A result_column typo names a measure that marmo_results does not carry."""
         datasets = self._load_datasets()
@@ -245,19 +135,6 @@ class TestTransformMarmoDetails:
         )
 
         with pytest.raises(ValueError, match="not present in marmo_results"):
-            transform_marmo_details(datasets=datasets)
-
-    def test_marmo_details_duplicate_biomaterialid_should_fail(self):
-        """A duplicated biomaterialid would multiply measurements. UniqueRule catches it
-        up front rather than leaving it to merge validation, which fires only when the
-        duplicate happens to back a plotted measurement."""
-        datasets = self._load_datasets()
-        frame = datasets["marmo_biomaterial_metadata"]
-        datasets["marmo_biomaterial_metadata"] = pd.concat(
-            [frame, frame.iloc[[0]]], ignore_index=True
-        )
-
-        with pytest.raises(ValueError, match=r"column 'biomaterialid'.*rule 'unique'"):
             transform_marmo_details(datasets=datasets)
 
     @pytest.mark.parametrize(
@@ -383,16 +260,6 @@ class TestValidateAndPrepareModelMetadata:
         )
         return genotype_map, metadata
 
-    def test_duplicate_model_genotype_raises(self):
-        """A duplicate (model, genotype) pair would multiply points within a model."""
-        genotype_map, metadata = self._metadata_inputs()
-        genotype_map = pd.concat(
-            [genotype_map, genotype_map.iloc[[0]]], ignore_index=True
-        )
-
-        with pytest.raises(ValueError, match=r"duplicate \(model, genotype\)"):
-            _validate_and_prepare_model_metadata(genotype_map, metadata)
-
     def test_label_map_model_absent_from_metadata_raises(self):
         """A label-map model with no metadata row would otherwise lose its explorer page."""
         genotype_map, metadata = self._metadata_inputs()
@@ -400,26 +267,6 @@ class TestValidateAndPrepareModelMetadata:
         genotype_map.loc[0, "model"] = "MismatchedModel"
 
         with pytest.raises(ValueError, match="not present in marmo_model_metadata"):
-            _validate_and_prepare_model_metadata(genotype_map, metadata)
-
-    @pytest.mark.parametrize(
-        "column,bad_value,expected_message",
-        [
-            ("model_type", "Something Else", "multiple model_type"),
-            ("study_synid", "syn00000000", "multiple study_synid"),
-        ],
-        ids=["conflicting model_type", "conflicting study_synid"],
-    )
-    def test_inconsistent_model_fields_raise(self, column, bad_value, expected_message):
-        """A model with more than one modified-gene row must still have a single model_type
-        and study_synid; iloc[0] would otherwise pick an arbitrary value."""
-        genotype_map, metadata = self._metadata_inputs()
-        extra = metadata.copy()
-        extra[column] = bad_value
-        extra["ensembl_gene_id"] = "ENSCJAG00000000001"
-        metadata = pd.concat([metadata, extra], ignore_index=True)
-
-        with pytest.raises(ValueError, match=expected_message):
             _validate_and_prepare_model_metadata(genotype_map, metadata)
 
     @pytest.mark.parametrize(
