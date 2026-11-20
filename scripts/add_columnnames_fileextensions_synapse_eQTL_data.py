@@ -2,9 +2,9 @@
 """Add a header row, and optionally a file extension, to files in a Synapse folder.
 
 Every file in INPUT_FOLDER whose name matches FILE_PATTERN is downloaded,
-given a header row of COLUMNS, and uploaded to OUTPUT_FOLDER. Synapse cannot
-edit file contents in place, so the download is required. Local copies are
-deleted after each upload.
+given a header row of COLUMNS, and uploaded to OUTPUT_FOLDER with the source
+file and version as provenance. Synapse cannot edit file contents in place,
+so the download is required. Local copies are deleted after each upload.
 
 Edit the constants below, then run from the repo root.
 """
@@ -16,11 +16,11 @@ import tempfile
 from pathlib import Path
 
 import synapseclient
-from synapseclient.models import File
+from synapseclient.models import Activity, File, UsedEntity
 
 INPUT_FOLDER = "syn78321269"
-OUTPUT_FOLDER = "syn78768387"
-FILE_PATTERN = r"eQTL_result_PsychAD_PFC_Astro+_chr[0-9]+_with_pvalue\.gz"
+OUTPUT_FOLDER = "syn78770548"
+FILE_PATTERN = r"eQTL_result_PsychAD_PFC_.+_chr[0-9]+_with_pvalue\.gz"
 # Replaces the last suffix of the filename. Set to None to keep the name.
 OUTPUT_FILE_EXTENSION = ".tsv.gz"
 # Set to None to detect the delimiter from the first row.
@@ -83,7 +83,14 @@ def main() -> None:
             dest = Path(tmp) / "out" / new_name
             dest.parent.mkdir()
             add_header(Path(downloaded.path), dest)
-            File(path=str(dest), parent_id=OUTPUT_FOLDER).store(synapse_client=syn)
+            source = UsedEntity(
+                target_id=child["id"], target_version_number=child["versionNumber"]
+            )
+            File(
+                path=str(dest),
+                parent_id=OUTPUT_FOLDER,
+                activity=Activity(used=[source]),
+            ).store(synapse_client=syn)
         print(f"{name} -> {new_name}")
 
 
