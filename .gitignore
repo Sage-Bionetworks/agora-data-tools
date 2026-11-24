@@ -34,6 +34,12 @@ MANIFEST
 *.manifest
 *.spec
 
+# conda-compatible lock file update file via:
+# pip install pipenv
+# pipenv requirements --dev > requirements-dev.txt
+# pip install -r requirements-dev.txt
+requirements-dev.txt
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
