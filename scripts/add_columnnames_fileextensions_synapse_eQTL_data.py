@@ -18,8 +18,8 @@ from pathlib import Path
 import synapseclient
 from synapseclient.models import Activity, File, UsedEntity
 
-INPUT_FOLDER = "syn78321269"
-OUTPUT_FOLDER = "syn78770548"
+INPUT_FOLDER = "syn78321268"
+OUTPUT_FOLDER = "syn78770549"
 FILE_PATTERN = r"eQTL_result_PsychAD_PFC_.+_chr[0-9]+_with_pvalue\.gz"
 # Replaces the last suffix of the filename. Set to None to keep the name.
 OUTPUT_FILE_EXTENSION = ".tsv.gz"
@@ -71,10 +71,15 @@ def add_header(source: Path, dest: Path) -> None:
 def main() -> None:
     """Add the header to every matching file and upload it to OUTPUT_FOLDER."""
     syn = synapseclient.login()
-    for child in syn.getChildren(INPUT_FOLDER, includeTypes=["file"]):
+    matches = [
+        child
+        for child in syn.getChildren(INPUT_FOLDER, includeTypes=["file"])
+        if re.fullmatch(FILE_PATTERN, child["name"])
+    ]
+    print(f"Found {len(matches)} files in {INPUT_FOLDER} matching {FILE_PATTERN}")
+    for number, child in enumerate(matches, start=1):
         name = child["name"]
-        if not re.fullmatch(FILE_PATTERN, name):
-            continue
+        print(f"Starting file {number}/{len(matches)}: {name}")
         new_name = name
         if OUTPUT_FILE_EXTENSION:
             new_name = Path(name).stem + OUTPUT_FILE_EXTENSION
