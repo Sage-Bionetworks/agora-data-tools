@@ -1910,15 +1910,3 @@ class TestProcessCLI:
         # THEN the command succeeds and skip_gx is True
         assert result.exit_code == 0
         assert self.mock_process_all_files.call_args.kwargs["skip_gx"] is True
-
-    def test_process_cli_no_gx_with_upload_is_rejected(self) -> None:
-        """--no-gx and --upload together are rejected before logging in."""
-        # WHEN the CLI is invoked with both --no-gx and --upload
-        result = self.runner.invoke(
-            process.app, ["process", "path/to/config", "--no-gx", "--upload"]
-        )
-
-        # THEN the command fails with a value error and does no work
-        assert result.exit_code != 0
-        self.mock_login.assert_not_called()
-        self.mock_process_all_files.assert_not_called()

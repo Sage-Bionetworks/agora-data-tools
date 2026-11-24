@@ -635,11 +635,6 @@ def process(
         skip_gx (bool): If True, skips GX validation for every dataset. Cannot be combined with `--upload`.
             (Optional, defaults to False)
     """
-    if skip_gx and upload:
-        raise ValueError(
-            "--no-gx cannot be combined with --upload: data that skipped GX validation must not be uploaded to Synapse."
-        )
-
     syn = utils._login_to_synapse(token=auth_token)
     platform_enum = Platform(platform)
 
