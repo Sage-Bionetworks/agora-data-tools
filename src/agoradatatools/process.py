@@ -204,6 +204,7 @@ def process_dataset(
     gx_folder: str,
     syn: synapseclient.Synapse,
     upload: bool = True,
+    skip_gx: bool = False,
 ) -> DatasetReport | None:
     """Takes in a dataset from the configuration file and passes it through the ETL process
 
@@ -213,9 +214,11 @@ def process_dataset(
         gx_folder (str): Synapse ID of the folder where Great Expectations reports should be uploaded
         syn (synapseclient.Synapse): synapseclient.Synapse session.
         upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
+        skip_gx (bool, optional): If True, skips GX validation even when the dataset has
+            `gx_enabled: true` in the config. Defaults to False.
 
     Returns:
-        None if GX is not enabled. Otherwise, a DatasetReport object.
+        None if GX is not enabled or is skipped. Otherwise, a DatasetReport object.
     """
     dataset_name = list(dataset_obj.keys())[0]
     dataset_report = DatasetReport(data_set=dataset_name)
@@ -282,7 +285,7 @@ def process_dataset(
             filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
         )
 
-    gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False)
+    gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False) and not skip_gx
 
     if gx_enabled:
         gx_runner = GreatExpectationsRunner(
@@ -426,6 +429,7 @@ def process_all_files(
     upload: bool = True,
     skip_manifest: bool = False,
     filter_datasets: Optional[List[str]] = None,
+    skip_gx: bool = False,
 ):
     """This function will read through the entire configuration and process each file listed.
 
@@ -437,7 +441,22 @@ def process_all_files(
         upload (bool, optional): Whether or not to upload the data to Synapse. Defaults to True.
         skip_manifest (bool, optional): If True, skips uploading the data manifest and dataversion.json to Synapse. Defaults to False.
         filter_datasets (List[str], optional): List of dataset names to process. If None, all datasets in the config will be processed. Defaults to None.
+        skip_gx (bool, optional): If True, skips GX validation for every dataset, regardless of `gx_enabled` in the config.
+            Cannot be combined with `upload=True`, since GX is what keeps invalid data from being uploaded. Defaults to False.
+
+    Raises:
+        ValueError: If `skip_gx` and `upload` are both True.
     """
+    if skip_gx and upload:
+        raise ValueError(
+            "GX validation cannot be skipped (--no-gx) when uploading to Synapse (--upload). "
+            "Remove one of the two options."
+        )
+    if skip_gx:
+        logger.info(
+            "GX validation is disabled for this run (--no-gx); gx_enabled is ignored for all datasets."
+        )
+
     if platform == Platform.LOCAL and upload is True:
         logger.warning(
             """Data will be uploaded to Synapse despite the platform being set to `LOCAL`.
@@ -480,6 +499,7 @@ def process_all_files(
                 gx_folder=config["gx_folder"],
                 syn=syn,
                 upload=upload,
+                skip_gx=skip_gx,
             )
             if dataset_report:
                 reporter.add_report(dataset_report)
@@ -578,6 +598,14 @@ manifest_opt = Option(
     "Setting `--skip-manifest` prevents both from being uploaded. (Optional, defaults to False)",
     show_default=True,
 )
+no_gx_opt = Option(
+    False,
+    "--no-gx",
+    help="Boolean flag that skips Great Expectations validation for every dataset in this run, regardless of "
+    "`gx_enabled` in the config. Useful for fast local test runs. Cannot be combined with `--upload`. "
+    "(Optional, defaults to False)",
+    show_default=True,
+)
 
 
 @app.command()
@@ -589,6 +617,7 @@ def process(
     auth_token: str = synapse_auth_opt,
     dataset: Optional[List[str]] = datasets_opt,
     skip_manifest: bool = manifest_opt,
+    skip_gx: bool = no_gx_opt,
 ) -> None:
     """Process the configuration file and execute the data processing pipeline based on options.
 
@@ -602,6 +631,8 @@ def process(
             comma-separated list to process multiple datasets.
             If omitted, all datasets in the config are processed. (Optional, defaults to None)
         skip_manifest (bool): If True, skips uploading the data manifest and dataversion.json to Synapse.
+            (Optional, defaults to False)
+        skip_gx (bool): If True, skips GX validation for every dataset. Cannot be combined with `--upload`.
             (Optional, defaults to False)
     """
     syn = utils._login_to_synapse(token=auth_token)
@@ -620,6 +651,7 @@ def process(
         upload=upload,
         filter_datasets=filter_datasets,
         skip_manifest=skip_manifest,
+        skip_gx=skip_gx,
     )
 
 

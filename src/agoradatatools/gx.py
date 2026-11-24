@@ -302,14 +302,19 @@ class GreatExpectationsRunner:
             validator=validator,
         )
         checkpoint_result = checkpoint.run()
-        logger.info(
-            f"Data validation complete for {self.expectation_suite_name}. Uploading results to Synapse."
-        )
+        logger.info(f"GX Data validation complete for {self.expectation_suite_name}.")
         latest_results_path = self.get_results_path(checkpoint_result)
         self.set_warnings_and_failures(checkpoint_result)
 
         # Always write the report locally so it can be viewed without uploading.
-        self.write_report_to_staging(latest_results_path)
+        staging_report_path = self.write_report_to_staging(latest_results_path)
 
         if self.upload_folder:
+            logger.info(
+                f"Uploading GX report for {self.expectation_suite_name} to Synapse folder {self.upload_folder}."
+            )
             self.upload_results_file_to_synapse(latest_results_path)
+        else:
+            logger.info(
+                f"Upload disabled; GX report for {self.expectation_suite_name} written to {staging_report_path}."
+            )

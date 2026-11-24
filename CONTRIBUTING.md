@@ -105,6 +105,12 @@ If your changes have to do with the way that files are uploaded to Synapse and/o
 adt process configs/my_dev_config.yaml --upload
 ```
 
+If you only need to check that the pipeline runs and produces the expected output files, add `--no-gx` to skip Great Expectations validation for every dataset, which makes the run much faster. `--no-gx` cannot be combined with `--upload`, so data that hasn't been validated is never uploaded to Synapse:
+
+```
+adt process configs/agora_preprod.yaml --no-gx
+```
+
 1. Once you have completed all the steps above, create a pull request from the feature branch to the `dev` branch of the Sage-Bionetworks/agora-data-tools repo.
 
 > _A code maintainer must review and accept your pull request._ Most code reviews can be done asyncronously. For more complex code updates, an "in-person" or zoom code review can happen between the reviewer(s) and contributor.
