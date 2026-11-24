@@ -56,7 +56,8 @@ eqtl_row_count = NA
 
 # Builds a ui_config object from a dataframe containing column info
 # - eqtl_columns: a csv-compatible dataframe containing a row of values per CT column:
-#    - name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width
+#    - name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width,
+#      value_tooltip_text_color, value_tooltip_background_color, value_tooltip_data_keys
 # eqtl_filters: a dataframe containing a row of values per CT filterset:
 #    - name, data_key, short_name, query_param_key
 # eqtl_filter_values: A list of lists of filter values; value lists must be in the same order as eqtl_filters
@@ -83,6 +84,18 @@ build_columns <- function(page_column_data) {
   columns
 }
 
+# Validates a hex color string is present and correctly formatted (e.g. "#3571BE").
+# Returns the color unchanged if valid, NA if the input is NA, or stops with a clear
+# error naming the offending column otherwise.
+validate_hex_color <- function(color, field_name, column_name) {
+  if (is.na(color)) return(NA)
+  if (!grepl("^#[0-9A-Fa-f]{6}$", color)) {
+    stop(paste0("Column '", column_name, "': ", field_name,
+                " must be a '#RRGGBB' hex color, got: '", color, "'"))
+  }
+  color
+}
+
 # Builds a column object
 # - name: The column display name
 #   -- Specify NA for hidden columns; if you specify a different value, it will be ignored
@@ -101,11 +114,43 @@ build_columns <- function(page_column_data) {
 # - column_width: Optional override that specifies the column's width, in pixels
 #   -- By default, the column width is automatically calculated
 #   -- Specify a numeric value to specify a fixed width for columns with variable content length / auto widths
-build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text, is_exported, is_hidden, column_width = NA) {
+# - value_tooltip_text_color: Optional '#RRGGBB' hex color for the value tooltip's text
+#   -- Specify NA to use the application's default tooltip text color
+# - value_tooltip_background_color: Optional '#RRGGBB' hex color for the value tooltip's background
+#   -- Specify NA to use the application's default tooltip background color
+# - value_tooltip_data_keys: A comma-separated ordered list of data keys whose values populate the tooltip
+#   -- Required if either value_tooltip color field is specified
+#   -- Specify NA to omit value_tooltip entirely
+build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, link_text,
+                          is_exported, is_hidden, column_width = NA,
+                          value_tooltip_text_color = NA, value_tooltip_background_color = NA,
+                          value_tooltip_data_keys = NA) {
 
   # Use the default sort_tooltip if one isn't specified, for non-hidden columns only
   if (is_hidden == TRUE) { sort_tooltip = NA }
   else { sort_tooltip = if (!is.na(sort_tooltip)) sort_tooltip else paste("Sort by", name, "value") }
+
+  # Build the optional value_tooltip object; data_keys is required whenever either color is specified
+  has_tooltip_colors <- !is.na(value_tooltip_text_color) || !is.na(value_tooltip_background_color)
+
+  if (is.na(value_tooltip_data_keys)) {
+    if (has_tooltip_colors) {
+      stop(paste0("Column '", name, "' (data_key '", data_key, "'): value_tooltip_text_color/",
+                  "value_tooltip_background_color were specified but value_tooltip_data_keys ",
+                  "is required whenever a value_tooltip is used."))
+    }
+    value_tooltip <- NULL
+  } else {
+    data_keys_list <- trimws(strsplit(value_tooltip_data_keys, ",")[[1]])
+    data_keys_list <- data_keys_list[nzchar(data_keys_list)]  # drop any empty entries
+
+    value_tooltip <- list(
+      text_color = validate_hex_color(value_tooltip_text_color, "value_tooltip_text_color", name),
+      background_color = validate_hex_color(value_tooltip_background_color, "value_tooltip_background_color", name),
+      data_keys = I(data_keys_list)  # I() prevents jsonlite from unboxing a single-element list to a scalar
+    )
+    value_tooltip <- purrr::discard(value_tooltip, ~ is.null(.x) | all(is.na(.x)))
+  }
 
   column <- list(
     name = name,
@@ -117,7 +162,8 @@ build_column <- function(name, type, data_key, tooltip, sort_tooltip, link_url, 
     link_text = link_text,
     is_exported = is_exported,
     is_hidden = is_hidden,
-    column_width = column_width
+    column_width = column_width,
+    value_tooltip = value_tooltip
   )
 
   # Omit keys with NA values
