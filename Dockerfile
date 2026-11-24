@@ -8,9 +8,7 @@ RUN  apt-get update && \
 
 WORKDIR /agora-data-tools
 
-COPY Pipfile Pipfile.lock ./
+COPY . .
 
 RUN pip install --no-cache-dir --upgrade pip pipenv && \
     pipenv install --system --deploy
-
-COPY . .
