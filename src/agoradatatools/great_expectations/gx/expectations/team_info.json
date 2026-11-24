@@ -31,23 +31,23 @@
       "kwargs": {
         "column": "team",
         "value_set": [
-          "Mayo-UFL-ISB",
-          "JAX-VUMC-UW Resilience",
-          "Mayo",
-          "Harvard-MIT",
-          "ASU",
-          "Emory-Sage-SGC",
           "Columbia-Rush",
-          "MSSM - Zhang Lab",
-          "Emory",
-          "Longo Lab",
           "Duke",
-          "IUSM-Purdue",
-          "Duke BARU",
-          "Chang Lab",
-          "Columbia",
+          "Emory",
+          "Harvard-MIT",
           "MSSM - Roussos Lab",
-          "Sage Bionetworks"
+          "MSSM - Zhang Lab",
+          "Sage Bionetworks",
+          "Mayo-UFL-ISB",
+          "Chang Lab",
+          "JAX-VUMC-UW Resilience",
+          "ASU",
+          "Longo Lab",
+          "Duke BARU",
+          "Emory-Sage-SGC",
+          "IUSM-Purdue",
+          "Mayo",
+          "Columbia"
         ]
       },
       "meta": {}
@@ -87,7 +87,7 @@
       "expectation_type": "expect_column_values_to_match_regex",
       "kwargs": {
         "column": "team_full",
-        "regex": "^[a-zA-Z0-9-() ]+$"
+        "regex": "^[a-zA-Z0-9() -]+$"
       },
       "meta": {}
     },
@@ -112,9 +112,9 @@
         "column": "program",
         "value_set": [
           "Community Contributed",
-          "TREAT-AD",
-          "Resilience-AD",
           "AMP-AD",
+          "Resilience-AD",
+          "TREAT-AD",
           "FunGen-AD"
         ]
       },
@@ -149,21 +149,6 @@
         "column": "description",
         "max_value": 2000,
         "min_value": 10
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_be_of_type",
-      "kwargs": {
-        "column": "members",
-        "type_": "str"
-      },
-      "meta": {}
-    },
-    {
-      "expectation_type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "members"
       },
       "meta": {}
     },

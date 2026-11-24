@@ -2,39 +2,98 @@
 This file contains utility functions that may be used across multiple transforms related to Model-AD.
 
 Functions:
-    process_genetic_info - process a gene information DataFrame into a dictionary for model details/overview
+    process_genetic_modifications - process a genetic modifications DataFrame by updating the "ensembl_gene_id" and
+        "modified_gene" columns based on human and mouse gene information
     build_expressions_results_url - build a URL linking to the gene/protein comparison table for a given study
     zero_pad_jax_ids - convert Jax IDs to strings with leading zeros preserved, and handle missing values appropriately
     remap_sex_labels - convert any plural sex values to singular form for consistent display
 """
 
-from typing import Any, Dict, List, Union
 import pandas as pd
 
-from agoradatatools.etl.utils import normalize_null_values
+from agoradatatools.etl.utils import (
+    NotEmptyRule,
+    MatchesRegexRule,
+)
+
+GENETIC_MODIFICATIONS_REQUIRED_COLUMNS = [
+    "name",
+    "mouse_gene_symbol",
+    "mouse_ensembl_id",
+    "allele",
+    "allele_type",
+    "mgi_allele_id",
+    "human_gene_symbol",
+    "human_ensembl_id",
+]
+
+GENETIC_MODIFICATIONS_COLUMN_RULES = {
+    "name": [NotEmptyRule()],
+    "mouse_gene_symbol": [NotEmptyRule()],
+    "mouse_ensembl_id": [NotEmptyRule(), MatchesRegexRule(r"^ENSMUSG[0-9]+$")],
+    "allele": [NotEmptyRule()],
+    "allele_type": [NotEmptyRule()],
+    "mgi_allele_id": [NotEmptyRule()],
+    # Can have missing values
+    "human_ensembl_id": [MatchesRegexRule(r"^ENSG[0-9]+$")],
+}
+
+MODEL_METADATA_REQUIRED_COLUMNS = [
+    "name",
+    "matched_controls",
+    "model_type",
+    "contributing_group",
+    "study_synid",
+    "rrid",
+    "jax_id",
+    "alzforum_id",
+    "genotype",
+    "aliases",
+    "transcriptomics_url_categories_value",
+    "transcriptomics_url_models_value",
+    "transcriptomics",
+    "disease_correlation",
+    "pathology",
+    "biomarkers",
+    "proteomics",
+    "proteomics_url_categories_value",
+    "proteomics_url_models_value",
+]
 
 
-def process_genetic_info(
+def process_genetic_modifications(
     model_genetic_modifications: pd.DataFrame,
-) -> List[Dict[str, Any]]:
+) -> pd.DataFrame:
     """
-    Processes the gene information DataFrame. If the allele is a human transgene,
-    replace the ensembl_id with the human one. Each model's alleles are processed independently.
-    Multiple entries are preserved for different alleles of the same gene.
+    Processes the gene modifications DataFrame by creating a new column, "ensembl_gene_id". If the allele is a human
+    transgene, "ensembl_gene_id" is filled with the value in "human_ensembl_id". Otherwise, the value is filled from
+    "mouse_ensembl_id". The "modified_gene" column is updated the same way, using the human gene symbol for human
+    transgenes and the mouse symbol for mouse genes.
 
-    This function assumes the input data has been pre-validated so that model_genetic_modifications
-    does not have any missing/NaN/none values in the "modified_gene" or "mouse_ensembl_id" columns.
-    Missing values in other columns of the DataFrame are allowed, and will be normalized to None.
+    Each model's alleles are processed independently. Multiple entries are preserved for different alleles of the same
+    gene.
+
+    This function assumes the input data has been pre-validated so that model_genetic_modifications does not have any
+    missing/NaN/none values in the "mouse_gene_symbol", "mouse_ensembl_id", "allele", "allele_type", and "mgi_allele_id"
+    columns.
 
     Args:
         model_genetic_modifications (pd.DataFrame): The DataFrame containing the allele and
             transgene information
 
     Returns:
-        List[Dict[str, Any]]: A list of dictionaries containing the processed gene information.
+        pd.DataFrame: The processed genetic modifications DataFrame.
     """
-    # Normalize missing values to None.
-    model_genetic_modifications = normalize_null_values(model_genetic_modifications)
+    # Verify that all rows with a human Ensembl ID also have a human gene symbol before mapping
+    present_symbol = model_genetic_modifications["human_gene_symbol"].notna()
+    present_id = model_genetic_modifications["human_ensembl_id"].notna()
+
+    mismatched = present_symbol != present_id
+    if mismatched.any():
+        raise ValueError(
+            f"Data Integrity Error: {int(mismatched.sum())} row(s) have a value in only one of "
+            "human_ensembl_id and human_gene_symbol. Values must be either both present or both missing."
+        )
 
     # Only override ensembl_id if we have a valid human_ensembl_id
     model_genetic_modifications["ensembl_gene_id"] = model_genetic_modifications.apply(
@@ -51,24 +110,31 @@ def process_genetic_info(
         lambda row: (
             row["human_gene_symbol"]
             if pd.notna(row["human_ensembl_id"])
-            else row["modified_gene"]
+            else row["mouse_gene_symbol"]
         ),
         axis=1,
     )
 
-    # Drop duplicates to ensure we don't have exact duplicates of the same allele
+    # Drop duplicates for the same model to ensure we don't have exact duplicates of the same allele
     model_genetic_modifications = model_genetic_modifications.drop_duplicates(
-        subset=["modified_gene", "allele", "mgi_allele_id"]
+        subset=["name", "ensembl_gene_id", "modified_gene", "allele", "mgi_allele_id"]
     )
 
     return model_genetic_modifications[
-        ["modified_gene", "ensembl_gene_id", "allele", "allele_type", "mgi_allele_id"]
-    ].to_dict(orient="records")
+        [
+            "name",
+            "modified_gene",
+            "ensembl_gene_id",
+            "allele",
+            "allele_type",
+            "mgi_allele_id",
+        ]
+    ]
 
 
 def build_expression_results_url(
     model_row: pd.Series, result_type: str = "transcriptomics"
-) -> Union[str, None]:
+) -> str | None:
     """
     Creates the link-url to the comparison table for a given model and result type. Currently supported result
     types are "transcriptomics" and "proteomics", where the default is "transcriptomics".

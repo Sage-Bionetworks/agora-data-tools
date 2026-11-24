@@ -12,6 +12,3 @@ agoradatatools = {editable = true, extras = ["dev"], path = "."}
 
 [requires]
 python_version = "3.11.15"
-
-[pipenv]
-allow_prereleases = true
