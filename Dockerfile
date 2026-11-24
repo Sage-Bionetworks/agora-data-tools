@@ -10,4 +10,5 @@ WORKDIR /agora-data-tools
 
 COPY . .
 
-RUN pip install --no-cache-dir .
+RUN pip install --no-cache-dir --upgrade pip pipenv && \
+    pipenv install --system --deploy

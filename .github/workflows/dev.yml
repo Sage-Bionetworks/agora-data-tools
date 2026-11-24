@@ -52,6 +52,28 @@ jobs:
           path: htmlcov
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
+  # The test and build jobs install with `pip install .`, which ignores Pipfile.lock.
+  # This job installs exactly what the lock pins and checks the package still imports,
+  # so a bad relock (e.g. a prerelease httpx that breaks synapseclient) fails CI.
+  lockfile-smoke-test:
+    needs: [pre-commit]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.15"
+      - name: Install Pipenv
+        run: |
+          pip install --only-binary=:all: pipenv==2026.11.0
+      - name: Install locked dependencies
+        run: pipenv sync
+      - name: Import the package and run the CLI
+        run: |
+          pipenv run python -c "import synapseclient, agoradatatools.process"
+          pipenv run adt --help
   # build job includes integration test
   build:
     needs: [test]
