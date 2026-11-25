@@ -19,6 +19,7 @@ from synapseclient.models import Folder
 logger = logging.getLogger(__name__)
 
 DATA_MANIFEST_FILENAME = "data_manifest.csv"
+SUPPORTED_FINAL_FORMATS = ("json", "csv")
 
 
 def check_provenance_id_file_id_consistency(
@@ -218,6 +219,14 @@ def process_dataset(
         None if GX is not enabled. Otherwise, a DatasetReport object.
     """
     dataset_name = list(dataset_obj.keys())[0]
+    final_format = dataset_obj[dataset_name]["final_format"]
+
+    if final_format not in SUPPORTED_FINAL_FORMATS:
+        raise ADTDataProcessingError(
+            f"Dataset '{dataset_name}' has final_format '{final_format}', which is not "
+            f"one of the currently supported formats: {', '.join(SUPPORTED_FINAL_FORMATS)}."
+        )
+
     dataset_report = DatasetReport(data_set=dataset_name)
     file_ids = []
 
@@ -263,23 +272,35 @@ def process_dataset(
             data=transform_result, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
-    if isinstance(transform_result, dict):
-        json_path = load.dict_to_json(
+    output_filename = dataset_name + "." + final_format
+    if isinstance(transform_result, (dict, list)) and final_format == "csv":
+        raise ADTDataProcessingError(
+            f"Dataset '{dataset_name}' has final_format 'csv' but its transform produced a "
+            f"{type(transform_result).__name__}, which is not currently supported."
+        )
+    elif isinstance(transform_result, dict):
+        output_path = load.dict_to_json(
             data_as_dict=transform_result,
             staging_path=staging_path,
-            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+            filename=output_filename,
         )
     elif isinstance(transform_result, list):
-        json_path = load.list_to_json(
+        output_path = load.list_to_json(
             data_as_list=transform_result,
             staging_path=staging_path,
-            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+            filename=output_filename,
+        )
+    elif final_format == "csv":
+        output_path = load.df_to_csv(
+            df=transform_result,
+            staging_path=staging_path,
+            filename=output_filename,
         )
     else:
-        json_path = load.df_to_json(
+        output_path = load.df_to_json(
             data_as_df=transform_result,
             staging_path=staging_path,
-            filename=dataset_name + "." + dataset_obj[dataset_name]["final_format"],
+            filename=output_filename,
         )
 
     gx_enabled = dataset_obj[dataset_name].get("gx_enabled", False)
@@ -287,7 +308,7 @@ def process_dataset(
     if gx_enabled:
         gx_runner = GreatExpectationsRunner(
             syn=syn,
-            dataset_path=json_path,
+            dataset_path=output_path,
             dataset_name=dataset_name,
             staging_path=staging_path,
             upload_folder=gx_folder if upload else None,
@@ -313,7 +334,7 @@ def process_dataset(
 
         if upload and not gx_runner.failures:
             file_id, file_version = load.load(
-                file_path=json_path,
+                file_path=output_path,
                 provenance=provenance_ids,
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,
@@ -331,7 +352,7 @@ def process_dataset(
     else:
         if upload:
             file_id, file_version = load.load(
-                file_path=json_path,
+                file_path=output_path,
                 provenance=provenance_ids,
                 destination=dataset_obj[dataset_name]["destination"],
                 syn=syn,

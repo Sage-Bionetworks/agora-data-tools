@@ -282,14 +282,19 @@ class GreatExpectationsRunner:
 
         logger.info(f"Running data validation on {self.expectation_suite_name}")
 
-        # Do not infer dtype from fields like strings that have numbers in them. The .replace is
-        # necessary because without dtype inference, all JSON nulls are read in as pd.NA, which
-        # causes issues with GX expectations expecting these values to be None.
-        gx_df = pd.read_json(self.dataset_path, dtype=False).replace({pd.NA: None})
-        if self.nested_columns:
-            gx_df = self.convert_nested_columns_to_json(
-                df=gx_df, nested_columns=self.nested_columns
-            )
+        if self.dataset_path.endswith(".csv"):
+            # CSV output has no nested structures to flatten; list values are converted to
+            # comma-joined strings by df_to_csv, so nested_columns handling isn't required.
+            gx_df = pd.read_csv(self.dataset_path)
+        else:
+            # Do not infer dtype from fields like strings that have numbers in them. The .replace is
+            # necessary because without dtype inference, all JSON nulls are read in as pd.NA, which
+            # causes issues with GX expectations expecting these values to be None.
+            gx_df = pd.read_json(self.dataset_path, dtype=False).replace({pd.NA: None})
+            if self.nested_columns:
+                gx_df = self.convert_nested_columns_to_json(
+                    df=gx_df, nested_columns=self.nested_columns
+                )
 
         validator = self.context.sources.pandas_default.read_dataframe(gx_df)
         expectation_suite = self.context.get_expectation_suite(
