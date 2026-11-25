@@ -1369,7 +1369,7 @@ class TestProcessDataset:
         self.patch_gx_runner_run.assert_not_called()
         self.patch_load.assert_not_called()
 
-    def test_process_dataset_final_format_tsv_failure(self, syn: synapseclient.Synapse):
+    def test_process_dataset_final_format_tsv_fails_fast(self, syn: synapseclient.Synapse):
         with pytest.raises(ADTDataProcessingError):
             process.process_dataset(
                 dataset_obj=self.dataset_object_tsv,
@@ -1378,44 +1378,10 @@ class TestProcessDataset:
                 syn=syn,
                 upload=False,
             )
-        self.patch_dict_to_json.assert_not_called()
-        self.patch_list_to_json.assert_not_called()
-        self.patch_df_to_json.assert_not_called()
-        self.patch_df_to_csv.assert_not_called()
-        self.patch_gx_runner_run.assert_not_called()
-        self.patch_load.assert_not_called()
-
-    def test_process_dataset_type_dict_final_format_tsv_failure(
-        self, syn: synapseclient.Synapse
-    ):
-        self.patch_standardize_values.return_value = dict()
-        with pytest.raises(ADTDataProcessingError):
-            process.process_dataset(
-                dataset_obj=self.dataset_object_tsv,
-                staging_path=STAGING_PATH,
-                gx_folder=GX_FOLDER,
-                syn=syn,
-                upload=False,
-            )
-        self.patch_dict_to_json.assert_not_called()
-        self.patch_list_to_json.assert_not_called()
-        self.patch_df_to_json.assert_not_called()
-        self.patch_df_to_csv.assert_not_called()
-        self.patch_gx_runner_run.assert_not_called()
-        self.patch_load.assert_not_called()
-
-    def test_process_dataset_type_list_final_format_tsv_failure(
-        self, syn: synapseclient.Synapse
-    ):
-        self.patch_standardize_values.return_value = list()
-        with pytest.raises(ADTDataProcessingError):
-            process.process_dataset(
-                dataset_obj=self.dataset_object_tsv,
-                staging_path=STAGING_PATH,
-                gx_folder=GX_FOLDER,
-                syn=syn,
-                upload=False,
-            )
+        self.patch_get_entity_as_df.assert_not_called()
+        self.patch_standardize_column_names.assert_not_called()
+        self.patch_standardize_values.assert_not_called()
+        self.patch_custom_transform.assert_not_called()
         self.patch_dict_to_json.assert_not_called()
         self.patch_list_to_json.assert_not_called()
         self.patch_df_to_json.assert_not_called()

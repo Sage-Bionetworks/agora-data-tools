@@ -219,6 +219,14 @@ def process_dataset(
         None if GX is not enabled. Otherwise, a DatasetReport object.
     """
     dataset_name = list(dataset_obj.keys())[0]
+    final_format = dataset_obj[dataset_name]["final_format"]
+
+    if final_format not in SUPPORTED_FINAL_FORMATS:
+        raise ADTDataProcessingError(
+            f"Dataset '{dataset_name}' has final_format '{final_format}', which is not "
+            f"one of the currently supported formats: {', '.join(SUPPORTED_FINAL_FORMATS)}."
+        )
+
     dataset_report = DatasetReport(data_set=dataset_name)
     file_ids = []
 
@@ -264,13 +272,6 @@ def process_dataset(
             data=transform_result, column_map=dataset_obj[dataset_name]["agora_rename"]
         )
 
-    final_format = dataset_obj[dataset_name]["final_format"]
-
-    if final_format not in SUPPORTED_FINAL_FORMATS:
-        raise ADTDataProcessingError(
-            f"Dataset '{dataset_name}' has final_format '{final_format}', which is not "
-            f"one of the currently supported formats: {', '.join(SUPPORTED_FINAL_FORMATS)}."
-        )
     output_filename = dataset_name + "." + final_format
     if isinstance(transform_result, (dict, list)) and final_format == "csv":
         raise ADTDataProcessingError(
