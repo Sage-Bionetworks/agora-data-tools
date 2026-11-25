@@ -20,6 +20,7 @@ pip install mygene
 import os
 from pathlib import Path
 import pandas as pd
+import numpy as np
 import mygene
 import synapseclient
 from agoradatatools.etl import extract, load, utils
@@ -129,10 +130,14 @@ def format_uniprot_ids(header_ids: set[str]) -> pd.DataFrame:
     Returns:
         A pandas DataFrame with columns "gene_symbol", "original_uniprot_id", and "uniprot_id".
     """
-    # Remove any NA or empty string values from header_ids before splitting the strings
+    # Remove any NA, empty string values, and non-valid values from header_ids before splitting the strings
+    header_ids_clean = header_ids - {None, np.nan, ""}
     header_ids_clean = {
-        header_id for header_id in header_ids if header_id and "|" in header_id
+        header_id for header_id in header_ids_clean if header_id and "|" in header_id
     }
+
+    if not header_ids_clean:
+        raise ValueError("No valid header IDs found")
 
     # Print a message if NA values were found, as a warning
     if len(header_ids) != len(header_ids_clean):
@@ -179,8 +184,27 @@ def format_mygene_results(results: dict[str, list[dict | str]]) -> pd.DataFrame:
     Returns:
         A pandas DataFrame with columns "uniprot_id" and "ensembl_gene_id", containing only UniProt IDs that were
         successfully mapped to at least one Ensembl ID.
+
+    Raises:
+        ValueError: If the results dictionary contains an "error" key
+        ValueError: If the results dictionary does not contain the "out" key
+        ValueError: If the results dictionary does not contain the "query" and/or "ensembl" keys.
     """
-    res_df = pd.DataFrame(results["out"]).rename(columns={"query": "uniprot_id"})
+    if "error" in results:
+        raise ValueError(f"The MyGene service produced an error: {results['error']}")
+
+    if "out" not in results:
+        raise ValueError("The MyGene service produced an unknown error.")
+
+    res_df = pd.DataFrame(results["out"])
+
+    if "query" not in res_df.columns:
+        raise ValueError("MyGene returned malformed results")
+
+    if "ensembl" not in res_df.columns:
+        raise ValueError("MyGene did not find any matching Ensembl IDs")
+
+    res_df = res_df.rename(columns={"query": "uniprot_id"})
     res_df["ensembl_gene_id"] = res_df["ensembl"].apply(_extract_ensembl_ids)
 
     # Make one row per Ensembl ID and drop any rows that didn't map to any Ensembl ID
