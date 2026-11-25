@@ -1369,7 +1369,9 @@ class TestProcessDataset:
         self.patch_gx_runner_run.assert_not_called()
         self.patch_load.assert_not_called()
 
-    def test_process_dataset_final_format_tsv_fails_fast(self, syn: synapseclient.Synapse):
+    def test_process_dataset_final_format_tsv_fails_fast(
+        self, syn: synapseclient.Synapse
+    ):
         with pytest.raises(ADTDataProcessingError):
             process.process_dataset(
                 dataset_obj=self.dataset_object_tsv,
