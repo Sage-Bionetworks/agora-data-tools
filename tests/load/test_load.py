@@ -176,6 +176,24 @@ class TestDFToCSV:
         assert written_csv.loc[0, "nominating_teams"] == "ASU,Duke,Emory-Sage-SGC"
         os.remove("./staging/test.csv")
 
+    def test_df_to_csv_preserves_nullable_int_dtype_alongside_list_column(self):
+        mock.patch.stopall()  # undo the mocked to_csv from setup_method for this test
+        df = pd.DataFrame(
+            {
+                "common_name": ["Agomelatine", "Amibegron"],
+                "year_of_first_approval": pd.array([2009, pd.NA], dtype="Int64"),
+                "programs": [["ACTDRx AD"], ["ACTDRx AD", "TREAT-AD"]],
+            }
+        )
+        load.df_to_csv(df=df, staging_path="./staging", filename="test.csv")
+        written_csv = pd.read_csv("./staging/test.csv")
+        # A plain int (not "2009.0") confirms the nullable Int64 dtype survived the
+        # list-join step for the unrelated "programs" column.
+        assert written_csv.loc[0, "year_of_first_approval"] == 2009
+        assert pd.isna(written_csv.loc[1, "year_of_first_approval"])
+        assert written_csv.loc[1, "programs"] == "ACTDRx AD,TREAT-AD"
+        os.remove("./staging/test.csv")
+
 
 class TestDictToJSON:
     df_dict = {"a": "b", "c": {"d": "e"}}

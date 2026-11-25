@@ -141,9 +141,18 @@ def df_to_csv(df: pd.DataFrame, staging_path: str, filename: str) -> str:
         str: Returns a string containing the name of the new CSV file
     """
 
-    df = df.map(
-        lambda cell: ",".join(map(str, cell)) if isinstance(cell, list) else cell
-    )
+    # Only touch columns that actually contain list values, rather than mapping over the
+    # whole DataFrame: df.map() does not preserve nullable extension dtypes (e.g. "Int64"),
+    # silently coercing them back to float64 (and reintroducing a trailing ".0" on export)
+    # even for columns that never contained a list in the first place.
+    df = df.copy()
+    for column in df.columns:
+        if df[column].apply(lambda cell: isinstance(cell, list)).any():
+            df[column] = df[column].apply(
+                lambda cell: ",".join(map(str, cell))
+                if isinstance(cell, list)
+                else cell
+            )
     temp_csv = open(os.path.join(staging_path, filename), "w+")
     df.to_csv(path_or_buf=temp_csv, index=False)
     temp_csv.close()
