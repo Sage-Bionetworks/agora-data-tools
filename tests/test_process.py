@@ -788,6 +788,15 @@ class TestProcessDataset:
         }
     }
 
+    dataset_object_tsv = {
+        "neuropath_corr": {
+            "files": [{"name": "test_file_1", "id": "syn1111111", "format": "csv"}],
+            "final_format": "tsv",
+            "provenance": ["syn1111111"],
+            "destination": "syn1111113",
+        }
+    }
+
     def setup_method(self):
         self.patch_get_entity_as_df = patch.object(
             extract, "get_entity_as_df", return_value=pd.DataFrame
@@ -1222,6 +1231,7 @@ class TestProcessDataset:
         self.patch_rename_columns.assert_not_called()
         self.patch_custom_transform.assert_not_called()
         self.patch_df_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
 
     def test_process_dataset_upload_false_gx_not_specified_final_format_csv(
         self, syn: synapseclient.Synapse
@@ -1347,6 +1357,60 @@ class TestProcessDataset:
         with pytest.raises(ADTDataProcessingError):
             process.process_dataset(
                 dataset_obj=self.dataset_object_csv,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+            )
+        self.patch_dict_to_json.assert_not_called()
+        self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_not_called()
+
+    def test_process_dataset_final_format_tsv_failure(self, syn: synapseclient.Synapse):
+        with pytest.raises(ADTDataProcessingError):
+            process.process_dataset(
+                dataset_obj=self.dataset_object_tsv,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+            )
+        self.patch_dict_to_json.assert_not_called()
+        self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_not_called()
+
+    def test_process_dataset_type_dict_final_format_tsv_failure(
+        self, syn: synapseclient.Synapse
+    ):
+        self.patch_standardize_values.return_value = dict()
+        with pytest.raises(ADTDataProcessingError):
+            process.process_dataset(
+                dataset_obj=self.dataset_object_tsv,
+                staging_path=STAGING_PATH,
+                gx_folder=GX_FOLDER,
+                syn=syn,
+                upload=False,
+            )
+        self.patch_dict_to_json.assert_not_called()
+        self.patch_list_to_json.assert_not_called()
+        self.patch_df_to_json.assert_not_called()
+        self.patch_df_to_csv.assert_not_called()
+        self.patch_gx_runner_run.assert_not_called()
+        self.patch_load.assert_not_called()
+
+    def test_process_dataset_type_list_final_format_tsv_failure(
+        self, syn: synapseclient.Synapse
+    ):
+        self.patch_standardize_values.return_value = list()
+        with pytest.raises(ADTDataProcessingError):
+            process.process_dataset(
+                dataset_obj=self.dataset_object_tsv,
                 staging_path=STAGING_PATH,
                 gx_folder=GX_FOLDER,
                 syn=syn,

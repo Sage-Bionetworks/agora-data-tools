@@ -19,6 +19,7 @@ from synapseclient.models import Folder
 logger = logging.getLogger(__name__)
 
 DATA_MANIFEST_FILENAME = "data_manifest.csv"
+SUPPORTED_FINAL_FORMATS = ("json", "csv")
 
 
 def check_provenance_id_file_id_consistency(
@@ -264,8 +265,13 @@ def process_dataset(
         )
 
     final_format = dataset_obj[dataset_name]["final_format"]
-    output_filename = dataset_name + "." + final_format
 
+    if final_format not in SUPPORTED_FINAL_FORMATS:
+        raise ADTDataProcessingError(
+            f"Dataset '{dataset_name}' has final_format '{final_format}', which is not "
+            f"one of the currently supported formats: {', '.join(SUPPORTED_FINAL_FORMATS)}."
+        )
+    output_filename = dataset_name + "." + final_format
     if isinstance(transform_result, (dict, list)) and final_format == "csv":
         raise ADTDataProcessingError(
             f"Dataset '{dataset_name}' has final_format 'csv' but its transform produced a "
