@@ -3,7 +3,7 @@ Create a UniProt -> Ensembl ID Mapping File
 
 This script creates a file that maps UniProt accession numbers onto Ensembl IDs. It uses all UniProt IDs that are
 present in the Model-AD proteomics source files, queries `mygene` for matching Ensembl IDs, and writes the file to a
-tsv. The output file has columns "uniprot_id" and "ensembl_gene_id", and only contains UniProt IDs that successfully map
+csv. The output file has columns "uniprot_id" and "ensembl_gene_id", and only contains UniProt IDs that successfully map
 to at least one Ensembl ID.
 
 Installation requirements:
@@ -17,26 +17,21 @@ pip install mygene
 ```
 """
 
-from typing import Any
-import pathlib
+import os
+from pathlib import Path
 import pandas as pd
 import mygene
 import synapseclient
-import agoradatatools.etl.load as adt_load
-import agoradatatools.etl.extract as extract
-import agoradatatools.etl.utils as utils
+from agoradatatools.etl import extract, load, utils
 from preprocessing.preprocessing_utils import (
     DEFAULT_MODEL_AD_CONFIG_FILE,
     DEFAULT_MODEL_AD_SOURCE_FOLDER_ID,
-    DEFAULT_OUTPUT_PATH,
     get_nested_dict_item,
+    get_staging_path,
 )
 
-# This file exists in agora-data-tools/src/preprocessing/model_ad, so the repo root is 4 parents up (0-indexed)
-REPO_ROOT = pathlib.Path(__file__).parents[3]
-
-# Default output should go in agora-data-tools/staging_preprocessing
-DEFAULT_OUTPUT_FILE = REPO_ROOT / DEFAULT_OUTPUT_PATH / "uniprot_to_ensembl_mapping.csv"
+# Default filename for the UniProt -> Ensembl mapping output
+DEFAULT_OUTPUT_FILENAME = "uniprot_to_ensembl_mapping.csv"
 
 # Config file item names
 PROTEOMICS_DATA_SETS = ["protein_de_individual", "protein_de_aggregate"]
@@ -116,7 +111,7 @@ def extract_ids_from_file(df: pd.DataFrame) -> list[str]:
     Raises:
         ValueError: If the DataFrame format is unrecognized.
     """
-    if "specimenID" in df.columns:
+    if {"specimenID", "individualID"}.issubset(df.columns):
         return df.drop(columns=["specimenID", "individualID"]).columns.tolist()
     elif "Protein ID" in df.columns:
         return df["Protein ID"].tolist()
@@ -134,28 +129,35 @@ def format_uniprot_ids(header_ids: set[str]) -> pd.DataFrame:
     Returns:
         A pandas DataFrame with columns "gene_symbol", "original_uniprot_id", and "uniprot_id".
     """
+    # Remove any NA or empty string values from header_ids before splitting the strings
+    header_ids_clean = {
+        header_id for header_id in header_ids if header_id and "|" in header_id
+    }
+
+    # Print a message if NA values were found, as a warning
+    if len(header_ids) != len(header_ids_clean):
+        print(
+            f"{len(header_ids) - len(header_ids_clean)} NA values found in `header_ids`"
+        )
+
+    # Split into gene symbols and Uniprot IDs
     uniprot_dict = [
         {"gene_symbol": symbol, "original_uniprot_id": uniprot}
-        for symbol, uniprot in (header_id.split("|") for header_id in header_ids)
+        for symbol, uniprot in (header_id.split("|") for header_id in header_ids_clean)
     ]
     uniprot_df = pd.DataFrame(uniprot_dict)
 
     # Remove isoform notation from uniprot IDs
     uniprot_df["uniprot_id"] = uniprot_df["original_uniprot_id"].str.split("-").str[0]
 
-    # Manual fix: "P02649E4" actually means "P02649" (APOE E4 allele)
-    uniprot_df.loc[
-        uniprot_df["original_uniprot_id"] == "P02649E4", "uniprot_id"
-    ] = "P02649"
-
     return uniprot_df
 
 
-def _extract_ensembl_ids(item: Any) -> list[str]:
+def _extract_ensembl_ids(item: dict | list | float) -> list[str]:
     """
     Helper function for `format_mygene_results`.
     Extracts Ensembl IDs from the given item, which may be a dict of {"gene": "<ensembl_id>"}, a list of such dicts, or
-    NA.
+    NA (np.NaN is a float type).
     """
     if isinstance(item, list):
         return [x["gene"] for x in item]
@@ -164,7 +166,7 @@ def _extract_ensembl_ids(item: Any) -> list[str]:
     return []
 
 
-def format_mygene_results(results: dict[str, Any]) -> pd.DataFrame:
+def format_mygene_results(results: dict[str, list[dict | str]]) -> pd.DataFrame:
     """
     Formats the results returned by MyGene into a DataFrame with one row per Ensembl ID. MyGene results are a nested
     dictionary, and also include Ensembl IDs for related species that share the same UniProt ID. This function filters
@@ -188,8 +190,9 @@ def format_mygene_results(results: dict[str, Any]) -> pd.DataFrame:
         .dropna(subset=["ensembl_gene_id"])
     )
 
-    # Remove non-human and non-mouse Ensembl IDs
-    res_df = res_df[res_df["ensembl_gene_id"].str.startswith(("ENSG", "ENSMUSG"))]
+    # Remove non-MUSG Ensembl IDs: mygene searches all mouse species, not just Mus musculus, and
+    # returns those results as well.
+    res_df = res_df[res_df["ensembl_gene_id"].str.startswith("ENSMUSG")]
 
     # Sort the result for easier file diffs during updates
     return res_df.sort_values(["uniprot_id", "ensembl_gene_id"])
@@ -283,6 +286,7 @@ def map_accessions(
         set(uniprot_df["uniprot_id"]),
         scopes="uniprot",
         fields=["ensembl.gene"],
+        species="mouse",
         returnall=True,
     )
 
@@ -293,10 +297,10 @@ def map_accessions(
     print_stats(uniprot_df, mapping)
 
     # 5. Save the mapping to a file and upload to Synapse
-    output_folder_path = pathlib.Path(output_file).parent
-    output_folder_path.mkdir(parents=True, exist_ok=True)
-
-    mapping.to_csv(path_or_buf=output_file, header=True, index=False)
+    staging_path = get_staging_path(config_file)
+    output_file = load.df_to_csv(
+        mapping, staging_path=staging_path, filename=output_file
+    )
 
     if upload_to_synapse:
         if upload_synid is None:
@@ -304,16 +308,24 @@ def map_accessions(
                 "upload_synid must be provided if upload_to_synapse is True"
             )
 
-        syn_file = adt_load.load(
+        syn_file = load.load(
             output_file, provenance=syn_ids, destination=upload_synid, syn=syn
         )
         print(f"\nUploaded to {syn_file[0]}.{syn_file[1]}\n")
 
 
 if __name__ == "__main__":
+    # This file is located at agora-data-tools/src/preprocessing/model_ad/map_uniprot_to_ensembl.py,
+    # so the repository root is 4 parents up (0-indexed)
+    repo_root = Path(__file__).parents[3]
+
+    # Force the working directory to be the repository root no matter where this script is run from
+    os.chdir(repo_root)
+
+    # Run main function
     map_accessions(
-        str(REPO_ROOT / DEFAULT_MODEL_AD_CONFIG_FILE),
-        str(DEFAULT_OUTPUT_FILE),
+        config_file=DEFAULT_MODEL_AD_CONFIG_FILE,
+        output_file=DEFAULT_OUTPUT_FILENAME,
         upload_to_synapse=True,
         upload_synid=DEFAULT_MODEL_AD_SOURCE_FOLDER_ID,
     )
