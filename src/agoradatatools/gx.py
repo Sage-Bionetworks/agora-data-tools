@@ -283,8 +283,8 @@ class GreatExpectationsRunner:
         logger.info(f"Running data validation on {self.expectation_suite_name}")
 
         if self.dataset_path.endswith(".csv"):
-            # CSV output has no nested JSON structure left to flatten (list values are already
-            # comma-joined by df_to_csv), so nested_columns handling doesn't apply here.
+            # CSV output has no nested structures to flatten; list values are converted to
+            # comma-joined strings by df_to_csv, so nested_columns handling isn't required.
             gx_df = pd.read_csv(self.dataset_path)
         else:
             # Do not infer dtype from fields like strings that have numbers in them. The .replace is
