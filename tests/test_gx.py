@@ -298,6 +298,47 @@ class TestGreatExpectationsRunner:
                 patch_checkpoint_run.return_value
             )
 
+    def test_run_when_expectation_suite_exists_and_dataset_path_is_csv(
+        self,
+    ):
+        self.good_runner.dataset_path = "./tests/test_assets/gx/nominated_drugs.csv"
+        with patch.object(
+            self.good_runner, "check_if_expectation_suite_exists", return_value=True
+        ) as patch_check_if_expectation_suite_exists, patch.object(
+            pd, "read_csv", return_value=pd.DataFrame()
+        ) as patch_read_csv, patch.object(
+            pd, "read_json", return_value=pd.DataFrame()
+        ) as patch_read_json, patch.object(
+            self.good_runner,
+            "convert_nested_columns_to_json",
+            return_value=pd.DataFrame(),
+        ) as patch_convert_nested_columns_to_json, patch.object(
+            self.good_runner, "get_results_path", return_value="test_path"
+        ) as patch_get_results_path, patch.object(
+            self.good_runner, "write_report_to_staging", return_value=None
+        ) as patch_write_report_to_staging, patch.object(
+            self.good_runner, "upload_results_file_to_synapse", return_value=None
+        ) as patch_upload_results_file_to_synapse, patch.object(
+            Checkpoint,
+            "run",
+            return_value=self.passed_checkpoint_result,
+        ) as patch_checkpoint_run, patch.object(
+            self.good_runner, "set_warnings_and_failures"
+        ) as patch_set_warnings_and_failures:
+            self.good_runner.nested_columns = ["a"]
+            self.good_runner.run()
+            patch_check_if_expectation_suite_exists.assert_called_once()
+            patch_read_csv.assert_called_once_with(self.good_runner.dataset_path)
+            patch_read_json.assert_not_called()
+            patch_convert_nested_columns_to_json.assert_not_called()
+            patch_checkpoint_run.assert_called_once()
+            patch_get_results_path.assert_called_once()
+            patch_write_report_to_staging.assert_called_once_with("test_path")
+            patch_upload_results_file_to_synapse.assert_called_once_with("test_path")
+            patch_set_warnings_and_failures.assert_called_once_with(
+                patch_checkpoint_run.return_value
+            )
+
     def test_run_when_expectation_suite_exists_and_no_nested_columns(
         self,
     ):
