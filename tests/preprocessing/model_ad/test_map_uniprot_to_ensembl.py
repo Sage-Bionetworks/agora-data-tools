@@ -223,9 +223,6 @@ class TestMapUniprotToEnsembl:
         is set to False. We don't check that all functions are called, instead we check that `df_to_csv` is called but
         `load` is not.
         """
-        self.patch_df_to_csv.return_value = "/tmp/staging/file.csv"
-
-        # This function doesn't return anything
         map_accessions(
             config_file="config.yml",
             output_file="file.csv",
@@ -242,8 +239,6 @@ class TestMapUniprotToEnsembl:
         """
         Tests that map_accessions raises an error when upload_to_synapse is True but no upload_synid is provided.
         """
-        self.patch_df_to_csv.return_value = "/tmp/staging/file.csv"
-
         with pytest.raises(ValueError, match="upload_synid must be provided"):
             map_accessions(
                 config_file="config.yml",
@@ -579,10 +574,20 @@ class TestFormatUniprotIds:
 
     def test_invalid_ids_are_removed(self, capsys):
         """
-        None, NaN, empty strings, and strings without a "|" separator should be dropped, and the number dropped should
-        be printed as a warning.
+        None, NaN, empty strings, and strings without a "|" separator, and non-strings should be dropped, and the number
+        dropped should be printed as a warning.
         """
-        header_ids = {"Gene1|P12345", None, np.nan, "", "no_separator"}
+        header_ids = {
+            "Gene1|P12345",
+            # All of these should be removed
+            None,
+            np.nan,
+            "",
+            "no_separator",
+            123,
+            True,
+            ("tuple|1", "tuple|2"),
+        }
 
         result = format_uniprot_ids(header_ids)
         expected = pd.DataFrame(
@@ -593,7 +598,7 @@ class TestFormatUniprotIds:
             }
         )
         pd.testing.assert_frame_equal(self._sorted(result), self._sorted(expected))
-        assert "4 NA values found in `header_ids`" in capsys.readouterr().out
+        assert "7 NA values found in `header_ids`" in capsys.readouterr().out
 
     def test_no_warning_when_all_ids_valid(self, capsys):
         """
@@ -812,8 +817,7 @@ class TestFormatMygeneResults:
 
     def test_malformed_results_raises(self):
         """
-        If the results dictionary is malformed and does not contain the "query" and "ensembl" keys, an exception should
-        be raised.
+        If the results dictionary is malformed and does not contain the "query" key, an exception should be raised.
         """
         results = {"out": [{"not_query": "Q00001", "ensembl": {"gene": "ENSMUSG01"}}]}
 

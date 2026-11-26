@@ -149,32 +149,9 @@ class TestGetNestedDictItem:
         Tests that the first occurrence of the key is returned, even if the value is equal to the default value. In this
         test, the search should find "key" inside "a" and stop the search, rather than moving on to "b".
         """
-        data = {"a": {"key": None}, "b": {"key": "second"}}
+        data = {"a": {"key": None}}
         result = get_nested_dict_item(data, "key", default=None)
         assert result is None
-
-    def test_parent_level_key_takes_precedence_over_nested(self):
-        """
-        Tests that a key match in the parent level's keys is returned, instead of any matches deeper in the nest. In
-        this test, the parent-level keys are "a" and "key", so despite "a" being first in the dict, the top-level match
-        to "key" should be returned instead of a[key].
-        """
-        data = {"a": {"key": "nested"}, "key": "top"}
-        result = get_nested_dict_item(data, "key")
-        assert result == "top"
-
-    def test_children_searched_depth_first_in_key_order(self):
-        """
-        Tests that each child item is completely searched before moving on to the next child item. "key" appears twice
-        in the nest, but "first" should be searched completely before "second" is searched. The value from the "first"
-        dict should be returned even though it nested deeper than the value in "second".
-        """
-        data = {
-            "first": {"deeper": {"key": "first_deep"}},
-            "second": {"key": "second_shallow"},
-        }
-        result = get_nested_dict_item(data, "key")
-        assert result == "first_deep"
 
     def test_searches_tuple_of_dicts(self):
         """
@@ -183,14 +160,6 @@ class TestGetNestedDictItem:
         data = {"items": ({"a": 1}, {"key": "in_tuple"})}
         result = get_nested_dict_item(data, "key")
         assert result == "in_tuple"
-
-    def test_list_items_searched_in_order(self):
-        """
-        Tests that list items are searched completely, in list order, and the first match is returned.
-        """
-        data = {"items": [{"other": {"key": "first"}}, {"key": "second"}]}
-        result = get_nested_dict_item(data, "key")
-        assert result == "first"
 
     def test_non_dict_list_items_ignored(self):
         """
@@ -274,3 +243,11 @@ class TestGetNestedDictItem:
             match=f"The 'dictionary' argument must be of type dict, got {type_name}",
         ):
             get_nested_dict_item(bad_input, "a")
+
+    def test_duplicate_keys_raise_error(self):
+        """
+        Tests that providing a dictionary with duplicate keys at any level raises an error.
+        """
+        data = {"a": {"key": "first"}, "b": {"inner": {"key": "second"}}}
+        with pytest.raises(ValueError, match="Duplicate keys found for 'key'"):
+            get_nested_dict_item(data, "key")

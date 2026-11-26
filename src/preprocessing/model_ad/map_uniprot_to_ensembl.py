@@ -20,7 +20,6 @@ pip install mygene
 import os
 from pathlib import Path
 import pandas as pd
-import numpy as np
 import mygene
 import synapseclient
 from agoradatatools.etl import extract, load, utils
@@ -131,9 +130,10 @@ def format_uniprot_ids(header_ids: set[str]) -> pd.DataFrame:
         A pandas DataFrame with columns "gene_symbol", "original_uniprot_id", and "uniprot_id".
     """
     # Remove any NA, empty string values, and non-valid values from header_ids before splitting the strings
-    header_ids_clean = header_ids - {None, np.nan, ""}
     header_ids_clean = {
-        header_id for header_id in header_ids_clean if header_id and "|" in header_id
+        header_id
+        for header_id in header_ids
+        if isinstance(header_id, str) and "|" in header_id
     }
 
     if not header_ids_clean:

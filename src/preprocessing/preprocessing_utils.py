@@ -50,35 +50,22 @@ def get_nested_dict_item(
     Recursively search for a key in a nested dictionary and return its value. Child values that are dicts or
     lists/tuples of dicts are searched, while other values are ignored.
 
-    If the query key exists in the current dictionary's keys, the function returns dictionary[key] immediately.
-    Otherwise, the function searches each child object in key order, searching each child in full before moving on to
-    the next child in the dict.
-
-    If a child item is a list/tuple of dictionaries, its children are searched in full as above, in list order. Non-dict
-    items in the list are ignored.
-
-    This function also assumes that the query key only exists once in the nested structure. If duplicate keys exist,
-    only the first occurrence found will be returned.
+    This function requires that the query key only exists once in the nested structure. It searches the whole nested
+    structure and, if duplicate keys exist, an error will be raised.
 
     Returns the default value if the key is not found.
 
-    Example (includes duplicate key examples for "x" and "z"):
+    Example:
         nested_dict = {
             "a": {"b": {"c": 10}},
             "d": [
-                {"e": 20, "x": 25},
-                {"x": 30}
-            ],
-            "f": {
-                "g": {"z": 40},
-                "z": 50
-            }
+                {"e": [{"f": 20}, {"g": "val1"}]},
+                {"h": 30}
+            ]
         }
         get_nested_dict_item(nested_dict, "b")  # Returns {'c': 10}
         get_nested_dict_item(nested_dict, "c")  # Returns 10
-        get_nested_dict_item(nested_dict, "x")  # Returns 25, the first occurrence in list order
-        get_nested_dict_item(nested_dict, "z")  # Returns 50: matching key found in "f" before the
-                                                # search looked at the nested "g" dict
+        get_nested_dict_item(nested_dict, "g")  # Returns "val1"
 
     Args:
         dictionary (dict[Any, Any]): The nested dictionary to search.
@@ -90,17 +77,20 @@ def get_nested_dict_item(
 
     Raises:
         TypeError: If the 'dictionary' argument is not of type dict.
+        ValueError: If duplicate keys are found in the nested dictionary.
     """
     if not isinstance(dictionary, dict):
         raise TypeError(
             f"The 'dictionary' argument must be of type dict, got {type(dictionary).__name__}"
         )
 
-    # Return immediately if the key exists in the current dictionary
-    if key in dictionary:
-        return dictionary[key]
+    found_values = []
 
-    # Recursively search children if the key is not found at the current level
+    # Look at the current set of keys first
+    if key in dictionary:
+        found_values.append(dictionary[key])
+
+    # Then, recursively search children
     for value in dictionary.values():
         if isinstance(value, dict):
             children = [value]
@@ -114,7 +104,14 @@ def get_nested_dict_item(
             # between a key not found and a key with a value equal to the default.
             result = get_nested_dict_item(child, key, _MISSING_KEY)
             if result is not _MISSING_KEY:
-                return result
+                found_values.append(result)
+
+    # If we have found any values, found_values should be a list of length 1. If it's longer, there
+    # were duplicate keys and an error should be raised. Otherwise, return the single value.
+    if found_values:
+        if len(found_values) > 1:
+            raise ValueError(f"Duplicate keys found for '{key}'")
+        return found_values[0]
 
     # If no children, or key not found in any children, return the default value.
     return default
