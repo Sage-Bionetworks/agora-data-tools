@@ -313,7 +313,7 @@ class TestGetProteomicsFileSynIds:
         # Find which dataset in the list we should edit
         index = [
             x
-            for x in range(1, len(config["datasets"]))
+            for x in range(0, len(config["datasets"]))
             if dataset in config["datasets"][x]
         ]
         if not index:
